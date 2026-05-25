@@ -1,0 +1,157 @@
+/* RichTextInput — input-styled rich text surface with a floating toolbar that
+   appears on focus. Mirrors the visual language of the plain Input component
+   so it slots into existing forms without standing out. */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  max-width: 600px;
+  position: relative;
+}
+
+.label {
+  padding-left: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.surface {
+  /* anchor-name is set inline per-instance via React's `useId` —
+     hardcoding `--rte` here would collapse every RichTextInput on the
+     page onto a single anchor, so toggling one editor's toolbar would
+     reposition every other editor's toolbar. */
+  position: relative;
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  transition: border-color var(--duration-base, 300ms) ease-in-out;
+
+  &.noBorders {
+    border-color: transparent;
+  }
+}
+
+.surface:hover {
+  border: var(--border-size-sm) solid var(--border-default);
+  border-color: var(--action-hover);
+}
+
+.surface:focus-within {
+  border: var(--border-size-sm) solid var(--border-default);
+  border-color: var(--border-focus);
+}
+
+/* Floating toolbar wrapper — anchored to the surface via CSS Anchor
+   Positioning so it sits just above the input regardless of where the input
+   lives in the page flow. `position: fixed` keeps it out of the surface's
+   overflow/border box. z-index ensures it paints over any positioned
+   siblings (e.g. the SpeakerNotesDrawer at z-index 2). */
+.floatingToolbar {
+  /* position-anchor is set inline per-instance to match the surface's
+     anchor-name (also set inline). See `.surface` above for the why. */
+  position: fixed;
+  bottom: anchor(top);
+  left: anchor(left);
+  margin-bottom: var(--space-1);
+  z-index: var(--z-tooltip);
+}
+
+/* Link editor — when open, hangs off the bottom-left of the toolbar so it
+   visually sits "below" the format toolbar (overlapping the input area)
+   without resizing the toolbar wrapper above it. */
+.linkPopover {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+}
+
+.editor {
+  min-height: 2.5rem;
+  padding: var(--p-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  outline: none;
+}
+
+.editor p {
+  margin: 0;
+}
+
+/* Placeholder is rendered by @tiptap/extensions/Placeholder, which tags the
+   empty paragraph with the `is-editor-empty` class — kebab-case is TipTap's
+   convention, not ours, so disable the camelCase + pseudo-class rules. */
+
+/* stylelint-disable selector-class-pattern, selector-pseudo-class-no-unknown */
+.editor :global(p.is-editor-empty:first-child)::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+/* stylelint-enable */
+
+/* ─── Toolbar ───────────────────────────────────────────────────────────── */
+
+/* The toolbar surface chrome (border, bg, shadow, row layout, button +
+   divider + group-label styles) lives in the shared Popover component —
+   only RichTextInput-specific bits stay here. */
+
+.linkInput {
+  flex: 1;
+  min-width: 200px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.linkInput:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.linkApply,
+.linkRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) ease-out;
+}
+
+.linkApply {
+  background-color: var(--action-active);
+  border-color: var(--action-active);
+  color: var(--white-100);
+}
+
+.linkApply:hover {
+  background-color: var(--action-hover);
+  border-color: var(--action-hover);
+}
+
+.linkRemove:hover {
+  background-color: var(--bg-subtle);
+}
+
+/* stylelint-disable-next-line selector-pseudo-class-no-unknown */
+:global(.tiptap) {
+  text-align: start;
+}

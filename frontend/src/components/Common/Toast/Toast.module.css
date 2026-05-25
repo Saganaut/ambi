@@ -1,0 +1,99 @@
+.toastContainer {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: var(--z-tooltip);
+  pointer-events: none;
+}
+
+/* Toast — variant maps to a className modifier. The base .toast declares the  */
+
+/* canonical component vars; nested variant classes override only the color    */
+
+/* triplet.                                                                    */
+.toast {
+  --padding: var(--p-sm);
+  --radius: var(--radius-lg);
+  --color: var(--text-primary);
+  --background-color: var(--bg-surface);
+  --border-color: var(--border-default);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  gap: var(--space-4);
+  padding: var(--padding);
+  border-radius: var(--radius);
+  border: var(--border-size-sm) solid var(--border-color);
+  background-color: var(--background-color);
+  color: var(--color);
+  box-shadow: var(--shadow-md);
+  min-width: 260px;
+  max-width: 420px;
+  pointer-events: all;
+  transition:
+    background-color var(--duration-base) ease-in-out,
+    color var(--duration-base) ease-in-out,
+    border-color var(--duration-base) ease-in-out;
+
+  /* ─── Variants ─────────────────────────────────────────────── */
+  &.error {
+    --color: var(--text-error);
+    --background-color: var(--bg-error);
+    --border-color: var(--border-error);
+  }
+
+  &.success {
+    --color: var(--text-success);
+    --background-color: var(--bg-success);
+    --border-color: var(--border-success);
+  }
+
+  &.warning {
+    --color: var(--text-warning);
+    --background-color: var(--bg-warning);
+    --border-color: var(--border-warning);
+  }
+
+  &.info {
+    --color: var(--text-info);
+    --background-color: var(--bg-info);
+    --border-color: var(--border-info);
+  }
+
+  &.brand {
+    --color: var(--text-on-brand);
+    --background-color: var(--bg-brand);
+    --border-color: var(--border-brand);
+  }
+
+  .closeBtn {
+    position: absolute;
+    right: 10px;
+  }
+}
+
+.message {
+  font-size: var(--font-size-sm);
+  flex: 1;
+}
+
+.dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  padding: 0 var(--space-1);
+  opacity: 0.7;
+  transition: opacity var(--duration-fast);
+
+  &:hover {
+    opacity: 1;
+  }
+}

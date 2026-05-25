@@ -1,0 +1,55 @@
+.root {
+  container-type: inline-size;
+  height: 100%;
+}
+
+.accordion {
+  .accordionTitle {
+    margin: 0;
+  }
+
+  .accordionTitleSection {
+    display: flex;
+    width: 100%;
+    cursor: pointer;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--p-sm);
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+
+    &:hover {
+      color: var(--action-hover);
+    }
+
+    svg {
+      width: 20px; /* Ensure size is defined */
+      height: 20px;
+      transform: rotate(0deg);
+      transition: transform 300ms ease-in-out;
+    }
+
+    &.isCollapsed {
+      svg {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  .collapsableSection {
+    max-height: 9999px;
+    transition:
+      max-height 300ms ease-in-out,
+      opacity 300ms ease-in-out;
+    opacity: 1;
+
+    &.isCollapsed {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+    }
+  }
+}

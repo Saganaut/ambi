@@ -1,0 +1,91 @@
+/*
+ * Distribution list — horizontal bars with label + display value. Variable
+ * manifest on the row:
+ *   --bar-color | --bar-bg | --label-color
+ *
+ * `[data-highlight="true"]` flips the bar to the success tint (used for the
+ * correct MCQ option, etc). The fill width animates in with --duration-base
+ * so the dashboard feels responsive without being twitchy. Reduced-motion
+ * users skip the transition.
+ */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.caption {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  .row {
+    display: grid;
+    grid-template-columns: minmax(80px, 1fr) minmax(0, 3fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--font-size-sm);
+
+    .label {
+      color: var(--label-color, var(--text-primary));
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .track {
+      height: 0.625rem;
+      background-color: var(--bar-bg, var(--bg-subtle));
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .fill {
+      display: block;
+      height: 100%;
+      background-color: var(--bar-color, var(--bg-primary));
+      border-radius: var(--radius-sm);
+      transition: width var(--duration-base) var(--ease-out);
+    }
+
+    .value {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
+      font-weight: 600;
+      min-width: 3ch;
+      text-align: right;
+    }
+
+    &[data-highlight="true"] {
+      --bar-color: var(--text-success);
+      --label-color: var(--text-success);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list .row .fill {
+    transition: none;
+  }
+}

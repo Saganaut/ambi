@@ -1,0 +1,75 @@
+/* Shared styles common to every input primitive in this folder.
+   Per-component chrome (Checkbox boxes, dropdown panels, toggle tracks,
+   etc.) lives alongside the component in its own subfolder. This file
+   holds only what the primitives have in common:
+     - the labelled container layout used by anything with a top-or-front label
+     - the info / error message text styles surfaced under each field. */
+
+input[type="checkbox"],
+input[type="radio"] {
+  background-color: var(--bg-canvas);
+}
+
+.inputInfoMessage {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+
+  &.errorMessage {
+    color: var(--text-error);
+  }
+}
+
+.inputContainer {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-xl);
+  display: flex;
+  width: 100%;
+
+  &.withBottomPadding {
+    padding-bottom: var(--space-6);
+  }
+
+  &.labelAbove {
+    flex-direction: column;
+    align-items: start;
+    gap: var(--gap-xs);
+  }
+
+  label {
+    padding-left: var(--space-1);
+  }
+
+  /* fullWidth lets a host (e.g. an MCQ option card or a tight inspector cell)
+     stretch the field to its parent's width instead of the per-component
+     default. Each component module that wants to participate adds its own
+     `&.fullWidth .x { width: 100% }` rules — this one just stretches the
+     outer container. */
+  &.fullWidth {
+    width: 100%;
+  }
+
+  /* When a child input opts out of auto-grow (TextArea with
+     `autoGrow={false}`), the inputContainer fills its parent's height
+     so the field can size to a bounded slot rather than its content.
+     Pairs with the `padding-bottom: 0` override so the field actually
+     hits 100%. Hosts that want info/error messages below should keep
+     `autoGrow` on the default. */
+  &:has([data-auto-grow="false"]) {
+    height: 100%;
+    padding-bottom: 0;
+  }
+
+  input {
+    border: var(--border-size-sm) solid
+      var(--border-color, var(--border-default));
+    border-radius: var(--radius-md);
+    display: flex;
+    width: 100%;
+
+    &.noBorders {
+      border-color: transparent;
+    }
+  }
+}

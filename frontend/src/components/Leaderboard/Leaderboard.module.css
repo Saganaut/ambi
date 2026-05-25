@@ -1,0 +1,59 @@
+.leaderboardContainer {
+  container-type: inline-size;
+
+  /* container-type makes the inline size content-independent, so it collapses
+     to 0 in a flex sidebar; width: 100% gives it its parent's width to fill. */
+  width: 100%;
+  overflow: hidden;
+}
+
+.leaderboard {
+  display: flex;
+  border: var(--border-size-sm) solid var(--border-default);
+  flex-direction: column;
+
+  /* fill the (now sized) container instead of fit-content, which overflowed
+     out of the size-contained container and past the sidebar edge. */
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+.leaderboardHeader {
+  display: flex;
+  padding: var(--space-2);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: var(--space-3);
+
+  .leaderboardTitle {
+    font-size: var(--font-size-lg);
+  }
+}
+
+.playerList {
+  padding: var(--space-2);
+  gap: var(--gap-sm);
+  display: flex;
+  flex-direction: column;
+  max-height: 1000px;
+  transition:
+    max-height 300ms ease-in-out,
+    padding 300ms ease-in-out;
+
+  &.isCollapsed {
+    max-height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+.playerRow {
+  background-color: var(--bg-surface);
+  display: flex;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  gap: var(--gap-sm);
+  justify-content: space-between;
+}

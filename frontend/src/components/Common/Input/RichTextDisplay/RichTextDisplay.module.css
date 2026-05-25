@@ -1,0 +1,51 @@
+/* RichTextDisplay — read-only counterpart to RichTextInput. Renders the HTML
+   string produced by TipTap (bold / strike / underline / links / inline color
+   + font-size spans) so saved content looks identical outside the editor.
+   When `styled` is false the consumer gets the extracted plain text instead. */
+
+.content {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.content p {
+  margin: 0;
+}
+
+.content p + p {
+  margin-top: var(--space-2);
+}
+
+.content a {
+  color: var(--action-active);
+  text-decoration: underline;
+}
+
+.content a:hover {
+  color: var(--action-hover);
+}
+
+.content ul,
+.content ol {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.content h1,
+.content h2,
+.content h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.plain {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}

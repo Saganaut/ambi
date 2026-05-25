@@ -1,0 +1,11 @@
+/* Quiet metadata strip at the very bottom of the slide inspector. Sits on
+   the panel surface (no own background), uses the smallest font size and
+   the secondary text colour so it reads as chrome rather than a row. */
+
+.footer {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  padding-top: var(--space-3);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}

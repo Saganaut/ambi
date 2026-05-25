@@ -1,0 +1,72 @@
+/* Layout for the "Add to collection" modal body. Vertical list of toggleable
+ * collections plus an inline create row. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 360px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.empty {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.row {
+  & .rowLabel {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  & .rowLabel:hover {
+    background: var(--bg-primary);
+  }
+
+  & .rowName {
+    flex: 1;
+    font-size: var(--font-size-base);
+  }
+
+  & .rowMeta {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.createForm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.createInput {
+  flex: 1;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  font: inherit;
+  color: inherit;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}

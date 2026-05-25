@@ -1,0 +1,119 @@
+.page {
+  max-width: 600px;
+  margin: var(--space-8) auto;
+  padding: 0 var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.section {
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  background-color: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  border: var(--border-size-sm) solid var(--border-default);
+  object-fit: cover;
+}
+
+.inputRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.success {
+  color: var(--text-success);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.error {
+  color: var(--text-error);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.dangerSection {
+  border-color: var(--border-error);
+}
+
+.dangerText {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.dangerBtn {
+  background-color: var(--border-error);
+  color: var(--text-on-brand);
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--text-error);
+  }
+}
+
+.confirmBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.fileInputHidden {
+  display: none;
+}
+
+.uploadButton {
+  align-self: flex-start;
+}
+
+.uploadHint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.loading {
+  padding: var(--space-8);
+  color: var(--text-muted);
+}

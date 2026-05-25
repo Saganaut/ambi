@@ -1,0 +1,21 @@
+.cephadexLogo {
+  --fill: var(--violet-500);
+  --fill-hover: var(--orange-300);
+
+  cursor: pointer;
+  max-height: 50px;
+  fill: var(--fill);
+  transition: fill 300ms ease-in-out;
+
+  &.sm {
+    max-height: 18px;
+  }
+
+  &.lg {
+    max-height: 60px;
+  }
+
+  &:hover {
+    fill: var(--fill-hover);
+  }
+}

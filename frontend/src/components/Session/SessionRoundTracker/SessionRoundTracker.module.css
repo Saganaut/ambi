@@ -1,0 +1,42 @@
+.sessionRoundTracker {
+  background-color: var(--bg-surface);
+  height: 100%;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  scrollbar-gutter: stable;
+
+  .sessionRoundThumbnail {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    filter: grayscale(0.8);
+    background-color: var(--action-active);
+    outline: transparent solid var(--border-size-sm);
+    outline-offset: var(--border-size-sm);
+
+    &.submit {
+      display: flex;
+    }
+
+    &.vote {
+      display: flex;
+    }
+
+    &.reveal {
+      display: flex;
+    }
+
+    &.inactive {
+      display: flex;
+    }
+
+    &.isActive {
+      outline-color: var(--action-active);
+      filter: none;
+    }
+  }
+}

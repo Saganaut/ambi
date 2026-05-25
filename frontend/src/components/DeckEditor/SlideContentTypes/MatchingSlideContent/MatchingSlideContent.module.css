@@ -1,0 +1,31 @@
+/* Pair-row layout for the Matching editor. Two text inputs separated by a
+   visual ↔ arrow; left and right take an equal share of the row so the answer
+   key reads as a literal mapping. */
+
+.pairFields {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+@container (width <= 420px) {
+  .pairFields {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-1);
+  }
+
+  .pairArrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+}
+
+.pairArrow {
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  user-select: none;
+  text-align: center;
+}

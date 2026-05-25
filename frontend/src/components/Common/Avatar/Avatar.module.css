@@ -1,0 +1,60 @@
+.avatar {
+  --size: 40px;
+  --font-size: var(--font-size-base);
+
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size);
+  height: var(--size);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-brand);
+  color: var(--text-on-brand);
+  font-family: var(--font-mono);
+  font-size: var(--font-size);
+  font-weight: 700;
+  overflow: hidden;
+  user-select: none;
+}
+
+.xs {
+  --size: 24px;
+  --font-size: var(--font-size-xs);
+}
+
+.sm {
+  --size: 32px;
+  --font-size: var(--font-size-sm);
+}
+
+.md {
+  --size: 40px;
+  --font-size: var(--font-size-base);
+}
+
+.lg {
+  --size: 56px;
+  --font-size: var(--font-size-lg);
+}
+
+.xl {
+  --size: 80px;
+  --font-size: var(--font-size-2xl);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.initial {
+  line-height: 1;
+}
+
+.icon {
+  width: 60%;
+  height: 60%;
+  color: var(--text-on-brand);
+}

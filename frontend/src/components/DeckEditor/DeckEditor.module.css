@@ -1,0 +1,75 @@
+/* DeckEditor — top-level layout chrome for the deck editor. The base          */
+
+/* color triplet (color / background-color / border-color) and the hover       */
+
+/* triplet are component-local CSS vars; child components own their own         */
+
+/* variant/size className modifiers (see Buttons.module.css for the pattern).  */
+.deckEditor {
+  /* Component-local hover sextet — base manifest comes through fallbacks.   */
+  --color-hover: var(--action-hover);
+  --color-muted: oklch(from var(--color, var(--text-primary)) l c h / 40%);
+  --background-color-hover: var(--background-color, transparent);
+  --border-color-hover: var(--action-hover);
+
+  /* max-width: var(--max-screen-width);
+  display: flex;
+  flex-direction: column;
+  flex: 1; */
+
+  .navbar {
+    display: flex;
+    padding: var(--padding, var(--p-md));
+    justify-content: space-between;
+    align-items: center;
+    border-top: var(--border-size-sm) solid var(--color, var(--text-primary));
+
+    .leftControlButtons {
+      width: 100%;
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .titleDeck {
+      max-width: 800px;
+
+      input {
+        font-size: var(--font-size-lg);
+      }
+    }
+
+    .rightControlButtons {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+
+      .startError {
+        font-size: var(--font-size-sm);
+        color: var(--text-error);
+      }
+    }
+  }
+
+  .iconMd {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .slideCanvasContainer {
+    background-color: var(--bg-canvas);
+    display: flex;
+    padding: var(--p-lg);
+    padding-bottom: var(--space-16);
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+
+    .slideStack {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+    }
+  }
+}

@@ -1,0 +1,69 @@
+/* Slide-specific styles for the PlaceOnImage editor. The target picker is a
+   16:9 surface; the marker + tolerance ring are absolutely positioned at the
+   normalised (x, y) so the same coords work at any rendered size. */
+
+.targetPicker {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: crosshair;
+  overflow: clip;
+  border: var(--border-size-sm) solid transparent;
+  outline: none;
+  transition: border-color var(--duration-fast) ease-out;
+}
+
+.targetPicker:focus-visible {
+  border-color: var(--border-default);
+}
+
+.targetEmpty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) dashed var(--edge-surface);
+  border-radius: var(--radius-md);
+}
+
+.toleranceRing {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  height: 0;
+  border-radius: var(--radius-full);
+  background-color: oklch(70% 0.2 60deg / 18%);
+  border: var(--border-size-sm) solid var(--orange-400);
+  pointer-events: none;
+}
+
+.targetMarker {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-full);
+  background-color: var(--orange-400);
+  border: var(--border-size-sm) solid oklch(99% 0 0deg);
+  pointer-events: none;
+}
+
+.coordsBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}

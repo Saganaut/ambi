@@ -1,0 +1,23 @@
+.sessionHeader {
+  display: flex;
+  width: 100%;
+  padding: var(--p-sm);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  max-height: var(--navbar-height);
+
+  .sessionTimer {
+    display: flex;
+  }
+
+  .sessionRoundDisplay {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .sessionInfoDisplay {
+    display: flex;
+  }
+}

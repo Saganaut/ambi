@@ -1,0 +1,69 @@
+/* Reusable dropdown panel anchored to an arbitrary trigger element.
+   Positioning (placement, offset, flip, shift, cursor anchoring) is owned by
+   @floating-ui/react and applied as inline styles on the panel — this module
+   only carries the panel's appearance and the menu-item visuals. */
+
+.wrapper {
+  display: inline-flex;
+}
+
+.panel {
+  background: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 180px;
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.item {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  transition: background var(--duration-fast);
+
+  &.center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.item:hover {
+  background: var(--action-hover);
+}
+
+.item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.item a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.label {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  border-bottom: var(--border-size-sm) solid var(--border-subtle);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-1) 0;
+}

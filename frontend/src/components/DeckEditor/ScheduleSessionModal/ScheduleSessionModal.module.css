@@ -1,0 +1,90 @@
+/* Layout for the "Schedule session" modal body. Vertical stack:
+ * date/time picker, invite chip-input, optional reminder copy, footer with
+ * Cancel + Schedule buttons. Mirrors ShareDeckModal sizing. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 460px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.dateInput,
+.textArea {
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  font: inherit;
+  color: inherit;
+}
+
+.textArea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.error {
+  color: var(--text-error);
+  font-size: var(--font-size-sm);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  font-size: var(--font-size-sm);
+}
+
+.chipRemove {
+  background: none;
+  border: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  line-height: 1;
+  padding: 0;
+}
+
+.inviteRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inviteInput {
+  flex: 1;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  font: inherit;
+  color: inherit;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

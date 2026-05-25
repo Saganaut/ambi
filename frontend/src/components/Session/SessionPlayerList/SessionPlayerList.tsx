@@ -1,0 +1,16 @@
+import { useSession } from "@/pages/SessionPage/useSession";
+import styles from "./SessionPlayerList.module.css";
+import { PlayerListItem } from "./PlayerListItem";
+const SessionPlayerList = () => {
+  const { interactiveSession } = useSession();
+
+  return (
+    <div className={styles.sessionPlayerList}>
+      {interactiveSession.players.map((player) => (
+        <PlayerListItem key={player.playerId} player={player} />
+      ))}
+    </div>
+  );
+};
+
+export { SessionPlayerList };

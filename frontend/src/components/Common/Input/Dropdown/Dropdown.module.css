@@ -1,0 +1,146 @@
+/* Dropdown — trigger button + portaled-style panel below.
+   The trigger is built on top of the shared Btn so it inherits hover/focus
+   chrome; the panel handles its own search bar, list scroll, and selected
+   chips (for the multi-select variant). */
+
+.dropdown {
+  position: relative;
+  width: 300px;
+
+  .message {
+    position: absolute;
+    bottom: -24px;
+    left: 10px;
+  }
+}
+
+.dropdownTrigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  text-align: left;
+  color: var(--text-secondary);
+  font-weight: normal;
+
+  &:hover {
+    border-color: var(--action-hover);
+  }
+}
+
+.dropdownPlaceholder {
+  color: var(--text-muted);
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-secondary);
+  flex-shrink: 0;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdownPanel {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  width: 100%;
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  z-index: var(--z-dropdown);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.dropdownSearch {
+  padding: var(--space-2);
+  border-bottom: var(--border-size-sm) solid var(--border-subtle);
+
+  input {
+    width: 100%;
+    font-size: var(--font-size-sm);
+  }
+}
+
+.dropdownList {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.dropdownOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  transition: background-color var(--duration-fast) ease-in-out;
+
+  input[type="checkbox"] {
+    width: var(--space-4);
+    height: var(--space-4);
+    accent-color: var(--border-focus);
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  &:hover,
+  &:focus {
+    background-color: var(--bg-subtle);
+    outline: none;
+  }
+
+  &.selected {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+
+.dropdownEmpty {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.chipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-half) var(--space-2);
+  background-color: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.chipRemove {
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: var(--text-error);
+  }
+}

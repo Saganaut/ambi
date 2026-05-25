@@ -1,0 +1,18 @@
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loader {
+  padding: var(--p-md);
+}
+
+.spinner {
+  animation: 2s linear infinite spin;
+  fill: var(--action-hover);
+}

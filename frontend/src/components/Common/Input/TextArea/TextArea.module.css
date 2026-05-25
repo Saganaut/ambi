@@ -1,0 +1,82 @@
+/* TextArea — multi-line text entry that visually matches the single-line Input.
+   Lives in the .inputContainer shared with Input, so the label/info layout
+   matches form rows that mix the two.
+
+   `field-sizing: content` auto-grows the textarea to fit its contents (no
+   vertical scrollbar appears until `maxLength` or container limits kick in),
+   which is what we want inside compact author surfaces like MCQ option
+   cards. `min-height` keeps an empty field readable; we drop the fixed
+   width default to 300px to match the single-line Input. */
+
+.textarea {
+  position: relative;
+
+  textarea {
+    width: 300px;
+    min-height: 2.5rem;
+    color: var(--text-secondary);
+    border: var(--border-size-sm) solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--p-sm);
+    background-color: transparent;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
+    resize: none;
+    field-sizing: content;
+    transition:
+      color 300ms ease-in-out,
+      border-color 300ms ease-in-out;
+
+    &:hover {
+      border-color: var(--action-hover);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    &.noBorders {
+      border-color: transparent;
+
+      &:hover {
+        border-color: var(--action-hover);
+      }
+
+      &:focus {
+        border-color: var(--border-focus);
+      }
+    }
+
+    /* Opt-out of auto-grow: textarea fills its container instead.
+       Hosts (e.g. the MCQ option card) pair this with `useFitText` so
+       the font shrinks as content lengthens rather than the field
+       growing. */
+    &.noAutoGrow {
+      field-sizing: fixed;
+      height: 100%;
+      resize: none;
+    }
+  }
+
+  .message {
+    position: absolute;
+    bottom: -24px;
+    left: 10px;
+  }
+}
+
+.fullWidth,
+.fullWidth textarea {
+  width: 100%;
+}
+
+/* When the textarea is in noAutoGrow mode, propagate height up the
+   wrapper chain so the textarea has a real 100% to fill. The
+   `inputContainer` propagation lives in the shared Input.module.css.
+   Attribute selector here avoids cross-module class-name lookups. */
+.textarea:has([data-auto-grow="false"]) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}

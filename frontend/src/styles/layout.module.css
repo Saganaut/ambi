@@ -1,0 +1,22 @@
+.header {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-size-sm) solid var(--border-brand);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.body {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.footer {
+  padding: var(--space-8) var(--space-6);
+  color: var(--hue-primary);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}

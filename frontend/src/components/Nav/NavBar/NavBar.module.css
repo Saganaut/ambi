@@ -1,0 +1,155 @@
+/* NavBar — base layout chrome. Variant/size hooks live as className modifiers  */
+
+/* (e.g. <div className={[styles.navContainer, styles.error].join(' ')}>) if    */
+
+/* the component ever needs to express them. Today the bar is single-variant.   */
+
+.navContainer {
+  --color: var(--text-primary);
+  --background-color: transparent;
+  --color-hover: var(--action-hover);
+  --color-muted: oklch(from var(--color) l c h / 40%);
+  --background-color-hover: var(--background-color);
+  --padding: var(--space-2);
+  --radius: var(--radius-md);
+
+  color: var(--color);
+  background-color: var(--background-color);
+  display: flex;
+  flex-flow: row wrap;
+  gap: var(--gap-lg);
+  padding: var(--padding);
+  align-items: center;
+  border-radius: var(--radius);
+
+  a {
+    transition:
+      color 300ms ease-in-out,
+      background-color 300ms ease-in-out,
+      border-color 300ms ease-in-out;
+    text-decoration: none;
+  }
+
+  &:has(:hover) a:not(:hover) {
+    color: var(--color-muted);
+  }
+
+  &:hover {
+    color: var(--color-hover);
+    background-color: var(--background-color-hover);
+  }
+
+  &:disabled,
+  &.isDisabled,
+  &.isDisabled:hover,
+  &:disabled:hover {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .userMenuWrapper {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--gap-sm);
+    margin-left: auto;
+  }
+}
+
+.avatarButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity var(--duration-fast);
+}
+
+.avatarButton:hover {
+  opacity: 0.75;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+}
+
+.avatarIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--text-secondary);
+}
+
+.avatarInitial {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand);
+  color: var(--text-on-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.guestInputWrapper {
+  padding: var(--space-2) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  border-top: var(--border-size-sm) solid var(--border-subtle);
+}
+
+.guestInput {
+  padding: var(--space-2) var(--space-2);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.guestError {
+  font-size: var(--font-size-sm);
+  color: var(--text-error);
+}
+
+/* ─── Theme Toggle Icon (animated crossfade) ──────────────────────────── */
+
+.themeToggle {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.themeToggle svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition:
+    opacity 300ms var(--ease-out),
+    transform 300ms var(--ease-out);
+}
+
+.themeIconActive {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.themeIconHidden {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+  pointer-events: none;
+}

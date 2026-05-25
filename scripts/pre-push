@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Pre-push hook — runs frontend and backend test suites before pushing to main.
+# Install once per clone: ln -sf ../../scripts/pre-push .git/hooks/pre-push
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    echo "🔎 Push to main detected — running test suites..."
+
+    echo ""
+    echo "▶ Frontend tests"
+    (cd "$REPO_ROOT/frontend" && npm run test:run)
+
+    echo ""
+    echo "▶ Backend tests"
+    (cd "$REPO_ROOT/backend" && ./mvnw test -q)
+
+    echo ""
+    echo "✅ All tests passed — push proceeding."
+  fi
+done

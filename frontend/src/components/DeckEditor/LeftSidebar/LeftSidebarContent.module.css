@@ -1,0 +1,137 @@
+.leftSidebarContent {
+  display: flex;
+  padding: var(--p-sm);
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: padding var(--duration-base) ease-in-out;
+
+  &.isCollapsed {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .slideContainer {
+    background-color: var(--bg-surface);
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+    display: flex;
+    gap: var(--space-3);
+    flex-direction: column;
+    align-items: center;
+    padding: var(--p-md);
+    padding-right: var(--space-3);
+    border-radius: var(--radius-md);
+
+    .slideThumbnailWrapper {
+      position: relative;
+
+      .slideThumbnail {
+        border-radius: var(--radius-md);
+        background-color: var(--bg-canvas);
+        width: 200px;
+        height: 160px;
+        transition:
+          opacity 300ms ease-in-out,
+          outline 300ms ease-in-out;
+        cursor: pointer;
+        outline-color: var(--orange-500);
+        overflow: hidden;
+
+        &.active {
+          outline: 2px solid var(--orange-200);
+          outline-offset: 4px;
+        }
+      }
+
+      .slideIndex {
+        position: absolute;
+        top: 0;
+        left: -20px;
+        font-size: var(--font-size-sm);
+      }
+
+      &.isDragging {
+        .slideDisplay {
+          background-color: var(--violet-500);
+        }
+
+        .slideIndex {
+          opacity: 0;
+        }
+      }
+
+      .slideThumbnailContent {
+        display: grid;
+        align-items: end;
+        grid-template-rows: 5fr 3fr;
+        height: 100%;
+        width: 100%;
+        gap: var(--space-1);
+
+        .bottomRow {
+          width: 100%;
+          place-self: start start;
+        }
+      }
+    }
+
+    &:has(.active) .slideThumbnail:not(.active) {
+      opacity: 0.8;
+    }
+  }
+}
+
+.emptySlide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  padding: var(--p-md);
+  background-color: var(--bg-canvas);
+  border: var(--border-size-sm) dashed var(--border-default);
+  color: var(--text-primary);
+  min-width: 200px;
+  min-height: 160px;
+  max-height: 160px;
+  max-width: 200px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition:
+    background-color 200ms ease-in-out,
+    border-color 200ms ease-in-out,
+    color 200ms ease-in-out;
+}
+
+.emptySlide:hover,
+.emptySlide:focus-visible {
+  border-color: var(--action-hover);
+  color: var(--action-hover);
+}
+
+.emptySlideIcon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptySlideIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.emptySlideTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.emptySlideSubtitle {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  max-width: 16ch;
+  line-height: 1.3;
+}

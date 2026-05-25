@@ -1,0 +1,53 @@
+/* Input — single-line text input chrome (border, variants, checkmark icon,
+   absolute-positioned info/error message under the field).
+   Sits alongside the shared label-container styles in ../Input.module.css. */
+
+.input {
+  position: relative;
+  display: flex;
+  width: 100%;
+
+  input {
+    color: var(--text-secondary);
+
+    &.error {
+      border-color: var(--border-error);
+      color: var(--text-error);
+    }
+
+    &.success {
+      border-color: var(--border-success);
+    }
+
+    &.warning {
+      border-color: var(--border-warning);
+    }
+
+    &.info {
+      border-color: var(--border-info);
+    }
+  }
+
+  .message {
+    position: absolute;
+    bottom: -24px;
+    left: 10px;
+  }
+
+  .checked {
+    height: 20px;
+    width: 20px;
+    position: absolute;
+    right: 6px;
+    top: 8px;
+    display: flex;
+    stroke: var(--text-success);
+    align-items: center;
+  }
+}
+
+/* When the host opts into fullWidth, the input fills its parent. */
+.fullWidth,
+.fullWidth input {
+  width: 100%;
+}

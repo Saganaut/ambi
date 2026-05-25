@@ -1,0 +1,56 @@
+/* Discussion panel — composer on top, thread underneath. The composer
+ * mirrors the inline reply editor inside CommentThread so the two surfaces
+ * read as the same primitive. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.composerInput {
+  width: 100%;
+  resize: vertical;
+  min-height: 4rem;
+  padding: var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.composerInput:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.composerActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.signedOut {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-3);
+}

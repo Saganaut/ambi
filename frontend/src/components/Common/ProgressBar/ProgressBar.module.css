@@ -1,0 +1,85 @@
+.wrapper {
+  --track-height: 8px;
+  --progress-pct: 0%;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.sm {
+  --track-height: 4px;
+}
+
+.md {
+  --track-height: 8px;
+}
+
+.lg {
+  --track-height: 14px;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  position: relative;
+  width: 100%;
+  height: var(--track-height);
+  background-color: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  width: var(--progress-pct);
+  background-color: var(--action-active);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+.brand {
+  background-color: var(--bg-brand);
+}
+
+.success {
+  background-color: var(--bg-success);
+}
+
+.warning {
+  background-color: var(--bg-warning);
+}
+
+.error {
+  background-color: var(--bg-error);
+}
+
+.indeterminate {
+  width: 30%;
+  animation: progress-roll 1.4s var(--ease-out) infinite;
+}
+
+@keyframes progress-roll {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(400%);
+  }
+}

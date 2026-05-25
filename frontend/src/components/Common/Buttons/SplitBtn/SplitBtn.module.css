@@ -1,0 +1,32 @@
+/* SplitBtn — two Btns rendered flush so they read as a single pill control.   */
+
+/* The primary face owns the main action; the chevron face toggles a dropdown. */
+
+/* Only the outer corners are rounded; an inner hairline (currentColor at low  */
+
+/* opacity) reads correctly on every Btn variant without needing a per-variant */
+
+/* divider token. See Btn.tsx / Buttons.module.css for the variant catalog.    */
+.splitBtn {
+  display: inline-flex;
+  align-items: stretch;
+  position: relative;
+
+  .primary {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .chevron {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: var(--border-size-sm) solid
+      color-mix(in oklab, currentcolor 25%, transparent);
+    padding-inline: var(--space-2);
+  }
+
+  .chevronIcon {
+    width: 1rem;
+    height: 1rem;
+  }
+}

@@ -1,0 +1,123 @@
+/* Right-edge tool rail with a slide-in drawer that opens to the rail's left.
+   The rail is a thin vertical strip pinned to the right side; the drawer is
+   absolutely positioned directly to its left so it overlays the slide canvas
+   without pushing the icons or shrinking the editor's layout grid. */
+
+.rightSidebarContent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: var(--space-3);
+  height: 100%;
+  background-color: var(--bg-canvas);
+  border-left: var(--border-size-sm) solid var(--edge-canvas);
+  transition: padding var(--duration-base) ease-in-out;
+
+  &.isCollapsed {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.iconStrip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: 2;
+}
+
+.active {
+  background-color: var(--bg-subtle);
+  border-color: var(--action-active);
+  color: var(--action-active);
+}
+
+.drawer {
+  position: absolute;
+  top: var(--space-3);
+  bottom: var(--space-3);
+  right: calc(100% + var(--space-2));
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--edge-surface);
+  border-radius: var(--radius-md);
+  z-index: 3;
+  overflow: hidden;
+  animation: slide-in-left var(--duration-base, 200ms) var(--ease-out, ease-out);
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Inner wrapper around the title + body. The view-transition name is on this
+   element (not on .drawer) so that opening/closing the drawer keeps using the
+   slide-in keyframe above, and only panel-to-panel swaps — which run inside
+   document.startViewTransition() — produce a crossfade. */
+.panelContent {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  view-transition-name: right-drawer-panel;
+}
+
+::view-transition-old(right-drawer-panel),
+::view-transition-new(right-drawer-panel) {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(right-drawer-panel),
+  ::view-transition-new(right-drawer-panel) {
+    animation-duration: 0.01ms;
+  }
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-size-sm) solid var(--border-subtle);
+  background-color: var(--bg-canvas);
+}
+
+.drawerTitle {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.placeholderMuted {
+  color: var(--text-muted);
+  font-style: italic;
+}

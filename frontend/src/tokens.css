@@ -1,0 +1,580 @@
+:root {
+  /* ─── Named Color Palette ─────────────────────────────────────────────────── */
+
+  /* Reference palette — kept for status colors and any non-semantic usage.     */
+
+  /* Semantic tokens below derive from --hue-primary / --hue-accent instead.   */
+
+  --red-200: oklch(93% 0.2 25deg);
+  --red-300: oklch(89% 0.2 25deg);
+  --red-400: oklch(77% 0.2 25deg);
+  --red-500: oklch(52% 0.2 25deg);
+  --red-600: oklch(45% 0.2 25deg);
+  --red-700: oklch(39% 0.2 25deg);
+  --red-800: oklch(28% 0.2 25deg);
+  --red-900: oklch(22% 0.2 25deg);
+  --yellow-200: oklch(96% 0.06 95deg);
+  --yellow-300: oklch(93% 0.15 95deg);
+  --yellow-400: oklch(90% 0.22 95deg);
+  --yellow-500: oklch(88% 0.21 95deg);
+  --yellow-600: oklch(82% 0.19 90deg);
+  --yellow-700: oklch(72% 0.16 85deg);
+  --yellow-800: oklch(55% 0.13 80deg);
+  --yellow-900: oklch(35% 0.09 75deg);
+  --green-200: oklch(92% 0.04 170deg);
+  --green-300: oklch(87% 0.06 170deg);
+  --green-400: oklch(74% 0.13 170deg);
+  --green-500: oklch(49% 0.11 170deg);
+  --green-600: oklch(60% 0.13 170deg);
+  --green-700: oklch(37% 0.08 170deg);
+  --green-800: oklch(27% 0.06 170deg);
+  --green-900: oklch(21% 0.05 170deg);
+  --turqoise-200: oklch(92% 0.04 200deg);
+  --turqoise-300: oklch(87% 0.06 200deg);
+  --turqoise-400: oklch(74% 0.13 200deg);
+  --turqoise-500: oklch(49% 0.11 200deg);
+  --turqoise-600: oklch(59% 0.13 200deg);
+  --turqoise-700: oklch(37% 0.08 200deg);
+  --turqoise-800: oklch(27% 0.06 200deg);
+  --turqoise-900: oklch(21% 0.05 200deg);
+  --blue-200: oklch(93% 0.04 260deg);
+  --blue-300: oklch(88% 0.06 260deg);
+  --blue-400: oklch(76% 0.13 260deg);
+  --blue-500: oklch(51% 0.11 260deg);
+  --blue-600: oklch(62% 0.13 260deg);
+  --blue-700: oklch(38% 0.08 260deg);
+  --blue-800: oklch(28% 0.06 260deg);
+  --blue-900: oklch(22% 0.05 260deg);
+  --lavender-200: oklch(93% 0.04 290deg);
+  --lavender-300: oklch(88% 0.06 290deg);
+  --lavender-400: oklch(77% 0.13 290deg);
+  --lavender-500: oklch(52% 0.11 290deg);
+  --lavender-600: oklch(63% 0.13 290deg);
+  --lavender-700: oklch(39% 0.08 290deg);
+  --lavender-800: oklch(28% 0.06 290deg);
+  --lavender-900: oklch(22% 0.05 290deg);
+  --fuchsia-200: oklch(93% 0.04 320deg);
+  --fuchsia-300: oklch(88% 0.06 320deg);
+  --fuchsia-400: oklch(77% 0.13 320deg);
+  --fuchsia-500: oklch(52% 0.11 320deg);
+  --fuchsia-600: oklch(63% 0.13 320deg);
+  --fuchsia-700: oklch(39% 0.08 320deg);
+  --fuchsia-800: oklch(28% 0.06 320deg);
+  --fuchsia-900: oklch(22% 0.05 320deg);
+  --mulberry-200: oklch(93% 0.04 350deg);
+  --mulberry-300: oklch(89% 0.06 350deg);
+  --mulberry-400: oklch(78% 0.13 350deg);
+  --mulberry-500: oklch(52% 0.11 350deg);
+  --mulberry-600: oklch(63% 0.13 350deg);
+  --mulberry-700: oklch(39% 0.08 350deg);
+  --mulberry-800: oklch(28% 0.06 350deg);
+  --mulberry-900: oklch(23% 0.05 350deg);
+  --grey-200: oklch(80% 0.001 271.152deg);
+  --grey-300: oklch(70% 0.001 271.152deg);
+  --grey-400: oklch(60% 0.001 271.152deg);
+  --grey-500: oklch(50% 0.001 271.152deg);
+  --grey-600: oklch(40% 0.001 271.152deg);
+  --grey-700: oklch(30% 0.001 271.152deg);
+  --grey-800: oklch(20% 0.001 271.152deg);
+  --grey-900: oklch(0% 0.001 271.152deg);
+
+  /* ─── Brand Colors ─────────────────────────────────────────────────────── */
+  --violet-100: oklch(from #6019ff 97% calc(c * 0.25) h);
+  --violet-200: oklch(from #6019ff 92% calc(c * 0.45) h);
+  --violet-300: oklch(from #6019ff 84% calc(c * 0.65) h);
+  --violet-400: oklch(from #6019ff 72% calc(c * 0.85) h);
+  --violet-500: oklch(from #6019ff l c h);
+  --violet-600: oklch(from #6019ff 46% c h);
+  --violet-700: oklch(from #6019ff 36% calc(c * 0.9) h);
+  --violet-800: oklch(from #6019ff 25% calc(c * 0.7) h);
+  --violet-900: oklch(from #6019ff 14% calc(c * 0.5) h);
+  --orange-100: oklch(from #ff6e0b 97% calc(c * 0.25) h);
+  --orange-200: oklch(from #ff6e0b 92% calc(c * 0.45) h);
+  --orange-300: oklch(from #ff6e0b 84% calc(c * 0.65) h);
+  --orange-400: oklch(from #ff6e0b 75% calc(c * 0.85) h);
+  --orange-500: oklch(from #ff6e0b l c h);
+  --orange-600: oklch(from #ff6e0b 55% c h);
+  --orange-700: oklch(from #ff6e0b 42% calc(c * 0.9) h);
+  --orange-800: oklch(from #ff6e0b 30% calc(c * 0.7) h);
+  --orange-900: oklch(from #ff6e0b 18% calc(c * 0.5) h);
+  --tolopea-100: oklch(from #190042 97% calc(c * 0.25) h);
+  --tolopea-200: oklch(from #190042 92% calc(c * 0.45) h);
+  --tolopea-300: oklch(from #190042 84% calc(c * 0.65) h);
+  --tolopea-400: oklch(from #190042 72% calc(c * 0.85) h);
+  --tolopea-500: oklch(from #190042 55% c h);
+  --tolopea-600: oklch(from #190042 42% c h);
+  --tolopea-700: oklch(from #190042 30% c h);
+  --tolopea-800: oklch(from #190042 20% c h);
+  --tolopea-900: oklch(from #190042 l c h);
+  --cyan-100: oklch(from #54fff1 97% calc(c * 0.25) h);
+  --cyan-200: oklch(from #54fff1 93% calc(c * 0.45) h);
+  --cyan-300: oklch(from #54fff1 87% calc(c * 0.7) h);
+  --cyan-400: oklch(from #54fff1 80% calc(c * 0.9) h);
+  --cyan-500: oklch(from #54fff1 l c h);
+  --cyan-600: oklch(from #54fff1 60% c h);
+  --cyan-700: oklch(from #54fff1 45% calc(c * 0.9) h);
+  --cyan-800: oklch(from #54fff1 30% calc(c * 0.7) h);
+  --cyan-900: oklch(from #54fff1 18% calc(c * 0.5) h);
+  --concrete-100: oklch(from #f2f2f2 99% c h);
+  --concrete-200: oklch(from #f2f2f2 96% c h);
+  --concrete-300: oklch(from #f2f2f2 l c h);
+  --concrete-400: oklch(from #f2f2f2 86% c h);
+  --concrete-500: oklch(from #f2f2f2 78% c h);
+  --concrete-600: oklch(from #f2f2f2 65% c h);
+  --concrete-700: oklch(from #f2f2f2 50% c h);
+  --concrete-800: oklch(from #f2f2f2 32% c h);
+  --concrete-900: oklch(from #f2f2f2 18% c h);
+  --white-100: oklch(from #fffffd l c h);
+  --white-200: oklch(from #fffffd 96% c h);
+  --white-300: oklch(from #fffffd 90% c h);
+  --white-400: oklch(from #fffffd 82% c h);
+  --white-500: oklch(from #fffffd 70% c h);
+  --white-600: oklch(from #fffffd 55% c h);
+  --white-700: oklch(from #fffffd 40% c h);
+  --white-800: oklch(from #fffffd 25% c h);
+  --white-900: oklch(from #fffffd 12% c h);
+  --black-russian-100: oklch(from #13002a 97% calc(c * 0.25) h);
+  --black-russian-200: oklch(from #13002a 92% calc(c * 0.45) h);
+  --black-russian-300: oklch(from #13002a 84% calc(c * 0.65) h);
+  --black-russian-400: oklch(from #13002a 72% calc(c * 0.85) h);
+  --black-russian-500: oklch(from #13002a 55% c h);
+  --black-russian-600: oklch(from #13002a 42% c h);
+  --black-russian-700: oklch(from #13002a 30% c h);
+  --black-russian-800: oklch(from #13002a 18% c h);
+  --black-russian-900: oklch(from #13002a l c h);
+  --ultraviolet-100: oklch(from #260078 97% calc(c * 0.25) h);
+  --ultraviolet-200: oklch(from #260078 92% calc(c * 0.45) h);
+  --ultraviolet-300: oklch(from #260078 84% calc(c * 0.65) h);
+  --ultraviolet-400: oklch(from #260078 72% calc(c * 0.85) h);
+  --ultraviolet-500: oklch(from #260078 55% c h);
+  --ultraviolet-600: oklch(from #260078 42% c h);
+  --ultraviolet-700: oklch(from #260078 32% c h);
+  --ultraviolet-800: oklch(from #260078 l c h);
+  --ultraviolet-900: oklch(from #260078 16% calc(c * 0.85) h);
+
+  /* ─── Brand Hues (user-customizable) ─────────────────────────────────────── */
+
+  /* Set these two values to retheme the entire UI. Extract the hue from any   */
+
+  /* oklch color (or convert from hex) and assign it here. All backgrounds,    */
+
+  /* surfaces, borders, and text scale from --hue-primary. Action states and   */
+
+  /* brand accents scale from --hue-accent. Lightness and chroma are fixed per */
+
+  /* step so contrast ratios are preserved across light and dark modes.        */
+
+  --hue-primary: 290deg; /* default: electric-violet — controls surfaces & borders  */
+  --hue-accent: 50deg; /* default: blaze-orange   — controls actions & brand accents */
+
+  /* ─── Light Mode Semantic Tokens (Brand Defaults) ───────────────────────── */
+
+  /* Tokens reference the named brand palette by default. When a user engages */
+
+  /* the picker, .theme-custom overrides these with hue-derived values.       */
+
+  /** Background Variants **/
+
+  --bg-canvas: var(--white-100);
+  --bg-surface: var(--concrete-300);
+  --bg-surface-raised: var(--white-100);
+  --bg-secondary: var(--violet-100);
+  --bg-subtle: var(--concrete-400);
+  --bg-primary: var(--violet-500);
+  --bg-brand: var(--violet-700);
+  --bg-canvas-inverted: var(--tolopea-900);
+  --bg-surface-inverted: var(--ultraviolet-800);
+  --bg-primary-inverted: var(--ultraviolet-800);
+  --bg-display-only: #fff;
+  --bg-disabled: var(--white-700);
+
+  /** Modal / dialog backdrop. Same value in light and dark — the overlay's job */
+
+  /* is to dim whatever is behind it, regardless of theme.                      */
+  --bg-overlay: rgb(0 0 0 / 50%);
+
+  /** Edge Tokens — hairline outline paired to each bg, used when you want a */
+
+  /* subtle border that visually belongs to the fill. Darker in light mode,  */
+
+  /* lighter in dark mode, automatic via --edge-tint. Distinct from the      */
+
+  /* --border-* roles (which carry semantic meaning: subtle/default/focus/   */
+
+  /* brand/status). Reach for --edge-* when you just need "the line that     */
+
+  /* matches this surface."                                                  */
+  --edge-tint: black;
+  --edge-canvas: color-mix(in oklab, var(--bg-canvas) 92%, var(--edge-tint));
+  --edge-surface: color-mix(in oklab, var(--bg-surface) 92%, var(--edge-tint));
+  --edge-surface-raised: color-mix(
+    in oklab,
+    var(--bg-surface-raised) 92%,
+    var(--edge-tint)
+  );
+  --edge-subtle: color-mix(in oklab, var(--bg-subtle) 92%, var(--edge-tint));
+  --edge-secondary: color-mix(
+    in oklab,
+    var(--bg-secondary) 92%,
+    var(--edge-tint)
+  );
+  --edge-primary: color-mix(in oklab, var(--bg-primary) 92%, var(--edge-tint));
+  --edge-brand: color-mix(in oklab, var(--bg-brand) 92%, var(--edge-tint));
+
+  /** Text Variants **/
+
+  /* --text-primary: var(--shell);
+  --text-secondary: var(--aquamarine-100); */
+  --text-muted: var(--grey-300);
+  --text-on-brand: var(--concrete-200);
+  --text-primary: var(--violet-800);
+  --text-secondary: var(--grey-600);
+  --text-accent: var(--cyan-700);
+  --text-primary-inverted: var(--white-100);
+  --text-secondary-inverted: var(--grey-300);
+  --text-accent-inverted: var(--cyan-500);
+
+  /** Background States — fixed hues; semantic meaning must not shift with brand **/
+  --bg-error: oklch(93% 0.2 25deg);
+  --bg-success: oklch(92% 0.04 170deg);
+  --bg-info: oklch(93% 0.04 260deg);
+  --bg-warning: oklch(96% 0.06 95deg);
+
+  /** Text States — fixed **/
+  --text-error: oklch(45% 0.2 25deg);
+  --text-success: oklch(45% 0.11 170deg);
+  --text-warning: oklch(45% 0.13 90deg);
+  --text-info: oklch(45% 0.13 260deg);
+  --text-disabled: var(--grey-300);
+
+  /** Borders **/
+  --border-default: var(--violet-700);
+  --border-subtle: var(--ultraviolet-200);
+  --border-focus: var(--cyan-500);
+  --border-brand: var(--orange-500);
+
+  /** Border States — fixed **/
+  --border-success: oklch(74% 0.13 170deg);
+  --border-warning: oklch(90% 0.22 95deg);
+  --border-error: oklch(77% 0.2 25deg);
+  --border-info: oklch(76% 0.13 260deg);
+  --border-disabled: var(--grey-300);
+
+  /** Action States **/
+  --action-hover: var(--orange-500);
+  --action-active: var(--orange-200);
+  --action-disabled: var(--grey-700);
+
+  /* --- Shadow (Expanded Scale) --- */
+  --shadow:
+    rgb(0, 0, 0 / 10%) 0 10px 15px -3px, rgb(0, 0, 0 / 5%) 0 4px 6px -2px;
+
+  /* --- Typography (Expanded Scale) --- */
+  --font-mono: "Poppins", "IBM Plex Mono", monospace;
+  --font-heading: system-ui, "Segoe UI", "Roboto", sans-serif;
+  --font-sans: ui-monospace, "Consolas", monospace;
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-md: 1.125rem; /* 18px */
+  --font-size-lg: 1.5rem; /* 24px */
+  --font-size-xl: 2rem; /* 32px */
+  --font-size-2xl: 3rem; /* 48px */
+  --font-size-3xl: 3.75rem; /* 60px */
+
+  /* --- Spacing System --- */
+  --space-0: 0; /* 0px  */
+  --space-px: 1px; /* 1px  */
+  --space-half: 0.125rem; /* 2px  */
+  --space-1: 0.25rem; /* 4px  */
+  --space-2: 0.5rem; /* 8px  */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-7: 1.75rem; /* 28px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --space-14: 3.5rem; /* 56px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
+  --space-24: 6rem; /* 96px */
+
+  /* --- Component Padding — Default (mildly elongated, block < inline) ---  */
+
+  /* These are the day-to-day padding tokens. Block axis stays tight so labels */
+
+  /* sit close to the top/bottom edge; inline axis breathes for readability.   */
+  --p-xxs: var(--space-1) var(--space-1);
+  --p-xs: var(--space-1) var(--space-3);
+  --p-sm: var(--space-2) var(--space-3);
+  --p-md: var(--space-4) var(--space-6);
+  --p-lg: var(--space-8) var(--space-12);
+
+  /* --- Component Padding — Square (block === inline) --- */
+
+  /* Use for icon buttons, square tiles, anything where both axes should      */
+
+  /* mirror each other.                                                        */
+  --p-square-xxs: var(--space-1) var(--space-1);
+  --p-square-xs: var(--space-2) var(--space-2);
+  --p-square-sm: var(--space-3) var(--space-3);
+  --p-square-md: var(--space-4) var(--space-4);
+  --p-square-lg: var(--space-6) var(--space-6);
+  --p-square-xl: var(--space-8) var(--space-8);
+
+  /* --- Component Padding — Pill / Elongated (much wider than tall) ---     */
+
+  /* Stronger horizontal stretch than the default --p-* set. Use for chips,   */
+
+  /* badges, capsule buttons, tabs, search bars.                              */
+  --p-pill-xs: var(--space-half) var(--space-3);
+  --p-pill-sm: var(--space-1) var(--space-4);
+  --p-pill-md: var(--space-2) var(--space-6);
+  --p-pill-lg: var(--space-3) var(--space-10);
+  --p-pill-xl: var(--space-4) var(--space-16);
+
+  /* --- Component Padding — Stacked (taller than wide) --- */
+
+  /* Use for list rows, narrow vertical cells, sidebar items where the tap   */
+
+  /* target needs height without inflating the inline gutter.                */
+  --p-stack-xs: var(--space-2) var(--space-1);
+  --p-stack-sm: var(--space-3) var(--space-2);
+  --p-stack-md: var(--space-4) var(--space-2);
+  --p-stack-lg: var(--space-6) var(--space-3);
+
+  /* --- Component Padding — Asymmetric block (top !== bottom) --- */
+
+  /* Use for cards/sheets where header padding is tighter than body padding, */
+
+  /* or dropdown panels that hang below their trigger.                       */
+  --p-asym-sm: var(--space-2) var(--space-3) var(--space-3);
+  --p-asym-md: var(--space-3) var(--space-4) var(--space-5);
+  --p-asym-lg: var(--space-4) var(--space-6) var(--space-8);
+
+  /* --- Gap (matches the spacing scale, named for component consumption) --- */
+  --gap-xs: var(--space-1);
+  --gap-sm: var(--space-2);
+  --gap-md: var(--space-3);
+  --gap-lg: var(--space-4);
+  --gap-xl: var(--space-6);
+
+  /* --- Border Radius --- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* ---- Border Sizes ---- */
+  --border-size-sm: 2px;
+  --border-size-md: 4px;
+  --border-size-lg: 6px;
+
+  /* --- Elevation & Shadows--- */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  --shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -1px rgb(0, 0, 0 / 6%);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -2px rgb(0, 0, 0 /5%);
+
+  /* --- Z-Index Layering (Prevents "z-index: 999999" chaos) --- */
+  --z-negative: -1;
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 1000;
+  --z-tooltip: 1100;
+
+  /* --- component sizes * --- */
+  --navbar-height: 80px;
+
+  /* --- Transitions & Timing --- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+
+  /* ---- MAX SIZES ---- */
+  --max-screen-width: 2440px;
+}
+
+/* stylelint-disable-next-line selector-class-pattern */
+:root.theme-dark {
+  /* ─── Dark Mode Semantic Tokens (Brand Defaults) ────────────────────────── */
+
+  /* Tokens reference the named brand palette by default. .theme-custom       */
+
+  /* overrides these with hue-derived values when the user engages the picker. */
+
+  /** Background Variants **/
+  --bg-canvas: var(--tolopea-900);
+  --bg-surface: var(--ultraviolet-800);
+  --bg-surface-raised: var(--violet-700);
+  --bg-secondary: var(--ultraviolet-800);
+  --bg-subtle: var(--ultraviolet-700);
+  --bg-primary: var(--violet-500);
+  --bg-brand: var(--violet-400);
+  --bg-canvas-inverted: var(--white-100);
+  --bg-surface-inverted: var(--concrete-300);
+  --bg-primary-inverted: var(--violet-100);
+  --bg-display-only: #000;
+  --bg-disabled: var(--white-700);
+
+  /* In dark mode, edges lighten the bg rather than darken it. The --edge-*  */
+
+  /* definitions in :root reference var(--edge-tint), so flipping this one   */
+
+  /* value recomputes every edge token automatically.                        */
+  --edge-tint: white;
+
+  /** Background States — same as light mode **/
+  --bg-error: oklch(93% 0.2 25deg);
+  --bg-success: oklch(92% 0.04 170deg);
+  --bg-info: oklch(93% 0.04 260deg);
+  --bg-warning: oklch(96% 0.06 95deg);
+
+  /** Text Variants **/
+
+  /* --text-primary: var(--shell);
+  --text-secondary: var(--aquamarine-100); */
+  --text-muted: var(--grey-300);
+  --text-on-brand: var(--concrete-200);
+  --text-primary: var(--white-100);
+  --text-secondary: var(--grey-300);
+  --text-accent: var(--cyan-500);
+  --text-primary-inverted: var(--violet-500);
+  --text-secondary-inverted: var(--grey-600);
+  --text-accent-inverted: var(--cyan-700);
+
+  /** Text States — fixed **/
+  --text-error: oklch(45% 0.2 25deg);
+  --text-success: oklch(45% 0.11 170deg);
+  --text-warning: oklch(45% 0.13 90deg);
+  --text-info: oklch(45% 0.13 260deg);
+  --text-disabled: var(--white-600);
+
+  /** Borders **/
+  --border-default: var(--violet-700);
+  --border-subtle: var(--ultraviolet-200);
+  --border-focus: var(--cyan-500);
+  --border-brand: var(--orange-500);
+
+  /** Border States — fixed **/
+  --border-success: oklch(74% 0.13 170deg);
+  --border-warning: oklch(90% 0.22 95deg);
+  --border-error: oklch(77% 0.2 25deg);
+  --border-info: oklch(76% 0.13 260deg);
+  --border-disabled: var(--grey-500);
+
+  /** Action States **/
+  --action-hover: var(--orange-500);
+  --action-active: var(--orange-200);
+  --action-disabled: var(--grey-700);
+
+  /** Shadows **/
+  --shadow: rgb(0 0 0 / 40%) 0 10px 15px -3px, rgb(0 0 0 / 25%) 0 4px 6px -2px;
+}
+
+/* ─── Custom Theme Overrides ────────────────────────────────────────────── */
+
+/* Active when the user engages the hue picker (or activates a saved theme). */
+
+/* Semantic tokens shift from brand-color references to hue-derived oklch    */
+
+/* values driven by --hue-primary / --hue-accent.                            */
+
+/* stylelint-disable-next-line selector-class-pattern */
+:root.theme-custom {
+  /** Background Variants **/
+  --bg-canvas: oklch(93% 0.04 var(--hue-primary));
+  --bg-surface: oklch(88% 0.06 var(--hue-primary));
+  --bg-primary: oklch(52% 0.11 var(--hue-primary));
+  --bg-secondary: oklch(97% 0.03 var(--hue-primary));
+  --bg-display-only: #fff;
+
+  /* surface-raised shifts -60° from primary */
+  --bg-surface-raised: oklch(92% 0.04 calc(var(--hue-primary) - 60deg));
+  --bg-subtle: oklch(76% 0.13 var(--hue-primary));
+  --bg-brand: oklch(22% 0.05 var(--hue-primary));
+  --bg-disabled: oklch(80% 0.001 271.152deg);
+
+  /** Inverted Background Variants — flipped to dark end of primary scale **/
+  --bg-canvas-inverted: oklch(22% 0.05 var(--hue-primary));
+  --bg-surface-inverted: oklch(28% 0.06 var(--hue-primary));
+  --bg-primary-inverted: oklch(28% 0.06 var(--hue-primary));
+
+  /** Text Variants **/
+  --text-primary: oklch(39% 0.2 var(--hue-accent));
+  --text-secondary: oklch(40% 0.02 var(--hue-primary));
+  --text-accent: oklch(45% 0.13 var(--hue-accent));
+  --text-muted: oklch(93% 0.2 var(--hue-accent));
+  --text-on-brand: oklch(77% 0.2 var(--hue-accent));
+  --text-disabled: oklch(70% 0.001 271.152deg);
+
+  /** Inverted Text Variants — for use on inverted (dark) surfaces **/
+  --text-primary-inverted: oklch(98% 0.02 var(--hue-primary));
+  --text-secondary-inverted: oklch(70% 0.02 var(--hue-primary));
+  --text-accent-inverted: oklch(80% 0.13 var(--hue-accent));
+
+  /** Borders **/
+  --border-default: oklch(76% 0.13 var(--hue-primary));
+  --border-subtle: oklch(88% 0.06 var(--hue-primary));
+  --border-focus: oklch(76% 0.13 var(--hue-primary));
+  --border-brand: oklch(77% 0.2 var(--hue-accent));
+  --border-disabled: oklch(70% 0.001 271.152deg);
+
+  /** Action States **/
+  --action-hover: oklch(60% 0.2 var(--hue-accent));
+  --action-active: oklch(45% 0.2 var(--hue-accent));
+
+  /* action-disabled shifts +30° from primary */
+  --action-disabled: oklch(28% 0.06 calc(var(--hue-primary) + 30deg));
+}
+
+/* stylelint-disable-next-line selector-class-pattern */
+:root.theme-custom.theme-dark {
+  /** Background Variants — deep end of the primary scale **/
+  --bg-canvas: oklch(22% 0.05 var(--hue-primary));
+  --bg-surface: oklch(28% 0.06 var(--hue-primary));
+  --bg-primary: oklch(52% 0.11 var(--hue-primary));
+  --bg-secondary: oklch(28% 0.06 var(--hue-primary));
+  --bg-surface-raised: oklch(38% 0.08 var(--hue-primary));
+  --bg-subtle: oklch(62% 0.13 var(--hue-primary));
+  --bg-brand: oklch(22% 0.05 var(--hue-primary));
+  --bg-disabled: oklch(80% 0.001 271.152deg);
+
+  /** This is only to display components in the design page **/
+  --bg-display-only: #000;
+
+  /** Inverted Background Variants — flipped to light end of primary scale **/
+  --bg-canvas-inverted: oklch(93% 0.04 var(--hue-primary));
+  --bg-surface-inverted: oklch(88% 0.06 var(--hue-primary));
+  --bg-primary-inverted: oklch(92% 0.04 var(--hue-primary));
+
+  /** Text Variants **/
+  --text-primary: oklch(77% 0.2 var(--hue-accent));
+  --text-secondary: oklch(70% 0.02 var(--hue-primary));
+  --text-accent: oklch(80% 0.13 var(--hue-accent));
+  --text-muted: oklch(93% 0.2 var(--hue-accent));
+  --text-on-brand: oklch(77% 0.2 var(--hue-accent));
+  --text-disabled: oklch(50% 0.001 271.152deg);
+
+  /** Inverted Text Variants — for use on inverted (light) surfaces **/
+  --text-primary-inverted: oklch(22% 0.05 var(--hue-primary));
+  --text-secondary-inverted: oklch(40% 0.02 var(--hue-primary));
+  --text-accent-inverted: oklch(45% 0.13 var(--hue-accent));
+
+  /** Borders — light end of the primary scale **/
+  --border-default: oklch(93% 0.04 var(--hue-primary));
+  --border-subtle: oklch(88% 0.06 var(--hue-primary));
+  --border-focus: oklch(76% 0.13 var(--hue-primary));
+  --border-brand: oklch(77% 0.2 var(--hue-accent));
+  --border-disabled: oklch(70% 0.001 271.152deg);
+
+  /** Action States **/
+  --action-hover: oklch(89% 0.2 var(--hue-accent));
+  --action-active: oklch(93% 0.2 var(--hue-accent));
+  --action-disabled: oklch(28% 0.06 calc(var(--hue-primary) + 30deg));
+}

@@ -1,0 +1,135 @@
+.cardContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--gap-xl);
+}
+
+/* Card — owns its variant/size classes. The base .card declares the canonical */
+
+/* component vars; nested modifier classes override only what they care about. */
+
+/* Component-local concept: .isClickable.                                       */
+.card {
+  --padding: var(--p-sm);
+  --radius: var(--radius-lg);
+  --gap: var(--space-2);
+  --color: var(--text-primary);
+  --background-color: var(--bg-surface);
+  --border-color: var(--border-default);
+
+  background-color: var(--background-color);
+  color: var(--color);
+  border-radius: var(--radius);
+  border-color: var(--border-color);
+  display: flex;
+  padding: var(--padding);
+  flex-direction: column;
+  gap: var(--gap);
+  transition: border-color 300ms ease-in-out;
+
+  /* ─── Variants ─────────────────────────────────────────────── */
+  &.error {
+    --color: var(--text-error);
+    --background-color: var(--bg-error);
+    --border-color: var(--border-error);
+  }
+
+  &.success {
+    --color: var(--text-success);
+    --background-color: var(--bg-success);
+    --border-color: var(--border-success);
+  }
+
+  &.warning {
+    --color: var(--text-warning);
+    --background-color: var(--bg-warning);
+    --border-color: var(--border-warning);
+  }
+
+  &.info {
+    --color: var(--text-info);
+    --background-color: var(--bg-info);
+    --border-color: var(--border-info);
+  }
+
+  &.brand {
+    --color: var(--text-on-brand);
+    --background-color: var(--bg-brand);
+    --border-color: var(--border-brand);
+  }
+
+  /* ─── Sizes ─────────────────────────────────────────────────── */
+  &.xs {
+    --padding: var(--p-xxs);
+    --radius: var(--radius-sm);
+    --gap: var(--space-1);
+  }
+
+  &.sm {
+    --padding: var(--p-sm);
+    --radius: var(--radius-md);
+    --gap: var(--space-2);
+  }
+
+  &.md {
+    --padding: var(--p-md);
+    --radius: var(--radius-md);
+    --gap: var(--space-3);
+  }
+
+  &.lg {
+    --padding: var(--p-lg);
+    --radius: var(--radius-lg);
+    --gap: var(--space-4);
+  }
+
+  &.isClickable {
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--action-hover);
+    }
+  }
+
+  .header,
+  .body,
+  .footer {
+    padding: var(--space-2);
+    background-color: var(--bg-canvas);
+    border-radius: var(--radius-md);
+  }
+
+  .header {
+    font-size: var(--font-size-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .body {
+    font-size: var(--font-size-sm);
+    text-align: start;
+    color: var(--text-secondary);
+    flex-grow: 1;
+
+    div {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: var(--gap-sm);
+      flex-grow: 1;
+
+      img {
+        object-fit: cover;
+        object-position: center;
+      }
+    }
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}

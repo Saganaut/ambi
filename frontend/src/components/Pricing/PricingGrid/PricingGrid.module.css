@@ -1,0 +1,13 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  align-items: stretch;
+  width: 100%;
+}
+
+@media (width >= 1024px) {
+  .grid {
+    grid-template-columns: repeat(var(--pricing-columns, 3), 1fr);
+  }
+}

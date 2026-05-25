@@ -1,0 +1,47 @@
+/* The centre canvas of the deck editor — kind-specific authoring surface sits
+   inside the slideBody. Header carries the brand mark + slide-kind icon;
+   slideBody owns its own scroll so long editors don't push the footer out. */
+
+.slideDisplay {
+  --bg-color: var(--bg-surface);
+  --border-color: var(--edge-surface);
+  --background-image: none;
+
+  display: flex;
+  flex-direction: column;
+  border: var(--border-size-lg) solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-color);
+  background-image: var(--background-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  .slideHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top-left-radius: var(--radius-md);
+    border-top-right-radius: var(--radius-md);
+    padding: var(--space-2);
+    flex-shrink: 0;
+  }
+
+  .slideBody {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .slideFooter {
+    height: 40px;
+    flex-shrink: 0;
+    border-top: var(--border-size-sm) solid var(--border-subtle);
+    background-color: var(--bg-canvas);
+  }
+}

@@ -1,0 +1,223 @@
+/* McqOptionEditable — option card. Owns:
+     - the card frame (border + correct-state highlight)
+     - the top row (index pill + popover-trigger button)
+     - the option-text input and "Correct" toggle (always visible)
+     - the floating popover with image / color / delete controls (built on
+       the shared Popover primitive; this file only carries the small
+       option-specific bits like the image-thumb button and the URL input)
+   McqSlideContent renders these inside a CSS grid and does not draw any
+   per-option chrome itself. */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-raised);
+  cursor: pointer;
+  height: 100%;
+  min-height: 0;
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  transition:
+    border-color var(--duration-fast, 150ms) ease-out,
+    background-color var(--duration-fast, 150ms) ease-out,
+    outline-color var(--duration-base) ease-in-out;
+
+  .canAddBtn {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: 35%;
+    z-index: 200;
+    right: 0;
+    transform: translateX(50%);
+    transition: opacity var(--duration-base) ease-in-out;
+  }
+
+  &:hover {
+    border-color: var(--border-default);
+
+    .canAddBtn {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  &.cardCorrect {
+    outline-color: var(--orange-400);
+  }
+
+  &.isDragging {
+    opacity: 0.6;
+  }
+
+  .footer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* Replaces the old Toggle: a chrome-less square button that shows a purple
+   check when the option is marked correct, an X otherwise. Click toggles. */
+
+/* .correctBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+
+  &:hover {
+    color: var(--action-hover);
+  }
+} */
+
+.correctIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.wrongIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: var(--space-2);
+
+  /* Fill the card's remaining vertical space so the bounded textarea
+     inside `.textColumn` has a real height to fit into. */
+  flex: 1;
+  min-height: 0;
+
+  .textColumn {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    /* The interactiveZone that wraps the TextArea takes the remaining
+       vertical space inside the column so the textarea (which sets
+       `height: 100%` via its `noAutoGrow` mode) has a bounded slot to
+       fill. The same class is also used on the correct/wrong button in
+       the footer — that one is sized intrinsically, so scope this
+       rule to the text-column descendant only. */
+    .interactiveZone {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+  }
+
+  .imgThumbnail {
+    display: flex;
+    align-items: end;
+
+    img {
+      border-radius: var(--radius-md);
+      overflow: clip;
+      height: 100%;
+      aspect-ratio: 1;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      display: block;
+
+      @container (width <= 300px) {
+        /* height: 50px; */
+      }
+    }
+  }
+}
+
+.indexPill {
+  display: flex;
+  width: fit-content;
+  align-items: start;
+  justify-content: start;
+  height: 1.5rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── Floating popover ─────────────────────────────────────────────────── */
+
+.popoverWrap {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: auto;
+  z-index: var(--z-dropdown);
+  opacity: 1;
+  max-height: 9999px;
+  width: auto;
+  transition:
+    opacity var(--duration-base) ease-in-out,
+    max-height var(--duration-base) ease-in-out;
+}
+
+@starting-style {
+  .popoverWrap {
+    opacity: 0;
+    max-height: 0;
+    overflow: clip;
+  }
+}
+
+/* Single-line popover row: image thumb, optional Clear, color thumb,
+   remove, close. PopoverRow already provides display:flex + align-items:
+   center; here we lock it to one line so the toolbar stays compact and
+   the color popout has a stable anchor to sit above. */
+.popoverHeader {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+/* Image-thumbnail trigger inside the toolbar. Renders on top of an IconBtn
+   xs/ghost frame; this class only adds the hairline border so the empty +
+   filled states still read as a thumbnail well. The background-image is
+   set inline by the consumer when an image is present. */
+.imageThumbBtn {
+  border: var(--border-size-sm) solid var(--edge-surface);
+}
+
+/* Color-thumbnail trigger. Same footprint as the image thumb so the row
+   has a consistent rhythm; the background color is set inline by the
+   consumer to reflect the current option color. */
+.colorThumbWrap {
+  display: inline-flex;
+}
+
+.colorThumbBtn {
+  border: var(--border-size-sm) solid var(--edge-surface);
+}
+
+/* Color-swatch popout — sits above the toolbar so the picker doesn't
+   overlap the row's buttons. Stays inside `.popoverWrap` so the parent's
+   stopPropagation continues to shield it from the card-level click
+   handler that toggles the popover open/closed. */
+.colorPopout {
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 0;
+  z-index: calc(var(--z-dropdown) + 1);
+}

@@ -1,0 +1,54 @@
+.sessionDashboard {
+  * {
+    border: none;
+  }
+
+  width: 100%;
+  height: 100%;
+  position: relative;
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .body {
+    display: flex;
+    width: 100%;
+
+    .leftSidebar {
+      width: fit-content;
+      padding-top: var(--space-4);
+    }
+
+    .innerDisplay {
+      display: flex;
+      flex: 1;
+      background-color: var(--bg-canvas);
+      padding: var(--p-md);
+      padding-left: var(--space-2);
+      padding-right: var(--space-2);
+      padding-bottom: var(--space-16);
+
+      .sessionBoard {
+        display: flex;
+        height: 100%;
+        width: 100%;
+      }
+
+      .sessionControls {
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+      }
+    }
+
+    .rightSidebar {
+      padding-top: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+  }
+}

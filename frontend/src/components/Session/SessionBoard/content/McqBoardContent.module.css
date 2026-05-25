@@ -1,0 +1,104 @@
+.mcqBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .options {
+    --cols: 2;
+
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+    gap: var(--space-3);
+    flex: 1;
+    min-height: 0;
+
+    .option {
+      /* Default; the authored per-option colour is supplied inline at runtime. */
+      --option-accent: var(--bg-brand);
+
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      overflow: hidden;
+      padding: var(--p-md);
+      border-radius: var(--radius-md);
+
+      /* Reserve the state-border width so selecting/revealing never reflows. */
+      border: var(--border-size-md) solid transparent;
+      background-color: var(--bg-surface-raised);
+      color: var(--text-primary);
+      font-size: var(--font-size-lg);
+      text-align: start;
+
+      /* Per-option accent strip (colour comes from the authored option data). */
+      &::before {
+        content: "";
+        align-self: stretch;
+        width: var(--space-2);
+        border-radius: var(--radius-full);
+        background-color: var(--option-accent);
+      }
+
+      .bar {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: 0;
+        background-color: var(--option-accent);
+        opacity: 0.18;
+        transition: width 0.4s ease;
+      }
+
+      .label {
+        position: relative;
+        z-index: 1;
+        flex: 1;
+      }
+
+      .pct {
+        position: relative;
+        z-index: 1;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-secondary);
+      }
+    }
+
+    .selectable {
+      cursor: pointer;
+    }
+
+    /* State-only border: the participant's current pick. */
+    .selected {
+      border-color: var(--edge-brand);
+    }
+
+    /* Revealed correct answer — success surface + a check, composes with .selected. */
+    .correct {
+      background-color: var(--bg-success);
+
+      &::after {
+        content: "✓";
+        position: relative;
+        z-index: 1;
+        color: var(--text-success);
+        font-weight: 700;
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .submitted {
+      color: var(--text-success);
+      font-weight: 600;
+    }
+  }
+}

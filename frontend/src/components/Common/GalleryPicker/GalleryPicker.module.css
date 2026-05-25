@@ -1,0 +1,179 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(80vw, 880px);
+  max-height: 70vh;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.toolbarRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 480px;
+}
+
+.tagFilters {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tagFilterLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-right: var(--space-2);
+}
+
+.tagFilterBtn {
+  background: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tagFilterBtn:hover {
+  background: var(--bg-surface-raised);
+}
+
+.tagFilterBtnActive {
+  background: var(--bg-primary);
+  border-color: var(--border-brand);
+  color: var(--text-on-brand);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3);
+  overflow-y: auto;
+  padding: var(--space-1);
+  flex: 1 1 auto;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  background: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.tile:hover {
+  border-color: var(--border-brand);
+  background: var(--bg-surface-raised);
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--bg-canvas);
+}
+
+.tileName {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tileMeta {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.tileBadge {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  background: var(--bg-canvas);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.empty {
+  padding: var(--space-6) var(--space-4);
+}
+
+.uploadForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+}
+
+.uploadFormRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.previewImg {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--bg-canvas);
+}
+
+.uploadHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.error {
+  color: var(--text-error);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.fileInputHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toolbarSpacer {
+  flex: 1 1 auto;
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-2);
+}

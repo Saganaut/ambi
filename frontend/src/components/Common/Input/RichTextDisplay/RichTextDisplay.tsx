@@ -1,0 +1,150 @@
+/**
+ * Rich text display — read-only counterpart to RichTextInput. Takes the HTML
+ * string the editor produces and renders it.
+ *
+ * `styled` (default true) preserves TipTap's marks (bold / strike / underline
+ * / links) and the inline spans for color and font-size. Set to false to
+ * strip every tag and inline style and render only the text content, with
+ * block boundaries (paragraphs, list items, headings, <br>) preserved as
+ * newlines.
+ *
+ * The HTML originates from the user via RichTextInput, so it has already
+ * been sanitized to the TipTap mark/node set — `dangerouslySetInnerHTML`
+ * is acceptable here for the same reason it's safe in the editor's own
+ * rendered output.
+ */
+import { useMemo } from "react";
+import { truncateText } from "@/utils/utils";
+import styles from "./RichTextDisplay.module.css";
+
+interface RichTextDisplayProps {
+  value: string;
+  /** When false, every tag and inline style is dropped and the text content
+   *  is rendered with block boundaries preserved as newlines. Defaults to true. */
+  styled?: boolean;
+  /** If set, the rendered content is truncated to this many characters of
+   *  visible text (tags don't count) with an ellipsis appended. */
+  maxLength?: number;
+  className?: string;
+}
+
+// Block-level tags whose boundaries should become newlines when stripping.
+const BLOCK_TAGS = new Set([
+  "P",
+  "DIV",
+  "LI",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "BLOCKQUOTE",
+  "PRE",
+]);
+
+const htmlToPlainText = (html: string): string => {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const parts: string[] = [];
+  let buf = "";
+
+  const flush = () => {
+    if (buf.length > 0) {
+      parts.push(buf);
+      buf = "";
+    }
+  };
+
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      buf += node.textContent ?? "";
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as Element;
+    if (el.tagName === "BR") {
+      flush();
+      return;
+    }
+    const isBlock = BLOCK_TAGS.has(el.tagName);
+    if (isBlock) flush();
+    for (const child of Array.from(el.childNodes)) walk(child);
+    if (isBlock) flush();
+  };
+
+  walk(doc.body);
+  flush();
+  return parts.join("\n").trim();
+};
+
+/** Truncate HTML by visible-text character count while preserving the
+ *  surrounding tag structure. Appends "…" only when truncation occurred. */
+const truncateHtml = (html: string, maxLength: number): string => {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  let remaining = maxLength;
+
+  // Returns true if budget was exhausted (i.e. truncation happened).
+  const copy = (source: Node, dest: Node): boolean => {
+    for (const child of Array.from(source.childNodes)) {
+      if (remaining <= 0) return true;
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child.textContent ?? "";
+        if (text.length <= remaining) {
+          dest.appendChild(doc.createTextNode(text));
+          remaining -= text.length;
+        } else {
+          dest.appendChild(doc.createTextNode(text.slice(0, remaining)));
+          remaining = 0;
+          return true;
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const clone = (child as Element).cloneNode(false);
+        dest.appendChild(clone);
+        if (copy(child, clone)) return true;
+      }
+    }
+    return false;
+  };
+
+  const root = doc.createElement("div");
+  const truncated = copy(doc.body, root);
+  return truncated ? `${root.innerHTML}...` : root.innerHTML;
+};
+
+const RichTextDisplay = ({
+  value,
+  styled = true,
+  maxLength,
+  className,
+}: RichTextDisplayProps) => {
+  const plainText = useMemo(() => {
+    if (styled) return "";
+    const text = htmlToPlainText(value);
+    return maxLength === undefined ? text : truncateText(text, maxLength);
+  }, [styled, value, maxLength]);
+
+  const styledHtml = useMemo(() => {
+    if (!styled) return "";
+    return maxLength === undefined ? value : truncateHtml(value, maxLength);
+  }, [styled, value, maxLength]);
+
+  if (!styled) {
+    return (
+      <div className={`${styles.plain} ${className ?? ""}`.trim()}>
+        {plainText}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${styles.content} ${className ?? ""}`.trim()}
+      // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml -- HTML originates from RichTextInput (TipTap), constrained to the editor's mark/node schema
+      dangerouslySetInnerHTML={{ __html: styledHtml }}
+    />
+  );
+};
+
+export { RichTextDisplay };

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Pre-commit hook — lints the frontend (ESLint + Stylelint) before every commit.
+# Install once per clone: ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+echo "▶ Frontend lint (ESLint + Stylelint)..."
+(cd "$REPO_ROOT/frontend" && npm run lint:all)
+
+echo "OK - Lint passed."
+
+echo "▶ Backend Java Build Compiling..."
+
+(cd "$REPO_ROOT/backend" && ./mvnw clean compile)
+
+
+echo "OK - Backend build passed."
+
+
+echo "🐙🐙🐙 All pre-commit checks passed! 🐙🐙🐙"

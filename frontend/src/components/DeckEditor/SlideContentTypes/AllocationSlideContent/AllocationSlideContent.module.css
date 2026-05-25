@@ -1,0 +1,21 @@
+/* Slide-specific styles for the Allocation editor. The pool badge in the
+   settings header gives the author a glanceable summary of the per-item
+   pool (e.g. "100 pts across 4 options"). */
+
+.poolBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.poolBadge strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

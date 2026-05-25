@@ -1,0 +1,61 @@
+.boardOverallResults {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 0;
+  padding-block: var(--space-4);
+
+  .heading {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .subhead {
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
+  }
+
+  .standings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 32rem;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--p-sm) var(--p-md);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-raised);
+  }
+
+  .place {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .name {
+    color: var(--text-primary);
+  }
+
+  .score {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text-accent);
+  }
+
+  /* Top three stand out without box-shadow — surface + accent edge only. */
+  .row:nth-child(-n + 3) {
+    border: var(--border-size-sm) solid var(--edge-brand);
+  }
+}

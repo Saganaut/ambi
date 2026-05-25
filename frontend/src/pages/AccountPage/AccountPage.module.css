@@ -1,0 +1,206 @@
+.page {
+  max-width: 600px;
+  margin: var(--space-8) auto;
+  padding: 0 var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.section {
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  background-color: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.success {
+  color: var(--text-success);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.error {
+  color: var(--text-error);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.dangerSection {
+  border-color: var(--border-error);
+}
+
+.dangerText {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.dangerBtn {
+  background-color: var(--border-error);
+  color: var(--text-on-brand);
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--text-error);
+  }
+}
+
+.loading {
+  padding: var(--space-8);
+  color: var(--text-muted);
+}
+
+.infoList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.infoLabel {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.infoValue {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Achievements tab — earned-only summary on the profile. The catalog
+ * (locked rows + progress bars) lives at /achievements. */
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.sectionSubtitle {
+  margin: var(--space-1) 0 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.viewAllLink {
+  font-size: var(--font-size-sm);
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.viewAllLink:hover {
+  text-decoration: underline;
+}
+
+.emptyState {
+  margin: 0;
+  padding: var(--space-6) 0;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.achievementsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.achievementRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--edge-surface);
+  background: var(--bg-surface-raised);
+}
+
+.achievementBadge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  color: var(--text-primary-inverted);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+}
+
+.achievementBody {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.achievementName {
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.achievementDescription {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.achievementMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+
+.achievementDate {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.achievementReward {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-accent);
+}

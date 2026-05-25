@@ -1,0 +1,22 @@
+/* Slide-specific styles for the TextQuestion editor. Stretches the
+   variants input across the row and pulls case-sensitive + points into a
+   compact settings cluster. */
+
+.answersStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.correctRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+@container (width <= 480px) {
+  .correctRow {
+    grid-template-columns: 1fr;
+  }
+}

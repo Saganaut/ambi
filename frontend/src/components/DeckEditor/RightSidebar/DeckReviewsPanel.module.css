@@ -1,0 +1,195 @@
+/* Reviews panel — histogram on top, the caller's own rating editor below it,
+ * then the paginated list of written reviews. Vertical rhythm mirrors the
+ * other right-sidebar panels (EditSlide, Theme, DeckCategorize). */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.heading {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summaryAverage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.averageNumber {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.summaryCount {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.histogram {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.histogramRow {
+  display: grid;
+  grid-template-columns: 1.25rem 1fr 1.75rem;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.histogramLabel {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.histogramTrack {
+  position: relative;
+  display: block;
+  height: 0.5rem;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.histogramFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--bg-primary);
+  border-radius: var(--radius-full);
+}
+
+.histogramCount {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.myRating {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.reviewInput {
+  width: 100%;
+  resize: vertical;
+  min-height: 4rem;
+  padding: var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+}
+
+.myRatingActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reviews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.reviewItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 2px solid var(--edge-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.reviewHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reviewAvatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.reviewAuthor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: auto;
+
+  .mineBadge {
+    padding: var(--space-half) var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--bg-secondary);
+    color: var(--text-accent);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.reviewBody {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+}

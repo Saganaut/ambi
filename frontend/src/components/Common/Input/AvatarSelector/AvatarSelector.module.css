@@ -1,0 +1,114 @@
+/* AvatarSelector — circular avatar tile picker.
+   Selection / focus / disabled state is driven by the hidden native radio
+   via :has(), mirroring Radio.module.css. Resting border stays transparent
+   so flipping to --action-active on :checked doesn't shift layout.
+
+   Tiles are laid out on a fixed 3-column grid: 2 rows show by default
+   (6 tiles). When the option list outgrows that, a chevron toggle reveals
+   a taller scrollable panel containing every tile. */
+
+.container {
+  border: none;
+  margin: 0;
+  padding: 0 0 var(--space-6);
+  display: flex;
+  flex-direction: column;
+
+  --tile-size: 64px;
+  --tile-gap: var(--space-3);
+  --expanded-rows: 5;
+
+  .legend {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-bottom: var(--space-2);
+  }
+
+  .options {
+    display: grid;
+    grid-template-columns: repeat(3, var(--tile-size));
+    gap: var(--tile-gap);
+    justify-content: start;
+
+    &.expanded {
+      max-height: calc(
+        var(--tile-size) * var(--expanded-rows) + var(--tile-gap) *
+          (var(--expanded-rows) - 1) + var(--space-2) * 2
+      );
+      padding: var(--space-2);
+      overflow-y: auto;
+      border: var(--border-size-sm) solid var(--edge-subtle);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-subtle);
+    }
+  }
+
+  .toggleRow {
+    display: flex;
+    justify-content: center;
+    padding-top: var(--space-2);
+
+    .toggle {
+      transition: transform var(--duration-base) var(--ease-out);
+
+      &.toggleOpen {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  .option {
+    position: relative;
+
+    .input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: none;
+    }
+
+    .tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--tile-size);
+      height: var(--tile-size);
+      padding: var(--space-1);
+      border-radius: var(--radius-full);
+      border: 2px solid transparent;
+      background-color: transparent;
+      cursor: pointer;
+      transition: border-color var(--duration-base) var(--ease-out);
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: var(--radius-full);
+    }
+
+    &:has(.input:checked) .tile {
+      border-color: var(--action-active);
+    }
+
+    &:has(.input:focus-visible) .tile {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+
+    &:has(.input:disabled) .tile {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    &:hover:not(:has(.input:disabled)) .tile {
+      border-color: var(--action-hover);
+    }
+  }
+}

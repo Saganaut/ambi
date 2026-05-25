@@ -1,0 +1,384 @@
+/* Btn — two orthogonal axes drive the look:                                 */
+
+/*   - variant: color slot — picks --color / --bg-fill / --border-fill.       */
+
+/*   - fill: how those slots are applied — default keeps bg + transparent     */
+
+/*     border, bordered keeps bg + adds the border color, ghost makes both    */
+
+/*     transparent (text/icon only).                                          */
+
+/* See STYLE-RULES.md "Named button + icon-button variants" for the catalog.  */
+.btn {
+  --padding: var(--p-md);
+  --radius: var(--radius-lg);
+  --font-size: var(--font-size-md);
+  --color: var(--text-primary);
+  --bg-fill: var(--bg-secondary);
+  --border-fill: var(--text-primary);
+  --background-color: var(--bg-fill);
+  --border-color: transparent;
+  --gap: var(--space-2);
+  --min-height: 2.5rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--min-height);
+  width: fit-content;
+  gap: var(--gap);
+  padding: var(--padding);
+  border-radius: var(--radius);
+  font-size: var(--font-size);
+  color: var(--color);
+  background-color: var(--background-color);
+  border: var(--border-size-sm) solid var(--border-color);
+  transition:
+    background-color var(--duration-base) ease-in-out,
+    color var(--duration-base) ease-in-out,
+    border-color var(--duration-base) ease-in-out;
+
+  /* ─── Variants (color slot) ────────────────────────────────── */
+  &.primary {
+    --color: var(--text-primary);
+    --bg-fill: var(--bg-secondary);
+    --border-fill: var(--text-primary);
+  }
+
+  &.secondary {
+    --color: var(--text-secondary);
+    --bg-fill: var(--bg-subtle);
+    --border-fill: var(--text-secondary);
+  }
+
+  &.brand {
+    --color: var(--text-on-brand);
+    --bg-fill: var(--bg-brand);
+    --border-fill: var(--border-brand);
+  }
+
+  &.info {
+    --color: var(--text-info);
+    --bg-fill: var(--bg-info);
+    --border-fill: var(--border-info);
+  }
+
+  &.error {
+    --color: var(--text-error);
+    --bg-fill: var(--bg-error);
+    --border-fill: var(--border-error);
+  }
+
+  &.success {
+    --color: var(--text-success);
+    --bg-fill: var(--bg-success);
+    --border-fill: var(--border-success);
+  }
+
+  &.warning {
+    --color: var(--text-warning);
+    --bg-fill: var(--bg-warning);
+    --border-fill: var(--border-warning);
+  }
+
+  &.disabled {
+    --color: var(--text-disabled);
+    --bg-fill: var(--bg-disabled);
+    --border-fill: var(--border-disabled);
+  }
+
+  /* ─── Fills (background + border treatment) ─────────────────── */
+
+  /* default fill is implicit — bg from variant, transparent border.         */
+
+  &.bordered {
+    --border-color: var(--border-fill);
+  }
+
+  &.ghost {
+    --background-color: transparent;
+    --border-color: transparent;
+  }
+
+  /* ─── Hover ─────────────────────────────────────────────────── */
+
+  /* Neutral variants shift text color to action-hover; status variants get  */
+
+  /* an oklch shift on text / bg / border so the colors stay related.         */
+  &:hover {
+    color: var(--action-hover);
+  }
+
+  &.error:hover,
+  &.success:hover,
+  &.warning:hover,
+  &.info:hover {
+    color: oklch(from var(--color) calc(l - 0.1) calc(c + 0.01) h);
+    background-color: oklch(
+      from var(--background-color) calc(l + 0.8) calc(c + 0.02) h
+    );
+    border-color: oklch(
+      from var(--border-color) calc(l - 0.1) calc(c + 0.02) h
+    );
+  }
+
+  &.disabled,
+  &.disabled:hover {
+    color: var(--color);
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+    pointer-events: none;
+  }
+
+  /* ─── Sizes ─────────────────────────────────────────────────── */
+
+  /*
+   * `--min-height` pins the button height so icon-only and text-only buttons
+   * of the same size render identically. Values match font-size × 1.45 line
+   * height + the vertical padding for that size.
+   */
+  &.xs {
+    --padding: var(--p-pill-xs);
+    --font-size: var(--font-size-xs);
+    --radius: var(--radius-sm);
+    --gap: var(--space-1);
+    --min-height: 1.5rem;
+  }
+
+  &.sm {
+    --padding: var(--p-pill-xs);
+    --font-size: var(--font-size-xs);
+    --radius: var(--radius-md);
+    --gap: 0;
+    --min-height: 1.75rem;
+  }
+
+  &.md {
+    --padding: var(--p-pill-md);
+    --font-size: var(--font-size-base);
+    --radius: var(--radius-md);
+    --gap: var(--space-3);
+    --min-height: 2.5rem;
+  }
+
+  &.lg {
+    --padding: var(--p-pill-lg);
+    --font-size: var(--font-size-lg);
+    --radius: var(--radius-lg);
+    --gap: var(--space-4);
+    --min-height: 3.75rem;
+  }
+
+  /* ─── Shape (component-local concept, not part of the variant set) ── */
+  &.pill {
+    border-radius: var(--radius-full);
+  }
+
+  &:disabled,
+  &.isDisabled,
+  &.isDisabled:hover,
+  &:disabled:hover {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+}
+
+/* ColorOptionBtn — small filled square used inside toolbars/popovers to pick */
+
+/* a swatch. Border-radius matches the rest of the toolbar primitives.        */
+.colorOptionBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: var(--border-size-sm) solid var(--border-subtle);
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--duration-fast, 150ms) ease-out;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+/* IconBtn — same two-axis system as .btn, tuned for square / round icon     */
+
+/* buttons. The size classes set --height and --width too, and the avatar    */
+
+/* shape gets its own padding / border-width treatment.                      */
+.iconBtn {
+  --padding: var(--p-xs);
+  --radius: var(--radius-md);
+  --color: var(--text-primary);
+  --bg-fill: var(--bg-secondary);
+  --border-fill: var(--text-primary);
+  --background-color: var(--bg-fill);
+  --border-color: transparent;
+  --height: 56px;
+  --width: 56px;
+
+  height: var(--height);
+  width: var(--width);
+  padding: var(--padding);
+  border-radius: var(--radius);
+  color: var(--color);
+  background-color: var(--background-color);
+  border: var(--border-size-sm) solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    background-color var(--duration-base) ease-in-out,
+    border-color var(--duration-base) ease-in-out,
+    color var(--duration-base) ease-in-out;
+
+  /* SVG strokes follow currentcolor, so state changes on the button's    */
+
+  /* `color` animate via the color transition above.                       */
+  svg,
+  img {
+    --max-height: 28px;
+    --max-width: 28px;
+
+    display: flex;
+    stroke: currentcolor;
+    fill: none;
+    align-items: center;
+    max-height: 100%;
+    width: 100%;
+    transition: transform var(--duration-base) ease-in-out;
+  }
+
+  /* ─── Variants (color slot) ────────────────────────────────── */
+  &.primary {
+    --color: var(--text-primary);
+    --bg-fill: var(--bg-secondary);
+    --border-fill: var(--text-primary);
+  }
+
+  &.secondary {
+    --color: var(--text-secondary);
+    --bg-fill: var(--bg-subtle);
+    --border-fill: var(--text-secondary);
+  }
+
+  &.brand {
+    --color: var(--text-on-brand);
+    --bg-fill: var(--bg-brand);
+    --border-fill: var(--border-brand);
+  }
+
+  &.info {
+    --color: var(--text-info);
+    --bg-fill: var(--bg-info);
+    --border-fill: var(--border-info);
+  }
+
+  &.error {
+    --color: var(--text-error);
+    --bg-fill: var(--bg-error);
+    --border-fill: var(--border-error);
+  }
+
+  &.success {
+    --color: var(--text-success);
+    --bg-fill: var(--bg-success);
+    --border-fill: var(--border-success);
+  }
+
+  &.warning {
+    --color: var(--text-warning);
+    --bg-fill: var(--bg-warning);
+    --border-fill: var(--border-warning);
+  }
+
+  &.disabled {
+    --color: var(--text-disabled);
+    --bg-fill: var(--bg-disabled);
+    --border-fill: var(--border-disabled);
+  }
+
+  /* ─── Fills ─────────────────────────────────────────────────── */
+  &.bordered {
+    --border-color: var(--border-fill);
+  }
+
+  &.ghost {
+    --background-color: transparent;
+    --border-color: transparent;
+  }
+
+  /* ─── Disabled (platform state — declared early so its specificity      */
+
+  /* doesn't have to leapfrog the :not() hover rule below).                 */
+  &:disabled,
+  &.isDisabled,
+  &.isDisabled:hover,
+  &:disabled:hover {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* ─── Hover ─────────────────────────────────────────────────── */
+
+  /* Filled icon buttons swap to action-hover on the bg + invert the icon    */
+
+  /* color for contrast; ghost / bordered just shift color (and border).      */
+  &:not(.ghost, .disabled):hover {
+    background-color: var(--action-hover);
+    color: var(--bg-surface);
+  }
+
+  &.bordered:hover {
+    border-color: var(--action-hover);
+  }
+
+  &.ghost:hover {
+    color: var(--action-hover);
+  }
+
+  /* ─── Sizes — IconBtn tunes height/width too ───────────────────── */
+  &.xs {
+    --height: 28px;
+    --width: 28px;
+    --padding: var(--space-1);
+  }
+
+  &.sm {
+    --height: 36px;
+    --width: 36px;
+    --padding: var(--space-2);
+  }
+
+  &.md {
+    --height: 56px;
+    --width: 56px;
+    --padding: var(--p-xs);
+  }
+
+  &.lg {
+    --height: 72px;
+    --width: 72px;
+    --padding: var(--p-md);
+  }
+
+  /* ─── Component-local shapes ───────────────────────────── */
+  &.round,
+  &.avatar {
+    border-radius: var(--radius-full);
+
+    img {
+      border-radius: var(--radius-full);
+    }
+  }
+
+  &.avatar {
+    padding: 0;
+    border-width: var(--border-size-md);
+  }
+
+  &.isCollapsed {
+    transform: rotate(180deg);
+  }
+}

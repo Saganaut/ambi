@@ -1,0 +1,81 @@
+/* Vertical form layout for the deck-editor's "edit" drawer. Mirrors the
+   spacing rhythm of ThemePanel so the two panels feel like one rail. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.heading {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.behaviorHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.chartPicker {
+  display: flex;
+  gap: var(--space-2);
+
+  .chartButton {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2);
+    background: var(--bg-surface-raised);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 120ms ease;
+
+    &:hover:not(:disabled) {
+      color: var(--text-primary);
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    &:disabled {
+      color: var(--text-disabled);
+      cursor: not-allowed;
+    }
+  }
+
+  .chartButtonActive {
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+
+  .chartIcon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .chartIconRotated {
+    transform: rotate(-90deg);
+  }
+}

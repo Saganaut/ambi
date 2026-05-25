@@ -1,0 +1,44 @@
+.boardSlide {
+  /* Default; the slide's background image is supplied inline at runtime. */
+  --slide-bg: none;
+
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background-image: var(--slide-bg);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--p-lg);
+    text-align: center;
+  }
+
+  .title {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .body {
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary);
+    max-width: 60ch;
+  }
+}
+
+/* Section dividers read as quieter interstitials than a full title card. */
+.kindSECTION {
+  .title {
+    font-size: var(--font-size-2xl);
+    color: var(--text-secondary);
+  }
+}

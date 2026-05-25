@@ -1,0 +1,43 @@
+/* ColorPicker — labelled wrapper around the @uiw/react-color Block picker.
+   Overrides Block's inline white background + drop-shadow with our surface
+   ladder + edge tokens so it reads consistently in light and dark modes. */
+
+.container {
+  display: flex;
+  flex-direction: column;
+
+  /* gap: var(--space-2);
+  padding: var(--space-3); */
+  background: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--edge-surface);
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-1);
+}
+
+.label {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.degrees {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Block ships with hard-coded inline styles for background + box-shadow.
+   Override via the documented CSS variables so the picker matches the
+   surface ladder. The triangle and inner swatch styles stay default. */
+.block {
+  --block-background-color: var(--bg-canvas);
+  --block-box-shadow: none;
+}

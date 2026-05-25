@@ -1,0 +1,7 @@
+/* Cluster the publish status pill + lifecycle button in the editor navbar. */
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}

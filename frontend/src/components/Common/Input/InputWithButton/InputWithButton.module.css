@@ -1,0 +1,28 @@
+/* InputWithButton — text input fused with a flush action button.
+   The two children share a single border so the seam disappears: the input
+   loses its right border + radius, the button loses its left radius. */
+
+.inputWithButton {
+  position: relative;
+  display: flex;
+
+  input {
+    width: 240px;
+    color: var(--text-secondary);
+    border-right: none;
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+  }
+
+  button {
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    white-space: nowrap;
+    font-size: var(--font-size-sm);
+    padding: var(--p-sm);
+  }
+
+  .message {
+    position: absolute;
+    bottom: -24px;
+    left: 10px;
+  }
+}

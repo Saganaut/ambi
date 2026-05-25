@@ -1,0 +1,38 @@
+/* RadioGroup — vertical stack of radios under a single fieldset legend.
+   Trims the per-radio bottom padding so the options sit tighter inside the
+   group than they would standalone. */
+
+.radioGroupContainer {
+  border: none;
+  padding: 0;
+  margin: 0;
+  padding-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.radioGroupLegend {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding-bottom: var(--space-2);
+}
+
+.radioGroupOptions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Each Radio carries its own padding-bottom so it stands alone in a form.
+   Inside a group, the gap handles spacing — zero out the children's padding
+   so they pack tightly under the legend. */
+.radioGroupOptions > * {
+  padding-bottom: 0;
+}
+
+.message {
+  display: inline-block;
+  margin-top: var(--space-1);
+}

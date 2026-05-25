@@ -1,0 +1,57 @@
+/* Slide-specific styles for the Grid editor. The visual overlay sits on top
+   of the backing image; cells are clickable buttons that toggle correctness.
+   Selected cells get an orange tint so authors can see the answer key at a
+   glance — matches the McqOption "cardCorrect" treatment. */
+
+.gridOverlay {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: clip;
+  gap: var(--space-px);
+  padding: var(--space-px);
+}
+
+.gridCell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background-color: oklch(0% 0 0deg / 15%);
+  color: oklch(100% 0 0deg / 60%);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  outline: var(--border-size-sm) solid oklch(100% 0 0deg / 20%);
+  transition:
+    background-color var(--duration-fast) ease-out,
+    color var(--duration-fast) ease-out,
+    outline-color var(--duration-fast) ease-out;
+}
+
+.gridCell:hover {
+  background-color: oklch(0% 0 0deg / 30%);
+  color: oklch(100% 0 0deg / 90%);
+  outline-color: oklch(100% 0 0deg / 60%);
+}
+
+.gridCellOn {
+  background-color: oklch(70% 0.2 60deg / 55%);
+  color: oklch(99% 0 0deg);
+  outline: var(--border-size-sm) solid var(--orange-400);
+  z-index: 1;
+}
+
+.gridCellOn:hover {
+  background-color: oklch(70% 0.2 60deg / 70%);
+}
+
+.gridCellIndex {
+  pointer-events: none;
+}

@@ -1,0 +1,74 @@
+/* Layout for the host's scheduled-sessions list. Two vertical sections:
+ * upcoming (SCHEDULED + LIVE) and past (COMPLETED + CANCELLED). Each row is
+ * a card with the deck name, scheduled time, status badge, and invite count. */
+
+.page {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  margin: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.rowDeck {
+  font-size: var(--font-size-base);
+}
+
+.rowMeta {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.rowActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.empty {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}

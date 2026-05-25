@@ -1,0 +1,107 @@
+/* Star rating widget — display + input. The trick for fractional values is to
+ * stack two rows: an outline row underneath, then a solid row clipped via
+ * width:%. The hit-targets sit on top in input mode and stay invisible.
+ *
+ * Border discipline: focus is reserved on the root with a transparent border
+ * that turns to --border-focus on :focus-visible — no layout shift, no
+ * box-shadow.
+ */
+
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1);
+  color: var(--text-warning);
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  & .stars {
+    position: relative;
+    display: inline-flex;
+    line-height: 0;
+  }
+
+  & .outlineRow,
+  & .solidRow,
+  & .hitRow {
+    display: inline-flex;
+    gap: var(--space-1);
+  }
+
+  & .solidRow {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    color: var(--text-warning);
+  }
+
+  & .hitRow {
+    position: absolute;
+    inset: 0;
+  }
+
+  & .hit {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+  }
+
+  & .hit:focus-visible {
+    outline: none;
+  }
+
+  & .value {
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  & .count {
+    color: var(--text-secondary);
+  }
+
+  & .clear {
+    font: inherit;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    background: transparent;
+    border: 2px solid transparent;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  & .clear:hover {
+    color: var(--text-primary);
+  }
+
+  & .clear:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  /* Size variants drive the icon size so the hit targets line up. */
+  &.sizeSm .icon {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  &.sizeMd .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &.sizeLg .icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}

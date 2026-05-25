@@ -1,0 +1,49 @@
+/* McqSlideContent — author UI for MCQ slides. Renders the prompt + a grid
+   of option cards. Each card is an <McqOptionEditable />, which owns its
+   own per-option chrome (index, remove, correct toggle, fields). Styles
+   that belong to a single option card live in McqOptionEditable.module.css. */
+
+.slideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+}
+
+.optionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+}
+
+.optionsLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Keeps the footer slot's vertical space reserved when there is no warning
+   to show, so toggling correct/wrong doesn't reflow the options grid above. */
+.footerPlaceholder {
+  visibility: hidden;
+}
+
+/* Cards stretch to the same height per row, capped at
+   `--mcq-option-max-h` so a runaway long option can't blow up the
+   layout. Inside each card, `useFitText` shrinks the option text to
+   fit; below the font floor the card clips. */
+.optionsRow {
+  --cols: 2;
+
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-auto-rows: minmax(0, 12rem);
+  gap: var(--space-3);
+  align-items: start;
+  max-height: 80%;
+}
+
+.titleField {
+  min-height: 5rem;
+  padding-top: var(--space-2);
+}

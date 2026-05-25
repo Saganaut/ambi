@@ -1,0 +1,11 @@
+.sessionBoard {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--edge-surface);
+  padding: var(--p-md);
+  overflow: hidden;
+}

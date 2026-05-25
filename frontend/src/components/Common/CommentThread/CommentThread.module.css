@@ -1,0 +1,211 @@
+/* Threaded comment list. Top-level comments stack vertically with a hairline
+ * gutter; replies nest under their parent with a left edge to telegraph the
+ * thread. Soft-deleted comments fade the body text but keep the row so
+ * thread shape survives. */
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.comment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 2px solid var(--edge-subtle);
+  border-radius: var(--radius-md);
+
+  &.reply {
+    border-color: transparent;
+    background: transparent;
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+
+  & .header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  & .avatar {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+  }
+
+  & .author {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  & .editedTag {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-left: var(--space-1);
+  }
+
+  & .body {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  & .bodyDeleted {
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  & .footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  & .upvote {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-xs);
+  }
+
+  & .upvote:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  & .upvote:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  & .upvote:hover:not(:disabled) {
+    color: var(--text-primary);
+  }
+
+  & .upvoteActive {
+    color: var(--text-primary);
+  }
+
+  & .upvoteIcon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  & .upvoteCount {
+    font-variant-numeric: tabular-nums;
+  }
+
+  & .actionBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-xs);
+  }
+
+  & .actionBtn:hover {
+    color: var(--text-primary);
+  }
+
+  & .actionBtn:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  & .actionIcon {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}
+
+.toggleReplies {
+  align-self: flex-start;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+}
+
+.repliesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--space-4);
+  border-left: 2px solid var(--edge-subtle);
+}
+
+.replyItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.editorInput {
+  width: 100%;
+  resize: vertical;
+  min-height: 3.5rem;
+  padding: var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.editorInput:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

@@ -1,0 +1,55 @@
+services:
+  mongodb:
+    image: "mongo:latest"
+    environment:
+      - "MONGO_INITDB_DATABASE=brainflex"
+      - "MONGO_INITDB_ROOT_PASSWORD=secret"
+      - "MONGO_INITDB_ROOT_USERNAME=root"
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: brainflex-redis
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    # environment:
+    #   - REDIS_ARGS=--requirepass password
+    command:
+      ["redis-server", "--requirepass", "password", "--protected-mode", "no"]
+    volumes:
+      - redis-data:/data
+  garage:
+    image: dxflrs/garage:v1.0.1
+    container_name: brainflex-garage
+    ports:
+      - "3900:3900" # S3 API
+      - "3903:3903" # Admin API
+    volumes:
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+      - ./garage.toml:/etc/garage.toml:ro
+  # LocalStack emulates AWS service APIs locally so the CloudWatch path can be
+  # exercised in dev instead of only at deploy time (see
+  # z-docs/decisions/001-observability-stack.md). Scoped to cloudwatch + logs
+  # for now; add sqs,sns,lambda when the async pipeline work begins. Garage stays
+  # the S3 implementation — LocalStack does NOT replace it. Point the AWS SDK at
+  # http://localhost:4566 via AWS_ENDPOINT_URL in dev.env (omit in production).
+  localstack:
+    image: localstack/localstack:latest
+    container_name: brainflex-localstack
+    ports:
+      - "4566:4566" # edge port — all emulated AWS service APIs
+    environment:
+      - SERVICES=cloudwatch,logs
+      - DEBUG=0
+    volumes:
+      - localstack-data:/var/lib/localstack
+volumes:
+  mongo-data:
+  redis-data:
+  garage-meta:
+  garage-data:
+  localstack-data:

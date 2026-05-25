@@ -1,0 +1,280 @@
+/* Styles for ThemeSection, ThemeCard, and ThemeEditor */
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.subsectionTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+/* ── ThemeCard ── */
+
+.card {
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-canvas);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--action-hover);
+  }
+}
+
+.cardActive {
+  border-color: var(--border-brand);
+}
+
+.cardSwatch {
+  height: 56px;
+  display: flex;
+}
+
+.swatchPrimary {
+  flex: 2;
+}
+
+.swatchAccent {
+  flex: 1;
+}
+
+.cardBody {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cardName {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge {
+  font-size: var(--font-size-xs);
+  padding: var(--space-half) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.badgeActive {
+  background-color: var(--border-brand);
+  color: var(--bg-brand);
+}
+
+.badgeOrg {
+  background-color: var(--bg-surface-raised);
+  color: var(--text-secondary);
+}
+
+.cardActions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-size-sm) solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.cardActionBtn {
+  font-size: var(--font-size-xs);
+  padding: var(--p-xs) var(--space-3);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background-color: var(--bg-surface);
+  }
+}
+
+.cardActionBtnPrimary {
+  background-color: var(--border-brand);
+  color: var(--bg-brand);
+  border-color: var(--border-brand);
+
+  &:hover {
+    background-color: var(--action-hover);
+    border-color: var(--action-hover);
+  }
+}
+
+.cardActionBtnDanger {
+  color: var(--text-error);
+  border-color: var(--border-error);
+
+  &:hover {
+    background-color: var(--bg-error);
+  }
+}
+
+/* ── ThemeEditor ── */
+
+.editorForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.uploadThumb {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  border: var(--border-size-sm) solid var(--border-default);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.uploadThumbPlaceholder {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  border: var(--border-size-sm) dashed var(--border-default);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  flex-shrink: 0;
+}
+
+.editorActions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.editorError {
+  color: var(--text-error);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* ── OrgSection ── */
+
+.orgList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.orgInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-size-sm) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.orgName {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.orgId {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: inherit;
+  word-break: break-all;
+}
+
+.orgJoinForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.orgDivider {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-subtle);
+    z-index: 0;
+  }
+}
+
+.orgDividerText {
+  background: var(--bg-surface);
+  padding: 0 var(--space-3);
+  position: relative;
+  z-index: 1;
+}
+
+.orgRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.orgInput {
+  flex: 1;
+  padding: var(--p-sm) var(--space-3);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: var(--border-brand);
+  }
+}

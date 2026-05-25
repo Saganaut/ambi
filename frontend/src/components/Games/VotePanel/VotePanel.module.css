@@ -1,0 +1,124 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.progress {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.timer {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  width: 100%;
+  padding: var(--space-4);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  font-weight: 400;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--action-hover);
+  }
+}
+
+.cardSelected {
+  border-color: var(--border-info);
+  background: var(--bg-info);
+}
+
+.submissionText {
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.drawingGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-3);
+}
+
+.drawingCard {
+  display: block;
+  width: 100%;
+  padding: var(--space-2);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--action-hover);
+  }
+}
+
+.empty,
+.locked {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  text-align: center;
+}

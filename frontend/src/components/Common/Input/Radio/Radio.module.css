@@ -1,0 +1,83 @@
+/* Radio — visually hidden native input + a styled control circle.
+   :has() drives all visual state so no JS class toggling is needed. */
+
+.radioContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-6);
+  position: relative;
+
+  .message {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    white-space: nowrap;
+  }
+}
+
+/* Visually hidden native radio — keyboard/pointer events still fire */
+.radioInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: none;
+}
+
+.radioWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.radioContainer.labelBefore .radioWrap {
+  flex-direction: row-reverse;
+}
+
+.radioControl {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.radioContainer:has(.radioInput:checked) .radioControl {
+  border-color: var(--action-active);
+}
+
+.radioContainer:has(.radioInput:checked) .radioControl::after {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--action-active);
+}
+
+.radioContainer:has(.radioInput:disabled) .radioWrap {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.radioContainer:has(.radioInput:focus-visible) .radioControl {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.radioLabelText {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}

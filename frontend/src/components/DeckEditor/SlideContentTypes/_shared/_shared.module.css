@@ -1,0 +1,282 @@
+/* Shared styles for the reusable slide-editor primitives in this folder.
+   Each editor (TextSlideContent, NumberSlideContent, etc.) composes these
+   primitives into its own surface; nothing in this file is slide-kind specific.
+
+   Visual language:
+     - Surfaces ride on --bg-surface / --bg-surface-raised — no box-shadow.
+     - Edges use --edge-* tokens; state colors (focus, correct) live on the
+       outline so they don't shift layout.
+     - Spacing snaps to --space-* tokens; never hardcoded px.
+*/
+
+/* ─── PromptField ──────────────────────────────────────────────────────── */
+
+.promptShell {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.promptField {
+  min-height: 4.5rem;
+  padding-top: var(--space-2);
+}
+
+/* ─── SectionHeader ────────────────────────────────────────────────────── */
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+.sectionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sectionHint {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ─── SettingsCard ─────────────────────────────────────────────────────── */
+
+.settingsCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: var(--border-size-sm) solid transparent;
+}
+
+.settingsCard:hover {
+  border-color: var(--edge-surface);
+}
+
+.settingsCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.settingsCardTitle {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.settingsCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.settingsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.settingsRow > * {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+/* Grow a field freely (used for unit label / banned words) */
+.settingsRowGrow {
+  flex: 2 1 12rem;
+}
+
+/* ─── ItemCard / ItemList ──────────────────────────────────────────────── */
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.itemCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-md);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition:
+    background-color var(--duration-fast) ease-out,
+    outline-color var(--duration-base) ease-in-out;
+}
+
+.itemCard:hover {
+  background-color: var(--bg-surface-raised);
+}
+
+.itemCard.itemCardActive {
+  outline-color: var(--orange-400);
+}
+
+.indexPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.itemBody {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.itemActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* ─── AddItemRow ───────────────────────────────────────────────────────── */
+
+.addItemRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border: var(--border-size-sm) dashed var(--edge-surface);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  background-color: transparent;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  gap: var(--space-2);
+  transition:
+    color var(--duration-fast) ease-out,
+    border-color var(--duration-fast) ease-out,
+    background-color var(--duration-fast) ease-out;
+}
+
+.addItemRow:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.addItemRow:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-default);
+  background-color: var(--bg-surface);
+}
+
+.addItemIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ─── ImageBackingEditor ───────────────────────────────────────────────── */
+
+.imageEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) 1fr;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+@container (width <= 480px) {
+  .imageEditor {
+    grid-template-columns: 1fr;
+  }
+}
+
+.imagePreview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  overflow: clip;
+  border: var(--border-size-sm) solid transparent;
+}
+
+.imagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.imagePreviewEmpty {
+  border-color: var(--edge-surface);
+  border-style: dashed;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.imageEditorFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.urlPickerRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: end;
+}
+
+.urlPickerInput {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── ScoringWarning ───────────────────────────────────────────────────── */
+
+.scoringFooter {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.scoringFooterHidden {
+  visibility: hidden;
+}
+
+/* ─── EmptySelect placeholder ──────────────────────────────────────────── */
+
+.emptySelect {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) dashed var(--edge-surface);
+}

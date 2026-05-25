@@ -1,0 +1,107 @@
+/* Modal — variant maps to a className on <dialog>. The base .modal declares    */
+
+/* the canonical component vars; nested variant classes override only the      */
+
+/* color triplet. Inner header / content keep canvas/secondary tokens.         */
+.modal {
+  --radius: var(--radius-lg);
+  --color: var(--text-primary);
+  --background-color: var(--bg-secondary);
+  --border-color: var(--border-default);
+
+  background-color: var(--background-color);
+  color: var(--color);
+  border-radius: var(--radius);
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  margin: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: none;
+
+  /* ─── Variants ─────────────────────────────────────────────── */
+  &.error {
+    --color: var(--text-error);
+    --background-color: var(--bg-error);
+    --border-color: var(--border-error);
+  }
+
+  &.success {
+    --color: var(--text-success);
+    --background-color: var(--bg-success);
+    --border-color: var(--border-success);
+  }
+
+  &.warning {
+    --color: var(--text-warning);
+    --background-color: var(--bg-warning);
+    --border-color: var(--border-warning);
+  }
+
+  &.info {
+    --color: var(--text-info);
+    --background-color: var(--bg-info);
+    --border-color: var(--border-info);
+  }
+
+  &.brand {
+    --color: var(--text-on-brand);
+    --background-color: var(--bg-brand);
+    --border-color: var(--border-brand);
+  }
+
+  &::backdrop {
+    background-color: var(--bg-overlay);
+    backdrop-filter: blur(4px);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+}
+
+.closeButton {
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-out);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+
+  &:hover {
+    background-color: var(--bg-subtle);
+    color: var(--text-primary);
+  }
+}
+
+.closeIcon {
+  width: 24px;
+  height: 24px;
+}
+
+.content {
+  display: flex;
+  padding: var(--space-6);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  overflow-y: auto;
+  flex-grow: 1;
+}

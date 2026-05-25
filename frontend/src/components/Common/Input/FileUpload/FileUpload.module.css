@@ -1,0 +1,105 @@
+/* FileUpload — drag-and-drop drop zone with a click-to-browse fallback,
+   plus a list of accepted files below the zone. */
+
+.fileUploadContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-6);
+  width: fit-content;
+  position: relative;
+
+  & > label {
+    padding-left: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  .message {
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+  }
+}
+
+.dropZone {
+  width: 300px;
+  min-height: 100px;
+  border: var(--border-size-sm) dashed var(--border-default);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color 300ms ease-in-out,
+    background-color 300ms ease-in-out;
+
+  input[type="file"] {
+    display: none;
+  }
+
+  &:hover,
+  &:focus {
+    border-color: var(--action-hover);
+    outline: none;
+  }
+
+  &.dragging {
+    border-color: var(--border-focus);
+    background-color: var(--bg-subtle);
+  }
+}
+
+.dropZoneText {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  pointer-events: none;
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.fileList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 300px;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-size-sm) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+}
+
+.fileName {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeFile {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--font-size-base);
+  padding: 0 var(--space-1);
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 300ms ease-in-out;
+
+  &:hover {
+    color: var(--text-error);
+    border-color: transparent;
+  }
+}

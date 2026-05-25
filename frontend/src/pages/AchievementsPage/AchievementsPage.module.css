@@ -1,0 +1,176 @@
+/* Achievement catalog grid. Earned cards lean on the primary surface ladder
+ * + a brand-tinted badge; locked cards drop to a subtle background with a
+ * muted edge so the grid reads as "what you have vs what's still ahead".
+ * No box-shadow per design rules — depth comes from the surface ladder +
+ * matching --edge-* hairline. */
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  margin: 0 0 var(--space-1) 0;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.empty {
+  padding: var(--space-8) 0;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.section {
+  margin-bottom: var(--space-8);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin: 0 0 var(--space-4) 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  background: var(--bg-surface-raised);
+}
+
+.cardEarned {
+  border-color: var(--edge-primary);
+}
+
+.cardLocked {
+  background: var(--bg-subtle);
+  border-color: var(--edge-subtle);
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  border: 2px solid transparent;
+}
+
+.badgeEarned {
+  background: var(--bg-primary);
+  color: var(--text-primary-inverted);
+  border-color: var(--edge-primary);
+}
+
+.badgeLocked {
+  background: var(--bg-canvas);
+  color: var(--text-muted);
+  border-color: var(--edge-canvas);
+}
+
+.cardText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cardName {
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.cardDescription {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.progressWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.progressTrack {
+  position: relative;
+  height: 8px;
+  width: 100%;
+  border-radius: var(--radius-full);
+  background: var(--bg-canvas);
+  border: 1px solid var(--edge-canvas);
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+}
+
+.progressLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  align-self: flex-end;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--edge-surface);
+  font-size: var(--font-size-xs);
+}
+
+.cardLocked .cardFoot {
+  border-top-color: var(--edge-subtle);
+}
+
+.earnedLabel {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.lockedLabel {
+  color: var(--text-muted);
+}
+
+.reward {
+  color: var(--text-accent);
+  font-weight: 600;
+}

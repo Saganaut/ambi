@@ -1,0 +1,30 @@
+/* Slide-specific layout for the NumberQuestion editor. Highlights the correct
+   value visually with a "target ± tolerance" preview chip so authors see what
+   the player has to land within. */
+
+.targetPreview {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.targetPreviewValue {
+  font-variant-numeric: tabular-nums;
+}
+
+.targetPreviewTolerance {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.targetPreviewUnit {
+  margin-left: var(--space-1);
+  color: var(--text-secondary);
+}

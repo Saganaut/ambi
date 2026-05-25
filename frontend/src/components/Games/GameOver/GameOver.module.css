@@ -1,0 +1,170 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-4);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  flex: 1;
+}
+
+.place1 {
+  border-color: var(--border-warning);
+  padding-top: var(--space-8);
+}
+
+.place2 {
+  border-color: var(--border-subtle);
+}
+
+.place3 {
+  border-color: var(--border-subtle);
+}
+
+.me {
+  outline: 2px solid var(--border-info);
+  outline-offset: 2px;
+}
+
+.placeLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.placeName {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.placeScore {
+  font-size: var(--font-size-sm);
+  color: var(--text-success);
+}
+
+.restList {
+  width: 100%;
+  list-style-position: inside;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.restRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-size-sm) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.restRowMain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.me.restRow {
+  background: var(--bg-subtle);
+  font-weight: 700;
+}
+
+.restName {
+  flex: 1;
+  text-align: left;
+}
+
+.guestBadge {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  border: var(--border-size-sm) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+}
+
+.restScore {
+  font-weight: 700;
+}
+
+/* Chunk 13 — accuracy / streak / speed / reactions chips under each
+   placement row. Sits below the score line on rest rows, below the
+   score on podium tiles. GameOver.tsx hides individual chips when
+   their value is zero so an inactive player has no chips at all. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+.chip {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  border: var(--border-size-sm) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  white-space: nowrap;
+}
+
+.chipStreak {
+  color: var(--text-warning);
+  border-color: var(--border-warning);
+}
+
+.chipSpeed {
+  color: var(--text-success);
+  border-color: var(--border-success);
+}
+
+.footer {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.footerLink {
+  padding: var(--p-sm);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--action-hover);
+  }
+}
