@@ -1,4 +1,4 @@
-package com.cephadex.ambi.user.enums;
+package com.cephadex.ambi.billing.enums;
 
 public enum MembershipTier {
     FREE,

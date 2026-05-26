@@ -1,8 +1,8 @@
-package com.cephadex.ambi.user;
+package com.cephadex.ambi.auth;
 
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import com.cephadex.ambi.user.enums.AuthProvider;
+import com.cephadex.ambi.auth.enums.AuthProvider;
 
 import lombok.Data;
 

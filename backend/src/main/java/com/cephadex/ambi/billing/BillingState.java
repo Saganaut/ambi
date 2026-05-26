@@ -1,12 +1,12 @@
-package com.cephadex.ambi.user;
+package com.cephadex.ambi.billing;
 
 import java.time.Instant;
 
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import com.cephadex.ambi.user.enums.MembershipStatus;
-import com.cephadex.ambi.user.enums.MembershipTier;
-import com.cephadex.ambi.user.enums.PaymentProvider;
+import com.cephadex.ambi.billing.enums.MembershipStatus;
+import com.cephadex.ambi.billing.enums.MembershipTier;
+import com.cephadex.ambi.billing.enums.PaymentProvider;
 
 import lombok.Data;
 

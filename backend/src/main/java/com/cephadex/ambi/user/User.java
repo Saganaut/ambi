@@ -8,7 +8,10 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import com.cephadex.ambi.auth.AuthInfo;
+import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 import lombok.Getter;
@@ -73,5 +76,5 @@ public class User extends Auditable {
     private String closedReason;
 
     @Field("org_roles")
-    private List<OrgRoles> orgRoles;
+    private List<OrgMembership> orgRoles;
 }

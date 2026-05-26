@@ -1,4 +1,4 @@
-package com.cephadex.ambi.user;
+package com.cephadex.ambi.billing;
 
 import java.time.Instant;
 import java.util.LinkedHashSet;
