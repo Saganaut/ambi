@@ -4,17 +4,11 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.theme.Theme;
 
-import lombok.Data;
+public record UserPreferences
 
-@Data
-public class UserPreferences {
+(
+        @Field("newsletter") Boolean newsletter,
 
-    @Field("newsletter")
-    private Boolean newsletter;
-
-    @Field("marketing")
-    private Boolean marketing;
-
-    @Field("theme")
-    private Theme theme;
+        @Field("marketing") Boolean marketing,
+        @Field("theme") Theme theme) {
 }
