@@ -3,7 +3,7 @@ package com.cephadex.ambi.model.slide.content;
 import com.cephadex.ambi.model.enums.slide.Difficulty;
 import com.cephadex.ambi.model.enums.slide.SlideType;
 
-public record TextContent(
+public record NumberContent(
         int pointValue,
         Difficulty difficulty,
         String explanation
@@ -11,6 +11,6 @@ public record TextContent(
 ) implements ScorableContent {
     @Override
     public SlideType contentType() {
-        return SlideType.TEXT;
+        return SlideType.NUMBER;
     }
 }
