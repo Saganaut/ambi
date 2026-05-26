@@ -5,7 +5,7 @@ import java.util.Map;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.cephadex.ambi.model.enums.ImageSizeOptions;
+import com.cephadex.ambi.model.enums.image.ImageSizeOptions;
 
 import lombok.Data;
 
@@ -16,10 +16,10 @@ public class AppImage {
     @Id
     private String id;
 
-    private boolean isExternal;
+    private boolean external;
 
     // The src is the S3 key of the original uploaded img
-    private String src;
+    private String srcKey;
 
     // if external is true we use this full url initially
     // When we have saved it internally we can toggle isExternal

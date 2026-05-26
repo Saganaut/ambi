@@ -1,6 +1,6 @@
 package com.cephadex.ambi.model.deck;
 
-import com.cephadex.ambi.model.enums.OwnershipType;
+import com.cephadex.ambi.model.enums.deck.OwnershipType;
 
 import lombok.Data;
 
