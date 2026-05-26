@@ -37,16 +37,22 @@ public class Slide extends Auditable {
     @Field("styled_title")
     private Map<String, Object> styledTitle;
 
+    @Field("section")
     private String section;
 
+    @Field("slide_type")
     private SlideType slideType;
 
+    @Field("background_image")
     private AppImage backgroundImage;
 
+    @Field("cover_image")
     private AppImage coverImage;
 
+    @Field("created_by_user_id")
     private String createdByUserId;
 
+    @Field("last_edited_by_user_id")
     private String lastEditedByUserId;
 
     /**
@@ -57,10 +63,13 @@ public class Slide extends Auditable {
      * If a slide has a child we should never go straight to results.
      * They should also always be sequential
      **/
+    @Field("parent_id")
     private String parentId;
 
+    @Field("child_id")
     private String childId;
 
+    @Field("version")
     private Integer version;
 
     @Indexed
