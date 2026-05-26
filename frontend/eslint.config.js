@@ -12,7 +12,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 export default defineConfig([
   globalIgnores(["dist", "*.config.*"]),
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}"],
     ignores: ["src/store/BrainFlexApi.ts"],
     plugins: {
       "unused-imports": unusedImports,
