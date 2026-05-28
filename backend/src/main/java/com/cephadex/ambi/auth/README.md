@@ -326,5 +326,9 @@ duplicate-key error as the authoritative "taken" signal.
 - [x] Confirm cookie names, access/refresh TTLs, and "stay logged in" duration
       (`AMBI_AT`/`AMBI_RT`; 15 min / 30 min idle / 30 d persistent — bound via
       `AuthProperties`).
-- [ ] Decide guest `User` TTL / cleanup, and what happens to an abandoned guest
-      record whose OAuth identity already maps to a registered user.
+- [x] Guest `User` TTL / cleanup: Mongo TTL index on `user.guestExpiresAt`
+      (`@Indexed(expireAfterSeconds = 0)`), populated to `now + 7d` (configurable
+      via `ambi.auth.guest.ttl`) on guest creation and cleared on upgrade so a
+      registered account is never reaped. Abandoned guests whose OAuth identity
+      already maps to a registered `User` (the guest-side of Inv 1's "log in as
+      existing instead of upgrade") are reaped by the same TTL.

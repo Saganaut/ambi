@@ -8,6 +8,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.AuthInfo;
+import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.common.exception.ConflictException;
@@ -23,9 +24,11 @@ public class UserService {
     private static final int GUEST_USERNAME_ATTEMPTS = 5;
 
     private final UserRepository userRepository;
+    private final AuthProperties authProperties;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, AuthProperties authProperties) {
         this.userRepository = userRepository;
+        this.authProperties = authProperties;
     }
 
     public Optional<User> findById(String id) {
@@ -65,6 +68,9 @@ public class UserService {
         guest.setEmailVerifiedAt(Instant.now());
         guest.setUserLevel(UserLevel.USER);
         guest.setLastLogin(Instant.now());
+        // Critical: the upgraded account is no longer a guest, so it must not
+        // be subject to the TTL reaper. Clear the field before save.
+        guest.setGuestExpiresAt(null);
         if (guest.isClosed()) {
             guest.setClosed(false);
             guest.setClosedAt(null);
@@ -153,6 +159,7 @@ public class UserService {
         auth.setAuthProvider(AuthProvider.INTERNAL);
         auth.setExternalProviderId(null);
 
+        Instant now = Instant.now();
         User guest = new User();
         guest.setPublicId(UUID.randomUUID().toString());
         guest.setUsername("guest-" + shortId());
@@ -160,7 +167,10 @@ public class UserService {
         guest.setUserLevel(UserLevel.GUEST);
         guest.setAuth(auth);
         guest.setMembership(new Membership());
-        guest.setLastLogin(Instant.now());
+        guest.setLastLogin(now);
+        // TTL reaper hook: Mongo's TTL monitor deletes the document once this
+        // instant passes. Set only for guests; cleared on upgrade.
+        guest.setGuestExpiresAt(now.plus(authProperties.getGuest().getTtl()));
         return guest;
     }
 

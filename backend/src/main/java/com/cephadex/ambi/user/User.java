@@ -46,6 +46,17 @@ public class User extends Auditable {
     @Field("last_login")
     private Instant lastLogin;
 
+    /**
+     * Mongo TTL reaper: when set, Mongo's background TTL monitor deletes the
+     * document once this instant passes ({@code expireAfterSeconds = 0} means
+     * "use the value of this field as the deletion time"). Only populated for
+     * guest accounts; cleared on guest→registered upgrade so a real account
+     * is never reaped. See auth/README.md and {@code AuthProperties.Guest}.
+     */
+    @Indexed(expireAfterSeconds = 0)
+    @Field("guest_expires_at")
+    private Instant guestExpiresAt;
+
     @Field("timezone")
     private String timezone;
 

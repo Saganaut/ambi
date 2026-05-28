@@ -19,6 +19,7 @@ public class AuthProperties {
     private final Token token = new Token();
     private final Session session = new Session();
     private final Cors cors = new Cors();
+    private final Guest guest = new Guest();
 
     @Data
     public static class Cookie {
@@ -60,5 +61,18 @@ public class AuthProperties {
     public static class Cors {
         /** The single allowed browser origin (credentialed CORS forbids wildcards). */
         private String frontendOrigin = "http://localhost:5173";
+    }
+
+    @Data
+    public static class Guest {
+        /**
+         * How long a guest {@code User} document survives before Mongo's TTL
+         * monitor reaps it. The field {@code user.guestExpiresAt} carries this
+         * lifetime; cleared on upgrade so the registered account isn't reaped.
+         * Also the implicit answer to auth/README.md's "abandoned guest
+         * record whose OAuth identity already maps to a registered user"
+         * open item — those guests just TTL out.
+         */
+        private Duration ttl = Duration.ofDays(7);
     }
 }
