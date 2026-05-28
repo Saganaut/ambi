@@ -113,7 +113,7 @@ const LandingPage = () => {
       </div>
 
       <section className={styles.features}>
-        <p className={styles.sectionLabel}>why brainflex</p>
+        <p className={styles.sectionLabel}>why ambi</p>
         <h2 className={styles.sectionTitle}>Built for competitors</h2>
         <div className={styles.featureGrid}>
           {FEATURES.map((f) => (

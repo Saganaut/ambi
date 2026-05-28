@@ -159,11 +159,11 @@ Max retries: **3**. After the third failure the message is acknowledged out of t
 
 Two streams and one hash are added to the existing Redis instance — no new infrastructure needed.
 
-| Key                  | Type   | Purpose                                        |
-| -------------------- | ------ | ---------------------------------------------- |
-| `jobs:queue`         | Stream | Main job queue (already planned)               |
-| `jobs:dlq`           | Stream | Dead letters — failed jobs after max retries   |
-| `jobs:retry_count`   | Hash   | `msg_id → attempt_count`; cleared on success   |
+| Key                | Type   | Purpose                                      |
+| ------------------ | ------ | -------------------------------------------- |
+| `jobs:queue`       | Stream | Main job queue (already planned)             |
+| `jobs:dlq`         | Stream | Dead letters — failed jobs after max retries |
+| `jobs:retry_count` | Hash   | `msg_id → attempt_count`; cleared on success |
 
 Updated dispatcher loop:
 
@@ -194,16 +194,16 @@ Inspect the DLQ locally: `XRANGE jobs:dlq - +`
 SQS handles retries and DLQ routing natively via a **redrive policy** — no dispatcher code required.
 
 - Set `maxReceiveCount: 3` on the source queue's redrive policy.
-- Point the redrive target at a separate `brainflex-jobs-dlq` queue.
+- Point the redrive target at a separate `ambi-jobs-dlq` queue.
 - After 3 failed Lambda invocations SQS moves the message automatically.
 - A CloudWatch alarm on `ApproximateNumberOfMessagesVisible` for the DLQ publishes to an SNS alert topic (email + Sentry; see Observability section).
 
-| Local                     | AWS equivalent                                        |
-| ------------------------- | ----------------------------------------------------- |
-| `jobs:dlq` stream         | `brainflex-jobs-dlq` SQS queue                        |
-| Retry loop in dispatcher  | SQS `maxReceiveCount` + Lambda automatic retry        |
-| `jobs:retry_count` hash   | SQS approximate receive count (tracked by the service)|
-| Manual `XRANGE` inspection| SQS console / AWS CLI `receive-message` on DLQ        |
+| Local                      | AWS equivalent                                         |
+| -------------------------- | ------------------------------------------------------ |
+| `jobs:dlq` stream          | `ambi-jobs-dlq` SQS queue                              |
+| Retry loop in dispatcher   | SQS `maxReceiveCount` + Lambda automatic retry         |
+| `jobs:retry_count` hash    | SQS approximate receive count (tracked by the service) |
+| Manual `XRANGE` inspection | SQS console / AWS CLI `receive-message` on DLQ         |
 
 ---
 
@@ -274,7 +274,7 @@ flowchart TB
 ## Worker directory layout (planned)
 
 ```
-brainflex/
+ambi/
 └── workers/
     ├── dispatcher.py          # Local-only; polls Redis Streams, routes to handlers
     ├── handlers/
@@ -295,19 +295,19 @@ Each handler module exposes a `handler(event, context)` function matching the AW
 
 The `queue.py` abstraction layer reads `QUEUE_BACKEND=redis|sqs` from the environment and returns the appropriate client. This keeps handler code identical between local and production.
 
-| Variable                    | Local value             | AWS value                             |
-| --------------------------- | ----------------------- | ------------------------------------- |
-| `QUEUE_BACKEND`             | `redis`                 | `sqs`                                 |
-| `REDIS_HOST`                | `localhost`             | ElastiCache endpoint                  |
-| `SQS_QUEUE_URL`             | _(unused locally)_      | `https://sqs.<region>...`             |
-| `SQS_DLQ_URL`               | _(unused locally)_      | `https://sqs.<region>.../dlq`         |
-| `SNS_TOPIC_ARN`             | _(unused locally)_      | `arn:aws:sns:...`                     |
-| `S3_ENDPOINT`               | `http://localhost:3900` | _(omit; SDK uses default AWS)_        |
-| `S3_BUCKET`                 | `brainflex`             | `brainflex-prod`                      |
-| `SENTRY_DSN`                | `https://...@sentry.io` | same                                  |
-| `SENTRY_ENVIRONMENT`        | `local`                 | `production`                          |
-| `SENTRY_TRACES_SAMPLE_RATE` | `1.0`                   | `0.1`                                 |
-| `JOB_MAX_RETRIES`           | `3`                     | `3` (mirrors SQS `maxReceiveCount`)   |
+| Variable                    | Local value             | AWS value                           |
+| --------------------------- | ----------------------- | ----------------------------------- |
+| `QUEUE_BACKEND`             | `redis`                 | `sqs`                               |
+| `REDIS_HOST`                | `localhost`             | ElastiCache endpoint                |
+| `SQS_QUEUE_URL`             | _(unused locally)_      | `https://sqs.<region>...`           |
+| `SQS_DLQ_URL`               | _(unused locally)_      | `https://sqs.<region>.../dlq`       |
+| `SNS_TOPIC_ARN`             | _(unused locally)_      | `arn:aws:sns:...`                   |
+| `S3_ENDPOINT`               | `http://localhost:3900` | _(omit; SDK uses default AWS)_      |
+| `S3_BUCKET`                 | `ambi`                  | `ambi-prod`                         |
+| `SENTRY_DSN`                | `https://...@sentry.io` | same                                |
+| `SENTRY_ENVIRONMENT`        | `local`                 | `production`                        |
+| `SENTRY_TRACES_SAMPLE_RATE` | `1.0`                   | `0.1`                               |
+| `JOB_MAX_RETRIES`           | `3`                     | `3` (mirrors SQS `maxReceiveCount`) |
 
 ---
 
@@ -324,13 +324,13 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DUMP_DIR=/tmp/mongodump_$TIMESTAMP
 
 mongodump --uri="$MONGO_URI" --out="$DUMP_DIR"
-tar czf /tmp/brainflex_$TIMESTAMP.tar.gz -C /tmp "mongodump_$TIMESTAMP"
+tar czf /tmp/ambi_$TIMESTAMP.tar.gz -C /tmp "mongodump_$TIMESTAMP"
 
 aws --endpoint-url "$S3_ENDPOINT" s3 cp \
-  /tmp/brainflex_$TIMESTAMP.tar.gz \
-  s3://$S3_BUCKET/backups/daily/brainflex_$TIMESTAMP.tar.gz
+  /tmp/ambi_$TIMESTAMP.tar.gz \
+  s3://$S3_BUCKET/backups/daily/ambi_$TIMESTAMP.tar.gz
 
-rm -rf "$DUMP_DIR" /tmp/brainflex_$TIMESTAMP.tar.gz
+rm -rf "$DUMP_DIR" /tmp/ambi_$TIMESTAMP.tar.gz
 ```
 
 Run manually or via cron:
@@ -342,18 +342,18 @@ Run manually or via cron:
 
 ### AWS
 
-| Deployment          | Strategy                                                                                 |
-| ------------------- | ---------------------------------------------------------------------------------------- |
-| **MongoDB Atlas**   | Enable continuous cloud backup in the Atlas console; point-in-time recovery is built in  |
+| Deployment          | Strategy                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| **MongoDB Atlas**   | Enable continuous cloud backup in the Atlas console; point-in-time recovery is built in          |
 | **Self-hosted EC2** | Schedule `backup_mongo.sh` as an EventBridge cron → Lambda; store dumps in a versioned S3 bucket |
 
 **Retention policy (S3 lifecycle rules):**
 
-| Prefix              | Frequency | Retain for |
-| ------------------- | --------- | ---------- |
-| `backups/daily/`    | Daily     | 7 days     |
-| `backups/weekly/`   | Weekly    | 28 days    |
-| `backups/monthly/`  | Monthly   | 90 days    |
+| Prefix             | Frequency | Retain for |
+| ------------------ | --------- | ---------- |
+| `backups/daily/`   | Daily     | 7 days     |
+| `backups/weekly/`  | Weekly    | 28 days    |
+| `backups/monthly/` | Monthly   | 90 days    |
 
 Weekly and monthly archives are produced by the same script; a day-of-week / day-of-month check in the script (or separate cron entries) routes the file to the correct prefix.
 
@@ -367,19 +367,19 @@ The backbone and its rationale are recorded in [ADR 001 — Observability & logg
 
 Sentry is the chosen error-tracking vendor across all three layers, wired later via the seams left in `logger.ts` (frontend) and `pom.xml` (backend). All layers share the same Sentry org; use separate DSNs per project (frontend / backend / workers) for clean grouping. Backend error→HTTP mapping already lives in the [exception system](../features/exceptions.md) and stamps the shared `traceId`, so Sentry slots in alongside it.
 
-| Layer              | SDK / integration                         | What it captures                                        |
-| ------------------ | ----------------------------------------- | ------------------------------------------------------- |
-| React frontend     | `@sentry/react`                           | Unhandled exceptions, error boundaries, Web Vitals, session replay |
-| Spring Boot backend| `sentry-spring-boot-starter`              | Unhandled exceptions, slow transactions, HTTP request data |
-| Python workers     | `sentry-sdk`                              | Handler exceptions; tags: `job_type`, `job_id`, `attempt` |
+| Layer               | SDK / integration            | What it captures                                                   |
+| ------------------- | ---------------------------- | ------------------------------------------------------------------ |
+| React frontend      | `@sentry/react`              | Unhandled exceptions, error boundaries, Web Vitals, session replay |
+| Spring Boot backend | `sentry-spring-boot-starter` | Unhandled exceptions, slow transactions, HTTP request data         |
+| Python workers      | `sentry-sdk`                 | Handler exceptions; tags: `job_type`, `job_id`, `attempt`          |
 
 **Tags to set on every Sentry event:**
 
-| Tag           | Values                                                    |
-| ------------- | --------------------------------------------------------- |
-| `environment` | `local` \| `production`                                   |
+| Tag           | Values                                                                      |
+| ------------- | --------------------------------------------------------------------------- |
+| `environment` | `local` \| `production`                                                     |
 | `job_type`    | `EXTRACT_CONTENT` \| `PROCESS_CONTENT` \| `IMAGE_PROCESSING` (workers only) |
-| `user_id`     | Session user ID (backend + frontend; omit for guests)     |
+| `user_id`     | Session user ID (backend + frontend; omit for guests)                       |
 
 **DLQ → Sentry alert:** when a message lands in the DLQ (locally: a monitor process tails `jobs:dlq`; on AWS: CloudWatch alarm on DLQ depth → Lambda → Sentry `capture_message`), a Sentry issue is raised with the full job payload attached.
 
@@ -391,7 +391,7 @@ Under the `prod` Spring profile, Spring Boot emits one-line JSON via Logback + `
 {
   "timestamp": "2026-05-08T02:00:00Z",
   "level": "ERROR",
-  "logger": "cephadex.brainflex.service.UserService",
+  "logger": "cephadex.ambi.service.UserService",
   "message": "...",
   "traceId": "abc123",
   "userId": "6641f2..."
@@ -411,11 +411,11 @@ The existing `/api/health` endpoint checks MongoDB and Redis connectivity. Exten
 
 ### AWS-specific signals
 
-| Signal                          | Service                                            |
-| ------------------------------- | -------------------------------------------------- |
-| Application errors              | Sentry                                             |
-| Infrastructure metrics          | CloudWatch (CPU, memory, SQS queue depth)          |
-| DLQ depth alarm                 | CloudWatch Alarm → SNS → email + Sentry alert      |
-| Log aggregation                 | CloudWatch Logs Insights                           |
-| Uptime / synthetic checks       | CloudWatch Synthetics or UptimeRobot               |
-| Distributed traces (optional)   | AWS X-Ray via OpenTelemetry auto-instrumentation   |
+| Signal                        | Service                                          |
+| ----------------------------- | ------------------------------------------------ |
+| Application errors            | Sentry                                           |
+| Infrastructure metrics        | CloudWatch (CPU, memory, SQS queue depth)        |
+| DLQ depth alarm               | CloudWatch Alarm → SNS → email + Sentry alert    |
+| Log aggregation               | CloudWatch Logs Insights                         |
+| Uptime / synthetic checks     | CloudWatch Synthetics or UptimeRobot             |
+| Distributed traces (optional) | AWS X-Ray via OpenTelemetry auto-instrumentation |

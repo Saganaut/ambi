@@ -2,7 +2,7 @@ services:
   mongodb:
     image: "mongo:latest"
     environment:
-      - "MONGO_INITDB_DATABASE=brainflex"
+      - "MONGO_INITDB_DATABASE=ambi"
       - "MONGO_INITDB_ROOT_PASSWORD=secret"
       - "MONGO_INITDB_ROOT_USERNAME=root"
     ports:
@@ -11,7 +11,7 @@ services:
       - mongo-data:/data
   redis:
     image: redis/redis-stack-server:latest
-    container_name: brainflex-redis
+    container_name: ambi-redis
     ports:
       - "6379:6379"
       - "8001:8001"
@@ -23,7 +23,7 @@ services:
       - redis-data:/data
   garage:
     image: dxflrs/garage:v1.0.1
-    container_name: brainflex-garage
+    container_name: ambi-garage
     ports:
       - "3900:3900" # S3 API
       - "3903:3903" # Admin API
@@ -39,7 +39,7 @@ services:
   # http://localhost:4566 via AWS_ENDPOINT_URL in dev.env (omit in production).
   localstack:
     image: localstack/localstack:latest
-    container_name: brainflex-localstack
+    container_name: ambi-localstack
     ports:
       - "4566:4566" # edge port — all emulated AWS service APIs
     environment:

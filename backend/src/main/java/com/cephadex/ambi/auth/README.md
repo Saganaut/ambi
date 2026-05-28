@@ -287,7 +287,7 @@ duplicate-key error as the authoritative "taken" signal.
 | SameSite         | `Lax`                                     | preserves OAuth redirect; + CSRF token |
 | Idle timeout     | ~30 min, slid by `/refresh`               | Redis TTL                              |
 | Persistent login | long-lived refresh ("stay logged in")     | requires rotation (Inv. 6)             |
-| Store            | Redis, namespace `ambi:session`           | source of truth (Inv. instant revoke)  |
+| Store            | Redis, namespace `ambi:userSession`       | source of truth (Inv. instant revoke)  |
 | CORS             | frontend origin only, `credentials: true` | required for cookie auth               |
 
 ---

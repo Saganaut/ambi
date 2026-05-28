@@ -27,14 +27,14 @@ Frontend converts `Instant` (serialized as ISO-8601 string, e.g. `"2026-05-22T14
 
 ## Use `Auditable` for `createdAt` / `updatedAt`
 
-`Auditable` is the abstract base in `cephadex.brainflex.model.Auditable`. It declares:
+`Auditable` is the abstract base in `cephadex.ambi.model.Auditable`. It declares:
 
 ```java
 @CreatedDate       private Instant createdAt;
 @LastModifiedDate  private Instant updatedAt;
 ```
 
-Spring Data Mongo's auditing (enabled by `@EnableMongoAuditing` in `BrainflexApplication`) populates both fields on save. Services must **not** call `setCreatedAt` / `setUpdatedAt` manually.
+Spring Data Mongo's auditing (enabled by `@EnableMongoAuditing` in `AmbiApplication`) populates both fields on save. Services must **not** call `setCreatedAt` / `setUpdatedAt` manually.
 
 ### Extend `Auditable` when
 

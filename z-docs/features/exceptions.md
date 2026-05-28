@@ -1,6 +1,6 @@
 # Exception Handling
 
-How the backend turns failures into HTTP responses, what those responses look like on the wire, and how the frontend reads them. The terse, grep-able version of the rules lives in [EXCEPTION-RULES](../rules/EXCEPTION-RULES.md); this doc is the *why* and *how* behind them.
+How the backend turns failures into HTTP responses, what those responses look like on the wire, and how the frontend reads them. The terse, grep-able version of the rules lives in [EXCEPTION-RULES](../rules/EXCEPTION-RULES.md); this doc is the _why_ and _how_ behind them.
 
 ---
 
@@ -8,9 +8,9 @@ How the backend turns failures into HTTP responses, what those responses look li
 
 Before this design the backend had **no centralized exception handling**. The de-facto convention was for services and controllers to throw `org.springframework.web.server.ResponseStatusException(status, reason)` — and they did, in 136 places across 30 files. That worked, but left three gaps:
 
-1. **Information leakage.** `application.properties` set `spring.web.error.include-message=always`, so Spring's default `/error` body echoed the reason string back to the client. Any *unhandled* exception (a `NullPointerException`, a Mongo timeout) fell through to the same default handler and could surface internal detail — class names, stack frames with `include-stacktrace`, raw binding errors — to the browser. There was no generic-500 masking.
+1. **Information leakage.** `application.properties` set `spring.web.error.include-message=always`, so Spring's default `/error` body echoed the reason string back to the client. Any _unhandled_ exception (a `NullPointerException`, a Mongo timeout) fell through to the same default handler and could surface internal detail — class names, stack frames with `include-stacktrace`, raw binding errors — to the browser. There was no generic-500 masking.
 2. **Inconsistent shapes.** A `ResponseStatusException` produced one body; a bean-validation failure (`@Valid`) produced Spring's default `MethodArgumentNotValidException` body; a Spring Security `@PreAuthorize` denial produced yet another. The frontend had no single contract to code against.
-3. **The frontend couldn't tell cases apart.** RTK Query's `extractErrorMessage` only read `data.message` / `data.error`, and the UI treated everything except `401` as a generic `isError`. `DeckAnalyticsPage` literally rendered *"You don't have permission to view this deck's analytics, **or** the deck doesn't exist"* — because it had no reliable way to distinguish a `403` from a `404`.
+3. **The frontend couldn't tell cases apart.** RTK Query's `extractErrorMessage` only read `data.message` / `data.error`, and the UI treated everything except `401` as a generic `isError`. `DeckAnalyticsPage` literally rendered _"You don't have permission to view this deck's analytics, **or** the deck doesn't exist"_ — because it had no reliable way to distinguish a `403` from a `404`.
 
 The goal: **one HTTP-standard error contract** that the frontend can branch on programmatically, that leaks nothing on `5xx`, and that does **not** require rewriting all 136 existing throw-sites in one pass.
 
@@ -18,24 +18,25 @@ The goal: **one HTTP-standard error contract** that the frontend can branch on p
 
 ## The contract: RFC 9457 Problem Details
 
-Every error response is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) *Problem Details* object, served as `application/problem+json`. We use Spring Boot's built-in `org.springframework.http.ProblemDetail` — it is a framework type, **not** a class in `dto/`, so it is exempt from the [DTO naming rules](../rules/DTO-NAMING-RULES.md) (which forbid generic envelopes).
+Every error response is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) _Problem Details_ object, served as `application/problem+json`. We use Spring Boot's built-in `org.springframework.http.ProblemDetail` — it is a framework type, **not** a class in `dto/`, so it is exempt from the [DTO naming rules](../rules/DTO-NAMING-RULES.md) (which forbid generic envelopes).
 
 We use the five standard members and add three extension members:
 
-| Member      | Standard? | Meaning |
-| ----------- | --------- | ------- |
-| `type`      | RFC       | URI identifying the problem type. We leave it `about:blank` (the default) and rely on `code` instead. |
-| `title`     | RFC       | Short human label for the status, e.g. `"Not Found"`. |
-| `status`    | RFC       | The HTTP status code, mirrored in the body. |
-| `detail`    | RFC       | Human-readable, **user-safe** explanation. Safe to show in the UI for `4xx`; fixed and generic for `5xx`. |
-| `instance`  | RFC       | The request path that produced the error. |
-| **`code`**  | extension | **Stable, machine-readable identifier** the frontend branches on — `DECK_NOT_FOUND`, `DECK_EDIT_FORBIDDEN`, `VALIDATION_FAILED`, `INTERNAL_ERROR`, … |
+| Member        | Standard? | Meaning                                                                                                                                                         |
+| ------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`        | RFC       | URI identifying the problem type. We leave it `about:blank` (the default) and rely on `code` instead.                                                           |
+| `title`       | RFC       | Short human label for the status, e.g. `"Not Found"`.                                                                                                           |
+| `status`      | RFC       | The HTTP status code, mirrored in the body.                                                                                                                     |
+| `detail`      | RFC       | Human-readable, **user-safe** explanation. Safe to show in the UI for `4xx`; fixed and generic for `5xx`.                                                       |
+| `instance`    | RFC       | The request path that produced the error.                                                                                                                       |
+| **`code`**    | extension | **Stable, machine-readable identifier** the frontend branches on — `DECK_NOT_FOUND`, `DECK_EDIT_FORBIDDEN`, `VALIDATION_FAILED`, `INTERNAL_ERROR`, …            |
 | **`traceId`** | extension | Short hex token, also written to the server log line for this request. Lets support correlate a user-reported failure with logs **without** exposing internals. |
-| **`errors`** | extension | Validation only. Array of `{ field, message }` for field-level failures. |
+| **`errors`**  | extension | Validation only. Array of `{ field, message }` for field-level failures.                                                                                        |
 
 ### Example responses
 
 **404 — resource not found**
+
 ```json
 {
   "type": "about:blank",
@@ -49,6 +50,7 @@ We use the five standard members and add three extension members:
 ```
 
 **403 — forbidden (honest)**
+
 ```json
 {
   "type": "about:blank",
@@ -62,6 +64,7 @@ We use the five standard members and add three extension members:
 ```
 
 **400 — validation failure**
+
 ```json
 {
   "type": "about:blank",
@@ -79,6 +82,7 @@ We use the five standard members and add three extension members:
 ```
 
 **500 — unexpected (nothing leaked)**
+
 ```json
 {
   "type": "about:blank",
@@ -116,16 +120,16 @@ The default whitelabel `/error` controller stays **enabled** as a last-resort ne
 
 When an authenticated caller asks for a resource they're **not allowed to see**, the API has a choice:
 
-- **Honest `403`** — "it exists, but you can't touch it." Best UX and debuggability, but it confirms the resource *exists* to anyone who can guess its id.
+- **Honest `403`** — "it exists, but you can't touch it." Best UX and debuggability, but it confirms the resource _exists_ to anyone who can guess its id.
 - **Mask as `404`** — "as far as you're concerned, there's nothing here." Hides existence entirely, at the cost of a confusing "not found" for a legitimate-but-unauthorized user.
 
 We adopt a **tiered policy** keyed on how guessable the resource's identifier is:
 
-| Resource | Key | Policy | Rationale |
-| -------- | --- | ------ | --------- |
-| Decks, themes, organizations, media | random ObjectId / token | **Honest 403** | Keys are high-entropy; enumeration is infeasible, so leaking existence costs nothing and the better UX wins. |
-| Interactive sessions | **room code** (short, human-typed) | **Mask as 404** | Room codes are low-entropy and guessable; "does room `ABCD` exist?" is itself sensitive. |
-| Invites | invite token in a shareable link | **Mask as 404** | An invalid/forbidden token and a non-existent one should be indistinguishable. |
+| Resource                            | Key                                | Policy          | Rationale                                                                                                    |
+| ----------------------------------- | ---------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------ |
+| Decks, themes, organizations, media | random ObjectId / token            | **Honest 403**  | Keys are high-entropy; enumeration is infeasible, so leaking existence costs nothing and the better UX wins. |
+| Interactive sessions                | **room code** (short, human-typed) | **Mask as 404** | Room codes are low-entropy and guessable; "does room `ABCD` exist?" is itself sensitive.                     |
+| Invites                             | invite token in a shareable link   | **Mask as 404** | An invalid/forbidden token and a non-existent one should be indistinguishable.                               |
 
 A masked response still uses a `*_NOT_FOUND` code (e.g. `SESSION_NOT_FOUND`), never `FORBIDDEN` — so the policy is **greppable and auditable**: searching for a `FORBIDDEN` code on a room-code path is a bug.
 
@@ -139,7 +143,7 @@ This decision is what finally lets `DeckAnalyticsPage` split its conflated banne
 
 ### The `ApiException` hierarchy
 
-A thin, typed exception hierarchy lives in a new package, `cephadex.brainflex.exception`. These are exceptions, not DTOs, so DTO naming rules don't apply; they sit in their own package rather than `config/` (which holds `@Configuration`) — mirroring how `service/email/provider/` already nests its own `EmailSendException`.
+A thin, typed exception hierarchy lives in a new package, `cephadex.ambi.exception`. These are exceptions, not DTOs, so DTO naming rules don't apply; they sit in their own package rather than `config/` (which holds `@Configuration`) — mirroring how `service/email/provider/` already nests its own `EmailSendException`.
 
 ```java
 public abstract class ApiException extends RuntimeException {
@@ -157,13 +161,13 @@ public abstract class ApiException extends RuntimeException {
 
 Subclasses fix the status and take a `(code, message)` pair so each throw-site can carry a **specific** code:
 
-| Class | Status | Example |
-| ----- | ------ | ------- |
-| `NotFoundException`     | 404 | `new NotFoundException("DECK_NOT_FOUND", "Deck not found")` |
-| `ForbiddenException`    | 403 | `new ForbiddenException("DECK_EDIT_FORBIDDEN", "You do not have edit access to this deck")` |
-| `ConflictException`     | 409 | `new ConflictException("ROOM_CODE_IN_USE", "That room code is taken")` |
-| `UnauthorizedException` | 401 | `new UnauthorizedException("AUTH_REQUIRED", "Sign in to continue")` |
-| `ValidationException`   | 400 | `new ValidationException("Deck must have at least one element")` (defaults code `VALIDATION_FAILED`) |
+| Class                   | Status | Example                                                                                              |
+| ----------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| `NotFoundException`     | 404    | `new NotFoundException("DECK_NOT_FOUND", "Deck not found")`                                          |
+| `ForbiddenException`    | 403    | `new ForbiddenException("DECK_EDIT_FORBIDDEN", "You do not have edit access to this deck")`          |
+| `ConflictException`     | 409    | `new ConflictException("ROOM_CODE_IN_USE", "That room code is taken")`                               |
+| `UnauthorizedException` | 401    | `new UnauthorizedException("AUTH_REQUIRED", "Sign in to continue")`                                  |
+| `ValidationException`   | 400    | `new ValidationException("Deck must have at least one element")` (defaults code `VALIDATION_FAILED`) |
 
 ### `GlobalExceptionHandler`
 
@@ -171,20 +175,20 @@ A single `@RestControllerAdvice` in the same package, **extending `ResponseEntit
 
 It handles:
 
-| Source | Maps to |
-| ------ | ------- |
-| `ApiException` (new code) | its own `status` / `code` / message |
-| `ResponseStatusException` (the 130+ existing sites) | `status` + reason; `code` derived from status (`defaultCodeFor`) |
-| `AccessDeniedException` (Spring Security `@PreAuthorize`) | `403 FORBIDDEN` |
-| `AuthenticationException` | `401 UNAUTHORIZED` |
-| `MethodArgumentNotValidException` / `ConstraintViolationException` (validation override) | `400 VALIDATION_FAILED` + `errors[]` |
-| `Throwable` (catch-all) | `500 INTERNAL_ERROR`, generic detail, full exception logged at `ERROR` |
+| Source                                                                                   | Maps to                                                                |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `ApiException` (new code)                                                                | its own `status` / `code` / message                                    |
+| `ResponseStatusException` (the 130+ existing sites)                                      | `status` + reason; `code` derived from status (`defaultCodeFor`)       |
+| `AccessDeniedException` (Spring Security `@PreAuthorize`)                                | `403 FORBIDDEN`                                                        |
+| `AuthenticationException`                                                                | `401 UNAUTHORIZED`                                                     |
+| `MethodArgumentNotValidException` / `ConstraintViolationException` (validation override) | `400 VALIDATION_FAILED` + `errors[]`                                   |
+| `Throwable` (catch-all)                                                                  | `500 INTERNAL_ERROR`, generic detail, full exception logged at `ERROR` |
 
 A shared `decorate(pd, req)` stamps every response with `traceId` + `instance`. `traceId` is read from the SLF4J MDC if present, otherwise generated as a short hex token and written back into the MDC — so any log lines emitted on the same request share the id, and when real distributed tracing lands the handler transparently picks up the propagated id with no change.
 
 ### Coexistence — no big-bang refactor
 
-Because the handler maps **both** `ApiException` *and* `ResponseStatusException`, the two styles coexist indefinitely. The payoff is immediate: once the handler ships, all 136 existing throw-sites already serialize to the new ProblemDetail shape **with zero edits**. The only thing the old sites lack is a *specific* `code` — a `ResponseStatusException(NOT_FOUND, …)` becomes `code: "NOT_FOUND"`, not `code: "DECK_NOT_FOUND"`.
+Because the handler maps **both** `ApiException` _and_ `ResponseStatusException`, the two styles coexist indefinitely. The payoff is immediate: once the handler ships, all 136 existing throw-sites already serialize to the new ProblemDetail shape **with zero edits**. The only thing the old sites lack is a _specific_ `code` — a `ResponseStatusException(NOT_FOUND, …)` becomes `code: "NOT_FOUND"`, not `code: "DECK_NOT_FOUND"`.
 
 So migration is **opportunistic**: convert a throw-site to a typed `ApiException` only when the frontend actually wants to branch on its specific code. The first and highest-leverage target is `AuthorizationService` — the single choke point through which deck/theme/session/org/media authorization flows — whose 11 sites become typed in one focused change.
 
@@ -216,16 +220,16 @@ The frontend changes are deliberately small:
 
 ## Implementation map
 
-| File | Change |
-| ---- | ------ |
-| `backend/.../exception/ApiException.java` + 5 subclasses | new — the typed hierarchy |
-| `backend/.../exception/GlobalExceptionHandler.java` | new — the `@RestControllerAdvice` |
-| `backend/src/main/resources/application.properties` | the three `spring.web.error.*` properties |
-| `backend/.../service/AuthorizationService.java` | first migration target (11 sites) + room-code 404-masking |
-| `backend/.../controller/InteractiveSessionWebSocketController.java` | reconcile `handleException`; fix the 500 leak |
-| `backend/.../dto/session/message/InteractiveSessionErrorMessage.java` | add `String code` |
-| `frontend/src/utils/utils.ts` | `extractErrorMessage` reads `detail` |
-| `frontend/src/pages/DeckAnalyticsPage/DeckAnalyticsPage.tsx` | split 403 vs 404 messages |
+| File                                                                  | Change                                                    |
+| --------------------------------------------------------------------- | --------------------------------------------------------- |
+| `backend/.../exception/ApiException.java` + 5 subclasses              | new — the typed hierarchy                                 |
+| `backend/.../exception/GlobalExceptionHandler.java`                   | new — the `@RestControllerAdvice`                         |
+| `backend/src/main/resources/application.properties`                   | the three `spring.web.error.*` properties                 |
+| `backend/.../service/AuthorizationService.java`                       | first migration target (11 sites) + room-code 404-masking |
+| `backend/.../controller/InteractiveSessionWebSocketController.java`   | reconcile `handleException`; fix the 500 leak             |
+| `backend/.../dto/session/message/InteractiveSessionErrorMessage.java` | add `String code`                                         |
+| `frontend/src/utils/utils.ts`                                         | `extractErrorMessage` reads `detail`                      |
+| `frontend/src/pages/DeckAnalyticsPage/DeckAnalyticsPage.tsx`          | split 403 vs 404 messages                                 |
 
 ---
 

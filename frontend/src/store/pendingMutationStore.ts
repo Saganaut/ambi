@@ -10,7 +10,7 @@
  * FormData) can't round-trip. The capture middleware is responsible for
  * filtering those out at write time — we don't try to be clever here.
  */
-const STORAGE_KEY = "brainflex:pendingMutation";
+const STORAGE_KEY = "ambi:pendingMutation";
 const TTL_MS = 5 * 60 * 1000;
 
 export interface PendingMutation {

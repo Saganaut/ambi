@@ -14,21 +14,21 @@ Use Spring's `org.springframework.http.ProblemDetail` (`application/problem+json
 
 ## 2. Throw `ApiException`, never raw `ResponseStatusException`
 
-New code throws a typed subclass from `cephadex.brainflex.exception`:
+New code throws a typed subclass from `cephadex.ambi.exception`:
 
-| Throw | Status |
-| ----- | ------ |
-| `NotFoundException(code, msg)`     | 404 |
-| `ForbiddenException(code, msg)`    | 403 |
-| `ConflictException(code, msg)`     | 409 |
-| `UnauthorizedException(code, msg)` | 401 |
+| Throw                              | Status                    |
+| ---------------------------------- | ------------------------- |
+| `NotFoundException(code, msg)`     | 404                       |
+| `ForbiddenException(code, msg)`    | 403                       |
+| `ConflictException(code, msg)`     | 409                       |
+| `UnauthorizedException(code, msg)` | 401                       |
 | `ValidationException(msg)`         | 400 (`VALIDATION_FAILED`) |
 
 `ResponseStatusException` still works — `GlobalExceptionHandler` maps it too, so legacy throw-sites are valid — but it can only yield a status-derived `code` (`NOT_FOUND`, never `DECK_NOT_FOUND`). Don't add new ones.
 
 ## 3. `code` is the contract, not `detail`
 
-Pick a `SCREAMING_SNAKE_CASE` code that names the *specific* condition, scoped by resource where it helps the client (`DECK_NOT_FOUND`, `DECK_EDIT_FORBIDDEN`, `ROOM_CODE_IN_USE`). Frontend logic branches on `code` (and `status`). The `detail` string is human-facing and may be reworded anytime — never branch on it.
+Pick a `SCREAMING_SNAKE_CASE` code that names the _specific_ condition, scoped by resource where it helps the client (`DECK_NOT_FOUND`, `DECK_EDIT_FORBIDDEN`, `ROOM_CODE_IN_USE`). Frontend logic branches on `code` (and `status`). The `detail` string is human-facing and may be reworded anytime — never branch on it.
 
 ## 4. Disclosure: `4xx` specific, `5xx` silent
 
@@ -45,10 +45,10 @@ spring.web.error.include-binding-errors=never
 
 ## 5. 404 vs 403 — tiered by key guessability
 
-| Resource | Unauthorized access returns |
-| -------- | --------------------------- |
-| Decks, themes, organizations, media (random-id keys) | **Honest 403** |
-| Interactive sessions (room code), invites (token) | **Masked 404** |
+| Resource                                             | Unauthorized access returns |
+| ---------------------------------------------------- | --------------------------- |
+| Decks, themes, organizations, media (random-id keys) | **Honest 403**              |
+| Interactive sessions (room code), invites (token)    | **Masked 404**              |
 
 A masked response uses a `*_NOT_FOUND` code, never `FORBIDDEN`. A `FORBIDDEN` code on a room-code or invite-token path is a bug.
 

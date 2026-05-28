@@ -33,7 +33,7 @@ You never set `traceId` or `userId` yourself — `MdcLoggingFilter` (`backend/..
 The normal way to bring up the whole stack — Docker, frontend, and backend — is:
 
 ```bash
-./scripts/brainflex.sh        # run from the repo root; Ctrl+C stops everything
+./scripts/ambi.sh        # run from the repo root; Ctrl+C stops everything
 ```
 
 This already exports `dev.env` before launching the backend and boots the default
@@ -48,7 +48,7 @@ set -a && . ./dev.env && set +a   # see note below — required for placeholder 
 cd backend && ./mvnw spring-boot:run
 ```
 
-> The `set -a … dev.env … set +a` step is mandatory for a non-interactive boot — `brainflex.sh` does the equivalent in its backend subshell. `application.properties` binds `logging.level.org.springframework.security=${LOGGING_LEVEL}` very early — before `DotenvEnvironmentPostProcessor` adds its property source — so the placeholder must already be a real OS env var (`LOGGING_LEVEL` is set in `dev.env`) or startup fails with `Value: "${LOGGING_LEVEL}"`.
+> The `set -a … dev.env … set +a` step is mandatory for a non-interactive boot — `ambi.sh` does the equivalent in its backend subshell. `application.properties` binds `logging.level.org.springframework.security=${LOGGING_LEVEL}` very early — before `DotenvEnvironmentPostProcessor` adds its property source — so the placeholder must already be a real OS env var (`LOGGING_LEVEL` is set in `dev.env`) or startup fails with `Value: "${LOGGING_LEVEL}"`.
 
 ### Run with prod (JSON) logging locally
 
@@ -66,10 +66,10 @@ In production nothing changes in the app: stdout is shipped to CloudWatch Logs b
 By default logs only stream to the terminal — nothing is written to disk. To **also** tee the backend logs to a file (handy for grepping by `traceId` after the fact), turn on the opt-in `filelog` Logback profile:
 
 ```bash
-./scripts/brainflex.sh --file-logs        # or: -f
+./scripts/ambi.sh --file-logs        # or: -f
 ```
 
-This keeps the normal console output **and** appends readable, non-coloured lines (with `[traceId]`) to `backend/logs/brainflex.log` — rolled daily and at 10 MB, 7 days / 100 MB retained, gzipped. The directory is git-ignored.
+This keeps the normal console output **and** appends readable, non-coloured lines (with `[traceId]`) to `backend/logs/ambi.log` — rolled daily and at 10 MB, 7 days / 100 MB retained, gzipped. The directory is git-ignored.
 
 Running the backend directly, activate the same profile yourself (it stacks on top of dev or prod):
 
@@ -82,8 +82,8 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=filelog
 Then tail or grep it like any file:
 
 ```bash
-tail -f backend/logs/brainflex.log
-grep smoke-123 backend/logs/brainflex.log
+tail -f backend/logs/ambi.log
+grep smoke-123 backend/logs/ambi.log
 ```
 
 The appender lives in the `filelog` block of `logback-spring.xml`; it is off unless the profile is active and never affects production behaviour.
@@ -153,11 +153,11 @@ The app-specific `/api/health` controller is separate and is what the frontend m
 
 ## LocalStack — not used for logs (yet)
 
-**LocalStack does nothing for logging.** It is pre-positioned for the *deferred metrics path* only. If you're working on logs, you can ignore this section entirely (and the `localstack` container that `./scripts/brainflex.sh` / `docker compose up -d` starts).
+**LocalStack does nothing for logging.** It is pre-positioned for the _deferred metrics path_ only. If you're working on logs, you can ignore this section entirely (and the `localstack` container that `./scripts/ambi.sh` / `docker compose up -d` starts).
 
 Why there's nothing to test here for logs: in production the path is **stdout → container log driver → CloudWatch Logs**. The app makes no AWS calls to log, so there is no CloudWatch log appender to emulate locally. The local equivalent of "what CloudWatch will ingest" is simply the **prod-profile JSON on stdout** shown above — not anything in LocalStack.
 
-What LocalStack *is* for: once `micrometer-registry-cloudwatch2` is wired (deferred), published custom **metrics** can be inspected against the emulator without touching real AWS:
+What LocalStack _is_ for: once `micrometer-registry-cloudwatch2` is wired (deferred), published custom **metrics** can be inspected against the emulator without touching real AWS:
 
 ```bash
 docker compose up -d localstack        # edge port :4566
@@ -171,7 +171,7 @@ Garage stays our S3 — LocalStack is scoped to `cloudwatch,logs` only and does 
 
 ## Log lifecycle & operations — TBD
 
-> **Status: not yet decided.** The *foundation* — structured JSON, end-to-end `traceId` correlation, and the CloudWatch Logs sink (stdout → log driver) — is settled in [ADR 001](../decisions/001-observability-stack.md). What's still open is what we actually **do** with the logs once they land in CloudWatch. The options below are proposals, not decisions; pick one per item before the first real deploy and promote anything load-bearing into the ADR.
+> **Status: not yet decided.** The _foundation_ — structured JSON, end-to-end `traceId` correlation, and the CloudWatch Logs sink (stdout → log driver) — is settled in [ADR 001](../decisions/001-observability-stack.md). What's still open is what we actually **do** with the logs once they land in CloudWatch. The options below are proposals, not decisions; pick one per item before the first real deploy and promote anything load-bearing into the ADR.
 
 ### 1. Retention & archival
 
@@ -203,7 +203,7 @@ Volume is tiny (a learning project), so cost is dominated by the retention windo
 
 ### 6. Local / dev parity
 
-- File logging is now opt-in (`./scripts/brainflex.sh -f`, above). **TBD** whether to add a local Loki+Grafana for dashboard parity in dev, or just keep `tee` / `grep` on the file. Only worth it if we adopt option 2-B.
+- File logging is now opt-in (`./scripts/ambi.sh -f`, above). **TBD** whether to add a local Loki+Grafana for dashboard parity in dev, or just keep `tee` / `grep` on the file. Only worth it if we adopt option 2-B.
 
 ---
 
@@ -211,9 +211,9 @@ Volume is tiny (a learning project), so cost is dominated by the retention windo
 
 These are intentionally **not** wired yet (see the ADR's deferred section). When you pick them up:
 
-| To add | Edit |
-| --- | --- |
-| Sentry error tracking + Web Vitals + session replay (frontend) | the `PROD SEAM` in `frontend/src/utils/logger.ts`; add `@sentry/react` |
-| Sentry (backend) | `backend/pom.xml` (commented intent next to the logstash encoder) + init in config |
-| CloudWatch custom metrics | `backend/pom.xml` → `micrometer-registry-cloudwatch2`; validate against LocalStack |
-| X-Ray / OpenTelemetry tracing | propagate into the same `traceId` MDC key |
+| To add                                                         | Edit                                                                               |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Sentry error tracking + Web Vitals + session replay (frontend) | the `PROD SEAM` in `frontend/src/utils/logger.ts`; add `@sentry/react`             |
+| Sentry (backend)                                               | `backend/pom.xml` (commented intent next to the logstash encoder) + init in config |
+| CloudWatch custom metrics                                      | `backend/pom.xml` → `micrometer-registry-cloudwatch2`; validate against LocalStack |
+| X-Ray / OpenTelemetry tracing                                  | propagate into the same `traceId` MDC key                                          |

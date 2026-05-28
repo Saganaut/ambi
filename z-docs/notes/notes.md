@@ -13,6 +13,7 @@ Open questions are marked `❓` — please answer inline (or in chat) before we 
 **Proposal: embedded.** A `Deck` document carries its full `elements: List<DeckElement>` inline. The element types form a sealed Java hierarchy with Jackson polymorphic deserialization keyed on `kind`.
 
 Rationale:
+
 - Decks are always read together with their elements (editor, runtime draw, review). One round-trip beats N.
 - Element counts are bounded (5–50 typical, 100s worst case) — far below Mongo's 16 MB doc cap.
 - Position becomes array index — no separate `position` field to maintain.
@@ -45,7 +46,7 @@ These don't live inside `InteractiveSession` because they're high-volume per-rou
 ## 2. Proposed Java model
 
 ```
-cephadex.brainflex.model
+cephadex.ambi.model
 ├── Deck                          (collection: decks)
 ├── element/                      (embedded sealed hierarchy)
 │   ├── DeckElement               (sealed interface)
@@ -432,6 +433,7 @@ After: `McqOption.id` is stable; clients submit `McqAnswer(optionId)`. Server sc
 ### 3b. Best Answer mode reuses existing flow
 
 `InteractiveSession.phase` discriminates:
+
 - SUBMIT — current `submitAnswer` flow
 - VOTE — new `submitVote` flow (writes to `best_answer_votes`)
 - REVEAL — round result broadcast; same shape as today but enriched with submissions + vote tallies
@@ -451,6 +453,7 @@ Only Questions with `bestAnswerMode = true` ever enter VOTE phase. Default behav
 ### 3d. Seed data
 
 Will be rewritten to use the new structures. Sample decks:
+
 - "Welcome Tour" — exercises every element kind (slide + each question type with sample content) so the runtime is demoable end-to-end
 - "General Knowledge" — pure trivia (MCQ + Text)
 - "Audience Pulse" — Pulse preset interactive session (scales + Q&A + ranking)
@@ -507,7 +510,7 @@ Element order:
 11. **QAndAQuestion** — "Ask anything about how the rest of the platform works" • `allowVoting: true` • `autoApprove: false` (host pins what they want to address)
 12. **Slide / SECTION** — "Visual"
 13. **GridQuestion** — "Select all the prime numbers" • 3×3 grid • cell labels `1..9` • correct cells `1, 2, 4, 6` (indexes for 2, 3, 5, 7) • `multipleCorrect: true`
-14. **PlaceOnImageQuestion** — "Click on Italy" • target image: a Lorem Picsum stand-in (`https://picsum.photos/seed/brainflex-welcome-map/1200/800`) since we don't have a real map asset yet • correctX `0.55`, correctY `0.42`, tolerance `0.08`, scoring `LINEAR`
+14. **PlaceOnImageQuestion** — "Click on Italy" • target image: a Lorem Picsum stand-in (`https://picsum.photos/seed/ambi-welcome-map/1200/800`) since we don't have a real map asset yet • correctX `0.55`, correctY `0.42`, tolerance `0.08`, scoring `LINEAR`
 15. **ImageChoiceQuestion** — "Which of these is the Eiffel Tower?" • 4 options, each carrying a Lorem Picsum image URL keyed by a deterministic seed • correct option flagged
 16. **Slide / END** — "Thanks for playing!" • body "That's every element type. Go make your own deck." • `displaySeconds = 8`
 
@@ -531,4 +534,3 @@ For asset URLs we use Lorem Picsum throughout — the user can swap any in later
 10. **GAMES.md** — rewrite §0 (most ☐s become ✅), update §3a to point at the actual records, mark Best Answer mode shipped.
 
 Phases 1–6 must land together; the frontend can be rolled out across 7–9 incrementally but ideally in one pass too since the API types are breaking.
-

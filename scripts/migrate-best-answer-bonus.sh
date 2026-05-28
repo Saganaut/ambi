@@ -6,7 +6,7 @@
 #
 # Loads dev.env, then runs the Spring Boot app with
 # --migrate.best-answer-bonus=true so
-# cephadex.brainflex.config.BestAnswerBonusRenameMigration fires once and the
+# cephadex.ambi.config.BestAnswerBonusRenameMigration fires once and the
 # app exits. Idempotent: once the legacy field is gone the filter matches
 # nothing on subsequent runs.
 #

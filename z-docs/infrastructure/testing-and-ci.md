@@ -6,7 +6,7 @@ Test stacks for both layers, the GitHub Actions CI workflow, and the local pre-c
 
 ## Backend (Spring Boot)
 
-The base test slice is `BrainflexApplicationTests.java` (context load test). Test starters for MongoDB, Redis, Security, and WebMVC are on the classpath.
+The base test slice is `AmbiApplicationTests.java` (context load test). Test starters for MongoDB, Redis, Security, and WebMVC are on the classpath.
 
 **Controller tests:**
 

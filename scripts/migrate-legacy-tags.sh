@@ -4,7 +4,7 @@
 # first-class Tag documents (and populates Deck.tagIds).
 #
 # Loads dev.env, then runs the Spring Boot app with --migrate.legacy-tags=true
-# so cephadex.brainflex.config.LegacyTagMigration fires once and the app
+# so cephadex.ambi.config.LegacyTagMigration fires once and the app
 # exits. Idempotent: decks with tagIds already populated are skipped; Tag
 # documents are upserted by slug.
 #

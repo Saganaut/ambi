@@ -8,7 +8,7 @@
 //   - Player UI (decides whether to render aggregated responses live).
 //
 // The backend resolver lives at
-// `backend/src/main/java/cephadex/brainflex/service/ShowResponsesResolver.java`.
+// `backend/src/main/java/cephadex/ambi/service/ShowResponsesResolver.java`.
 // Keep the two in sync — the per-format default below mirrors the spec in
 // `z-docs/to-do/24-session-format-and-runtime-cascades/README.md`.
 import type {

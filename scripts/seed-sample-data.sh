@@ -24,7 +24,7 @@ for arg in "$@"; do
   esac
 done
 
-# Sourcing dev.env mirrors scripts/brainflex.sh. dev.env may contain stray
+# Sourcing dev.env mirrors scripts/ambi.sh. dev.env may contain stray
 # non-assignment lines (legacy comments) that bash will report as errors; we
 # tolerate them so the env vars we do need still land in the environment.
 if [ -f "${PROJECT_ROOT}/dev.env" ]; then

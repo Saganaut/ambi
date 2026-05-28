@@ -26,7 +26,10 @@ public class AuthProperties {
         private String accessName = "AMBI_AT";
         /** Refresh-token cookie name (HttpOnly). */
         private String refreshName = "AMBI_RT";
-        /** SameSite policy; Lax preserves the OAuth redirect (CSRF token covers the rest). */
+        /**
+         * SameSite policy; Lax preserves the OAuth redirect (CSRF token covers the
+         * rest).
+         */
         private String sameSite = "Lax";
         /** Cookie path. */
         private String path = "/";
@@ -50,7 +53,7 @@ public class AuthProperties {
     @Data
     public static class Session {
         /** Redis key namespace for session records. */
-        private String redisNamespace = "ambi:session";
+        private String redisNamespace = "ambi:userSession";
     }
 
     @Data

@@ -50,7 +50,7 @@ const MainPage = () => {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <p className={styles.eyebrow}>brainflex</p>
+        <p className={styles.eyebrow}>ambi</p>
         <h1 className={styles.heroTitle}>What do you want to do?</h1>
         <p className={styles.heroSubtitle}>
           Start a game, run a poll, or jump into a session with a code.

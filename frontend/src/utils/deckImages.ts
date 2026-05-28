@@ -24,10 +24,17 @@ export const resolveDeckCover = (
   cover: Image | null | undefined,
   deckId: string | null | undefined,
 ): string => {
-  const seed = `brainflex-deck-cover-${deckId ?? "unknown"}`;
+  const seed = `ambi-deck-cover-${deckId ?? "unknown"}`;
   // Cover cards sit at ~480×280, so SM (200px) is too small and MD (600px)
   // overshoots by a hair — MD gives a sharp 2x render on retina.
-  const url = resolveImageUrl(cover, "MD", seed, COVER_WIDTH, COVER_HEIGHT, false);
+  const url = resolveImageUrl(
+    cover,
+    "MD",
+    seed,
+    COVER_WIDTH,
+    COVER_HEIGHT,
+    false,
+  );
   return url ?? picsumUrl(seed, COVER_WIDTH, COVER_HEIGHT);
 };
 
@@ -39,7 +46,7 @@ export const resolveInteractiveSessionBackground = (
   deckBackgroundUrl: string | null | undefined,
   deckId: string | null | undefined,
 ): string => {
-  const seed = `brainflex-deck-bg-${deckId ?? "unknown"}`;
+  const seed = `ambi-deck-bg-${deckId ?? "unknown"}`;
   if (deckBackgroundUrl && deckBackgroundUrl.trim().length > 0) {
     return deckBackgroundUrl;
   }

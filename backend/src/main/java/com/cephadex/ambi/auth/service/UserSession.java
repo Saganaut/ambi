@@ -10,13 +10,15 @@ import lombok.NoArgsConstructor;
 
 /**
  * The authoritative session state stored in Redis under
- * {@code ambi:session:{sessionId}} (auth/README.md). Every authenticated
+ * {@code ambi:userSession:{sessionId}} (auth/README.md). Every authenticated
  * request is validated against this record, not the JWT signature alone — a
  * token whose record is absent/expired/revoked is rejected even if its
  * signature is valid. This is an internal Redis value (JSON), not a wire DTO.
  *
- * <p>Distinct from {@code LiveSession} (an interactive game session); this is
- * the per-browser authenticated session that backs {@code AMBI_AT}/{@code AMBI_RT}.
+ * <p>
+ * Distinct from {@code LiveSession} (an interactive game session); this is
+ * the per-browser authenticated session that backs
+ * {@code AMBI_AT}/{@code AMBI_RT}.
  */
 @Data
 @NoArgsConstructor
@@ -42,7 +44,10 @@ public class UserSession {
      */
     private UserLevel userLevel;
 
-    /** Whether this session is backed by a persistent ("stay logged in") refresh token. */
+    /**
+     * Whether this session is backed by a persistent ("stay logged in") refresh
+     * token.
+     */
     private boolean persistent;
 
     /**
@@ -58,4 +63,3 @@ public class UserSession {
      */
     private long createdAtEpochMs;
 }
-

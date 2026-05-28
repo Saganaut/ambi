@@ -1,6 +1,6 @@
 # DTO Naming Rules
 
-Strict, mechanical rules for naming classes in `backend/src/main/java/cephadex/brainflex/dto/`.
+Strict, mechanical rules for naming classes in `backend/src/main/java/cephadex/ambi/dto/`.
 
 The point of strictness is to **remove judgment**. Two engineers reading the rules should agree on what to name a new class without a debate. If a rule below ever requires a judgment call, it has failed.
 
@@ -10,12 +10,12 @@ The point of strictness is to **remove judgment**. Two engineers reading the rul
 
 Every class in `dto/` MUST end in exactly one of these suffixes:
 
-| Suffix      | Direction | Purpose                                                              | Examples                                                |
-| ----------- | --------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
-| `Request`   | Inbound   | Any payload the client sends — POST/PUT/PATCH bodies *and* GET filter/query-param objects | `CreateDeckRequest`, `JoinInteractiveSessionRequest`, `DeckExploreRequest` |
-| `Response`  | Outbound  | Anything the server returns over HTTP — resource reads *and* action result envelopes | `DeckResponse`, `OrganizationResponse`, `RedeemInviteResponse`, `HealthCheckResponse` |
-| `Page<T>`   | Outbound  | Paginated list envelope. Use the generic `Page<T>` directly. Only subclass when the endpoint adds summary fields beyond the page itself. | `Page<DeckResponse>` (typical), `DeckRatingsPage` (adds histogram), `UserAchievementsPage` (adds counts) |
-| `Message`   | Outbound  | WebSocket / STOMP broadcast payload. Never used for HTTP responses.  | `RoundStartMessage`, `PresenceMessage`, `AnswerProgressMessage` |
+| Suffix     | Direction | Purpose                                                                                                                                  | Examples                                                                                                 |
+| ---------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `Request`  | Inbound   | Any payload the client sends — POST/PUT/PATCH bodies _and_ GET filter/query-param objects                                                | `CreateDeckRequest`, `JoinInteractiveSessionRequest`, `DeckExploreRequest`                               |
+| `Response` | Outbound  | Anything the server returns over HTTP — resource reads _and_ action result envelopes                                                     | `DeckResponse`, `OrganizationResponse`, `RedeemInviteResponse`, `HealthCheckResponse`                    |
+| `Page<T>`  | Outbound  | Paginated list envelope. Use the generic `Page<T>` directly. Only subclass when the endpoint adds summary fields beyond the page itself. | `Page<DeckResponse>` (typical), `DeckRatingsPage` (adds histogram), `UserAchievementsPage` (adds counts) |
+| `Message`  | Outbound  | WebSocket / STOMP broadcast payload. Never used for HTTP responses.                                                                      | `RoundStartMessage`, `PresenceMessage`, `AnswerProgressMessage`                                          |
 
 There is no `*DTO` suffix. There is no `*Query` suffix. There is no `*View`, `*Info`, `*Result`, `*Envelope`, or no-suffix class. If a class doesn't fit one of the four categories above, the design is wrong — not the rule.
 
@@ -94,16 +94,16 @@ Do not invent a suffix-less "component", "row", or "detail" type to dodge this. 
 
 ## Quick decision table
 
-| You are creating…                              | Suffix              |
-| ---------------------------------------------- | ------------------- |
-| A JSON body for a POST/PUT/PATCH               | `Request`           |
-| A `@RequestParam`-bound query object on a GET  | `Request`           |
-| The JSON returned by any HTTP endpoint         | `Response`          |
-| A paginated list (no extra fields)             | `Page<XxxResponse>` |
-| A paginated list with summary fields           | `XxxPage extends Page<…>` (or new record) |
-| A STOMP/WebSocket broadcast payload            | `Message`           |
-| A record embedded only inside other payloads (never a top-level body) | `Response` / `Request` by data direction (§9) |
-| Anything that doesn't fit the above            | Stop. Rethink. The taxonomy covers every legitimate case. |
+| You are creating…                                                     | Suffix                                                    |
+| --------------------------------------------------------------------- | --------------------------------------------------------- |
+| A JSON body for a POST/PUT/PATCH                                      | `Request`                                                 |
+| A `@RequestParam`-bound query object on a GET                         | `Request`                                                 |
+| The JSON returned by any HTTP endpoint                                | `Response`                                                |
+| A paginated list (no extra fields)                                    | `Page<XxxResponse>`                                       |
+| A paginated list with summary fields                                  | `XxxPage extends Page<…>` (or new record)                 |
+| A STOMP/WebSocket broadcast payload                                   | `Message`                                                 |
+| A record embedded only inside other payloads (never a top-level body) | `Response` / `Request` by data direction (§9)             |
+| Anything that doesn't fit the above                                   | Stop. Rethink. The taxonomy covers every legitimate case. |
 
 ---
 
@@ -113,7 +113,7 @@ These rules are mechanical enough to grep:
 
 ```bash
 # Anything in dto/ that doesn't match the allowed suffix list
-ls backend/src/main/java/cephadex/brainflex/dto/ \
+ls backend/src/main/java/cephadex/ambi/dto/ \
   | grep -vE '(Request|Response|Page|Message)\.java$'
 ```
 

@@ -16,16 +16,16 @@ docker compose exec -T garage /garage layout assign --zone dc1 --capacity 1G "$N
 docker compose exec -T garage /garage layout apply --version 1
 
 echo "Creating access key..."
-KEY_OUTPUT=$(docker compose exec -T garage /garage key create brainflex-key)
+KEY_OUTPUT=$(docker compose exec -T garage /garage key create ambi-key)
 echo "$KEY_OUTPUT"
 ACCESS_KEY=$(echo "$KEY_OUTPUT" | grep "Key ID:" | awk '{print $3}')
 SECRET_KEY=$(echo "$KEY_OUTPUT" | grep "Secret key:" | awk '{print $3}')
 
 echo "Creating bucket..."
-docker compose exec -T garage /garage bucket create brainflex-images
+docker compose exec -T garage /garage bucket create ambi-images
 
 echo "Granting key access to bucket..."
-docker compose exec -T garage /garage bucket allow brainflex-images --read --write --key brainflex-key
+docker compose exec -T garage /garage bucket allow ambi-images --read --write --key ambi-key
 
 echo ""
 echo "=== Add the following to your .env ==="

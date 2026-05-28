@@ -9,7 +9,7 @@ A full-stack web app for competitive brain games. Learning project focused on Mo
 ## Project Layout
 
 ```
-brainflex/
+ambi/
 ├── frontend/          # React 19 + TypeScript + Vite
 ├── backend/           # Java 26 + Spring Boot 4
 ├── compose.yaml       # Docker Compose (MongoDB + Redis + Garage S3)
@@ -103,7 +103,7 @@ Conventions: see [FRONTEND-RULES](z-docs/rules/FRONTEND-RULES.md) and [STYLE-RUL
 | API docs        | SpringDoc OpenAPI v2               |
 | Boilerplate     | Lombok                             |
 
-Package: `cephadex.brainflex`. Layers: `controller/`, `service/`, `repository/`, `model/`, `dto/`, `config/`. Conventions: see [BACKEND-RULES](z-docs/rules/BACKEND-RULES.md).
+Package: `cephadex.ambi`. Layers: `controller/`, `service/`, `repository/`, `model/`, `dto/`, `config/`. Conventions: see [BACKEND-RULES](z-docs/rules/BACKEND-RULES.md).
 
 ### REST API
 

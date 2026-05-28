@@ -13,10 +13,10 @@ import { useEffect, useState } from "react";
 
 export type ThemeMode = "light" | "dark";
 
-const STORAGE_KEY = "brainflex-theme";
-const HUE_PRIMARY_KEY = "brainflex-hue-primary";
-const HUE_ACCENT_KEY = "brainflex-hue-accent";
-const CUSTOM_THEME_KEY = "brainflex-theme-custom";
+const STORAGE_KEY = "ambi-theme";
+const HUE_PRIMARY_KEY = "ambi-hue-primary";
+const HUE_ACCENT_KEY = "ambi-hue-accent";
+const CUSTOM_THEME_KEY = "ambi-theme-custom";
 
 // Hues of electric-violet and blaze-orange — the brand primary/accent.
 export const DEFAULT_HUE_PRIMARY = 290;

@@ -1,19 +1,18 @@
 package com.cephadex.ambi.auth.service;
 
+import java.time.Duration;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.Optional;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
@@ -57,7 +56,7 @@ class RedisTokenSessionServiceTest {
 
         assertThat(tokens.accessToken()).isNotBlank();
         assertThat(tokens.sessionId()).isNotBlank();
-        assertThat(keyCaptor.getValue()).isEqualTo("ambi:session:" + tokens.sessionId());
+        assertThat(keyCaptor.getValue()).isEqualTo("ambi:userSession:" + tokens.sessionId());
         assertThat(ttlCaptor.getValue()).isEqualTo(Duration.ofMinutes(30)); // idle window
     }
 
@@ -75,7 +74,7 @@ class RedisTokenSessionServiceTest {
         ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
         RedisTokenSessionService.Tokens tokens = service.mint(guestSeed(), false);
         verify(valueOps).set(anyString(), jsonCaptor.capture(), any(Duration.class));
-        when(valueOps.get("ambi:session:" + tokens.sessionId())).thenReturn(jsonCaptor.getValue());
+        when(valueOps.get("ambi:userSession:" + tokens.sessionId())).thenReturn(jsonCaptor.getValue());
 
         Optional<UserSession> record = service.validate(tokens.accessToken());
 
@@ -96,14 +95,14 @@ class RedisTokenSessionServiceTest {
         RedisTokenSessionService.Tokens rotated = service.rotate("old-session-id", guestSeed(), false);
 
         assertThat(rotated.sessionId()).isNotEqualTo("old-session-id");
-        verify(valueOps).set(eq("ambi:session:" + rotated.sessionId()), anyString(), any(Duration.class));
-        verify(redis).delete("ambi:session:old-session-id");
+        verify(valueOps).set(eq("ambi:userSession:" + rotated.sessionId()), anyString(), any(Duration.class));
+        verify(redis).delete("ambi:userSession:old-session-id");
     }
 
     @Test
     void revokeDeletesTheKey() {
         service.revoke("sid-123");
-        verify(redis).delete("ambi:session:sid-123");
+        verify(redis).delete("ambi:userSession:sid-123");
     }
 
     private static AmbiPrincipal guestSeed() {

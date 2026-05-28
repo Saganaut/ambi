@@ -7,7 +7,7 @@
 #
 # Loads dev.env, then runs the Spring Boot app with
 # --migrate.recommended-preset=true so
-# cephadex.brainflex.config.RecommendedPresetRenameMigration fires once and the
+# cephadex.ambi.config.RecommendedPresetRenameMigration fires once and the
 # app exits. Idempotent: once the legacy field is gone the filter matches
 # nothing on subsequent runs.
 #

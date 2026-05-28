@@ -1,6 +1,6 @@
 # Backend Model Diagram
 
-Class diagram of all types in `backend/src/main/java/cephadex/brainflex/model/` (root + `enums/`, `element/`, `element/block/`, `element/parts/`, `answer/`, `image/`).
+Class diagram of all types in `backend/src/main/java/cephadex/ambi/model/` (root + `enums/`, `element/`, `element/block/`, `element/parts/`, `answer/`, `image/`).
 
 Three sealed hierarchies anchor the model — `DeckElement` (13 question/slide variants), `AnswerPayload` (12 answer types), and `SlideBlock` (5 block types) — with `ElementChrome` factoring out shared question metadata. `Auditable` is the common base for ~12 root `@Document` classes; `UserSnapshot` and `StoredImageVariant` are the workhorse embedded value objects used to denormalize across collections.
 
