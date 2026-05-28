@@ -3,6 +3,7 @@ package com.cephadex.ambi.auth.service;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.dto.MeResponse;
+import com.cephadex.ambi.auth.dto.RegisterRequest;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
@@ -10,6 +11,7 @@ import com.cephadex.ambi.billing.BillingState;
 import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.billing.enums.MembershipStatus;
 import com.cephadex.ambi.billing.enums.MembershipTier;
+import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 
@@ -47,6 +49,44 @@ public class AuthService {
         // Guests are never "stay logged in".
         RedisTokenSessionService.Tokens tokens = tokenService.rotate(currentSessionId, seed, false);
         return new AuthSession(tokens, meFromUser(IdentityState.GUEST, guest));
+    }
+
+    /**
+     * Completes a {@code PRE_REGISTRATION} session into a registered account
+     * and rotates the session id at the privilege boundary (Inv 4). Identity
+     * ({@code provider}, {@code externalProviderId}, {@code email}) is taken
+     * <strong>only</strong> from the session principal (Inv 5): the request body
+     * carries solely user-chosen fields.
+     *
+     * <p>Idempotent (Inv 8): if a {@link User} already exists for the session's
+     * {@code (provider, externalProviderId)} pair, it is returned (reopening if
+     * closed) and the body's {@code username} is ignored — back-button /
+     * double-submit / a race with another tab all converge on the same account.
+     */
+    public AuthSession register(AmbiPrincipal principal, RegisterRequest request) {
+        if (principal == null || principal.state() != IdentityState.PRE_REGISTRATION) {
+            // The filter chain already enforces hasRole(PRE_REGISTRATION); this
+            // is a belt-and-braces guard so service-level reuse stays safe.
+            throw new ForbiddenException("REGISTRATION_NOT_ALLOWED",
+                    "Registration requires a pre-registration session.");
+        }
+        AuthProvider provider = principal.provider();
+        String externalProviderId = principal.externalProviderId();
+        String email = principal.email();
+
+        User user = userService.findByProviderAndSubject(provider, externalProviderId)
+                .map(existing -> existing.isClosed() ? userService.reopen(existing) : existing)
+                .orElseGet(() -> userService.register(
+                        provider, externalProviderId, email,
+                        request.username(), request.displayName()));
+
+        AmbiPrincipal seed = new AmbiPrincipal(
+                IdentityState.REGISTERED,
+                user.getId(), user.getPublicId(), user.getUserLevel(),
+                provider, externalProviderId, email, null);
+        // Phase 2.5: "stay logged in" will surface persistent here.
+        RedisTokenSessionService.Tokens tokens = tokenService.rotate(principal.sessionId(), seed, false);
+        return new AuthSession(tokens, meFromUser(IdentityState.REGISTERED, user));
     }
 
     /** Revokes the session in Redis so the token is rejected on the next request. Idempotent. */

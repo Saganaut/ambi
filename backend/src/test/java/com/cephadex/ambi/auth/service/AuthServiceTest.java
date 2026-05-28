@@ -1,9 +1,11 @@
 package com.cephadex.ambi.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.cephadex.ambi.auth.dto.MeResponse;
+import com.cephadex.ambi.auth.dto.RegisterRequest;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
@@ -22,6 +25,7 @@ import com.cephadex.ambi.billing.BillingState;
 import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.billing.enums.MembershipStatus;
 import com.cephadex.ambi.billing.enums.MembershipTier;
+import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -134,6 +138,86 @@ class AuthServiceTest {
         authService.createGuest(null);
 
         verify(tokenService).rotate(isNull(), any(), eq(false));
+    }
+
+    // ── register (Phase 2) ───────────────────────────────────────────────────
+
+    @Test
+    void registerCreatesUserAndRotatesSession() {
+        AmbiPrincipal preReg = preRegistrationPrincipal();
+        User created = user("u-new", UserLevel.USER, MembershipStatus.NONE, MembershipTier.FREE);
+        when(userService.findByProviderAndSubject(AuthProvider.GOOGLE, "google-sub-1"))
+                .thenReturn(Optional.empty());
+        when(userService.register(AuthProvider.GOOGLE, "google-sub-1", "new@example.com",
+                "newname", "New Person")).thenReturn(created);
+        when(tokenService.rotate(eq("pre-sid"), any(), eq(false)))
+                .thenReturn(new RedisTokenSessionService.Tokens("at", "rt", "new-sid", false));
+
+        AuthService.AuthSession session = authService.register(preReg,
+                new RegisterRequest("newname", "New Person", true));
+
+        assertThat(session.me().state()).isEqualTo(IdentityState.REGISTERED);
+        assertThat(session.me().username()).isEqualTo("name-u-new");
+        verify(tokenService).rotate(eq("pre-sid"), any(), eq(false));
+        verify(userService, never()).reopen(any());
+    }
+
+    @Test
+    void registerIsIdempotentForExistingUser() {
+        // Same (provider, sub) — return the existing User and ignore the username
+        // in the body (Inv 8). Don't call register again.
+        AmbiPrincipal preReg = preRegistrationPrincipal();
+        User existing = user("u-existing", UserLevel.USER, MembershipStatus.ACTIVE, MembershipTier.INDIVIDUAL);
+        when(userService.findByProviderAndSubject(AuthProvider.GOOGLE, "google-sub-1"))
+                .thenReturn(Optional.of(existing));
+        when(tokenService.rotate(eq("pre-sid"), any(), eq(false)))
+                .thenReturn(new RedisTokenSessionService.Tokens("at", "rt", "new-sid", false));
+
+        AuthService.AuthSession session = authService.register(preReg,
+                new RegisterRequest("ignored-username", null, false));
+
+        assertThat(session.me().state()).isEqualTo(IdentityState.REGISTERED);
+        assertThat(session.me().effectiveTier()).isEqualTo(MembershipTier.INDIVIDUAL);
+        verify(userService, never()).register(any(), any(), any(), any(), any());
+        verify(userService, never()).reopen(any());
+    }
+
+    @Test
+    void registerReopensClosedExistingUser() {
+        AmbiPrincipal preReg = preRegistrationPrincipal();
+        User closed = user("u-closed", UserLevel.USER, MembershipStatus.NONE, MembershipTier.FREE);
+        closed.setClosed(true);
+        User reopened = user("u-closed", UserLevel.USER, MembershipStatus.NONE, MembershipTier.FREE);
+        when(userService.findByProviderAndSubject(AuthProvider.GOOGLE, "google-sub-1"))
+                .thenReturn(Optional.of(closed));
+        when(userService.reopen(closed)).thenReturn(reopened);
+        when(tokenService.rotate(eq("pre-sid"), any(), eq(false)))
+                .thenReturn(new RedisTokenSessionService.Tokens("at", "rt", "new-sid", false));
+
+        AuthService.AuthSession session = authService.register(preReg,
+                new RegisterRequest("ignored", null, false));
+
+        verify(userService).reopen(closed);
+        verify(userService, never()).register(any(), any(), any(), any(), any());
+        assertThat(session.me().state()).isEqualTo(IdentityState.REGISTERED);
+    }
+
+    @Test
+    void registerRejectsNonPreRegistrationPrincipal() {
+        // The filter chain enforces hasRole(PRE_REGISTRATION); this is the
+        // belt-and-braces service-level guard.
+        AmbiPrincipal guest = new AmbiPrincipal(IdentityState.GUEST, "g-1", "pub-g-1", UserLevel.GUEST,
+                AuthProvider.INTERNAL, null, null, "sid");
+
+        assertThatThrownBy(() -> authService.register(guest, new RegisterRequest("u", null, false)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(userService, never()).register(any(), any(), any(), any(), any());
+        verify(tokenService, never()).rotate(any(), any(), any(Boolean.class));
+    }
+
+    private static AmbiPrincipal preRegistrationPrincipal() {
+        return new AmbiPrincipal(IdentityState.PRE_REGISTRATION, null, null, null,
+                AuthProvider.GOOGLE, "google-sub-1", "new@example.com", "pre-sid");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

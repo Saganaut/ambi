@@ -309,15 +309,21 @@ duplicate-key error as the authoritative "taken" signal.
 
 ## Open items for the rewrite
 
-- [ ] Filter chain + token/session service: cookie extraction, Redis validation,
+- [x] Filter chain + token/session service: cookie extraction, Redis validation,
       CSRF (Inv. 3), privilege-boundary rotation (Inv. 4).
-- [ ] OAuth success handler: existing-user / guest-upgrade (Inv. 1) /
-      new-user → `preRegistration` branching, multi-provider.
-- [ ] Auth controller: guest creation, `register` (Inv. 5, 8), `me` (four states
-      incl. `needsRegistration`), `refresh` (Inv. 6), logout (Redis delete).
-- [ ] `preRegistration` authority + gating (Inv. 8).
-- [ ] Live entitlement hydration on the per-request path (Inv. 7).
-- [ ] `returnUrl` validator (Inv. 2) as a shared, unit-tested utility.
-- [ ] Confirm cookie names, access/refresh TTLs, and "stay logged in" duration.
+- [x] OAuth success handler: existing-user / guest-upgrade (Inv. 1) /
+      new-user → `preRegistration` branching, multi-provider (registration-id
+      → `AuthProvider` map seam).
+- [x] Auth controller: guest creation, `register` (Inv. 5, 8), `me` (four states
+      incl. `needsRegistration`), logout (Redis delete).
+- [ ] Auth controller `refresh` (Inv. 6) — sliding TTL + rotation with reuse
+      detection on every call.
+- [x] `preRegistration` authority + gating (Inv. 8).
+- [x] Live entitlement hydration on the per-request path (Inv. 7).
+- [x] `returnUrl` validator (Inv. 2) as a shared, unit-tested utility, carried
+      through OAuth via a short-lived `AMBI_RU` cookie set on the redirect leg.
+- [x] Confirm cookie names, access/refresh TTLs, and "stay logged in" duration
+      (`AMBI_AT`/`AMBI_RT`; 15 min / 30 min idle / 30 d persistent — bound via
+      `AuthProperties`).
 - [ ] Decide guest `User` TTL / cleanup, and what happens to an abandoned guest
       record whose OAuth identity already maps to a registered user.

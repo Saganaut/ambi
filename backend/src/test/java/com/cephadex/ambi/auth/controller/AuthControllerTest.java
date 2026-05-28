@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -86,5 +87,24 @@ class AuthControllerTest {
                 .andExpect(cookie().value("AMBI_AT", ""))
                 .andExpect(cookie().maxAge("AMBI_AT", 0))
                 .andExpect(cookie().maxAge("AMBI_RT", 0));
+    }
+
+    @Test
+    void registerReturns200WithCookiesAndBody() throws Exception {
+        MeResponse registered = new MeResponse(true, IdentityState.REGISTERED, false,
+                "pub-1", "newname", "New Person", "new@example.com",
+                UserLevel.USER, MembershipTier.FREE, MembershipStatus.NONE);
+        when(authService.register(any(), any())).thenReturn(new AuthService.AuthSession(
+                new RedisTokenSessionService.Tokens("acc", "ref", "new-sid", false), registered));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"newname\",\"displayName\":\"New Person\",\"newsletter\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("REGISTERED"))
+                .andExpect(jsonPath("$.username").value("newname"))
+                .andExpect(cookie().value("AMBI_AT", "acc"))
+                .andExpect(cookie().httpOnly("AMBI_AT", true))
+                .andExpect(cookie().value("AMBI_RT", "ref"));
     }
 }

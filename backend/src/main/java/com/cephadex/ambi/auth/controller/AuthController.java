@@ -8,16 +8,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.dto.MeResponse;
+import com.cephadex.ambi.auth.dto.RegisterRequest;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.auth.service.AuthService;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 /**
  * The always-available auth endpoints (auth/README.md). {@code /me} is the SPA's
@@ -58,6 +61,27 @@ public class AuthController {
             @AuthenticationPrincipal AmbiPrincipal principal, HttpServletRequest request) {
         String currentSessionId = principal != null ? principal.sessionId() : null;
         AuthService.AuthSession session = authService.createGuest(currentSessionId);
+        boolean secure = request.isSecure();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie(session.tokens(), secure).toString())
+                .body(session.me());
+    }
+
+    /**
+     * Completes registration for a {@code PRE_REGISTRATION} session: identity
+     * comes from the session principal (Inv 5), the body carries only chosen
+     * fields. Idempotent (Inv 8) — a {@link User} already linked to the
+     * session's {@code (provider, sub)} is returned and reopened if closed,
+     * making double-submit / back-button safe. Rotates the session id at the
+     * preReg→registered privilege boundary (Inv 4).
+     */
+    @PostMapping("/register")
+    public ResponseEntity<MeResponse> register(
+            @AuthenticationPrincipal AmbiPrincipal principal,
+            @Valid @RequestBody RegisterRequest body,
+            HttpServletRequest request) {
+        AuthService.AuthSession session = authService.register(principal, body);
         boolean secure = request.isSecure();
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie(session.tokens(), secure).toString())

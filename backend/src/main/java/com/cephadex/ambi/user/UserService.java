@@ -33,6 +33,102 @@ public class UserService {
     }
 
     /**
+     * Looks up a {@link User} by the OAuth identity pair {@code (provider,
+     * externalProviderId)} — the only identity key for an external account
+     * (auth/README.md). Email is never the key.
+     */
+    public Optional<User> findByProviderAndSubject(AuthProvider provider, String externalProviderId) {
+        if (provider == null || externalProviderId == null || externalProviderId.isBlank()) {
+            return Optional.empty();
+        }
+        return userRepository.findByAuthAuthProviderAndAuthExternalProviderId(provider, externalProviderId);
+    }
+
+    /**
+     * Upgrades a {@code GUEST} {@link User} into a registered account in place
+     * (auth/README.md Inv 1): the Mongo {@code _id} and existing {@code username}
+     * are preserved (guest squat is accepted — Inv 9), and the external identity,
+     * email, and {@code userLevel=USER} are written. Reopens the account if it
+     * was previously closed. Caller must verify the {@link User} actually is a
+     * guest before calling this.
+     */
+    public User upgradeGuestToRegistered(User guest, AuthProvider provider,
+            String externalProviderId, String email) {
+        AuthInfo auth = guest.getAuth();
+        if (auth == null) {
+            auth = new AuthInfo();
+            guest.setAuth(auth);
+        }
+        auth.setAuthProvider(provider);
+        auth.setExternalProviderId(externalProviderId);
+        guest.setEmailAddress(email);
+        guest.setEmailVerifiedAt(Instant.now());
+        guest.setUserLevel(UserLevel.USER);
+        guest.setLastLogin(Instant.now());
+        if (guest.isClosed()) {
+            guest.setClosed(false);
+            guest.setClosedAt(null);
+            guest.setClosedReason(null);
+        }
+        try {
+            return userRepository.save(guest);
+        } catch (DuplicateKeyException ex) {
+            // Username/publicId already belong to this same guest doc, so the
+            // collision can only be on the (now-set) email. The owner of that
+            // email should sign in via their existing account instead.
+            throw new ConflictException("EMAIL_TAKEN",
+                    "That email is already linked to a different account.");
+        }
+    }
+
+    /**
+     * Creates a freshly registered {@link User} from a {@code PRE_REGISTRATION}
+     * session. Identity ({@code provider}, {@code externalProviderId},
+     * {@code email}) comes from the authenticated session principal — never
+     * from request input (auth/README.md Inv 5). The DB owns uniqueness
+     * (Inv 9): a duplicate-key collision on {@code username} surfaces as
+     * {@code USERNAME_TAKEN}.
+     */
+    public User register(AuthProvider provider, String externalProviderId, String email,
+            String username, String displayName) {
+        AuthInfo auth = new AuthInfo();
+        auth.setAuthProvider(provider);
+        auth.setExternalProviderId(externalProviderId);
+
+        User user = new User();
+        user.setPublicId(UUID.randomUUID().toString());
+        user.setUsername(username);
+        user.setDisplayName(displayName != null && !displayName.isBlank() ? displayName : username);
+        user.setEmailAddress(email);
+        user.setEmailVerifiedAt(Instant.now());
+        user.setUserLevel(UserLevel.USER);
+        user.setAuth(auth);
+        user.setMembership(new Membership());
+        user.setLastLogin(Instant.now());
+        try {
+            return userRepository.save(user);
+        } catch (DuplicateKeyException ex) {
+            // Could be username or email; the frontend mostly surfaces this on
+            // the username field. Email collision proper is handled by the
+            // caller checking findByProviderAndSubject first (idempotent path).
+            throw new ConflictException("USERNAME_TAKEN",
+                    "That username is already taken.");
+        }
+    }
+
+    /** Reopens a previously-closed account; idempotent. */
+    public User reopen(User user) {
+        if (!user.isClosed()) {
+            return user;
+        }
+        user.setClosed(false);
+        user.setClosedAt(null);
+        user.setClosedReason(null);
+        user.setLastLogin(Instant.now());
+        return userRepository.save(user);
+    }
+
+    /**
      * Creates and persists a fresh {@code GUEST} user: internal auth, no email,
      * an auto-generated username. Uniqueness is enforced by the DB index
      * (auth/README.md Inv 9), so a duplicate-key collision is just retried with a

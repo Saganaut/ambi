@@ -7,9 +7,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
@@ -25,6 +27,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import com.cephadex.ambi.auth.security.CookieAuthenticationFilter;
+import com.cephadex.ambi.auth.security.GoogleOAuth2SuccessHandler;
+import com.cephadex.ambi.auth.security.OAuthReturnUrlCaptureFilter;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
 import com.cephadex.ambi.config.MdcLoggingFilter;
 import com.cephadex.ambi.user.UserService;
@@ -47,16 +51,21 @@ public class SecurityConfig {
 
     private final AuthProperties props;
     private final CookieAuthenticationFilter cookieAuthenticationFilter;
+    private final OAuthReturnUrlCaptureFilter oauthReturnUrlCaptureFilter;
+    private final GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
     public SecurityConfig(AuthProperties props,
             RedisTokenSessionService tokenService,
             UserService userService,
+            GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) {
         this.props = props;
-        // Constructed inline (not a @Bean) so Spring Boot does not also register it
-        // as a plain servlet filter outside the security chain.
+        // Constructed inline (not @Beans) so Spring Boot does not also register
+        // them as plain servlet filters outside the security chain.
         this.cookieAuthenticationFilter = new CookieAuthenticationFilter(props, tokenService, userService);
+        this.oauthReturnUrlCaptureFilter = new OAuthReturnUrlCaptureFilter(props);
+        this.googleOAuth2SuccessHandler = googleOAuth2SuccessHandler;
         this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
@@ -82,8 +91,8 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                        // PHASE 2: register is the one route a preRegistration principal may POST:
-                        // .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("PRE_REGISTRATION")
+                        // register is the one route a preRegistration principal may POST (Inv 8).
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("PRE_REGISTRATION")
                         // Everything else requires a registered USER. Visitors (anonymous) →
                         // 401 via the entry point; authenticated-but-insufficient (guest /
                         // preRegistration) → 403 via the access-denied handler (Inv 8).
@@ -93,9 +102,14 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler()))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
-                // PHASE 2: .oauth2Login(o -> o.successHandler(googleOAuthSuccessHandler))
+                // OAuth2 login: our handler owns the post-success identity branching
+                // (existing user / guest-upgrade / preRegistration) and cookie issuance.
+                .oauth2Login(oauth -> oauth.successHandler(googleOAuth2SuccessHandler))
                 // Resolve identity from the cookie just before authorization is checked.
                 .addFilterBefore(cookieAuthenticationFilter, AuthorizationFilter.class)
+                // Capture returnUrl on the OAuth redirect leg (Inv 2/3) before Spring's
+                // redirect filter writes the 302 to Google.
+                .addFilterBefore(oauthReturnUrlCaptureFilter, OAuth2AuthorizationRequestRedirectFilter.class)
                 // Force the deferred CSRF token to materialise so the XSRF-TOKEN cookie is
                 // written on safe requests (e.g. GET /me) for the SPA to read.
                 .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
