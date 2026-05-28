@@ -3,7 +3,6 @@ package com.cephadex.ambi.user;
 import java.time.Instant;
 import java.util.List;
 
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -24,8 +23,7 @@ import lombok.ToString;
 @Document(collection = "users")
 public class User extends Auditable {
 
-    @Id
-    private String id;
+    // id is inherited from BaseDocument (@Id String id) — do not redeclare.
 
     @Indexed(unique = true)
     @Field("public_id")

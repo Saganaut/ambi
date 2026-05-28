@@ -6,7 +6,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -28,9 +27,8 @@ import lombok.ToString;
 // Adding this due to extending AUditable, see if we can remove later
 public class Deck extends Auditable {
 
-    @Id
-    // This is a UUID which allows us to optimastically create decks on the frontend
-    private String id;
+    // id is inherited from BaseDocument (@Id String id) — do not redeclare.
+    // The id is a UUID which allows us to optimistically create decks on the frontend.
 
     // Used for sharing, presnetations..
     @Indexed(unique = true)

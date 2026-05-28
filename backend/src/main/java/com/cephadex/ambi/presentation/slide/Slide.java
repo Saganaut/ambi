@@ -2,7 +2,6 @@ package com.cephadex.ambi.presentation.slide;
 
 import java.util.Map;
 
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -19,9 +18,8 @@ import lombok.Setter;
 @Document(collection = "slides")
 public class Slide extends Auditable {
 
-    @Id
-    @Indexed(unique = true) // UUID that can be generated optimistcally on the frontend
-    private String Id;
+    // id is inherited from BaseDocument (@Id String id) — do not redeclare.
+    // The id is a UUID that can be generated optimistically on the frontend.
 
     @Indexed(unique = true)
     @Field("public_id")
