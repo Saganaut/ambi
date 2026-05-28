@@ -7,6 +7,8 @@ prod.env
 .git
 .claude
 
+### REACT FRONTEND ###
+frontend/dist
 
 ### JAVA BACKEND ###
 backend/HELP.md
