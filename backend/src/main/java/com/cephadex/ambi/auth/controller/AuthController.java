@@ -18,7 +18,9 @@ import com.cephadex.ambi.auth.dto.RegisterRequest;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.auth.service.AuthService;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
+import com.cephadex.ambi.common.exception.UnauthorizedException;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -90,6 +92,29 @@ public class AuthController {
     }
 
     /**
+     * Slides the session: consumes the {@code AMBI_RT} cookie, rotates it
+     * (Inv 6) and mints a fresh access JWT, sliding the Redis TTL on the
+     * underlying {@code UserSession}. CSRF-protected like any mutation.
+     * Returns 401 ({@code REFRESH_FAILED}) if the refresh token is absent,
+     * unknown, revoked, or — critically — a replay of an already-consumed
+     * token (the token family is also revoked on replay).
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<MeResponse> refresh(HttpServletRequest request) {
+        String refreshToken = readRefreshTokenCookie(request);
+        if (refreshToken == null) {
+            throw new UnauthorizedException("REFRESH_TOKEN_MISSING",
+                    "No refresh token present; please sign in.");
+        }
+        AuthService.AuthSession session = authService.refresh(refreshToken);
+        boolean secure = request.isSecure();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie(session.tokens(), secure).toString())
+                .body(session.me());
+    }
+
+    /**
      * Revokes the session in Redis (instant, even with a still-valid JWT) and
      * clears the auth cookies. Idempotent.
      */
@@ -104,6 +129,20 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, clearCookie(props.getCookie().getAccessName(), secure).toString())
                 .header(HttpHeaders.SET_COOKIE, clearCookie(props.getCookie().getRefreshName(), secure).toString())
                 .build();
+    }
+
+    private String readRefreshTokenCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        String name = props.getCookie().getRefreshName();
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 
     // ── cookie helpers ─────────────────────────────────────────────────────────

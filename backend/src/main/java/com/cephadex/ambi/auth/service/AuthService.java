@@ -12,6 +12,7 @@ import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.billing.enums.MembershipStatus;
 import com.cephadex.ambi.billing.enums.MembershipTier;
 import com.cephadex.ambi.common.exception.ForbiddenException;
+import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 
@@ -87,6 +88,35 @@ public class AuthService {
         // Phase 2.5: "stay logged in" will surface persistent here.
         RedisTokenSessionService.Tokens tokens = tokenService.rotate(principal.sessionId(), seed, false);
         return new AuthSession(tokens, meFromUser(IdentityState.REGISTERED, user));
+    }
+
+    /**
+     * Slides a session via {@code /refresh} (Inv 6): consumes the caller's
+     * refresh token and returns fresh access + refresh tokens for the same
+     * session, plus a {@link MeResponse} hydrated from the live {@link User}
+     * (so a lapsed entitlement, ban, or level change takes effect immediately
+     * — Inv 7). Throws {@link UnauthorizedException} on any failure;
+     * {@code GlobalExceptionHandler} maps that to 401 and the SPA opens the
+     * login modal.
+     */
+    public AuthSession refresh(String refreshToken) {
+        RedisTokenSessionService.RefreshResult result = tokenService.refresh(refreshToken)
+                .orElseThrow(() -> new UnauthorizedException("REFRESH_FAILED",
+                        "Session expired or refresh token invalid; please sign in again."));
+        return new AuthSession(result.tokens(), meFromRefreshedSession(result.session()));
+    }
+
+    private MeResponse meFromRefreshedSession(UserSession session) {
+        IdentityState state = session.getState();
+        if (state == IdentityState.PRE_REGISTRATION) {
+            // No backing User — identity comes entirely from the session.
+            return new MeResponse(true, IdentityState.PRE_REGISTRATION, true,
+                    null, null, null, session.getEmail(), null, null, null);
+        }
+        return userService.findById(session.getUserId())
+                .map(user -> meFromUser(state, user))
+                .orElseThrow(() -> new UnauthorizedException("REFRESH_USER_GONE",
+                        "Account no longer exists; please sign in again."));
     }
 
     /** Revokes the session in Redis so the token is rejected on the next request. Idempotent. */

@@ -87,6 +87,7 @@ public class SecurityConfig {
                         // matcher is the safest, most predictable form.
                         .requestMatchers("/api/auth/me",
                                 "/api/auth/guest",
+                                "/api/auth/refresh",
                                 "/api/auth/logout").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()

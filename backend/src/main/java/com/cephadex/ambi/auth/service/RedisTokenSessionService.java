@@ -36,6 +36,15 @@ public class RedisTokenSessionService {
     private static final Logger log = LoggerFactory.getLogger(RedisTokenSessionService.class);
     private static final String CLAIM_SID = "sid";
     private static final String CLAIM_STATE = "state";
+    private static final String REFRESH_PREFIX = "ambi:refresh:";
+    /**
+     * How long a consumed (burned) refresh-token record stays in Redis for
+     * reuse-detection purposes (Inv 6). Long enough that a replay attempt
+     * after a successful rotation reliably trips the detector; short enough
+     * that benign collisions with a stale browser tab don't poison things
+     * forever.
+     */
+    private static final Duration BURN_GRACE = Duration.ofMinutes(2);
 
     private final StringRedisTemplate redis;
     private final AuthProperties props;
@@ -61,6 +70,14 @@ public class RedisTokenSessionService {
     }
 
     /**
+     * The outcome of a successful {@link #refresh(String)} call: the new
+     * tokens to set on the response and the (sliding) {@link UserSession} for
+     * the caller's {@code /me} payload.
+     */
+    public record RefreshResult(Tokens tokens, UserSession session) {
+    }
+
+    /**
      * Creates a brand-new session for the given principal: writes the
      * {@link UserSession} to Redis with the appropriate TTL and returns a
      * signed access JWT + refresh token. The {@code seed}'s {@code sessionId} is
@@ -68,6 +85,7 @@ public class RedisTokenSessionService {
      */
     public Tokens mint(AmbiPrincipal seed, boolean persistent) {
         String sessionId = UUID.randomUUID().toString();
+        String familyId = UUID.randomUUID().toString();
         Duration ttl = persistent
                 ? props.getToken().getRefreshPersistentTtl()
                 : props.getToken().getRefreshIdleTtl();
@@ -81,12 +99,13 @@ public class RedisTokenSessionService {
                 seed.email(),
                 seed.userLevel(),
                 persistent,
-                UUID.randomUUID().toString(), // refresh family id (Phase-2 lineage)
+                familyId,
                 Instant.now().toEpochMilli());
 
         store(record, ttl);
         String access = buildAccessJwt(record);
-        String refresh = UUID.randomUUID().toString(); // opaque; validated on /refresh in Phase 2
+        String refresh = UUID.randomUUID().toString();
+        writeRefreshToken(refresh, new RefreshTokenRecord(sessionId, familyId, persistent, false), ttl);
         return new Tokens(access, refresh, sessionId, persistent);
     }
 
@@ -136,6 +155,76 @@ public class RedisTokenSessionService {
         }
     }
 
+    /**
+     * Sliding rotation (auth/README.md Inv 6): consumes the caller's refresh
+     * token and, on success, returns fresh access + refresh tokens for the
+     * <em>same</em> session and slides the {@link UserSession} TTL. Empty
+     * result means the caller should be logged out; the caller is responsible
+     * for turning that into a 401.
+     *
+     * <p>Reuse detection: the previous refresh token's record is kept marked
+     * {@code burned=true} for {@link #BURN_GRACE}. A second refresh attempt
+     * with the same token within that window is taken as evidence of a leak
+     * — the backing {@link UserSession} is revoked, killing the entire
+     * refresh-token family. Network retries that succeed on the server but
+     * fail to deliver the response leave the user logged out; that is
+     * accepted as the cost of strict reuse detection (the OWASP-recommended
+     * trade-off).
+     */
+    public Optional<RefreshResult> refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return Optional.empty();
+        }
+        String refreshKey = refreshKey(refreshToken);
+        String refreshJson = redis.opsForValue().get(refreshKey);
+        if (refreshJson == null) {
+            // Never minted, expired, or already wiped by a previous burn-detect.
+            return Optional.empty();
+        }
+        RefreshTokenRecord record = parseRefreshToken(refreshJson).orElse(null);
+        if (record == null) {
+            return Optional.empty();
+        }
+        if (record.isBurned()) {
+            log.warn("Refresh-token reuse detected — revoking session {} (family {})",
+                    record.getSessionId(), record.getFamilyId());
+            revoke(record.getSessionId());
+            return Optional.empty();
+        }
+
+        // The session must still exist in Redis (Redis is authoritative).
+        Optional<UserSession> session = read(record.getSessionId());
+        if (session.isEmpty()) {
+            // Orphan refresh token whose session was already revoked or
+            // expired — clean it up so it can't be reused later.
+            redis.delete(refreshKey);
+            return Optional.empty();
+        }
+
+        Duration ttl = record.isPersistent()
+                ? props.getToken().getRefreshPersistentTtl()
+                : props.getToken().getRefreshIdleTtl();
+
+        // Mint the new refresh first, then burn the old one. Doing it in this
+        // order means a crash between the two writes leaves the old token
+        // valid (and the new one also valid) — favouring availability over a
+        // tiny temporary window in which both tokens would refresh. The
+        // alternative (burn-then-mint on crash) would log the user out.
+        String newRefresh = UUID.randomUUID().toString();
+        writeRefreshToken(newRefresh,
+                new RefreshTokenRecord(record.getSessionId(), record.getFamilyId(), record.isPersistent(), false),
+                ttl);
+        record.setBurned(true);
+        writeRefreshToken(refreshToken, record, BURN_GRACE);
+
+        // Slide the user-session TTL to the same idle/persistent window.
+        redis.expire(key(record.getSessionId()), ttl);
+
+        String accessJwt = buildAccessJwt(session.get());
+        Tokens tokens = new Tokens(accessJwt, newRefresh, record.getSessionId(), record.isPersistent());
+        return Optional.of(new RefreshResult(tokens, session.get()));
+    }
+
     // ── internals ────────────────────────────────────────────────────────────
 
     private Optional<UserSession> read(String sessionId) {
@@ -158,6 +247,27 @@ public class RedisTokenSessionService {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to persist session record", e);
         }
+    }
+
+    private Optional<RefreshTokenRecord> parseRefreshToken(String json) {
+        try {
+            return Optional.of(objectMapper.readValue(json, RefreshTokenRecord.class));
+        } catch (Exception e) {
+            log.warn("Discarding unreadable refresh-token record", e);
+            return Optional.empty();
+        }
+    }
+
+    private void writeRefreshToken(String token, RefreshTokenRecord record, Duration ttl) {
+        try {
+            redis.opsForValue().set(refreshKey(token), objectMapper.writeValueAsString(record), ttl);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to persist refresh-token record", e);
+        }
+    }
+
+    private static String refreshKey(String token) {
+        return REFRESH_PREFIX + token;
     }
 
     private String buildAccessJwt(UserSession record) {

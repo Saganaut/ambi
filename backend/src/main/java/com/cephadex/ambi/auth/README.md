@@ -316,8 +316,9 @@ duplicate-key error as the authoritative "taken" signal.
       → `AuthProvider` map seam).
 - [x] Auth controller: guest creation, `register` (Inv. 5, 8), `me` (four states
       incl. `needsRegistration`), logout (Redis delete).
-- [ ] Auth controller `refresh` (Inv. 6) — sliding TTL + rotation with reuse
-      detection on every call.
+- [x] Auth controller `refresh` (Inv. 6) — sliding TTL + rotation with reuse
+      detection on every call; replay of a burned token revokes the family by
+      deleting the backing `UserSession`.
 - [x] `preRegistration` authority + gating (Inv. 8).
 - [x] Live entitlement hydration on the per-request path (Inv. 7).
 - [x] `returnUrl` validator (Inv. 2) as a shared, unit-tested utility, carried

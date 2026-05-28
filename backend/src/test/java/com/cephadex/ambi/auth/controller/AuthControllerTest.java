@@ -90,6 +90,24 @@ class AuthControllerTest {
     }
 
     @Test
+    void refreshReadsRtCookieAndReturnsNewCookies() throws Exception {
+        MeResponse refreshed = new MeResponse(true, IdentityState.REGISTERED, false,
+                "pub-r", "alice", "Alice", "alice@example.com",
+                UserLevel.USER, MembershipTier.INDIVIDUAL, MembershipStatus.ACTIVE);
+        when(authService.refresh("old-rt")).thenReturn(new AuthService.AuthSession(
+                new RedisTokenSessionService.Tokens("new-at", "new-rt", "sid-r", false), refreshed));
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .cookie(new jakarta.servlet.http.Cookie("AMBI_RT", "old-rt")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("REGISTERED"))
+                .andExpect(cookie().value("AMBI_AT", "new-at"))
+                .andExpect(cookie().value("AMBI_RT", "new-rt"))
+                .andExpect(cookie().httpOnly("AMBI_AT", true))
+                .andExpect(cookie().httpOnly("AMBI_RT", true));
+    }
+
+    @Test
     void registerReturns200WithCookiesAndBody() throws Exception {
         MeResponse registered = new MeResponse(true, IdentityState.REGISTERED, false,
                 "pub-1", "newname", "New Person", "new@example.com",

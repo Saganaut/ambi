@@ -26,6 +26,7 @@ import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.billing.enums.MembershipStatus;
 import com.cephadex.ambi.billing.enums.MembershipTier;
 import com.cephadex.ambi.common.exception.ForbiddenException;
+import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -218,6 +219,77 @@ class AuthServiceTest {
     private static AmbiPrincipal preRegistrationPrincipal() {
         return new AmbiPrincipal(IdentityState.PRE_REGISTRATION, null, null, null,
                 AuthProvider.GOOGLE, "google-sub-1", "new@example.com", "pre-sid");
+    }
+
+    // ── refresh (Phase 2 chunk 2) ────────────────────────────────────────────
+
+    @Test
+    void refreshHappyPathReturnsLiveMeResponse() {
+        // Lapsed entitlement collapses to FREE live (Inv 7) — even on refresh.
+        User user = user("u-r", UserLevel.USER, MembershipStatus.PAST_DUE, MembershipTier.INDIVIDUAL);
+        UserSession session = userSession("sid-r", IdentityState.REGISTERED, "u-r");
+        when(tokenService.refresh("rt-1")).thenReturn(Optional.of(
+                new RedisTokenSessionService.RefreshResult(
+                        new RedisTokenSessionService.Tokens("at-2", "rt-2", "sid-r", false), session)));
+        when(userService.findById("u-r")).thenReturn(Optional.of(user));
+
+        AuthService.AuthSession out = authService.refresh("rt-1");
+
+        assertThat(out.tokens().refreshToken()).isEqualTo("rt-2");
+        assertThat(out.me().state()).isEqualTo(IdentityState.REGISTERED);
+        assertThat(out.me().effectiveTier()).isEqualTo(MembershipTier.FREE);
+    }
+
+    @Test
+    void refreshFailureSurfacesAs401() {
+        when(tokenService.refresh("bad-rt")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.refresh("bad-rt"))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("Session expired");
+    }
+
+    @Test
+    void refreshOfPreRegistrationBuildsNeedsRegistrationMe() {
+        // A preReg session can keep itself alive via /refresh while the user
+        // is on the registration screen; no User to hydrate.
+        UserSession session = new UserSession("sid-p", IdentityState.PRE_REGISTRATION, null,
+                AuthProvider.GOOGLE, "g-sub", "p@example.com", null, false, "fam", 0L);
+        when(tokenService.refresh("rt-p")).thenReturn(Optional.of(
+                new RedisTokenSessionService.RefreshResult(
+                        new RedisTokenSessionService.Tokens("at", "rt-p2", "sid-p", false), session)));
+
+        AuthService.AuthSession out = authService.refresh("rt-p");
+
+        assertThat(out.me().state()).isEqualTo(IdentityState.PRE_REGISTRATION);
+        assertThat(out.me().needsRegistration()).isTrue();
+        assertThat(out.me().email()).isEqualTo("p@example.com");
+        verify(userService, never()).findById(any());
+    }
+
+    @Test
+    void refreshSucceedsButUserGoneSurfacesAs401() {
+        // Possible race: session still alive, but the User document was deleted
+        // (e.g. account close + reap). The session is no longer redeemable.
+        UserSession session = userSession("sid-g", IdentityState.REGISTERED, "u-gone");
+        when(tokenService.refresh("rt-g")).thenReturn(Optional.of(
+                new RedisTokenSessionService.RefreshResult(
+                        new RedisTokenSessionService.Tokens("at", "rt-g2", "sid-g", false), session)));
+        when(userService.findById("u-gone")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.refresh("rt-g"))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("Account no longer exists");
+    }
+
+    private static UserSession userSession(String sessionId, IdentityState state, String userId) {
+        UserSession s = new UserSession();
+        s.setSessionId(sessionId);
+        s.setState(state);
+        s.setUserId(userId);
+        s.setProvider(AuthProvider.GOOGLE);
+        s.setUserLevel(UserLevel.USER);
+        return s;
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
