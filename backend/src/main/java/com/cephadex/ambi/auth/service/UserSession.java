@@ -14,11 +14,14 @@ import lombok.NoArgsConstructor;
  * request is validated against this record, not the JWT signature alone — a
  * token whose record is absent/expired/revoked is rejected even if its
  * signature is valid. This is an internal Redis value (JSON), not a wire DTO.
+ *
+ * <p>Distinct from {@code LiveSession} (an interactive game session); this is
+ * the per-browser authenticated session that backs {@code AMBI_AT}/{@code AMBI_RT}.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SessionRecord {
+public class UserSession {
 
     /** The session handle; also the {@code sid} claim in the access JWT. */
     private String sessionId;

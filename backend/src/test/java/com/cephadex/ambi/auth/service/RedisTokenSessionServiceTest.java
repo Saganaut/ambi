@@ -48,7 +48,7 @@ class RedisTokenSessionServiceTest {
     }
 
     @Test
-    void mintWritesSessionRecordWithTtl() {
+    void mintWritesUserSessionWithTtl() {
         RedisTokenSessionService.Tokens tokens = service.mint(guestSeed(), false);
 
         ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
@@ -77,7 +77,7 @@ class RedisTokenSessionServiceTest {
         verify(valueOps).set(anyString(), jsonCaptor.capture(), any(Duration.class));
         when(valueOps.get("ambi:session:" + tokens.sessionId())).thenReturn(jsonCaptor.getValue());
 
-        Optional<SessionRecord> record = service.validate(tokens.accessToken());
+        Optional<UserSession> record = service.validate(tokens.accessToken());
 
         assertThat(record).isPresent();
         assertThat(record.get().getSessionId()).isEqualTo(tokens.sessionId());

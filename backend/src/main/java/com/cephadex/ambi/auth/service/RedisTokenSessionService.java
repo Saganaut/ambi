@@ -27,7 +27,7 @@ import io.jsonwebtoken.security.Keys;
  * Mints and validates the cookie-borne tokens, with Redis as the source of
  * truth (auth/README.md). The access token is a signed JWT whose signature is
  * only a cheap pre-check; the authoritative decision is whether a
- * {@link SessionRecord} still exists in Redis under the {@code sid} claim. This
+ * {@link UserSession} still exists in Redis under the {@code sid} claim. This
  * is what makes logout/ban revoke instantly.
  */
 @Service
@@ -45,7 +45,7 @@ public class RedisTokenSessionService {
      * ships both Jackson 2 ({@code com.fasterxml.jackson}) and Jackson 3
      * ({@code tools.jackson}) on the classpath, and the auto-configured
      * {@code ObjectMapper} bean is the Jackson 3 one — injecting a Jackson 2
-     * {@code ObjectMapper} would not resolve at runtime. {@link SessionRecord}
+     * {@code ObjectMapper} would not resolve at runtime. {@link UserSession}
      * uses only primitives, strings and enums, so no extra modules are needed.
      */
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -62,7 +62,7 @@ public class RedisTokenSessionService {
 
     /**
      * Creates a brand-new session for the given principal: writes the
-     * {@link SessionRecord} to Redis with the appropriate TTL and returns a
+     * {@link UserSession} to Redis with the appropriate TTL and returns a
      * signed access JWT + refresh token. The {@code seed}'s {@code sessionId} is
      * ignored — a fresh one is always generated.
      */
@@ -72,7 +72,7 @@ public class RedisTokenSessionService {
                 ? props.getToken().getRefreshPersistentTtl()
                 : props.getToken().getRefreshIdleTtl();
 
-        SessionRecord record = new SessionRecord(
+        UserSession record = new UserSession(
                 sessionId,
                 seed.state(),
                 seed.userId(),
@@ -96,7 +96,7 @@ public class RedisTokenSessionService {
      * token is unparsable/expired OR the Redis record is absent (revoked,
      * expired, never existed), so a valid signature alone is never sufficient.
      */
-    public Optional<SessionRecord> validate(String accessJwt) {
+    public Optional<UserSession> validate(String accessJwt) {
         if (accessJwt == null || accessJwt.isBlank()) {
             return Optional.empty();
         }
@@ -138,13 +138,13 @@ public class RedisTokenSessionService {
 
     // ── internals ────────────────────────────────────────────────────────────
 
-    private Optional<SessionRecord> read(String sessionId) {
+    private Optional<UserSession> read(String sessionId) {
         String json = redis.opsForValue().get(key(sessionId));
         if (json == null) {
             return Optional.empty();
         }
         try {
-            return Optional.of(objectMapper.readValue(json, SessionRecord.class));
+            return Optional.of(objectMapper.readValue(json, UserSession.class));
         } catch (Exception e) {
             // A corrupt record is as good as no session; log and reject.
             log.warn("Discarding unreadable session record sid={}", sessionId, e);
@@ -152,7 +152,7 @@ public class RedisTokenSessionService {
         }
     }
 
-    private void store(SessionRecord record, Duration ttl) {
+    private void store(UserSession record, Duration ttl) {
         try {
             redis.opsForValue().set(key(record.getSessionId()), objectMapper.writeValueAsString(record), ttl);
         } catch (Exception e) {
@@ -160,7 +160,7 @@ public class RedisTokenSessionService {
         }
     }
 
-    private String buildAccessJwt(SessionRecord record) {
+    private String buildAccessJwt(UserSession record) {
         Instant now = Instant.now();
         Instant exp = now.plus(props.getToken().getAccessTtl());
         return Jwts.builder()

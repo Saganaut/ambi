@@ -15,7 +15,7 @@ import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.service.AuthorityResolver;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
-import com.cephadex.ambi.auth.service.SessionRecord;
+import com.cephadex.ambi.auth.service.UserSession;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 
@@ -71,7 +71,7 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
      * {@link User} exactly once. Returns empty for a stale guest/registered
      * session whose User no longer exists.
      */
-    private Optional<AmbiAuthenticationToken> toAuthentication(SessionRecord record) {
+    private Optional<AmbiAuthenticationToken> toAuthentication(UserSession record) {
         IdentityState state = record.getState();
 
         // PRE_REGISTRATION holds identity in the session only — no User to load.
