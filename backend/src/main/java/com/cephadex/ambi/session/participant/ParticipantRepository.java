@@ -3,10 +3,10 @@ package com.cephadex.ambi.session.participant;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.user.User;
 
-public class ParticipantService {
+public class ParticipantRepository {
     private final LiveSessionRepository repository;
 
-    public ParticipantService(LiveSessionRepository repository) {
+    public ParticipantRepository(LiveSessionRepository repository) {
         this.repository = repository;
     }
 

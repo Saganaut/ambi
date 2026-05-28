@@ -1,61 +1,11 @@
 # Membership & Pricing — Notes
 
 Scaffolding for paid memberships and a public pricing page. Stripe integration
-is intentionally **out of scope** for now — the data model and components are
-shaped so a billing provider can be slotted in later without schema churn.
+is intentionally **out of scope** for now — the components are shaped so a
+billing provider can be slotted in later without rework.
 
-## Backend
-
-### New enums (`backend/.../model/enums/`)
-
-- `MembershipTier`
-  - `FREE` — default for new users.
-  - `INDIVIDUAL` — paid single-user plan.
-  - `ORG_SEAT` — user occupies a seat on an organization plan (billing lives
-    on the organization, not the user).
-  - `ORG_TEAM`, `ORG_BUSINESS` — organization-level plan SKUs.
-- `MembershipStatus` — `ACTIVE | TRIALING | PAST_DUE | CANCELED | EXPIRED | NONE`.
-  Mirrors the standard subscription states so UI gating reads a single field.
-
-### New embedded documents (`backend/.../model/`)
-
-- `Membership` — embedded on `User`.
-  - `tier`, `status`
-  - `startedAt`, `currentPeriodEnd`
-  - `cancelAtPeriodEnd`
-  - `sourceOrganizationId` — populated only when `tier == ORG_SEAT`; identifies
-    the organization granting the seat.
-  - `stripeCustomerId`, `stripeSubscriptionId` — opaque placeholders for the
-    Stripe integration.
-- `OrganizationPlan` — embedded on `Organization`.
-  - `tier`, `status`, `seatLimit`
-  - `startedAt`, `currentPeriodEnd`, `cancelAtPeriodEnd`
-  - `stripeCustomerId`, `stripeSubscriptionId`
-
-Seat accounting lives on each `User.membership` (tier `ORG_SEAT` +
-`sourceOrganizationId`); `OrganizationPlan.seatLimit` is the cap that future
-seat-assignment logic must enforce.
-
-### Model updates
-
-- `User` — new field `Membership membership = new Membership()` so every
-  existing user lands on a `FREE`/`NONE` record by default.
-- `Organization` — new field `OrganizationPlan plan = new OrganizationPlan()`.
-
-### DTO updates
-
-- `UserDTO.RegisteredUser` — adds `Membership membership` (constructor passes
-  through `user.getMembership()`). `GuestUser` deliberately unchanged: guests
-  cannot subscribe.
-- `OrganizationDTO.OrganizationResponse` — adds `OrganizationPlan plan` so
-  callers can render seat usage / plan tier alongside the org name.
-
-### Endpoints
-
-No new endpoints yet — `Membership` and `OrganizationPlan` ride along the
-existing `/api/auth/me` and `/api/organizations/me` responses. Stripe webhooks,
-upgrade/downgrade controllers, and seat-assignment endpoints will be added
-when billing is wired up.
+> Backend membership models / endpoints are part of the backend rewrite and
+> intentionally not documented here.
 
 ## Frontend
 
@@ -103,19 +53,16 @@ export at the bottom, `ComponentNameProps` interface, CSS Modules driven by
 
 - Stripe SDK, webhook handlers, checkout sessions, customer portal.
 - Upgrade/downgrade APIs and the UI flows that drive them.
-- Seat assignment endpoints (`POST /api/organizations/me/seats`, etc.) and the
-  org-admin UI for managing them.
+- Seat assignment endpoints and the org-admin UI for managing them.
 - Real pricing copy, feature lists, and tier counts — current content is
   placeholder per the task brief.
 
 ## When Stripe lands, expect to
 
-1. Add Stripe webhook controller that updates `User.membership` and
-   `Organization.plan` based on `customer.subscription.*` and `invoice.*` events.
-2. Map placeholder `PRICING_TIERS` to Stripe price IDs (probably via a backend
+1. Map placeholder `PRICING_TIERS` to Stripe price IDs (probably via a backend
    `/api/billing/plans` endpoint) and replace the static import in
    `usePricingPage` with an RTK Query hook.
-3. Wire each `PricingCard` CTA to a checkout-session creator instead of the
+2. Wire each `PricingCard` CTA to a checkout-session creator instead of the
    current placeholder `Link` destinations.
-4. Add a `useCanAccess` (or similar) hook that reads
-   `membership.tier`/`status` and gates premium UI behind it.
+3. Add a `useCanAccess` (or similar) hook that reads membership state from the
+   auth response and gates premium UI behind it.

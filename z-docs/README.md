@@ -13,15 +13,12 @@ Reachability is enforced by `tools/doc-lint.js`: every `.md` file under the repo
 
 - [Rules](rules/README.md) — Coding conventions per layer (general, backend, frontend, style, icons).
 - [Infrastructure](infrastructure/README.md) — Docker, MongoDB, Redis, Garage/S3, per-directory READMEs.
-- [Features](features/README.md) — Per-feature design docs (auth, games, membership, …).
-- [To-do](to-do/README.md) — Mentimeter/Kahoot parity roadmap (20 chunks) plus the top-level TODO list.
+- [Features](features/README.md) — Per-feature design docs (deck editor, membership, exception handling).
 - [Notes](notes/README.md) — Working notes and reference snippets.
 - [Decisions](decisions/README.md) — Architecture decision records (ADRs).
 - [Runbooks](runbooks/README.md) — Operational procedures (seeding, secret rotation, recovery).
 - [Skills](skills/README.md) — Claude Code skills used in this project.
-- [Archive](archive/README.md) — Superseded/deprecated docs kept for history.
 
 ## Single-file references
 
 - [Glossary](glossary.md) — Domain terms (deck, element, interactive session, organization, theme, slide, MCQ, …).
-- [Found Issues](found-issues.md) — Frontend code-quality audit (2026-05-21): coupling, missing abstractions, design-rule violations.

@@ -1,17 +1,22 @@
 # Deck Editor
 
-The authoring dashboard at `/decks/$deckId/view`. Three-column layout: slide rail | active slide | inspector. Built on top of the polymorphic `DeckElement` model — see [Games feature](../games/README.md) for the element/answer hierarchies that this editor produces.
+The authoring dashboard at `/decks/$deckId/view`. Three-column layout: slide rail | active slide | inspector.
+
+> The element/answer data model is being reworked as part of the backend
+> rewrite — kind enums, field names, and endpoint shapes below will change. The
+> frontend patterns (commit flow, cache sync, fullscreen, rich text) are
+> independent of that and still apply.
 
 ## Component layout
 
 All under `frontend/src/components/DeckEditor/`:
 
 - `DeckEditor.tsx` — three-column shell + editor navbar with an inline-editable deck title (commits via `updateDeck` on blur/Enter).
-- `LeftSidebar.tsx` — the slide rail. Pulls deck elements live via RTK Query, supports drag-to-reorder (optimistic + `moveElement` mutation). The "New Slide" button opens a modal containing `NewElementPicker`.
-- `NewElementPicker.tsx` — modal body listing the 10 element kinds via the existing `SlideTypeGraphics` icons. Click → close modal → add element. Modal uses the shared `useModal` context (`frontend/src/context/useModal.tsx`).
+- `LeftSidebar.tsx` — the slide rail. Pulls deck elements live via RTK Query, supports drag-to-reorder (optimistic + a `moveElement` mutation). The "New Slide" button opens a modal containing `NewElementPicker`.
+- `NewElementPicker.tsx` — modal body listing each element kind via the `SlideTypeGraphics` icons. Click → close modal → add element. Modal uses the shared `useModal` context (`frontend/src/context/useModal.tsx`).
 - `SlideThumbnail.tsx` — thumbnail tile with right-click dropdown (delete for now). Carries an HTML `id={elementId}` so the create flow can `getElementById(...).scrollIntoView(...)`; also self-scrolls into view when it becomes the active slide.
 - `SlideDisplay.tsx` — dispatches to the correct content editor based on `element.kind`.
-- `SlideContentTypes/` — one kind-specific editor per `DeckElement` kind (`SlideContent`, `McqSlideContent`, `TextSlideContent`, `NumberSlideContent`, `RankingSlideContent`, `ScalesSlideContent`, `QAndASlideContent`, `GridSlideContent`, `PlaceOnImageSlideContent`). Shared CSS in `SlideContentTypes.module.css`. MCQ options now carry images, so there is no separate image-choice editor.
+- `SlideContentTypes/` — one kind-specific editor per element kind. Shared CSS in `SlideContentTypes.module.css`.
 
 ## Editor commit pattern
 
@@ -28,7 +33,7 @@ Field edits in any slide-content editor follow the same path:
 
 ## Optimistic deck create
 
-`/my-decks/create` (a TanStack Router file route) mints a UUID, seeds an empty `DeckDto` into the `getDeck` cache via `BrainFlex.util.upsertQueryData`, navigates to `/decks/$deckId/view` immediately (replace), and fires `POST /api/decks` with that same `id` in the background. The backend accepts a client-supplied id and the operation is idempotent. Same pattern for new elements: the frontend generates the option/slide/item UUID up front so optimistic UI works.
+`/my-decks/create` (a TanStack Router file route) mints a UUID, seeds an empty deck into the `getDeck` cache via `BrainFlex.util.upsertQueryData`, navigates to `/decks/$deckId/view` immediately (replace), and fires `POST /api/decks` with that same `id` in the background. The same pattern applies for new elements: the frontend generates the option/slide/item UUID up front so optimistic UI works. The backend must accept a client-supplied id and treat the create call as idempotent.
 
 ## Rich text editing
 
@@ -48,13 +53,7 @@ App-level fullscreen state lives in `LayoutProvider` (`frontend/src/context/Layo
 
 ## Image placeholders (Lorem Picsum)
 
-Until the media-library picker ships, image fields (MCQ option images, Grid backing image, PlaceOnImage target image, Slide media) render a **Lorem Picsum** placeholder seeded on the element/option id (`https://picsum.photos/seed/${id}/...`). Each editor also exposes a raw URL input so authors with a hosted URL can paste it. When the library lands, replace the URL field + `picsum.photos` placeholder with the real picker — search for `TODO: Get more specs` / `placeholderImageUrl` to find every site.
-
-## Gotchas
-
-- **MCQ multi-correct**: `McqQuestion.correctOptionIds` is a `List<String>` (any non-empty subset of `options[].id` counts as correct). Older code/data may have used a single `correctOptionId`; the field was renamed when multi-correct landed. MCQs with an empty `correctOptionIds` list are author-allowed but excluded from scored game modes — the editor surfaces a warning ("Not setting a correct answer means this slide is not scoreable in a game interactive session"). MCQ options can also carry images (`McqOption.imageUrl` / `galleryImageId`), which replaces the retired `ImageChoiceQuestion` kind.
-- **`BrainFlexApi.ts` hand-edits**: avoid them. A one-off hand-edit was needed when MCQ became multi-correct (the codegen file lagged the backend rename until `npm run generate-api` was run). The field carries a comment explaining the reason. After any codegen run, re-verify `McqQuestion.correctOptionIds?: string[]`.
-- **Element-payload primitives**: every backend question/slide record uses primitive `int`/`double`/`boolean` for shared chrome (`displaySeconds`, `pointValue`, `bestAnswerMode`, `bestAnswerBonus`, `multipleCorrect`, `caseSensitive`, etc.). Jackson can't deserialize `null` into a primitive, so every `addElement` payload from the frontend must include defaults for these. `useDeckEditor.ts:buildNewElement` already does this per kind; copy the same pattern for any new element kind or any payload-construction site.
+Until the media-library picker ships, image fields render a **Lorem Picsum** placeholder seeded on the element/option id (`https://picsum.photos/seed/${id}/...`). Each editor also exposes a raw URL input so authors with a hosted URL can paste it. When the library lands, replace the URL field + `picsum.photos` placeholder with the real picker — search for `TODO: Get more specs` / `placeholderImageUrl` to find every site.
 
 ## Key files
 
@@ -62,7 +61,7 @@ Until the media-library picker ships, image fields (MCQ option images, Grid back
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `frontend/src/components/DeckEditor/DeckEditor.tsx`                        | Top-level layout (navbar + 3-col canvas)                       |
 | `frontend/src/components/DeckEditor/LeftSidebar.tsx`                       | Slide rail: add-via-picker, drag-reorder, live deck.elements   |
-| `frontend/src/components/DeckEditor/NewElementPicker.tsx`                  | Modal body with 10 element-kind tiles                          |
+| `frontend/src/components/DeckEditor/NewElementPicker.tsx`                  | Modal body with element-kind tiles                             |
 | `frontend/src/components/DeckEditor/SlideThumbnail.tsx`                    | Slide tile (right-click menu, scrolls into view on select)     |
 | `frontend/src/components/DeckEditor/SlideDisplay.tsx`                      | Routes to the right `<KindSlideContent>` by `element.kind`     |
 | `frontend/src/components/DeckEditor/SlideContentTypes/useElementEditor.ts` | Shared deck-query + debounced commit hook                      |

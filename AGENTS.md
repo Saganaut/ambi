@@ -28,9 +28,8 @@ All project documentation other than this file and the top-level `README.md` liv
 | Where to look                                               | For                                                                         |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
 | [`z-docs/rules/`](z-docs/rules/README.md)                   | Coding conventions per layer (general / backend / frontend / style / icons) |
-| [`z-docs/features/`](z-docs/features/README.md)             | Per-feature design docs (auth, games, deck editor, membership, data models) |
+| [`z-docs/features/`](z-docs/features/README.md)             | Per-feature design docs (deck editor, membership, exception handling)       |
 | [`z-docs/infrastructure/`](z-docs/infrastructure/README.md) | Docker, MongoDB, Redis, Garage/S3, testing & CI                             |
-| [`z-docs/to-do/`](z-docs/to-do/README.md)                   | Mentimeter/Kahoot parity roadmap (numbered chunks) + general TODO           |
 | [`z-docs/decisions/`](z-docs/decisions/README.md)           | Architecture Decision Records                                               |
 | [`z-docs/runbooks/`](z-docs/runbooks/README.md)             | Operational procedures (seeding, secret rotation, recovery)                 |
 | [`z-docs/glossary.md`](z-docs/glossary.md)                  | Domain terms (deck, element, interactive session, theme, MCQ, …)            |
@@ -107,19 +106,13 @@ Package: `cephadex.ambi`. Layers: `controller/`, `service/`, `repository/`, `mod
 
 ### REST API
 
-Endpoints are prefixed `/api` and documented live at **`http://localhost:8080/swagger-ui/`**. CORS allows only `http://localhost:5173` with credentials. For non-trivial flows:
+Endpoints are prefixed `/api` and documented live at **`http://localhost:8080/swagger-ui/`**. CORS allows only `http://localhost:5173` with credentials.
 
-- Auth (`/api/auth/**`, sessions, OAuth) → [features/auth](z-docs/features/auth/README.md)
-- Sessions / Decks / Elements (`/api/decks/**`, `/api/interactive-sessions/**`) → [features/games](z-docs/features/games/README.md)
-- Themes / Organizations (`/api/themes/**`, `/api/organizations/**`) → [features/data-models](z-docs/features/data-models.md) + [features/membership](z-docs/features/membership/README.md)
-
-### Data models
-
-User / PlayerStats / Organization / Theme MongoDB documents + DTOs + image processing tiers are documented in [features/data-models](z-docs/features/data-models.md). The sealed `DeckElement` / `AnswerPayload` hierarchies (questions, slides, answers) live in [features/games](z-docs/features/games/README.md).
+> Per-feature backend docs (auth, games, data models) are being rewritten alongside the backend itself — the [Membership](z-docs/features/membership/README.md) frontend doc and the [Exception Handling](z-docs/features/exceptions.md) contract are what's currently checked in.
 
 ### Authentication
 
-Google OAuth + guest sessions, cookie-based with Spring Session backed by Redis. Full flow, role hierarchy, and gotchas in [features/auth](z-docs/features/auth/README.md).
+Google OAuth + guest sessions, cookie-based with Spring Session backed by Redis.
 
 ---
 
@@ -159,7 +152,7 @@ Stacks, CI workflow, and local pre-commit / pre-push hooks: see [Testing & CI](z
 | `compose.yaml`                             | Docker services (MongoDB, Redis, Garage S3)               |
 | `dev.env`                                  | Local dev secrets (copy from `example.env`)               |
 
-Feature-specific file maps live in each feature doc — e.g. [deck editor key files](z-docs/features/deck-editor/README.md#key-files), [auth key files](z-docs/features/auth/README.md#key-files).
+Feature-specific file maps live in each feature doc — e.g. [deck editor key files](z-docs/features/deck-editor/README.md#key-files).
 
 ---
 
