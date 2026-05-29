@@ -2,17 +2,13 @@ package com.cephadex.ambi.user;
 
 import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
-import com.cephadex.ambi.auth.AuthInfo;
 import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.enums.AuthProvider;
-import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.common.exception.ConflictException;
-import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
  * Owns persistence of {@link User} documents. Auth-flow orchestration (sessions,
@@ -52,30 +48,15 @@ public class UserService {
      * (auth/README.md Inv 1): the Mongo {@code _id} and existing {@code username}
      * are preserved (guest squat is accepted — Inv 9), and the external identity,
      * email, and {@code userLevel=USER} are written. Reopens the account if it
-     * was previously closed. Caller must verify the {@link User} actually is a
-     * guest before calling this.
+     * was previously closed. The aggregate enforces that the {@link User} is a
+     * guest ({@code IllegalStateException} otherwise).
      */
     public User upgradeGuestToRegistered(User guest, AuthProvider provider,
             String externalProviderId, String email) {
-        AuthInfo auth = guest.getAuth();
-        if (auth == null) {
-            auth = new AuthInfo();
-            guest.setAuth(auth);
-        }
-        auth.setAuthProvider(provider);
-        auth.setExternalProviderId(externalProviderId);
-        guest.setEmailAddress(email);
-        guest.setEmailVerifiedAt(Instant.now());
-        guest.setUserLevel(UserLevel.USER);
-        guest.setLastLogin(Instant.now());
-        // Critical: the upgraded account is no longer a guest, so it must not
-        // be subject to the TTL reaper. Clear the field before save.
-        guest.setGuestExpiresAt(null);
-        if (guest.isClosed()) {
-            guest.setClosed(false);
-            guest.setClosedAt(null);
-            guest.setClosedReason(null);
-        }
+        // The transition (identity, level, reaper-field clearing, reopen) is
+        // the aggregate's invariant to enforce; this service only persists it
+        // and translates the DB's uniqueness verdict.
+        guest.upgradeToRegistered(provider, externalProviderId, email, Instant.now());
         try {
             return userRepository.save(guest);
         } catch (DuplicateKeyException ex) {
@@ -98,20 +79,8 @@ public class UserService {
      */
     public User register(AuthProvider provider, String externalProviderId, String email,
             String username, String displayName) {
-        AuthInfo auth = new AuthInfo();
-        auth.setAuthProvider(provider);
-        auth.setExternalProviderId(externalProviderId);
-
-        User user = new User();
-        user.setPublicId(UUID.randomUUID().toString());
-        user.setUsername(username);
-        user.setDisplayName(displayName != null && !displayName.isBlank() ? displayName : username);
-        user.setEmailAddress(email);
-        user.setEmailVerifiedAt(Instant.now());
-        user.setUserLevel(UserLevel.USER);
-        user.setAuth(auth);
-        user.setMembership(new Membership());
-        user.setLastLogin(Instant.now());
+        User user = User.newRegistered(provider, externalProviderId, email, username,
+                displayName, Instant.now());
         try {
             return userRepository.save(user);
         } catch (DuplicateKeyException ex) {
@@ -135,16 +104,12 @@ public class UserService {
         }
     }
 
-    /** Reopens a previously-closed account; idempotent. */
+    /** Reopens a previously-closed account; idempotent (no save when already open). */
     public User reopen(User user) {
-        if (!user.isClosed()) {
-            return user;
+        if (user.reopen(Instant.now())) {
+            return userRepository.save(user);
         }
-        user.setClosed(false);
-        user.setClosedAt(null);
-        user.setClosedReason(null);
-        user.setLastLogin(Instant.now());
-        return userRepository.save(user);
+        return user;
     }
 
     /**
@@ -154,40 +119,19 @@ public class UserService {
      * new username rather than checked-then-acted in code.
      */
     public User createGuest() {
-        DuplicateKeyException last = null;
         for (int attempt = 0; attempt < GUEST_USERNAME_ATTEMPTS; attempt++) {
-            User guest = newGuest();
+            // Config access stays here: resolve the TTL and hand the aggregate
+            // a ready instant. Each attempt mints a fresh username, so a
+            // duplicate-key collision is just retried (Inv 9), not checked.
+            Instant now = Instant.now();
+            User guest = User.newGuest(now, now.plus(authProperties.getGuest().getTtl()));
             try {
                 return userRepository.save(guest);
             } catch (DuplicateKeyException ex) {
-                last = ex; // username (or publicId) collided — try a fresh one
+                // username (or publicId) collided — loop and try a fresh one
             }
         }
         throw new ConflictException("GUEST_CREATE_FAILED",
                 "Could not allocate a unique guest identity, please retry.");
-    }
-
-    private User newGuest() {
-        AuthInfo auth = new AuthInfo();
-        auth.setAuthProvider(AuthProvider.INTERNAL);
-        auth.setExternalProviderId(null);
-
-        Instant now = Instant.now();
-        User guest = new User();
-        guest.setPublicId(UUID.randomUUID().toString());
-        guest.setUsername("guest-" + shortId());
-        guest.setDisplayName("Guest");
-        guest.setUserLevel(UserLevel.GUEST);
-        guest.setAuth(auth);
-        guest.setMembership(new Membership());
-        guest.setLastLogin(now);
-        // TTL reaper hook: Mongo's TTL monitor deletes the document once this
-        // instant passes. Set only for guests; cleared on upgrade.
-        guest.setGuestExpiresAt(now.plus(authProperties.getGuest().getTtl()));
-        return guest;
-    }
-
-    private static String shortId() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
     }
 }
