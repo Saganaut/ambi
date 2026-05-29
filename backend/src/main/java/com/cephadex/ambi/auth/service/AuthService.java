@@ -143,7 +143,10 @@ public class AuthService {
     private MeResponse meFromUser(IdentityState state, User user) {
         Membership membership = user.getMembership();
         BillingState billing = membership != null ? membership.getBilling() : null;
+        // Entitlement is a billing-domain rule (Inv 7); the service only handles
+        // the null-billing case and assembles the DTO.
         MembershipStatus status = billing != null ? billing.getStatus() : MembershipStatus.NONE;
+        MembershipTier tier = billing != null ? billing.effectiveTier() : MembershipTier.FREE;
         return new MeResponse(
                 true,
                 state,
@@ -153,22 +156,7 @@ public class AuthService {
                 user.getDisplayName(),
                 user.getEmailAddress(),
                 user.getUserLevel(),
-                effectiveTier(billing),
+                tier,
                 status);
-    }
-
-    /**
-     * Live entitlement (Inv 7): any status other than {@code ACTIVE}/{@code TRIALING}
-     * collapses to {@code FREE} regardless of the stored tier. Evaluated at request
-     * time (the filter loaded the live User), so a lapse/upgrade takes effect on
-     * the next request with no re-login.
-     */
-    private MembershipTier effectiveTier(BillingState billing) {
-        if (billing == null || billing.getTier() == null) {
-            return MembershipTier.FREE;
-        }
-        MembershipStatus status = billing.getStatus();
-        boolean entitled = status == MembershipStatus.ACTIVE || status == MembershipStatus.TRIALING;
-        return entitled ? billing.getTier() : MembershipTier.FREE;
     }
 }

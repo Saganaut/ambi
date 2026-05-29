@@ -37,4 +37,23 @@ public class BillingState {
     @Field("subscription_id")
     private String subscriptionId;
 
+    /**
+     * True only for statuses that actually grant the paid tier. Every other
+     * status (PAST_DUE, CANCELED, EXPIRED, NONE) leaves the account unentitled,
+     * so its {@link #effectiveTier()} collapses to FREE.
+     */
+    public boolean isEntitled() {
+        return status == MembershipStatus.ACTIVE || status == MembershipStatus.TRIALING;
+    }
+
+    /**
+     * The tier the account is entitled to right now (auth/README.md Inv 7): the
+     * stored {@link #tier} only while {@link #isEntitled()}, otherwise
+     * {@link MembershipTier#FREE}. Evaluated at request time, so a lapse or
+     * upgrade takes effect on the next request with no re-login.
+     */
+    public MembershipTier effectiveTier() {
+        return isEntitled() && tier != null ? tier : MembershipTier.FREE;
+    }
+
 }
