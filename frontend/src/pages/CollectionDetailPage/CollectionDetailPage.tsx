@@ -15,10 +15,10 @@ import {
   useRemoveDeckFromCollectionMutation,
   type DeckCollectionResponse,
   type DeckResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAppDispatch } from "@/store/hooks";
-import { BrainFlex } from "@/store/BrainFlexApi";
+import { Ambi } from "@/store/AmbiApi";
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { useConfirm } from "@/components/Common/ConfirmDialog/useConfirm";
 import { resolveDeckCover } from "@/utils/deckImages";
@@ -145,9 +145,11 @@ const CollectionDetailPage = () => {
 
   const handleDragEnd = (event: {
     operation: {
-      source:
-        | { id?: string | number; initialIndex?: number; index?: number }
-        | null;
+      source: {
+        id?: string | number;
+        initialIndex?: number;
+        index?: number;
+      } | null;
     };
   }) => {
     const { source } = event.operation;
@@ -169,7 +171,7 @@ const CollectionDetailPage = () => {
     // getCollection, but we patch here first so the drop-frame animation
     // settles on the correct order before the mutation even fires.
     dispatch(
-      BrainFlex.util.updateQueryData(
+      Ambi.util.updateQueryData(
         "getCollection",
         { id: collectionId },
         (draft) => {

@@ -11,12 +11,12 @@
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { BrainFlex, type ListRatingsApiArg } from "../BrainFlexApi";
+import { Ambi, type ListRatingsApiArg } from "../AmbiApi";
 import type { CacheSyncApi } from "./types";
 
 const refetchRatingViews = (deckId: string, api: CacheSyncApi) => {
   api.dispatch(
-    BrainFlex.endpoints.getDeck.initiate(
+    Ambi.endpoints.getDeck.initiate(
       { id: deckId },
       { subscribe: false, forceRefetch: true },
     ),
@@ -26,7 +26,7 @@ const refetchRatingViews = (deckId: string, api: CacheSyncApi) => {
   // (the user may have just cleared their rating); the cache layer treats
   // that as an "errored" entry and the panel falls back to the empty state.
   api.dispatch(
-    BrainFlex.endpoints.getMyRating.initiate(
+    Ambi.endpoints.getMyRating.initiate(
       { id: deckId },
       { subscribe: false, forceRefetch: true },
     ),
@@ -37,7 +37,7 @@ const refetchRatingViews = (deckId: string, api: CacheSyncApi) => {
     const queryArg = (entry.originalArgs ?? {}) as ListRatingsApiArg;
     if (queryArg.id !== deckId) continue;
     api.dispatch(
-      BrainFlex.endpoints.listRatings.initiate(queryArg, {
+      Ambi.endpoints.listRatings.initiate(queryArg, {
         subscribe: false,
         forceRefetch: true,
       }),
@@ -54,7 +54,7 @@ const optimisticRateDeck = async (
   if (nextStars != null) {
     patches.push(
       api.dispatch(
-        BrainFlex.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+        Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
           draft.myRating = nextStars;
         }),
       ) as { undo: () => void },
@@ -73,7 +73,7 @@ const optimisticDeleteMyRating = async (
   api: CacheSyncApi,
 ) => {
   const patch = api.dispatch(
-    BrainFlex.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+    Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
       draft.myRating = undefined;
     }),
   ) as { undo: () => void };
@@ -85,7 +85,7 @@ const optimisticDeleteMyRating = async (
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     rateDeck: {
       onQueryStarted: (arg, api) => optimisticRateDeck(arg, api),

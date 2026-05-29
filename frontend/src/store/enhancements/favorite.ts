@@ -17,11 +17,11 @@
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
 import {
-  BrainFlex,
+  Ambi,
   type DeckResponse,
   type ExploreDecksApiArg,
   type ListMyFavoritesApiArg,
-} from "../BrainFlexApi";
+} from "../AmbiApi";
 import type { CacheSyncApi } from "./types";
 
 const adjustDeckRow = (deck: DeckResponse, desiredIsFavorited: boolean) => {
@@ -42,14 +42,14 @@ const optimisticToggleFavorite = async (
   };
 
   patch(
-    BrainFlex.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+    Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
       if (draft.id === arg.id) adjustDeckRow(draft, desiredIsFavorited);
     }),
   );
 
   const patchListInPlace = (endpointName: "listDecks" | "listMyDecks") => {
     patch(
-      BrainFlex.util.updateQueryData(endpointName, undefined, (draft) => {
+      Ambi.util.updateQueryData(endpointName, undefined, (draft) => {
         for (const deck of draft) {
           if (deck.id === arg.id) adjustDeckRow(deck, desiredIsFavorited);
         }
@@ -66,7 +66,7 @@ const optimisticToggleFavorite = async (
     if (entry.endpointName === "exploreDecks") {
       const queryArg = (entry.originalArgs ?? {}) as ExploreDecksApiArg;
       patch(
-        BrainFlex.util.updateQueryData("exploreDecks", queryArg, (draft) => {
+        Ambi.util.updateQueryData("exploreDecks", queryArg, (draft) => {
           if (!draft.items) return;
           for (const deck of draft.items) {
             if (deck.id === arg.id) adjustDeckRow(deck, desiredIsFavorited);
@@ -76,7 +76,7 @@ const optimisticToggleFavorite = async (
     } else if (entry.endpointName === "listMyFavorites") {
       const queryArg = (entry.originalArgs ?? {}) as ListMyFavoritesApiArg;
       patch(
-        BrainFlex.util.updateQueryData("listMyFavorites", queryArg, (draft) => {
+        Ambi.util.updateQueryData("listMyFavorites", queryArg, (draft) => {
           if (!draft.items) return;
           if (desiredIsFavorited) {
             for (const deck of draft.items) {
@@ -105,7 +105,7 @@ const optimisticToggleFavorite = async (
     if (response.favoriteCount == null) return;
     const authoritative = response.favoriteCount;
     api.dispatch(
-      BrainFlex.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+      Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
         if (draft.id === arg.id) draft.favoriteCount = authoritative;
       }),
     );
@@ -114,7 +114,7 @@ const optimisticToggleFavorite = async (
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     favoriteDeck: {
       onQueryStarted: (arg, api) => optimisticToggleFavorite(arg, api, true),

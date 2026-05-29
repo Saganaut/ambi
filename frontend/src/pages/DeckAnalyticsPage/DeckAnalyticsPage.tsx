@@ -21,18 +21,12 @@
  */
 import { useMemo, useState } from "react";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import {
-  ArrowDownTrayIcon,
-  ArrowLeftIcon,
-} from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { Segment } from "@/components/Common/Analytics";
-import {
-  useGetDeckQuery,
-  useGetDeckAnalyticsQuery,
-} from "@/store/BrainFlexApi";
-import type { DeckAnalytics } from "@/store/BrainFlexApi";
+import { useGetDeckQuery, useGetDeckAnalyticsQuery } from "@/store/AmbiApi";
+import type { DeckAnalytics } from "@/store/AmbiApi";
 import { apiBaseUrl } from "@/store/emptyApi";
 
 import { ElementCard } from "./ElementCard";

@@ -4,7 +4,7 @@
 // a single resync call. Pure form-state — actual commit plumbing stays on
 // useElementEditor at the call site.
 import { useState } from "react";
-import type { Slide } from "@/store/BrainFlexApi";
+import type { Slide } from "@/store/AmbiApi";
 
 type ResultsDisplayValue = NonNullable<Slide["resultsDisplayType"]>;
 
@@ -58,7 +58,9 @@ interface UseSlideOptionsFormResult {
 const useSlideOptionsForm = (
   element: Slide | undefined,
 ): UseSlideOptionsFormResult => {
-  const [form, setForm] = useState<SlideOptionsForm>(() => fromElement(element));
+  const [form, setForm] = useState<SlideOptionsForm>(() =>
+    fromElement(element),
+  );
 
   const patch = (next: Partial<SlideOptionsForm>): SlideOptionsForm => {
     const merged = { ...form, ...next };

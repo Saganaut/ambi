@@ -47,7 +47,7 @@ import {
 import type {
   InteractiveSessionResponse,
   InteractiveSessionChatMessageResponse,
-} from "../store/BrainFlexApi";
+} from "../store/AmbiApi";
 import type { AnswerPayload } from "../types/elements";
 import type {
   VotePhaseStartPayload,

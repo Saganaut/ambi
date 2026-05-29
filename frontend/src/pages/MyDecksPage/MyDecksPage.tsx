@@ -2,14 +2,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-  BrainFlex,
+  Ambi,
   useListMyDecksQuery,
   useListDecksQuery,
   useDeleteDeckMutation,
   useCreateDeckMutation,
   useAddElementMutation,
-} from "../../store/BrainFlexApi";
-import type { DeckResponse, Slide } from "../../store/BrainFlexApi";
+} from "../../store/AmbiApi";
+import type { DeckResponse, Slide } from "../../store/AmbiApi";
 import { useAppDispatch } from "../../store/hooks";
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { DeckActionButton } from "@/components/Common/Buttons/DeckActionButton/DeckActionButton";
@@ -181,7 +181,7 @@ const MyDecksPage = () => {
     const firstSlide = buildFirstSlide(crypto.randomUUID());
 
     void dispatch(
-      BrainFlex.util.upsertQueryData(
+      Ambi.util.upsertQueryData(
         "getDeck",
         { id },
         buildOptimisticDeck(id, name, firstSlide),

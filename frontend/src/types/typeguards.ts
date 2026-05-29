@@ -1,4 +1,4 @@
-import type { GuestUser, RegisteredUser } from "../store/BrainFlexApi";
+import type { GuestUser, RegisteredUser } from "../store/AmbiApi";
 
 export function isRegisteredUser(
   user: RegisteredUser | GuestUser,

@@ -15,7 +15,7 @@
 import { useEffect, useState } from "react";
 import { getRouteApi, useNavigate, Link } from "@tanstack/react-router";
 import { Btn } from "@/components/Common/Buttons/Btn";
-import { useRedeemInviteMutation } from "@/store/BrainFlexApi";
+import { useRedeemInviteMutation } from "@/store/AmbiApi";
 
 const routeApi = getRouteApi("/invite/$token");
 
@@ -29,7 +29,9 @@ const InvitePage = () => {
 
   // Kick off the first redeem on mount, and again whenever pollCount ticks.
   useEffect(() => {
-    void redeem({ token }).unwrap().catch(() => null);
+    void redeem({ token })
+      .unwrap()
+      .catch(() => null);
   }, [token, pollCount, redeem]);
 
   // When we know the live session is up, jump into the session immediately.
@@ -58,13 +60,20 @@ const InvitePage = () => {
 
   if (error) {
     return (
-      <div style={{ maxWidth: 480, margin: "var(--space-6) auto", padding: "var(--space-4)" }}>
+      <div
+        style={{
+          maxWidth: 480,
+          margin: "var(--space-6) auto",
+          padding: "var(--space-4)",
+        }}>
         <h1>That invite isn't valid.</h1>
         <p style={{ color: "var(--text-secondary)" }}>
           The link may have expired or already been used.
         </p>
         <Link to='/'>
-          <Btn size='md' shape='pill'>Go home</Btn>
+          <Btn size='md' shape='pill'>
+            Go home
+          </Btn>
         </Link>
       </div>
     );
@@ -72,14 +81,24 @@ const InvitePage = () => {
 
   if (isLoading || !data) {
     return (
-      <div style={{ maxWidth: 480, margin: "var(--space-6) auto", padding: "var(--space-4)" }}>
+      <div
+        style={{
+          maxWidth: 480,
+          margin: "var(--space-6) auto",
+          padding: "var(--space-4)",
+        }}>
         <p>Looking up your invite…</p>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: "var(--space-6) auto", padding: "var(--space-4)" }}>
+    <div
+      style={{
+        maxWidth: 480,
+        margin: "var(--space-6) auto",
+        padding: "var(--space-4)",
+      }}>
       <h1>{data.deckName ?? "A session"} hasn't started yet</h1>
       <p style={{ color: "var(--text-secondary)" }}>
         {data.hostName ?? "Your host"} scheduled this for{" "}

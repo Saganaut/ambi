@@ -1,7 +1,7 @@
 /**
  * Barrel that registers the per-feature cache-sync rules onto the auto-
- * generated BrainFlexApi. Each side-effect import below runs a
- * `BrainFlex.enhanceEndpoints({ ... })` call for one feature surface
+ * generated AmbiApi. Each side-effect import below runs a
+ * `Ambi.enhanceEndpoints({ ... })` call for one feature surface
  * (decks, collections, favorites, …).
  *
  * The generated mutations all return the canonical updated DTO with
@@ -14,7 +14,7 @@
  * individual `./enhancements/*` modules are likewise imported here only
  * for their side effects.
  *
- * `BrainFlexApi.ts` is regenerated from the OpenAPI schema, so we layer
+ * `AmbiApi.ts` is regenerated from the OpenAPI schema, so we layer
  * this behavior on top via `enhanceEndpoints` instead of editing the
  * generated file.
  */

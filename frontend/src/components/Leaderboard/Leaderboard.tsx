@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGetLeaderboardQuery } from "../../store/BrainFlexApi";
+import { useGetLeaderboardQuery } from "../../store/AmbiApi";
 import styles from "./Leaderboard.module.css";
 import { CollapseBtn } from "../Common/Buttons/CollapseBtn";
 

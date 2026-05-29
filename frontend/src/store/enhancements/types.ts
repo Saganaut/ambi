@@ -1,6 +1,6 @@
 /**
  * Shared types for the per-feature cache-sync enhancements that layer onto
- * the auto-generated BrainFlexApi. Each enhancement file imports only what
+ * the auto-generated AmbiApi. Each enhancement file imports only what
  * it needs from here; feature-specific shapes (CollectionSyncApi,
  * ChatSendApi, etc.) stay private to their own module.
  */

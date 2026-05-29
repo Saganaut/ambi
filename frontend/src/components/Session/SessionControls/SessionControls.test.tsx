@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoundResultPayload } from "@/store/interactiveSessionSlice";
-import type { InteractiveSessionResponse } from "@/store/BrainFlexApi";
+import type { InteractiveSessionResponse } from "@/store/AmbiApi";
 import type { McqQuestion } from "@/types/elements";
 import { mockFellowshipSession } from "@/utils/MockData";
 

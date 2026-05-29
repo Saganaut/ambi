@@ -2,31 +2,33 @@ package com.cephadex.ambi.presentation.slide;
 
 import java.util.Map;
 
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import com.cephadex.ambi.common.Auditable;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * A single screen within a deck. Slides are <strong>embedded</strong> in their
+ * {@link com.cephadex.ambi.presentation.deck.Deck} (the deck is the aggregate
+ * root and the persistence boundary) — this is a plain nested document, not a
+ * top-level {@code @Document}. It has no permissions of its own; all access
+ * flows through the owning deck. See the package README.
+ */
 @Setter
 @Getter
-@Document(collection = "slides")
-public class Slide extends Auditable {
+public class Slide {
 
-    // id is inherited from BaseDocument (@Id String id) — do not redeclare.
-    // The id is a UUID that can be generated optimistically on the frontend.
+    // The slide's identity within its deck. A UUID the client can mint
+    // optimistically; used to target a specific slide in the deck's array.
+    @Field("id")
+    private String id;
 
-    @Indexed(unique = true)
+    // Stable public handle for sharing / session snapshots (see RoundResult).
     @Field("public_id")
     private String publicId;
-
-    @Field("deck_id")
-    private String deckId;
 
     @Field("title")
     // This is question for ScorableContent
@@ -70,7 +72,6 @@ public class Slide extends Auditable {
     @Field("version")
     private Integer version;
 
-    @Indexed
     @Field("sort_order")
     // Use Lexorank technique;
     // TODO: add Lexorank implementation

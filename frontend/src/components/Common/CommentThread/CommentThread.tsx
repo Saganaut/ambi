@@ -20,10 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { HandThumbUpIcon as ThumbOutline } from "@heroicons/react/24/outline";
 import { HandThumbUpIcon as ThumbSolid } from "@heroicons/react/24/solid";
-import {
-  useListRepliesQuery,
-  type DeckCommentResponse,
-} from "@/store/BrainFlexApi";
+import { useListRepliesQuery, type DeckCommentResponse } from "@/store/AmbiApi";
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { resolveAvatarSrc } from "@/utils/avatarUrl";
 import styles from "./CommentThread.module.css";

@@ -17,7 +17,7 @@ import styles from "./ScoreBoard.module.css";
 import type {
   InteractiveSessionPlayerResponse,
   Team,
-} from "../../../store/BrainFlexApi";
+} from "../../../store/AmbiApi";
 
 export interface ScoreBoardProps {
   players: InteractiveSessionPlayerResponse[];
@@ -122,9 +122,7 @@ const ScoreBoard = ({
                   {answered ? "✓" : "…"}
                 </span>
               )}
-              {!hideScores && (
-                <span className={styles.score}>{p.score}</span>
-              )}
+              {!hideScores && <span className={styles.score}>{p.score}</span>}
               {isHost && !isSelf && onBootPlayer && playerId && (
                 <Btn
                   size='sm'

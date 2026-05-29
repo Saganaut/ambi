@@ -11,7 +11,7 @@
 import {
   type UserAchievementResponse,
   useListMyAchievementsQuery,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import styles from "./AchievementsPage.module.css";
 
 const AchievementsPage = () => {

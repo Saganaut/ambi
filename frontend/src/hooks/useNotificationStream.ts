@@ -19,7 +19,7 @@ import SockJS from "sockjs-client";
 
 import { apiBaseUrl } from "../store/emptyApi";
 import { useAppDispatch } from "../store/hooks";
-import { BrainFlex, type NotificationResponse } from "../store/BrainFlexApi";
+import { Ambi, type NotificationResponse } from "../store/AmbiApi";
 
 export function useNotificationStream(enabled: boolean) {
   const dispatch = useAppDispatch();
@@ -41,7 +41,7 @@ export function useNotificationStream(enabled: boolean) {
             // RTK Query exposes the query cache through getState; we go
             // through the store's util to avoid coupling to its internal
             // shape more than necessary.
-            BrainFlex.endpoints.listNotifications.select({
+            Ambi.endpoints.listNotifications.select({
               page: 0,
               size: 20,
             }) as unknown;
@@ -50,7 +50,7 @@ export function useNotificationStream(enabled: boolean) {
           // gap before that fetch lands.
           void queries;
           dispatch(
-            BrainFlex.util.updateQueryData(
+            Ambi.util.updateQueryData(
               "listNotifications",
               { page: 0, size: 20 },
               (draft) => {
@@ -64,7 +64,7 @@ export function useNotificationStream(enabled: boolean) {
           );
           if (!row.read) {
             dispatch(
-              BrainFlex.util.updateQueryData(
+              Ambi.util.updateQueryData(
                 "getUnreadNotificationCount",
                 undefined,
                 (draft) => {

@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
-import type { ElementStats } from "@/store/BrainFlexApi";
+import type { ElementStats } from "@/store/AmbiApi";
 
 import { DistributionChart } from "./DistributionChart";
 import {
@@ -42,11 +42,12 @@ const ElementCard = ({
   const [expanded, setExpanded] = useState(false);
   const kind = element?.kind;
   const title = element
-    ? (element.chrome?.title?.trim() ? element.chrome.title : "(untitled)")
+    ? element.chrome?.title?.trim()
+      ? element.chrome.title
+      : "(untitled)"
     : "(deleted element)";
 
-  const suppressAccuracy =
-    segment === "PRESENTATIONS" && !deckHasScoredAnswers;
+  const suppressAccuracy = segment === "PRESENTATIONS" && !deckHasScoredAnswers;
   const accuracy =
     !suppressAccuracy && stats.answeredCount && stats.answeredCount > 0
       ? (stats.correctCount ?? 0) / stats.answeredCount
@@ -70,7 +71,9 @@ const ElementCard = ({
         <span className={styles.summary}>
           <span className={styles.stat}>
             <span className={styles.statLabel}>Presented</span>
-            <span className={styles.statValue}>{stats.presentedCount ?? 0}</span>
+            <span className={styles.statValue}>
+              {stats.presentedCount ?? 0}
+            </span>
           </span>
           <span className={styles.stat}>
             <span className={styles.statLabel}>Answered</span>

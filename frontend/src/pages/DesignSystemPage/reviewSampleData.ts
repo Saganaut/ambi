@@ -1,6 +1,6 @@
 // Sample data for the design system's ReviewPanel demo.
 // Mirrors the shape returned by GET /api/interactive-sessions/{code}/review.
-import type { InteractiveSessionReviewResponse } from "../../store/BrainFlexApi";
+import type { InteractiveSessionReviewResponse } from "../../store/AmbiApi";
 
 export const reviewSampleData: InteractiveSessionReviewResponse = {
   interactiveSessionId: "demo-interactiveSession",
@@ -42,7 +42,7 @@ export const reviewSampleData: InteractiveSessionReviewResponse = {
         slideKind: "TITLE",
         body: "A quick tour. Buckle up.",
         chrome: {
-          title: "Welcome to BrainFlex",
+          title: "Welcome to Ambi",
           displaySeconds: 6,
           mediaPosition: "NONE",
         },

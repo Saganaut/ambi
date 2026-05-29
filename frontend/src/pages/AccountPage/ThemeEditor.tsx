@@ -3,7 +3,7 @@
 // save flow live in `useThemeEditor`. The dialog itself is rendered inside the
 // shared Modal (see useModal); callers open/close it and supply the list of
 // orgs the author can pick from.
-import type { ThemeResponse } from "../../store/BrainFlexApi";
+import type { ThemeResponse } from "../../store/AmbiApi";
 import { useThemeEditor, PERSONAL_SCOPE } from "@/hooks/useThemeEditor";
 import styles from "./ThemeSection.module.css";
 import { Alert } from "@/components/Common/Alert/Alert";

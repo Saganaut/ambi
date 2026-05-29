@@ -14,7 +14,7 @@
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { BrainFlex, type DeckCollectionResponse } from "../BrainFlexApi";
+import { Ambi, type DeckCollectionResponse } from "../AmbiApi";
 import type { WithApiQueries } from "./types";
 
 interface CollectionSyncApi {
@@ -31,7 +31,7 @@ const syncCollectionCaches = async (
   try {
     const { data } = await api.queryFulfilled;
     api.dispatch(
-      BrainFlex.util.updateQueryData(
+      Ambi.util.updateQueryData(
         "getCollection",
         { id: collectionId },
         (draft) => {
@@ -46,7 +46,7 @@ const syncCollectionCaches = async (
     // common case without thrashing every cache key.
     for (let p = 0; p < 5; p++) {
       api.dispatch(
-        BrainFlex.util.updateQueryData(
+        Ambi.util.updateQueryData(
           "listMyCollections",
           { page: p, size: 24 },
           (draft) => {
@@ -84,7 +84,7 @@ const optimisticReorderCollectionDecks = async (
 ) => {
   const nextOrder = arg.reorderCollectionDecksRequest.deckIds;
   const patch = api.dispatch(
-    BrainFlex.util.updateQueryData("getCollection", { id: arg.id }, (draft) => {
+    Ambi.util.updateQueryData("getCollection", { id: arg.id }, (draft) => {
       draft.deckIds = [...nextOrder];
       if (draft.decks) {
         const byId = new Map(draft.decks.map((d) => [d.id ?? "", d]));
@@ -104,7 +104,7 @@ const optimisticReorderCollectionDecks = async (
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     updateCollection: {
       onQueryStarted: (arg, api) => syncCollectionCaches(arg.id, api),

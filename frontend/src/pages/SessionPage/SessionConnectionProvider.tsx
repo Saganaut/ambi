@@ -13,7 +13,7 @@
 //   4. exposes the host/player send actions through context so SessionControls
 //      can publish without opening a second STOMP client.
 import { useEffect, type ReactNode } from "react";
-import { useGetInteractiveSessionQuery } from "@/store/BrainFlexApi";
+import { useGetInteractiveSessionQuery } from "@/store/AmbiApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setSession } from "@/store/interactiveSessionSlice";
 import { useInteractiveSessionWebSocket } from "@/hooks/useInteractiveSessionWebSocket";

@@ -1,23 +1,23 @@
 # Glossary
 
-Domain terms used throughout BrainFlex. Add new entries here when you introduce a concept that isn't self-evident from the name.
+Domain terms used throughout Ambi. Add new entries here when you introduce a concept that isn't self-evident from the name.
 
-| Term | Meaning |
-| ---- | ------- |
-| **Deck** | A collection of elements (slides + questions) authored together. Plays as a sequence in a LiveSession. |
-| **Element** | A single item in a deck: a slide or a question. |
-| **Element kind** | The polymorphic discriminator for an element (e.g. `SLIDE`, `MCQ`, `TEXT`, `NUMBER`, `IMAGE_CHOICE`, `RANKING`, `SCALES`, `Q_AND_A`, `GRID`, `PLACE_ON_IMAGE`). |
-| **Slide** | An element with no scoring — title / section / callout / content / end variants. Used for presentation framing inside a deck. |
-| **Question** | A scoreable element. Each kind carries its own correctness shape and accepts a typed answer payload. |
-| **MCQ** | Multiple-choice question. Supports multi-correct — any non-empty subset of the listed options can be the "right" answer; an empty correct-options list is allowed but marks the slide unscoreable. |
-| **AnswerPayload** | Typed player answer (one per round). Variants pair 1:1 with element kinds, plus a sentinel for "didn't submit in time". |
-| **LiveSession** | A live, hosted play session of a deck. Snapshots the deck's elements at create time so author edits mid-game don't desync clients. Tracks players, scores, and the current phase. |
-| **LiveSession phase** | `SUBMIT` → `VOTE` → `REVEAL`. Only Best-Answer-mode questions enter `VOTE`. |
-| **SessionFormat** | Chrome flavor for a live session: `GAME` (persistent leaderboard, podium, placement screen) or `PRESENTATION` (no leaderboard, aggregated end-of-session summary). Frozen on the session at create time; independent of `scoringEnabled`. |
-| **AnswerSubmissionMode** | How players answer within a session: `SIMULTANEOUS` (everyone at once) or `TURN_BASED` (host advances). |
-| **ShowResponses cascade** | Runtime cascade `element → deck → session → per-format default`. Each level may be `INHERIT` (defer up). Per-format defaults: `GAME` → `INSTANT`, `PRESENTATION` → `ON_CLICK`. |
-| **Organization** | A user-created group. Themes and decks can be scoped to an org (visible to all members). Users may belong to multiple orgs. |
-| **Theme** | Per-user (or per-org) palette: `huePrimary`, `hueAccent`, light/dark/system mode, optional background + logo. |
-| **Best Answer mode** | Question flag that adds a voting phase after submission. Points awarded via a scoring strategy (default: each player whose submission got ≥1 vote earns `votesReceived × bestAnswerPoints`; legacy "flat winner" matches the pre-rework behavior). |
-| **Garage** | Self-hosted S3-compatible object store running in Docker Compose. Backs all image uploads (avatars, theme logos/backgrounds, gallery images). |
-| **Auto-memory** | Persistent agent state under `memory/` (not project docs). Excluded from `doc-lint`. |
+| Term                      | Meaning                                                                                                                                                                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Deck**                  | A collection of elements (slides + questions) authored together. Plays as a sequence in a LiveSession.                                                                                                                                             |
+| **Element**               | A single item in a deck: a slide or a question.                                                                                                                                                                                                    |
+| **Element kind**          | The polymorphic discriminator for an element (e.g. `SLIDE`, `MCQ`, `TEXT`, `NUMBER`, `IMAGE_CHOICE`, `RANKING`, `SCALES`, `Q_AND_A`, `GRID`, `PLACE_ON_IMAGE`).                                                                                    |
+| **Slide**                 | An element with no scoring — title / section / callout / content / end variants. Used for presentation framing inside a deck.                                                                                                                      |
+| **Question**              | A scoreable element. Each kind carries its own correctness shape and accepts a typed answer payload.                                                                                                                                               |
+| **MCQ**                   | Multiple-choice question. Supports multi-correct — any non-empty subset of the listed options can be the "right" answer; an empty correct-options list is allowed but marks the slide unscoreable.                                                 |
+| **AnswerPayload**         | Typed player answer (one per round). Variants pair 1:1 with element kinds, plus a sentinel for "didn't submit in time".                                                                                                                            |
+| **LiveSession**           | A live, hosted play session of a deck. Snapshots the deck's elements at create time so author edits mid-game don't desync clients. Tracks players, scores, and the current phase.                                                                  |
+| **LiveSession phase**     | `SUBMIT` → `VOTE` → `REVEAL`. Only Best-Answer-mode questions enter `VOTE`.                                                                                                                                                                        |
+| **SessionFormat**         | Chrome flavor for a live session: `GAME` (persistent leaderboard, podium, placement screen) or `PRESENTATION` (no leaderboard, aggregated end-of-session summary). Frozen on the session at create time; independent of `scoringEnabled`.          |
+| **AnswerSubmissionMode**  | How players answer within a session: `SIMULTANEOUS` (everyone at once) or `TURN_BASED` (host advances).                                                                                                                                            |
+| **ShowResponses cascade** | Runtime cascade `element → deck → session → per-format default`. Each level may be `INHERIT` (defer up). Per-format defaults: `GAME` → `INSTANT`, `PRESENTATION` → `ON_CLICK`.                                                                     |
+| **Organization**          | A user-created group. Themes and decks can be scoped to an org (visible to all members). Users may belong to multiple orgs.                                                                                                                        |
+| **Theme**                 | Per-user (or per-org) palette: `huePrimary`, `hueAccent`, light/dark/system mode, optional background + logo.                                                                                                                                      |
+| **Best Answer mode**      | Question flag that adds a voting phase after submission. Points awarded via a scoring strategy (default: each player whose submission got ≥1 vote earns `votesReceived × bestAnswerPoints`; legacy "flat winner" matches the pre-rework behavior). |
+| **Garage**                | Self-hosted S3-compatible object store running in Docker Compose. Backs all image uploads (avatars, theme logos/backgrounds, gallery images).                                                                                                      |
+| **Auto-memory**           | Persistent agent state under `memory/` (not project docs). Excluded from `doc-lint`.                                                                                                                                                               |

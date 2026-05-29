@@ -4,7 +4,7 @@
  * "registered" within the same tab), this component reads the pending
  * mutation that was captured at 401 time and prompts the user to resume it.
  * Confirming re-dispatches the original mutation via
- * BrainFlex.endpoints[name].initiate(args). Cancelling drops the entry — no
+ * Ambi.endpoints[name].initiate(args). Cancelling drops the entry — no
  * silent auto-retries, no surprise destructive actions.
  *
  * Mounted once near the root alongside AuthPromptBridge. Guarded by a ref so
@@ -15,7 +15,7 @@ import { useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useConfirm } from "@/components/Common/ConfirmDialog/useConfirm";
-import { BrainFlex } from "@/store/BrainFlexApi";
+import { Ambi } from "@/store/AmbiApi";
 import {
   clearPendingMutation,
   readPendingMutation,
@@ -30,7 +30,7 @@ import type { AppDispatch } from "@/store/store";
 interface ReplayableEndpoint {
   initiate: (args: unknown) => unknown;
 }
-const endpointBag = BrainFlex.endpoints as unknown as Partial<
+const endpointBag = Ambi.endpoints as unknown as Partial<
   Record<string, ReplayableEndpoint>
 >;
 

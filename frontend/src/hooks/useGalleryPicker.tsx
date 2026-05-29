@@ -19,7 +19,7 @@
 // The picker self-closes after onPick is invoked.
 import { useCallback } from "react";
 import { GalleryPicker } from "@/components/Common/GalleryPicker/GalleryPicker";
-import type { Image } from "@/store/BrainFlexApi";
+import type { Image } from "@/store/AmbiApi";
 import { usePickerModal } from "./usePickerModal";
 
 type PickHandler = (image: Image) => void;

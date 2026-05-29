@@ -10,7 +10,7 @@ import {
   useListNotificationsQuery,
   useMarkAllNotificationsReadMutation,
   useMarkNotificationReadMutation,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 
 import { resolveAvatarSrc } from "@/utils/avatarUrl";
 import styles from "./NotificationBell.module.css";

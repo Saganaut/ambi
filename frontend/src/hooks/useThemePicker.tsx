@@ -7,17 +7,14 @@ import {
   useGetCurrentUserQuery,
   useListThemesQuery,
   useUpdateProfileMutation,
-} from "../store/BrainFlexApi";
-import type { ThemeResponse } from "../store/BrainFlexApi";
+} from "../store/AmbiApi";
+import type { ThemeResponse } from "../store/AmbiApi";
 import { useTheme } from "./useTheme";
 import { apiToUiMode } from "../utils/themeMode";
 import { useCurrentUser } from "./useCurrentUser";
 import { useCurrentUserOrgs } from "./useCurrentUserOrgs";
 import { useModal } from "../context/useModal";
-import {
-  ThemeEditor,
-  type OrgOption,
-} from "../pages/AccountPage/ThemeEditor";
+import { ThemeEditor, type OrgOption } from "../pages/AccountPage/ThemeEditor";
 import { themePresets, type ThemePreset } from "../pages/DesignSystemPage/data";
 
 interface UseThemePickerResult {
@@ -61,7 +58,9 @@ export function useThemePicker(): UseThemePickerResult {
 
   const activeThemeId = registeredUser?.activeThemeId;
   const organizations: OrgOption[] = myOrgs
-    .filter((o): o is { id: string; name: string } & typeof o => !!o.id && !!o.name)
+    .filter(
+      (o): o is { id: string; name: string } & typeof o => !!o.id && !!o.name,
+    )
     .map((o) => ({ id: o.id, name: o.name }));
 
   const activatePreset = async (preset: ThemePreset) => {

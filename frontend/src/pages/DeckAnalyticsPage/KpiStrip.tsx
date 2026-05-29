@@ -21,10 +21,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { Kpi, KpiStrip as KpiStripLayout } from "@/components/Common/Analytics";
-import type {
-  DeckAnalytics,
-  FormatRollup,
-} from "@/store/BrainFlexApi";
+import type { DeckAnalytics, FormatRollup } from "@/store/AmbiApi";
 import { formatDuration, formatPercent, formatRelativeDate } from "./helpers";
 import type { Segment } from "./helpers";
 
@@ -34,7 +31,11 @@ interface KpiStripProps {
   deckHasScoredAnswers: boolean;
 }
 
-const KpiStrip = ({ analytics, segment, deckHasScoredAnswers }: KpiStripProps) => {
+const KpiStrip = ({
+  analytics,
+  segment,
+  deckHasScoredAnswers,
+}: KpiStripProps) => {
   if (segment === "GAMES") {
     return <GameKpis rollup={analytics?.gameRollup} />;
   }

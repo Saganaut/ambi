@@ -21,10 +21,10 @@
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
 import {
-  BrainFlex,
+  Ambi,
   type ListNotificationsApiArg,
   type NotificationResponse,
-} from "../BrainFlexApi";
+} from "../AmbiApi";
 import type { CacheSyncApi } from "./types";
 
 // `updateQueryData` thunks are dispatched for their PatchCollection handle so
@@ -56,25 +56,21 @@ const optimisticMarkNotificationRead = async (
     if (!queryArg) continue;
     patches.push(
       api.dispatch(
-        BrainFlex.util.updateQueryData(
-          "listNotifications",
-          queryArg,
-          (draft) => {
-            if (!draft.items) return;
-            for (const row of draft.items) {
-              if (row.id !== arg.id) continue;
-              row.read = true;
-              row.readAt = new Date().toISOString();
-            }
-          },
-        ),
+        Ambi.util.updateQueryData("listNotifications", queryArg, (draft) => {
+          if (!draft.items) return;
+          for (const row of draft.items) {
+            if (row.id !== arg.id) continue;
+            row.read = true;
+            row.readAt = new Date().toISOString();
+          }
+        }),
       ) as PatchHandle,
     );
   }
   if (wasUnread) {
     patches.push(
       api.dispatch(
-        BrainFlex.util.updateQueryData(
+        Ambi.util.updateQueryData(
           "getUnreadNotificationCount",
           undefined,
           (draft) => {
@@ -96,17 +92,12 @@ const optimisticMarkNotificationRead = async (
         | undefined;
       if (!queryArg) continue;
       api.dispatch(
-        BrainFlex.util.updateQueryData(
-          "listNotifications",
-          queryArg,
-          (draft) => {
-            if (!draft.items) return;
-            for (const row of draft.items) {
-              if (row.id === authoritative.id)
-                Object.assign(row, authoritative);
-            }
-          },
-        ),
+        Ambi.util.updateQueryData("listNotifications", queryArg, (draft) => {
+          if (!draft.items) return;
+          for (const row of draft.items) {
+            if (row.id === authoritative.id) Object.assign(row, authoritative);
+          }
+        }),
       );
     }
   } catch {
@@ -125,25 +116,21 @@ const optimisticMarkAllNotificationsRead = async (api: CacheSyncApi) => {
     if (!queryArg) continue;
     patches.push(
       api.dispatch(
-        BrainFlex.util.updateQueryData(
-          "listNotifications",
-          queryArg,
-          (draft) => {
-            if (!draft.items) return;
-            for (const row of draft.items) {
-              if (!row.read) {
-                row.read = true;
-                row.readAt = nowIso;
-              }
+        Ambi.util.updateQueryData("listNotifications", queryArg, (draft) => {
+          if (!draft.items) return;
+          for (const row of draft.items) {
+            if (!row.read) {
+              row.read = true;
+              row.readAt = nowIso;
             }
-          },
-        ),
+          }
+        }),
       ) as PatchHandle,
     );
   }
   patches.push(
     api.dispatch(
-      BrainFlex.util.updateQueryData(
+      Ambi.util.updateQueryData(
         "getUnreadNotificationCount",
         undefined,
         (draft) => {
@@ -157,7 +144,7 @@ const optimisticMarkAllNotificationsRead = async (api: CacheSyncApi) => {
     const echoed = data as { count?: number };
     if (typeof echoed.count === "number") {
       api.dispatch(
-        BrainFlex.util.updateQueryData(
+        Ambi.util.updateQueryData(
           "getUnreadNotificationCount",
           undefined,
           (draft) => {
@@ -193,28 +180,24 @@ const optimisticDismissNotification = async (
     if (!queryArg) continue;
     patches.push(
       api.dispatch(
-        BrainFlex.util.updateQueryData(
-          "listNotifications",
-          queryArg,
-          (draft) => {
-            if (!draft.items) return;
-            const before = draft.items.length;
-            draft.items = draft.items.filter((row) => row.id !== arg.id);
-            if (draft.totalElements != null && before > draft.items.length) {
-              draft.totalElements = Math.max(
-                0,
-                draft.totalElements - (before - draft.items.length),
-              );
-            }
-          },
-        ),
+        Ambi.util.updateQueryData("listNotifications", queryArg, (draft) => {
+          if (!draft.items) return;
+          const before = draft.items.length;
+          draft.items = draft.items.filter((row) => row.id !== arg.id);
+          if (draft.totalElements != null && before > draft.items.length) {
+            draft.totalElements = Math.max(
+              0,
+              draft.totalElements - (before - draft.items.length),
+            );
+          }
+        }),
       ) as PatchHandle,
     );
   }
   if (wasUnread) {
     patches.push(
       api.dispatch(
-        BrainFlex.util.updateQueryData(
+        Ambi.util.updateQueryData(
           "getUnreadNotificationCount",
           undefined,
           (draft) => {
@@ -233,7 +216,7 @@ const optimisticDismissNotification = async (
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     markNotificationRead: {
       onQueryStarted: (arg, api) => optimisticMarkNotificationRead(arg, api),

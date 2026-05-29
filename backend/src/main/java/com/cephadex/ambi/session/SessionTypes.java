@@ -33,4 +33,24 @@ public final class SessionTypes {
                 throw new IllegalArgumentException("Connections cannot be negative");
         }
     }
+
+    public record RoundResultId(SessionId sid, SlideId slideId) {
+
+    }
+
+    public record ParticipantId(String value) {
+        public ParticipantId {
+            if (value == null || value.isBlank())
+                throw new IllegalArgumentException("Participant ID cannot be empty");
+        }
+    }
+
+    public record ParticipantOutcome(
+            ParticipantId participantId,
+            String choice,
+            boolean correct,
+            int points,
+            long responseTimeMs) {
+    }
+
 }

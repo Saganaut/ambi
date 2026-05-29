@@ -5,7 +5,7 @@
 // DisplayJoinCode on a host's "share this game" panel.
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useJoinByRoomCodeMutation } from "@/store/BrainFlexApi";
+import { useJoinByRoomCodeMutation } from "@/store/AmbiApi";
 import { extractErrorMessage } from "@/utils/utils";
 import { Alert } from "@/components/Common/Alert/Alert";
 import { Btn } from "@/components/Common/Buttons/Btn";

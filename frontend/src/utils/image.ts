@@ -15,7 +15,7 @@
  * actual <img src=…> value at a specific tier, falling back to a seeded
  * Lorem Picsum placeholder.
  */
-import type { Image, ImageVariant } from "@/store/BrainFlexApi";
+import type { Image, ImageVariant } from "@/store/AmbiApi";
 
 export type ImageSize = "XS" | "SM" | "MD" | "LG" | "XL";
 
@@ -116,7 +116,8 @@ export const resolveImageUrl = (
   includePlaceholder = false,
 ): string | null => {
   if (img?.useExternalImg) {
-    if (img.externalUrl && img.externalUrl.trim() !== "") return img.externalUrl;
+    if (img.externalUrl && img.externalUrl.trim() !== "")
+      return img.externalUrl;
     return includePlaceholder ? placeholderImageUrl(seed, w, h) : null;
   }
   const v = variantFor(img, preferred);
@@ -133,7 +134,8 @@ export const largestUrl = (
   includePlaceholder = false,
 ): string | null => {
   if (img?.useExternalImg) {
-    if (img.externalUrl && img.externalUrl.trim() !== "") return img.externalUrl;
+    if (img.externalUrl && img.externalUrl.trim() !== "")
+      return img.externalUrl;
     return includePlaceholder ? placeholderImageUrl(seed, w, h) : null;
   }
   const v = largestVariant(img);

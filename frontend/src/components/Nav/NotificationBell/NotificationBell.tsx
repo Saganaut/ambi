@@ -8,7 +8,7 @@ import { IconBtn } from "@/components/Common/Buttons/IconBtn";
 import { DropdownMenu } from "@/components/Menus/DropdownMenu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotificationStream } from "@/hooks/useNotificationStream";
-import { useGetUnreadNotificationCountQuery } from "@/store/BrainFlexApi";
+import { useGetUnreadNotificationCountQuery } from "@/store/AmbiApi";
 
 import { NotificationDropdown } from "./NotificationDropdown";
 import styles from "./NotificationBell.module.css";

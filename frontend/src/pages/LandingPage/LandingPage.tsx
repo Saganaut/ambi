@@ -89,7 +89,7 @@ const LandingPage = () => {
       <section className={styles.hero}>
         <div className={styles.heroGlow} />
         <p className={styles.eyebrow}>competitive brain training</p>
-        <h1 className={styles.heroTitle}>BrainFlex</h1>
+        <h1 className={styles.heroTitle}>Ambi</h1>
         <p className={styles.heroTagline}>
           Train your mind. Beat the clock. Own the leaderboard.
         </p>

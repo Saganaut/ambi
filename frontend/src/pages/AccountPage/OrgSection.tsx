@@ -7,8 +7,8 @@ import {
   useJoinOrgMutation,
   useLeaveOrgMutation,
   useListMyOrgsQuery,
-} from "../../store/BrainFlexApi";
-import type { OrganizationResponse } from "../../store/BrainFlexApi";
+} from "../../store/AmbiApi";
+import type { OrganizationResponse } from "../../store/AmbiApi";
 import styles from "./ThemeSection.module.css";
 import accountStyles from "./AccountPage.module.css";
 import { Btn } from "@/components/Common/Buttons/Btn";

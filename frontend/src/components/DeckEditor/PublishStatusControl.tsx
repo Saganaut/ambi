@@ -8,7 +8,7 @@ import {
   useGetDeckQuery,
   usePublishDeckMutation,
   useUnpublishDeckMutation,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { Btn } from "../Common/Buttons/Btn";
 import { Badge } from "../Common/Badge";
 import {

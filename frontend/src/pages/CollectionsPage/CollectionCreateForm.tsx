@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { Input } from "@/components/Common/Input/Input/Input";
 import { TextArea } from "@/components/Common/Input/TextArea/TextArea";
-import { useCreateCollectionMutation } from "@/store/BrainFlexApi";
+import { useCreateCollectionMutation } from "@/store/AmbiApi";
 import styles from "./CollectionCreateForm.module.css";
 
 interface CollectionCreateFormProps {
@@ -14,7 +14,10 @@ interface CollectionCreateFormProps {
   onCreated: (id: string) => void;
 }
 
-const CollectionCreateForm = ({ onCancel, onCreated }: CollectionCreateFormProps) => {
+const CollectionCreateForm = ({
+  onCancel,
+  onCreated,
+}: CollectionCreateFormProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [createCollection, { isLoading }] = useCreateCollectionMutation();

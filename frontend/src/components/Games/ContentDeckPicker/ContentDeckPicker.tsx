@@ -5,11 +5,8 @@
  */
 import { Link } from "@tanstack/react-router";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
-import {
-  useListDecksQuery,
-  useListMyDecksQuery,
-} from "../../../store/BrainFlexApi";
-import type { DeckResponse } from "../../../store/BrainFlexApi";
+import { useListDecksQuery, useListMyDecksQuery } from "../../../store/AmbiApi";
+import type { DeckResponse } from "../../../store/AmbiApi";
 import { SelectableTile } from "../../Common/SelectableTile/SelectableTile";
 import styles from "./ContentDeckPicker.module.css";
 

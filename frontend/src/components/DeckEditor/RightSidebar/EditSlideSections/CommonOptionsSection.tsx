@@ -17,7 +17,7 @@ import {
   useGetDeckQuery,
   useUpdateElementMutation,
   type DeckResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];

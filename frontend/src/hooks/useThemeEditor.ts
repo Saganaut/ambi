@@ -12,7 +12,7 @@ import {
   type CreateThemeRequest,
   type ThemeResponse,
   type UpdateThemeRequest,
-} from "../store/BrainFlexApi";
+} from "../store/AmbiApi";
 import { extractErrorMessage } from "../utils/utils";
 import { apiToUiMode, uiToApiMode } from "../utils/themeMode";
 

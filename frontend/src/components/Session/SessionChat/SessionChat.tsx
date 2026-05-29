@@ -20,7 +20,7 @@ import {
 import { IconBtn } from "@/components/Common/Buttons/IconBtn";
 import { useSession } from "@/pages/SessionPage/useSession";
 import { useSessionConnection } from "@/pages/SessionPage/SessionConnectionContext";
-import type { InteractiveSessionChatMessageResponse } from "@/store/BrainFlexApi";
+import type { InteractiveSessionChatMessageResponse } from "@/store/AmbiApi";
 import type { LiveReaction } from "@/store/interactiveSessionSlice";
 import styles from "./SessionChat.module.css";
 
@@ -217,7 +217,8 @@ const toChatMessage = (
   message: InteractiveSessionChatMessageResponse,
   viewerPlayerId: string | undefined,
 ): ChatMessage => ({
-  id: message.id ?? `${message.authorPlayerId ?? "anon"}-${message.sentAt ?? ""}`,
+  id:
+    message.id ?? `${message.authorPlayerId ?? "anon"}-${message.sentAt ?? ""}`,
   author: message.author?.name ?? "anon",
   body: message.body ?? "",
   kind: "text",
@@ -254,7 +255,10 @@ const SessionChat = ({ className }: SessionChatProps) => {
       at: m.sentAt ? new Date(m.sentAt).getTime() : 0,
       msg: toChatMessage(m, viewerPlayerId),
     })),
-    ...liveReactions.map((r) => ({ at: r.queuedAt, msg: toReactionMessage(r) })),
+    ...liveReactions.map((r) => ({
+      at: r.queuedAt,
+      msg: toReactionMessage(r),
+    })),
   ]
     .sort((a, b) => a.at - b.at)
     .map((row) => row.msg);

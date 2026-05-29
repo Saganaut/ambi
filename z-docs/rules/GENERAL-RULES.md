@@ -1,6 +1,6 @@
 # General Project Rules
 
-Top-level rules that apply across the entire BrainFlex project regardless of which layer (frontend, backend, infra) you're working in.
+Top-level rules that apply across the entire Ambi project regardless of which layer (frontend, backend, infra) you're working in.
 
 1.  **Consistency:** Maintain consistent naming, formatting, and architectural patterns throughout the codebase.
 2.  **Documentation:** Keep `README.md`, `AGENTS.md`, `GEMINI.md`, and the rule docs under `z-docs/rules/` up-to-date with significant project changes.

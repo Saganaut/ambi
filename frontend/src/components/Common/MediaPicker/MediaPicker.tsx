@@ -27,7 +27,7 @@ import {
   useUploadMediaMutation,
   useCreateMediaEmbedMutation,
   type MediaAssetResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCurrentUserOrgs } from "@/hooks/useCurrentUserOrgs";
 import { Btn } from "@/components/Common/Buttons/Btn";
@@ -248,7 +248,9 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
         "SM",
       );
       if (thumb?.url) {
-        return <img src={thumb.url} alt={asset.name} className={styles.thumb} />;
+        return (
+          <img src={thumb.url} alt={asset.name} className={styles.thumb} />
+        );
       }
       return (
         <div className={styles.thumb} aria-hidden='true'>

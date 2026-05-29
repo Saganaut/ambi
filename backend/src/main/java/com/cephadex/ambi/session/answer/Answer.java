@@ -26,7 +26,7 @@ public class Answer {
     private String sessionId;
 
     @Field("slide_id")
-    private String slideId;
+    private String publicSlideId;
 
     @Field("submitted_at")
     private Instant submittedAt;

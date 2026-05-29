@@ -7,7 +7,7 @@
 // localStorage stays useful as the boot-time optimistic cache (so the
 // initial paint doesn't flash) but never wins against the server.
 import { useEffect } from "react";
-import { useListThemesQuery } from "../store/BrainFlexApi";
+import { useListThemesQuery } from "../store/AmbiApi";
 import { useCurrentUser } from "./useCurrentUser";
 import { useTheme } from "./useTheme";
 import { apiToUiMode } from "../utils/themeMode";

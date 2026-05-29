@@ -5,8 +5,8 @@ const config: ConfigFile = {
   schemaFile: "http://localhost:8080/v3/api-docs",
   apiFile: "./src/store/emptyApi.ts",
   apiImport: "emptySplitApi",
-  outputFile: "./src/store/BrainFlexApi.ts",
-  exportName: "BrainFlex",
+  outputFile: "./src/store/AmbiApi.ts",
+  exportName: "Ambi",
   hooks: { queries: true, lazyQueries: true, mutations: true },
 };
 

@@ -1,5 +1,5 @@
 <!--
-  Runbook: how to use the BrainFlex observability foundation day-to-day —
+  Runbook: how to use the Ambi observability foundation day-to-day —
   emitting correlated logs front and back, running prod-shaped JSON logging
   locally, reading the X-Request-Id ↔ traceId thread, and exercising the
   LocalStack CloudWatch path. The "why" lives in the ADR

@@ -1,7 +1,7 @@
 // Hook that resolves the current session into one of four typed states,
 // eliminating the need to check isGuest booleans or id="0" sentinel values.
-import { useGetCurrentUserQuery } from "../store/BrainFlexApi";
-import type { RegisteredUser, GuestUser } from "../store/BrainFlexApi";
+import { useGetCurrentUserQuery } from "../store/AmbiApi";
+import type { RegisteredUser, GuestUser } from "../store/AmbiApi";
 import { isRegisteredUser, isGuestUser } from "../types/typeguards";
 
 export type CurrentUserState =

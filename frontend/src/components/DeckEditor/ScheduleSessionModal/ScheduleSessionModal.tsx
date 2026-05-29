@@ -17,7 +17,7 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@/components/Common/Buttons/Btn";
-import { useCreateScheduledSessionMutation } from "@/store/BrainFlexApi";
+import { useCreateScheduledSessionMutation } from "@/store/AmbiApi";
 import { extractErrorMessage } from "@/utils/utils";
 import styles from "./ScheduleSessionModal.module.css";
 
@@ -29,14 +29,18 @@ interface ScheduleSessionModalProps {
 // Matches a basic email shape. Pure UX guard; the backend re-validates.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const ScheduleSessionModal = ({ deckId, onClose }: ScheduleSessionModalProps) => {
+const ScheduleSessionModal = ({
+  deckId,
+  onClose,
+}: ScheduleSessionModalProps) => {
   const navigate = useNavigate();
   const [scheduledStartAt, setScheduledStartAt] = useState("");
   const [reminderText, setReminderText] = useState("");
   const [emailDraft, setEmailDraft] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [schedule, { isLoading, error: createError }] = useCreateScheduledSessionMutation();
+  const [schedule, { isLoading, error: createError }] =
+    useCreateScheduledSessionMutation();
 
   const addEmail = () => {
     const trimmed = emailDraft.trim().toLowerCase();
@@ -136,7 +140,9 @@ const ScheduleSessionModal = ({ deckId, onClose }: ScheduleSessionModalProps) =>
                   onClick={() => {
                     removeEmail(email);
                   }}>
-                  <XMarkIcon style={{ width: "0.875rem", height: "0.875rem" }} />
+                  <XMarkIcon
+                    style={{ width: "0.875rem", height: "0.875rem" }}
+                  />
                 </button>
               </span>
             ))}

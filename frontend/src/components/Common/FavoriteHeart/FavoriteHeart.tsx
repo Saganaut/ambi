@@ -10,7 +10,7 @@ import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
 import {
   useFavoriteDeckMutation,
   useUnfavoriteDeckMutation,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import styles from "./FavoriteHeart.module.css";
 
 interface FavoriteHeartProps {

@@ -19,7 +19,7 @@
 // resolvePlayerAvatarSrc must still go through resolveAvatarSrc to render —
 // which is exactly what <Avatar> does internally. Always render avatar srcs
 // through <Avatar> (it owns the builtin→asset step) rather than a raw <img>.
-import type { Avatar } from "@/store/BrainFlexApi";
+import type { Avatar } from "@/store/AmbiApi";
 import {
   AVATAR_OPTIONS,
   type AvatarOption,

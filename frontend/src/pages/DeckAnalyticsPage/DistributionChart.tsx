@@ -12,7 +12,7 @@
 import { useMemo } from "react";
 
 import { DistributionList } from "@/components/Common/Analytics";
-import type { ElementStats } from "@/store/BrainFlexApi";
+import type { ElementStats } from "@/store/AmbiApi";
 
 import {
   buildDistributionRows,

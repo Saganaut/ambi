@@ -11,14 +11,11 @@
 //
 // The slice is seeded from the same snapshot, so once seeded it is the source of
 // truth for the live fields and the snapshot only backs the static ones.
-import type {
-  DeckResponse,
-  InteractiveSessionResponse,
-} from "@/store/BrainFlexApi";
+import type { DeckResponse, InteractiveSessionResponse } from "@/store/AmbiApi";
 import {
   useGetDeckQuery,
   useGetInteractiveSessionQuery,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useInteractiveSession } from "@/hooks/useInteractiveSession";
 import { getRouteApi } from "@tanstack/react-router";
 

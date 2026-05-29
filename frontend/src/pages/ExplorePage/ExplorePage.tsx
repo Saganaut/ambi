@@ -13,7 +13,7 @@ import {
   useListTagsQuery,
   type DeckResponse,
   type ExploreDecksApiArg,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { DeckCard } from "@/components/Common/Cards/DeckCard";
 import { Dropdown } from "@/components/Common/Input/Dropdown/Dropdown";
 import { Pagination } from "@/components/Common/Pagination/Pagination";

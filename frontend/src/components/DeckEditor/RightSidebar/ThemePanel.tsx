@@ -19,7 +19,7 @@ import {
   useUpdateDeckMutation,
   type DeckResponse,
   type ThemeResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useThemePicker } from "@/hooks/useThemePicker";
 import { useElementEditor } from "../SlideContentTypes/useElementEditor";
 import { useGalleryPicker } from "@/hooks/useGalleryPicker";

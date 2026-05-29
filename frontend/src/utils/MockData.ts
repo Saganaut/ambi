@@ -5,7 +5,7 @@
  * tests, and bootstrapping a screen before its query is wired up.
  *
  * Conventions:
- *  - Every type is imported from `BrainFlexApi.ts` so these mocks stay in sync
+ *  - Every type is imported from `AmbiApi.ts` so these mocks stay in sync
  *    with codegen — if a field is added or renamed, TypeScript fails here
  *    before it fails in a real consumer.
  *  - For each type we export one canonical instance (e.g. `mockFrodoUser`) and
@@ -49,7 +49,7 @@ import type {
   TextQuestion,
   ThemeResponse,
   WordCloudQuestion,
-} from "../store/BrainFlexApi";
+} from "../store/AmbiApi";
 
 // ─── shared primitives ──────────────────────────────────────────────────────
 
@@ -1464,7 +1464,7 @@ export const mockAchievementNotification: NotificationResponse = {
   userId: mockSamUser.id,
   kind: "ACHIEVEMENT",
   title: "Seven-day streak!",
-  body: "You've played BrainFlex every day for a week. Stay loyal, Master Samwise.",
+  body: "You've played Ambi every day for a week. Stay loyal, Master Samwise.",
   read: false,
   createdAt: RECENT,
 };

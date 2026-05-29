@@ -1,6 +1,6 @@
 # Claude Code Skills
 
-Notes on Claude Code skills used while working on BrainFlex. Skills are reusable agent prompts/configurations that live in `~/.claude/skills/` (user-global) or `.claude/skills/` (project-local).
+Notes on Claude Code skills used while working on Ambi. Skills are reusable agent prompts/configurations that live in `~/.claude/skills/` (user-global) or `.claude/skills/` (project-local).
 
 ## Index
 

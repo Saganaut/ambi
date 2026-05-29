@@ -6,7 +6,7 @@
 // Reads the live player roster off the session snapshot and ranks locally. When
 // wired off mock data this can swap to the authoritative final placements from
 // the /results endpoint, but the shape (player + score) is the same.
-import type { InteractiveSessionResponse } from "@/store/BrainFlexApi";
+import type { InteractiveSessionResponse } from "@/store/AmbiApi";
 import styles from "./BoardOverallResults.module.css";
 
 interface BoardOverallResultsProps {
@@ -19,7 +19,8 @@ const BoardOverallResults = ({ session }: BoardOverallResultsProps) => {
       <div className={styles.boardOverallResults}>
         <h1 className={styles.heading}>Thanks for taking part</h1>
         <p className={styles.subhead}>
-          {session.totalRounds} questions · {session.players.length} participants
+          {session.totalRounds} questions · {session.players.length}{" "}
+          participants
         </p>
       </div>
     );

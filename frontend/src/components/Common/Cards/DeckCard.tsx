@@ -6,7 +6,7 @@
 // button) stay in their pages without forking the visual shell.
 import type { MouseEvent, ReactNode } from "react";
 import { PlayIcon, StarIcon } from "@heroicons/react/24/outline";
-import type { DeckResponse } from "@/store/BrainFlexApi";
+import type { DeckResponse } from "@/store/AmbiApi";
 import { Badge } from "@/components/Common/Badge";
 import { FavoriteHeart } from "@/components/Common/FavoriteHeart/FavoriteHeart";
 import { Tag } from "@/components/Common/Tag/Tag";

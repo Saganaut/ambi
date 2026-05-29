@@ -4,7 +4,7 @@
  * sidebar / header chrome (slide-kind icon, footer) is owned here; the actual
  * field editors live in SlideContentTypes/.
  */
-import { useGetDeckQuery } from "@/store/BrainFlexApi";
+import { useGetDeckQuery } from "@/store/AmbiApi";
 import { getRouteApi } from "@tanstack/react-router";
 import styles from "./SlideDisplay.module.css";
 import { Loader } from "../Common/Loader/Loader";
@@ -88,7 +88,9 @@ const SlideDisplay = () => {
       className={styles.slideDisplay}
       style={
         {
-          "--background-image": backgroundUrl ? `url("${backgroundUrl}")` : "none",
+          "--background-image": backgroundUrl
+            ? `url("${backgroundUrl}")`
+            : "none",
         } as React.CSSProperties
       }>
       <div className={styles.slideHeader}>

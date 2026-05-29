@@ -7,7 +7,7 @@ import {
   useGetCurrentUserQuery,
   useUpdateProfileMutation,
   useUploadProfileImageMutation,
-} from "../../store/BrainFlexApi";
+} from "../../store/AmbiApi";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { apiBaseUrl } from "../../store/emptyApi";
 import { ThemeSection } from "./ThemeSection";
@@ -23,10 +23,7 @@ import { Avatar } from "@/components/Common/Avatar/Avatar";
 import { AvatarSelector } from "@/components/Common/Input/AvatarSelector/AvatarSelector";
 import { useConfirm } from "@/components/Common/ConfirmDialog/useConfirm";
 import { validateImageFile } from "@/utils/imageValidation";
-import {
-  builtinAvatarUrl,
-  builtinAvatarValue,
-} from "@/utils/avatarUrl";
+import { builtinAvatarUrl, builtinAvatarValue } from "@/utils/avatarUrl";
 import { extractErrorMessage } from "@/utils/utils";
 
 type Tab =
@@ -114,7 +111,9 @@ const AccountPage = () => {
       setPictureSuccess(true);
       await refetch();
     } catch (err: unknown) {
-      setPictureError(extractErrorMessage(err, "Upload failed. Please try again."));
+      setPictureError(
+        extractErrorMessage(err, "Upload failed. Please try again."),
+      );
     }
   };
 

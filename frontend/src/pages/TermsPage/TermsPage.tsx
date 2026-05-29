@@ -9,8 +9,8 @@ const TermsPage = () => {
         <h1 className={styles.title}>Terms and Conditions</h1>
         <p className={styles.meta}>Last updated: May 4, 2026</p>
         <p className={styles.intro}>
-          Please read these terms carefully before using BrainFlex. They govern
-          your access to and use of the service.
+          Please read these terms carefully before using Ambi. They govern your
+          access to and use of the service.
         </p>
       </header>
 

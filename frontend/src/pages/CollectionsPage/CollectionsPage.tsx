@@ -13,7 +13,7 @@ import { useModal } from "@/context/useModal";
 import {
   useListMyCollectionsQuery,
   useDeleteCollectionMutation,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useConfirm } from "@/components/Common/ConfirmDialog/useConfirm";
 import { resolveDeckCover } from "@/utils/deckImages";
 import { CollectionCreateForm } from "./CollectionCreateForm";

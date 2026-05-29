@@ -16,7 +16,7 @@ import { NumberInput } from "@/components/Common/Input/NumberInput/NumberInput";
 import { RichTextInput } from "@/components/Common/Input/RichTextInput/RichTextInput";
 import { ChartPreviewPopover } from "@/components/Common/Charts/ChartPreview/ChartPreviewPopover";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { Slide } from "@/store/BrainFlexApi";
+import type { Slide } from "@/store/AmbiApi";
 import { relevanceFor, type ChartType } from "../data";
 import { useSlideOptionsForm } from "./useSlideOptionsForm";
 import type { SlideOptionsForm } from "./useSlideOptionsForm";
@@ -32,7 +32,12 @@ const CHART_OPTIONS: {
   Icon: typeof ChartBarIcon;
   rotated?: boolean;
 }[] = [
-  { value: "BAR_HORIZONTAL", label: "Horizontal bars", Icon: ChartBarIcon, rotated: true },
+  {
+    value: "BAR_HORIZONTAL",
+    label: "Horizontal bars",
+    Icon: ChartBarIcon,
+    rotated: true,
+  },
   { value: "BAR_VERTICAL", label: "Vertical bars", Icon: ChartBarIcon },
   { value: "WORD_CLOUD", label: "Word cloud", Icon: HashtagIcon },
   { value: "PIE_CHART", label: "Pie chart", Icon: ChartPieIcon },

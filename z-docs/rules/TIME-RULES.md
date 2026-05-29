@@ -1,6 +1,6 @@
 # Time & Date Rules
 
-Rules for how time is represented in BrainFlex models, DTOs, and APIs. The goal is one canonical type at rest (`Instant`) and one canonical mechanism for the common "row was created / last modified" pair (`Auditable`).
+Rules for how time is represented in Ambi models, DTOs, and APIs. The goal is one canonical type at rest (`Instant`) and one canonical mechanism for the common "row was created / last modified" pair (`Auditable`).
 
 ## TL;DR
 

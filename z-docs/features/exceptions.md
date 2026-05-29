@@ -212,7 +212,7 @@ The frontend changes are deliberately small:
 - **`baseQuery`** (`frontend/src/store/emptyApi.ts`) needs **no change**: ProblemDetail still sets the HTTP status to `401`, so the existing `status === 401 → authPromptRequested` (login modal + pending-mutation replay) keeps working. Branching on `data.code` is available but optional.
 - **`DeckAnalyticsPage`** splits its conflated banner now that the backend distinguishes the cases: `403` → "You don't have access to this deck", `404` → "That deck doesn't exist". This is the concrete payoff of the [tiered 404/403 policy](#404-vs-403-the-disclosure-decision).
 - The STOMP error consumer gains the optional `code` field carried by `InteractiveSessionErrorMessage`.
-- **Regenerate the OpenAPI client** (`npx @rtk-query/codegen-openapi openapi-config.cts`, backend running) so the ProblemDetail schema is reflected. Never hand-edit `BrainFlexApi.ts`.
+- **Regenerate the OpenAPI client** (`npx @rtk-query/codegen-openapi openapi-config.cts`, backend running) so the ProblemDetail schema is reflected. Never hand-edit `AmbiApi.ts`.
 
 `code` is the stable contract — UI logic should branch on `code` (and `status`), never on the human-readable `detail` string, which may be reworded at any time.
 

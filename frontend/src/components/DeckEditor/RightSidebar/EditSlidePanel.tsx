@@ -4,7 +4,7 @@
 // the provenance footer. Each subsection owns its own debounced commit and
 // local-state mirror (see `useElementEditor`); this file just routes.
 import { getRouteApi } from "@tanstack/react-router";
-import { useGetDeckQuery } from "@/store/BrainFlexApi";
+import { useGetDeckQuery } from "@/store/AmbiApi";
 import { SlideOptionsSection } from "./EditSlideSections/SlideOptionsSection";
 import { McqOptionsSection } from "./EditSlideSections/McqOptionsSection";
 import { TextOptionsSection } from "./EditSlideSections/TextOptionsSection";

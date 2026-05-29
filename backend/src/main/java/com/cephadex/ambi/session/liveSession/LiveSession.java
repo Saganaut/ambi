@@ -9,10 +9,9 @@ import com.cephadex.ambi.session.liveSession.enums.DeckRunLifecycle;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
-@Setter
+
 @Document(collection = "LiveSessions")
 public class LiveSession {
 

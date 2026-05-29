@@ -1,10 +1,10 @@
 package com.cephadex.ambi.session.liveSession;
 
-public class RoundService {
+public class Round {
 
     private final LiveSessionRepository repository;
 
-    public RoundService(LiveSessionRepository repository) {
+    public Round(LiveSessionRepository repository) {
         this.repository = repository;
     }
 
@@ -26,7 +26,6 @@ public class RoundService {
 
     public void restartRound() {
         throw new UnsupportedOperationException("Not implemented yet");
-
     }
 
     public void revealRoundResponses() {

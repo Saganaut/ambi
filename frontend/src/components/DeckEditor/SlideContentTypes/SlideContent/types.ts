@@ -1,7 +1,7 @@
 // Shared types + constants for the SlideContent (non-interactive slide) editor.
 // Splitting these out lets each block-kind editor live in its own file
 // without needing to repeat the union/label maps.
-import type { Slide } from "@/store/BrainFlexApi";
+import type { Slide } from "@/store/AmbiApi";
 import type {
   CalloutTone,
   SlideBlockKind,

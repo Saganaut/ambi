@@ -14,7 +14,7 @@ import { NumberInput } from "@/components/Common/Input/NumberInput/NumberInput";
 import { Container } from "@/components/Containers/Container";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { usePlaceOnImageEditor } from "../useElementEditor";
-import type { Image } from "@/store/BrainFlexApi";
+import type { Image } from "@/store/AmbiApi";
 import { displayUrl, largestUrl } from "@/utils/image";
 import {
   EmptySelect,
@@ -45,9 +45,7 @@ const PlaceOnImageSlideContent = () => {
   );
   const [correctX, setCorrectX] = useState<number>(element?.correctX ?? 0.5);
   const [correctY, setCorrectY] = useState<number>(element?.correctY ?? 0.5);
-  const [tolerance, setTolerance] = useState<number>(
-    element?.tolerance ?? 0.1,
-  );
+  const [tolerance, setTolerance] = useState<number>(element?.tolerance ?? 0.1);
 
   if (element && syncedFromId !== element.id) {
     markSynced(element.id);

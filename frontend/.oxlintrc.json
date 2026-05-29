@@ -7,7 +7,7 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": ["dist", "*.config.*", "BrainFlexApi.ts"],
+  "ignorePatterns": ["dist", "*.config.*", "AmbiApi.ts"],
   "overrides": [
     {
       "files": ["src/**/*.{ts,tsx}"],

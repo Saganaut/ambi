@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Toggle } from "@/components/Common/Input/Toggle/Toggle";
 import { NumberInput } from "@/components/Common/Input/NumberInput/NumberInput";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { NumberQuestion } from "@/store/BrainFlexApi";
+import type { NumberQuestion } from "@/store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 const isNumberQuestion = (e: { kind: string }): e is NumberQuestion =>

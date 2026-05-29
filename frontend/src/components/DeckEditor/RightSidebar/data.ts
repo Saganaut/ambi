@@ -18,7 +18,7 @@
 // `relevanceFor(element)` below; the raw map keeps Slide's lobby flags true
 // so the chrome is reachable in principle.
 
-import type { DeckResponse } from "@/store/BrainFlexApi";
+import type { DeckResponse } from "@/store/AmbiApi";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 

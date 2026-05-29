@@ -11,7 +11,7 @@ import {
   useListCommentsQuery,
   usePostCommentMutation,
   useToggleCommentUpvoteMutation,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { CommentThread } from "@/components/Common/CommentThread/CommentThread";
 import { Pagination } from "@/components/Common/Pagination/Pagination";
@@ -25,7 +25,7 @@ const DeckDiscussionPanel = () => {
   const { deckId } = routeApi.useParams();
   const currentUser = useCurrentUser();
   const callerId =
-    currentUser.state === "registered" ? currentUser.user.id ?? null : null;
+    currentUser.state === "registered" ? (currentUser.user.id ?? null) : null;
   const canInteract = currentUser.state === "registered";
 
   const [page, setPage] = useState(0);
@@ -93,9 +93,7 @@ const DeckDiscussionPanel = () => {
           </div>
         </section>
       ) : (
-        <p className={styles.signedOut}>
-          Sign in to join the discussion.
-        </p>
+        <p className={styles.signedOut}>Sign in to join the discussion.</p>
       )}
 
       <section>

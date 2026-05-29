@@ -17,7 +17,7 @@ import type {
   DeckAnalytics,
   DeckResponse,
   ElementStats,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import type { DistributionRow } from "@/components/Common/Analytics";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
@@ -89,7 +89,7 @@ const buildOrderedElements = (
     const stats = perElement[element.id];
     // TS treats the perElement index signature as total, but the rollup only
     // carries elements that have been presented in a finished session.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
     if (!stats) continue;
     rows.push({ elementId: element.id, element, stats });
     seen.add(element.id);

@@ -5,7 +5,7 @@
 
 ## Context
 
-BrainFlex had effectively no logging strategy. The backend used Spring Boot's
+Ambi had effectively no logging strategy. The backend used Spring Boot's
 default unstructured console output (16 of ~347 files logged anything), with no
 `traceId`, no `userId`, and exceptions mostly swallowed with
 `log.warn(e.getMessage())`. The frontend had ~57 ad-hoc `console.*` calls, no
@@ -41,7 +41,7 @@ Sentry issue).
 **Errors.** Backend error→HTTP mapping is owned by the existing
 [exception system](../features/exceptions.md) (`exception/GlobalExceptionHandler`,
 RFC 9457 ProblemDetail). It already reads `traceId` from the MDC, so this work
-*feeds* it rather than duplicating it — there is exactly one `@RestControllerAdvice`.
+_feeds_ it rather than duplicating it — there is exactly one `@RestControllerAdvice`.
 The frontend gains a shared `logger` (`utils/logger.ts`), a root `ErrorBoundary`,
 window `error`/`unhandledrejection` capture, and `hidden` source maps for future
 symbolication. **Sentry** (free tier, per-layer DSNs) is the chosen vendor for
@@ -62,7 +62,7 @@ the S3 implementation** — LocalStack does not replace it.
 - The foundation is vendor-neutral: adopting Sentry (or swapping it) touches
   `logger.ts`, `pom.xml`, and config — not call sites.
 - stdout-+-log-driver keeps the app free of AWS coupling for logging and works
-  identically on any host; the cost is that log *delivery* is an infra concern
+  identically on any host; the cost is that log _delivery_ is an infra concern
   validated at deploy time (LocalStack mitigates this locally).
 - `userId` in logs is currently the principal name (DB-free, cheap), not the
   canonical Mongo id — good enough for correlation, refine if needed.

@@ -1,13 +1,13 @@
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  BrainFlex,
+  Ambi,
   useAddElementMutation,
   useGetDeckQuery,
   useMoveElementMutation,
   useUpdateDeckMutation,
   type DeckResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useAppDispatch } from "@/store/hooks";
 import type { DragEndEvent } from "@dnd-kit/dom";
 import { isSortable } from "@dnd-kit/dom/sortable";
@@ -305,7 +305,7 @@ const useDeckEditor = (): UseDeckEditorResponse => {
     // drop instantly. The server response (full deck) overwrites this once the
     // moveElement call resolves.
     dispatch(
-      BrainFlex.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
+      Ambi.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
         const list = draft.elements;
         if (!list) return;
         const [item] = list.splice(initialIndex, 1);

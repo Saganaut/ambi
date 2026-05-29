@@ -1,24 +1,52 @@
 package com.cephadex.ambi.session.participant;
 
-public record ParticipantScore(
-        int currentStreak,
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
-        int totalCorrectAnswers,
+@NoArgsConstructor
+@AllArgsConstructor
+public class ParticipantScore {
+    private int currentStreak = 0;
+    private int totalCorrectAnswers = 0;
+    private int bestAnswerPoints = 0;
+    private int points = 0;
+    private int deceptionPoints = 0;
 
-        // When answer gets voted as the best answer
-        int bestAnswerPoints,
+    public int getCurrentStreak() {
+        return this.currentStreak;
+    }
 
-        // regular points
-        int points,
+    public int getPoints() {
+        return this.points;
+    }
 
-        // points for deceving others in deception mode
-        int deceptionPoints
+    public void recordCorrectAnswer(int basePoints) {
+        this.points += basePoints;
+        this.totalCorrectAnswers += 1;
+        this.currentStreak += 1;
+    }
 
-// total points is derived from these
-)
+    public void recordIncorrectAnswer(boolean resetStreak) {
+        if (resetStreak) {
+            this.currentStreak = 0;
+        }
+    }
 
-{
-    public ParticipantScore() {
-        this(0, 0, 0, 0, 0);
+    public void awardStreakBonus(int bonus) {
+        this.points += bonus;
+    }
+
+    public void awardBestAnswer(int bestPoints) {
+        this.bestAnswerPoints += bestPoints;
+        this.points += bestPoints; // Add to global total
+    }
+
+    public void awardDeception(int deceptionPoints) {
+        this.deceptionPoints += deceptionPoints;
+        this.points += deceptionPoints; // Add to global total
+    }
+
+    public void awardFastestAnswerBonus(int speedBonus) {
+        this.points += speedBonus;
     }
 }

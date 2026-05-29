@@ -5,10 +5,7 @@
 // commit through `updateDeck`; the apiEnhancements layer keeps the cached
 // deck in sync, so the rest of the editor sees the change immediately.
 import { getRouteApi } from "@tanstack/react-router";
-import {
-  useGetDeckQuery,
-  useUpdateDeckMutation,
-} from "@/store/BrainFlexApi";
+import { useGetDeckQuery, useUpdateDeckMutation } from "@/store/AmbiApi";
 import { TagPicker } from "@/components/Common/TagPicker/TagPicker";
 import { ElementTagsSection } from "./EditSlideSections/ElementTagsSection";
 import styles from "./EditSlidePanel.module.css";
@@ -49,7 +46,9 @@ const DeckCategorizePanel = () => {
         <TagPicker
           singleSelect
           creatable
-          value={subjectTagId != null && subjectTagId !== "" ? [subjectTagId] : []}
+          value={
+            subjectTagId != null && subjectTagId !== "" ? [subjectTagId] : []
+          }
           onChange={(values) => {
             commit({ subjectTagId: values[0] ?? "" });
           }}

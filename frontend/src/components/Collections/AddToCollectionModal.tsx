@@ -17,7 +17,7 @@ import {
   useRemoveDeckFromCollectionMutation,
   useCreateCollectionMutation,
   type DeckCollectionResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import styles from "./AddToCollectionModal.module.css";
 
 interface AddToCollectionModalProps {

@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction, SubmitEvent } from "react";
 import {
   useLazyCheckUsernameQuery,
   useRegisterMutation,
-} from "../../store/BrainFlexApi";
+} from "../../store/AmbiApi";
 
 export interface RegisterSearch {
   provider?: string;

@@ -13,7 +13,7 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 
-import { useGetMediaQuery, type MediaAssetResponse } from "@/store/BrainFlexApi";
+import { useGetMediaQuery, type MediaAssetResponse } from "@/store/AmbiApi";
 import { Btn } from "@/components/Common/Buttons/Btn";
 
 import styles from "./MediaAssetChip.module.css";
@@ -48,7 +48,10 @@ const MediaAssetChip = ({
         {renderIcon(asset)}
         <span className={styles.name}>
           {isLoading && <span className={styles.muted}>Loading…</span>}
-          {!isLoading && (asset?.name ?? <span className={styles.muted}>Asset not found</span>)}
+          {!isLoading &&
+            (asset?.name ?? (
+              <span className={styles.muted}>Asset not found</span>
+            ))}
         </span>
         <div className={styles.actions}>
           <Btn size='sm' onClick={onReplace}>

@@ -10,7 +10,7 @@ import { Btn } from "@/components/Common/Buttons/Btn";
 import { Input } from "@/components/Common/Input/Input/Input";
 import { useGalleryPicker } from "@/hooks/useGalleryPicker";
 import { externalImage } from "@/utils/image";
-import type { Image } from "@/store/BrainFlexApi";
+import type { Image } from "@/store/AmbiApi";
 import styles from "./_shared.module.css";
 
 interface ImageBackingEditorProps {

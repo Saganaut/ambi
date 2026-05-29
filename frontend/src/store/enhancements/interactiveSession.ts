@@ -17,7 +17,7 @@
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { BrainFlex, type InteractiveSessionResponse } from "../BrainFlexApi";
+import { Ambi, type InteractiveSessionResponse } from "../AmbiApi";
 import type { CacheSyncApi } from "./types";
 
 const syncInteractiveSessionCache = async (
@@ -27,7 +27,7 @@ const syncInteractiveSessionCache = async (
   try {
     const { data } = await api.queryFulfilled;
     api.dispatch(
-      BrainFlex.util.upsertQueryData(
+      Ambi.util.upsertQueryData(
         "getInteractiveSession",
         { roomCode },
         data as InteractiveSessionResponse,
@@ -44,7 +44,7 @@ const seedInteractiveSessionCache = async (api: CacheSyncApi) => {
     const session = data as InteractiveSessionResponse;
     if (!session.roomCode) return;
     api.dispatch(
-      BrainFlex.util.upsertQueryData(
+      Ambi.util.upsertQueryData(
         "getInteractiveSession",
         { roomCode: session.roomCode },
         session,
@@ -55,7 +55,7 @@ const seedInteractiveSessionCache = async (api: CacheSyncApi) => {
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     // Chunk 24 — seed the per-roomCode cache from the create response so the
     // lobby's first render already knows `format`, `customRoomCode`,

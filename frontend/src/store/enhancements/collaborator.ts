@@ -11,7 +11,7 @@
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { BrainFlex, type DeckCollaboratorResponse } from "../BrainFlexApi";
+import { Ambi, type DeckCollaboratorResponse } from "../AmbiApi";
 import type { WithApiQueries } from "./types";
 
 interface CollaboratorSyncApi {
@@ -24,7 +24,7 @@ const refetchCollaborators = (deckId: string, api: CollaboratorSyncApi) => {
   void api.queryFulfilled.then(
     () => {
       api.dispatch(
-        BrainFlex.endpoints.listCollaborators.initiate(
+        Ambi.endpoints.listCollaborators.initiate(
           { id: deckId },
           { subscribe: false, forceRefetch: true },
         ),
@@ -44,14 +44,13 @@ const upsertCollaboratorRow = async (
     const { data } = await api.queryFulfilled;
     const next = data as DeckCollaboratorResponse;
     api.dispatch(
-      BrainFlex.util.updateQueryData(
+      Ambi.util.updateQueryData(
         "listCollaborators",
         { id: deckId },
         (draft) => {
           const idx = draft.findIndex(
             (r) =>
-              r.user?.userId === next.user?.userId &&
-              next.user?.userId != null,
+              r.user?.userId === next.user?.userId && next.user?.userId != null,
           );
           if (idx >= 0) draft[idx] = next;
           else draft.push(next);
@@ -63,7 +62,7 @@ const upsertCollaboratorRow = async (
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     inviteCollaborator: {
       onQueryStarted: (arg, api) => upsertCollaboratorRow(arg.id, api),
@@ -85,7 +84,7 @@ BrainFlex.enhanceEndpoints({
         try {
           await api.queryFulfilled;
           void api.dispatch(
-            BrainFlex.endpoints.getDeck.initiate(
+            Ambi.endpoints.getDeck.initiate(
               { id: arg.id },
               { subscribe: false, forceRefetch: true },
             ),

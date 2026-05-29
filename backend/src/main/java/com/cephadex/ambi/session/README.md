@@ -20,10 +20,26 @@
 
 - All reads should be on redis during session
 - Only writes to mongodb, but we do so continuously - can be used for recovery in case of redis failure
+- Writes to mongo db take place at the end of each round, when a player joins, and at the end of the game
 
 ### Locks, all changes must be done with a lock on that redis session
 
 ### Projectors
 
-- RoundResultProjector -
+- RoundResultProjector - Projects to first then mongodb
 - SessionLifecycleProjector - Projects to mongodb for persistence
+  - also projects participants joined
+  -
+
+### Infrastructure
+
+- EventPublisher
+- AnswerStore
+- SessionLocks
+- PresenceStore
+- TallyStore
+- LiveSessionRepository
+- RoundRepository
+- ParticipantRepository
+- AnswerRepository
+- RoundResultRepository

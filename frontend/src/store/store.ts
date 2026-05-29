@@ -3,7 +3,7 @@ import { emptySplitApi } from "./emptyApi";
 import interactiveSessionReducer from "./interactiveSessionSlice";
 import { authPromptReducer } from "./authPromptSlice";
 // Side-effect import: layers cache-sync onQueryStarted handlers onto the
-// auto-generated BrainFlex mutations so mutation responses update getDeck.
+// auto-generated Ambi mutations so mutation responses update getDeck.
 import "./apiEnhancements";
 
 export const store = configureStore({

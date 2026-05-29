@@ -2,7 +2,7 @@
 // state onto a board stage. Uses the shared mock session as a base and overrides
 // just the fields under test. Index 0 of the snapshot is a Slide, index 1 an MCQ.
 import { describe, it, expect } from "vitest";
-import type { InteractiveSessionResponse } from "@/store/BrainFlexApi";
+import type { InteractiveSessionResponse } from "@/store/AmbiApi";
 import { mockFellowshipSession } from "@/utils/MockData";
 import { resolveBoardStage } from "./resolveBoardStage";
 
@@ -42,7 +42,12 @@ describe("resolveBoardStage", () => {
 
   it("shows the prompt for a GAME question still being answered", () => {
     const stage = resolveBoardStage(
-      base({ status: "IN_PROGRESS", currentRound: 1, phase: "SUBMIT", format: "GAME" }),
+      base({
+        status: "IN_PROGRESS",
+        currentRound: 1,
+        phase: "SUBMIT",
+        format: "GAME",
+      }),
       false,
     );
     expect(stage).toMatchObject({ type: "question", mode: "prompt" });
@@ -55,10 +60,14 @@ describe("resolveBoardStage", () => {
       phase: "SUBMIT",
       format: "GAME",
     });
-    expect(resolveBoardStage(session, false)).toMatchObject({ interactive: true });
+    expect(resolveBoardStage(session, false)).toMatchObject({
+      interactive: true,
+    });
     // HOST_CAN_PARTICIPATE is on while MCQ answering is brought up, so the host
     // can answer on the same board rather than watching read-only.
-    expect(resolveBoardStage(session, true)).toMatchObject({ interactive: true });
+    expect(resolveBoardStage(session, true)).toMatchObject({
+      interactive: true,
+    });
   });
 
   it("streams live results only for PRESENTATION + INSTANT", () => {
@@ -69,7 +78,9 @@ describe("resolveBoardStage", () => {
       format: "PRESENTATION",
       settings: { ...mockFellowshipSession.settings, showResponses: "INSTANT" },
     });
-    expect(resolveBoardStage(session, true)).toMatchObject({ mode: "liveResults" });
+    expect(resolveBoardStage(session, true)).toMatchObject({
+      mode: "liveResults",
+    });
   });
 
   it("keeps PRESENTATION on the prompt when showResponses is not INSTANT", () => {
@@ -78,7 +89,10 @@ describe("resolveBoardStage", () => {
       currentRound: 1,
       phase: "SUBMIT",
       format: "PRESENTATION",
-      settings: { ...mockFellowshipSession.settings, showResponses: "ON_CLICK" },
+      settings: {
+        ...mockFellowshipSession.settings,
+        showResponses: "ON_CLICK",
+      },
     });
     expect(resolveBoardStage(session, true)).toMatchObject({ mode: "prompt" });
   });
@@ -88,19 +102,33 @@ describe("resolveBoardStage", () => {
       base({ status: "IN_PROGRESS", currentRound: 1, phase: "REVEAL" }),
       false,
     );
-    expect(stage).toMatchObject({ type: "question", mode: "results", interactive: false });
+    expect(stage).toMatchObject({
+      type: "question",
+      mode: "results",
+      interactive: false,
+    });
   });
 
   it("shows results once the element is in revealedElementIds", () => {
-    const session = base({ status: "IN_PROGRESS", currentRound: 1, phase: "SUBMIT" });
+    const session = base({
+      status: "IN_PROGRESS",
+      currentRound: 1,
+      phase: "SUBMIT",
+    });
     session.revealedElementIds = [questionId(session)];
-    expect(resolveBoardStage(session, false)).toMatchObject({ mode: "results" });
+    expect(resolveBoardStage(session, false)).toMatchObject({
+      mode: "results",
+    });
   });
 
   it("shows results once the round result lands for the current element", () => {
     // A normal GAME round never enters a REVEAL phase — the reveal rides on the
     // /roundResult broadcast, so a matching roundResult flips the board.
-    const session = base({ status: "IN_PROGRESS", currentRound: 1, phase: "SUBMIT" });
+    const session = base({
+      status: "IN_PROGRESS",
+      currentRound: 1,
+      phase: "SUBMIT",
+    });
     const element = session.deckSnapshot[1];
     const roundResult = {
       round: 1,

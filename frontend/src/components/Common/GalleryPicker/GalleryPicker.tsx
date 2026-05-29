@@ -12,7 +12,7 @@ import {
   type Image,
   useListImagesQuery,
   useUploadImageMutation,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCurrentUserOrgs } from "@/hooks/useCurrentUserOrgs";
 import { Btn } from "@/components/Common/Buttons/Btn";

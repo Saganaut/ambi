@@ -11,14 +11,14 @@
  * Imported for its side effect via the `../apiEnhancements` barrel; do not
  * remove that import or these mutations will silently fall out of sync.
  */
-import { BrainFlex, type DeckResponse } from "../BrainFlexApi";
+import { Ambi, type DeckResponse } from "../AmbiApi";
 import type { CacheSyncApi } from "./types";
 
 const syncDeckCache = async (arg: { id: string }, api: CacheSyncApi) => {
   try {
     const { data } = await api.queryFulfilled;
     api.dispatch(
-      BrainFlex.util.upsertQueryData(
+      Ambi.util.upsertQueryData(
         "getDeck",
         { id: arg.id },
         data as DeckResponse,
@@ -30,7 +30,7 @@ const syncDeckCache = async (arg: { id: string }, api: CacheSyncApi) => {
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     addElement: {
       onQueryStarted: (arg, api) => syncDeckCache(arg, api),

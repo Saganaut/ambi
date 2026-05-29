@@ -13,7 +13,7 @@ Rules specific to the React + TypeScript frontend under `frontend/`.
 7.  **State Management:**
     - **Avoid RTK for Global State:** Minimize the use of Redux Toolkit's core store for generic global state.
     - **Prefer Cached RTK Query:** Leverage RTK Query's caching and data fetching capabilities as the primary mechanism for managing server-side data and associated UI state.
-8.  **Auto-generated API Client:** **NEVER manually edit** `frontend/src/store/BrainFlexApi.ts`. Regenerate it via `npm run generate-api` after backend API changes (the backend must be running).
+8.  **Auto-generated API Client:** **NEVER manually edit** `frontend/src/store/AmbiApi.ts`. Regenerate it via `npm run generate-api` after backend API changes (the backend must be running).
 9.  **Testing:** Use **Vitest + jsdom + React Testing Library** for all frontend tests.
     - Stack: `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `msw` (for network-layer API mocks).
     - Co-locate test files with the component (`Btn.test.tsx` alongside `Btn.tsx`).

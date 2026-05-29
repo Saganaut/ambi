@@ -7,7 +7,7 @@ import { Link } from "@tanstack/react-router";
 import {
   type UserAchievementResponse,
   useListMyAchievementsQuery,
-} from "../../store/BrainFlexApi";
+} from "../../store/AmbiApi";
 import styles from "./AccountPage.module.css";
 
 const AchievementsSection = () => {

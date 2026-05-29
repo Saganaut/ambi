@@ -5,7 +5,7 @@ import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useRequireLogin } from "../../../hooks/useRequireLogin";
 import { useTheme, type ThemeMode } from "../../../hooks/useTheme";
-import { useGuestLoginMutation } from "../../../store/BrainFlexApi";
+import { useGuestLoginMutation } from "../../../store/AmbiApi";
 import { apiBaseUrl } from "../../../store/emptyApi";
 import { resolveAvatarSrc } from "../../../utils/avatarUrl";
 import styles from "./NavBar.module.css";
@@ -77,7 +77,9 @@ const useUserMenu = (): useUserMenuResponse => {
 
   const avatarContent = () => {
     if (user?.pictureUrl) {
-      return <img src={resolveAvatarSrc(user.pictureUrl)} alt={user.userName} />;
+      return (
+        <img src={resolveAvatarSrc(user.pictureUrl)} alt={user.userName} />
+      );
     }
     if (user?.userName) {
       return (

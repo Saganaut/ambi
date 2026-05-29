@@ -16,7 +16,7 @@ import {
   useDeleteImageMutation,
   useListImagesQuery,
   useUpdateImageMutation,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useCurrentUserOrgs } from "@/hooks/useCurrentUserOrgs";
 import { variantFor } from "@/utils/image";
 import { Btn } from "@/components/Common/Buttons/Btn";
@@ -194,19 +194,18 @@ const GallerySection = () => {
             const name = image.name ?? "Untitled";
             const tags = image.tags ?? [];
             // Thumbnails on the management page are ~200px wide — SM fits.
-            const thumb = variantFor({
-              useExternalImg: false,
-              internalImgId: image.id,
-              variants: image.variants,
-            }, "SM");
+            const thumb = variantFor(
+              {
+                useExternalImg: false,
+                internalImgId: image.id,
+                variants: image.variants,
+              },
+              "SM",
+            );
             return (
               <div key={image.id} className={styles.card}>
                 {thumb?.url ? (
-                  <img
-                    src={thumb.url}
-                    alt={name}
-                    className={styles.thumb}
-                  />
+                  <img src={thumb.url} alt={name} className={styles.thumb} />
                 ) : (
                   <div className={styles.thumb} aria-hidden='true' />
                 )}
@@ -214,9 +213,7 @@ const GallerySection = () => {
                   {name}
                 </p>
                 <div className={styles.cardMeta}>
-                  {isOrgShared && (
-                    <span className={styles.cardBadge}>Org</span>
-                  )}
+                  {isOrgShared && <span className={styles.cardBadge}>Org</span>}
                   {tags.map((t) => (
                     <span key={t} className={styles.cardBadge}>
                       {t}

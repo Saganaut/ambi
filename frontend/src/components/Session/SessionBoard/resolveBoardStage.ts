@@ -8,7 +8,7 @@
 // collapses both into a discriminated `BoardStage` so the renderer never has to
 // re-derive any of it.
 import type { DeckElement, Slide } from "@/types/elements";
-import type { InteractiveSessionResponse } from "@/store/BrainFlexApi";
+import type { InteractiveSessionResponse } from "@/store/AmbiApi";
 import type { RoundResultPayload } from "@/store/interactiveSessionSlice";
 import { resolveShowResponsesFor } from "@/utils/showResponsesResolver";
 
@@ -69,9 +69,7 @@ export const resolveBoardStage = (
     return { type: "overall" };
   }
 
-  const element = session.deckSnapshot[session.currentRound] as
-    | DeckElement
-    | undefined;
+  const element = session.deckSnapshot[session.currentRound];
   if (!element) return { type: "lobby" };
 
   // Slides never carry answers or results — same display for everyone.

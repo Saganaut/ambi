@@ -1,4 +1,4 @@
-import { type InteractiveSessionPlayerResponse } from "@/store/BrainFlexApi";
+import { type InteractiveSessionPlayerResponse } from "@/store/AmbiApi";
 import { Avatar } from "@/components/Common/Avatar/Avatar";
 import { resolvePlayerAvatarSrc } from "@/utils/avatarUrl";
 import styles from "./SessionPlayerList.module.css";

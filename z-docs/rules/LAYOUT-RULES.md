@@ -3,7 +3,7 @@
      mechanism; this file is their canonical rule home. Full explanation,
      examples, and pitfalls live in frontend/STYLES.md §12. -->
 
-# BrainFlex Layout Rules
+# Ambi Layout Rules
 
 Short rules for page layout, layout-region sizing, and responsive behavior. The full explanation, code examples, and pitfalls are in [frontend/STYLES.md §12](../../frontend/STYLES.md). See also [STYLE-RULES.md](STYLE-RULES.md) for CSS/token conventions.
 
@@ -22,10 +22,10 @@ Responsive behavior comes from **container queries**, not viewport media queries
 
 The shared layout regions live in `frontend/src/components/Layout/`.
 
-| Region                                     | Container?  | Why                                                                                                       |
-| ------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------- |
-| `innerDisplay` (`container-name: display`) | ✅          | `flex: 1` (layout-owned width), no inline fixed descendants — descendants size to it via `@container display`. |
+| Region                                     | Container?  | Why                                                                                                               |
+| ------------------------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `innerDisplay` (`container-name: display`) | ✅          | `flex: 1` (layout-owned width), no inline fixed descendants — descendants size to it via `@container display`.    |
 | `canvasBody`, `mainBodyDashboard`          | ⏳ deferred | Layout-owned, but hold inline `position: fixed` overlays (e.g. `SessionChat`). Gated on portaling overlays first. |
-| `leftSidebar`, `rightSidebar`              | ❌ not yet  | Content-sized — need a defined width token before they can be containers.                                 |
+| `leftSidebar`, `rightSidebar`              | ❌ not yet  | Content-sized — need a defined width token before they can be containers.                                         |
 
 When overlays are portaled, promote `canvasBody` / `mainBodyDashboard` to named containers; when sidebars get a width token, make them `container-name: sidebar`.

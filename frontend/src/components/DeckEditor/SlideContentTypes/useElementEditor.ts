@@ -22,7 +22,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { isSortable } from "@dnd-kit/dom/sortable";
 import type { DragEndEvent } from "@dnd-kit/dom";
 import {
-  BrainFlex,
+  Ambi,
   useGetDeckQuery,
   useMoveMcqOptionMutation,
   useUpdateElementMutation,
@@ -45,7 +45,7 @@ import {
   type SlideBlock,
   type TextQuestion,
   type WordCloudQuestion,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useAppDispatch } from "@/store/hooks";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDebouncedCommit } from "@/hooks/useDebouncedCommit";
@@ -394,7 +394,7 @@ const useMcqQuestionEditor = (delay = 500): McqQuestionEditorApi => {
     flush();
 
     dispatch(
-      BrainFlex.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
+      Ambi.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
         const el = draft.elements?.find((e) => e.id === elementId);
         if (el?.kind !== "McqQuestion" || !el.options) return;
         const [item] = el.options.splice(initialIndex, 1);

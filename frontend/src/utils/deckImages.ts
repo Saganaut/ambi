@@ -8,7 +8,7 @@
  * Theme-driven backgrounds will slot in between "deck" and "Lorem Picsum" once
  * the interactiveSession passes the host's active theme through to clients.
  */
-import type { Image } from "@/store/BrainFlexApi";
+import type { Image } from "@/store/AmbiApi";
 import { resolveImageUrl } from "@/utils/image";
 
 const COVER_WIDTH = 480;

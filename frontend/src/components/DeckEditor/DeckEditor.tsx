@@ -34,7 +34,7 @@ import { CanvasHeader } from "../Layout/CanvasHeader";
 import { CanvasBody } from "../Layout/CanvasBody";
 
 import { InnerDisplay } from "../Layout/InnerDisplay";
-import { useGetDeckQuery } from "@/store/BrainFlexApi";
+import { useGetDeckQuery } from "@/store/AmbiApi";
 import { Input } from "../Common/Input/Input/Input";
 
 const DeckEditor = () => {
@@ -51,8 +51,7 @@ const DeckEditor = () => {
   // Backend gates the analytics endpoints on owner/editor + non-system; hide
   // the button for anyone else so we don't dangle a 403 in front of viewers.
   const canViewAnalytics =
-    !deck?.isSystem &&
-    (deck?.myRole === "OWNER" || deck?.myRole === "EDITOR");
+    !deck?.isSystem && (deck?.myRole === "OWNER" || deck?.myRole === "EDITOR");
   const {
     quickStart,
     isStarting,
@@ -100,9 +99,7 @@ const DeckEditor = () => {
               size={"md"}
               aria-label='Enter fullscreen'
               onClick={toggleFullScreen}>
-              <ArrowsPointingOutIcon
-                className={styles.iconMd}
-              />
+              <ArrowsPointingOutIcon className={styles.iconMd} />
             </Btn>{" "}
             <Input
               ariaLabel='Deck title'
@@ -128,9 +125,7 @@ const DeckEditor = () => {
           <div className={styles.rightControlButtons}>
             <PublishStatusControl />
             {canViewAnalytics && (
-              <Link
-                to='/decks/$deckId/analytics'
-                params={{ deckId }}>
+              <Link to='/decks/$deckId/analytics' params={{ deckId }}>
                 <Btn size={"md"} shape={"pill"}>
                   <ChartBarIcon className={styles.iconMd} />
                   Analytics

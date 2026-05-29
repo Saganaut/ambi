@@ -13,7 +13,7 @@ export default defineConfig([
   globalIgnores(["dist", "*.config.*"]),
   {
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/store/BrainFlexApi.ts"],
+    ignores: ["src/store/AmbiApi.ts"],
     plugins: {
       "unused-imports": unusedImports,
     },

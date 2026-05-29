@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Toggle } from "@/components/Common/Input/Toggle/Toggle";
 import { NumberInput } from "@/components/Common/Input/NumberInput/NumberInput";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { McqQuestion } from "@/store/BrainFlexApi";
+import type { McqQuestion } from "@/store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 const isMcqQuestion = (e: { kind: string }): e is McqQuestion =>

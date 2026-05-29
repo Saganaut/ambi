@@ -20,7 +20,7 @@ import { Dropdown } from "@/components/Common/Input/Dropdown/Dropdown";
 import { Container } from "@/components/Containers/Container";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { useSlideEditor } from "../useElementEditor";
-import type { Slide } from "@/store/BrainFlexApi";
+import type { Slide } from "@/store/AmbiApi";
 import type { SlideBlockKind, SlideBlockUnion } from "@/store/slideBlockTypes";
 import {
   EmptySelect,
@@ -127,7 +127,9 @@ const SlideContent = () => {
               value={displaySeconds}
               onChange={(next) => {
                 setDisplaySeconds(next);
-                schedule({ chrome: { ...element.chrome, displaySeconds: next } });
+                schedule({
+                  chrome: { ...element.chrome, displaySeconds: next },
+                });
               }}
               onBlur={flush}
             />

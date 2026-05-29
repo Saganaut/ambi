@@ -16,7 +16,7 @@ import type {
   PlayerPlacementResponse,
   InteractiveSessionPlayerResponse,
   Team,
-} from "./BrainFlexApi";
+} from "./AmbiApi";
 import type { AnswerPayload, DeckElement } from "../types/elements";
 import type {
   AnonymizedSubmission,

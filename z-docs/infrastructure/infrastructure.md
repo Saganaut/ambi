@@ -1,4 +1,4 @@
-# BrainFlex — Infrastructure Guide
+# Ambi — Infrastructure Guide
 
 Describes the current local development stack and the planned AWS production architecture, including the async job pipeline that will offload compute-heavy work from the main Java application, the dead-letter queue strategy for failed jobs, database backup procedures, and the observability stack.
 

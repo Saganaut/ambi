@@ -14,7 +14,7 @@ import React, { useEffect, useRef } from "react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { DropdownMenu, DropdownMenuItem } from "../../Menus/DropdownMenu";
-import { useDeleteElementMutation } from "@/store/BrainFlexApi";
+import { useDeleteElementMutation } from "@/store/AmbiApi";
 import styles from "./LeftSidebarContent.module.css";
 import { SlideThumbnailContent } from "./SlideThumbnailContent";
 import type { ElementKind } from "@/components/Common/Slides/SlideTypeGraphics/slideTypeGraphics";

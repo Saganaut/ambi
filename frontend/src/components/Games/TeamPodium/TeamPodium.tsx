@@ -15,10 +15,7 @@
  * {@code playerId}; the underlying account userId never crosses the wire.
  */
 import styles from "./TeamPodium.module.css";
-import type {
-  PlayerPlacementResponse,
-  Team,
-} from "../../../store/BrainFlexApi";
+import type { PlayerPlacementResponse, Team } from "../../../store/AmbiApi";
 
 interface TeamPodiumProps {
   placements: PlayerPlacementResponse[];
@@ -55,10 +52,7 @@ const TeamPodium = ({
   for (const [teamId, members] of byTeam.entries()) {
     const team = teamById.get(teamId);
     if (!team) continue;
-    const totalScore = members.reduce(
-      (acc, m) => acc + (m.finalScore ?? 0),
-      0,
-    );
+    const totalScore = members.reduce((acc, m) => acc + (m.finalScore ?? 0), 0);
     const mvp = members.reduce<PlayerPlacementResponse | null>(
       (best, m) =>
         !best || (m.finalScore ?? 0) > (best.finalScore ?? 0) ? m : best,

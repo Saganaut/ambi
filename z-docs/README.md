@@ -1,4 +1,4 @@
-# BrainFlex Documentation Hub
+# Ambi Documentation Hub
 
 All project documentation lives under this folder. Each subfolder owns a topic and has its own `README.md` that lists the docs inside. The repo root keeps only `README.md`, `AGENTS.md`, and `CLAUDE.md` as top-level docs.
 

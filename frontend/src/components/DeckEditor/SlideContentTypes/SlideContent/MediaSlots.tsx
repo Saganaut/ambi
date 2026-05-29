@@ -8,7 +8,7 @@
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { MediaAssetChip } from "@/components/Common/MediaPicker/MediaAssetChip";
 import { useMediaPicker } from "@/hooks/useMediaPicker";
-import type { ElementChrome, Slide } from "@/store/BrainFlexApi";
+import type { ElementChrome, Slide } from "@/store/AmbiApi";
 import styles from "./SlideContent.module.css";
 
 /** Narrow patch shape — MediaSlots only ever touches the audio/video chrome

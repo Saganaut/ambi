@@ -5,7 +5,7 @@
 // gallery (e.g. lecture content).
 import { Input } from "@/components/Common/Input/Input/Input";
 import { largestUrl } from "@/utils/image";
-import type { Image } from "@/store/BrainFlexApi";
+import type { Image } from "@/store/AmbiApi";
 import type { ImageBlock } from "@/store/slideBlockTypes";
 import type { BlockUpdate } from "./types";
 import styles from "./SlideContent.module.css";
@@ -29,8 +29,9 @@ const ImageBlockEditor = ({
   onUpdate,
   onFlush,
 }: ImageBlockEditorProps) => {
-  const externalUrl: string =
-    block.image?.useExternalImg ? (largestUrl(block.image, "") ?? "") : "";
+  const externalUrl: string = block.image?.useExternalImg
+    ? (largestUrl(block.image, "") ?? "")
+    : "";
   return (
     <div className={styles.blockBody}>
       <Input
@@ -63,7 +64,9 @@ const ImageBlockEditor = ({
         fullWidth
         value={block.caption ?? ""}
         placeholder='Optional caption shown under the image'
-        onChange={(e) => { onUpdate({ ...block, caption: e.target.value }, "schedule"); }}
+        onChange={(e) => {
+          onUpdate({ ...block, caption: e.target.value }, "schedule");
+        }}
         onBlur={onFlush}
       />
     </div>

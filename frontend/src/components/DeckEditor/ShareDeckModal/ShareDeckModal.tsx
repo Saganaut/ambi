@@ -21,7 +21,7 @@ import {
   useRemoveCollaboratorMutation,
   useTransferOwnershipMutation,
   type DeckCollaboratorResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { resolveAvatarSrc } from "@/utils/avatarUrl";
 import styles from "./ShareDeckModal.module.css";
 

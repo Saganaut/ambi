@@ -22,7 +22,7 @@ import {
   useGetDeckQuery,
   useUpdateDeckMutation,
   type InteractiveSessionSettings,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useDebouncedCommit } from "@/hooks/useDebouncedCommit";
 
 const routeApi = getRouteApi("/decks/$deckId/edit");
@@ -53,7 +53,10 @@ const useDeckSettings = (delay = 500): DeckSettingsApi => {
       ...(deck?.defaultSettings ?? {}),
       ...patch,
     };
-    void updateDeck({ id: deckId, updateDeckRequest: { defaultSettings: next } })
+    void updateDeck({
+      id: deckId,
+      updateDeckRequest: { defaultSettings: next },
+    })
       .unwrap()
       .catch((err: unknown) => {
         console.error("Failed to update deck settings", err);

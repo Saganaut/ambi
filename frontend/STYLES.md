@@ -1,4 +1,4 @@
-# BrainFlex Frontend — Styling Conventions
+# Ambi Frontend — Styling Conventions
 
 This doc covers how component styles are organized in this codebase: the local CSS-variable manifest each component exposes, the portable `data-*` modifiers that compose against it, how theme classes layer in, and how it all fits together.
 
@@ -10,12 +10,12 @@ If you're adding or refactoring a component, read this first.
 
 There are **four layers** that decide what a pixel looks like, in order from broadest to narrowest:
 
-| Layer            | Defined in                                        | What it sets                                              |
-| ---------------- | ------------------------------------------------- | --------------------------------------------------------- |
-| Semantic tokens  | `frontend/src/tokens.css` (`:root`)               | `--bg-canvas`, `--text-primary`, `--border-default`, etc. |
-| Theme overrides  | `frontend/src/tokens.css` (`:root.theme-*`)       | Same tokens, redefined for dark / custom modes            |
-| Modifiers        | `frontend/src/tokens.css` (`[data-variant=...]`)  | Component vars (`--color`, `--padding`, etc.)             |
-| Component styles | `**/*.module.css`                                 | Properties read **only** from component vars              |
+| Layer            | Defined in                                       | What it sets                                              |
+| ---------------- | ------------------------------------------------ | --------------------------------------------------------- |
+| Semantic tokens  | `frontend/src/tokens.css` (`:root`)              | `--bg-canvas`, `--text-primary`, `--border-default`, etc. |
+| Theme overrides  | `frontend/src/tokens.css` (`:root.theme-*`)      | Same tokens, redefined for dark / custom modes            |
+| Modifiers        | `frontend/src/tokens.css` (`[data-variant=...]`) | Component vars (`--color`, `--padding`, etc.)             |
+| Component styles | `**/*.module.css`                                | Properties read **only** from component vars              |
 
 Components never reference semantic tokens directly inside property declarations. They consume **component-scoped CSS variables** with a fallback to the semantic token. Modifiers set those variables. Themes are invisible to components — they just redefine the semantic tokens that everything else cascades from.
 
@@ -25,12 +25,12 @@ Components never reference semantic tokens directly inside property declarations
 
 Theme classes live on `<html>` and are toggled by `useTheme`. They redefine semantic tokens (`--bg-canvas`, `--text-primary`, etc.) at the document root. **Don't touch these from component CSS.** The modifier rules and component rules below cascade through them automatically.
 
-| Class                          | When applied                                                           | Effect                                            |
-| ------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------- |
-| (none)                         | Default: light mode, brand-color defaults                              | Light tokens from named brand palette             |
-| `.theme-dark`                  | Dark mode active                                                       | Dark tokens from named brand palette              |
-| `.theme-custom`                | User has engaged hue picker                                            | Tokens are derived from `--hue-primary` / `--hue-accent` (light) |
-| `.theme-custom.theme-dark`     | Custom hue + dark mode                                                 | Hue-derived dark tokens                           |
+| Class                      | When applied                              | Effect                                                           |
+| -------------------------- | ----------------------------------------- | ---------------------------------------------------------------- |
+| (none)                     | Default: light mode, brand-color defaults | Light tokens from named brand palette                            |
+| `.theme-dark`              | Dark mode active                          | Dark tokens from named brand palette                             |
+| `.theme-custom`            | User has engaged hue picker               | Tokens are derived from `--hue-primary` / `--hue-accent` (light) |
+| `.theme-custom.theme-dark` | Custom hue + dark mode                    | Hue-derived dark tokens                                          |
 
 All four states are exercised today and must continue to work after any styling change. Components and modifiers reference semantic tokens (e.g. `--text-error`) — those tokens get redefined by these classes, so variants automatically render correctly in every theme.
 
@@ -40,21 +40,21 @@ All four states are exercised today and must continue to work after any styling 
 
 Every variantizable component declares a manifest of local vars at the top of its main rule, drawn from this canonical slot list:
 
-| Axis           | Var                  | Default fallback         | Flipped by              |
-| -------------- | -------------------- | ------------------------ | ----------------------- |
-| **Color**      | `--color`            | `var(--text-primary)`    | `[data-variant]`        |
-|                | `--background-color` | `var(--bg-surface)`      | `[data-variant]`        |
-|                | `--border-color`     | `var(--border-default)`  | `[data-variant]`        |
-| **Layout**     | `--padding`          | `var(--p-md)`            | `[data-size]`           |
-|                | `--gap`              | `var(--space-3)`         | `[data-size]`           |
-|                | `--radius`           | `var(--radius-md)`       | `[data-size]`           |
-|                | `--height`           | (component-specific)     | `[data-size]`           |
-|                | `--width`            | (component-specific)     | `[data-size]`           |
-|                | `--border-width`     | `1px`                    | (rarely flipped)        |
-| **Typography** | `--font-size`        | `var(--font-size-base)`  | `[data-size]`           |
-|                | `--font-weight`      | `400`                    | (rarely flipped)        |
-|                | `--line-height`      | `1.4`                    | (rarely flipped)        |
-| **State**      | `--opacity`          | `1`                      | (rarely flipped)        |
+| Axis           | Var                  | Default fallback        | Flipped by       |
+| -------------- | -------------------- | ----------------------- | ---------------- |
+| **Color**      | `--color`            | `var(--text-primary)`   | `[data-variant]` |
+|                | `--background-color` | `var(--bg-surface)`     | `[data-variant]` |
+|                | `--border-color`     | `var(--border-default)` | `[data-variant]` |
+| **Layout**     | `--padding`          | `var(--p-md)`           | `[data-size]`    |
+|                | `--gap`              | `var(--space-3)`        | `[data-size]`    |
+|                | `--radius`           | `var(--radius-md)`      | `[data-size]`    |
+|                | `--height`           | (component-specific)    | `[data-size]`    |
+|                | `--width`            | (component-specific)    | `[data-size]`    |
+|                | `--border-width`     | `1px`                   | (rarely flipped) |
+| **Typography** | `--font-size`        | `var(--font-size-base)` | `[data-size]`    |
+|                | `--font-weight`      | `400`                   | (rarely flipped) |
+|                | `--line-height`      | `1.4`                   | (rarely flipped) |
+| **State**      | `--opacity`          | `1`                     | (rarely flipped) |
 
 Components opt into a subset — they only use the slots they need.
 
@@ -75,14 +75,14 @@ Components opt into a subset — they only use the slots they need.
 
 /* ❌ Wrong — declaring the var inside the component rule */
 .btn {
-  --color: var(--text-primary);   /* this declaration wins against modifiers */
+  --color: var(--text-primary); /* this declaration wins against modifiers */
   color: var(--color);
 }
 ```
 
-**Why:** CSS Modules scope class names, not custom properties. A component class (e.g. `.btn`) and an attribute selector (e.g. `[data-variant="error"]`) have equal specificity `(0,1,0)`. The cascade resolves equal-specificity rules by source order, and component CSS imports **after** `tokens.css` — so a `--color` declaration *inside* `.btn` would override the one set by `[data-variant="error"]` and every variant would silently be a no-op.
+**Why:** CSS Modules scope class names, not custom properties. A component class (e.g. `.btn`) and an attribute selector (e.g. `[data-variant="error"]`) have equal specificity `(0,1,0)`. The cascade resolves equal-specificity rules by source order, and component CSS imports **after** `tokens.css` — so a `--color` declaration _inside_ `.btn` would override the one set by `[data-variant="error"]` and every variant would silently be a no-op.
 
-The `var(--name, fallback)` pattern sidesteps the fight entirely: the component never *declares* the var. If a modifier set it, that value is used; otherwise, the fallback (the default token) is used.
+The `var(--name, fallback)` pattern sidesteps the fight entirely: the component never _declares_ the var. If a modifier set it, that value is used; otherwise, the fallback (the default token) is used.
 
 ---
 
@@ -107,21 +107,21 @@ Sets `--color`, `--background-color`, `--border-color`. Guaranteed-contrast beca
 
 Sets `--padding`, `--font-size`, `--radius`, `--gap`.
 
-| `data-size=` | Padding   | Font          | Radius          |
-| ------------ | --------- | ------------- | --------------- |
-| `xs`         | `--p-xxs` | `--font-size-xs`   | `--radius-sm`   |
-| `sm`         | `--p-sm`  | `--font-size-xs`   | `--radius-md`   |
-| `md`         | `--p-md`  | `--font-size-base` | `--radius-md`   |
-| `lg`         | `--p-lg`  | `--font-size-lg`   | `--radius-lg`   |
+| `data-size=` | Padding   | Font               | Radius        |
+| ------------ | --------- | ------------------ | ------------- |
+| `xs`         | `--p-xxs` | `--font-size-xs`   | `--radius-sm` |
+| `sm`         | `--p-sm`  | `--font-size-xs`   | `--radius-md` |
+| `md`         | `--p-md`  | `--font-size-base` | `--radius-md` |
+| `lg`         | `--p-lg`  | `--font-size-lg`   | `--radius-lg` |
 
 ### `data-mode` — style modes
 
 Composes with whatever `data-variant` set.
 
-| `data-mode=` | Effect                                                              |
-| ------------ | ------------------------------------------------------------------- |
-| `outline`    | Transparent fill, border picks up current `--color`                 |
-| `ghost`      | Transparent fill and border                                         |
+| `data-mode=` | Effect                                              |
+| ------------ | --------------------------------------------------- |
+| `outline`    | Transparent fill, border picks up current `--color` |
+| `ghost`      | Transparent fill and border                         |
 
 ### Native state attributes (no modifier needed)
 
@@ -134,7 +134,7 @@ Use the platform attributes — components style them directly via `:disabled`, 
 Because each modifier flips only its own subset, they stack without combinatoric blowup:
 
 ```tsx
-<Btn variant="error" size="sm" mode="outline">
+<Btn variant='error' size='sm' mode='outline'>
   Delete
 </Btn>
 ```
@@ -217,19 +217,19 @@ If a change feels like it doesn't fit any of those, it might be reaching for a n
 
 ## 9. Migration Status
 
-| Component         | State            | Notes                                                     |
-| ----------------- | ---------------- | --------------------------------------------------------- |
-| `Btn`             | ✅ Migrated      | Reference example                                         |
-| `IconBtn`         | ✅ Migrated      | Shares `data-size` vocabulary but locally overrides height/width/padding to icon-appropriate dimensions (see `&[data-size="..."]` blocks in `Buttons.module.css`). |
-| `Card`            | ✅ Migrated      | Card now accepts `variant` + `size` props that flow through data-attributes. |
-| `Toast`           | ✅ Migrated      | Per-component status blocks removed; `data-variant` on the toast element. |
-| `Modal`           | ✅ Migrated      | Added missing `--color`; dialog accepts an optional `variant` prop. |
-| `NavBar`          | ✅ Migrated      | Sextet hover-vars retained as a component-local extension; base triplet variantizable via global `[data-variant]`. |
-| `DeckEditor` | ✅ Migrated      | Same sextet pattern as NavBar.                            |
-| `Badge`           | ✅ Migrated      | Drops per-component status blocks; default variant stays `info`. |
-| `Input`           | ✅ Partial       | `<input>` border now respects `data-variant`; error message auto-sets `data-variant="error"`. Other form primitives (checkbox/radio/toggle/dropdown/file/huepicker) still hardcode tokens — fine, they don't need variants. |
-| `Forms`           | ➖ Skipped       | Layout container, not a variantizable primitive — left alone. |
-| Page-level / rest | ⏳ Pending       | Full sweep — low urgency                                  |
+| Component         | State       | Notes                                                                                                                                                                                                                       |
+| ----------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Btn`             | ✅ Migrated | Reference example                                                                                                                                                                                                           |
+| `IconBtn`         | ✅ Migrated | Shares `data-size` vocabulary but locally overrides height/width/padding to icon-appropriate dimensions (see `&[data-size="..."]` blocks in `Buttons.module.css`).                                                          |
+| `Card`            | ✅ Migrated | Card now accepts `variant` + `size` props that flow through data-attributes.                                                                                                                                                |
+| `Toast`           | ✅ Migrated | Per-component status blocks removed; `data-variant` on the toast element.                                                                                                                                                   |
+| `Modal`           | ✅ Migrated | Added missing `--color`; dialog accepts an optional `variant` prop.                                                                                                                                                         |
+| `NavBar`          | ✅ Migrated | Sextet hover-vars retained as a component-local extension; base triplet variantizable via global `[data-variant]`.                                                                                                          |
+| `DeckEditor`      | ✅ Migrated | Same sextet pattern as NavBar.                                                                                                                                                                                              |
+| `Badge`           | ✅ Migrated | Drops per-component status blocks; default variant stays `info`.                                                                                                                                                            |
+| `Input`           | ✅ Partial  | `<input>` border now respects `data-variant`; error message auto-sets `data-variant="error"`. Other form primitives (checkbox/radio/toggle/dropdown/file/huepicker) still hardcode tokens — fine, they don't need variants. |
+| `Forms`           | ➖ Skipped  | Layout container, not a variantizable primitive — left alone.                                                                                                                                                               |
+| Page-level / rest | ⏳ Pending  | Full sweep — low urgency                                                                                                                                                                                                    |
 
 ---
 
@@ -302,10 +302,17 @@ A bare `@container (…)` matches the **nearest** ancestor with `container-type`
 
 ```css
 /* region */
-.display { container-type: inline-size; container-name: display; }
+.display {
+  container-type: inline-size;
+  container-name: display;
+}
 
 /* descendant, anywhere below */
-@container display (min-width: 50rem) { .prompt { font-size: var(--font-size-2xl); } }
+@container display (min-width: 50rem) {
+  .prompt {
+    font-size: var(--font-size-2xl);
+  }
+}
 ```
 
 For component-level containers use the **`Container` component** (`src/components/Containers/Container.tsx`); it requires a `name` and defaults to `inline-size`.
@@ -341,10 +348,10 @@ The fix is the architecture you'd want anyway: **portal viewport-level overlays 
 
 ### 12.7 Where containers live today
 
-| Region                                | Container?                        | Why                                                                                            |
-| ------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `innerDisplay` (`container-name: display`) | ✅                                | `flex: 1` (layout-owned width); no inline fixed descendants — the board sizes to it.           |
-| `canvasBody`, `mainBodyDashboard`     | ⏳ deferred                       | Layout-owned, but hold inline `position: fixed` overlays (e.g. `SessionChat`) — §12.6. Gated on portaling overlays first. |
-| `leftSidebar`, `rightSidebar`         | ❌ not yet                        | Content-sized — need a defined width token first (§12.2).                                       |
+| Region                                     | Container?  | Why                                                                                                                       |
+| ------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `innerDisplay` (`container-name: display`) | ✅          | `flex: 1` (layout-owned width); no inline fixed descendants — the board sizes to it.                                      |
+| `canvasBody`, `mainBodyDashboard`          | ⏳ deferred | Layout-owned, but hold inline `position: fixed` overlays (e.g. `SessionChat`) — §12.6. Gated on portaling overlays first. |
+| `leftSidebar`, `rightSidebar`              | ❌ not yet  | Content-sized — need a defined width token first (§12.2).                                                                 |
 
 When overlays are portaled, promote `canvasBody` / `mainBodyDashboard` to named containers; when sidebars get a width token, make them `container-name: sidebar`.

@@ -3,7 +3,7 @@
 // deck fetch, and the one-shot seeding cascade (deck.defaultSettings →
 // platform defaults) so the page itself can stay focused on JSX.
 import { useState } from "react";
-import { useGetDeckQuery, type DeckResponse } from "../store/BrainFlexApi";
+import { useGetDeckQuery, type DeckResponse } from "../store/AmbiApi";
 
 // Renamed from `SessionMode` in chunk 24 to avoid colliding with the new
 // SessionFormat (GAME / PRESENTATION) concept. Same values, semantic name.

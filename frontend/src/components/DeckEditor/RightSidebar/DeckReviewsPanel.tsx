@@ -12,7 +12,7 @@ import {
   useListRatingsQuery,
   useRateDeckMutation,
   type DeckRatingResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { Pagination } from "@/components/Common/Pagination/Pagination";
 import { StarRating } from "@/components/Common/StarRating/StarRating";

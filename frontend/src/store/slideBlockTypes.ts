@@ -9,11 +9,11 @@
  * is the Jackson class simple name ("HeadingBlock", "BodyBlock", …), set by
  * the backend's `@JsonTypeInfo(use = NAME, property = "kind")`.
  *
- * Imports of the generated SlideBlock type from BrainFlexApi.ts widen to this
+ * Imports of the generated SlideBlock type from AmbiApi.ts widen to this
  * union via {@link narrowSlideBlock}, which preserves runtime safety: an
  * unknown kind is surfaced as `null` rather than silently cast.
  */
-import type { Image, SlideBlock } from "@/store/BrainFlexApi";
+import type { Image, SlideBlock } from "@/store/AmbiApi";
 
 export interface HeadingBlock {
   kind: "HeadingBlock";

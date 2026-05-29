@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
-import { useCreateInteractiveSessionMutation } from "../store/BrainFlexApi";
+import { useCreateInteractiveSessionMutation } from "../store/AmbiApi";
 import { extractErrorMessage } from "../utils/utils";
 
 interface UseStartInteractiveSession {
@@ -45,7 +45,9 @@ const useStartInteractiveSession = (): UseStartInteractiveSession => {
           params: { sessionId: session.roomCode },
         });
       } else {
-        setError("InteractiveSession was created but no room code was returned.");
+        setError(
+          "InteractiveSession was created but no room code was returned.",
+        );
       }
     } catch (e) {
       setError(extractErrorMessage(e, "Failed to start the game."));

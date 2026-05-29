@@ -18,7 +18,7 @@ import { useDeckEditor } from "../useDeckEditor";
 import { NewElementPicker } from "../NewElementPicker";
 import { useModal } from "@/context/useModal";
 import type { ElementKind } from "@/components/Common/Slides/SlideTypeGraphics/slideTypeGraphics";
-import type { DeckResponse } from "@/store/BrainFlexApi";
+import type { DeckResponse } from "@/store/AmbiApi";
 import { LeftSidebar } from "@/components/Layout/LeftSidebar";
 import { useFullScreen } from "@/context/useFullScreen";
 

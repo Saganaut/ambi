@@ -1,4 +1,4 @@
-# BrainFlex — Agent Guide
+# Ambi — Agent Guide
 
 A full-stack web app for competitive brain games. Learning project focused on MongoDB, Java, and Spring Boot. Built as a paired-down version of Cephadex Games.
 
@@ -60,7 +60,7 @@ cd frontend && npm install && npm run dev
 ```bash
 cd frontend
 npx @rtk-query/codegen-openapi openapi-config.cts
-# Overwrites src/store/BrainFlexApi.ts — do not edit that file manually
+# Overwrites src/store/AmbiApi.ts — do not edit that file manually
 ```
 
 **Seed sample data** (LOTR dataset; idempotent per collection per user, never destructive — stop any running backend first):
@@ -143,7 +143,7 @@ Stacks, CI workflow, and local pre-commit / pre-push hooks: see [Testing & CI](z
 
 | File                                       | Purpose                                                   |
 | ------------------------------------------ | --------------------------------------------------------- |
-| `frontend/src/store/BrainFlexApi.ts`       | Auto-generated RTK Query API — **do not edit**            |
+| `frontend/src/store/AmbiApi.ts`            | Auto-generated RTK Query API — **do not edit**            |
 | `frontend/src/routes/__root.tsx`           | Root layout (TanStack Router + shared AuthBar)            |
 | `frontend/src/hooks/useCurrentUser.ts`     | Auth state machine (visitor/guest/registered)             |
 | `frontend/openapi-config.cts`              | API codegen config                                        |
@@ -158,7 +158,7 @@ Feature-specific file maps live in each feature doc — e.g. [deck editor key fi
 
 ## Gotchas
 
-- `BrainFlexApi.ts` is regenerated from `http://localhost:8080/v3/api-docs` — the backend must be running when you run codegen.
+- `AmbiApi.ts` is regenerated from `http://localhost:8080/v3/api-docs` — the backend must be running when you run codegen.
 - `spring.docker.compose.enabled=false` — Spring does **not** auto-start Docker; run `docker compose up -d` yourself.
 - **Seeding is manual.** A normal `./mvnw spring-boot:run` boot does nothing. `scripts/seed-sample-data.sh` runs the app with `--seed.run=true`, which is the only thing that activates `SampleDataSeeder`. The seeder is idempotent per collection per user and never deletes anything.
 - `DotenvEnvironmentPostProcessor` silently skips if `dev.env` is missing — tests do not rely on it at all.

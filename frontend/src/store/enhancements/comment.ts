@@ -16,11 +16,11 @@
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
 import {
-  BrainFlex,
+  Ambi,
   type DeckCommentResponse,
   type ListCommentsApiArg,
   type ListRepliesApiArg,
-} from "../BrainFlexApi";
+} from "../AmbiApi";
 import type { CacheSyncApi } from "./types";
 
 const optimisticToggleCommentUpvote = async (
@@ -78,16 +78,12 @@ const optimisticToggleCommentUpvote = async (
         if (queryArg.id !== arg.deckId) continue;
         patches.push(
           api.dispatch(
-            BrainFlex.util.updateQueryData(
-              "listComments",
-              queryArg,
-              (draft) => {
-                if (!draft.items) return;
-                for (const row of draft.items) {
-                  if (row.id === arg.commentId) flipRow(row, target);
-                }
-              },
-            ),
+            Ambi.util.updateQueryData("listComments", queryArg, (draft) => {
+              if (!draft.items) return;
+              for (const row of draft.items) {
+                if (row.id === arg.commentId) flipRow(row, target);
+              }
+            }),
           ) as { undo: () => void },
         );
       } else if (entry.endpointName === "listReplies") {
@@ -95,7 +91,7 @@ const optimisticToggleCommentUpvote = async (
         if (queryArg.deckId !== arg.deckId) continue;
         patches.push(
           api.dispatch(
-            BrainFlex.util.updateQueryData("listReplies", queryArg, (draft) => {
+            Ambi.util.updateQueryData("listReplies", queryArg, (draft) => {
               if (!draft.items) return;
               for (const row of draft.items) {
                 if (row.id === arg.commentId) flipRow(row, target);
@@ -117,7 +113,7 @@ const optimisticToggleCommentUpvote = async (
         const queryArg = (entry.originalArgs ?? {}) as ListCommentsApiArg;
         if (queryArg.id !== arg.deckId) continue;
         api.dispatch(
-          BrainFlex.util.updateQueryData("listComments", queryArg, (draft) => {
+          Ambi.util.updateQueryData("listComments", queryArg, (draft) => {
             if (!draft.items) return;
             for (let i = 0; i < draft.items.length; i++) {
               if (draft.items[i].id === authoritative.id) {
@@ -135,7 +131,7 @@ const optimisticToggleCommentUpvote = async (
         const queryArg = (entry.originalArgs ?? {}) as ListRepliesApiArg;
         if (queryArg.deckId !== arg.deckId) continue;
         api.dispatch(
-          BrainFlex.util.updateQueryData("listReplies", queryArg, (draft) => {
+          Ambi.util.updateQueryData("listReplies", queryArg, (draft) => {
             if (!draft.items) return;
             for (let i = 0; i < draft.items.length; i++) {
               if (draft.items[i].id === authoritative.id) {
@@ -156,7 +152,7 @@ const optimisticToggleCommentUpvote = async (
   }
 };
 
-BrainFlex.enhanceEndpoints({
+Ambi.enhanceEndpoints({
   endpoints: {
     toggleCommentUpvote: {
       onQueryStarted: (arg, api) => optimisticToggleCommentUpvote(arg, api),

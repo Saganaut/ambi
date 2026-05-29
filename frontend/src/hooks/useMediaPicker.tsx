@@ -16,7 +16,7 @@
 import { useCallback } from "react";
 
 import { MediaPicker } from "@/components/Common/MediaPicker/MediaPicker";
-import type { MediaAssetResponse } from "@/store/BrainFlexApi";
+import type { MediaAssetResponse } from "@/store/AmbiApi";
 import type { MediaKind } from "@/utils/mediaValidation";
 import { usePickerModal } from "./usePickerModal";
 

@@ -25,7 +25,7 @@ const PRICING_TIERS: PricingTier[] = [
   {
     key: "free",
     name: "Free",
-    tagline: "Get a feel for BrainFlex with the essentials.",
+    tagline: "Get a feel for Ambi with the essentials.",
     prices: {
       monthly: { amount: "$0", unit: "forever" },
       annual: { amount: "$0", unit: "forever" },

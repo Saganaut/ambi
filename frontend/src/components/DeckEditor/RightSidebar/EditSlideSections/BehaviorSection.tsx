@@ -12,7 +12,7 @@
 import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { RadioGroup } from "@/components/Common/Input/RadioGroup/RadioGroup";
-import { useGetDeckQuery, type DeckResponse } from "@/store/BrainFlexApi";
+import { useGetDeckQuery, type DeckResponse } from "@/store/AmbiApi";
 import {
   formatDefaultShowResponses,
   resolveShowResponses,

@@ -12,9 +12,9 @@ import { useMemo, useRef, useState } from "react";
 import {
   useCreateTagMutation,
   useListTagsQuery,
-  BrainFlex,
+  Ambi,
   type TagResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useAppDispatch } from "@/store/hooks";
 import { Tag } from "../Tag/Tag";
 import styles from "./TagPicker.module.css";
@@ -116,7 +116,7 @@ const TagPicker = ({
         // Seed the new tag into every cached listTags result so suggestions
         // refresh without a follow-up refetch.
         dispatch(
-          BrainFlex.util.updateQueryData("listTags", listArgs, (draft) => {
+          Ambi.util.updateQueryData("listTags", listArgs, (draft) => {
             if (!draft.some((t) => t.id === created.id)) draft.push(created);
           }),
         );
@@ -164,11 +164,7 @@ const TagPicker = ({
               }, 150);
             }}
             onKeyDown={(e) => {
-              if (
-                e.key === "Backspace" &&
-                query === "" &&
-                value.length > 0
-              ) {
+              if (e.key === "Backspace" && query === "" && value.length > 0) {
                 remove(value[value.length - 1]);
               }
               if (e.key === "Enter") {

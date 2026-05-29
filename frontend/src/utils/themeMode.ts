@@ -7,7 +7,7 @@
 // Routing every read/write through these two helpers keeps the uppercase enum
 // from leaking into the UI layer (and vice-versa), so there is exactly one
 // place to look when the wire format and the DOM convention disagree.
-import type { ThemeResponse } from "../store/BrainFlexApi";
+import type { ThemeResponse } from "../store/AmbiApi";
 
 export type ApiThemeMode = NonNullable<ThemeResponse["mode"]>;
 export type UiThemeMode = "light" | "dark" | "system";
@@ -16,7 +16,8 @@ export type UiThemeMode = "light" | "dark" | "system";
 // matching the prior behavior where only an explicit light/dark was pinned.
 export const apiToUiMode = (
   mode: ApiThemeMode | undefined | null,
-): UiThemeMode => (mode === "LIGHT" ? "light" : mode === "DARK" ? "dark" : "system");
+): UiThemeMode =>
+  mode === "LIGHT" ? "light" : mode === "DARK" ? "dark" : "system";
 
 // UI → API for the create/update write paths.
 export const uiToApiMode = (mode: UiThemeMode): ApiThemeMode =>

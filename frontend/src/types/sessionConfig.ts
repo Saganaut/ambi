@@ -6,7 +6,7 @@
 //   - SessionFormat            → InteractiveSession.format
 //   - ShowResponsesMode        → element/deck/session showResponses cascade
 //   - AnswerSubmissionMode     → InteractiveSessionSettings.answerSubmissionMode
-// The codegen-generated BrainFlexApi.ts repeats these literals inline in
+// The codegen-generated AmbiApi.ts repeats these literals inline in
 // every DTO; pulling them out keeps the rest of the app from having to
 // invent local NonNullable<DeckResponse["..."]> aliases.
 

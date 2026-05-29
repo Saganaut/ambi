@@ -29,11 +29,11 @@ Field edits in any slide-content editor follow the same path:
 
 ## Mutation → query cache sync
 
-`frontend/src/store/apiEnhancements.ts` is a side-effect-imported file (imported from `store.ts`) that layers `onQueryStarted` handlers onto the auto-generated mutations (`addElement`, `moveElement`, `deleteElement`, `updateElement`, `updateDeck`). Each handler upserts the mutation response into the `getDeck` cache so subscribed components re-render without a manual refetch or tag config. Always go through `enhanceEndpoints` for this — don't edit `BrainFlexApi.ts`.
+`frontend/src/store/apiEnhancements.ts` is a side-effect-imported file (imported from `store.ts`) that layers `onQueryStarted` handlers onto the auto-generated mutations (`addElement`, `moveElement`, `deleteElement`, `updateElement`, `updateDeck`). Each handler upserts the mutation response into the `getDeck` cache so subscribed components re-render without a manual refetch or tag config. Always go through `enhanceEndpoints` for this — don't edit `AmbiApi.ts`.
 
 ## Optimistic deck create
 
-`/my-decks/create` (a TanStack Router file route) mints a UUID, seeds an empty deck into the `getDeck` cache via `BrainFlex.util.upsertQueryData`, navigates to `/decks/$deckId/view` immediately (replace), and fires `POST /api/decks` with that same `id` in the background. The same pattern applies for new elements: the frontend generates the option/slide/item UUID up front so optimistic UI works. The backend must accept a client-supplied id and treat the create call as idempotent.
+`/my-decks/create` (a TanStack Router file route) mints a UUID, seeds an empty deck into the `getDeck` cache via `Ambi.util.upsertQueryData`, navigates to `/decks/$deckId/view` immediately (replace), and fires `POST /api/decks` with that same `id` in the background. The same pattern applies for new elements: the frontend generates the option/slide/item UUID up front so optimistic UI works. The backend must accept a client-supplied id and treat the create call as idempotent.
 
 ## Rich text editing
 
@@ -57,18 +57,18 @@ Until the media-library picker ships, image fields render a **Lorem Picsum** pla
 
 ## Key files
 
-| File                                                                       | Purpose                                                        |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `frontend/src/components/DeckEditor/DeckEditor.tsx`                        | Top-level layout (navbar + 3-col canvas)                       |
-| `frontend/src/components/DeckEditor/LeftSidebar.tsx`                       | Slide rail: add-via-picker, drag-reorder, live deck.elements   |
-| `frontend/src/components/DeckEditor/NewElementPicker.tsx`                  | Modal body with element-kind tiles                             |
-| `frontend/src/components/DeckEditor/SlideThumbnail.tsx`                    | Slide tile (right-click menu, scrolls into view on select)     |
-| `frontend/src/components/DeckEditor/SlideDisplay.tsx`                      | Routes to the right `<KindSlideContent>` by `element.kind`     |
-| `frontend/src/components/DeckEditor/SlideContentTypes/useElementEditor.ts` | Shared deck-query + debounced commit hook                      |
-| `frontend/src/components/DeckEditor/useDeckEditor.ts`                      | Sidebar state: drag end, add element, build defaults           |
-| `frontend/src/hooks/useDebouncedCommit.ts`                                 | Generic schedule / flush / cancel debouncer                    |
+| File                                                                       | Purpose                                                          |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `frontend/src/components/DeckEditor/DeckEditor.tsx`                        | Top-level layout (navbar + 3-col canvas)                         |
+| `frontend/src/components/DeckEditor/LeftSidebar.tsx`                       | Slide rail: add-via-picker, drag-reorder, live deck.elements     |
+| `frontend/src/components/DeckEditor/NewElementPicker.tsx`                  | Modal body with element-kind tiles                               |
+| `frontend/src/components/DeckEditor/SlideThumbnail.tsx`                    | Slide tile (right-click menu, scrolls into view on select)       |
+| `frontend/src/components/DeckEditor/SlideDisplay.tsx`                      | Routes to the right `<KindSlideContent>` by `element.kind`       |
+| `frontend/src/components/DeckEditor/SlideContentTypes/useElementEditor.ts` | Shared deck-query + debounced commit hook                        |
+| `frontend/src/components/DeckEditor/useDeckEditor.ts`                      | Sidebar state: drag end, add element, build defaults             |
+| `frontend/src/hooks/useDebouncedCommit.ts`                                 | Generic schedule / flush / cancel debouncer                      |
 | `frontend/src/context/ModalProvider.tsx` / `useModal.tsx`                  | App-wide modal: `openModal({ title, content })` / `closeModal()` |
-| `frontend/src/context/LayoutProvider.tsx` / `useFullScreen.tsx`            | Fullscreen state + global ESC handler + floating exit button   |
-| `frontend/src/components/Common/Input/RichTextInput.tsx`                   | TipTap-backed input with focus toolbar + inline link editor    |
-| `frontend/src/store/apiEnhancements.ts`                                    | `onQueryStarted` cache-sync for element/deck mutations         |
-| `frontend/src/routes/my-decks/create.tsx`                                  | Optimistic deck-create: UUID + cache seed + navigate           |
+| `frontend/src/context/LayoutProvider.tsx` / `useFullScreen.tsx`            | Fullscreen state + global ESC handler + floating exit button     |
+| `frontend/src/components/Common/Input/RichTextInput.tsx`                   | TipTap-backed input with focus toolbar + inline link editor      |
+| `frontend/src/store/apiEnhancements.ts`                                    | `onQueryStarted` cache-sync for element/deck mutations           |
+| `frontend/src/routes/my-decks/create.tsx`                                  | Optimistic deck-create: UUID + cache seed + navigate             |

@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/Common/Input/Checkbox/Checkbox";
 import { Container } from "@/components/Containers/Container";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { useGridQuestionEditor } from "../useElementEditor";
-import type { Image } from "@/store/BrainFlexApi";
+import type { Image } from "@/store/AmbiApi";
 import { largestUrl, resolveImageUrl } from "@/utils/image";
 import {
   EmptySelect,
@@ -68,8 +68,13 @@ const GridSlideContent = () => {
   const idBase = element.id ?? "";
 
   const previewUrl =
-    resolveImageUrl(element.cells?.backingImage, "MD", idBase || "grid", 640, 360) ??
-    "";
+    resolveImageUrl(
+      element.cells?.backingImage,
+      "MD",
+      idBase || "grid",
+      640,
+      360,
+    ) ?? "";
 
   return (
     <Container name='GridSlideEditor'>

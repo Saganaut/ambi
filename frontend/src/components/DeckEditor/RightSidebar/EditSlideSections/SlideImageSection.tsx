@@ -8,7 +8,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useGalleryPicker } from "@/hooks/useGalleryPicker";
 import { emptyImage } from "@/utils/image";
-import type { DeckResponse } from "@/store/BrainFlexApi";
+import type { DeckResponse } from "@/store/AmbiApi";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
 import { ImagePicker } from "../ImagePicker";
 import styles from "../EditSlidePanel.module.css";

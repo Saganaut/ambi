@@ -16,7 +16,7 @@ import type {
   PlayerRoundResponse,
   RoundReview,
   InteractiveSessionReviewResponse,
-} from "../../../store/BrainFlexApi";
+} from "../../../store/AmbiApi";
 import type { AnswerPayload, DeckElement } from "../../../types/elements";
 import {
   BarChart,

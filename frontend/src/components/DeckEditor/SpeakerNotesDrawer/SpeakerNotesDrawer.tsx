@@ -19,7 +19,7 @@ import {
   useGetDeckQuery,
   useUpdateElementMutation,
   type DeckResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import { useDebouncedCommit } from "@/hooks/useDebouncedCommit";
 import {
   RichTextInput,

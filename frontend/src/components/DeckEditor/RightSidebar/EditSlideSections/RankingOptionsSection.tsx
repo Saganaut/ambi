@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Toggle } from "@/components/Common/Input/Toggle/Toggle";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { RankingQuestion } from "@/store/BrainFlexApi";
+import type { RankingQuestion } from "@/store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 const isRankingQuestion = (e: { kind: string }): e is RankingQuestion =>
@@ -19,9 +19,7 @@ const RankingOptionsSection = () => {
 
   if (element && syncedFromId !== element.id) {
     markSynced(element.id);
-    setShuffleItemsForPresentation(
-      element.shuffleItemsForPresentation ?? true,
-    );
+    setShuffleItemsForPresentation(element.shuffleItemsForPresentation ?? true);
   }
 
   if (!element) return null;

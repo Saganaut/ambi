@@ -27,10 +27,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { useSortable } from "@dnd-kit/react/sortable";
-import {
-  BrainFlex,
-  type McqOption as McqOptionType,
-} from "@/store/BrainFlexApi";
+import { Ambi, type McqOption as McqOptionType } from "@/store/AmbiApi";
 import { useAppDispatch } from "@/store/hooks";
 import { TextArea } from "@/components/Common/Input/TextArea/TextArea";
 import { IconBtn } from "@/components/Common/Buttons/IconBtn";
@@ -197,7 +194,7 @@ const McqOptionEditable = ({
 
         // Optimistic cache write: keyed lookup into the right deck/element/option.
         dispatch(
-          BrainFlex.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
+          Ambi.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
             if (!draft.elements) return;
             const el = draft.elements.find((e) => e.id === parent.id);
             if (el?.kind !== "McqQuestion") return;

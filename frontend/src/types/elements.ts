@@ -27,7 +27,7 @@ import type {
   TextQuestion,
   WordCloudAnswer,
   WordCloudQuestion,
-} from "../store/BrainFlexApi";
+} from "../store/AmbiApi";
 
 // Codegen names them `<Class>Base` for the abstract parent so reproduce the answer leaves.
 export interface TextAnswer {

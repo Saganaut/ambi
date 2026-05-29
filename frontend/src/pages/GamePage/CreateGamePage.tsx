@@ -5,7 +5,7 @@
 import { useEffect } from "react";
 import { getRouteApi, useNavigate, Link } from "@tanstack/react-router";
 
-import { useCreateInteractiveSessionMutation } from "../../store/BrainFlexApi";
+import { useCreateInteractiveSessionMutation } from "../../store/AmbiApi";
 import { Btn } from "@/components/Common/Buttons/Btn";
 import { Input } from "@/components/Common/Input/Input/Input";
 import { Checkbox } from "@/components/Common/Input/Checkbox/Checkbox";
@@ -428,7 +428,8 @@ const CreateGamePage = () => {
             ? settings.autoBalanceTeams
             : undefined,
           anonymousMode: settings.anonymousMode,
-          customRoomCode: trimmedRoomCode.length > 0 ? trimmedRoomCode : undefined,
+          customRoomCode:
+            trimmedRoomCode.length > 0 ? trimmedRoomCode : undefined,
           shuffleQuestions: settings.shuffleQuestions,
           shuffleAnswers: settings.shuffleAnswers,
           autoAdvance:
@@ -487,10 +488,7 @@ const CreateGamePage = () => {
           </p>
         )}
 
-        <Btn
-          type='submit'
-          className={styles.createBtn}
-          disabled={creating}>
+        <Btn type='submit' className={styles.createBtn} disabled={creating}>
           {creating ? "Creating…" : "Start Game"}
         </Btn>
       </form>

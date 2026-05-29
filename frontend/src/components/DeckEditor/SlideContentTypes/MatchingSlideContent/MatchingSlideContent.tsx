@@ -16,7 +16,7 @@ import { RadioGroup } from "@/components/Common/Input/RadioGroup/RadioGroup";
 import { Container } from "@/components/Containers/Container";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { useMatchingEditor } from "../useElementEditor";
-import type { MatchingQuestion } from "@/store/BrainFlexApi";
+import type { MatchingQuestion } from "@/store/AmbiApi";
 import {
   EmptySelect,
   ItemList,

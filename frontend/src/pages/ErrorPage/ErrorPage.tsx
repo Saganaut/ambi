@@ -21,7 +21,7 @@ const ERROR_CONFIGS: Record<
 > = {
   404: {
     title: "Page not found",
-    message: "Looks like this corner of BrainFlex doesn't exist.",
+    message: "Looks like this corner of Ambi doesn't exist.",
     Mascot: OceanFloor,
   },
   500: {
@@ -31,7 +31,7 @@ const ERROR_CONFIGS: Record<
   },
   503: {
     title: "Service unavailable",
-    message: "BrainFlex is taking a quick breather.",
+    message: "Ambi is taking a quick breather.",
     Mascot: LostFish,
   },
 };

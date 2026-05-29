@@ -15,7 +15,7 @@ import {
   useCancelScheduledSessionMutation,
   useGetInteractiveSessionQuery,
   type ScheduledInteractiveSessionResponse,
-} from "@/store/BrainFlexApi";
+} from "@/store/AmbiApi";
 import styles from "./ScheduledSessionsPage.module.css";
 
 const STATUS_VARIANT = {
@@ -80,9 +80,7 @@ const ScheduledRow = ({ session, onCancel }: RowProps) => {
       <Badge variant={STATUS_VARIANT[status]} label={STATUS_LABEL[status]} />
       <div className={styles.rowActions}>
         {isLive && live?.roomCode && (
-          <Link
-            to='/sessions/$sessionId'
-            params={{ sessionId: live.roomCode }}>
+          <Link to='/sessions/$sessionId' params={{ sessionId: live.roomCode }}>
             <Btn size='sm' shape='pill' variant='brand'>
               Open session
             </Btn>

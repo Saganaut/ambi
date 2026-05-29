@@ -6,10 +6,7 @@
 import { Link } from "@tanstack/react-router";
 import styles from "./GameOver.module.css";
 import { TeamPodium } from "../TeamPodium/TeamPodium";
-import type {
-  PlayerPlacementResponse,
-  Team,
-} from "../../../store/BrainFlexApi";
+import type { PlayerPlacementResponse, Team } from "../../../store/AmbiApi";
 
 interface GameOverProps {
   placements: PlayerPlacementResponse[];
@@ -118,7 +115,9 @@ const GameOver = ({ placements, currentPlayerId, teams }: GameOverProps) => {
                 {p.user?.guest && (
                   <span className={styles.guestBadge}>guest</span>
                 )}
-                <span className={styles.restScore}>{p.finalScore ?? 0} pts</span>
+                <span className={styles.restScore}>
+                  {p.finalScore ?? 0} pts
+                </span>
               </div>
               <PlacementChips p={p} />
             </li>

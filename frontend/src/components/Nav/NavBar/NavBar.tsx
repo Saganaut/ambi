@@ -19,7 +19,7 @@ const NavBar = () => {
       className={`${styles.navContainer} ${isFullScreen ? styles.isCollapsed : ""}`}
       data-navbar>
       <div className={styles.homeMenuWrapper}>
-        <Link to='/' viewTransition aria-label='BrainFlex home'>
+        <Link to='/' viewTransition aria-label='Ambi home'>
           <CephadexLogo />
         </Link>
       </div>

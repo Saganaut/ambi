@@ -13,7 +13,7 @@ import { NumberInput } from "@/components/Common/Input/NumberInput/NumberInput";
 import { Container } from "@/components/Containers/Container";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { useDrawingEditor } from "../useElementEditor";
-import type { Image } from "@/store/BrainFlexApi";
+import type { Image } from "@/store/AmbiApi";
 import { displayUrl, largestUrl } from "@/utils/image";
 import {
   EmptySelect,

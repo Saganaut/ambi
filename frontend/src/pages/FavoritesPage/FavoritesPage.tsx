@@ -4,7 +4,7 @@
 // in apiEnhancements.ts.
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useListMyFavoritesQuery } from "@/store/BrainFlexApi";
+import { useListMyFavoritesQuery } from "@/store/AmbiApi";
 import { DeckCard } from "@/components/Common/Cards/DeckCard";
 import { Pagination } from "@/components/Common/Pagination/Pagination";
 import styles from "./FavoritesPage.module.css";
