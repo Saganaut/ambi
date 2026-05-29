@@ -80,8 +80,9 @@ public class UserService {
             return userRepository.save(guest);
         } catch (DuplicateKeyException ex) {
             // Username/publicId already belong to this same guest doc, so the
-            // collision can only be on the (now-set) email. The owner of that
-            // email should sign in via their existing account instead.
+            // collision is on the newly-set email OR the (provider, sub) identity
+            // — both mean this OAuth identity/email already has an account, so
+            // the user should sign in to that one instead of upgrading.
             throw new ConflictException("EMAIL_TAKEN",
                     "That email is already linked to a different account.");
         }
@@ -114,9 +115,21 @@ public class UserService {
         try {
             return userRepository.save(user);
         } catch (DuplicateKeyException ex) {
-            // Could be username or email; the frontend mostly surfaces this on
-            // the username field. Email collision proper is handled by the
-            // caller checking findByProviderAndSubject first (idempotent path).
+            String index = ex.getMessage() == null ? "" : ex.getMessage();
+            if (index.contains("uniq_oauth_identity")) {
+                // Another writer registered the same OAuth identity between our
+                // findByProviderAndSubject check and this save. The identity
+                // index (not check-then-act) is the authority — converge on the
+                // winner so register stays idempotent (Inv 8) under the race.
+                return findByProviderAndSubject(provider, externalProviderId)
+                        .map(existing -> existing.isClosed() ? reopen(existing) : existing)
+                        .orElseThrow(() -> new ConflictException("REGISTRATION_RACE",
+                                "Registration is already in progress; please retry."));
+            }
+            if (index.contains("uniq_email_address")) {
+                throw new ConflictException("EMAIL_TAKEN",
+                        "That email is already linked to a different account.");
+            }
             throw new ConflictException("USERNAME_TAKEN",
                     "That username is already taken.");
         }

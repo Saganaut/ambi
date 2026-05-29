@@ -3,7 +3,6 @@ package com.cephadex.ambi.user;
 import java.time.Instant;
 import java.util.List;
 
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -25,15 +24,17 @@ public class User extends Auditable {
 
     // id is inherited from BaseDocument (@Id String id) — do not redeclare.
 
-    @Indexed(unique = true)
+    // Uniqueness for public_id / username / email_address and the identity pair
+    // (auth.*) is enforced by DB indexes created in UserIndexInitializer — NOT
+    // by @Indexed here, since auto-index-creation is off. That runner is the
+    // single source of truth (email/identity indexes are partial so guests,
+    // which have neither, are exempt).
     @Field("public_id")
     private String publicId;
 
-    @Indexed(unique = true)
     @Field("username")
     private String username;
 
-    @Indexed(unique = true)
     @Field("email_address")
     private String emailAddress;
 
@@ -48,12 +49,12 @@ public class User extends Auditable {
 
     /**
      * Mongo TTL reaper: when set, Mongo's background TTL monitor deletes the
-     * document once this instant passes ({@code expireAfterSeconds = 0} means
-     * "use the value of this field as the deletion time"). Only populated for
-     * guest accounts; cleared on guest→registered upgrade so a real account
-     * is never reaped. See auth/README.md and {@code AuthProperties.Guest}.
+     * document once this instant passes. Only populated for guest accounts;
+     * cleared on guest→registered upgrade so a real account is never reaped.
+     * The backing TTL index ({@code expireAfterSeconds = 0}) is created in
+     * UserIndexInitializer, not via {@code @Indexed}. See auth/README.md and
+     * {@code AuthProperties.Guest}.
      */
-    @Indexed(expireAfterSeconds = 0)
     @Field("guest_expires_at")
     private Instant guestExpiresAt;
 
