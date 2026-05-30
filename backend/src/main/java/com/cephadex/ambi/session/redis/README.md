@@ -1,0 +1,68 @@
+# Session Redis layer
+
+Redis infrastructure for **live sessions** — the in-flight game state a round
+reads and writes while it's running. Two concerns live here: per-session
+**locking** and the **state snapshot store**. JSON serialization is delegated to
+the cross-cutting [`common/redis/RedisJsonCodec`](../../common/redis/RedisJsonCodec.java).
+
+This mirrors the hand-rolled, dependency-light style of the auth session store
+([`RedisTokenSessionService`](../../auth/service/RedisTokenSessionService.java)) —
+plain `StringRedisTemplate` ops, namespaced keys, no lock library.
+
+## Pieces
+
+| File | Role |
+| --- | --- |
+| [`SessionLocks`](SessionLocks.java) | Per-session mutual exclusion (SET-NX + Lua compare-and-delete). |
+| [`SessionStateStore`](SessionStateStore.java) | Load / save / clear the `LiveRoundState` snapshot. |
+| [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile state (phase, current slide, start time, tallies). |
+| [`SessionKeys`](SessionKeys.java) | Builds the namespaced keys from a `SessionId`. |
+| [`SessionRedisProperties`](SessionRedisProperties.java) | `ambi.session.*` config (namespaces, lock lease, state TTL). |
+| [`RedisJsonCodec`](../../common/redis/RedisJsonCodec.java) | Shared Jackson-2 codec (lives in `common/redis`, reusable). |
+
+## Lock protocol
+
+- **Acquire** — `SET <lockKey> <token> NX PX <lease>`. The value is a fresh
+  random token unique to this acquisition. Fail-fast: if the key is already held
+  the caller gets a `ConflictException` (HTTP **409**, code `SESSION_LOCKED`), it
+  does **not** wait.
+- **Release** — a Lua compare-and-delete (`del` only if the stored value still
+  equals our token), so a holder whose lease already expired can never delete the
+  next owner's lock.
+- **Lease TTL** (`ambi.session.lock.lease`, default 10s) is the deadlock
+  backstop: a crashed holder's lock self-expires. It must comfortably exceed the
+  longest single locked operation.
+- **Not reentrant.** A thread already holding a session's lock that calls
+  `tryAcquire` again for that session is rejected. Don't nest locked sections for
+  the same session.
+
+Use `withLock(sid, work)` for the common case — it acquires, runs, and releases
+in a `finally` (including when `work` throws). `LiveSessionOrchestrator` runs
+every round transition this way.
+
+## Serialization
+
+`RedisJsonCodec` owns a **Jackson 2** mapper on purpose (Spring Boot 4 ships both
+Jackson 2 and Jackson 3; the auto-configured bean is Jackson 3, which wouldn't
+satisfy a Jackson-2 injection point, and the
+[`AnswerPayload`](../answer/payload/AnswerPayload.java) hierarchy is annotated
+with Jackson-2 `@JsonTypeInfo`/`@JsonSubTypes`). It registers `JavaTimeModule`
+so `Instant` round-trips as ISO-8601 text and tolerates unknown properties for
+forward compatibility. A value it can't write or read throws `RedisCodecException`
+— in-flight state is authoritative, so a corrupt record is a real fault, not
+silently dropped (unlike the auth store, which treats a corrupt session as "no
+session").
+
+## Key namespaces
+
+| Concern | Key | Config |
+| --- | --- | --- |
+| Lock | `ambi:session:lock:<sessionId>` | `ambi.session.lock.namespace` |
+| State | `ambi:session:state:<sessionId>` | `ambi.session.state.namespace` |
+
+Inspect live keys with `docker compose exec redis redis-cli -a password KEYS 'ambi:session:*'`.
+
+## Out of scope (future)
+
+`TallyStore`, deadline scheduling, and event publishing are hinted in
+`LiveSessionOrchestrator` but not built here yet.

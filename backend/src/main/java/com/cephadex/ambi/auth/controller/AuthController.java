@@ -73,7 +73,7 @@ public class AuthController {
     /**
      * Completes registration for a {@code PRE_REGISTRATION} session: identity
      * comes from the session principal (Inv 5), the body carries only chosen
-     * fields. Idempotent (Inv 8) — a {@link User} already linked to the
+     * fields. Idempotent (Inv 8) — a {@link com.cephadex.ambi.user.User} already linked to the
      * session's {@code (provider, sub)} is returned and reopened if closed,
      * making double-submit / back-button safe. Rotates the session id at the
      * preReg→registered privilege boundary (Inv 4).

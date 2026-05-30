@@ -15,3 +15,4 @@ Notes on the local dev stack (Docker Compose, MongoDB, Redis, Garage/S3) and per
 - [Frontend STYLES.md](../../frontend/STYLES.md) — Full styling guide (the source of truth that [STYLE-RULES.md](../rules/STYLE-RULES.md) summarizes).
 - [Frontend SOCKJS global fix](../../frontend/SOCKJS_GLOBAL_FIX.md) — Why `vite.config.ts` defines `global: "globalThis"`.
 - [Tools README](../../tools/README.md) — Repo-level tooling, including `doc-lint.js`.
+- [Session Redis layer](../../backend/src/main/java/com/cephadex/ambi/session/redis/README.md) — Per-session locks and the in-flight round-state store backed by Redis.

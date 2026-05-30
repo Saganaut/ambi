@@ -119,16 +119,14 @@ public class DeckService {
 
     /**
      * Append a slide to a deck (EDIT). Optimistic: the client may mint the
-     * slide's {@code id}; we stamp audit fields and a share {@code publicId}.
+     * slide's {@code id} (the stable handle the session layer keys on); we
+     * stamp audit fields. We mint the id only if the client omitted it.
      */
     public Slide addSlide(String deckId, Slide slide, AmbiPrincipal principal) {
         Deck deck = getEditable(deckId, principal);
         String userId = principal.userId();
         if (slide.getId() == null) {
             slide.setId(UUID.randomUUID().toString());
-        }
-        if (slide.getPublicId() == null) {
-            slide.setPublicId(UUID.randomUUID().toString());
         }
         slide.setCreatedByUserId(userId);
         slide.setLastEditedByUserId(userId);
@@ -259,7 +257,10 @@ public class DeckService {
         deck.setPublishStatus(next);
     }
 
-    /** The requester's role in this deck's owning org, or null. Skips I/O for personal decks. */
+    /**
+     * The requester's role in this deck's owning org, or null. Skips I/O for
+     * personal decks.
+     */
     private OrgRole orgRoleFor(Deck deck, AmbiPrincipal principal) {
         if (deck == null || !deck.isOrgOwned()) {
             return null;

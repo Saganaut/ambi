@@ -1,21 +1,13 @@
 package com.cephadex.ambi.session.participant;
 
-import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
-import com.cephadex.ambi.user.User;
+import java.util.List;
+import java.util.Optional;
 
-public class ParticipantRepository {
-    private final LiveSessionRepository repository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
-    public ParticipantRepository(LiveSessionRepository repository) {
-        this.repository = repository;
-    }
+public interface ParticipantRepository extends MongoRepository<Participant, String> {
 
-    public Participant createParticipant(User user) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
+    Optional<Participant> findByUserId(String userId);
 
-    public void updateParticipant() {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
+    List<Participant> findByBanned(boolean banned);
 }

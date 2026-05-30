@@ -16,19 +16,19 @@ import lombok.Setter;
  * root and the persistence boundary) — this is a plain nested document, not a
  * top-level {@code @Document}. It has no permissions of its own; all access
  * flows through the owning deck. See the package README.
+ * 
+ * 
  */
 @Setter
 @Getter
 public class Slide {
 
-    // The slide's identity within its deck. A UUID the client can mint
-    // optimistically; used to target a specific slide in the deck's array.
+    // The slide's identity. A UUID the client mints optimistically; it targets
+    // a specific slide in the deck's array AND is the stable handle the session
+    // layer keys on (snapshots copy slides verbatim, so a round/answer references
+    // a slide by this id — see RoundResult / Answer). Never reassigned on update.
     @Field("id")
     private String id;
-
-    // Stable public handle for sharing / session snapshots (see RoundResult).
-    @Field("public_id")
-    private String publicId;
 
     @Field("title")
     // This is question for ScorableContent

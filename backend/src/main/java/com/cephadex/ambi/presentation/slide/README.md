@@ -78,11 +78,13 @@ frontend branches on one contract.
 ## Lifecycle
 
 - **Optimistic add.** The client may mint the slide's `id`; `addSlide` stamps
-  `createdByUserId` / `lastEditedByUserId`, generates the share `publicId` (kept stable for
-  session snapshots — `RoundResult` keys a round by `slide.publicId`), and appends it.
+  `createdByUserId` / `lastEditedByUserId` and appends it (minting the `id` itself only if
+  the client omitted it). The `id` is a client-minted UUID, so it doubles as the stable
+  session handle — session snapshots copy slides verbatim and `RoundResult` / `Answer` key a
+  round by `slide.id` (no separate `publicId`; the embed made it redundant).
 - **Update** replaces the editable presentation fields and re-stamps `lastEditedByUserId`;
-  `id`, `publicId`, `createdByUserId` are never reassigned. (A whole-deck `update` may also
-  replace `Deck.slides` wholesale — the optimistic full-save path.)
+  `id` and `createdByUserId` are never reassigned. (A whole-deck `update` may also replace
+  `Deck.slides` wholesale — the optimistic full-save path.)
 - **Ordering** uses `sortOrder` (Lexorank — *TODO, not yet implemented*); the array order
   is the fallback.
 - **Linking** (`parentId` / `childId`) chains dependent slides: a linked child follows from

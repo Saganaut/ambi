@@ -1,6 +1,7 @@
 package com.cephadex.ambi.session.roundResult;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -14,7 +15,6 @@ import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
 import com.cephadex.ambi.session.SessionTypes.RoundResultId;
 import com.cephadex.ambi.session.SessionTypes.SessionId;
 import com.cephadex.ambi.session.SessionTypes.SlideId;
-import com.cephadex.ambi.session.answer.Answer;
 
 @Document(collection = "round_results")
 public class RoundResult {
@@ -40,24 +40,45 @@ public class RoundResult {
     private RoundResult() {
     }
 
-    // TODO: Fill out the compute function after finishing answers + slides
-    public static RoundResult compute(SessionId sid, Slide slide, List<Answer> answers, Instant closedAt) {
+    /**
+     * Assemble the immutable per-round record from already-scored
+     * {@link ParticipantOutcome}s. Scoring and fact-derivation happen upstream
+     * ({@link RoundEvaluator} derives the facts once; {@code Participant.awardPoints}
+     * applies them and yields each outcome's points), so this only aggregates —
+     * it never re-derives {@code correct} / fastest, keeping the record honest and
+     * free of any payload/grading logic.
+     */
+    public static RoundResult compute(SessionId sid, Slide slide, List<ParticipantOutcome> outcomes, Instant closedAt) {
 
-        // Check Id is not null, slide is not null and answers is not null.
         Objects.requireNonNull(sid);
         Objects.requireNonNull(slide);
-        Objects.requireNonNull(answers);
+        Objects.requireNonNull(outcomes);
 
-        // Construct the round id from the session id and slide.publicId
-        SlideId slideId = new SlideId(slide.getPublicId());
-        RoundResultId roundResultId = new RoundResultId(sid, slideId);
+        // Construct the round id from the session id and the slide's id (the
+        // client-minted UUID carried verbatim into the session snapshot).
+        SlideId slideId = new SlideId(slide.getId());
 
-        // Construct the RoundResult object
         RoundResult r = new RoundResult();
-        r.id = roundResultId;
+        r.id = new RoundResultId(sid, slideId);
+        r.closedAt = closedAt;
+        r.perParticipant = List.copyOf(outcomes);
+        r.numberOfParticipants = outcomes.size();
+        r.numberOfCorrectAnswers = (int) outcomes.stream().filter(ParticipantOutcome::correct).count();
+        r.optionCounts = tallyOptions(outcomes);
+        r.responseTimes = outcomes.stream().map(o -> (double) o.responseTimeMs()).toList();
+        // correctOption — SEAM: needs the slide's answer key (see RoundEvaluator.isCorrect).
 
         return r;
+    }
 
+    private static Map<String, Integer> tallyOptions(List<ParticipantOutcome> outcomes) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (ParticipantOutcome o : outcomes) {
+            if (o.choice() != null) {
+                counts.merge(o.choice(), 1, Integer::sum);
+            }
+        }
+        return counts;
     }
 
     public RoundResultId id() {

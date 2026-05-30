@@ -25,8 +25,9 @@ public class Answer {
     @Field("session_id")
     private String sessionId;
 
+    // The slide's id (client-minted UUID); ties an answer to its round.
     @Field("slide_id")
-    private String publicSlideId;
+    private String slideId;
 
     @Field("submitted_at")
     private Instant submittedAt;

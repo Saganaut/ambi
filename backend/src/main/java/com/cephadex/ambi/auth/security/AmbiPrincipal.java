@@ -11,7 +11,7 @@ import com.cephadex.ambi.user.enums.UserLevel;
  *
  * <p>{@code userLevel} is {@code null} whenever there is no backing {@code User}
  * ({@code VISITOR}, {@code PRE_REGISTRATION}). It is <strong>never</strong>
- * defaulted to {@code USER} — see {@link AuthorityResolver} and Inv 8.
+ * defaulted to {@code USER} — see {@link com.cephadex.ambi.auth.service.AuthorityResolver} and Inv 8.
  *
  * @param state              the identity state for this request
  * @param userId             Mongo {@code _id}; {@code null} for visitor/preRegistration
