@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
@@ -93,6 +94,20 @@ class DeckControllerTest {
                 .andExpect(jsonPath("$.id").value("deck-1"))
                 .andExpect(jsonPath("$.publicId").value("pub-deck-1"))
                 .andExpect(jsonPath("$.slides").doesNotExist());
+    }
+
+    @Test
+    void createIsIdempotentOnDuplicateId() throws Exception {
+        // A resend of the same id: create's insert hits the _id unique index.
+        when(deckService.create(eq("deck-1"), any()))
+                .thenThrow(new DuplicateKeyException("E11000 duplicate key on _id"));
+        when(deckService.getViewable(eq("deck-1"), any())).thenReturn(deck("deck-1"));
+
+        mockMvc.perform(put("/api/decks/deck-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).getViewable(eq("deck-1"), any());
     }
 
     @Test

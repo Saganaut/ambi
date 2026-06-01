@@ -2,6 +2,7 @@ package com.cephadex.ambi.presentation.deck;
 
 import java.util.List;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
@@ -59,12 +60,22 @@ public class DeckController {
      * is empty — a fresh personal deck is created with the aggregate's field
      * defaults, owned by the caller. Subsequent metadata edits go through
      * {@link #updateDeck}.
+     *
+     * <p>Idempotent, as PUT should be: a resend of the same id (retry, double
+     * submit, refresh) hits the {@code _id} unique index — {@code create} always
+     * inserts, never upserts — so we swallow the duplicate and return the
+     * existing deck. The VIEW check still applies, so a caller who reuses an id
+     * already owned by someone else gets the usual 403/404 rather than a peek.
      */
     @PutMapping("/{id}")
     public DeckResponse create(
             @PathVariable String id,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return DeckResponse.from(deckService.create(id, principal));
+        try {
+            return DeckResponse.from(deckService.create(id, principal));
+        } catch (DuplicateKeyException alreadyExists) {
+            return DeckResponse.from(deckService.getViewable(id, principal));
+        }
     }
 
     /** Read a deck's metadata (VIEW). */
