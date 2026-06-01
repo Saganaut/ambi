@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.deck.dto;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -13,6 +15,8 @@ import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * The metadata view of a {@link Deck}. Slides are deliberately excluded — the
  * deck is their persistence boundary but they are read and edited through the
@@ -20,29 +24,29 @@ import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
  * cheap and a deck list never drags every slide along with it.
  */
 public record DeckResponse(
-        String id,
-        String publicId,
-        String name,
+        @Schema(requiredMode = REQUIRED) String id,
+        @Schema(requiredMode = REQUIRED) String publicId,
+        @Schema(requiredMode = REQUIRED) String name,
         String description,
         AppImage coverImage,
         AppImage backgroundImage,
         String themeId,
-        Long version,
-        PublishStatus publishStatus,
-        DeckVisibility visibility,
+        @Schema(requiredMode = REQUIRED) Long version,
+        @Schema(requiredMode = REQUIRED) PublishStatus publishStatus,
+        @Schema(requiredMode = REQUIRED) DeckVisibility visibility,
         Instant publishedAt,
-        String language,
-        String creatorUserId,
-        String originalAuthorUserId,
+        @Schema(requiredMode = REQUIRED) String language,
+        @Schema(requiredMode = REQUIRED) String creatorUserId,
+        @Schema(requiredMode = REQUIRED) String originalAuthorUserId,
         Settings.DeckSettings settings,
-        Set<String> tags,
+        @Schema(requiredMode = REQUIRED) Set<String> tags,
         String organizationId,
-        DeckOwnership ownership,
-        List<DeckAccessGrant> acl,
+        @Schema(requiredMode = REQUIRED) DeckOwnership ownership,
+        @Schema(requiredMode = REQUIRED) List<DeckAccessGrant> acl,
         String parentDeckId,
         DeckStats stats,
-        Instant createdAt,
-        Instant updatedAt) {
+        @Schema(requiredMode = REQUIRED) Instant createdAt,
+        @Schema(requiredMode = REQUIRED) Instant updatedAt) {
 
     /** Projects a persisted {@link Deck} onto its metadata response (slides omitted). */
     public static DeckResponse from(Deck deck) {

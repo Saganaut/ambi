@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
@@ -17,6 +18,7 @@ public class AppImage {
     @Id
     private String id;
 
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @Field("external")
     private boolean external;
 
