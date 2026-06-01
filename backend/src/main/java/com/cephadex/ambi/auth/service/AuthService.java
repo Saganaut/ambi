@@ -119,6 +119,16 @@ public class AuthService {
                         "Account no longer exists; please sign in again."));
     }
 
+    /**
+     * Reports whether a desired username is free, backing the registration
+     * screen's live availability check. Thin delegate to {@link UserService}:
+     * the {@code uniq_username} index stays the authority (Inv 9), so a
+     * {@code true} is advisory and can still lose a race at {@link #register}.
+     */
+    public boolean isUsernameAvailable(String username) {
+        return userService.isUsernameAvailable(username);
+    }
+
     /** Revokes the session in Redis so the token is rejected on the next request. Idempotent. */
     public void logout(String sessionId) {
         tokenService.revoke(sessionId);

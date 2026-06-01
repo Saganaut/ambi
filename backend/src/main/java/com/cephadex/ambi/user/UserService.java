@@ -33,6 +33,17 @@ public class UserService {
     }
 
     /**
+     * Reports whether {@code username} is free to claim. A convenience for the
+     * registration screen only: the unique index is the authority (auth/README.md
+     * Inv 9), so a {@code true} here is advisory and can still lose a race at
+     * {@link #register} (surfacing {@code USERNAME_TAKEN}). Matching is exact /
+     * case-sensitive, mirroring the {@code uniq_username} index.
+     */
+    public boolean isUsernameAvailable(String username) {
+        return userRepository.findByUsername(username).isEmpty();
+    }
+
+    /**
      * Looks up a {@link User} by the OAuth identity pair {@code (provider,
      * externalProviderId)} — the only identity key for an external account
      * (auth/README.md). Email is never the key.

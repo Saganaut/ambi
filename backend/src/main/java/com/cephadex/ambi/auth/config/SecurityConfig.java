@@ -86,6 +86,7 @@ public class SecurityConfig {
                         // HttpMethod overload) because Spring Security 7's PathPattern
                         // matcher is the safest, most predictable form.
                         .requestMatchers("/api/auth/me",
+                                "/api/auth/username-available",
                                 "/api/auth/guest",
                                 "/api/auth/refresh",
                                 "/api/auth/logout").permitAll()

@@ -63,6 +63,22 @@ class AuthControllerTest {
     }
 
     @Test
+    void usernameAvailableEchoesQueryAndDelegatesVerdict() throws Exception {
+        when(authService.isUsernameAvailable("alice")).thenReturn(true);
+        when(authService.isUsernameAvailable("taken")).thenReturn(false);
+
+        mockMvc.perform(get("/api/auth/username-available").param("username", "alice"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("alice"))
+                .andExpect(jsonPath("$.available").value(true));
+
+        mockMvc.perform(get("/api/auth/username-available").param("username", "taken"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("taken"))
+                .andExpect(jsonPath("$.available").value(false));
+    }
+
+    @Test
     void guestCreateSetsHttpOnlyCookiesAndReturnsGuestBody() throws Exception {
         MeResponse guestMe = new MeResponse(true, IdentityState.GUEST, false,
                 "pub-1", "guest-abc", "Guest", null, UserLevel.GUEST,

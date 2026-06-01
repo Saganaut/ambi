@@ -6,15 +6,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.dto.MeResponse;
 import com.cephadex.ambi.auth.dto.RegisterRequest;
+import com.cephadex.ambi.auth.dto.UsernameAvailabilityResponse;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.auth.service.AuthService;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
@@ -23,6 +26,9 @@ import com.cephadex.ambi.common.exception.UnauthorizedException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 /**
  * The always-available auth endpoints (auth/README.md). {@code /me} is the SPA's
@@ -34,6 +40,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api/auth")
+@Validated // enables constraint checks on @RequestParam (e.g. /username-available)
 public class AuthController {
 
     private final AuthService authService;
@@ -52,6 +59,25 @@ public class AuthController {
     @GetMapping("/me")
     public MeResponse me(@AuthenticationPrincipal AmbiPrincipal principal) {
         return authService.resolveMe(principal);
+    }
+
+    /**
+     * Reports whether a desired username is free to claim — live feedback for
+     * the registration screen. Public + safe (GET, no mutation, no session
+     * required). The {@code username} constraints mirror {@link RegisterRequest}
+     * so malformed input is rejected here exactly as it would be at register;
+     * the unique index remains the authority (Inv 9), so {@code available=true}
+     * is advisory and can still lose a race at {@code POST /register}.
+     */
+    @GetMapping("/username-available")
+    public UsernameAvailabilityResponse usernameAvailable(
+            @RequestParam
+            @NotBlank
+            @Size(min = 3, max = 30)
+            @Pattern(regexp = "[A-Za-z0-9._-]+",
+                    message = "may only contain letters, digits, '.', '_' or '-'")
+            String username) {
+        return new UsernameAvailabilityResponse(username, authService.isUsernameAvailable(username));
     }
 
     /**
