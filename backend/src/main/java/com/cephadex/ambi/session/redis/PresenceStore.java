@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
+import com.cephadex.ambi.session.SessionTypes.ParticipantId;
 import com.cephadex.ambi.session.SessionTypes.SessionId;
 
 /**
@@ -42,31 +43,32 @@ public class PresenceStore {
     }
 
     /** Writes {@code presence} for the participant and refreshes the session's TTL. */
-    public void save(SessionId sid, String participantId, Presence presence) {
+    public void save(SessionId sid, ParticipantId participantId, Presence presence) {
         String key = keys.presenceKey(sid);
-        redis.<String, String>opsForHash().put(key, participantId, codec.serialize(presence));
+        redis.<String, String>opsForHash().put(key, participantId.value(), codec.serialize(presence));
         redis.expire(key, props.getPresence().getTtl());
     }
 
     /** This participant's presence, or empty if none is recorded for the session. */
-    public Optional<Presence> find(SessionId sid, String participantId) {
+    public Optional<Presence> find(SessionId sid, ParticipantId participantId) {
         HashOperations<String, String, String> ops = redis.opsForHash();
-        String json = ops.get(keys.presenceKey(sid), participantId);
+        String json = ops.get(keys.presenceKey(sid), participantId.value());
         return json == null ? Optional.empty() : Optional.of(codec.deserialize(json, Presence.class));
     }
 
     /** Every participant's presence for the session, keyed by participant id. */
-    public Map<String, Presence> all(SessionId sid) {
+    public Map<ParticipantId, Presence> all(SessionId sid) {
         HashOperations<String, String, String> ops = redis.opsForHash();
         Map<String, String> raw = ops.entries(keys.presenceKey(sid));
-        Map<String, Presence> presence = new HashMap<>(raw.size());
-        raw.forEach((participantId, json) -> presence.put(participantId, codec.deserialize(json, Presence.class)));
+        Map<ParticipantId, Presence> presence = new HashMap<>(raw.size());
+        raw.forEach((participantId, json) -> presence.put(new ParticipantId(participantId),
+                codec.deserialize(json, Presence.class)));
         return presence;
     }
 
     /** Drops a participant's presence (e.g. when they leave the session). */
-    public void remove(SessionId sid, String participantId) {
-        redis.<String, String>opsForHash().delete(keys.presenceKey(sid), participantId);
+    public void remove(SessionId sid, ParticipantId participantId) {
+        redis.<String, String>opsForHash().delete(keys.presenceKey(sid), participantId.value());
     }
 
     /** Removes all presence for the session (e.g. when the session ends). */

@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
+import com.cephadex.ambi.session.SessionTypes.ParticipantId;
 import com.cephadex.ambi.session.SessionTypes.SessionId;
 import com.cephadex.ambi.session.SessionTypes.SlideId;
 import com.cephadex.ambi.session.answer.Answer;
@@ -53,16 +54,17 @@ public class AnswerStore {
      */
     public void submit(SessionId sid, SlideId slideId, Answer answer) {
         Objects.requireNonNull(answer, "answer required");
-        String participantId = Objects.requireNonNull(answer.getParticipantId(), "answer.participantId required");
+        ParticipantId participantId = new ParticipantId(
+                Objects.requireNonNull(answer.getParticipantId(), "answer.participantId required"));
         String key = keys.answersKey(sid, slideId);
-        redis.<String, String>opsForHash().put(key, participantId, codec.serialize(answer));
+        redis.<String, String>opsForHash().put(key, participantId.value(), codec.serialize(answer));
         redis.expire(key, props.getAnswers().getTtl());
     }
 
     /** This participant's answer for the round, or empty if they haven't submitted. */
-    public Optional<Answer> answerOf(SessionId sid, SlideId slideId, String participantId) {
+    public Optional<Answer> answerOf(SessionId sid, SlideId slideId, ParticipantId participantId) {
         HashOperations<String, String, String> ops = redis.opsForHash();
-        String json = ops.get(keys.answersKey(sid, slideId), participantId);
+        String json = ops.get(keys.answersKey(sid, slideId), participantId.value());
         return json == null ? Optional.empty() : Optional.of(codec.deserialize(json, Answer.class));
     }
 

@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
+import com.cephadex.ambi.session.SessionTypes.ParticipantId;
 import com.cephadex.ambi.session.SessionTypes.SessionId;
 import com.cephadex.ambi.session.SessionTypes.SlideId;
 import com.cephadex.ambi.session.answer.Answer;
@@ -62,7 +63,7 @@ class AnswerStoreTest {
 
     @Test
     void answerOfReturnsEmptyWhenAbsent() {
-        assertThat(answerStore.answerOf(SID, SLIDE, "p-1")).isEmpty();
+        assertThat(answerStore.answerOf(SID, SLIDE, new ParticipantId("p-1"))).isEmpty();
         assertThat(answerStore.count(SID, SLIDE)).isZero();
     }
 
@@ -70,7 +71,7 @@ class AnswerStoreTest {
     void submitThenReadRoundTripsThePolymorphicPayload() {
         answerStore.submit(SID, SLIDE, answer("p-1", new McqAnswer(Set.of("opt-a", "opt-b"))));
 
-        Answer back = answerStore.answerOf(SID, SLIDE, "p-1").orElseThrow();
+        Answer back = answerStore.answerOf(SID, SLIDE, new ParticipantId("p-1")).orElseThrow();
         assertThat(back.getParticipantId()).isEqualTo("p-1");
         assertThat(back.getSlideId()).isEqualTo("slide-1");
         assertThat(back.getPayload()).isInstanceOf(McqAnswer.class);
@@ -83,7 +84,8 @@ class AnswerStoreTest {
         answerStore.submit(SID, SLIDE, answer("p-1", new McqAnswer(Set.of("opt-b"))));
 
         assertThat(answerStore.count(SID, SLIDE)).isEqualTo(1);
-        McqAnswer payload = (McqAnswer) answerStore.answerOf(SID, SLIDE, "p-1").orElseThrow().getPayload();
+        McqAnswer payload = (McqAnswer) answerStore.answerOf(SID, SLIDE, new ParticipantId("p-1")).orElseThrow()
+                .getPayload();
         assertThat(payload.optionIds()).containsExactly("opt-b");
     }
 

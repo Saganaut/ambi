@@ -20,6 +20,13 @@ public final class SessionTypes {
         }
     }
 
+    public record ParticipantId(String value) {
+        public ParticipantId {
+            if (value == null || value.isBlank())
+                throw new IllegalArgumentException("Participant ID cannot be empty");
+        }
+    }
+
     public record ConnectionCount(int value) {
         public ConnectionCount {
             if (value < 0)
@@ -29,13 +36,6 @@ public final class SessionTypes {
 
     public record RoundResultId(SessionId sid, SlideId slideId) {
 
-    }
-
-    public record ParticipantId(String value) {
-        public ParticipantId {
-            if (value == null || value.isBlank())
-                throw new IllegalArgumentException("Participant ID cannot be empty");
-        }
     }
 
     public record ParticipantOutcome(

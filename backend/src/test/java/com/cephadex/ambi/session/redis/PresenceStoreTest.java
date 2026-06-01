@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
+import com.cephadex.ambi.session.SessionTypes.ParticipantId;
 import com.cephadex.ambi.session.SessionTypes.SessionId;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 
@@ -28,6 +29,8 @@ import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 class PresenceStoreTest {
 
     private static final SessionId SID = new SessionId("session-1");
+    private static final ParticipantId P1 = new ParticipantId("p-1");
+    private static final ParticipantId P2 = new ParticipantId("p-2");
 
     private Map<String, Map<String, String>> store;
     private PresenceStore presenceStore;
@@ -61,51 +64,51 @@ class PresenceStoreTest {
 
     @Test
     void findReturnsEmptyWhenAbsent() {
-        assertThat(presenceStore.find(SID, "p-1")).isEmpty();
+        assertThat(presenceStore.find(SID, P1)).isEmpty();
         assertThat(presenceStore.all(SID)).isEmpty();
     }
 
     @Test
     void saveThenFindRoundTrips() {
         Presence online = Presence.online(Instant.parse("2026-05-30T12:00:00Z"));
-        presenceStore.save(SID, "p-1", online);
+        presenceStore.save(SID, P1, online);
 
-        assertThat(presenceStore.find(SID, "p-1")).contains(online);
+        assertThat(presenceStore.find(SID, P1)).contains(online);
     }
 
     @Test
     void saveOverwritesTheParticipantsPresence() {
-        presenceStore.save(SID, "p-1", Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
+        presenceStore.save(SID, P1, Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
         Presence dropped = new Presence(ConnectionStatus.DISCONNECTED, Instant.parse("2026-05-30T12:05:00Z"));
-        presenceStore.save(SID, "p-1", dropped);
+        presenceStore.save(SID, P1, dropped);
 
-        assertThat(presenceStore.find(SID, "p-1")).contains(dropped);
+        assertThat(presenceStore.find(SID, P1)).contains(dropped);
         assertThat(presenceStore.all(SID)).hasSize(1);
     }
 
     @Test
     void allReturnsEveryParticipantsPresence() {
-        presenceStore.save(SID, "p-1", Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
-        presenceStore.save(SID, "p-2",
+        presenceStore.save(SID, P1, Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
+        presenceStore.save(SID, P2,
                 new Presence(ConnectionStatus.IDLE, Instant.parse("2026-05-30T12:01:00Z")));
 
-        assertThat(presenceStore.all(SID)).containsOnlyKeys("p-1", "p-2");
+        assertThat(presenceStore.all(SID)).containsOnlyKeys(P1, P2);
     }
 
     @Test
     void removeDropsOnlyThatParticipant() {
-        presenceStore.save(SID, "p-1", Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
-        presenceStore.save(SID, "p-2", Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
+        presenceStore.save(SID, P1, Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
+        presenceStore.save(SID, P2, Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
 
-        presenceStore.remove(SID, "p-1");
+        presenceStore.remove(SID, P1);
 
-        assertThat(presenceStore.find(SID, "p-1")).isEmpty();
-        assertThat(presenceStore.all(SID)).containsOnlyKeys("p-2");
+        assertThat(presenceStore.find(SID, P1)).isEmpty();
+        assertThat(presenceStore.all(SID)).containsOnlyKeys(P2);
     }
 
     @Test
     void clearRemovesAllPresence() {
-        presenceStore.save(SID, "p-1", Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
+        presenceStore.save(SID, P1, Presence.online(Instant.parse("2026-05-30T12:00:00Z")));
         presenceStore.clear(SID);
         assertThat(presenceStore.all(SID)).isEmpty();
     }
