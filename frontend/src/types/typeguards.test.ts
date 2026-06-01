@@ -10,17 +10,47 @@ import type { CurrentUserState } from "../hooks/useCurrentUser";
 
 const registered: CurrentUserState = {
   state: "registered",
-  me: {},
+  me: {
+    state: "REGISTERED",
+    authenticated: true,
+    needsRegistration: false,
+    publicId: "pub",
+    username: "user",
+    displayName: "User",
+    email: "user@example.com",
+    userLevel: "USER",
+    effectiveTier: "FREE",
+    membershipStatus: "ACTIVE",
+  },
   userLevel: "USER",
   effectiveTier: "FREE",
 };
 const guest: CurrentUserState = {
   state: "guest",
-  me: {},
+  me: {
+    state: "GUEST",
+    authenticated: true,
+    needsRegistration: false,
+    publicId: "pub",
+    username: "guest",
+    displayName: "Guest",
+    userLevel: "GUEST",
+    effectiveTier: "FREE",
+    membershipStatus: "NONE",
+  },
   userLevel: "GUEST",
   effectiveTier: "FREE",
 };
-const preReg: CurrentUserState = { state: "preRegistration", me: {} };
+const preReg: CurrentUserState = {
+  state: "preRegistration",
+  me: {
+    state: "PRE_REGISTRATION",
+    authenticated: true,
+    needsRegistration: true,
+    email: "new@example.com",
+  },
+  email: "new@example.com",
+};
 const visitor: CurrentUserState = { state: "visitor" };
 
 describe("typeguards", () => {

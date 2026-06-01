@@ -15,10 +15,32 @@ const loc = { href: "/account" };
 
 const registered = (userLevel: UserLevel = "USER"): CurrentUserState => ({
   state: "registered",
-  me: {},
+  me: {
+    state: "REGISTERED",
+    authenticated: true,
+    needsRegistration: false,
+    publicId: "pub",
+    username: "user",
+    displayName: "User",
+    email: "user@example.com",
+    userLevel,
+    effectiveTier: "FREE",
+    membershipStatus: "ACTIVE",
+  },
   userLevel,
   effectiveTier: "FREE",
 });
+
+const preReg: CurrentUserState = {
+  state: "preRegistration",
+  me: {
+    state: "PRE_REGISTRATION",
+    authenticated: true,
+    needsRegistration: true,
+    email: "new@example.com",
+  },
+  email: "new@example.com",
+};
 
 describe("levelAtLeast", () => {
   it("is true when the level meets or exceeds the minimum", () => {
@@ -54,9 +76,7 @@ describe("requireRegistered", () => {
   it("redirects every unregistered session", () => {
     expect(() => requireRegistered({ state: "visitor" }, loc)).toThrow();
     expect(() => requireRegistered({ state: "error" }, loc)).toThrow();
-    expect(() =>
-      requireRegistered({ state: "preRegistration", me: {} }, loc),
-    ).toThrow();
+    expect(() => requireRegistered(preReg, loc)).toThrow();
   });
 });
 
@@ -82,9 +102,7 @@ describe("requirePreRegistration", () => {
   });
 
   it("allows a preRegistration session", () => {
-    expect(() =>
-      requirePreRegistration({ state: "preRegistration", me: {} }, loc),
-    ).not.toThrow();
+    expect(() => requirePreRegistration(preReg, loc)).not.toThrow();
   });
 
   it("redirects registered, visitor, and guest away", () => {
