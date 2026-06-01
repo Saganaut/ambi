@@ -20,6 +20,8 @@ public class SessionRedisProperties {
     private final Lock lock = new Lock();
     private final State state = new State();
     private final Tally tally = new Tally();
+    private final Answers answers = new Answers();
+    private final Presence presence = new Presence();
 
     @Data
     public static class Lock {
@@ -56,6 +58,37 @@ public class SessionRedisProperties {
         /**
          * TTL on a round's tally hash — the same abandoned-session backstop as the
          * state TTL. Refreshed on every increment.
+         */
+        private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class Answers {
+        /**
+         * Redis key namespace for a round's in-flight answers. Each round's answers
+         * are a Redis Hash at {@code <namespace>:<sessionId>:<slideId>}, one field
+         * per participant (re-submit overwrites), flushed to MongoDB at round close.
+         */
+        private String namespace = "ambi:session:answers";
+        /**
+         * TTL on a round's answer hash — the same abandoned-session backstop as the
+         * state TTL. Refreshed on every submit.
+         */
+        private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class Presence {
+        /**
+         * Redis key namespace for a session's live participant presence. Presence is
+         * a Redis Hash at {@code <namespace>:<sessionId>}, one field per participant
+         * (connection status + last-seen), so a session's roster presence reads in a
+         * single round-trip.
+         */
+        private String namespace = "ambi:session:presence";
+        /**
+         * TTL on a session's presence hash — the same abandoned-session backstop as
+         * the state TTL. Refreshed on every write.
          */
         private Duration ttl = Duration.ofHours(6);
     }

@@ -38,4 +38,18 @@ public class SessionKeys {
     public String tallyKey(SessionId sid, SlideId slideId) {
         return props.getTally().getNamespace() + ":" + sid.value() + ":" + slideId.value();
     }
+
+    /**
+     * Key for a round's in-flight answers hash. Keyed by {@code sid + slideId}
+     * (the same round identity as {@link #tallyKey}) so a stale round's answers
+     * can't bleed into the next round on the same session.
+     */
+    public String answersKey(SessionId sid, SlideId slideId) {
+        return props.getAnswers().getNamespace() + ":" + sid.value() + ":" + slideId.value();
+    }
+
+    /** Key for a session's live participant-presence hash (one entry per participant). */
+    public String presenceKey(SessionId sid) {
+        return props.getPresence().getNamespace() + ":" + sid.value();
+    }
 }
