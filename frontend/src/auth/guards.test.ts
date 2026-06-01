@@ -7,6 +7,7 @@ import {
   tierAtLeast,
   requireRegistered,
   requireLevel,
+  requirePreRegistration,
 } from "./guards";
 import type { CurrentUserState, UserLevel } from "../hooks/useCurrentUser";
 
@@ -70,5 +71,24 @@ describe("requireLevel", () => {
 
   it("redirects an unregistered session before checking level", () => {
     expect(() => requireLevel({ state: "visitor" }, "USER", loc)).toThrow();
+  });
+});
+
+describe("requirePreRegistration", () => {
+  it("passes through while loading", () => {
+    expect(() =>
+      requirePreRegistration({ state: "loading" }, loc),
+    ).not.toThrow();
+  });
+
+  it("allows a preRegistration session", () => {
+    expect(() =>
+      requirePreRegistration({ state: "preRegistration", me: {} }, loc),
+    ).not.toThrow();
+  });
+
+  it("redirects registered, visitor, and guest away", () => {
+    expect(() => requirePreRegistration(registered(), loc)).toThrow();
+    expect(() => requirePreRegistration({ state: "visitor" }, loc)).toThrow();
   });
 });

@@ -95,3 +95,22 @@ export function requireLevel(
     bounce(auth, location);
   }
 }
+
+/**
+ * Gate the registration screen: only a PRE_REGISTRATION session (OAuth'd, no
+ * account yet) belongs there. An already-registered user is sent home; a
+ * visitor/guest is sent home with the login prompt (they must authenticate via
+ * a provider before there's anything to register). Passes through while loading.
+ */
+export function requirePreRegistration(
+  auth: CurrentUserState,
+  location: GuardLocation,
+): void {
+  if (auth.state === "loading") return;
+  if (auth.state === "preRegistration") return;
+  if (auth.state === "registered") throw redirect({ to: "/" });
+  throw redirect({
+    to: "/",
+    search: { authPrompt: true, returnUrl: location.href },
+  });
+}

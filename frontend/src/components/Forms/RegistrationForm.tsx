@@ -11,14 +11,20 @@ export type { RegisterSearch };
 
 interface RegistrationFormProps {
   registerSearchParams: RegisterSearch;
+  /** The OAuth email from the PRE_REGISTRATION session (`/api/auth/me`), shown
+   *  read-only so the user can see which account they're completing. */
+  email?: string;
 }
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({
   registerSearchParams,
+  email,
 }) => {
   const {
     username,
     setUsername,
+    displayName,
+    setDisplayName,
     agreedToTerms,
     setAgreedToTerms,
     newsletter,
@@ -46,6 +52,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({
   return (
     <div className={styles.registrationFormContainer}>
       <h1>What shall we call you?</h1>
+      {email != null && email !== "" && (
+        <p>
+          Completing sign-up for <strong>{email}</strong>
+        </p>
+      )}
       <form
         className={styles.registrationForm}
         onSubmit={(e) => void handleSubmit(e)}>
@@ -55,11 +66,21 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({
           onChange={(e) => {
             setUsername(e.target.value);
           }}
-          maxLength={20}
+          maxLength={30}
           label='Username'
           infoMessage={usernameInfoMessage}
           errorMessage={usernameErrorMessage}
           checked={usernameStatus === "available"}
+        />
+        <Input
+          id='displayName'
+          value={displayName}
+          onChange={(e) => {
+            setDisplayName(e.target.value);
+          }}
+          maxLength={60}
+          label='Display name (optional)'
+          infoMessage='How your name appears to others. Defaults to your username.'
         />
         <Checkbox
           id='terms'
