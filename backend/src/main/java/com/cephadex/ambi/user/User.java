@@ -1,6 +1,7 @@
 package com.cephadex.ambi.user;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,6 +12,7 @@ import com.cephadex.ambi.auth.AuthInfo;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.billing.Membership;
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.user.enums.UserLevel;
 
@@ -176,6 +178,45 @@ public class User extends Auditable {
         lastLogin = now;
         guestExpiresAt = null;
         reopen(now);
+    }
+
+    /**
+     * Applies a sparse profile edit (PATCH semantics): a {@code null} argument
+     * leaves the current value untouched, so one field can change without
+     * clobbering the others. {@code displayName} blankness is already rejected
+     * by the request DTO, so a non-null value here is always meaningful.
+     * {@code timezone} validity is an aggregate invariant — a non-blank,
+     * non-IANA value is rejected here rather than silently stored.
+     */
+    public void applyProfileUpdate(String displayName, String timezone, Avatar avatar) {
+        if (displayName != null) {
+            this.displayName = displayName;
+        }
+        if (timezone != null) {
+            this.timezone = normalizeTimezone(timezone);
+        }
+        if (avatar != null) {
+            this.avatar = avatar;
+        }
+    }
+
+    /**
+     * Replaces the preferences value object wholesale (PUT semantics). The
+     * object is small and self-contained, so it is swapped rather than merged.
+     */
+    public void replacePreferences(UserPreferences preferences) {
+        this.preferences = preferences;
+    }
+
+    private static String normalizeTimezone(String timezone) {
+        String trimmed = timezone.trim();
+        if (trimmed.isEmpty()) {
+            return null; // "clear it" — treated as no timezone set
+        }
+        if (!ZoneId.getAvailableZoneIds().contains(trimmed)) {
+            throw new ValidationException("'" + timezone + "' is not a valid IANA timezone id.");
+        }
+        return trimmed;
     }
 
     /**

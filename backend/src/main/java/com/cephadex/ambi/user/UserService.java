@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.common.exception.ConflictException;
+import com.cephadex.ambi.common.exception.NotFoundException;
 
 /**
  * Owns persistence of {@link User} documents. Auth-flow orchestration (sessions,
@@ -102,6 +103,37 @@ public class UserService {
             throw new ConflictException("USERNAME_TAKEN",
                     "That username is already taken.");
         }
+    }
+
+    /**
+     * Applies a sparse profile edit to the caller's own account. {@code userId}
+     * is the Mongo {@code _id} taken from the authenticated principal — never
+     * request input (auth/README.md Inv 5) — so this can only ever edit the
+     * caller's own document. A missing user means the session outlived its
+     * document; that surfaces as {@code USER_NOT_FOUND}.
+     */
+    public User updateProfile(String userId, String displayName, String timezone, Avatar avatar) {
+        User user = requireUser(userId);
+        user.applyProfileUpdate(displayName, timezone, avatar);
+        return userRepository.save(user);
+    }
+
+    /** Replaces the caller's preferences wholesale (PUT semantics). See {@link #updateProfile}. */
+    public User replacePreferences(String userId, UserPreferences preferences) {
+        User user = requireUser(userId);
+        user.replacePreferences(preferences);
+        return userRepository.save(user);
+    }
+
+    /**
+     * Loads the user backing the current session, or fails with
+     * {@code USER_NOT_FOUND} when the document is gone (e.g. a guest reaped, or
+     * an account closed and purged) while the session still references it.
+     */
+    public User requireUser(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND",
+                        "Your account could not be found."));
     }
 
     /** Reopens a previously-closed account; idempotent (no save when already open). */
