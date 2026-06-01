@@ -4,12 +4,14 @@
  * passes this component as `content` so the global ModalProvider handles
  * framing, backdrop, and close behavior).
  *
- * Each provider button kicks the browser over to the backend's
- * `/api/auth/login?provider=<id>`, preserving the current URL as `returnUrl`
- * and forwarding any active `guestId` so a guest can be promoted in place.
- * The backend redirects on to `/oauth2/authorization/<id>` and ultimately
- * back to the SPA. Additional providers plug in as another entry in
- * PROVIDERS — keep them visually consistent.
+ * Each provider button kicks the browser straight to Spring Security's OAuth
+ * entry point, `/oauth2/authorization/<id>`, preserving the current location as
+ * a RELATIVE `returnUrl` (the backend's ReturnUrlValidator requires a leading
+ * "/" and rejects absolute URLs). No `guestId` is forwarded — a pre-OAuth guest
+ * is promoted in place from its session cookie, not a query param. The backend
+ * redirects back to the SPA at `returnUrl` with the session cookies set.
+ * Additional providers plug in as another entry in PROVIDERS — keep them
+ * visually consistent.
  */
 import { apiBaseUrl } from "@/store/emptyApi";
 import styles from "./LoginModal.module.css";
@@ -17,7 +19,6 @@ import styles from "./LoginModal.module.css";
 interface LoginModalProps {
   message?: string;
   returnUrl?: string;
-  guestId?: string;
 }
 
 const GoogleGlyph = () => (
@@ -81,12 +82,22 @@ const PROVIDERS = [
   { id: "microsoft", label: "Continue with Microsoft", Glyph: MicrosoftGlyph },
 ] as const;
 
-const LoginModal = ({ message, returnUrl, guestId }: LoginModalProps) => {
+// Collapse a returnUrl to a backend-acceptable relative path. The validator
+// rejects absolute URLs and protocol-relative `//host`, so fall back to the
+// current path+search+hash when the supplied value isn't a clean local path.
+const toRelativeReturnUrl = (returnUrl?: string): string => {
+  if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
+    return returnUrl;
+  }
+  return (
+    window.location.pathname + window.location.search + window.location.hash
+  );
+};
+
+const LoginModal = ({ message, returnUrl }: LoginModalProps) => {
   const handleLogin = (provider: string) => {
-    const loginUrl = new URL(`${apiBaseUrl}/api/auth/login`);
-    loginUrl.searchParams.set("provider", provider);
-    loginUrl.searchParams.set("returnUrl", returnUrl ?? window.location.href);
-    if (guestId) loginUrl.searchParams.set("guestId", guestId);
+    const loginUrl = new URL(`${apiBaseUrl}/oauth2/authorization/${provider}`);
+    loginUrl.searchParams.set("returnUrl", toRelativeReturnUrl(returnUrl));
     window.location.assign(loginUrl.toString());
   };
 

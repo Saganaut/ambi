@@ -1,37 +1,21 @@
-// Component rendered by the /_authenticated layout route. Gates everything
-// underneath behind a registered session: while /api/auth/me is still in
-// flight we render nothing, and as soon as the session resolves to anything
-// other than "registered" we replace the current URL with "/" (the public
-// landing page) plus the auth-prompt search params, so the landing page can
-// open the LoginModal preserving the blocked path as `returnUrl`.
+// Component rendered by the /_authenticated layout route. The redirect decision
+// now lives in the route's `beforeLoad` (see routes/_authenticated.tsx) — this
+// component only owns the loading frame: while `/api/auth/me` is still in flight
+// `beforeLoad` can't decide yet, so it passes through and we render nothing here
+// until AppRouter's `router.invalidate()` re-runs the guard against the resolved
+// session. Once that happens, an unregistered session has already been
+// redirected away by `beforeLoad`, so reaching render means "registered".
 //
-// Lives outside the route file so Fast Refresh keeps working — the route
-// file exports a non-component (`Route`) and React Refresh requires a file
-// to export only components for HMR to apply.
-import { useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+// Lives outside the route file so Fast Refresh keeps working — the route file
+// exports a non-component (`Route`) and React Refresh requires a file to export
+// only components for HMR to apply.
+import { Outlet } from "@tanstack/react-router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const AuthenticatedLayout = () => {
   const userState = useCurrentUser();
-  const navigate = useNavigate();
-  const location = useLocation();
 
-  useEffect(() => {
-    if (userState.state === "loading") return;
-    if (userState.state === "registered") return;
-
-    void navigate({
-      to: "/",
-      search: {
-        authPrompt: true,
-        returnUrl: location.href,
-      },
-      replace: true,
-    });
-  }, [userState.state, navigate, location.href]);
-
-  if (userState.state !== "registered") return null;
+  if (userState.state === "loading") return null;
   return <Outlet />;
 };
 

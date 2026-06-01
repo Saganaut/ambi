@@ -1,13 +1,14 @@
-// Auth and avatar logic for the UserMenu component
+// Auth and avatar logic for the UserMenu component.
 import { type JSX, useState } from "react";
 
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useRequireLogin } from "../../../hooks/useRequireLogin";
 import { useTheme, type ThemeMode } from "../../../hooks/useTheme";
-import { useGuestLoginMutation } from "../../../store/AmbiApi";
-import { apiBaseUrl } from "../../../store/emptyApi";
-import { resolveAvatarSrc } from "../../../utils/avatarUrl";
+import {
+  useCreateGuestMutation,
+  useLogoutMutation,
+} from "../../../store/AmbiApi";
 import styles from "./NavBar.module.css";
 
 interface useUserMenuResponse {
@@ -28,14 +29,16 @@ interface useUserMenuResponse {
 const useUserMenu = (): useUserMenuResponse => {
   const [guestName, setGuestName] = useState("");
   const [guestError, setGuestError] = useState<string | null>(null);
-  const [guestLogin, { isLoading: guestLoading }] = useGuestLoginMutation();
+  const [createGuest, { isLoading: guestLoading }] = useCreateGuestMutation();
+  const [logout] = useLogoutMutation();
   const [showGuestInput, setShowGuestInput] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const userState = useCurrentUser();
-  const user =
+  // Only the session-backed states carry a profile payload.
+  const me =
     userState.state === "registered" || userState.state === "guest"
-      ? userState.user
+      ? userState.me
       : undefined;
   const { openLoginModal } = useRequireLogin();
 
@@ -43,50 +46,36 @@ const useUserMenu = (): useUserMenuResponse => {
     openLoginModal();
   };
 
+  // Goes through the RTK mutation (not a raw fetch) so the base query attaches
+  // the X-XSRF-TOKEN header — the backend rejects an unguarded POST /logout with
+  // 403. The session is revoked server-side instantly; a full reload clears all
+  // cached auth state.
   const handleLogout = async () => {
-    console.log("Logging out");
-    await fetch(`${apiBaseUrl}/api/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-    window.location.reload();
+    try {
+      await logout().unwrap();
+    } finally {
+      window.location.reload();
+    }
   };
 
+  // NOTE: `POST /api/auth/guest` no longer takes a chosen name — a guest's
+  // ephemeral identity is minted server-side. The guestName input + validation
+  // below is vestigial UI pending the live-session join rework (deferred);
+  // we mint the guest and reload regardless of the typed name.
   const handleGuestLogin = async () => {
     setGuestError(null);
-    const trimmedName = guestName.trim();
-
-    if (trimmedName.length < 3 || trimmedName.length > 20) {
-      setGuestError("Username must be between 3 and 20 characters.");
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmedName)) {
-      setGuestError("Letters, numbers, and underscores only.");
-      return;
-    }
-
     try {
-      await guestLogin({
-        guestLoginRequest: { username: trimmedName },
-      }).unwrap();
+      await createGuest().unwrap();
       window.location.reload();
     } catch {
-      setGuestError("Unable to create guest session. Try another name.");
+      setGuestError("Unable to create guest session. Please try again.");
     }
   };
 
   const avatarContent = () => {
-    if (user?.pictureUrl) {
-      return (
-        <img src={resolveAvatarSrc(user.pictureUrl)} alt={user.userName} />
-      );
-    }
-    if (user?.userName) {
-      return (
-        <div className={styles.avatarInitial}>
-          {user.userName[0].toUpperCase()}
-        </div>
-      );
+    const label = me?.displayName ?? me?.username;
+    if (label) {
+      return <div className={styles.avatarInitial}>{label[0].toUpperCase()}</div>;
     }
     return <UserCircleIcon className={styles.avatarIcon} />;
   };

@@ -41,9 +41,6 @@ export function useRequireLogin(
     userState.state === "registered" ||
     (allowGuest && userState.state === "guest");
 
-  const guestId =
-    userState.state === "guest" ? userState.user.id : undefined;
-
   const openLoginModal = useCallback(
     (options?: OpenLoginModalOptions) => {
       openModal({
@@ -52,12 +49,11 @@ export function useRequireLogin(
           <LoginModal
             message={options?.message}
             returnUrl={options?.returnUrl}
-            guestId={guestId}
           />
         ),
       });
     },
-    [openModal, guestId],
+    [openModal],
   );
 
   const requireLogin = useCallback(
