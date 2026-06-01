@@ -73,9 +73,11 @@ public class Slide {
     @Field("version")
     private Integer version;
 
+    // The ordering key (Lexorank). Server-owned: assigned on add and rewritten on
+    // move, never by the client. Slides sort by this string under natural ordering;
+    // see SlideRankService and Deck.reorderSlide. Null only for legacy slides not
+    // yet backfilled, which sort last.
     @Field("sort_order")
-    // Use Lexorank technique;
-    // TODO: add Lexorank implementation
     private String sortOrder;
 
     // The typed, polymorphic body keyed by the slide's contentType. Spring Data

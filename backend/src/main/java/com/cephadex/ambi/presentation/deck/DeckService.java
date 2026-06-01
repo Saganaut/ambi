@@ -15,11 +15,13 @@ import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
+import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -36,10 +38,13 @@ public class DeckService {
 
     private final DeckRepository deckRepository;
     private final UserService userService;
+    private final SlideRankService rankService;
 
-    public DeckService(DeckRepository deckRepository, UserService userService) {
+    public DeckService(DeckRepository deckRepository, UserService userService,
+            SlideRankService rankService) {
         this.deckRepository = deckRepository;
         this.userService = userService;
+        this.rankService = rankService;
     }
 
     // ── Create ──────────────────────────────────────────────────────────────
@@ -106,9 +111,13 @@ public class DeckService {
     // Slides are embedded in the deck, so a slide operation IS a deck operation:
     // gate on the deck's VIEW/EDIT, mutate the embedded list, save the deck.
 
-    /** A deck's slides (VIEW). */
+    /**
+     * A deck's slides in {@code sortOrder}, with unkeyed legacy slides last (VIEW).
+     */
     public List<Slide> listSlides(String deckId, AmbiPrincipal principal) {
-        return getViewable(deckId, principal).getSlides();
+        return getViewable(deckId, principal).getSlides().stream()
+                .sorted(SlideRankService.ordering())
+                .toList();
     }
 
     /** A single slide of a deck (VIEW). */
@@ -130,7 +139,12 @@ public class DeckService {
         }
         slide.setCreatedByUserId(userId);
         slide.setLastEditedByUserId(userId);
+        // Ordering is server-owned: key any legacy slides, then append past the
+        // current last. Any client-supplied sortOrder is ignored on purpose.
+        deck.backfillRanks(rankService);
+        slide.setSortOrder(rankService.after(deck.maxSortOrder()));
         deck.addSlide(slide);
+        deck.resort();
         deckRepository.save(deck);
         return slide;
     }
@@ -149,12 +163,32 @@ public class DeckService {
         slide.setCoverImage(changes.getCoverImage());
         slide.setParentId(changes.getParentId());
         slide.setChildId(changes.getChildId());
-        slide.setSortOrder(changes.getSortOrder());
+        // sortOrder is server-owned and unchanged here — reordering goes through
+        // moveSlide, so an update never lets the client jump a slide's position.
         slide.setContent(changes.getContent());
         slide.setLastEditedByUserId(principal.userId());
 
+        deck.backfillRanks(rankService);
+        deck.resort();
         deckRepository.save(deck);
         return slide;
+    }
+
+    /**
+     * Move a slide to {@code toIndex} in the deck's order (EDIT). Only the moved
+     * slide's {@code sortOrder} is rewritten; returns the full deck so the caller
+     * can echo the canonical {@link DeckResponse} back to the client.
+     */
+    public Deck moveSlide(String deckId, String slideId, int toIndex, AmbiPrincipal principal) {
+        Deck deck = getEditable(deckId, principal);
+        Slide slide = deck.findSlide(slideId)
+                .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
+
+        deck.backfillRanks(rankService);
+        deck.reorderSlide(slideId, toIndex, rankService);
+        slide.setLastEditedByUserId(principal.userId());
+
+        return deckRepository.save(deck);
     }
 
     /** Remove a slide from a deck (EDIT). */

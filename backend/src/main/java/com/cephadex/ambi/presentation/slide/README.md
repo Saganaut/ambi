@@ -85,12 +85,21 @@ frontend branches on one contract.
 - **Update** replaces the editable presentation fields and re-stamps `lastEditedByUserId`;
   `id` and `createdByUserId` are never reassigned. (A whole-deck `update` may also replace
   `Deck.slides` wholesale — the optimistic full-save path.)
-- **Ordering** uses `sortOrder` (Lexorank — *TODO, not yet implemented*); the array order
-  is the fallback.
+- **Ordering** uses `sortOrder`, a [LexoRank](https://github.com/pravin-raha/lexorank4j)
+  key computed **server-side** and never sent by the client (`SlideRankService` wraps the
+  library so the rest of the domain never imports it). `addSlide` assigns a key after the
+  current last; `PATCH /slides/{slideId}/move` (body `{ "to": <index> }`) rewrites *only*
+  the moved slide's key to one between its new neighbours, rebalancing the run if a gap has
+  closed. Slides sort by the key under natural `String` ordering; legacy slides without a
+  key are backfilled (by array order) on the next edit and sort last until then. The
+  embedded array is kept physically sorted to match — cheap, since the whole deck document
+  is rewritten on every save anyway. `Deck.reorderSlide` / `backfillRanks` / `resort` hold
+  the aggregate-side logic.
 - **Linking** (`parentId` / `childId`) chains dependent slides: a linked child follows from
   its parent, links stay sequential, and a slide with a child must never jump straight to
-  results. Re-stitching neighbours / rebalancing `sortOrder` on delete or move depends on
-  the pending Lexorank work — `removeSlide` is currently a plain removal.
+  results. `removeSlide` now clears the dangling back-pointer on the other end of a link so
+  nothing references a deleted slide; full chain re-stitching and contiguity enforcement on
+  move/delete are a follow-up (see the `TODO(follow-up)` in `Deck`).
 
 ---
 

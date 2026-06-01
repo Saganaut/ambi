@@ -274,6 +274,21 @@ class DeckControllerTest {
     }
 
     @Test
+    void moveDelegatesToServiceAndReturnsDeck() throws Exception {
+        when(deckService.moveSlide(eq("deck-1"), eq("s1"), eq(2), any()))
+                .thenReturn(deck("deck-1"));
+
+        mockMvc.perform(patch("/api/decks/deck-1/slides/s1/move")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"to\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"))
+                .andExpect(jsonPath("$.slides").doesNotExist());
+
+        verify(deckService).moveSlide(eq("deck-1"), eq("s1"), eq(2), any());
+    }
+
+    @Test
     void removeSlideReturns204() throws Exception {
         mockMvc.perform(delete("/api/decks/deck-1/slides/s1"))
                 .andExpect(status().isNoContent());

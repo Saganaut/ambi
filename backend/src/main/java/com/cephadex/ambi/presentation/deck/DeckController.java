@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
+import com.cephadex.ambi.presentation.deck.dto.MoveSlideRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetVisibilityRequest;
 import com.cephadex.ambi.presentation.deck.dto.ShareDeckRequest;
 import com.cephadex.ambi.presentation.deck.dto.SlideRequest;
@@ -182,6 +183,22 @@ public class DeckController {
             @AuthenticationPrincipal AmbiPrincipal principal) {
         Slide updated = deckService.updateSlide(id, slideId, body.toSlide(), principal);
         return SlideResponse.from(updated);
+    }
+
+    /**
+     * Move a slide to a new position in the deck's order (EDIT). The body carries
+     * the target index; the backend rewrites only that slide's {@code sortOrder}.
+     * Returns the canonical {@link DeckResponse} (metadata only) like every other
+     * deck mutation, so the client can sync its deck cache; the reordered slides
+     * are read back via {@code GET /slides}.
+     */
+    @PatchMapping("/{id}/slides/{slideId}/move")
+    public DeckResponse moveSlide(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @Valid @RequestBody MoveSlideRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return DeckResponse.from(deckService.moveSlide(id, slideId, body.to(), principal));
     }
 
     /** Remove a slide from a deck (EDIT). */

@@ -2,8 +2,10 @@ package com.cephadex.ambi.presentation.deck;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -20,6 +22,7 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 import lombok.Getter;
@@ -129,7 +132,130 @@ public class Deck extends Auditable {
     }
 
     public boolean removeSlide(String slideId) {
-        return slideId != null && slides.removeIf(s -> slideId.equals(s.getId()));
+        if (slideId == null) {
+            return false;
+        }
+        Slide removed = findSlide(slideId).orElse(null);
+        if (removed == null) {
+            return false;
+        }
+        // TODO(follow-up): full linked-chain re-stitch + sortOrder rebalance on
+        // delete. For now we only clear dangling link back-pointers so nothing
+        // is left referencing the slide we're removing.
+        if (removed.getParentId() != null) {
+            findSlide(removed.getParentId()).ifPresent(parent -> {
+                if (slideId.equals(parent.getChildId())) {
+                    parent.setChildId(null);
+                }
+            });
+        }
+        if (removed.getChildId() != null) {
+            findSlide(removed.getChildId()).ifPresent(child -> {
+                if (slideId.equals(child.getParentId())) {
+                    child.setParentId(null);
+                }
+            });
+        }
+        return slides.remove(removed);
+    }
+
+    // ── Slide ordering (Lexorank) ────────────────────────────────────────────────
+    // sortOrder is the authoritative order; the embedded array is kept sorted to
+    // match it (the whole deck doc is rewritten on every save anyway, so the
+    // in-memory resort is free and keeps every read path — including verbatim
+    // session snapshots — correct without remembering to sort). All key math is
+    // delegated to SlideRankService so the aggregate never touches lexorank4j.
+
+    /** The highest {@code sortOrder} present, or {@code null} if no slide has one. */
+    public String maxSortOrder() {
+        return slides.stream()
+                .map(Slide::getSortOrder)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    /** The lowest {@code sortOrder} present, or {@code null} if no slide has one. */
+    public String minSortOrder() {
+        return slides.stream()
+                .map(Slide::getSortOrder)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    /** Sort the embedded slide list in place by {@code sortOrder} (nulls last, id tie-break). */
+    public void resort() {
+        slides.sort(SlideRankService.ordering());
+    }
+
+    /**
+     * Assign keys to any slide missing a {@code sortOrder}. If even one is
+     * missing we respace the <em>whole</em> list by its current array order — the
+     * documented fallback ordering — so the result is deterministic and free of
+     * collisions whether the deck is fully legacy (all null) or partially keyed.
+     * A no-op once every slide is keyed.
+     */
+    public void backfillRanks(SlideRankService ranks) {
+        if (slides.stream().allMatch(s -> s.getSortOrder() != null)) {
+            return;
+        }
+        List<String> fresh = ranks.evenlySpaced(slides.size());
+        for (int i = 0; i < slides.size(); i++) {
+            slides.get(i).setSortOrder(fresh.get(i));
+        }
+    }
+
+    /**
+     * Move {@code slideId} to {@code toIndex} in the sorted order, rewriting only
+     * that slide's {@code sortOrder} to a key between its new neighbours (or before
+     * the first / after the last at the ends). {@code toIndex} is clamped into
+     * range. If the target neighbours have no representable gap the list is
+     * rebalanced first. Links ({@code parentId}/{@code childId}) are left untouched.
+     *
+     * @param slideId the slide to move
+     * @param toIndex the destination position among the deck's slides
+     * @param ranks   the key generator
+     */
+    public void reorderSlide(String slideId, int toIndex, SlideRankService ranks) {
+        Slide moved = findSlide(slideId).orElse(null);
+        if (moved == null) {
+            return;
+        }
+        // The index space is the OTHER slides, in sorted order.
+        List<Slide> others = slides.stream()
+                .filter(s -> !slideId.equals(s.getId()))
+                .sorted(SlideRankService.ordering())
+                .toList();
+        int target = Math.max(0, Math.min(toIndex, others.size()));
+
+        String newRank;
+        if (others.isEmpty()) {
+            newRank = ranks.initial();
+        } else if (target == 0) {
+            newRank = ranks.before(others.get(0).getSortOrder());
+        } else if (target == others.size()) {
+            newRank = ranks.after(others.get(others.size() - 1).getSortOrder());
+        } else {
+            String lower = others.get(target - 1).getSortOrder();
+            String upper = others.get(target).getSortOrder();
+            if (!ranks.hasGap(lower, upper)) {
+                rebalance(others, ranks);
+                lower = others.get(target - 1).getSortOrder();
+                upper = others.get(target).getSortOrder();
+            }
+            newRank = ranks.between(lower, upper);
+        }
+        moved.setSortOrder(newRank);
+        resort();
+    }
+
+    /** Respace an already-sorted run of slides with fresh, evenly-stepped keys. */
+    private void rebalance(List<Slide> ordered, SlideRankService ranks) {
+        List<String> fresh = ranks.evenlySpaced(ordered.size());
+        for (int i = 0; i < ordered.size(); i++) {
+            ordered.get(i).setSortOrder(fresh.get(i));
+        }
     }
 
     // ── Permissions ────────────────────────────────────────────────────────────
