@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,7 +29,8 @@ public record SlideResponse(
         String parentId,
         String childId,
         Integer version,
-        String sortOrder) {
+        String sortOrder,
+        SlideContent content) {
 
     /** Projects an embedded {@link Slide} onto its response. */
     public static SlideResponse from(Slide slide) {
@@ -45,6 +47,7 @@ public record SlideResponse(
                 slide.getParentId(),
                 slide.getChildId(),
                 slide.getVersion(),
-                slide.getSortOrder());
+                slide.getSortOrder(),
+                slide.getContent());
     }
 }

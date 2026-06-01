@@ -150,6 +150,7 @@ public class DeckService {
         slide.setParentId(changes.getParentId());
         slide.setChildId(changes.getChildId());
         slide.setSortOrder(changes.getSortOrder());
+        slide.setContent(changes.getContent());
         slide.setLastEditedByUserId(principal.userId());
 
         deckRepository.save(deck);

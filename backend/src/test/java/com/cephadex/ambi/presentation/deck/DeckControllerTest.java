@@ -40,6 +40,8 @@ import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -219,6 +221,44 @@ class DeckControllerTest {
         verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
         assertThat(sent.getValue().getId()).isEqualTo("client-slide");
         assertThat(sent.getValue().getTitle()).isEqualTo("Q1");
+    }
+
+    @Test
+    void addSlideRoundTripsMcqContentAsDiscriminatedUnion() throws Exception {
+        // Echo the deserialized slide back so a single request exercises both
+        // halves of the polymorphic content contract: inbound the `contentType`
+        // discriminator must resolve to McqContent, outbound McqContent must
+        // re-serialize with `contentType` so the client sees the union arm.
+        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+
+        String body = """
+                {
+                  "id": "mcq-1",
+                  "slideType": "MCQ",
+                  "content": {
+                    "contentType": "MCQ",
+                    "options": [{"id": "o1", "text": "Frodo"}],
+                    "correctOptionIds": ["o1"],
+                    "maxSelections": 1
+                  }
+                }
+                """;
+
+        mockMvc.perform(post("/api/decks/deck-1/slides")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.content.contentType").value("MCQ"))
+                .andExpect(jsonPath("$.content.options[0].id").value("o1"))
+                .andExpect(jsonPath("$.content.correctOptionIds[0]").value("o1"));
+
+        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
+        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
+        assertThat(sent.getValue().getContent()).isInstanceOf(McqContent.class);
+        McqContent mcq = (McqContent) sent.getValue().getContent();
+        assertThat(mcq.contentType()).isEqualTo(SlideType.MCQ);
+        assertThat(mcq.correctOptionIds()).containsExactly("o1");
     }
 
     @Test

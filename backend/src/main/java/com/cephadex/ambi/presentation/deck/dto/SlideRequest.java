@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 /**
@@ -24,7 +25,8 @@ public record SlideRequest(
         AppImage coverImage,
         String parentId,
         String childId,
-        String sortOrder) {
+        String sortOrder,
+        SlideContent content) {
 
     /** Maps this request onto a fresh {@link Slide} for the service to persist. */
     public Slide toSlide() {
@@ -39,6 +41,7 @@ public record SlideRequest(
         slide.setParentId(parentId);
         slide.setChildId(childId);
         slide.setSortOrder(sortOrder);
+        slide.setContent(content);
         return slide;
     }
 }

@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import lombok.Getter;
@@ -76,5 +77,11 @@ public class Slide {
     // Use Lexorank technique;
     // TODO: add Lexorank implementation
     private String sortOrder;
+
+    // The typed, polymorphic body keyed by the slide's contentType. Spring Data
+    // writes a `_class` hint for the concrete subtype (e.g. McqContent) so it
+    // round-trips through Mongo; only MCQ is wired in so far.
+    @Field("content")
+    private SlideContent content;
 
 }
