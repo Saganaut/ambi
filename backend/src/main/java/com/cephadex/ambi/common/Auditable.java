@@ -7,7 +7,9 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import lombok.Getter;
+import lombok.Setter;
 
+@Setter
 @Getter
 public abstract class Auditable extends BaseDocument {
 

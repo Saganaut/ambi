@@ -102,13 +102,9 @@ export function useRegisteredUser(): RegisteredState {
  * chrome rendered outside the auth gate (e.g. the NavBar avatar) that adapts to
  * whoever is signed in without forcing a redirect.
  */
-export function useSessionUser(): SessionState {
+export function useSessionUser(): SessionState | undefined {
   const auth = useCurrentUser();
-  if (auth.state !== "registered" && auth.state !== "guest") {
-    throw new Error(
-      "useSessionUser requires a registered or guest session — for UI that also " +
-        "renders for visitors, use useCurrentUser instead.",
-    );
+  if (auth.state === "registered" || auth.state === "guest") {
+    return auth;
   }
-  return auth;
 }

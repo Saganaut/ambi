@@ -2,9 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import styles from "./NavBar.module.css";
 import { UserMenu } from "./UserMenu";
-import { ThemeToggle } from "./ThemeToggle";
 import { CephadexLogo } from "@/components/Graphic/CephadexLogo";
-import { NotificationBell } from "../NotificationBell/NotificationBell";
+// import { NotificationBell } from "../NotificationBell/NotificationBell";
 import { useFullScreen } from "@/context/useFullScreen";
 
 const NavBar = () => {
@@ -35,8 +34,8 @@ const NavBar = () => {
             My Decks
           </Link>
         )}
-        <NotificationBell />
-        <ThemeToggle />
+        {/* <NotificationBell /> */}
+        {/* <ThemeToggle /> */}
         <UserMenu />
       </div>
     </nav>

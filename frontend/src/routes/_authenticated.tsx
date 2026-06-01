@@ -11,7 +11,7 @@
 // state. The gate component lives in `@/components/Common/AuthenticatedLayout/`
 // so this file can keep Fast Refresh on the gated subtree intact.
 import { createFileRoute } from "@tanstack/react-router";
-import { AuthenticatedLayout } from "../components/Common/AuthenticatedLayout/AuthenticatedLayout";
+import { AuthenticatedLayout } from "../components/AuthenticatedLayout/AuthenticatedLayout";
 import { requireRegistered } from "../auth/guards";
 
 export const Route = createFileRoute("/_authenticated")({

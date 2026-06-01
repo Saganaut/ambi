@@ -166,7 +166,9 @@ public class Deck extends Auditable {
     // session snapshots — correct without remembering to sort). All key math is
     // delegated to SlideRankService so the aggregate never touches lexorank4j.
 
-    /** The highest {@code sortOrder} present, or {@code null} if no slide has one. */
+    /**
+     * The highest {@code sortOrder} present, or {@code null} if no slide has one.
+     */
     public String maxSortOrder() {
         return slides.stream()
                 .map(Slide::getSortOrder)
@@ -175,7 +177,9 @@ public class Deck extends Auditable {
                 .orElse(null);
     }
 
-    /** The lowest {@code sortOrder} present, or {@code null} if no slide has one. */
+    /**
+     * The lowest {@code sortOrder} present, or {@code null} if no slide has one.
+     */
     public String minSortOrder() {
         return slides.stream()
                 .map(Slide::getSortOrder)
@@ -184,7 +188,10 @@ public class Deck extends Auditable {
                 .orElse(null);
     }
 
-    /** Sort the embedded slide list in place by {@code sortOrder} (nulls last, id tie-break). */
+    /**
+     * Sort the embedded slide list in place by {@code sortOrder} (nulls last, id
+     * tie-break).
+     */
     public void resort() {
         slides.sort(SlideRankService.ordering());
     }
@@ -211,7 +218,8 @@ public class Deck extends Auditable {
      * that slide's {@code sortOrder} to a key between its new neighbours (or before
      * the first / after the last at the ends). {@code toIndex} is clamped into
      * range. If the target neighbours have no representable gap the list is
-     * rebalanced first. Links ({@code parentId}/{@code childId}) are left untouched.
+     * rebalanced first. Links ({@code parentId}/{@code childId}) are left
+     * untouched.
      *
      * @param slideId the slide to move
      * @param toIndex the destination position among the deck's slides

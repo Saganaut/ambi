@@ -2,7 +2,7 @@
 import { type JSX, useState } from "react";
 
 import { UserCircleIcon } from "@heroicons/react/24/solid";
-import { useCurrentUser } from "../../../hooks/useCurrentUser";
+import { useSessionUser } from "../../../hooks/useCurrentUser";
 import { useRequireLogin } from "../../../hooks/useRequireLogin";
 import { useTheme, type ThemeMode } from "../../../hooks/useTheme";
 import {
@@ -34,12 +34,9 @@ const useUserMenu = (): useUserMenuResponse => {
   const [showGuestInput, setShowGuestInput] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
-  const userState = useCurrentUser();
+  const userState = useSessionUser();
   // Only the session-backed states carry a profile payload.
-  const me =
-    userState.state === "registered" || userState.state === "guest"
-      ? userState.me
-      : undefined;
+  const me = userState.me;
   const { openLoginModal } = useRequireLogin();
 
   const handleLogin = () => {
@@ -73,9 +70,11 @@ const useUserMenu = (): useUserMenuResponse => {
   };
 
   const avatarContent = () => {
-    const label = me?.displayName ?? me?.username;
+    const label = me.displayName ?? me.username;
     if (label) {
-      return <div className={styles.avatarInitial}>{label[0].toUpperCase()}</div>;
+      return (
+        <div className={styles.avatarInitial}>{label[0].toUpperCase()}</div>
+      );
     }
     return <UserCircleIcon className={styles.avatarIcon} />;
   };

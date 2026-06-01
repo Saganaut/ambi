@@ -1,11 +1,4 @@
-// Mounts once at the root layout to make the server's `activeThemeId` the
-// source of truth for which hue/mode is applied. Reads the current user via
-// RTK Query (through useCurrentUser, which narrows the discriminated state
-// machine) and looks up the active theme in the themes list; when it
-// resolves (or changes), it applies the server's hue + mode through the
-// same path useTheme uses, so localStorage gets overwritten on the way out.
-// localStorage stays useful as the boot-time optimistic cache (so the
-// initial paint doesn't flash) but never wins against the server.
+// TODO this needs to be refactored based upon our new theme shape whihc is TBD
 import { useEffect } from "react";
 import { useListThemesQuery } from "../store/AmbiApi";
 import { useCurrentUser } from "./useCurrentUser";
