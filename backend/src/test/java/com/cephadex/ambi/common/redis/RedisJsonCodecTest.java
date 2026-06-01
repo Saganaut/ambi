@@ -1,7 +1,6 @@
 package com.cephadex.ambi.common.redis;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,7 +24,7 @@ class RedisJsonCodecTest {
     @Test
     void instantRoundTripsAsIso8601() {
         Instant startedAt = Instant.parse("2026-05-30T12:00:00Z");
-        LiveRoundState state = new LiveRoundState(RoundPhase.SUBMIT, "slide-1", startedAt, Map.of("opt-a", 3));
+        LiveRoundState state = new LiveRoundState(RoundPhase.SUBMIT, "slide-1", startedAt);
 
         String json = codec.serialize(state);
 

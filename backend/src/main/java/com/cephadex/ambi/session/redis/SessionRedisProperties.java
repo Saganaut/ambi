@@ -19,6 +19,7 @@ public class SessionRedisProperties {
 
     private final Lock lock = new Lock();
     private final State state = new State();
+    private final Tally tally = new Tally();
 
     @Data
     public static class Lock {
@@ -39,6 +40,22 @@ public class SessionRedisProperties {
         /**
          * TTL on the in-flight state record — a backstop so abandoned sessions
          * don't linger in Redis forever. Refreshed on every save.
+         */
+        private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class Tally {
+        /**
+         * Redis key namespace for per-round option tallies. Each round's tally is
+         * a Redis Hash at {@code <namespace>:<sessionId>:<slideId>}, bumped with
+         * native {@code HINCRBY} so concurrent submissions don't contend on the
+         * session lock the way a tally embedded in the state snapshot would.
+         */
+        private String namespace = "ambi:session:tally";
+        /**
+         * TTL on a round's tally hash — the same abandoned-session backstop as the
+         * state TTL. Refreshed on every increment.
          */
         private Duration ttl = Duration.ofHours(6);
     }

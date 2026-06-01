@@ -15,7 +15,8 @@ plain `StringRedisTemplate` ops, namespaced keys, no lock library.
 | --- | --- |
 | [`SessionLocks`](SessionLocks.java) | Per-session mutual exclusion (SET-NX + Lua compare-and-delete). |
 | [`SessionStateStore`](SessionStateStore.java) | Load / save / clear the `LiveRoundState` snapshot. |
-| [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile state (phase, current slide, start time, tallies). |
+| [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile control state (phase, current slide, start time). |
+| [`TallyStore`](TallyStore.java) | Per-round option counts as a Redis Hash — lock-free `HINCRBY` per submission. |
 | [`SessionKeys`](SessionKeys.java) | Builds the namespaced keys from a `SessionId`. |
 | [`SessionRedisProperties`](SessionRedisProperties.java) | `ambi.session.*` config (namespaces, lock lease, state TTL). |
 | [`RedisJsonCodec`](../../common/redis/RedisJsonCodec.java) | Shared Jackson-2 codec (lives in `common/redis`, reusable). |
@@ -59,10 +60,22 @@ session").
 | --- | --- | --- |
 | Lock | `ambi:session:lock:<sessionId>` | `ambi.session.lock.namespace` |
 | State | `ambi:session:state:<sessionId>` | `ambi.session.state.namespace` |
+| Tally | `ambi:session:tally:<sessionId>:<slideId>` (Hash) | `ambi.session.tally.namespace` |
 
 Inspect live keys with `docker compose exec redis redis-cli -a password KEYS 'ambi:session:*'`.
 
+## Why tallies are a separate key (not a `LiveRoundState` field)
+
+`LiveRoundState` is the host-driven **control** record — start / reveal / resume —
+and is read-modify-written under the session lock, where serializing those
+transitions is exactly what we want. A tally is bumped once per **participant
+submission**: had it stayed a `Map` inside the snapshot, every submission would
+have to take the session lock and rewrite the whole blob, so N players hitting
+submit at once would all serialize on one lock. Splitting it into a Redis Hash
+makes each submission a single atomic `HINCRBY` — no lock, no whole-blob rewrite.
+The split is by **write pattern**, not because the snapshot was large.
+
 ## Out of scope (future)
 
-`TallyStore`, deadline scheduling, and event publishing are hinted in
+Deadline scheduling and event publishing are hinted in
 `LiveSessionOrchestrator` but not built here yet.

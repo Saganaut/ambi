@@ -3,6 +3,7 @@ package com.cephadex.ambi.session.redis;
 import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.session.SessionTypes.SessionId;
+import com.cephadex.ambi.session.SessionTypes.SlideId;
 
 /**
  * Builds the namespaced Redis keys for a session, keeping the
@@ -27,5 +28,14 @@ public class SessionKeys {
     /** Key for the in-flight round-state snapshot. */
     public String stateKey(SessionId sid) {
         return props.getState().getNamespace() + ":" + sid.value();
+    }
+
+    /**
+     * Key for a round's option-tally hash. Keyed by {@code sid + slideId} (a round
+     * is identified by that pair, mirroring {@code RoundResultId}) so a stale
+     * round's tallies can't bleed into the next round on the same session.
+     */
+    public String tallyKey(SessionId sid, SlideId slideId) {
+        return props.getTally().getNamespace() + ":" + sid.value() + ":" + slideId.value();
     }
 }
