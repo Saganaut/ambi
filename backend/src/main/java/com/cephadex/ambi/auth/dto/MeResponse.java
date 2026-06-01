@@ -1,39 +1,51 @@
 package com.cephadex.ambi.auth.dto;
 
 import com.cephadex.ambi.auth.enums.IdentityState;
-import com.cephadex.ambi.billing.enums.MembershipStatus;
-import com.cephadex.ambi.billing.enums.MembershipTier;
-import com.cephadex.ambi.user.enums.UserLevel;
+import io.swagger.v3.oas.annotations.media.DiscriminatorMapping;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * The {@code GET /api/auth/me} payload. One shape expresses all four identity
- * states via the {@code state} discriminator plus nullability; the frontend
- * branches on {@code state} (and on {@code needsRegistration} to route a
- * preRegistration principal to the registration screen).
+ * The {@code GET /api/auth/me} payload, modelled as a discriminated union over
+ * the four identity states rather than one flat all-nullable object. Each state
+ * is its own record carrying exactly the fields that exist for it, so the
+ * generated OpenAPI — and the TypeScript client derived from it — can guarantee,
+ * for example, that a {@link RegisteredMe} always has an {@code email} and
+ * {@code publicId}, while a {@link VisitorMe} has neither. {@code state} is the
+ * discriminator the frontend narrows on.
  *
- * <ul>
- *   <li>VISITOR — {@code authenticated=false}, everything else null/false.</li>
- *   <li>GUEST — {@code userLevel=GUEST}, {@code effectiveTier=FREE}.</li>
- *   <li>PRE_REGISTRATION — {@code needsRegistration=true}, {@code email}/provider
- *       set, no {@code publicId}/{@code username}, {@code userLevel=null}.</li>
- *   <li>REGISTERED — full profile + live {@code effectiveTier} (Inv 7).</li>
- * </ul>
+ * <p>{@code authenticated} and {@code needsRegistration} are kept on every
+ * variant for convenience even though {@code state} already implies them.
+ *
+ * <p>Polymorphic JSON needs no {@code @JsonTypeInfo}: the endpoints return the
+ * concrete record, which Jackson serialises by its own components (each variant
+ * already includes {@code state}). The {@code @Schema} below is only to make
+ * SpringDoc emit {@code oneOf} + a {@code discriminator.mapping}, which the
+ * codegen turns into a narrowing TS union.
  */
-public record MeResponse(
-        boolean authenticated,
-        IdentityState state,
-        boolean needsRegistration,
-        String publicId,
-        String username,
-        String displayName,
-        String email,
-        UserLevel userLevel,
-        MembershipTier effectiveTier,
-        MembershipStatus membershipStatus) {
+@Schema(
+        description = "Current session payload, discriminated by `state`.",
+        discriminatorProperty = "state",
+        oneOf = {VisitorMe.class, GuestMe.class, PreRegistrationMe.class, RegisteredMe.class},
+        discriminatorMapping = {
+                @DiscriminatorMapping(value = "VISITOR", schema = VisitorMe.class),
+                @DiscriminatorMapping(value = "GUEST", schema = GuestMe.class),
+                @DiscriminatorMapping(value = "PRE_REGISTRATION", schema = PreRegistrationMe.class),
+                @DiscriminatorMapping(value = "REGISTERED", schema = RegisteredMe.class)
+        })
+public sealed interface MeResponse
+        permits VisitorMe, GuestMe, PreRegistrationMe, RegisteredMe {
+
+    /** @return the identity-state discriminator. */
+    IdentityState state();
+
+    /** @return false only for {@link VisitorMe}; true for every real session. */
+    boolean authenticated();
+
+    /** @return true only for {@link PreRegistrationMe} (OAuth'd, no account yet). */
+    boolean needsRegistration();
 
     /** The visitor (no session) payload. */
-    public static MeResponse visitor() {
-        return new MeResponse(false, IdentityState.VISITOR, false,
-                null, null, null, null, null, null, null);
+    static MeResponse visitor() {
+        return new VisitorMe();
     }
 }

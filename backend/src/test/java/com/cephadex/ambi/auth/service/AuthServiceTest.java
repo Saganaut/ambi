@@ -16,8 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import com.cephadex.ambi.auth.dto.GuestMe;
 import com.cephadex.ambi.auth.dto.MeResponse;
+import com.cephadex.ambi.auth.dto.PreRegistrationMe;
 import com.cephadex.ambi.auth.dto.RegisterRequest;
+import com.cephadex.ambi.auth.dto.RegisteredMe;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
@@ -69,9 +72,10 @@ class AuthServiceTest {
         assertThat(me.authenticated()).isTrue();
         assertThat(me.state()).isEqualTo(IdentityState.PRE_REGISTRATION);
         assertThat(me.needsRegistration()).isTrue();
-        assertThat(me.email()).isEqualTo("new@example.com");
-        assertThat(me.userLevel()).isNull();
-        assertThat(me.publicId()).isNull();
+        // The union guarantees a preReg payload carries only the email — there
+        // are no publicId/userLevel fields on the type to be null.
+        assertThat(me).isInstanceOfSatisfying(PreRegistrationMe.class,
+                p -> assertThat(p.email()).isEqualTo("new@example.com"));
     }
 
     @Test
@@ -82,8 +86,10 @@ class AuthServiceTest {
         MeResponse me = authService.resolveMe(principalFor(IdentityState.GUEST, "guest-1"));
 
         assertThat(me.state()).isEqualTo(IdentityState.GUEST);
-        assertThat(me.userLevel()).isEqualTo(UserLevel.GUEST);
-        assertThat(me.effectiveTier()).isEqualTo(MembershipTier.FREE);
+        assertThat(me).isInstanceOfSatisfying(GuestMe.class, g -> {
+            assertThat(g.userLevel()).isEqualTo(UserLevel.GUEST);
+            assertThat(g.effectiveTier()).isEqualTo(MembershipTier.FREE);
+        });
     }
 
     @Test
@@ -94,8 +100,10 @@ class AuthServiceTest {
 
         MeResponse me = authService.resolveMe(principalFor(IdentityState.REGISTERED, "u1"));
 
-        assertThat(me.membershipStatus()).isEqualTo(MembershipStatus.PAST_DUE);
-        assertThat(me.effectiveTier()).isEqualTo(MembershipTier.FREE);
+        assertThat(me).isInstanceOfSatisfying(RegisteredMe.class, r -> {
+            assertThat(r.membershipStatus()).isEqualTo(MembershipStatus.PAST_DUE);
+            assertThat(r.effectiveTier()).isEqualTo(MembershipTier.FREE);
+        });
     }
 
     @Test
@@ -105,7 +113,8 @@ class AuthServiceTest {
 
         MeResponse me = authService.resolveMe(principalFor(IdentityState.REGISTERED, "u2"));
 
-        assertThat(me.effectiveTier()).isEqualTo(MembershipTier.INDIVIDUAL);
+        assertThat(me).isInstanceOfSatisfying(RegisteredMe.class,
+                r -> assertThat(r.effectiveTier()).isEqualTo(MembershipTier.INDIVIDUAL));
     }
 
     @Test
@@ -158,7 +167,8 @@ class AuthServiceTest {
                 new RegisterRequest("newname", "New Person", true));
 
         assertThat(session.me().state()).isEqualTo(IdentityState.REGISTERED);
-        assertThat(session.me().username()).isEqualTo("name-u-new");
+        assertThat(session.me()).isInstanceOfSatisfying(RegisteredMe.class,
+                r -> assertThat(r.username()).isEqualTo("name-u-new"));
         verify(tokenService).rotate(eq("pre-sid"), any(), eq(false));
         verify(userService, never()).reopen(any());
     }
@@ -178,7 +188,8 @@ class AuthServiceTest {
                 new RegisterRequest("ignored-username", null, false));
 
         assertThat(session.me().state()).isEqualTo(IdentityState.REGISTERED);
-        assertThat(session.me().effectiveTier()).isEqualTo(MembershipTier.INDIVIDUAL);
+        assertThat(session.me()).isInstanceOfSatisfying(RegisteredMe.class,
+                r -> assertThat(r.effectiveTier()).isEqualTo(MembershipTier.INDIVIDUAL));
         verify(userService, never()).register(any(), any(), any(), any(), any());
         verify(userService, never()).reopen(any());
     }
@@ -237,7 +248,8 @@ class AuthServiceTest {
 
         assertThat(out.tokens().refreshToken()).isEqualTo("rt-2");
         assertThat(out.me().state()).isEqualTo(IdentityState.REGISTERED);
-        assertThat(out.me().effectiveTier()).isEqualTo(MembershipTier.FREE);
+        assertThat(out.me()).isInstanceOfSatisfying(RegisteredMe.class,
+                r -> assertThat(r.effectiveTier()).isEqualTo(MembershipTier.FREE));
     }
 
     @Test
@@ -263,7 +275,8 @@ class AuthServiceTest {
 
         assertThat(out.me().state()).isEqualTo(IdentityState.PRE_REGISTRATION);
         assertThat(out.me().needsRegistration()).isTrue();
-        assertThat(out.me().email()).isEqualTo("p@example.com");
+        assertThat(out.me()).isInstanceOfSatisfying(PreRegistrationMe.class,
+                p -> assertThat(p.email()).isEqualTo("p@example.com"));
         verify(userService, never()).findById(any());
     }
 

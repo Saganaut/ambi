@@ -2,8 +2,11 @@ package com.cephadex.ambi.auth.service;
 
 import org.springframework.stereotype.Service;
 
+import com.cephadex.ambi.auth.dto.GuestMe;
 import com.cephadex.ambi.auth.dto.MeResponse;
+import com.cephadex.ambi.auth.dto.PreRegistrationMe;
 import com.cephadex.ambi.auth.dto.RegisterRequest;
+import com.cephadex.ambi.auth.dto.RegisteredMe;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
@@ -110,8 +113,7 @@ public class AuthService {
         IdentityState state = session.getState();
         if (state == IdentityState.PRE_REGISTRATION) {
             // No backing User — identity comes entirely from the session.
-            return new MeResponse(true, IdentityState.PRE_REGISTRATION, true,
-                    null, null, null, session.getEmail(), null, null, null);
+            return new PreRegistrationMe(session.getEmail());
         }
         return userService.findById(session.getUserId())
                 .map(user -> meFromUser(state, user))
@@ -141,8 +143,7 @@ public class AuthService {
         }
         return switch (principal.state()) {
             case VISITOR -> MeResponse.visitor();
-            case PRE_REGISTRATION -> new MeResponse(true, IdentityState.PRE_REGISTRATION, true,
-                    null, null, null, principal.email(), null, null, null);
+            case PRE_REGISTRATION -> new PreRegistrationMe(principal.email());
             case GUEST, REGISTERED -> userService.findById(principal.userId())
                     .map(user -> meFromUser(principal.state(), user))
                     // Session valid but User vanished — surface as visitor.
@@ -157,16 +158,16 @@ public class AuthService {
         // the null-billing case and assembles the DTO.
         MembershipStatus status = billing != null ? billing.getStatus() : MembershipStatus.NONE;
         MembershipTier tier = billing != null ? billing.effectiveTier() : MembershipTier.FREE;
-        return new MeResponse(
-                true,
-                state,
-                false,
-                user.getPublicId(),
-                user.getUsername(),
-                user.getDisplayName(),
-                user.getEmailAddress(),
-                user.getUserLevel(),
-                tier,
-                status);
+        return switch (state) {
+            // Guests have no email; registered accounts always do.
+            case GUEST -> new GuestMe(
+                    user.getPublicId(), user.getUsername(), user.getDisplayName(),
+                    user.getUserLevel(), tier, status);
+            case REGISTERED -> new RegisteredMe(
+                    user.getPublicId(), user.getUsername(), user.getDisplayName(),
+                    user.getEmailAddress(), user.getUserLevel(), tier, status);
+            default -> throw new IllegalStateException(
+                    "meFromUser requires a GUEST or REGISTERED state, got " + state);
+        };
     }
 }

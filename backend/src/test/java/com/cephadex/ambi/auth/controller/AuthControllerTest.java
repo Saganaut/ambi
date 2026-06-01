@@ -19,8 +19,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.cephadex.ambi.auth.config.AuthProperties;
+import com.cephadex.ambi.auth.dto.GuestMe;
 import com.cephadex.ambi.auth.dto.MeResponse;
-import com.cephadex.ambi.auth.enums.IdentityState;
+import com.cephadex.ambi.auth.dto.RegisteredMe;
 import com.cephadex.ambi.auth.service.AuthService;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
 import com.cephadex.ambi.billing.enums.MembershipStatus;
@@ -80,9 +81,8 @@ class AuthControllerTest {
 
     @Test
     void guestCreateSetsHttpOnlyCookiesAndReturnsGuestBody() throws Exception {
-        MeResponse guestMe = new MeResponse(true, IdentityState.GUEST, false,
-                "pub-1", "guest-abc", "Guest", null, UserLevel.GUEST,
-                MembershipTier.FREE, MembershipStatus.NONE);
+        MeResponse guestMe = new GuestMe("pub-1", "guest-abc", "Guest",
+                UserLevel.GUEST, MembershipTier.FREE, MembershipStatus.NONE);
         when(authService.createGuest(any())).thenReturn(new AuthService.AuthSession(
                 new RedisTokenSessionService.Tokens("access-jwt", "refresh-tok", "sid-1", false), guestMe));
 
@@ -107,8 +107,7 @@ class AuthControllerTest {
 
     @Test
     void refreshReadsRtCookieAndReturnsNewCookies() throws Exception {
-        MeResponse refreshed = new MeResponse(true, IdentityState.REGISTERED, false,
-                "pub-r", "alice", "Alice", "alice@example.com",
+        MeResponse refreshed = new RegisteredMe("pub-r", "alice", "Alice", "alice@example.com",
                 UserLevel.USER, MembershipTier.INDIVIDUAL, MembershipStatus.ACTIVE);
         when(authService.refresh("old-rt")).thenReturn(new AuthService.AuthSession(
                 new RedisTokenSessionService.Tokens("new-at", "new-rt", "sid-r", false), refreshed));
@@ -125,8 +124,7 @@ class AuthControllerTest {
 
     @Test
     void registerReturns200WithCookiesAndBody() throws Exception {
-        MeResponse registered = new MeResponse(true, IdentityState.REGISTERED, false,
-                "pub-1", "newname", "New Person", "new@example.com",
+        MeResponse registered = new RegisteredMe("pub-1", "newname", "New Person", "new@example.com",
                 UserLevel.USER, MembershipTier.FREE, MembershipStatus.NONE);
         when(authService.register(any(), any())).thenReturn(new AuthService.AuthSession(
                 new RedisTokenSessionService.Tokens("acc", "ref", "new-sid", false), registered));
