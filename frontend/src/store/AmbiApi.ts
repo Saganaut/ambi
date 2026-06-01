@@ -37,6 +37,17 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.updateProfileRequest,
       }),
     }),
+    usernameAvailable: build.query<
+      UsernameAvailableApiResponse,
+      UsernameAvailableApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/auth/username-available`,
+        params: {
+          username: queryArg.username,
+        },
+      }),
+    }),
     me: build.query<MeApiResponse, MeApiArg>({
       query: () => ({ url: `/api/auth/me` }),
     }),
@@ -64,6 +75,11 @@ export type GetMeApiArg = void;
 export type UpdateMeApiResponse = /** status 200 OK */ UserProfileResponse;
 export type UpdateMeApiArg = {
   updateProfileRequest: UpdateProfileRequest;
+};
+export type UsernameAvailableApiResponse =
+  /** status 200 OK */ UsernameAvailabilityResponse;
+export type UsernameAvailableApiArg = {
+  username: string;
 };
 export type MeApiResponse = /** status 200 OK */ MeResponse;
 export type MeApiArg = void;
@@ -133,6 +149,10 @@ export type UpdateProfileRequest = {
   timezone?: string;
   avatar?: AvatarSelection;
 };
+export type UsernameAvailabilityResponse = {
+  username?: string;
+  available?: boolean;
+};
 export const {
   useUpdatePreferencesMutation,
   useRegisterMutation,
@@ -142,6 +162,8 @@ export const {
   useGetMeQuery,
   useLazyGetMeQuery,
   useUpdateMeMutation,
+  useUsernameAvailableQuery,
+  useLazyUsernameAvailableQuery,
   useMeQuery,
   useLazyMeQuery,
 } = injectedRtkApi;

@@ -1,6 +1,10 @@
-import { useState } from "react";
+/* eslint-disable react-x/set-state-in-effect */
+import { useState, useEffect } from "react";
 import type { Dispatch, SetStateAction, SubmitEvent } from "react";
-import { useRegisterMutation } from "../../store/AmbiApi";
+import {
+  useLazyUsernameAvailableQuery,
+  useRegisterMutation,
+} from "../../store/AmbiApi";
 import { extractErrorMessage } from "../../utils/utils";
 
 export interface RegisterSearch {
@@ -15,7 +19,7 @@ type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
 
 // Mirrors the backend RegisterRequest constraints (@Size 3-30,
 // @Pattern [A-Za-z0-9._-]). Kept in lockstep so the inline check matches what
-// the server will accept.
+// the server will accept, sparing a round-trip on obviously-bad input.
 function validateUsernameFormat(value: string): string | null {
   if (value.length < 3) return "Must be at least 3 characters";
   if (value.length > 30) return "Must be 30 characters or less";
@@ -26,7 +30,7 @@ function validateUsernameFormat(value: string): string | null {
 
 export interface UseRegisterReturn {
   username: string;
-  setUsername: (value: string) => void;
+  setUsername: Dispatch<SetStateAction<string>>;
   displayName: string;
   setDisplayName: Dispatch<SetStateAction<string>>;
   agreedToTerms: boolean;
@@ -42,7 +46,7 @@ export interface UseRegisterReturn {
 }
 
 const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterReturn => {
-  const [username, setUsernameRaw] = useState("");
+  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [newsletter, setNewsletter] = useState(true);
@@ -50,36 +54,66 @@ const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterReturn => {
   const [usernameMessage, setUsernameMessage] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [checkUsername] = useLazyUsernameAvailableQuery();
   const [register, { isLoading }] = useRegisterMutation();
 
-  // Live format validation as the user types. The richer "checking"/"available"
-  // states and the `taken` set below the cursor are reserved for the live
-  // username-availability endpoint currently being built on the backend:
-  // re-add a debounced `useLazyCheckUsernameQuery` call in this setter and flip
-  // `usernameStatus` to "checking" then "available"/"taken". Until then we
-  // validate format only and let the register call itself reject a duplicate
-  // (the DB unique index is the authority — backend UserService).
-  const setUsername = (value: string) => {
-    setUsernameRaw(value);
-    if (!value) {
-      setUsernameStatus("idle");
-      setUsernameMessage("");
-      return;
-    }
-    const formatError = validateUsernameFormat(value);
+  // Live username validation: instant format check, then a debounced remote
+  // availability check (GET /api/auth/username-available). The effect's cleanup
+  // sets `cancelled` so a slow response for a since-changed value is ignored —
+  // the last keystroke always wins. The register call re-validates against the
+  // DB unique index, so a missed/errored check never lets a dup through.
+  useEffect(() => {
+    setUsernameStatus("idle");
+    setUsernameMessage("");
+    if (!username) return;
+
+    const formatError = validateUsernameFormat(username);
     if (formatError) {
       setUsernameStatus("invalid");
       setUsernameMessage(formatError);
-    } else {
-      setUsernameStatus("idle");
-      setUsernameMessage("");
+      return;
     }
-  };
 
+    setUsernameStatus("checking");
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const result = await checkUsername({ username }).unwrap();
+          if (cancelled) return;
+          if (result.available) {
+            setUsernameStatus("available");
+            setUsernameMessage("");
+          } else {
+            setUsernameStatus("taken");
+            setUsernameMessage("Username is already taken");
+          }
+        } catch {
+          // Transient/failed check — drop back to idle rather than blocking;
+          // register's authoritative check still guards the conflict.
+          if (!cancelled) {
+            setUsernameStatus("idle");
+            setUsernameMessage("");
+          }
+        }
+      })();
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [username, checkUsername]);
+
+  // Block while a check is mid-flight or the name is taken/invalid; allow on a
+  // confirmed-available name (or an inconclusive idle, since register is the
+  // authority). Format is re-checked here so submit can't fire on a bad value.
   const canSubmit =
     agreedToTerms &&
     username.length > 0 &&
     validateUsernameFormat(username) === null &&
+    usernameStatus !== "checking" &&
+    usernameStatus !== "taken" &&
     !isLoading;
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
@@ -104,8 +138,8 @@ const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterReturn => {
         err,
         "Something went wrong. Please try again.",
       );
-      // 409 is the username-conflict the register endpoint raises — surface it
-      // on the username field; anything else is a generic form-level error.
+      // 409 is the username conflict — covers the race where availability
+      // passed but the name was claimed before submit. Surface it on the field.
       if (status === 409) {
         setUsernameStatus("taken");
         setUsernameMessage(message);
