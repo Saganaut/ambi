@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.presentation.deck.Deck;
-import com.cephadex.ambi.session.SessionTypes.RoomCode;
+import com.cephadex.ambi.session.RoomCode;
 import com.cephadex.ambi.session.liveSession.enums.DeckRunLifecycle;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 
