@@ -31,8 +31,6 @@ function validateUsernameFormat(value: string): string | null {
 export interface UseRegisterReturn {
   username: string;
   setUsername: Dispatch<SetStateAction<string>>;
-  displayName: string;
-  setDisplayName: Dispatch<SetStateAction<string>>;
   agreedToTerms: boolean;
   setAgreedToTerms: Dispatch<SetStateAction<boolean>>;
   newsletter: boolean;
@@ -47,7 +45,6 @@ export interface UseRegisterReturn {
 
 const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterReturn => {
   const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [newsletter, setNewsletter] = useState(true);
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
@@ -125,7 +122,8 @@ const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterReturn => {
       await register({
         registerRequest: {
           username,
-          displayName: displayName.trim() || undefined,
+          // Display name defaults to the username server-side; the user can
+          // change it later in their account settings (out of scope here).
           newsletter,
         },
       }).unwrap();
@@ -152,8 +150,6 @@ const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterReturn => {
   return {
     username,
     setUsername,
-    displayName,
-    setDisplayName,
     agreedToTerms,
     setAgreedToTerms,
     newsletter,

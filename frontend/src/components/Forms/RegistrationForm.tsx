@@ -23,8 +23,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const {
     username,
     setUsername,
-    displayName,
-    setDisplayName,
     agreedToTerms,
     setAgreedToTerms,
     newsletter,
@@ -71,16 +69,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({
           infoMessage={usernameInfoMessage}
           errorMessage={usernameErrorMessage}
           checked={usernameStatus === "available"}
-        />
-        <Input
-          id='displayName'
-          value={displayName}
-          onChange={(e) => {
-            setDisplayName(e.target.value);
-          }}
-          maxLength={60}
-          label='Display name (optional)'
-          infoMessage='How your name appears to others. Defaults to your username.'
         />
         <Checkbox
           id='terms'
