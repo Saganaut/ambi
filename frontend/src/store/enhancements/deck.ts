@@ -10,12 +10,77 @@
  * invalidation refetch then reconciles. share / revokeShare reshape the `acl`,
  * which needs server data to render, so they reconcile by refetch only.
  *
+ * `deleteDeck` is the exception: it *splices* the deck out of every cached
+ * deck-list query (optimistic, rolled back on reject) and deliberately does
+ * **not** invalidate the `Deck` tag — the deck no longer exists, so refetching
+ * `getDeck` would 404. This mirrors the splice-without-tags convention in
+ * `./favorite` / `./collection`.
+ *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { Ambi } from "../AmbiApi";
+import {
+  Ambi,
+  type ListDecksForOrgApiArg,
+  type ListPublicDecksApiArg,
+} from "../AmbiApi";
+import type { CacheSyncApi } from "./types";
 
 /** Tag for a single deck, keyed by id. */
 const deckTag = (id: string) => [{ type: "Deck" as const, id }];
+
+/**
+ * Optimistically drop a deleted deck from every materialized deck-list cache,
+ * rolling all patches back if the delete is rejected. Covers the void-arg
+ * `listMyDecks` (the My Decks grid) plus every cached `listDecksForOrg`
+ * (bare array, keyed by orgId) and `listPublicDecks` (paged `content`).
+ */
+const optimisticDeleteDeck = async (arg: { id: string }, api: CacheSyncApi) => {
+  const patches: { undo: () => void }[] = [];
+  const patch = (action: unknown) => {
+    patches.push(api.dispatch(action) as { undo: () => void });
+  };
+
+  patch(
+    Ambi.util.updateQueryData("listMyDecks", undefined, (draft) =>
+      draft.filter((deck) => deck.id !== arg.id),
+    ),
+  );
+
+  const queries = api.getState().api?.queries ?? {};
+  for (const entry of Object.values(queries)) {
+    if (!entry?.endpointName) continue;
+    if (entry.endpointName === "listDecksForOrg") {
+      const queryArg = (entry.originalArgs ?? {}) as ListDecksForOrgApiArg;
+      patch(
+        Ambi.util.updateQueryData("listDecksForOrg", queryArg, (draft) =>
+          draft.filter((deck) => deck.id !== arg.id),
+        ),
+      );
+    } else if (entry.endpointName === "listPublicDecks") {
+      const queryArg = (entry.originalArgs ?? {}) as ListPublicDecksApiArg;
+      patch(
+        Ambi.util.updateQueryData("listPublicDecks", queryArg, (draft) => {
+          if (!draft.content) return;
+          const before = draft.content.length;
+          draft.content = draft.content.filter((deck) => deck.id !== arg.id);
+          const removed = before - draft.content.length;
+          if (removed > 0 && draft.page?.totalElements != null) {
+            draft.page.totalElements = Math.max(
+              0,
+              draft.page.totalElements - removed,
+            );
+          }
+        }),
+      );
+    }
+  }
+
+  try {
+    await api.queryFulfilled;
+  } catch {
+    for (const p of patches) p.undo();
+  }
+};
 
 Ambi.enhanceEndpoints({
   addTagTypes: ["Deck"],
@@ -58,6 +123,9 @@ Ambi.enhanceEndpoints({
     },
     revokeShare: {
       invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
+    },
+    deleteDeck: {
+      onQueryStarted: (arg, api) => optimisticDeleteDeck(arg, api),
     },
   },
 });
