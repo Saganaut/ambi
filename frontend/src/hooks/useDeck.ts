@@ -1,12 +1,12 @@
 // Deck layer between the generated deck API and the deck editor. Wraps the
 // single-deck query plus every deck-lifecycle mutation behind intent-level
-// handlers (rename, setVisibility, share, …) with optimistic cache updates
-// baked in, so the editor never touches RTK Query directly. Also owns
-// optimistic deck *creation* — the flow previously inline in MyDecksPage —
-// since the new deck's id is client-minted and seeded into the cache before
-// the round trip.
+// handlers (rename, setVisibility, share, …), so the editor never touches RTK
+// Query directly. The handlers are thin: they just fire the mutation. Cache
+// behaviour (optimistic patch + tag-driven reconciling refetch) lives in
+// `store/enhancements/deck.ts` so it applies no matter who calls the mutation.
+// Deck *creation* is just a client-minted UUID PUT: the caller navigates to
+// the editor, where getDeck fetches the now-existing deck.
 import {
-  Ambi,
   useGetDeckQuery,
   useCreate1Mutation,
   useUpdateDeckMutation,
@@ -14,56 +14,25 @@ import {
   useSetVisibilityMutation,
   useShareMutation,
   useRevokeShareMutation,
-  useAddSlideMutation,
   type DeckResponse,
   type SetVisibilityRequest,
   type ShareDeckRequest,
   type UpdateDeckRequest,
 } from "@/store/AmbiApi";
-import { useAppDispatch } from "@/store/hooks";
-import { buildNewSlide, optimisticSlide } from "./useSlide";
-
-const DEFAULT_DECK_NAME = "Untitled Deck";
-
-/** Full DeckResponse for the optimistic seed — the real response overwrites it. */
-const buildOptimisticDeck = (id: string, name: string): DeckResponse => {
-  const now = new Date().toISOString();
-  return {
-    id,
-    publicId: id,
-    name,
-    version: 0,
-    publishStatus: "DRAFT",
-    visibility: "PRIVATE",
-    language: "en",
-    creatorUserId: "",
-    originalAuthorUserId: "",
-    tags: [],
-    ownership: { type: "USER" },
-    acl: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-};
-
-interface CreatedDeck {
-  deckId: string;
-  firstSlideId: string;
-}
 
 interface UseDeckResult {
   deck: DeckResponse | undefined;
   isLoading: boolean;
   error: unknown;
   /**
-   * Create a new deck (+ a first slide so the editor never opens onto an empty
-   * rail). Mints the ids, seeds the getDeck + listSlides caches optimistically,
-   * then persists in the background. Returns the new ids so the caller can
-   * navigate to the editor.
+   * Create a new (empty) deck. Mints the id client-side and PUTs it; the deck
+   * is born named "Untitled Deck" server-side. Returns the id so the caller can
+   * navigate straight to the editor (where getDeck fetches it). Slides are
+   * added separately.
    */
-  createDeck: (name?: string) => CreatedDeck;
+  createDeck: () => string;
   rename: (name: string) => void;
-  /** Patch deck fields optimistically (PATCH, partial). */
+  /** Patch deck fields (PATCH, partial). */
   updateDeck: (patch: UpdateDeckRequest) => void;
   setVisibility: (visibility: SetVisibilityRequest["visibility"]) => void;
   share: (userId: string, role: ShareDeckRequest["role"]) => void;
@@ -77,7 +46,6 @@ interface UseDeckResult {
  *   create a deck (e.g. a "New deck" button), so the getDeck query stays idle.
  */
 const useDeck = (deckId?: string): UseDeckResult => {
-  const dispatch = useAppDispatch();
   const {
     data: deck,
     isLoading,
@@ -90,82 +58,22 @@ const useDeck = (deckId?: string): UseDeckResult => {
   const [setVisibilityMutation] = useSetVisibilityMutation();
   const [shareMutation] = useShareMutation();
   const [revokeShareMutation] = useRevokeShareMutation();
-  const [addSlideMutation] = useAddSlideMutation();
 
-  const createDeck = (name: string = DEFAULT_DECK_NAME): CreatedDeck => {
+  const createDeck = (): string => {
     const newDeckId = crypto.randomUUID();
-    const firstSlideId = crypto.randomUUID();
-    const firstSlide = buildNewSlide("TITLE", firstSlideId);
-
-    // Seed both caches so the editor opens fully populated before any request.
-    void dispatch(
-      Ambi.util.upsertQueryData(
-        "getDeck",
-        { id: newDeckId },
-        buildOptimisticDeck(newDeckId, name),
-      ),
-    );
-    void dispatch(
-      Ambi.util.upsertQueryData("listSlides", { id: newDeckId }, [
-        optimisticSlide(firstSlide),
-      ]),
-    );
-
-    // create1 is an idempotent PUT that just persists the id; the name (PATCH)
-    // and first slide (POST) land on the now-existing deck, in order.
+    // Idempotent PUT that persists the id; the deck defaults to "Untitled Deck"
+    // server-side. The caller navigates to the editor, where getDeck fetches it.
     void createDeckMutation({ id: newDeckId })
       .unwrap()
-      .then(() =>
-        updateDeckMutation({
-          id: newDeckId,
-          updateDeckRequest: { name },
-        }).unwrap(),
-      )
-      .then((updated) => {
-        void dispatch(
-          Ambi.util.upsertQueryData("getDeck", { id: newDeckId }, updated),
-        );
-        return addSlideMutation({
-          id: newDeckId,
-          slideRequest: firstSlide,
-        }).unwrap();
-      })
-      .then((slide) => {
-        dispatch(
-          Ambi.util.updateQueryData("listSlides", { id: newDeckId }, (draft) => {
-            const idx = draft.findIndex((s) => s.id === firstSlideId);
-            if (idx !== -1) draft[idx] = slide;
-            else draft.push(slide);
-          }),
-        );
-      })
       .catch((err: unknown) => {
         console.error("Failed to create deck", err);
       });
-
-    return { deckId: newDeckId, firstSlideId };
+    return newDeckId;
   };
 
-  /** Optimistically patch getDeck, fire the PATCH, splice the canonical reply. */
   const updateDeck = (patch: UpdateDeckRequest) => {
     if (!deckId) return;
-    const optimistic = dispatch(
-      Ambi.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
-        Object.assign(draft, patch);
-      }),
-    ) as { undo: () => void };
-
-    void updateDeckMutation({ id: deckId, updateDeckRequest: patch })
-      .unwrap()
-      .then((updated) => {
-        void dispatch(
-          Ambi.util.upsertQueryData("getDeck", { id: deckId }, updated),
-        );
-      })
-      .catch((err: unknown) => {
-        optimistic.undo();
-        console.error("Failed to update deck", err);
-      });
+    void updateDeckMutation({ id: deckId, updateDeckRequest: patch });
   };
 
   const rename = (name: string) => {
@@ -174,56 +82,17 @@ const useDeck = (deckId?: string): UseDeckResult => {
 
   const setVisibility = (visibility: SetVisibilityRequest["visibility"]) => {
     if (!deckId) return;
-    const optimistic = dispatch(
-      Ambi.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
-        draft.visibility = visibility;
-      }),
-    ) as { undo: () => void };
-
-    void setVisibilityMutation({
-      id: deckId,
-      setVisibilityRequest: { visibility },
-    })
-      .unwrap()
-      .then((updated) => {
-        void dispatch(
-          Ambi.util.upsertQueryData("getDeck", { id: deckId }, updated),
-        );
-      })
-      .catch((err: unknown) => {
-        optimistic.undo();
-        console.error("Failed to set deck visibility", err);
-      });
+    void setVisibilityMutation({ id: deckId, setVisibilityRequest: { visibility } });
   };
 
-  // Share mutations return the full DeckResponse; we splice it in on success
-  // rather than patch the acl optimistically (the new grant needs server data).
   const share = (userId: string, role: ShareDeckRequest["role"]) => {
     if (!deckId) return;
-    void shareMutation({ id: deckId, userId, shareDeckRequest: { role } })
-      .unwrap()
-      .then((updated) => {
-        void dispatch(
-          Ambi.util.upsertQueryData("getDeck", { id: deckId }, updated),
-        );
-      })
-      .catch((err: unknown) => {
-        console.error("Failed to share deck", err);
-      });
+    void shareMutation({ id: deckId, userId, shareDeckRequest: { role } });
   };
 
   const revokeShare = (userId: string) => {
     if (!deckId) return;
-    void revokeShareMutation({ id: deckId, userId })
-      .unwrap()
-      .then((updated) => {
-        void dispatch(
-          Ambi.util.upsertQueryData("getDeck", { id: deckId }, updated),
-        );
-      })
-      .catch((err: unknown) => {
-        console.error("Failed to revoke deck share", err);
-      });
+    void revokeShareMutation({ id: deckId, userId });
   };
 
   const remove = () => {
@@ -246,4 +115,4 @@ const useDeck = (deckId?: string): UseDeckResult => {
 };
 
 export { useDeck };
-export type { UseDeckResult, CreatedDeck };
+export type { UseDeckResult };

@@ -1,19 +1,18 @@
 // Slide-collection layer between the generated slide API and the deck editor.
-// Owns the `listSlides` cache for a single deck and exposes optimistic add /
-// update / remove handlers, so the editor never imports RTK Query directly and
-// the rail reflects edits before the round trip. Reordering is intentionally
-// left out for now — the slim API has no moveSlide endpoint, and the
-// sortOrder / parentId / childId contract isn't settled yet.
+// Reads the `listSlides` cache for a single deck and exposes intent-level
+// add / update / remove / reorder handlers, so the editor never imports RTK
+// Query directly. The handlers are thin: they just fire the mutation. Cache
+// behaviour (optimistic patch + tag-driven reconciling refetch) lives in
+// `store/enhancements/slide.ts` so it applies no matter who calls the mutation.
 import {
-  Ambi,
   useListSlidesQuery,
   useAddSlideMutation,
   useUpdateSlideMutation,
   useRemoveSlideMutation,
+  useMoveSlideMutation,
   type SlideRequest,
   type SlideResponse,
 } from "@/store/AmbiApi";
-import { useAppDispatch } from "@/store/hooks";
 
 type SlideType = NonNullable<SlideRequest["slideType"]>;
 
@@ -23,28 +22,14 @@ type SlideType = NonNullable<SlideRequest["slideType"]>;
  * type and a blank title. Typed `content` (MCQ, …) is left off — a TITLE slide
  * has none, and the type-specific editor fills it in once the slide exists.
  *
- * Exported so {@link useDeck}'s createDeck can seed an identical first slide.
- *
  * @param slideType the slide kind to create
- * @param id client-minted id, reused for the optimistic seed and the persisted
+ * @param id client-minted id, reused for the optimistic patch and the persisted
  *   POST so the slide stays selected without a flicker
  */
 const buildNewSlide = (slideType: SlideType, id: string): SlideRequest => ({
   id,
   slideType,
   title: "",
-});
-
-/**
- * Project a SlideRequest into a SlideResponse for optimistic cache insertion.
- * The server stamps the audit fields on confirm; until then we fill the
- * required ones with empty placeholders that the real response overwrites.
- */
-const optimisticSlide = (request: SlideRequest): SlideResponse => ({
-  ...request,
-  id: request.id ?? crypto.randomUUID(),
-  createdByUserId: "",
-  lastEditedByUserId: "",
 });
 
 interface AddSlideOptions {
@@ -58,106 +43,62 @@ interface UseSlideResult {
   error: unknown;
   /** Look a slide up in the loaded collection by id. */
   getSlide: (slideId: string) => SlideResponse | undefined;
-  /** Append a slide optimistically; returns the new client-minted id. */
+  /** Append a slide; returns the new client-minted id. */
   addSlide: (options?: AddSlideOptions) => string;
-  /** Patch a slide optimistically (PUT replaces the whole slide). */
+  /** Patch a slide (PUT replaces the whole slide). */
   updateSlide: (slideId: string, patch: Partial<SlideRequest>) => void;
-  /** Remove a slide optimistically. */
+  /** Remove a slide. */
   removeSlide: (slideId: string) => void;
+  /**
+   * Move a slide to a new zero-based position in the deck's order. The backend
+   * computes the new LexoRank `sortOrder` key from the index; the reconciling
+   * refetch lands the canonical order. Pairs with the rail's drag-and-drop.
+   */
+  reorder: (slideId: string, toIndex: number) => void;
 }
 
 const useSlide = (deckId: string): UseSlideResult => {
-  const dispatch = useAppDispatch();
   const { data, isLoading, error } = useListSlidesQuery({ id: deckId });
   const slides = data ?? [];
 
   const [addSlideMutation] = useAddSlideMutation();
   const [updateSlideMutation] = useUpdateSlideMutation();
   const [removeSlideMutation] = useRemoveSlideMutation();
+  const [moveSlideMutation] = useMoveSlideMutation();
 
   const getSlide = (slideId: string) =>
     slides.find((slide) => slide.id === slideId);
 
   const addSlide = (options: AddSlideOptions = {}) => {
     const id = crypto.randomUUID();
-    const request: SlideRequest = {
+    const slideRequest: SlideRequest = {
       ...buildNewSlide(options.slideType ?? "TITLE", id),
       ...(options.title != null ? { title: options.title } : {}),
     };
-
-    // Append to the rail before the round trip; undo if the POST rejects.
-    const patch = dispatch(
-      Ambi.util.updateQueryData("listSlides", { id: deckId }, (draft) => {
-        draft.push(optimisticSlide(request));
-      }),
-    ) as { undo: () => void };
-
-    void addSlideMutation({ id: deckId, slideRequest: request })
-      .unwrap()
-      .then((created) => {
-        // Swap the placeholder for the hydrated server slide (audit fields,
-        // sortOrder, version, …).
-        dispatch(
-          Ambi.util.updateQueryData("listSlides", { id: deckId }, (draft) => {
-            const idx = draft.findIndex((slide) => slide.id === id);
-            if (idx !== -1) draft[idx] = created;
-          }),
-        );
-      })
-      .catch((err: unknown) => {
-        patch.undo();
-        console.error("Failed to add slide", err);
-      });
-
+    void addSlideMutation({ id: deckId, slideRequest });
     return id;
   };
 
   const updateSlide = (slideId: string, patch: Partial<SlideRequest>) => {
     const current = slides.find((slide) => slide.id === slideId);
     if (!current) return;
-
     // PUT replaces the whole slide, so carry the cached slide forward and
     // overlay the patch. The few response-only fields that ride along (audit
     // ids, version) are ignored server-side.
-    const request: SlideRequest = { ...current, ...patch };
-
-    const optimistic = dispatch(
-      Ambi.util.updateQueryData("listSlides", { id: deckId }, (draft) => {
-        const idx = draft.findIndex((slide) => slide.id === slideId);
-        if (idx !== -1) draft[idx] = { ...draft[idx], ...patch };
-      }),
-    ) as { undo: () => void };
-
-    void updateSlideMutation({ id: deckId, slideId, slideRequest: request })
-      .unwrap()
-      .then((updated) => {
-        dispatch(
-          Ambi.util.updateQueryData("listSlides", { id: deckId }, (draft) => {
-            const idx = draft.findIndex((slide) => slide.id === slideId);
-            if (idx !== -1) draft[idx] = updated;
-          }),
-        );
-      })
-      .catch((err: unknown) => {
-        optimistic.undo();
-        console.error("Failed to update slide", err);
-      });
+    const slideRequest: SlideRequest = { ...current, ...patch };
+    void updateSlideMutation({ id: deckId, slideId, slideRequest });
   };
 
   const removeSlide = (slideId: string) => {
-    const optimistic = dispatch(
-      Ambi.util.updateQueryData("listSlides", { id: deckId }, (draft) => {
-        const idx = draft.findIndex((slide) => slide.id === slideId);
-        if (idx !== -1) draft.splice(idx, 1);
-      }),
-    ) as { undo: () => void };
+    void removeSlideMutation({ id: deckId, slideId });
+  };
 
-    void removeSlideMutation({ id: deckId, slideId })
-      .unwrap()
-      .catch((err: unknown) => {
-        optimistic.undo();
-        console.error("Failed to remove slide", err);
-      });
+  const reorder = (slideId: string, toIndex: number) => {
+    void moveSlideMutation({
+      id: deckId,
+      slideId,
+      moveSlideRequest: { to: toIndex },
+    });
   };
 
   return {
@@ -168,8 +109,9 @@ const useSlide = (deckId: string): UseSlideResult => {
     addSlide,
     updateSlide,
     removeSlide,
+    reorder,
   };
 };
 
-export { useSlide, buildNewSlide, optimisticSlide };
+export { useSlide };
 export type { UseSlideResult, AddSlideOptions, SlideType };

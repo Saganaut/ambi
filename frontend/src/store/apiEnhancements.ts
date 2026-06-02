@@ -4,10 +4,13 @@
  * `Ambi.enhanceEndpoints({ ... })` call for one feature surface
  * (decks, collections, favorites, …).
  *
- * The generated mutations all return the canonical updated DTO with
- * presigned `imgUrl` values fully hydrated; the per-feature modules splice
- * those responses into the relevant query caches so subscribed components
- * re-render without a refetch and without any stale-URL merge dance.
+ * Two strategies live here. Most surfaces (favorites, ratings, comments,
+ * collections, …) splice the canonical mutation response into the relevant
+ * query cache so subscribed components re-render without a refetch. The
+ * deck + slide editor surfaces instead use tag invalidation (`providesTags`
+ * / `invalidatesTags`) with an optimistic `onQueryStarted` patch: the edit
+ * shows instantly, then a tag-driven refetch reconciles against server truth
+ * (LexoRank `sortOrder`, `version`, audit ids) — see `./enhancements/slide`.
  *
  * This file is imported for its side effect from `store.ts`; do not remove
  * the import there or these mutations will silently fall out of sync. The
@@ -19,6 +22,7 @@
  * generated file.
  */
 import "./enhancements/deck";
+import "./enhancements/slide";
 import "./enhancements/collection";
 import "./enhancements/collaborator";
 import "./enhancements/favorite";

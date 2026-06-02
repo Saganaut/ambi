@@ -1,65 +1,63 @@
 /**
- * Cache-sync rules for deck-element + deck-lifecycle mutations.
+ * Tag + optimism rules for deck-lifecycle mutations (the editor's deck-level
+ * surface: rename, visibility, sharing).
  *
- * Every mutation in this group returns the canonical updated DeckResponse with
- * presigned `imgUrl` values fully hydrated (the controller runs the same
- * DeckImageHydrationService.hydrate on every mutation response that it runs
- * on `getDeck`). We splice that response into the `getDeck` query cache so
- * any subscribed component re-renders without a refetch and without any
- * stale-URL merge dance on the client.
+ * `getDeck` is tagged `{ type: 'Deck', id }`; the mutations that edit an
+ * existing deck invalidate it so RTK Query refetches the canonical, fully
+ * image-hydrated DeckResponse instead of us splicing the mutation response in
+ * by hand. Rename + visibility also patch `getDeck` optimistically via
+ * `onQueryStarted` so the navbar title / visibility pill update instantly; the
+ * invalidation refetch then reconciles. share / revokeShare reshape the `acl`,
+ * which needs server data to render, so they reconcile by refetch only.
  *
- * Imported for its side effect via the `../apiEnhancements` barrel; do not
- * remove that import or these mutations will silently fall out of sync.
+ * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { Ambi, type DeckResponse } from "../AmbiApi";
-import type { CacheSyncApi } from "./types";
+import { Ambi } from "../AmbiApi";
 
-const syncDeckCache = async (arg: { id: string }, api: CacheSyncApi) => {
-  try {
-    const { data } = await api.queryFulfilled;
-    api.dispatch(
-      Ambi.util.upsertQueryData(
-        "getDeck",
-        { id: arg.id },
-        data as DeckResponse,
-      ),
-    );
-  } catch {
-    // Mutation rejected — leave the cache untouched; the failing component
-    // is responsible for surfacing the error.
-  }
-};
+/** Tag for a single deck, keyed by id. */
+const deckTag = (id: string) => [{ type: "Deck" as const, id }];
 
 Ambi.enhanceEndpoints({
+  addTagTypes: ["Deck"],
   endpoints: {
-    addElement: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
-    },
-    moveElement: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
-    },
-    moveMcqOption: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
-    },
-    deleteElement: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
-    },
-    updateElement: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
+    getDeck: {
+      providesTags: (_result, _error, arg) => deckTag(arg.id),
     },
     updateDeck: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            Object.assign(draft, arg.updateDeckRequest);
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
     },
-    // Publish lifecycle mutations also return the canonical DeckResponse, so the
-    // status pill in the editor navbar updates instantly without a refetch.
-    publishDeck: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
+    setVisibility: {
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.visibility = arg.setVisibilityRequest.visibility;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
     },
-    unpublishDeck: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
+    share: {
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
     },
-    archiveDeck: {
-      onQueryStarted: (arg, api) => syncDeckCache(arg, api),
+    revokeShare: {
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
     },
   },
 });
