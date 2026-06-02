@@ -33,15 +33,21 @@ import com.cephadex.ambi.presentation.slide.Slide;
 import jakarta.validation.Valid;
 
 /**
- * HTTP surface for the {@link Deck} aggregate. Every route delegates straight to
- * {@link DeckService}, which owns the permission rules (see the package README):
- * the controller only resolves the caller's {@link AmbiPrincipal}, maps DTOs, and
- * lets the service throw the typed {@code ApiException}s the global handler turns
+ * HTTP surface for the {@link Deck} aggregate. Every route delegates straight
+ * to
+ * {@link DeckService}, which owns the permission rules (see the package
+ * README):
+ * the controller only resolves the caller's {@link AmbiPrincipal}, maps DTOs,
+ * and
+ * lets the service throw the typed {@code ApiException}s the global handler
+ * turns
  * into RFC 9457 problem responses. Decks are keyed by a high-entropy id, so a
  * forbidden access is an honest 403, never a masked 404.
  *
- * <p>Slides are embedded in their deck but exposed as a sub-resource under
- * {@code /slides}: a deck read/list carries metadata only ({@link DeckResponse}),
+ * <p>
+ * Slides are embedded in their deck but exposed as a sub-resource under
+ * {@code /slides}: a deck read/list carries metadata only
+ * ({@link DeckResponse}),
  * keeping payloads small and edits granular.
  */
 @RestController
@@ -62,14 +68,15 @@ public class DeckController {
      * defaults, owned by the caller. Subsequent metadata edits go through
      * {@link #updateDeck}.
      *
-     * <p>Idempotent, as PUT should be: a resend of the same id (retry, double
+     * <p>
+     * Idempotent, as PUT should be: a resend of the same id (retry, double
      * submit, refresh) hits the {@code _id} unique index — {@code create} always
      * inserts, never upserts — so we swallow the duplicate and return the
      * existing deck. The VIEW check still applies, so a caller who reuses an id
      * already owned by someone else gets the usual 403/404 rather than a peek.
      */
     @PutMapping("/{id}")
-    public DeckResponse create(
+    public DeckResponse createDeck(
             @PathVariable String id,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         try {
@@ -116,7 +123,7 @@ public class DeckController {
 
     /** Change a deck's visibility (MANAGE). */
     @PutMapping("/{id}/visibility")
-    public DeckResponse setVisibility(
+    public DeckResponse setDeckVisibility(
             @PathVariable String id,
             @Valid @RequestBody SetVisibilityRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
@@ -125,7 +132,7 @@ public class DeckController {
 
     /** Grant or update an explicit per-user share (MANAGE). Idempotent upsert. */
     @PutMapping("/{id}/shares/{userId}")
-    public DeckResponse share(
+    public DeckResponse shareDeck(
             @PathVariable String id,
             @PathVariable String userId,
             @Valid @RequestBody ShareDeckRequest body,
@@ -135,7 +142,7 @@ public class DeckController {
 
     /** Revoke an explicit per-user share (MANAGE). */
     @DeleteMapping("/{id}/shares/{userId}")
-    public DeckResponse revokeShare(
+    public DeckResponse revokeShareDeck(
             @PathVariable String id,
             @PathVariable String userId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
@@ -146,7 +153,7 @@ public class DeckController {
 
     /** A deck's slides, in storage order (VIEW). */
     @GetMapping("/{id}/slides")
-    public List<SlideResponse> listSlides(
+    public List<SlideResponse> listDeckSlides(
             @PathVariable String id,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return deckService.listSlides(id, principal).stream()
@@ -213,9 +220,11 @@ public class DeckController {
 
     // ── Listings ────────────────────────────────────────────────────────────────
 
-    /** The caller's personal decks. Identity comes from the principal, never input. */
+    /**
+     * The caller's personal decks. Identity comes from the principal, never input.
+     */
     @GetMapping("/mine")
-    public List<DeckResponse> listMine(@AuthenticationPrincipal AmbiPrincipal principal) {
+    public List<DeckResponse> listMyDecks(@AuthenticationPrincipal AmbiPrincipal principal) {
         return deckService.listOwnedByUser(requireUserId(principal)).stream()
                 .map(DeckResponse::from)
                 .toList();
@@ -223,7 +232,7 @@ public class DeckController {
 
     /** Decks owned by an org — requires the caller to be a member (VIEW). */
     @GetMapping(params = "orgId")
-    public List<DeckResponse> listForOrg(
+    public List<DeckResponse> listDecksForOrg(
             @RequestParam String orgId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return deckService.listForOrg(orgId, principal).stream()
@@ -232,12 +241,13 @@ public class DeckController {
     }
 
     /**
-     * Publicly discoverable decks ({@code PUBLIC} + {@code PUBLISHED}). Open to all.
+     * Publicly discoverable decks ({@code PUBLIC} + {@code PUBLISHED}). Open to
+     * all.
      * Returned as a {@link PagedModel} — the stable, self-describing page envelope
      * ({@code content} + {@code page} metadata).
      */
     @GetMapping("/public")
-    public PagedModel<DeckResponse> listPublic(Pageable pageable) {
+    public PagedModel<DeckResponse> listPublicDecks(Pageable pageable) {
         return new PagedModel<>(deckService.listPublic(pageable).map(DeckResponse::from));
     }
 

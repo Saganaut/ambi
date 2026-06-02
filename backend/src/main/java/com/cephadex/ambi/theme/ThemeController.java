@@ -53,7 +53,7 @@ public class ThemeController {
      * 403/404 rather than a peek.
      */
     @PutMapping("/{id}")
-    public ThemeResponse create(
+    public ThemeResponse createTheme(
             @PathVariable String id,
             @Valid @RequestBody CreateThemeRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
@@ -93,9 +93,11 @@ public class ThemeController {
 
     // ── Listings ────────────────────────────────────────────────────────────────
 
-    /** The caller's personal themes. Identity comes from the principal, never input. */
+    /**
+     * The caller's personal themes. Identity comes from the principal, never input.
+     */
     @GetMapping("/mine")
-    public List<ThemeResponse> listMine(@AuthenticationPrincipal AmbiPrincipal principal) {
+    public List<ThemeResponse> listMyThemes(@AuthenticationPrincipal AmbiPrincipal principal) {
         return themeService.listOwnedByUser(requireUserId(principal)).stream()
                 .map(ThemeResponse::from)
                 .toList();
@@ -103,7 +105,7 @@ public class ThemeController {
 
     /** App-provided preset themes. Available to everyone. */
     @GetMapping("/built-in")
-    public List<ThemeResponse> listBuiltIn() {
+    public List<ThemeResponse> listBuiltInThemes() {
         return themeService.listBuiltIn().stream()
                 .map(ThemeResponse::from)
                 .toList();
@@ -111,7 +113,7 @@ public class ThemeController {
 
     /** Themes owned by an org — requires the caller to be a member (VIEW). */
     @GetMapping(params = "orgId")
-    public List<ThemeResponse> listForOrg(
+    public List<ThemeResponse> listThemesForOrg(
             @RequestParam String orgId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return themeService.listForOrg(orgId, principal).stream()

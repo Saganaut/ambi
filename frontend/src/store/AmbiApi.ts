@@ -14,7 +14,7 @@ const injectedRtkApi = api.injectEndpoints({
     getTheme: build.query<GetThemeApiResponse, GetThemeApiArg>({
       query: (queryArg) => ({ url: `/api/themes/${queryArg.id}` }),
     }),
-    create: build.mutation<CreateApiResponse, CreateApiArg>({
+    createTheme: build.mutation<CreateThemeApiResponse, CreateThemeApiArg>({
       query: (queryArg) => ({
         url: `/api/themes/${queryArg.id}`,
         method: "PUT",
@@ -37,7 +37,7 @@ const injectedRtkApi = api.injectEndpoints({
     getDeck: build.query<GetDeckApiResponse, GetDeckApiArg>({
       query: (queryArg) => ({ url: `/api/decks/${queryArg.id}` }),
     }),
-    create1: build.mutation<Create1ApiResponse, Create1ApiArg>({
+    createDeck: build.mutation<CreateDeckApiResponse, CreateDeckApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}`,
         method: "PUT",
@@ -56,9 +56,9 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.updateDeckRequest,
       }),
     }),
-    setVisibility: build.mutation<
-      SetVisibilityApiResponse,
-      SetVisibilityApiArg
+    setDeckVisibility: build.mutation<
+      SetDeckVisibilityApiResponse,
+      SetDeckVisibilityApiArg
     >({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/visibility`,
@@ -84,20 +84,26 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
-    share: build.mutation<ShareApiResponse, ShareApiArg>({
+    shareDeck: build.mutation<ShareDeckApiResponse, ShareDeckApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/shares/${queryArg.userId}`,
         method: "PUT",
         body: queryArg.shareDeckRequest,
       }),
     }),
-    revokeShare: build.mutation<RevokeShareApiResponse, RevokeShareApiArg>({
+    revokeShareDeck: build.mutation<
+      RevokeShareDeckApiResponse,
+      RevokeShareDeckApiArg
+    >({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/shares/${queryArg.userId}`,
         method: "DELETE",
       }),
     }),
-    listSlides: build.query<ListSlidesApiResponse, ListSlidesApiArg>({
+    listDeckSlides: build.query<
+      ListDeckSlidesApiResponse,
+      ListDeckSlidesApiArg
+    >({
       query: (queryArg) => ({ url: `/api/decks/${queryArg.id}/slides` }),
     }),
     addSlide: build.mutation<AddSlideApiResponse, AddSlideApiArg>({
@@ -140,7 +146,10 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.moveSlideRequest,
       }),
     }),
-    listForOrg: build.query<ListForOrgApiResponse, ListForOrgApiArg>({
+    listThemesForOrg: build.query<
+      ListThemesForOrgApiResponse,
+      ListThemesForOrgApiArg
+    >({
       query: (queryArg) => ({
         url: `/api/themes`,
         params: {
@@ -148,13 +157,19 @@ const injectedRtkApi = api.injectEndpoints({
         },
       }),
     }),
-    listMine: build.query<ListMineApiResponse, ListMineApiArg>({
+    listMyThemes: build.query<ListMyThemesApiResponse, ListMyThemesApiArg>({
       query: () => ({ url: `/api/themes/mine` }),
     }),
-    listBuiltIn: build.query<ListBuiltInApiResponse, ListBuiltInApiArg>({
+    listBuiltInThemes: build.query<
+      ListBuiltInThemesApiResponse,
+      ListBuiltInThemesApiArg
+    >({
       query: () => ({ url: `/api/themes/built-in` }),
     }),
-    listForOrg1: build.query<ListForOrg1ApiResponse, ListForOrg1ApiArg>({
+    listDecksForOrg: build.query<
+      ListDecksForOrgApiResponse,
+      ListDecksForOrgApiArg
+    >({
       query: (queryArg) => ({
         url: `/api/decks`,
         params: {
@@ -162,7 +177,10 @@ const injectedRtkApi = api.injectEndpoints({
         },
       }),
     }),
-    listPublic: build.query<ListPublicApiResponse, ListPublicApiArg>({
+    listPublicDecks: build.query<
+      ListPublicDecksApiResponse,
+      ListPublicDecksApiArg
+    >({
       query: (queryArg) => ({
         url: `/api/decks/public`,
         params: {
@@ -170,7 +188,7 @@ const injectedRtkApi = api.injectEndpoints({
         },
       }),
     }),
-    listMine1: build.query<ListMine1ApiResponse, ListMine1ApiArg>({
+    listMyDecks: build.query<ListMyDecksApiResponse, ListMyDecksApiArg>({
       query: () => ({ url: `/api/decks/mine` }),
     }),
     usernameAvailable: build.query<
@@ -200,8 +218,8 @@ export type GetThemeApiResponse = /** status 200 OK */ ThemeResponse;
 export type GetThemeApiArg = {
   id: string;
 };
-export type CreateApiResponse = /** status 200 OK */ ThemeResponse;
-export type CreateApiArg = {
+export type CreateThemeApiResponse = /** status 200 OK */ ThemeResponse;
+export type CreateThemeApiArg = {
   id: string;
   createThemeRequest: CreateThemeRequest;
 };
@@ -218,8 +236,8 @@ export type GetDeckApiResponse = /** status 200 OK */ DeckResponse;
 export type GetDeckApiArg = {
   id: string;
 };
-export type Create1ApiResponse = /** status 200 OK */ DeckResponse;
-export type Create1ApiArg = {
+export type CreateDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type CreateDeckApiArg = {
   id: string;
 };
 export type DeleteDeckApiResponse = unknown;
@@ -231,8 +249,8 @@ export type UpdateDeckApiArg = {
   id: string;
   updateDeckRequest: UpdateDeckRequest;
 };
-export type SetVisibilityApiResponse = /** status 200 OK */ DeckResponse;
-export type SetVisibilityApiArg = {
+export type SetDeckVisibilityApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckVisibilityApiArg = {
   id: string;
   setVisibilityRequest: SetVisibilityRequest;
 };
@@ -252,19 +270,19 @@ export type RemoveSlideApiArg = {
   id: string;
   slideId: string;
 };
-export type ShareApiResponse = /** status 200 OK */ DeckResponse;
-export type ShareApiArg = {
+export type ShareDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type ShareDeckApiArg = {
   id: string;
   userId: string;
   shareDeckRequest: ShareDeckRequest;
 };
-export type RevokeShareApiResponse = /** status 200 OK */ DeckResponse;
-export type RevokeShareApiArg = {
+export type RevokeShareDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type RevokeShareDeckApiArg = {
   id: string;
   userId: string;
 };
-export type ListSlidesApiResponse = /** status 200 OK */ SlideResponse[];
-export type ListSlidesApiArg = {
+export type ListDeckSlidesApiResponse = /** status 200 OK */ SlideResponse[];
+export type ListDeckSlidesApiArg = {
   id: string;
 };
 export type AddSlideApiResponse = /** status 201 Created */ SlideResponse;
@@ -294,24 +312,25 @@ export type MoveSlideApiArg = {
   slideId: string;
   moveSlideRequest: MoveSlideRequest;
 };
-export type ListForOrgApiResponse = /** status 200 OK */ ThemeResponse[];
-export type ListForOrgApiArg = {
+export type ListThemesForOrgApiResponse = /** status 200 OK */ ThemeResponse[];
+export type ListThemesForOrgApiArg = {
   orgId: string;
 };
-export type ListMineApiResponse = /** status 200 OK */ ThemeResponse[];
-export type ListMineApiArg = void;
-export type ListBuiltInApiResponse = /** status 200 OK */ ThemeResponse[];
-export type ListBuiltInApiArg = void;
-export type ListForOrg1ApiResponse = /** status 200 OK */ DeckResponse[];
-export type ListForOrg1ApiArg = {
+export type ListMyThemesApiResponse = /** status 200 OK */ ThemeResponse[];
+export type ListMyThemesApiArg = void;
+export type ListBuiltInThemesApiResponse = /** status 200 OK */ ThemeResponse[];
+export type ListBuiltInThemesApiArg = void;
+export type ListDecksForOrgApiResponse = /** status 200 OK */ DeckResponse[];
+export type ListDecksForOrgApiArg = {
   orgId: string;
 };
-export type ListPublicApiResponse = /** status 200 OK */ PagedModelDeckResponse;
-export type ListPublicApiArg = {
+export type ListPublicDecksApiResponse =
+  /** status 200 OK */ PagedModelDeckResponse;
+export type ListPublicDecksApiArg = {
   pageable: Pageable;
 };
-export type ListMine1ApiResponse = /** status 200 OK */ DeckResponse[];
-export type ListMine1ApiArg = void;
+export type ListMyDecksApiResponse = /** status 200 OK */ DeckResponse[];
+export type ListMyDecksApiArg = void;
 export type UsernameAvailableApiResponse =
   /** status 200 OK */ UsernameAvailabilityResponse;
 export type UsernameAvailableApiArg = {
@@ -666,23 +685,23 @@ export const {
   useUpdatePreferencesMutation,
   useGetThemeQuery,
   useLazyGetThemeQuery,
-  useCreateMutation,
+  useCreateThemeMutation,
   useDeleteThemeMutation,
   useUpdateThemeMutation,
   useGetDeckQuery,
   useLazyGetDeckQuery,
-  useCreate1Mutation,
+  useCreateDeckMutation,
   useDeleteDeckMutation,
   useUpdateDeckMutation,
-  useSetVisibilityMutation,
+  useSetDeckVisibilityMutation,
   useGetSlideQuery,
   useLazyGetSlideQuery,
   useUpdateSlideMutation,
   useRemoveSlideMutation,
-  useShareMutation,
-  useRevokeShareMutation,
-  useListSlidesQuery,
-  useLazyListSlidesQuery,
+  useShareDeckMutation,
+  useRevokeShareDeckMutation,
+  useListDeckSlidesQuery,
+  useLazyListDeckSlidesQuery,
   useAddSlideMutation,
   useRegisterMutation,
   useRefreshMutation,
@@ -692,18 +711,18 @@ export const {
   useLazyGetMeQuery,
   useUpdateMeMutation,
   useMoveSlideMutation,
-  useListForOrgQuery,
-  useLazyListForOrgQuery,
-  useListMineQuery,
-  useLazyListMineQuery,
-  useListBuiltInQuery,
-  useLazyListBuiltInQuery,
-  useListForOrg1Query,
-  useLazyListForOrg1Query,
-  useListPublicQuery,
-  useLazyListPublicQuery,
-  useListMine1Query,
-  useLazyListMine1Query,
+  useListThemesForOrgQuery,
+  useLazyListThemesForOrgQuery,
+  useListMyThemesQuery,
+  useLazyListMyThemesQuery,
+  useListBuiltInThemesQuery,
+  useLazyListBuiltInThemesQuery,
+  useListDecksForOrgQuery,
+  useLazyListDecksForOrgQuery,
+  useListPublicDecksQuery,
+  useLazyListPublicDecksQuery,
+  useListMyDecksQuery,
+  useLazyListMyDecksQuery,
   useUsernameAvailableQuery,
   useLazyUsernameAvailableQuery,
   useMeQuery,
