@@ -3,13 +3,26 @@
 // palette in tokens.css; toggling customTheme adds .theme-custom to <html>,
 // which overrides semantic tokens with hue-derived oklch values.
 //
-// localStorage holds the boot-time optimistic cache so the first paint
-// doesn't flash a default theme. For registered users, ActiveThemeBridge (→
-// useActiveThemeSync) overwrites that cache from the server's activeThemeId
-// as soon as RTK Query resolves — the server, not localStorage, is the
-// source of truth for "which theme is mine." Guest/anon users get
-// localStorage-only behavior since they have no server-side identity yet.
+// Source of truth for "which look is mine":
+//   • Registered users — the server, via `preferences.theme` (a ThemeSpec) on
+//     GET /api/users/me. RTK Query caches that read under the `Preferences`
+//     tag; setters write through PUT /api/users/me/preferences, which
+//     invalidates the tag so every subscriber reconciles (see
+//     store/enhancements/preferences.ts). The `/api/users/me` read is
+//     auth-gated, so it is skipped for anyone not registered.
+//   • Guests / visitors — localStorage only, since they have no server-side
+//     identity yet.
+//
+// localStorage also holds the boot-time optimistic cache for everyone so the
+// first paint doesn't flash a default theme before the server look resolves.
 import { useEffect, useState } from "react";
+import {
+  useGetMeQuery,
+  useUpdatePreferencesMutation,
+  type ThemeSpec,
+} from "../store/AmbiApi";
+import { useCurrentUser } from "./useCurrentUser";
+import { apiToUiMode, uiToApiMode } from "../utils/themeMode";
 
 export type ThemeMode = "light" | "dark";
 
@@ -70,23 +83,60 @@ const applyCustomThemeClass = (custom: boolean) => {
 
 const clampHue = (hue: number) => Math.round(Math.max(0, Math.min(360, hue)));
 
+// Hues that differ from the brand defaults imply a custom (hue-derived) look —
+// the server stores no separate "is custom" flag, so we derive it from the spec.
+const isCustomSpec = (huePrimary: number, hueAccent: number): boolean =>
+  huePrimary !== DEFAULT_HUE_PRIMARY || hueAccent !== DEFAULT_HUE_ACCENT;
+
 export function useTheme() {
-  const [theme, setTheme] = useState<ThemeMode>(() => {
+  const userState = useCurrentUser();
+  const isRegistered = userState.state === "registered";
+
+  // The profile read is auth-gated; skipping it for non-registered callers
+  // avoids a 401 (which would trip the login-prompt funnel) and falls through
+  // to the localStorage-hydrated defaults below — exactly what guests want.
+  const { data: profile } = useGetMeQuery(undefined, { skip: !isRegistered });
+  const [savePreferences] = useUpdatePreferencesMutation();
+
+  const [theme, setThemeState] = useState<ThemeMode>(() => {
     const stored = getStoredTheme();
     return stored ?? getSystemTheme();
   });
 
-  const [huePrimary, setHuePrimary] = useState<number>(() =>
+  const [huePrimary, setHuePrimaryState] = useState<number>(() =>
     getStoredHue(HUE_PRIMARY_KEY, DEFAULT_HUE_PRIMARY),
   );
 
-  const [hueAccent, setHueAccent] = useState<number>(() =>
+  const [hueAccent, setHueAccentState] = useState<number>(() =>
     getStoredHue(HUE_ACCENT_KEY, DEFAULT_HUE_ACCENT),
   );
 
   const [customTheme, setCustomTheme] = useState<boolean>(() =>
     getStoredCustomTheme(),
   );
+
+  // Server → local. When the registered user's saved spec resolves (or a
+  // tag-driven refetch lands a new one), mirror it into local state. Runs only
+  // on real value changes, so it never fights the optimistic local update a
+  // setter already applied — they converge on the same values.
+  const serverMode = profile?.preferences?.theme?.mode;
+  const serverHuePrimary = profile?.preferences?.theme?.huePrimary;
+  const serverHueAccent = profile?.preferences?.theme?.hueAccent;
+  useEffect(() => {
+    if (!isRegistered) return;
+    const uiMode = apiToUiMode(serverMode);
+    setThemeState(uiMode === "system" ? getSystemTheme() : uiMode);
+    if (typeof serverHuePrimary === "number")
+      setHuePrimaryState(clampHue(serverHuePrimary));
+    if (typeof serverHueAccent === "number")
+      setHueAccentState(clampHue(serverHueAccent));
+    setCustomTheme(
+      isCustomSpec(
+        serverHuePrimary ?? DEFAULT_HUE_PRIMARY,
+        serverHueAccent ?? DEFAULT_HUE_ACCENT,
+      ),
+    );
+  }, [isRegistered, serverMode, serverHuePrimary, serverHueAccent]);
 
   useEffect(() => {
     applyThemeClass(theme);
@@ -114,14 +164,66 @@ export function useTheme() {
     window.localStorage.setItem(CUSTOM_THEME_KEY, String(customTheme));
   }, [customTheme]);
 
+  // Local → server. PUT /api/users/me/preferences is a wholesale replace, so we
+  // resend the rest of the user's preferences alongside the new theme spec to
+  // avoid clobbering them. No-ops for guests/visitors, who live in localStorage.
+  const persistSpec = (spec: ThemeSpec) => {
+    if (!isRegistered) return;
+    const prefs = profile?.preferences;
+    void savePreferences({
+      updatePreferencesRequest: {
+        newsletter: prefs?.newsletter,
+        marketing: prefs?.marketing ?? false,
+        stayLoggedIn: prefs?.stayLoggedIn ?? false,
+        theme: spec,
+      },
+    });
+  };
+
+  // Builds the full spec from the current look plus an override, preserving the
+  // server-side images (which this hook doesn't edit) so a write never drops them.
+  const specWith = (override: Partial<ThemeSpec>): ThemeSpec => ({
+    mode: uiToApiMode(theme),
+    huePrimary,
+    hueAccent,
+    backgroundImage: profile?.preferences?.theme?.backgroundImage,
+    logoImage: profile?.preferences?.theme?.logoImage,
+    ...override,
+  });
+
+  const setTheme = (next: ThemeMode) => {
+    setThemeState(next);
+    persistSpec(specWith({ mode: uiToApiMode(next) }));
+  };
+
   const toggleTheme = () => {
-    setTheme((current) => (current === "dark" ? "light" : "dark"));
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  const setHuePrimary = (hue: number) => {
+    const clamped = clampHue(hue);
+    setHuePrimaryState(clamped);
+    setCustomTheme(true);
+    persistSpec(specWith({ huePrimary: clamped }));
+  };
+
+  const setHueAccent = (hue: number) => {
+    const clamped = clampHue(hue);
+    setHueAccentState(clamped);
+    setCustomTheme(true);
+    persistSpec(specWith({ hueAccent: clamped }));
   };
 
   const resetHues = () => {
-    setHuePrimary(DEFAULT_HUE_PRIMARY);
-    setHueAccent(DEFAULT_HUE_ACCENT);
+    setHuePrimaryState(DEFAULT_HUE_PRIMARY);
+    setHueAccentState(DEFAULT_HUE_ACCENT);
     setCustomTheme(false);
+    persistSpec(
+      specWith({
+        huePrimary: DEFAULT_HUE_PRIMARY,
+        hueAccent: DEFAULT_HUE_ACCENT,
+      }),
+    );
   };
 
   return {
@@ -132,14 +234,8 @@ export function useTheme() {
     hueAccent,
     customTheme,
     setCustomTheme,
-    setHuePrimary: (hue: number) => {
-      setHuePrimary(clampHue(hue));
-      setCustomTheme(true);
-    },
-    setHueAccent: (hue: number) => {
-      setHueAccent(clampHue(hue));
-      setCustomTheme(true);
-    },
+    setHuePrimary,
+    setHueAccent,
     resetHues,
   };
 }

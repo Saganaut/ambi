@@ -23,7 +23,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           <ModalProvider>
             <Layout>
               <AuthPromptBridge />
-              {/* <ActiveThemeBridge /> */}
               <MainHeader children={<NavBar />} />
 
               <Outlet />

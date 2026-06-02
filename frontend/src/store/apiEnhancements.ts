@@ -23,6 +23,7 @@
  */
 import "./enhancements/deck";
 import "./enhancements/slide";
+import "./enhancements/preferences";
 import "./enhancements/collection";
 import "./enhancements/collaborator";
 import "./enhancements/favorite";
