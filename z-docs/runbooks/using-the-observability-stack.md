@@ -48,7 +48,7 @@ set -a && . ./dev.env && set +a   # see note below — required for placeholder 
 cd backend && ./mvnw spring-boot:run
 ```
 
-> The `set -a … dev.env … set +a` step is mandatory for a non-interactive boot — `ambi.sh` does the equivalent in its backend subshell. `application.properties` binds `logging.level.org.springframework.security=${LOGGING_LEVEL}` very early — before `DotenvEnvironmentPostProcessor` adds its property source — so the placeholder must already be a real OS env var (`LOGGING_LEVEL` is set in `dev.env`) or startup fails with `Value: "${LOGGING_LEVEL}"`.
+> The `set -a … dev.env … set +a` step is mandatory for a non-interactive boot — `ambi.sh` does the equivalent in its backend subshell. There is no in-app dotenv loader: `dev.env` reaches Spring only because the shell exports it into the process environment first. `application.properties` binds `logging.level.org.springframework.security=${LOGGING_LEVEL}`, so the placeholder must already be a real OS env var (`LOGGING_LEVEL` is set in `dev.env`) or startup fails with `Value: "${LOGGING_LEVEL}"`.
 
 ### Run with prod (JSON) logging locally
 

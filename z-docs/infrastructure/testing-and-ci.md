@@ -10,7 +10,7 @@ When adding backend tests, use the test starters already present in `pom.xml` �
 
 ### Test environment variables
 
-The app normally loads secrets from `dev.env` at runtime via `DotenvEnvironmentPostProcessor`, but that file is not present during test execution. All required values are instead provided in `src/test/resources/application-test.properties` with test-safe defaults (real local Docker credentials for Mongo/Redis, dummy values for Google OAuth and S3). **Do not add real OAuth or S3 credentials to that file** — dummy values are sufficient because tests do not perform real OAuth or S3 operations.
+In local dev `scripts/ambi.sh` sources `dev.env` into the environment before launching the backend, but that file is neither sourced nor present during test execution. All required values are instead provided in `src/test/resources/application-test.properties` with test-safe defaults (real local Docker credentials for Mongo/Redis, dummy values for Google OAuth and S3). **Do not add real OAuth or S3 credentials to that file** — dummy values are sufficient because tests do not perform real OAuth or S3 operations.
 
 Backend tests require Docker to be running (`docker compose up -d`) because `@SpringBootTest` controller tests connect to the real local MongoDB and Redis.
 
