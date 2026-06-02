@@ -4,33 +4,28 @@
 // Query directly. The handlers are thin: they just fire the mutation. Cache
 // behaviour (optimistic patch + tag-driven reconciling refetch) lives in
 // `store/enhancements/deck.ts` so it applies no matter who calls the mutation.
-// Deck *creation* is just a client-minted UUID PUT: the caller navigates to
-// the editor, where getDeck fetches the now-existing deck.
+// Always scoped to one existing deck — deck *creation* has no deckId to scope
+// to and lives in `useCreateDeck`.
 import {
   useGetDeckQuery,
-  useCreate1Mutation,
   useUpdateDeckMutation,
   useDeleteDeckMutation,
-  useSetVisibilityMutation,
-  useShareMutation,
-  useRevokeShareMutation,
+  useSetDeckVisibilityMutation,
+  useShareDeckMutation,
+  useRevokeShareDeckMutation,
   type DeckResponse,
   type SetVisibilityRequest,
   type ShareDeckRequest,
   type UpdateDeckRequest,
 } from "@/store/AmbiApi";
+import { useLiveSession } from "./useLiveSession";
+import { useConfirm } from "@/components/Common/ConfirmDialog/useConfirm";
+import { useNavigate } from "@tanstack/react-router";
 
 interface UseDeckResult {
   deck: DeckResponse | undefined;
   isLoading: boolean;
   error: unknown;
-  /**
-   * Create a new (empty) deck. Mints the id client-side and PUTs it; the deck
-   * is born named "Untitled Deck" server-side. Returns the id so the caller can
-   * navigate straight to the editor (where getDeck fetches it). Slides are
-   * added separately.
-   */
-  createDeck: () => string;
   rename: (name: string) => void;
   /** Patch deck fields (PATCH, partial). */
   updateDeck: (patch: UpdateDeckRequest) => void;
@@ -38,41 +33,62 @@ interface UseDeckResult {
   share: (userId: string, role: ShareDeckRequest["role"]) => void;
   revokeShare: (userId: string) => void;
   /** Delete the deck; returns the mutation promise so callers can await it. */
-  remove: () => Promise<unknown> | undefined;
+  remove: () => Promise<unknown>;
+  openDeckInEditor: () => void;
+  openDeleteDeckModal: () => Promise<void>;
+  handlePresent: () => void;
+  handleAddToCollection: () => void;
 }
 
 /**
- * @param deckId the deck to read + mutate; omit when the hook is only used to
- *   create a deck (e.g. a "New deck" button), so the getDeck query stays idle.
+ * @param deckId the existing deck to read + mutate. To create a deck, use
+ *   `useCreateDeck` instead.
  */
-const useDeck = (deckId?: string): UseDeckResult => {
-  const {
-    data: deck,
-    isLoading,
-    error,
-  } = useGetDeckQuery({ id: deckId ?? "" }, { skip: !deckId });
-
-  const [createDeckMutation] = useCreate1Mutation();
+const useDeck = (deckId: string): UseDeckResult => {
+  const { data: deck, isLoading, error } = useGetDeckQuery({ id: deckId });
+  const navigate = useNavigate();
+  const confirm = useConfirm();
   const [updateDeckMutation] = useUpdateDeckMutation();
   const [deleteDeckMutation] = useDeleteDeckMutation();
-  const [setVisibilityMutation] = useSetVisibilityMutation();
-  const [shareMutation] = useShareMutation();
-  const [revokeShareMutation] = useRevokeShareMutation();
+  const [setVisibilityMutation] = useSetDeckVisibilityMutation();
+  const [shareMutation] = useShareDeckMutation();
+  const [revokeShareMutation] = useRevokeShareDeckMutation();
+  const [deleteDeck] = useDeleteDeckMutation();
+  const { present } = useLiveSession();
 
-  const createDeck = (): string => {
-    const newDeckId = crypto.randomUUID();
-    // Idempotent PUT that persists the id; the deck defaults to "Untitled Deck"
-    // server-side. The caller navigates to the editor, where getDeck fetches it.
-    void createDeckMutation({ id: newDeckId })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to create deck", err);
-      });
-    return newDeckId;
+  const openDeckInEditor = () => {
+    void navigate({
+      to: "/decks/$deckId/edit",
+      params: { deckId },
+      search: { questionId: undefined },
+    });
+  };
+
+  const handleAddToCollection = () => {
+    console.log("adding to collection not implemented yet");
+  };
+
+  const handlePresent = () => {
+    // Placeholder until the live-session flow exists; logs "not yet implemented".
+    present(deckId);
+  };
+
+  const openDeleteDeckModal = async () => {
+    const ok = await confirm({
+      title: "Delete deck",
+      message: "Delete this deck and all its questions?",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
+    try {
+      await deleteDeck({ id: deckId }).unwrap();
+    } catch (e) {
+      console.error("Failed to delete deck", e);
+    }
   };
 
   const updateDeck = (patch: UpdateDeckRequest) => {
-    if (!deckId) return;
     void updateDeckMutation({ id: deckId, updateDeckRequest: patch });
   };
 
@@ -81,36 +97,36 @@ const useDeck = (deckId?: string): UseDeckResult => {
   };
 
   const setVisibility = (visibility: SetVisibilityRequest["visibility"]) => {
-    if (!deckId) return;
-    void setVisibilityMutation({ id: deckId, setVisibilityRequest: { visibility } });
+    void setVisibilityMutation({
+      id: deckId,
+      setVisibilityRequest: { visibility },
+    });
   };
 
   const share = (userId: string, role: ShareDeckRequest["role"]) => {
-    if (!deckId) return;
     void shareMutation({ id: deckId, userId, shareDeckRequest: { role } });
   };
 
   const revokeShare = (userId: string) => {
-    if (!deckId) return;
     void revokeShareMutation({ id: deckId, userId });
   };
 
-  const remove = () => {
-    if (!deckId) return undefined;
-    return deleteDeckMutation({ id: deckId }).unwrap();
-  };
+  const remove = () => deleteDeckMutation({ id: deckId }).unwrap();
 
   return {
     deck,
     isLoading,
     error,
-    createDeck,
     rename,
     updateDeck,
     setVisibility,
     share,
     revokeShare,
     remove,
+    openDeckInEditor,
+    openDeleteDeckModal,
+    handlePresent,
+    handleAddToCollection,
   };
 };
 

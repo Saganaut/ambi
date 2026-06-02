@@ -1,6 +1,6 @@
 import React from "react";
-import { useRegister } from "./useRegister";
-import type { RegisterSearch } from "./useRegister";
+import { useRegister } from "../../hooks/useRegister";
+import type { RegisterSearch } from "../../hooks/useRegister";
 import styles from "./Forms.module.css";
 import { Link } from "@tanstack/react-router";
 import { Input } from "../Common/Input/Input/Input";

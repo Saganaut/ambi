@@ -80,9 +80,9 @@ public class DeckController {
             @PathVariable String id,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         try {
-            return DeckResponse.from(deckService.create(id, principal));
+            return toResponse(deckService.create(id, principal), principal);
         } catch (DuplicateKeyException alreadyExists) {
-            return DeckResponse.from(deckService.getViewable(id, principal));
+            return toResponse(deckService.getViewable(id, principal), principal);
         }
     }
 
@@ -91,7 +91,7 @@ public class DeckController {
     public DeckResponse getDeck(
             @PathVariable String id,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return DeckResponse.from(deckService.getViewable(id, principal));
+        return toResponse(deckService.getViewable(id, principal), principal);
     }
 
     /**
@@ -107,7 +107,7 @@ public class DeckController {
             @AuthenticationPrincipal AmbiPrincipal principal) {
         Deck existing = deckService.getEditable(id, principal);
         Deck changes = body.toDeckChanges(existing.getSlides());
-        return DeckResponse.from(deckService.update(id, changes, principal));
+        return toResponse(deckService.update(id, changes, principal), principal);
     }
 
     /** Delete a deck and its embedded slides (MANAGE). */
@@ -127,7 +127,7 @@ public class DeckController {
             @PathVariable String id,
             @Valid @RequestBody SetVisibilityRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return DeckResponse.from(deckService.setVisibility(id, body.visibility(), principal));
+        return toResponse(deckService.setVisibility(id, body.visibility(), principal), principal);
     }
 
     /** Grant or update an explicit per-user share (MANAGE). Idempotent upsert. */
@@ -137,7 +137,7 @@ public class DeckController {
             @PathVariable String userId,
             @Valid @RequestBody ShareDeckRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return DeckResponse.from(deckService.share(id, userId, body.role(), principal));
+        return toResponse(deckService.share(id, userId, body.role(), principal), principal);
     }
 
     /** Revoke an explicit per-user share (MANAGE). */
@@ -146,7 +146,7 @@ public class DeckController {
             @PathVariable String id,
             @PathVariable String userId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return DeckResponse.from(deckService.revokeShare(id, userId, principal));
+        return toResponse(deckService.revokeShare(id, userId, principal), principal);
     }
 
     // ── Slides (sub-resource of a deck) ─────────────────────────────────────────
@@ -205,7 +205,7 @@ public class DeckController {
             @PathVariable String slideId,
             @Valid @RequestBody MoveSlideRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return DeckResponse.from(deckService.moveSlide(id, slideId, body.to(), principal));
+        return toResponse(deckService.moveSlide(id, slideId, body.to(), principal), principal);
     }
 
     /** Remove a slide from a deck (EDIT). */
@@ -226,7 +226,7 @@ public class DeckController {
     @GetMapping("/mine")
     public List<DeckResponse> listMyDecks(@AuthenticationPrincipal AmbiPrincipal principal) {
         return deckService.listOwnedByUser(requireUserId(principal)).stream()
-                .map(DeckResponse::from)
+                .map(deck -> toResponse(deck, principal))
                 .toList();
     }
 
@@ -236,7 +236,7 @@ public class DeckController {
             @RequestParam String orgId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return deckService.listForOrg(orgId, principal).stream()
-                .map(DeckResponse::from)
+                .map(deck -> toResponse(deck, principal))
                 .toList();
     }
 
@@ -247,8 +247,11 @@ public class DeckController {
      * ({@code content} + {@code page} metadata).
      */
     @GetMapping("/public")
-    public PagedModel<DeckResponse> listPublicDecks(Pageable pageable) {
-        return new PagedModel<>(deckService.listPublic(pageable).map(DeckResponse::from));
+    public PagedModel<DeckResponse> listPublicDecks(
+            Pageable pageable,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return new PagedModel<>(
+                deckService.listPublic(pageable).map(deck -> toResponse(deck, principal)));
     }
 
     /**
@@ -261,5 +264,10 @@ public class DeckController {
             throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
         }
         return principal.userId();
+    }
+
+    /** Map a deck to its response, stamped with the caller's computed permissions. */
+    private DeckResponse toResponse(Deck deck, AmbiPrincipal principal) {
+        return DeckResponse.from(deck, deckService.permissionsFor(deck, principal));
     }
 }

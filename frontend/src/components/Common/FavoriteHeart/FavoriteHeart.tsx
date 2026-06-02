@@ -7,10 +7,7 @@
 // without navigating when the user taps the heart.
 import { HeartIcon as HeartOutline } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
-import {
-  useFavoriteDeckMutation,
-  useUnfavoriteDeckMutation,
-} from "@/store/AmbiApi";
+
 import styles from "./FavoriteHeart.module.css";
 
 interface FavoriteHeartProps {
@@ -32,19 +29,16 @@ const FavoriteHeart = ({
   disabled = false,
   ariaLabel,
 }: FavoriteHeartProps) => {
-  const [favoriteDeck, favoriteStatus] = useFavoriteDeckMutation();
-  const [unfavoriteDeck, unfavoriteStatus] = useUnfavoriteDeckMutation();
-  const inFlight = favoriteStatus.isLoading || unfavoriteStatus.isLoading;
-
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (disabled || inFlight) return;
-    if (isFavorited) {
-      void unfavoriteDeck({ id: deckId });
-    } else {
-      void favoriteDeck({ id: deckId });
-    }
+    // e.preventDefault();
+    // e.stopPropagation();
+    // if (disabled || inFlight) return;
+    // if (isFavorited) {
+    //   void unfavoriteDeck({ id: deckId });
+    // } else {
+    //   void favoriteDeck({ id: deckId });
+    // }
+    console.log("not impelemnted");
   };
 
   const label =

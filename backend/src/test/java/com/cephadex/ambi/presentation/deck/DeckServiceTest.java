@@ -18,8 +18,10 @@ import org.junit.jupiter.api.Test;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
@@ -104,6 +106,42 @@ class DeckServiceTest {
         assertThatThrownBy(() -> deckService.moveSlide("deck-1", "s1", 0, principal("intruder")))
                 .isInstanceOf(ForbiddenException.class);
         verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    // ── permissionsFor (the capabilities the client reads off the response) ──────
+
+    @Test
+    void permissionsForOwnerGrantsEverything() {
+        Deck deck = deck("owner-1");
+
+        ViewerPermissions perms = deckService.permissionsFor(deck, owner);
+
+        assertThat(perms.canView()).isTrue();
+        assertThat(perms.canEdit()).isTrue();
+        assertThat(perms.canManage()).isTrue();
+    }
+
+    @Test
+    void permissionsForStrangerOnPrivateDraftGrantsNothing() {
+        Deck deck = deck("owner-1"); // fresh deck is PRIVATE + DRAFT
+
+        ViewerPermissions perms = deckService.permissionsFor(deck, principal("intruder"));
+
+        assertThat(perms.canView()).isFalse();
+        assertThat(perms.canEdit()).isFalse();
+        assertThat(perms.canManage()).isFalse();
+    }
+
+    @Test
+    void permissionsForAclViewerCanViewButNotEditOrManage() {
+        Deck deck = deck("owner-1");
+        deck.getAcl().add(new DeckAccessGrant("viewer-1", DeckAclRole.VIEWER));
+
+        ViewerPermissions perms = deckService.permissionsFor(deck, principal("viewer-1"));
+
+        assertThat(perms.canView()).isTrue();
+        assertThat(perms.canEdit()).isFalse();
+        assertThat(perms.canManage()).isFalse();
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────

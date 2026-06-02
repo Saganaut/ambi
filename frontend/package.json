@@ -14,7 +14,9 @@
     "preview": "vite preview",
     "generate-api": "npx @rtk-query/codegen-openapi openapi-config.cts",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@dnd-kit/dom": "^0.4.0",
@@ -44,7 +46,11 @@
     "@eslint/js": "^10.0.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@rtk-query/codegen-openapi": "^2.2.0",
+    "@storybook/addon-a11y": "^10.4.2",
+    "@storybook/addon-docs": "^10.4.2",
+    "@storybook/tanstack-react": "^10.4.2",
     "@svgr/cli": "^8.1.0",
+    "@tanstack/react-query": "^5.100.14",
     "@tanstack/router-plugin": "^1.167.29",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -66,6 +72,7 @@
     "globals": "^17.5.0",
     "jsdom": "^29.1.1",
     "msw": "^2.14.3",
+    "storybook": "^10.4.2",
     "stylelint": "^17.10.0",
     "stylelint-config-standard": "^40.0.0",
     "stylelint-declaration-strict-value": "^1.11.1",

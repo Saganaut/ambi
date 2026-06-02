@@ -6,10 +6,6 @@
 // `useAccount`. It only renders what the hook exposes and forwards events back.
 import { useState } from "react";
 import { useAccount } from "../../hooks/useAccount";
-import { ThemeSection } from "./ThemeSection";
-import { OrgSection } from "./OrgSection";
-import { GallerySection } from "./GallerySection";
-import { AchievementsSection } from "./AchievementsSection";
 import styles from "./AccountPage.module.css";
 import { Btn } from "@components/Common/Buttons/Btn";
 import { Checkbox } from "@/components/Common/Input/Checkbox/Checkbox";
@@ -111,7 +107,9 @@ const AccountPage = () => {
           disabled={!displayNameDirty || isSavingProfile}>
           {isSavingProfile ? "Saving..." : "Save"}
         </Btn>
-        {profileSuccess && <p className={styles.success}>Display name saved.</p>}
+        {profileSuccess && (
+          <p className={styles.success}>Display name saved.</p>
+        )}
         {profileError && <p className={styles.error}>{profileError}</p>}
       </section>
 
@@ -182,17 +180,21 @@ const AccountPage = () => {
         }}
         items={[
           { id: "profile", label: "Profile", panel: profilePanel },
-          { id: "theme", label: "Theme", panel: <ThemeSection /> },
-          { id: "gallery", label: "Gallery", panel: <GallerySection /> },
+          { id: "theme", label: "Theme", panel: <div>Theme Section </div> },
+          {
+            id: "gallery",
+            label: "Gallery",
+            panel: <div>Gallery Section </div>,
+          },
           {
             id: "organizations",
             label: "Organizations",
-            panel: <OrgSection />,
+            panel: <div>Org section to be implemented</div>,
           },
           {
             id: "achievements",
             label: "Achievements",
-            panel: <AchievementsSection />,
+            panel: <div>Achievements Section </div>,
           },
           { id: "danger", label: "Danger zone", panel: dangerPanel },
         ]}

@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.DeckAccessGrant;
@@ -46,10 +47,15 @@ public record DeckResponse(
         String parentDeckId,
         DeckStats stats,
         @Schema(requiredMode = REQUIRED) Instant createdAt,
-        @Schema(requiredMode = REQUIRED) Instant updatedAt) {
+        @Schema(requiredMode = REQUIRED) Instant updatedAt,
+        @Schema(requiredMode = REQUIRED) ViewerPermissions permissions) {
 
-    /** Projects a persisted {@link Deck} onto its metadata response (slides omitted). */
-    public static DeckResponse from(Deck deck) {
+    /**
+     * Projects a persisted {@link Deck} onto its metadata response (slides omitted),
+     * stamping the requesting principal's {@code permissions} as computed by
+     * {@code DeckService}.
+     */
+    public static DeckResponse from(Deck deck, ViewerPermissions permissions) {
         return new DeckResponse(
                 deck.getId(),
                 deck.getPublicId(),
@@ -73,6 +79,7 @@ public record DeckResponse(
                 deck.getParentDeckId(),
                 deck.getStats(),
                 deck.getCreatedAt(),
-                deck.getUpdatedAt());
+                deck.getUpdatedAt(),
+                permissions);
     }
 }

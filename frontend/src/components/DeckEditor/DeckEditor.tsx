@@ -13,16 +13,13 @@ import { DropdownMenuItem } from "../Menus/DropdownMenu";
 import { LeftSidebarContent } from "./LeftSidebar/LeftSidebarContent";
 import { PublishStatusControl } from "./PublishStatusControl";
 import { RightSidebarContent } from "./RightSidebar/RightSidebarContent";
-import { ScheduleSessionModal } from "./ScheduleSessionModal/ScheduleSessionModal";
 import { ShareDeckModal } from "./ShareDeckModal/ShareDeckModal";
 import { SlideDisplay } from "./SlideDisplay";
 import { SpeakerNotesDrawer } from "./SpeakerNotesDrawer/SpeakerNotesDrawer";
 import styles from "./DeckEditor.module.css";
-import { useDeckEditor } from "./useDeckEditor";
 import { useFullScreen } from "@/context/useFullScreen";
 import { useModal } from "@/context/useModal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useStartInteractiveSession } from "@/hooks/useStartInteractiveSession";
 import {
   ArrowsPointingOutIcon,
   ChartBarIcon,
@@ -34,51 +31,50 @@ import { CanvasHeader } from "../Layout/CanvasHeader";
 import { CanvasBody } from "../Layout/CanvasBody";
 
 import { InnerDisplay } from "../Layout/InnerDisplay";
-import { useGetDeckQuery } from "@/store/AmbiApi";
 import { Input } from "../Common/Input/Input/Input";
 
 const DeckEditor = () => {
   const navigate = useNavigate();
-  const { titleDraft, setTitleDraft, commitTitle, serverName, deckId } =
-    useDeckEditor();
+
   const { toggleFullScreen } = useFullScreen();
   const { openModal, closeModal } = useModal();
   const userState = useCurrentUser();
-  const callerUserId =
-    userState.state === "registered" ? userState.user.id : undefined;
-  const { data: deck } = useGetDeckQuery({ id: deckId });
-  const callerIsOwner = deck?.myRole === "OWNER";
+
   // Backend gates the analytics endpoints on owner/editor + non-system; hide
   // the button for anyone else so we don't dangle a 403 in front of viewers.
-  const canViewAnalytics =
-    !deck?.isSystem && (deck?.myRole === "OWNER" || deck?.myRole === "EDITOR");
-  const {
-    quickStart,
-    isStarting,
-    error: startError,
-  } = useStartInteractiveSession();
 
   const handleShareClick = () => {
     openModal({
       title: "Share deck",
       content: (
         <ShareDeckModal
-          deckId={deckId}
-          callerUserId={callerUserId}
-          callerIsOwner={callerIsOwner}
+          deckId={"1"}
+          callerUserId={"1"}
+          callerIsOwner={true}
           onClose={closeModal}
         />
       ),
     });
   };
-
-  const handleScheduleClick = () => {
-    openModal({
-      title: "Schedule session",
-      content: <ScheduleSessionModal deckId={deckId} onClose={closeModal} />,
-    });
+  const canViewAnalytics = true;
+  const titleDraft = "title draft";
+  const setTitleDraft = (e: any) => {
+    console.log("set title draft not implemented", e);
+  };
+  const commitTitle = () => {
+    console.log("not implemented");
   };
 
+  const serverName = "server name";
+  const deckId = "123";
+  const isStarting = false;
+  const startError = null;
+  const quickstart = (deckId: string) => {
+    console.log("quick start not implemented", deckId);
+  };
+  const handleScheduleClick = () => {
+    console.log("not implemented yet");
+  };
   return (
     <MainBodyDashboard className={styles.deckEditor}>
       <CanvasHeader>

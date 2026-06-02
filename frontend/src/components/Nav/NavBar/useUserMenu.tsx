@@ -3,12 +3,8 @@ import { type JSX, useState } from "react";
 
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { useSessionUser } from "../../../hooks/useCurrentUser";
-import { useRequireLogin } from "../../../hooks/useRequireLogin";
+import { useAuthActions } from "../../../hooks/useAuthActions";
 import { useTheme, type ThemeMode } from "../../../hooks/useTheme";
-import {
-  useCreateGuestMutation,
-  useLogoutMutation,
-} from "../../../store/AmbiApi";
 import styles from "./NavBar.module.css";
 
 interface useUserMenuResponse {
@@ -29,48 +25,38 @@ interface useUserMenuResponse {
 const useUserMenu = (): useUserMenuResponse => {
   const [guestName, setGuestName] = useState("");
   const [guestError, setGuestError] = useState<string | null>(null);
-  const [createGuest, { isLoading: guestLoading }] = useCreateGuestMutation();
-  const [logout] = useLogoutMutation();
   const [showGuestInput, setShowGuestInput] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
+  const { login, logout, createGuest, isCreatingGuest } = useAuthActions();
   const userState = useSessionUser();
-  // Only the session-backed states carry a profile payload.
-  const me = userState.me;
-  const { openLoginModal } = useRequireLogin();
+  // Only the session-backed states (registered/guest) carry a profile payload;
+  // for everyone else `userState` is undefined and `avatarContent` falls back
+  // to the generic icon.
+  const me = userState?.me;
 
   const handleLogin = () => {
-    openLoginModal();
+    login();
   };
 
-  // Goes through the RTK mutation (not a raw fetch) so the base query attaches
-  // the X-XSRF-TOKEN header — the backend rejects an unguarded POST /logout with
-  // 403. The session is revoked server-side instantly; a full reload clears all
-  // cached auth state.
-  const handleLogout = async () => {
-    try {
-      await logout().unwrap();
-    } finally {
-      window.location.reload();
-    }
-  };
+  const handleLogout = logout;
 
   // NOTE: `POST /api/auth/guest` no longer takes a chosen name — a guest's
   // ephemeral identity is minted server-side. The guestName input + validation
   // below is vestigial UI pending the live-session join rework (deferred);
-  // we mint the guest and reload regardless of the typed name.
+  // we mint the guest regardless of the typed name and let useAuthActions
+  // reload on success. A rejected mint stays put so we can show the error.
   const handleGuestLogin = async () => {
     setGuestError(null);
     try {
-      await createGuest().unwrap();
-      window.location.reload();
+      await createGuest();
     } catch {
       setGuestError("Unable to create guest session. Please try again.");
     }
   };
 
   const avatarContent = () => {
-    const label = me.displayName ?? me.username;
+    const label = me?.displayName ?? me?.username;
     if (label) {
       return (
         <div className={styles.avatarInitial}>{label[0].toUpperCase()}</div>
@@ -85,7 +71,7 @@ const useUserMenu = (): useUserMenuResponse => {
     handleLogout,
     setGuestName,
     guestError,
-    guestLoading,
+    guestLoading: isCreatingGuest,
     showGuestInput,
     theme,
     toggleTheme,

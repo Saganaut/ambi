@@ -390,6 +390,11 @@ export type ThemeOwnership = {
   type?: "USER" | "ORGANIZATION";
   ownerId?: string;
 };
+export type ViewerPermissions = {
+  canView: boolean;
+  canEdit: boolean;
+  canManage: boolean;
+};
 export type ThemeResponse = {
   id?: string;
   name?: string;
@@ -400,6 +405,7 @@ export type ThemeResponse = {
   spec?: ThemeSpec;
   createdAt?: string;
   updatedAt?: string;
+  permissions: ViewerPermissions;
 };
 export type CreateThemeRequest = {
   name?: string;
@@ -478,6 +484,7 @@ export type DeckResponse = {
   stats?: DeckStats;
   createdAt: string;
   updatedAt: string;
+  permissions: ViewerPermissions;
 };
 export type UpdateDeckRequest = {
   name?: string;

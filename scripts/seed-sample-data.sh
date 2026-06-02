@@ -3,15 +3,15 @@
 # Manually populates MongoDB with LOTR-themed sample data.
 #
 # Loads dev.env, then runs the Spring Boot app with --seed.run=true so
-# SampleDataSeeder fires once and the app exits. Idempotent per collection:
-# each user only gets a theme/deck/org slot if they don't already have one.
-# Nothing is ever deleted.
+# SampleDataSeeder fires once and the app exits. Idempotent: it creates the
+# canonical sample users (frodo, gandalf, aragorn), a few built-in themes and
+# their public MCQ quiz decks only when absent, and gives every other existing
+# user one private starter deck if they own none. Nothing is deleted.
 #
-# Pass --clear to also drop the seeded collections (users, organizations,
-# themes, decks, gallery_images, interactive_sessions, interactive_session_results,
-# audience_submissions, best_answer_votes) before re-seeding. Use this when a
-# schema migration has left stale documents that Spring Data can't
-# deserialize.
+# Pass --clear to drop the decks, themes and app_images collections and remove
+# only the sample users (by username) before re-seeding — real accounts (e.g.
+# your logged-in Google user) are preserved. Use this when a schema migration
+# has left stale documents that Spring Data can't deserialize.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"

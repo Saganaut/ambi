@@ -6,6 +6,6 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { DeckAnalyticsPage } from "../../../pages/DeckAnalyticsPage/DeckAnalyticsPage";
 
-export const Route = createFileRoute("/decks/$deckId/analytics")({
+export const Route = createFileRoute("/_authenticated/decks/$deckId/analytics")({
   component: DeckAnalyticsPage,
 });

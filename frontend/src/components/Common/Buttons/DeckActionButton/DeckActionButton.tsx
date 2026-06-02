@@ -16,7 +16,6 @@ import {
   DropdownMenu,
   DropdownMenuItem,
 } from "@/components/Menus/DropdownMenu";
-import { useStartInteractiveSession } from "@/hooks/useStartInteractiveSession";
 import styles from "./DeckActionButton.module.css";
 
 interface DeckActionButtonProps {
@@ -30,9 +29,7 @@ const DeckActionButton = ({
   size = "sm",
   label = "Play",
 }: DeckActionButtonProps) => {
-  const { quickStart, customize, isStarting, error } =
-    useStartInteractiveSession();
-
+  const error = false;
   return (
     <div
       className={styles.splitButton}
@@ -42,13 +39,13 @@ const DeckActionButton = ({
       <Btn
         size={size}
         variant='brand'
-        disabled={isStarting}
+        disabled={false}
         className={styles.primary}
         icon={<PlayIcon className={styles.icon} />}
         onClick={() => {
-          void quickStart(deckId);
+          console.log("not impelmented");
         }}>
-        {isStarting ? "Starting…" : label}
+        "Starting…"
       </Btn>
       <DropdownMenu
         position='top-right'
@@ -56,7 +53,7 @@ const DeckActionButton = ({
           <Btn
             size={size}
             variant='brand'
-            disabled={isStarting}
+            disabled={false}
             aria-label='More play options'
             className={styles.chevron}
             onClick={() => {
@@ -67,7 +64,7 @@ const DeckActionButton = ({
         )}>
         <DropdownMenuItem
           onClick={() => {
-            customize(deckId);
+            console.log("not impelemnted");
           }}>
           Customize…
         </DropdownMenuItem>

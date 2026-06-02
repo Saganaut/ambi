@@ -1,8 +1,9 @@
 /* My Decks page: list of user-owned decks + system decks, with create/edit/delete actions. */
 
 .page {
-  max-width: 900px;
-  margin: 0 auto;
+  align-self: center;
+  width: 100%;
+  max-width: 1440px;
   padding: var(--space-8) var(--space-4);
 }
 
@@ -30,12 +31,6 @@
   font-weight: 600;
   margin: 0 0 var(--space-3);
   color: var(--text-secondary);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-4);
 }
 
 .tabs {

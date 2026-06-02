@@ -43,3 +43,6 @@ backend/.project
 backend/.settings
 backend/.springBeans
 backend/.sts4-cache
+
+*storybook.log
+storybook-static

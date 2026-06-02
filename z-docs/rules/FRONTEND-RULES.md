@@ -23,6 +23,12 @@ Rules specific to the React + TypeScript frontend under `frontend/`.
 11. **Component Design:**
     - Always declare components as `const ComponentName = ({ prop }: ComponentNameProps) => {}` with a standalone `export { ComponentName }` at the bottom of the file. Avoid default exports and inline `export const`.
     - Route files are for routing only — they must delegate to a `RouteNamePage` component in `src/pages/`.
+    - Page components are always titled Page... They assemble components, but are not responsible for any logic and do not use any hooks
+    - If a component is used in more than one parent component it belongs in common, otherwise it belongs under its page/feature component folder (sub folders are acceptable).
+    - All logic should be extracted into a hook. Work in progress logic can be placed in a component with a TODO to extract. If a hook is used in more than in one parent component it belons in /hooks otherwise it belongs in the page/feature parent component.
     - Data such as JSON used in a component should be placed in a `data.ts` file in the same directory as the component.
     - Never use `index.tsx` files; use explicit file names.
     - Favor `interface` over `type`. Props interfaces should be named `ComponentNameProps`.
+
+12. **Exceptions:**
+    - Any exceptions to the rules must be documented

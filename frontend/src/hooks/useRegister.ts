@@ -1,11 +1,11 @@
-/* eslint-disable react-x/set-state-in-effect */
+/* eslint-disable react-x/set-state-in-effect, react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
 import type { Dispatch, SetStateAction, SubmitEvent } from "react";
 import {
   useLazyUsernameAvailableQuery,
   useRegisterMutation,
-} from "../../store/AmbiApi";
-import { extractErrorMessage } from "../../utils/utils";
+} from "../store/AmbiApi";
+import { extractErrorMessage } from "../utils/utils";
 
 export interface RegisterSearch {
   // Only the post-register destination. The OAuth identity (provider, email)

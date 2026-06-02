@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
@@ -115,6 +116,24 @@ public class ThemeService {
     /** App-provided preset themes, available to everyone. */
     public List<Theme> listBuiltIn() {
         return themeRepository.findByBuiltInTrue();
+    }
+
+    /**
+     * The requesting principal's capabilities over this theme. Themes have no
+     * edit/manage split, so {@code canEdit} mirrors {@code canManage}. The
+     * controller stamps the result onto the theme's response. Personal and
+     * built-in themes resolve without I/O; org-owned themes cost one user lookup
+     * to read the requester's org role.
+     */
+    public ViewerPermissions permissionsFor(Theme theme, AmbiPrincipal principal) {
+        String userId = userId(principal);
+        UserLevel level = level(principal);
+        OrgRole orgRole = orgRoleFor(theme, principal);
+        boolean canManage = theme.canBeManagedBy(userId, level, orgRole);
+        return new ViewerPermissions(
+                theme.canBeViewedBy(userId, level, orgRole),
+                canManage,
+                canManage);
     }
 
     // ── Internals ───────────────────────────────────────────────────────────

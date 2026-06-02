@@ -58,10 +58,10 @@ public class ThemeController {
             @Valid @RequestBody CreateThemeRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         try {
-            return ThemeResponse.from(themeService.create(
-                    id, body.name(), body.organizationId(), body.spec(), principal));
+            return toResponse(themeService.create(
+                    id, body.name(), body.organizationId(), body.spec(), principal), principal);
         } catch (DuplicateKeyException alreadyExists) {
-            return ThemeResponse.from(themeService.getViewable(id, principal));
+            return toResponse(themeService.getViewable(id, principal), principal);
         }
     }
 
@@ -70,7 +70,7 @@ public class ThemeController {
     public ThemeResponse getTheme(
             @PathVariable String id,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return ThemeResponse.from(themeService.getViewable(id, principal));
+        return toResponse(themeService.getViewable(id, principal), principal);
     }
 
     /** Replace a theme's editable fields (MANAGE). */
@@ -79,7 +79,7 @@ public class ThemeController {
             @PathVariable String id,
             @Valid @RequestBody UpdateThemeRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return ThemeResponse.from(themeService.update(id, body.name(), body.spec(), principal));
+        return toResponse(themeService.update(id, body.name(), body.spec(), principal), principal);
     }
 
     /** Delete a theme (MANAGE). */
@@ -99,15 +99,15 @@ public class ThemeController {
     @GetMapping("/mine")
     public List<ThemeResponse> listMyThemes(@AuthenticationPrincipal AmbiPrincipal principal) {
         return themeService.listOwnedByUser(requireUserId(principal)).stream()
-                .map(ThemeResponse::from)
+                .map(theme -> toResponse(theme, principal))
                 .toList();
     }
 
     /** App-provided preset themes. Available to everyone. */
     @GetMapping("/built-in")
-    public List<ThemeResponse> listBuiltInThemes() {
+    public List<ThemeResponse> listBuiltInThemes(@AuthenticationPrincipal AmbiPrincipal principal) {
         return themeService.listBuiltIn().stream()
-                .map(ThemeResponse::from)
+                .map(theme -> toResponse(theme, principal))
                 .toList();
     }
 
@@ -117,7 +117,7 @@ public class ThemeController {
             @RequestParam String orgId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return themeService.listForOrg(orgId, principal).stream()
-                .map(ThemeResponse::from)
+                .map(theme -> toResponse(theme, principal))
                 .toList();
     }
 
@@ -131,5 +131,10 @@ public class ThemeController {
             throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
         }
         return principal.userId();
+    }
+
+    /** Map a theme to its response, stamped with the caller's computed permissions. */
+    private ThemeResponse toResponse(Theme theme, AmbiPrincipal principal) {
+        return ThemeResponse.from(theme, themeService.permissionsFor(theme, principal));
     }
 }

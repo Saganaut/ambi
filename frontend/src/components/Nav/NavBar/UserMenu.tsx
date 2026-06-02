@@ -12,8 +12,8 @@ import {
 } from "@/components/Menus/DropdownMenu";
 
 import styles from "./NavBar.module.css";
-import { useUserMenu } from "./useUserMenu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useUserMenu } from "./useUserMenu";
 
 const UserMenu = () => {
   const { handleLogin, handleLogout, avatarContent } = useUserMenu();
@@ -28,7 +28,7 @@ const UserMenu = () => {
     );
   }
 
-  const user = userState.user;
+  const user = userState.me;
 
   return (
     <DropdownMenu
@@ -44,7 +44,7 @@ const UserMenu = () => {
         />
       )}
       position='top-right'>
-      <DropdownMenuLabel>{user.userName}</DropdownMenuLabel>
+      <DropdownMenuLabel>{user.displayName}</DropdownMenuLabel>
       <DropdownMenuLink>
         <Link to='/account'>Account</Link>
       </DropdownMenuLink>

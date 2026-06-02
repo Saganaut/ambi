@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
@@ -254,6 +255,23 @@ public class DeckService {
     public Page<Deck> listPublic(Pageable pageable) {
         return deckRepository.findByVisibilityAndPublishStatus(
                 DeckVisibility.PUBLIC, PublishStatus.PUBLISHED, pageable);
+    }
+
+    /**
+     * The requesting principal's capabilities over this deck, from the same
+     * predicates the {@code require*} guards use. The controller stamps the result
+     * onto {@link DeckResponse} so the client can drive its affordances without
+     * re-deriving the rules. Personal decks resolve without I/O; org-owned decks
+     * cost one user lookup to read the requester's org role.
+     */
+    public ViewerPermissions permissionsFor(Deck deck, AmbiPrincipal principal) {
+        String userId = userId(principal);
+        UserLevel level = level(principal);
+        OrgRole orgRole = orgRoleFor(deck, principal);
+        return new ViewerPermissions(
+                deck.canBeViewedBy(userId, level, orgRole),
+                deck.canBeEditedBy(userId, level, orgRole),
+                deck.canBeManagedBy(userId, level, orgRole));
     }
 
     // ── Internals ───────────────────────────────────────────────────────────
