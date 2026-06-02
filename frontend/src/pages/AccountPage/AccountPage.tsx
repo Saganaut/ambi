@@ -1,15 +1,11 @@
 // Account settings dashboard. Tabs split unrelated concerns (profile, theme,
 // organizations, danger zone) so the page doesn't grow into a single long
 // scrolling form as we add settings.
-import { useEffect, useRef, useState } from "react";
-import {
-  useCloseAccountMutation,
-  useGetCurrentUserQuery,
-  useUpdateProfileMutation,
-  useUploadProfileImageMutation,
-} from "../../store/AmbiApi";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { apiBaseUrl } from "../../store/emptyApi";
+//
+// This component is pure UI: all state, mutations, and side effects live in
+// `useAccount`. It only renders what the hook exposes and forwards events back.
+import { useState } from "react";
+import { useAccount } from "../../hooks/useAccount";
 import { ThemeSection } from "./ThemeSection";
 import { OrgSection } from "./OrgSection";
 import { GallerySection } from "./GallerySection";
@@ -21,10 +17,7 @@ import { Tabs } from "@/components/Common/Tabs/Tabs";
 import { FileUpload } from "@/components/Common/Input/FileUpload/FileUpload";
 import { Avatar } from "@/components/Common/Avatar/Avatar";
 import { AvatarSelector } from "@/components/Common/Input/AvatarSelector/AvatarSelector";
-import { useConfirm } from "@/components/Common/ConfirmDialog/useConfirm";
-import { validateImageFile } from "@/utils/imageValidation";
-import { builtinAvatarUrl, builtinAvatarValue } from "@/utils/avatarUrl";
-import { extractErrorMessage } from "@/utils/utils";
+import { Input } from "@/components/Common/Input/Input/Input";
 
 type Tab =
   | "profile"
@@ -35,158 +28,53 @@ type Tab =
   | "danger";
 
 const AccountPage = () => {
-  // The /_authenticated layout route guarantees userState.state === "registered"
-  // by the time this component renders — it redirects everyone else home.
-  const userState = useCurrentUser();
-  const { refetch } = useGetCurrentUserQuery();
-
-  const registeredUser =
-    userState.state === "registered" ? userState.user : null;
-
+  // The /_authenticated layout route guarantees a registered session by the
+  // time this component renders — it redirects everyone else home.
+  const account = useAccount();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
 
-  const [pictureSuccess, setPictureSuccess] = useState(false);
-  const [pictureError, setPictureError] = useState<string | null>(null);
+  const {
+    profile,
+    isLoading,
+    displayName,
+    setDisplayName,
+    displayNameDirty,
+    saveDisplayName,
+    isSavingProfile,
+    profileSuccess,
+    profileError,
+    avatarSrc,
+    selectedBuiltinAvatar,
+    pickBuiltinAvatar,
+    pictureSuccess,
+    pictureError,
+    uploadPicture,
+    isUploading,
+    newsletter,
+    setNewsletter,
+    newsletterSuccess,
+    closeAccount,
+    isClosing,
+    closeError,
+  } = account;
 
-  // Pending newsletter value: null means "use server value"; non-null means
-  // the user has toggled it locally (optimistic update before the API responds).
-  const [pendingNewsletter, setPendingNewsletter] = useState<boolean | null>(
-    null,
-  );
-  const newsletter = pendingNewsletter ?? registeredUser?.newsletter ?? false;
-  const [newsletterSuccess, setNewsletterSuccess] = useState(false);
-
-  const [closeError, setCloseError] = useState<string | null>(null);
-
-  const [updateProfile] = useUpdateProfileMutation();
-  const [uploadProfileImage, { isLoading: isUploading }] =
-    useUploadProfileImageMutation();
-  const [closeAccount, { isLoading: isClosing }] = useCloseAccountMutation();
-  const confirm = useConfirm();
-
-  // Auto-detect the browser timezone the first time we see a registered user
-  // without one set. Single-shot per page mount; we don't retry if the PATCH
-  // fails so a flaky backend can't pin the user in a request loop.
-  const hasAttemptedTzDetect = useRef(false);
-  useEffect(() => {
-    if (!registeredUser?.id) return;
-    if (registeredUser.timezone) return;
-    if (hasAttemptedTzDetect.current) return;
-    hasAttemptedTzDetect.current = true;
-    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (!browserTz) return;
-    void updateProfile({ updateProfileRequest: { timezone: browserTz } })
-      .unwrap()
-      .then(() => refetch())
-      .catch(() => {
-        // Swallow: read-only display will keep showing "Detecting…". The user
-        // can reload to retry, and the field is not load-bearing for anything else yet.
-      });
-  }, [registeredUser?.id, registeredUser?.timezone, updateProfile, refetch]);
-
-  if (!registeredUser) return null;
-
-  // FileUpload returns the full accumulated list each change; treat the most
-  // recent entry as the chosen file so re-picking replaces the previous one.
-  const handleFiles = async (files: File[]) => {
-    const file = files.at(-1);
-    if (!file) return;
-
-    setPictureError(null);
-    setPictureSuccess(false);
-
-    const validationError = validateImageFile(file, "avatar");
-    if (validationError) {
-      setPictureError(validationError);
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      await uploadProfileImage({
-        body: formData as unknown as { image: Blob },
-      }).unwrap();
-      setPictureSuccess(true);
-      await refetch();
-    } catch (err: unknown) {
-      setPictureError(
-        extractErrorMessage(err, "Upload failed. Please try again."),
-      );
-    }
-  };
-
-  // Built-in avatar pick. Stored as `builtin:<value>` in pictureUrl; the
-  // backend clears pictureVariants on its end so the selection actually wins
-  // the hydrator's variants>pictureUrl precedence.
-  const handleAvatarPick = async (avatarValue: string) => {
-    setPictureError(null);
-    setPictureSuccess(false);
-    try {
-      await updateProfile({
-        updateProfileRequest: { pictureUrl: builtinAvatarUrl(avatarValue) },
-      }).unwrap();
-      setPictureSuccess(true);
-      await refetch();
-    } catch (err: unknown) {
-      setPictureError(extractErrorMessage(err, "Could not update avatar."));
-    }
-  };
-
-  const selectedBuiltinAvatar =
-    builtinAvatarValue(registeredUser.pictureUrl) ?? "";
-
-  const handleNewsletterChange = async (checked: boolean) => {
-    setPendingNewsletter(checked);
-    setNewsletterSuccess(false);
-    try {
-      await updateProfile({
-        updateProfileRequest: { newsletter: checked },
-      }).unwrap();
-      setNewsletterSuccess(true);
-      await refetch();
-      setPendingNewsletter(null);
-    } catch {
-      setPendingNewsletter(null);
-    }
-  };
-
-  const handleCloseAccount = async () => {
-    const ok = await confirm({
-      title: "Close account",
-      message: "Are you sure? This cannot be undone.",
-      confirmLabel: "Close my account",
-      variant: "danger",
-    });
-    if (!ok) return;
-    setCloseError(null);
-    try {
-      await closeAccount().unwrap();
-      await fetch(`${apiBaseUrl}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-      window.location.href = "/";
-    } catch {
-      setCloseError("Failed to close account. Please try again.");
-    }
-  };
+  if (isLoading || !profile) return null;
 
   const profilePanel = (
     <>
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Profile Picture</h2>
         <Avatar
-          src={registeredUser.pictureUrl}
-          name={registeredUser.userName ?? registeredUser.name}
+          src={avatarSrc}
+          name={profile.displayName ?? profile.username}
           alt='Profile picture'
           size='xl'
         />
         <FileUpload
           accept='image/jpeg,image/png,image/webp,image/gif'
           onChange={(files) => {
-            void handleFiles(files);
+            const file = files.at(-1);
+            if (file) void uploadPicture(file);
           }}
           infoMessage={
             isUploading
@@ -200,7 +88,7 @@ const AccountPage = () => {
           legend='Or pick a built-in avatar'
           value={selectedBuiltinAvatar}
           onChange={(v) => {
-            void handleAvatarPick(v);
+            void pickBuiltinAvatar(v);
           }}
         />
         {pictureSuccess && (
@@ -209,12 +97,31 @@ const AccountPage = () => {
       </section>
 
       <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Display Name</h2>
+        <Input
+          ariaLabel='Display name'
+          value={displayName}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setDisplayName(e.target.value);
+          }}
+          placeholder='Your display name'
+        />
+        <Btn
+          onClick={() => void saveDisplayName()}
+          disabled={!displayNameDirty || isSavingProfile}>
+          {isSavingProfile ? "Saving..." : "Save"}
+        </Btn>
+        {profileSuccess && <p className={styles.success}>Display name saved.</p>}
+        {profileError && <p className={styles.error}>{profileError}</p>}
+      </section>
+
+      <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Newsletter</h2>
         <label className={styles.checkboxLabel}>
           <Checkbox
             checked={newsletter}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              void handleNewsletterChange(e.target.checked);
+              void setNewsletter(e.target.checked);
             }}
           />
           Receive newsletter emails
@@ -228,20 +135,17 @@ const AccountPage = () => {
         <h2 className={styles.sectionTitle}>Account info</h2>
         <dl className={styles.infoList}>
           <div className={styles.infoRow}>
-            <dt className={styles.infoLabel}>Timezone</dt>
-            <dd className={styles.infoValue}>
-              {registeredUser.timezone ?? "Detecting…"}
-            </dd>
+            <dt className={styles.infoLabel}>Username</dt>
+            <dd className={styles.infoValue}>{profile.username ?? "—"}</dd>
           </div>
           <div className={styles.infoRow}>
-            <dt className={styles.infoLabel}>Email verified</dt>
+            <dt className={styles.infoLabel}>Email</dt>
+            <dd className={styles.infoValue}>{profile.email ?? "—"}</dd>
+          </div>
+          <div className={styles.infoRow}>
+            <dt className={styles.infoLabel}>Timezone</dt>
             <dd className={styles.infoValue}>
-              {registeredUser.emailVerifiedAt
-                ? new Date(registeredUser.emailVerifiedAt).toLocaleDateString(
-                    undefined,
-                    { year: "numeric", month: "short", day: "numeric" },
-                  )
-                : "Not yet verified"}
+              {profile.timezone ?? "Detecting…"}
             </dd>
           </div>
         </dl>
@@ -258,7 +162,7 @@ const AccountPage = () => {
       </p>
       <Btn
         className={styles.dangerBtn}
-        onClick={() => void handleCloseAccount()}
+        onClick={() => void closeAccount()}
         disabled={isClosing}>
         {isClosing ? "Closing..." : "Close my account"}
       </Btn>
