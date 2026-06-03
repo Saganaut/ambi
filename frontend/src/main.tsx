@@ -5,9 +5,9 @@ import ReactDOM from "react-dom/client";
 import { routeTree } from "./routeTree.gen.ts";
 import { createRouter } from "@tanstack/react-router";
 import { Provider } from "react-redux";
-import { store } from "./store/store.ts";
+import { store } from "./shared/store/store.ts";
 import { AppRouter } from "./AppRouter.tsx";
-import { logger } from "./utils/logger.ts";
+import { logger } from "./shared/utils/logger.ts";
 
 // Last-resort capture for errors that escape React's tree (async callbacks,
 // event handlers, rejected promises) — the ErrorBoundary only sees render-time

@@ -11,7 +11,7 @@
 - Consume every SVG as a React component via `vite-plugin-svgr`:
 
   ```tsx
-  import TrashIcon from "@/assets/icons/action/trash.svg?react";
+  import TrashIcon from "@assets/icons/action/trash.svg?react";
 
   <TrashIcon className={styles.btnIcon} aria-hidden='true' />;
   ```
@@ -61,10 +61,10 @@ frontend/src/assets/
 PascalCase, with the `Icon` suffix for icons and no suffix for images. This matches Heroicons so swaps are one-line:
 
 ```tsx
-import TrashIcon from "@/assets/icons/action/trash.svg?react";
-import StarSolidIcon from "@/assets/icons/content/star-solid.svg?react";
-import CephadexLogo from "@/assets/images/brand/cephadex-logo.svg?react";
-import LostFish from "@/assets/images/mascots/lost-fish.svg?react";
+import TrashIcon from "@assets/icons/action/trash.svg?react";
+import StarSolidIcon from "@assets/icons/content/star-solid.svg?react";
+import CephadexLogo from "@assets/images/brand/cephadex-logo.svg?react";
+import LostFish from "@assets/images/mascots/lost-fish.svg?react";
 ```
 
 ## Colors
@@ -81,7 +81,7 @@ import LostFish from "@/assets/images/mascots/lost-fish.svg?react";
 ## Consuming an SVG (the only pattern)
 
 ```tsx
-import TrashIcon from "@/assets/icons/action/trash.svg?react";
+import TrashIcon from "@assets/icons/action/trash.svg?react";
 
 const Toolbar = () => (
   <button type='button' aria-label='Delete'>
@@ -99,7 +99,7 @@ const Toolbar = () => (
 1. Designer hands you `trash.svg` (or you author one).
 2. If the SVG hard-codes a fill/stroke, edit it to `currentColor` so it themes correctly. (Social/brand icons are exempt.)
 3. Drop it into the matching `assets/icons/<category>/` folder with a kebab-case noun-first name. If no category fits, add a new one and document it here.
-4. At the call site: `import TrashIcon from "@/assets/icons/action/trash.svg?react"`.
+4. At the call site: `import TrashIcon from "@assets/icons/action/trash.svg?react"`.
 5. If you're replacing a Heroicon, search the codebase for that Heroicon import and swap each call site. Component names stay the same — only the import path changes.
 
 ## Workflow: adding an illustration / mascot / brand asset

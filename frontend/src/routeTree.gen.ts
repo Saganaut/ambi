@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -42,11 +41,6 @@ const RegisterRoute = RegisterRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExploreRoute = ExploreRouteImport.update({
-  id: '/explore',
-  path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesignSystemRoute = DesignSystemRouteImport.update({
@@ -135,7 +129,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/design-system': typeof DesignSystemRoute
-  '/explore': typeof ExploreRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -155,7 +148,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/design-system': typeof DesignSystemRoute
-  '/explore': typeof ExploreRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -177,7 +169,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
   '/design-system': typeof DesignSystemRoute
-  '/explore': typeof ExploreRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -199,7 +190,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/design-system'
-    | '/explore'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -219,7 +209,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/design-system'
-    | '/explore'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -240,7 +229,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/design-system'
-    | '/explore'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -262,7 +250,6 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AboutRoute: typeof AboutRoute
   DesignSystemRoute: typeof DesignSystemRoute
-  ExploreRoute: typeof ExploreRoute
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
@@ -290,13 +277,6 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/explore': {
-      id: '/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/design-system': {
@@ -444,7 +424,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AboutRoute: AboutRoute,
   DesignSystemRoute: DesignSystemRoute,
-  ExploreRoute: ExploreRoute,
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,

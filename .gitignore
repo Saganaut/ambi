@@ -9,6 +9,7 @@ prod.env
 
 ### REACT FRONTEND ###
 frontend/dist
+frontend/.tanstack
 
 ### JAVA BACKEND ###
 backend/HELP.md

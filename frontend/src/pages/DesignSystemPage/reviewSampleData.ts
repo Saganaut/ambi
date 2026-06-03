@@ -1,6 +1,6 @@
 // Sample data for the design system's ReviewPanel demo.
 // Mirrors the shape returned by GET /api/interactive-sessions/{code}/review.
-import type { InteractiveSessionReviewResponse } from "../../store/AmbiApi";
+import type { InteractiveSessionReviewResponse } from "@store/AmbiApi";
 
 export const reviewSampleData: InteractiveSessionReviewResponse = {
   interactiveSessionId: "demo-interactiveSession",

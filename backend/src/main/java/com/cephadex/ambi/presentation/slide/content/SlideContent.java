@@ -17,6 +17,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * place per layer: a {@code @JsonSubTypes.Type} entry (here and on the matching
  * {@link ScorableContent}/{@link NonScorableContent} sub-interface) plus a
  * {@code oneOf}/{@link DiscriminatorMapping} entry on the schema below.
+ *
+ * <p>The raw SpringDoc output for this {@code @JsonTypeInfo} hierarchy is a
+ * circular {@code oneOf}/{@code allOf} pair; {@code OpenApiConfig} flattens it into
+ * a clean discriminated union before the client is generated.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "contentType")
 @JsonSubTypes({

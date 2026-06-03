@@ -1,10 +1,10 @@
 import { type ComponentType, type ReactNode, type SVGProps } from "react";
 import { Link } from "@tanstack/react-router";
 import styles from "./ErrorPage.module.css";
-import { Btn } from "@/components/Common/Buttons/Btn";
-import LostFish from "@/assets/images/mascots/lost-fish.svg?react";
-import SleepyCeph from "@/assets/images/mascots/sleepy-ceph.svg?react";
-import OceanFloor from "@/assets/images/mascots/ocean-floor.svg?react";
+import LostFish from "@assets/images/mascots/lost-fish.svg?react";
+import SleepyCeph from "@assets/images/mascots/sleepy-ceph.svg?react";
+import OceanFloor from "@assets/images/mascots/ocean-floor.svg?react";
+import { Btn } from "@common/Buttons/Btn";
 
 interface ErrorPageProps {
   statusCode: number;

@@ -6,8 +6,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import styles from "./DesignSystem.module.css";
 import { Accordion } from "../../components/Containers/Accordion";
-import { Btn } from "../../components/Common/Buttons/Btn";
-import { Tag } from "../../components/Common/Tag/Tag";
+import { Btn } from "@common/Buttons/Btn";
+import { Tag } from "@common/Tag/Tag";
 
 interface TokenChipProps {
   token: string;

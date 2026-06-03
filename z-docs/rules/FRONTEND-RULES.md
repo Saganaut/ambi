@@ -19,7 +19,7 @@ Rules specific to the React + TypeScript frontend under `frontend/`.
     - Co-locate test files with the component (`Btn.test.tsx` alongside `Btn.tsx`).
     - Query by accessible role/name first; fall back to `data-testid` only when no semantic query applies.
     - Never change a test to make it pass without addressing the underlying issue. Always fix the code or the test to ensure correctness.
-10. **File Structure:** Adhere to the established frontend file structure. Avoid placing hand-written files in `frontend/src/store/` due to ESLint exclusion.
+10. **File Structure:** All code must strictly adhere to the project [Architecture Blueprint](./FRONTEND-FILE-STRUCTURE.md).
 11. **Component Design:**
     - Always declare components as `const ComponentName = ({ prop }: ComponentNameProps) => {}` with a standalone `export { ComponentName }` at the bottom of the file. Avoid default exports and inline `export const`.
     - Route files are for routing only — they must delegate to a `RouteNamePage` component in `src/pages/`.
@@ -29,6 +29,9 @@ Rules specific to the React + TypeScript frontend under `frontend/`.
     - Data such as JSON used in a component should be placed in a `data.ts` file in the same directory as the component.
     - Never use `index.tsx` files; use explicit file names.
     - Favor `interface` over `type`. Props interfaces should be named `ComponentNameProps`.
+    - Anything in components/Common should only carry props, no hooks. The components should be simple enough that any styling logic fits within the component.
+    - Anything in components that has its own directory can have hooks, such as modals.
+    - Anything in components should carry its own storybook
 
 12. **Exceptions:**
     - Any exceptions to the rules must be documented

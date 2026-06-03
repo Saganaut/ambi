@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Route as IndexRoute } from "../../routes/index";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { useRequireLogin } from "@/hooks/useRequireLogin";
+
 import styles from "./LandingPage.module.css";
+import { useCurrentUser } from "@shared/hooks/useCurrentUser";
+import { useRequireLogin } from "@/features/auth/useRequireLogin";
 
 const FEATURES = [
   {

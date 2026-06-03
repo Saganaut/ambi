@@ -1,5 +1,5 @@
-import { SessionPage } from "../../../../pages/SessionPage/SessionPage";
-import { SessionConnectionProvider } from "../../../../pages/SessionPage/SessionConnectionProvider";
+import { SessionPage } from "../../../../features/liveSession/views/SessionPage/SessionPage";
+import { SessionConnectionProvider } from "../../../../features/liveSession/views/SessionPage/SessionConnectionProvider";
 import { createFileRoute } from "@tanstack/react-router";
 
 // The `$sessionId` route param carries the session's room code (the join code),

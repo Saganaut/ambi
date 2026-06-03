@@ -10,7 +10,7 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    // "verbatimModuleSyntax": true, disabling as it could cause issues with oxlint?
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
@@ -25,15 +25,22 @@
       "@/*": ["./src/*"],
 
       // Directory-specific aliases
-      "@assets/*": ["./src/assets/*"],
-      "@components/*": ["./src/components/*"],
-      "@context/*": ["./src/context/*"],
-      "@hooks/*": ["./src/hooks/*"],
+      "@assets/*": ["./src/shared/assets/*"],
+
+      "@shared/*": ["./src/shared/*"],
+      "@components/*": ["./src/shared/components/*"],
+      "@common/*": ["./src/shared/components/Common/*"],
+      "@context/*": ["./src/shared/context/*"],
+      "@hooks/*": ["./src/shared/hooks/*"],
       "@pages/*": ["./src/pages/*"],
       "@routes/*": ["./src/routes/*"],
-      "@store/*": ["./src/store/*"],
-      "@types/*": ["./src/types/*"],
-      "@utils/*": ["./src/utils/*"]
+      "@store/*": ["./src/shared/store/*"],
+      "@types/*": ["./src/shared/types/*"],
+      "@utils/*": ["./src/shared/utils/*"],
+      "@decks/*": ["./src/features/decks/*"],
+      "@account/*": ["./src/features/account/*"],
+      "@liveSession/*": ["./src/features/liveSession/*"],
+      "@auth/*": ["./src/features/auth/*"]
     }
   },
   "include": ["src", "*.ts", "openapi-config.cts"]

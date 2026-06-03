@@ -8,11 +8,11 @@
 // flight `auth.state` is "loading" and the guard passes through; the
 // AuthenticatedLayout component renders the loading frame, and AppRouter calls
 // `router.invalidate()` when auth resolves so this guard re-runs with the real
-// state. The gate component lives in `@/components/Common/AuthenticatedLayout/`
+// state. The gate component lives in `@common/AuthenticatedLayout/`
 // so this file can keep Fast Refresh on the gated subtree intact.
 import { createFileRoute } from "@tanstack/react-router";
-import { AuthenticatedLayout } from "../components/AuthenticatedLayout/AuthenticatedLayout";
-import { requireRegistered } from "../auth/guards";
+import { requireRegistered } from "@auth/guards";
+import { AuthenticatedLayout } from "../shared/components/AuthenticatedLayout/AuthenticatedLayout";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: ({ context, location }) => {

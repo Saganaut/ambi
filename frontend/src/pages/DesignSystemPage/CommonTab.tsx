@@ -24,28 +24,28 @@ import {
 } from "@heroicons/react/24/outline";
 import styles from "./DesignSystem.module.css";
 import { Accordion } from "../../components/Containers/Accordion";
-import { Btn } from "../../components/Common/Buttons/Btn";
-import { IconBtn } from "../../components/Common/Buttons/IconBtn";
-import { CollapseBtn } from "../../components/Common/Buttons/CollapseBtn";
-import { Divider } from "../../components/Common/Divider/Divider";
-import { Tag } from "../../components/Common/Tag/Tag";
-import { Avatar } from "../../components/Common/Avatar/Avatar";
-import { EmptyState } from "../../components/Common/EmptyState/EmptyState";
-import { ProgressBar } from "../../components/Common/ProgressBar/ProgressBar";
-import { CountdownTimer } from "../../components/Common/CountdownTimer/CountdownTimer";
-import { Skeleton } from "../../components/Common/Skeleton/Skeleton";
-import { Tooltip } from "../../components/Common/Tooltip/Tooltip";
-import { Tabs } from "../../components/Common/Tabs/Tabs";
-import { Alert } from "../../components/Common/Alert/Alert";
-import { Pagination } from "../../components/Common/Pagination/Pagination";
-import { useConfirm } from "../../components/Common/ConfirmDialog/useConfirm";
-import { SelectableTile } from "../../components/Common/SelectableTile/SelectableTile";
-import { Card } from "../../components/Common/Cards/Card";
-import { ActionCard } from "../../components/Common/Cards/ActionCard";
-import { Badge } from "../../components/Common/Badge";
-import { Toast } from "../../components/Common/Toast/Toast";
-import { useModal } from "../../context/useModal";
-import { Loader } from "../../components/Common/Loader/Loader";
+import { Btn } from "@common/Buttons/Btn";
+import { IconBtn } from "@common/Buttons/IconBtn";
+import { CollapseBtn } from "@common/Buttons/CollapseBtn";
+import { Divider } from "@common/Divider/Divider";
+import { Tag } from "@common/Tag/Tag";
+import { Avatar } from "@common/Avatar/Avatar";
+import { EmptyState } from "@common/EmptyState/EmptyState";
+import { ProgressBar } from "@common/ProgressBar/ProgressBar";
+import { CountdownTimer } from "@common/CountdownTimer/CountdownTimer";
+import { Skeleton } from "@common/Skeleton/Skeleton";
+import { Tooltip } from "@common/Tooltip/Tooltip";
+import { Tabs } from "@common/Tabs/Tabs";
+import { Alert } from "@common/Alert/Alert";
+import { Pagination } from "@common/Pagination/Pagination";
+import { useConfirm } from "@common/ConfirmDialog/useConfirm";
+import { SelectableTile } from "@common/SelectableTile/SelectableTile";
+import { Card } from "@common/Cards/Card";
+import { ActionCard } from "@common/Cards/ActionCard";
+import { Badge } from "@common/Badge";
+import { Toast } from "@common/Toast/Toast";
+import { useModal } from "../../shared/context/useModal";
+import { Loader } from "@common/Loader/Loader";
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -59,7 +59,7 @@ import { BillingToggle } from "../../components/Pricing/BillingToggle/BillingTog
 import type { BillingCycle } from "../../components/Pricing/BillingToggle/BillingToggle";
 import { FeatureList } from "../../components/Pricing/FeatureList/FeatureList";
 import { PRICING_TIERS } from "../PricingPage/data";
-import { slideTypeGraphics } from "../../components/Common/Slides/SlideTypeGraphics/slideTypeGraphics";
+import { slideTypeGraphics } from "@common/Slides/SlideTypeGraphics/slideTypeGraphics";
 import { SlideContentWrapper } from "../../components/DeckEditor/SlideContentTypes/SlideContentWrapper";
 import {
   NotFoundPage,

@@ -1,4 +1,4 @@
-import { MyDecksPage } from "../../../pages/MyDecksPage/MyDecksPage";
+import { MyDecksPage } from "../../../features/decks/views/MyDecksPage/MyDecksPage";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/decks/")({

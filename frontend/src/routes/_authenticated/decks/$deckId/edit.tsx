@@ -1,4 +1,4 @@
-import { DeckViewPage } from "../../../../pages/DeckViewPage/DeckViewPage";
+import { DeckViewPage } from "../../../../features/decks/views/DeckViewPage/DeckViewPage";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/decks/$deckId/edit")({

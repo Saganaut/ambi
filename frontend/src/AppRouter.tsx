@@ -5,8 +5,8 @@
 // can't export a component without breaking HMR.
 import { useEffect } from "react";
 import { RouterProvider } from "@tanstack/react-router";
-import { useCurrentUser } from "./hooks/useCurrentUser";
 import type { router } from "./main";
+import { useCurrentUser } from "./features/auth";
 
 interface AppRouterProps {
   router: typeof router;

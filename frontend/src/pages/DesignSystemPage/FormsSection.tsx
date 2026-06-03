@@ -1,22 +1,22 @@
 // Form components InteractiveSession for the design system page.
 // Shows every Common/Input primitive with controlled state so they're interactive.
 import { useState } from "react";
-import { Input } from "../../components/Common/Input/Input/Input";
-import { NumberInput } from "../../components/Common/Input/NumberInput/NumberInput";
-import { TextArea } from "../../components/Common/Input/TextArea/TextArea";
-import { Checkbox } from "../../components/Common/Input/Checkbox/Checkbox";
-import { RadioGroup } from "../../components/Common/Input/RadioGroup/RadioGroup";
-import { ColorPicker } from "../../components/Common/Input/ColorPicker/ColorPicker";
-import { RichTextInput } from "../../components/Common/Input/RichTextInput/RichTextInput";
-import { Toggle } from "../../components/Common/Input/Toggle/Toggle";
-import { Dropdown } from "../../components/Common/Input/Dropdown/Dropdown";
-import { FileUpload } from "../../components/Common/Input/FileUpload/FileUpload";
-import { InputWithButton } from "../../components/Common/Input/InputWithButton/InputWithButton";
+import { Input } from "@components/Forms/Input/Input/Input";
+import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
+import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
+import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
+import { RadioGroup } from "@components/Forms/Input/RadioGroup/RadioGroup";
+import { ColorPicker } from "@components/Forms/Input/ColorPicker/ColorPicker";
+import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
+import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
+import { FileUpload } from "@components/Forms/Input/FileUpload/FileUpload";
+import { InputWithButton } from "@components/Forms/Input/InputWithButton/InputWithButton";
 import {
   AvatarSelector,
   AVATAR_OPTIONS,
-} from "../../components/Common/Input/AvatarSelector/AvatarSelector";
-import { TagPicker } from "../../components/Common/TagPicker/TagPicker";
+} from "@components/Forms/Input/AvatarSelector/AvatarSelector";
+import { TagPicker } from "@common/TagPicker/TagPicker";
 import { Accordion } from "../../components/Containers/Accordion";
 import styles from "./DesignSystem.module.css";
 

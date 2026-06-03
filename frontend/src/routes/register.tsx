@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { type RegisterSearch } from "../components/Forms/RegistrationForm";
-import { RegisterPage } from "../pages/RegisterPage/RegisterPage";
-import { requirePreRegistration } from "../auth/guards";
+import { RegisterPage } from "@auth/views/RegisterPage/RegisterPage";
+import { requirePreRegistration } from "@auth/guards";
+import { RegisterSearch } from "@auth/hooks/useRegister";
 
 export const Route = createFileRoute("/register")({
   // Identity is read from the PRE_REGISTRATION session (`/api/auth/me`), never

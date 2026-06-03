@@ -14,13 +14,10 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import type {
-  BtnVariant,
-  BtnFill,
-} from "../../components/Common/Buttons/BtnTypes";
-import { Btn } from "../../components/Common/Buttons/Btn";
-import { IconBtn } from "../../components/Common/Buttons/IconBtn";
+import { Btn } from "@common/Buttons/Btn";
+import { IconBtn } from "@common/Buttons/IconBtn";
 import styles from "./DesignSystem.module.css";
+import { BtnVariant, BtnFill } from "@common/Buttons/BtnTypes";
 
 interface VariantInfo {
   name: BtnVariant;
@@ -160,10 +157,10 @@ const ActionCombinations = () => {
         <p className={styles.sectionDescription}>
           <strong>variant</strong> picks the color slot — eight semantic colors.{" "}
           <strong>fill</strong> picks how that color renders —{" "}
-          <code>default</code> (background, no border),{" "}
-          <code>bordered</code> (background + border), or{" "}
-          <code>ghost</code> (no background, no border). Any color × any fill
-          is legal, so <code>variant=&quot;error&quot; fill=&quot;ghost&quot;</code> gives a
+          <code>default</code> (background, no border), <code>bordered</code>{" "}
+          (background + border), or <code>ghost</code> (no background, no
+          border). Any color × any fill is legal, so{" "}
+          <code>variant=&quot;error&quot; fill=&quot;ghost&quot;</code> gives a
           red text-only destructive button.
         </p>
         <p className={styles.sectionDescription}>

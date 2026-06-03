@@ -2,7 +2,7 @@ import type { ScoreBoardProps } from "../../components/Games/ScoreBoard/ScoreBoa
 import type {
   PlayerPlacementResponse,
   PublicUserSnapshot,
-} from "../../store/AmbiApi";
+} from "@store/AmbiApi";
 
 const placement = (
   playerId: string,

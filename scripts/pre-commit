@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# Pre-commit hook — lints the frontend (ESLint + Stylelint) before every commit.
+# Pre-commit hook — type-checks and lints the frontend before every commit.
 # Install once per clone: ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
 set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-echo "▶ Frontend lint (ESLint + Stylelint)..."
+echo "▶ Frontend typecheck..."
+(cd "$REPO_ROOT/frontend" && npm run typecheck)
+
+echo "OK - Typecheck passed."
+
+echo "▶ Frontend lint (oxlint + Stylelint)..."
 (cd "$REPO_ROOT/frontend" && npm run lint:all)
 
 echo "OK - Lint passed."

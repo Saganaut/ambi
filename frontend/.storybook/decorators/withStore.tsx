@@ -1,7 +1,6 @@
 import type { Decorator } from "@storybook/tanstack-react";
 import { Provider } from "react-redux";
-import { store } from "../../src/store/store";
-
+import { store } from "@/store/store";
 // Opt-in Redux wrapper for the data-bound tier. Apply per story via
 // `decorators: [withStore]` ONLY on components that read the RTK Query cache or
 // app slices — keep it off the pure presentational tier (Btn, Badge, Avatar,

@@ -2,8 +2,8 @@
 // Edits --hue-primary and --hue-accent on :root via useTheme so changes
 // ripple instantly through every semantic token on the page.
 import { useTheme } from "../../hooks/useTheme";
-import { Btn } from "../../components/Common/Buttons/Btn";
-import { ColorPicker } from "../../components/Common/Input/ColorPicker/ColorPicker";
+import { Btn } from "@common/Buttons/Btn";
+import { ColorPicker } from "@components/Forms/Input/ColorPicker/ColorPicker";
 import { themePresets } from "./data";
 import styles from "./DesignSystem.module.css";
 

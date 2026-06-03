@@ -1,15 +1,15 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { NavBar } from "../components/Nav/NavBar/NavBar";
-import { NotFoundPage, ServerErrorPage } from "../pages/ErrorPage/ErrorPage";
-import { AuthPromptBridge } from "../components/Common/LoginModal/AuthPromptBridge";
-import { ErrorBoundary } from "../components/Common/ErrorBoundary/ErrorBoundary";
-import { Layout } from "@/components/Layout/Layout";
-import { MainHeader } from "@/components/Layout/MainHeader";
-import type { CurrentUserState } from "@/hooks/useCurrentUser";
-import { ModalProvider } from "@/context/ModalProvider";
-import { LayoutProvider } from "@/context/LayoutProvider";
-import { ToastProvider } from "@/context/ToastProvider";
+import { NavBar } from "@components/Nav/NavBar/NavBar";
+import { NotFoundPage, ServerErrorPage } from "@pages/ErrorPage/ErrorPage";
+import { AuthPromptBridge } from "@components/Modal/LoginModal/AuthPromptBridge";
+import { ErrorBoundary } from "@components/Common/ErrorBoundary/ErrorBoundary";
+import { Layout } from "@components/Layout/Layout";
+import { MainHeader } from "@components/Layout/MainHeader";
+import { ModalProvider } from "@context/ModalProvider";
+import { LayoutProvider } from "@context/LayoutProvider";
+import { ToastProvider } from "@context/ToastProvider";
+import { CurrentUserState } from "@auth/hooks/useCurrentUser";
 
 export interface RouterContext {
   auth: CurrentUserState;

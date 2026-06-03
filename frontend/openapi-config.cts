@@ -3,9 +3,9 @@ import type { ConfigFile } from "@rtk-query/codegen-openapi";
 
 const config: ConfigFile = {
   schemaFile: "http://localhost:8080/v3/api-docs",
-  apiFile: "./src/store/emptyApi.ts",
+  apiFile: "./src/shared/store/emptyApi.ts",
   apiImport: "emptySplitApi",
-  outputFile: "./src/store/AmbiApi.ts",
+  outputFile: "./src/shared/store/AmbiApi.ts",
   exportName: "Ambi",
   hooks: { queries: true, lazyQueries: true, mutations: true },
 };

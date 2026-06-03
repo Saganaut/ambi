@@ -46,30 +46,39 @@ import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserRepository;
 import com.cephadex.ambi.user.enums.UserLevel;
 
+//TODO: Add this to runbook
 /**
  * Manually populates MongoDB with LOTR-themed sample data for the rewritten
  * backend: a handful of registered users, a few built-in {@link Theme presets},
  * and a set of public quiz {@link Deck decks} of MCQ slides.
  *
- * <p><strong>Activation.</strong> Wired only when {@code seed.run=true} (passed
- * by {@code scripts/seed-sample-data.sh}); a normal {@code spring-boot:run} boot
+ * <p>
+ * <strong>Activation.</strong> Wired only when {@code seed.run=true} (passed
+ * by {@code scripts/seed-sample-data.sh}); a normal {@code spring-boot:run}
+ * boot
  * does nothing. After seeding the application exits — the script binds a random
  * port so this can run alongside a normally-running backend on 8080.
  *
- * <p><strong>Idempotency.</strong> Everything is keyed on a natural identity
- * (username / deck {@code publicId} / built-in theme name) and created only when
+ * <p>
+ * <strong>Idempotency.</strong> Everything is keyed on a natural identity
+ * (username / deck {@code publicId} / built-in theme name) and created only
+ * when
  * absent, so re-running never duplicates and never deletes. We deliberately
- * check-then-create rather than lean on DB uniqueness: {@code auto-index-creation}
- * is off and an {@link ApplicationRunner} fires before {@code UserIndexInitializer}
+ * check-then-create rather than lean on DB uniqueness:
+ * {@code auto-index-creation}
+ * is off and an {@link ApplicationRunner} fires before
+ * {@code UserIndexInitializer}
  * has built the {@code users} indexes, so they cannot be relied on here.
  *
- * <p><strong>{@code seed.clear=true}.</strong> Drops {@code decks}, {@code themes}
+ * <p>
+ * <strong>{@code seed.clear=true}.</strong> Drops {@code decks}, {@code themes}
  * and {@code app_images} and removes <em>only</em> the canonical sample users
  * (by username) before re-seeding — real accounts (e.g. your logged-in Google
  * user) are preserved. Use this when a schema change has left documents Spring
  * Data can no longer deserialize.
  *
- * <p><strong>Content shape.</strong> Slides are MCQ-only: {@code McqContent} is
+ * <p>
+ * <strong>Content shape.</strong> Slides are MCQ-only: {@code McqContent} is
  * the only {@code SlideContent} subtype currently wired into the Jackson
  * discriminator union, so it is the only body that round-trips cleanly through
  * the API. Adding TITLE/MEDIA/etc. sample slides should wait until those types
@@ -362,7 +371,10 @@ public class SampleDataSeeder implements ApplicationRunner {
         return mcqMulti(question, explanation, difficulty, 1, userId, options);
     }
 
-    /** An MCQ slide allowing up to {@code maxSelections} choices; correct options carry the points. */
+    /**
+     * An MCQ slide allowing up to {@code maxSelections} choices; correct options
+     * carry the points.
+     */
     private Slide mcqMulti(String question, String explanation, Difficulty difficulty,
             int maxSelections, String userId, OptionDef... options) {
         List<McqOption> built = new ArrayList<>();

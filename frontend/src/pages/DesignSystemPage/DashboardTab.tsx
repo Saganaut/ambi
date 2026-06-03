@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import styles from "./DesignSystem.module.css";
 import { Accordion } from "../../components/Containers/Accordion";
-import { Btn } from "../../components/Common/Buttons/Btn";
+import { Btn } from "@common/Buttons/Btn";
 import { Leaderboard } from "../../components/Leaderboard/Leaderboard";
 import { ScoreBoard } from "../../components/Games/ScoreBoard/ScoreBoard";
 import { RoundResult } from "../../components/Games/RoundResult/RoundResult";
@@ -16,13 +16,13 @@ import { VotePanel } from "../../components/Games/VotePanel/VotePanel";
 import { SlideView } from "../../components/Games/SlideView/SlideView";
 import { WsErrorBanner } from "../../components/Games/WsErrorBanner/WsErrorBanner";
 import { GameOver } from "../../components/Games/GameOver/GameOver";
-import { BarChart } from "../../components/Common/Charts/BarChart/BarChart";
-import { FrequencyList } from "../../components/Common/Charts/FrequencyList/FrequencyList";
+import { BarChart } from "@common/Charts/BarChart/BarChart";
+import { FrequencyList } from "@common/Charts/FrequencyList/FrequencyList";
 import { ReviewPanel } from "../../components/Games/ReviewPanel/ReviewPanel";
 import { ContentDeckPicker } from "../../components/Games/ContentDeckPicker/ContentDeckPicker";
 import { PlayerInfo } from "../../components/PlayerInfo/PlayerInfo";
-import { useAppDispatch } from "../../store/hooks";
-import { wsErrorReceived } from "../../store/interactiveSessionSlice";
+import { useAppDispatch } from "@store/hooks";
+import { wsErrorReceived } from "@store/interactiveSessionSlice";
 import {
   gameOverData,
   playersData,

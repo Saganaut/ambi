@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import styles from "./DesignSystem.module.css";
 import "../../tokens.css";
-import { Tabs } from "../../components/Common/Tabs/Tabs";
+import { Tabs } from "@common/Tabs/Tabs";
 import { FormsSection } from "./FormsSection";
 import { RulebookSection } from "./RulebookSection";
 import { TextBackgroundCombinations } from "./TextBackgroundCombinations";
