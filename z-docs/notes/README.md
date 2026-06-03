@@ -2,4 +2,4 @@
 
 Working notes, scratchpads, and reference snippets. Anything that isn't a rule, ADR, runbook, or feature spec lands here.
 
-_No notes currently checked in._
+- [Storybook stories TODO](storybook-stories-todo.md) — Common components still missing stories (blocked on the deck/slide API migration).
