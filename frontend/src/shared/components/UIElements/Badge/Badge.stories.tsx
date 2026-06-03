@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/tanstack-react";
 import { Badge } from "./Badge";
-import type { BtnVariant, BtnSize } from "./Buttons/BtnTypes";
+import type { BtnVariant, BtnSize } from "../Buttons/BtnTypes";
 
 const VARIANTS: BtnVariant[] = [
   "primary",
@@ -15,7 +15,7 @@ const VARIANTS: BtnVariant[] = [
 const SIZES: BtnSize[] = ["xs", "sm", "md", "lg"];
 
 const meta = {
-  title: "Common/Badge",
+  title: "UIElements/Badge",
   component: Badge,
   tags: ["autodocs"],
   args: { label: "Badge", variant: "info", size: "md" },

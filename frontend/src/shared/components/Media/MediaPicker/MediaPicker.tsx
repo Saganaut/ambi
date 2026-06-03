@@ -22,12 +22,10 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 
-import { useCurrentUser } from "@hooks/useCurrentUser";
-import { useCurrentUserOrgs } from "@hooks/useCurrentUserOrgs";
-import { Btn } from "@common/Buttons/Btn";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
+import { Btn } from "@ui/Buttons/Btn";
 import { Input } from "@components/Forms/Input/Input/Input";
-import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import { EmptyState } from "@common/EmptyState/EmptyState";
+import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { variantFor } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
 import {
@@ -59,7 +57,6 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
   const userState = useCurrentUser();
   const ownerId =
     userState.state === "registered" ? (userState.user.id ?? null) : null;
-  const { data: orgs = [] } = useCurrentUserOrgs();
   const { data: assets = [], isLoading } = useListMediaQuery({ kind });
   const [uploadMedia, { isLoading: isUploading }] = useUploadMediaMutation();
   const [createEmbed, { isLoading: isCreatingEmbed }] =
@@ -74,7 +71,6 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
   const [uploadName, setUploadName] = useState("");
   const [uploadTags, setUploadTags] = useState("");
-  const [uploadOrgId, setUploadOrgId] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // VIDEO_EMBED state
@@ -151,7 +147,6 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
         kind,
         name: uploadName.trim() || undefined,
         tags: uploadTags.trim() || undefined,
-        organizationId: uploadOrgId || undefined,
         body: formData as unknown as { file: Blob },
       }).unwrap();
       resetForms();
@@ -180,7 +175,6 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
                 .map((t) => t.trim())
                 .filter(Boolean)
             : undefined,
-          organizationId: uploadOrgId || undefined,
         },
       }).unwrap();
       resetForms();
@@ -200,7 +194,6 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
     setUploadPreviewUrl(null);
     setUploadName("");
     setUploadTags("");
-    setUploadOrgId("");
     setEmbedUrl("");
     setUploadMode(false);
   };
@@ -403,24 +396,6 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
               setUploadTags(e.target.value);
             }}
           />
-          {orgs.length > 0 && (
-            <Dropdown
-              label='Share with'
-              id='media-upload-org'
-              value={uploadOrgId ? [uploadOrgId] : [""]}
-              onChange={(vals) => {
-                setUploadOrgId(vals[0] ?? "");
-              }}
-              options={[
-                { value: "", label: "Private (only me)" },
-                ...orgs.map((org) => ({
-                  value: org.id ?? "",
-                  label: org.name ?? "",
-                })),
-              ]}
-            />
-          )}
-
           {uploadError && <p className={styles.error}>{uploadError}</p>}
 
           <div className={styles.formActions}>

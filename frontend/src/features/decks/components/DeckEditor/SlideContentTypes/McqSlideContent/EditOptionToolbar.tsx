@@ -19,8 +19,8 @@ import type { HexColor } from "@uiw/color-convert";
 
 import styles from "./McqOptionEditable.module.css";
 import { hueToHex, parseHue, toHexColor } from "@utils/color";
-import { Btn } from "@common/Buttons/Btn";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { Btn } from "@ui/Buttons/Btn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ColorSwatch } from "@components/Forms/Input/ColorPicker/ColorSwatch";
 import {
   Popover,

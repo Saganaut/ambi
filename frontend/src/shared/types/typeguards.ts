@@ -3,7 +3,7 @@
 // the old `isGuest` boolean / `name`-presence checks are gone with the backend
 // rewrite. These are advisory UX helpers; the backend's 401/403 is the
 // authoritative gate.
-import type { CurrentUserState } from "../hooks/useCurrentUser";
+import type { CurrentUserState } from "@auth/hooks/useCurrentUser";
 
 type Registered = Extract<CurrentUserState, { state: "registered" }>;
 type Guest = Extract<CurrentUserState, { state: "guest" }>;

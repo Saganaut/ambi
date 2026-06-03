@@ -3,7 +3,7 @@ import { useId } from "react";
 import shared from "../Input.module.css";
 import styles from "./Dropdown.module.css";
 import { useDropdown, type DropdownOption } from "./useDropdown";
-import { Btn } from "@/shared/components/Common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 
 interface DropdownProps {
   options: DropdownOption[];

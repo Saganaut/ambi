@@ -4,7 +4,7 @@
 // a single resync call. Pure form-state — actual commit plumbing stays on
 // useElementEditor at the call site.
 import { useState } from "react";
-import type { Slide } from "@/store/AmbiApi";
+import type { Slide } from "@store/AmbiApi";
 
 type ResultsDisplayValue = NonNullable<Slide["resultsDisplayType"]>;
 

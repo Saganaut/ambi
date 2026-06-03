@@ -11,8 +11,8 @@
 // import type { OrganizationResponse } from "@store/AmbiApi";
 // import styles from "./ThemeSection.module.css";
 // import accountStyles from "./AccountPage.module.css";
-// import { Btn } from "@common/Buttons/Btn";
-// import { useConfirm } from "@common/ConfirmDialog/useConfirm";
+// import { Btn } from "@ui/Buttons/Btn";
+// import { useConfirm } from "@components/ConfirmDialog/useConfirm";
 // import { Input } from "@components/Forms/Input/Input/Input";
 // import { extractErrorMessage } from "@/utils/utils";
 

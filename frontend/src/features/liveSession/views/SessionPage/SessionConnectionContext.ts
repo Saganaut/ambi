@@ -3,11 +3,28 @@
 // SessionConnectionProvider supplies the value; consumers (SessionControls)
 // read it via useSessionConnection.
 import { createContext, use } from "react";
-import type { useInteractiveSessionWebSocket } from "@hooks/useInteractiveSessionWebSocket";
+import type { AnswerPayload } from "@types/elements";
 
-export type SessionConnection = ReturnType<
-  typeof useInteractiveSessionWebSocket
->;
+// TODO(migration): stubbed pending liveSession migration. The real shape is
+// ReturnType<typeof useInteractiveSessionWebSocket>; this placeholder preserves
+// the send-action surface consumers depend on until the hook is rebuilt.
+export interface SessionConnection {
+  sendStart: () => void;
+  sendAnswer: (elementId: string, payload: AnswerPayload) => void;
+  sendVote: (elementId: string, submissionId: string) => void;
+  sendNextRound: () => void;
+  sendLeave: () => void;
+  sendBoot: (playerId: string) => void;
+  sendEndInteractiveSession: () => void;
+  sendRevealNow: (elementId: string) => void;
+  sendFreezeResponses: (elementId: string, frozen: boolean) => void;
+  sendEndSubmitPhase: (elementId: string) => void;
+  sendRestart: () => void;
+  sendPauseTimer: () => void;
+  sendResumeTimer: () => void;
+  sendChat: (body: string) => void;
+  sendReaction: (emoji: string) => void;
+}
 
 export const SessionConnectionContext = createContext<SessionConnection | null>(
   null,

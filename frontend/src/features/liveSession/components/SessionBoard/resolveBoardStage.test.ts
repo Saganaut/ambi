@@ -16,8 +16,7 @@ const base = (
   ...overrides,
 });
 
-const questionId = (s: InteractiveSessionResponse) =>
-  s.deckSnapshot[1].id ?? "";
+const slideId = (s: InteractiveSessionResponse) => s.deckSnapshot[1].id ?? "";
 
 describe("resolveBoardStage", () => {
   it("returns lobby before the game starts", () => {
@@ -115,7 +114,7 @@ describe("resolveBoardStage", () => {
       currentRound: 1,
       phase: "SUBMIT",
     });
-    session.revealedElementIds = [questionId(session)];
+    session.revealedElementIds = [slideId(session)];
     expect(resolveBoardStage(session, false)).toMatchObject({
       mode: "results",
     });

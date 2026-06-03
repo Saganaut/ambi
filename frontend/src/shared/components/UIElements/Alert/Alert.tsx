@@ -11,7 +11,7 @@ import {
   XCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import styles from "./Alert.module.css";
 
 type AlertSeverity = "info" | "success" | "warning" | "error";

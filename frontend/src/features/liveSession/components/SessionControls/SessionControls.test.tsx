@@ -6,10 +6,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { RoundResultPayload } from "@store/interactiveSessionSlice";
 import type { InteractiveSessionResponse } from "@store/AmbiApi";
-import type { McqQuestion } from "@/types/elements";
+import type { DeckElement } from "@types/elements";
+import type { McqQuestion } from "@types/elements";
 import { mockFellowshipSession } from "@utils/MockData";
+
+// TODO(migration): stubbed pending liveSession migration. Was imported from the
+// interactiveSessionSlice; local placeholder so the round-result fixtures below
+// still type-check.
+interface RoundResultPayload {
+  round: number;
+  element: DeckElement;
+  playerResults: unknown[];
+}
 
 const h = vi.hoisted(() => ({
   send: {
@@ -30,7 +39,7 @@ const h = vi.hoisted(() => ({
 vi.mock("@/pages/SessionPage/SessionConnectionContext", () => ({
   useSessionConnection: () => h.send,
 }));
-vi.mock("@common/ConfirmDialog/useConfirm", () => ({
+vi.mock("@components/ConfirmDialog/useConfirm", () => ({
   useConfirm: () => h.confirm,
 }));
 vi.mock("@/pages/SessionPage/useSession", () => ({

@@ -1,6 +1,5 @@
 import { CountdownTimer } from "@/features/liveSession/components/CountdownTimer/CountdownTimer";
 import styles from "./SessionHeader.module.css";
-import { DisplayJoinCode } from "@components/Games/DisplayJoinCode/DisplayJoinCode";
 import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
 
 const SessionTimer = () => {
@@ -27,7 +26,10 @@ const SessionInfoDisplay = () => {
 
   return (
     <div className={styles.sessionInfoDisplay}>
-      <DisplayJoinCode code={interactiveSession.roomCode} />
+      {/* TODO(migration): stubbed pending liveSession migration. Was
+          <DisplayJoinCode> from the removed @components/Games tree; plain code
+          for now. */}
+      <span>Join code: {interactiveSession.roomCode}</span>
     </div>
   );
 };

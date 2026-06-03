@@ -1,8 +1,8 @@
 import { useState } from "react";
 import styles from "./PlayerInfo.module.css";
 import { camelToNormalCase } from "../../utils/utils";
-import { CollapseBtn } from "@common/Buttons/CollapseBtn";
-import { useCurrentUser } from "@/features/auth";
+import { CollapseBtn } from "@ui/Buttons/CollapseBtn";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 const StatRow = ({ label, stat }: { label: string; stat: number }) => {
   return (

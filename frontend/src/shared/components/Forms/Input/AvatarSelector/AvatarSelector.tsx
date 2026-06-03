@@ -21,7 +21,7 @@ import styles from "./AvatarSelector.module.css";
 import playerAvatar1 from "@assets/images/mascots/player-avatar-1.svg";
 import playerAvatar2 from "@assets/images/mascots/player-avatar-2.svg";
 import playerAvatar3 from "@assets/images/mascots/player-avatar-3.svg";
-import { IconBtn } from "@/shared/components/Common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 
 interface AvatarOption {
   value: string;

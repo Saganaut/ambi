@@ -29,13 +29,13 @@ const routeApi = getRouteApi("/decks/$deckId/edit");
 
 const SpeakerNotesDrawer = () => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
 
   const { element } = useGetDeckQuery(
     { id: deckId },
     {
       selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === questionId),
+        element: data?.elements?.find((e) => e.id === slideId),
       }),
     },
   );

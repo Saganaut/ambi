@@ -21,7 +21,9 @@ interface State {
   hasError: boolean;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
+// Rule 12 exception: class component is required — error boundaries must use
+// getDerivedStateFromError/componentDidCatch, which have no hook equivalent.
+class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 
   static getDerivedStateFromError(): State {
@@ -43,3 +45,5 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export { ErrorBoundary };

@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.slide.content;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
 import java.util.List;
 import java.util.Map;
 
@@ -8,25 +10,30 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Scor
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
- * Match-the-pairs slide — players draw connections from left items to right items.
+ * Match-the-pairs slide — players draw connections from left items to right
+ * items.
  *
- * <p>Runtime answer: {@code Map<String, String>} (leftId → rightId).
+ * <p>
+ * Runtime answer: {@code Map<String, String>} (leftId → rightId).
  *
  * @param left         items shown on the left column
  * @param right        items shown on the right column
  * @param correctPairs the correct pairing (leftId → rightId)
- * @param scoreMode    {@code EXACT} (all pairs correct only) or {@code PARTIAL} (per-pair points)
+ * @param scoreMode    {@code EXACT} (all pairs correct only) or {@code PARTIAL}
+ *                     (per-pair points)
  */
 public record MatchingContent(
-        int pointValue,
-        Difficulty difficulty,
+        @Schema(requiredMode = REQUIRED) int pointValue,
+        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
         String explanation,
-        List<MatchItem> left,
-        List<MatchItem> right,
-        Map<String, String> correctPairs,
-        ScoreMode scoreMode
-) implements ScorableContent {
+        @Schema(requiredMode = REQUIRED) List<MatchItem> left,
+        @Schema(requiredMode = REQUIRED) List<MatchItem> right,
+        @Schema(requiredMode = REQUIRED) Map<String, String> correctPairs,
+        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
+        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.MATCHING;

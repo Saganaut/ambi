@@ -4,12 +4,12 @@
 import { useMemo } from "react";
 
 import BellIcon from "@assets/icons/interface/bell.svg?react";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { DropdownMenu } from "@components/Menus/DropdownMenu";
 
 import { NotificationDropdown } from "./NotificationDropdown";
 import styles from "./NotificationBell.module.css";
-import { useCurrentUser } from "@/features/auth";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 /** Show "9+" rather than four-digit counts so the badge stays compact. */
 const BADGE_CAP = 9;

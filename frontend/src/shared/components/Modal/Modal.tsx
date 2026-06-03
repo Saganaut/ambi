@@ -4,7 +4,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import style from "./Modal.module.css";
-import { IconBtn } from "../Common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 
 type ModalVariant = "error" | "success" | "warning" | "info" | "brand";
 

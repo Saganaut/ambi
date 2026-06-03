@@ -7,15 +7,15 @@
 // Heavier management (rename / re-tag / delete) lives on the Gallery tab of
 // the Account page so this surface stays a quick browse-and-pick.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import { EmptyState } from "@common/EmptyState/EmptyState";
+import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { IMAGE_TIERS, validateImageFile } from "@utils/imageValidation";
 import { externalImage, internalImage, variantFor } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
 import styles from "./GalleryPicker.module.css";
-import { useCurrentUser } from "@/features/auth";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 interface GalleryPickerProps {
   onPick: (image: Image) => void;

@@ -8,7 +8,8 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * Display-only media slide — no player answer, no scoring.
  *
  * @param mediaType the kind of media being shown
- * @param image     used when {@code mediaType} is {@code IMAGE}; otherwise {@code null}
+ * @param image     used when {@code mediaType} is {@code IMAGE}; otherwise
+ *                  {@code null}
  * @param url       video or embed source URL; used when not {@code IMAGE}
  * @param caption   optional caption shown below the media
  * @param autoplay  start playback automatically when the slide opens
@@ -22,8 +23,8 @@ public record MediaContent(
         String caption,
         boolean autoplay,
         boolean loop,
-        boolean muted
-) implements NonScorableContent {
+        boolean muted,
+        boolean allowAnonymous) implements NonScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.MEDIA;

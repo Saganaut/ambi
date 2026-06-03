@@ -11,7 +11,7 @@
 
 import { DragDropProvider } from "@dnd-kit/react";
 import { PlusIcon } from "@heroicons/react/24/outline";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import { SlideThumbnail } from "./SlideThumbnail";
 import styles from "./LeftSidebarContent.module.css";
 import { NewElementPicker } from "../NewElementPicker";
@@ -21,6 +21,7 @@ import { useFullScreen } from "@hooks/useFullScreen";
 import { DeckResponse } from "@store/AmbiApi";
 import { ElementKind } from "../RightSidebar/data";
 import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
+import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
 
 export type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 
@@ -35,7 +36,7 @@ const elementDisplayName = (element: DeckElement): string => {
 };
 
 const LeftSidebarContent = () => {
-  const { handleAddElement, handleDragEnd, elements, deckId, questionId } =
+  const { handleAddElement, handleDragEnd, elements, deckId, slideId } =
     useDeckEditor();
   const { openModal, closeModal } = useModal();
   const { isFullScreen } = useFullScreen();
@@ -88,7 +89,7 @@ const LeftSidebarContent = () => {
                 id={element.id ?? ""}
                 name={elementDisplayName(element)}
                 slideType={element.kind}
-                currentQuestionId={questionId}
+                currentQuestionId={slideId}
                 deckId={deckId}
               />
             ))}

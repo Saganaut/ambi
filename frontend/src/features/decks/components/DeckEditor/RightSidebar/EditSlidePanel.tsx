@@ -4,7 +4,7 @@
 // the provenance footer. Each subsection owns its own debounced commit and
 // local-state mirror (see `useElementEditor`); this file just routes.
 import { getRouteApi } from "@tanstack/react-router";
-import { useGetDeckQuery } from "@/store/AmbiApi";
+import { useGetDeckQuery } from "@store/AmbiApi";
 import { SlideOptionsSection } from "./EditSlideSections/SlideOptionsSection";
 import { McqOptionsSection } from "./EditSlideSections/McqOptionsSection";
 import { TextOptionsSection } from "./EditSlideSections/TextOptionsSection";
@@ -41,13 +41,13 @@ const PerKindSection = ({ kind }: { kind: string }) => {
 
 const EditSlidePanel = () => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
 
   const { element } = useGetDeckQuery(
     { id: deckId },
     {
       selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === questionId),
+        element: data?.elements?.find((e) => e.id === slideId),
       }),
     },
   );

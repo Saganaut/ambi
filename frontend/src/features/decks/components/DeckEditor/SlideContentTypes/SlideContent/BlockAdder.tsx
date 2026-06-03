@@ -2,10 +2,9 @@
 // local pending pick so the user can preview the label before committing.
 import { useState } from "react";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import type { SlideBlockKind } from "@/store/slideBlockTypes";
-import { BLOCK_KIND_OPTIONS } from "./types";
+import { BLOCK_KIND_OPTIONS, type SlideBlockKind } from "./types";
 import styles from "./SlideContent.module.css";
 
 interface BlockAdderProps {

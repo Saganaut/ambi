@@ -1,7 +1,7 @@
 // Single theme card: color swatch preview, name, activate/edit/delete actions.
 // Renders both preset themes (no edit/delete) and custom themes (owner-only
 // edit/delete) — callers pass only the action callbacks that apply.
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import styles from "./ThemeSection.module.css";
 
 interface ThemeCardProps {

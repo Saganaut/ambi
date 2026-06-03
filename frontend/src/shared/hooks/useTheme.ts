@@ -22,7 +22,7 @@ import {
   type ThemeSpec,
 } from "@store/AmbiApi";
 import { apiToUiMode, uiToApiMode } from "../utils/themeMode";
-import { useCurrentUser } from "@/features/auth";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 export type ThemeMode = "light" | "dark";
 

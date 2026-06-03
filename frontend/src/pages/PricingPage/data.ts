@@ -3,7 +3,7 @@
 // price IDs. The shape here intentionally mirrors what a future Plan API
 // response is expected to look like (key + price-per-cycle + features), so
 // swapping placeholder data for live data is a one-line change in the hook.
-import type { FeatureItem } from "../../components/Pricing/FeatureList/FeatureList";
+import type { FeatureItem } from "@pages/PricingPage/components/FeatureList/FeatureList";
 
 interface PricingTier {
   key: "free" | "individual" | "organization";

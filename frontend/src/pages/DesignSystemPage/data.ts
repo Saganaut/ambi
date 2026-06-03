@@ -1,4 +1,3 @@
-import type { ScoreBoardProps } from "../../components/Games/ScoreBoard/ScoreBoard";
 import type {
   PlayerPlacementResponse,
   PublicUserSnapshot,
@@ -301,7 +300,9 @@ const playerStatDefaults = {
 // Player identity is the session-scoped playerId (never the underlying userId).
 // The mocks use stable "player-<name>" handles so design-system snapshots stay
 // readable across regenerations.
-export const playersData: ScoreBoardProps = {
+// TODO(migration): formerly typed `ScoreBoardProps` from the removed
+// @components/Games tree; type inferred until the games UI returns.
+export const playersData = {
   players: [
     {
       playerId: "player-001",

@@ -14,6 +14,7 @@ import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useGetDeckQuery, type DeckResponse } from "@store/AmbiApi";
 import { useDeckSettings } from "./useDeckSettings";
 import styles from "./EditSlidePanel.module.css";
+import { useCurrentUser } from "@/features/auth";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 
@@ -160,7 +161,7 @@ const DeckParticipantSettings = () => {
  *  they're enabled session-wide. */
 const SlideReactionsOverride = () => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
   const currentUser = useCurrentUser();
   const currentUserId =
     currentUser.state === "registered" || currentUser.state === "guest"
@@ -171,7 +172,7 @@ const SlideReactionsOverride = () => {
     { id: deckId },
     {
       selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === questionId),
+        element: data?.elements?.find((e) => e.id === slideId),
       }),
     },
   );

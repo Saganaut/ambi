@@ -3,9 +3,9 @@
 // lays out PricingCard instances for each tier, and the whole page is fed by
 // usePricingPage so swapping placeholder data for a billing API later is a
 // one-place change.
-import { BillingToggle } from "../../components/Pricing/BillingToggle/BillingToggle";
-import { PricingCard } from "../../components/Pricing/PricingCard/PricingCard";
-import { PricingGrid } from "../../components/Pricing/PricingGrid/PricingGrid";
+import { BillingToggle } from "@pages/PricingPage/components/BillingToggle/BillingToggle";
+import { PricingCard } from "@pages/PricingPage/components/PricingCard/PricingCard";
+import { PricingGrid } from "@pages/PricingPage/components/PricingGrid/PricingGrid";
 import styles from "./PricingPage.module.css";
 import { usePricingPage } from "./usePricingPage";
 

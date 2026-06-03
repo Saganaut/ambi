@@ -10,7 +10,7 @@
 // `element.kind` and delegates to a per-kind component (mirrors
 // DeckEditor/SlideDisplay). Only MCQ is built so far; everything else falls back
 // to a placeholder, the same way the Gen-1 ElementRenderer staged its kinds.
-import type { DeckElement } from "@/types/elements";
+import type { DeckElement } from "@types/elements";
 import { RichTextDisplay } from "@components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import { largestUrl } from "@utils/image";
 import type { BoardQuestionMode } from "../resolveBoardStage";

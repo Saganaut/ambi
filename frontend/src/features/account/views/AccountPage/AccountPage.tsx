@@ -4,12 +4,12 @@
 //
 // This component is pure UI: all state, mutations, and side effects live in
 // `useAccount`. It only renders what the hook exposes and forwards events back.
-import { Avatar } from "@common/Avatar/Avatar";
-import { Btn } from "@common/Buttons/Btn";
+import { Avatar } from "@ui/Avatar/Avatar";
+import { Btn } from "@ui/Buttons/Btn";
 import { AvatarSelector } from "@components/Forms/Input/AvatarSelector/AvatarSelector";
 import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
 import { FileUpload } from "@components/Forms/Input/FileUpload/FileUpload";
-import { Tabs } from "@common/Tabs/Tabs";
+import { Tabs } from "@ui/Tabs/Tabs";
 import { useState } from "react";
 import styles from "./AccountPage.module.css";
 import { useAccount } from "../../useAccount";

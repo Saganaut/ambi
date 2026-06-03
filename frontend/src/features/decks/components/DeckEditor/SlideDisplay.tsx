@@ -1,13 +1,13 @@
 /**
  * Centre canvas of the deck editor. Renders the element-kind-specific authoring
- * surface for whichever element the route's `questionId` is pointing at. The
+ * surface for whichever element the route's `slideId` is pointing at. The
  * sidebar / header chrome (slide-kind icon, footer) is owned here; the actual
  * field editors live in SlideContentTypes/.
  */
 import { useGetDeckQuery } from "@store/AmbiApi";
 import { getRouteApi } from "@tanstack/react-router";
 import styles from "./SlideDisplay.module.css";
-import { Loader } from "@common/Loader/Loader";
+import { Loader } from "@ui/Loader/Loader";
 
 import { SlideContent } from "./SlideContentTypes/SlideContent/SlideContent";
 import { McqSlideContent } from "./SlideContentTypes/McqSlideContent/McqSlideContent";
@@ -30,14 +30,14 @@ const routeApi = getRouteApi("/decks/$deckId/edit");
 
 const SlideDisplay = () => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
 
   const { element, isLoading } = useGetDeckQuery(
     { id: deckId },
     {
       selectFromResult: ({ data, isLoading }) => ({
         isLoading,
-        element: data?.elements?.find((e) => e.id === questionId),
+        element: data?.elements?.find((e) => e.id === slideId),
       }),
     },
   );

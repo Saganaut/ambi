@@ -6,7 +6,6 @@
 // through useElementEditor, which stamps chrome version/author like every other
 // edit-slide section.
 import { getRouteApi } from "@tanstack/react-router";
-import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import { emptyImage } from "@utils/image";
 import type { DeckResponse } from "@store/AmbiApi";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
@@ -28,7 +27,6 @@ const SlideImageSection = () => {
   routeApi.useParams();
   const { element, commit, syncedFromId, markSynced } =
     useElementEditor<DeckElement>(anyElement);
-  const openPicker = useGalleryPicker();
 
   if (element && syncedFromId !== element.id) {
     markSynced(element.id);
@@ -36,11 +34,9 @@ const SlideImageSection = () => {
 
   if (!element) return null;
 
-  const handlePick = () => {
-    openPicker((image) => {
-      commit({ ...element, chrome: { ...element.chrome, image } });
-    });
-  };
+  // TODO(migration): the gallery picker was wired through `@hooks/useGalleryPicker`,
+  // which no longer exists. No-op until the picker returns.
+  const handlePick = () => {};
 
   const handleClear = () => {
     commit({ ...element, chrome: { ...element.chrome, image: emptyImage() } });

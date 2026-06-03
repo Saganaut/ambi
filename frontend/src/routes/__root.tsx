@@ -3,7 +3,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { NavBar } from "@components/Nav/NavBar/NavBar";
 import { NotFoundPage, ServerErrorPage } from "@pages/ErrorPage/ErrorPage";
 import { AuthPromptBridge } from "@components/Modal/LoginModal/AuthPromptBridge";
-import { ErrorBoundary } from "@components/Common/ErrorBoundary/ErrorBoundary";
+import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { Layout } from "@components/Layout/Layout";
 import { MainHeader } from "@components/Layout/MainHeader";
 import { ModalProvider } from "@context/ModalProvider";

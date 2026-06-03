@@ -117,6 +117,24 @@ fallback, hover, roving focus) to do their job accessibly. Two paths:
 Either way, `Toast`'s timer and `TagPicker`'s data layer should be lifted
 regardless — those aren't intrinsic-UI state.
 
+### Resolution (2026-06-03)
+
+**Decision: move out of `Common` (path 1).** Rule 32 stays literal — `Common`
+remains strictly props-only and is treated as a holding pen to be drained (§1).
+A shared widget that legitimately needs its own intrinsic UI state (`Avatar`'s
+image-fallback flag, `Tooltip`'s hover/focus + `useId`, `Tabs`' roving tabindex)
+does **not** get a `Common` hook exception; it relocates into a blueprint
+UI-Element bucket (`Layout/`, `Forms/`, or a `[UI-Element]/` folder) where Rule
+33's per-directory hook allowance already applies. This avoids forking the rules
+and keeps the resolution aligned with the §1 direction.
+
+Recorded in [FRONTEND-RULES](../rules/FRONTEND-RULES.md) as a reconciling clause
+between the two Component-Design bullets, which also restates the hard line that
+holds in either bucket: data fetching (RTK Query), cache mutation, and store
+dispatch never belong in any shared design-system component (§2's `TagPicker`
+split, already done). The widget relocations themselves are mechanical follow-up
+tracked under the §1 `Common`-drain re-bucketing, not a rules question.
+
 ---
 
 ## 4. `Badge` — loose files at the `Common/` root
@@ -223,4 +241,4 @@ Larger, coordinated work:
 
 - [x] Split `TagPicker` into a props-only shell + feature-level data container (§2, §3, §7). `useTagPickerData` hook in `shared/hooks/`; `TagPicker.stories.tsx` added.
 - [x] Relocate `DeckCard` / `DeckActionButton` (and decide on `FavoriteHeart`) into `features/decks/` (§6). All three moved to `features/decks/components/`; `FavoriteHeart` moved with them (deck-specific).
-- [ ] Resolve the Rule 32 vs Rule 33 hook tension for self-contained UI widgets and document the outcome (§3).
+- [x] Resolve the Rule 32 vs Rule 33 hook tension for self-contained UI widgets and document the outcome (§3). Outcome: keep `Common` props-only, move hook-bearing widgets out into UI-Element buckets; recorded in [FRONTEND-RULES](../rules/FRONTEND-RULES.md).

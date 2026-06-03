@@ -13,18 +13,24 @@
 // Results distribution comes from the round-result broadcast (per-option counts
 // derived from each player's submitted McqAnswer).
 import { useState } from "react";
-import type { AnswerPayload, McqQuestion } from "@/types/elements";
+import type { AnswerPayload, McqQuestion } from "@types/elements";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { useFlushOnClosing } from "./useFlushOnClosing";
 import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import { useAppDispatch } from "@/store/hooks";
-import {
-  answerSubmittedLocally,
-  type RoundResultPayload,
-} from "@/store/interactiveSessionSlice";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import styles from "./McqBoardContent.module.css";
+
+// TODO(migration): stubbed pending liveSession migration. Was imported from the
+// interactiveSessionSlice; kept as a local placeholder so deriveDistribution
+// still type-checks.
+interface RoundResultPayload {
+  round: number;
+  element: { id?: string };
+  playerResults: {
+    payload?: { kind?: string; optionIds?: string[] } | null;
+  }[];
+}
 
 interface McqBoardContentProps {
   question: McqQuestion;
@@ -65,7 +71,6 @@ const McqBoardContent = ({
       : 1;
   const elementId = question.id ?? "";
 
-  const dispatch = useAppDispatch();
   const { sendAnswer } = useSessionConnection();
   // Live fields come through the one merged session view, not a direct slice
   // read. myAnswer is cleared at the top of every round, so a non-null value
@@ -83,7 +88,10 @@ const McqBoardContent = ({
       optionIds: [...selected],
     };
     sendAnswer(elementId, payload);
-    dispatch(answerSubmittedLocally(payload));
+    // TODO(migration): stubbed pending liveSession migration. The
+    // answerSubmittedLocally dispatch that latched myAnswer lived on the
+    // interactiveSessionSlice; with the slice gone the locked-in state no longer
+    // reflects until the slice is rebuilt.
   };
 
   // Host ended the submit phase → flush this device's draft before it freezes.

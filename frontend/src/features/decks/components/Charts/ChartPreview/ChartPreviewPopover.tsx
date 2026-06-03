@@ -8,7 +8,7 @@
 // vertically inside the viewport. ChartPreview mounts only while open so
 // re-opening replays its on-appear animation.
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import type { ChartType } from "@components/DeckEditor/RightSidebar/data";
+import type { ChartType } from "@decks/components/DeckEditor/RightSidebar/data";
 import { ChartPreview } from "./ChartPreview";
 import styles from "./ChartPreviewPopover.module.css";
 

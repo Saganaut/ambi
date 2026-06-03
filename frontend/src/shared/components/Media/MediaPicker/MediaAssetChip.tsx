@@ -13,7 +13,7 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 
 import styles from "./MediaAssetChip.module.css";
 

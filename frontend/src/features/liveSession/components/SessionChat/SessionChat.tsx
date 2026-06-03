@@ -17,12 +17,21 @@ import {
   PaperAirplaneIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { InteractiveSessionChatMessageResponse } from "@/store/AmbiApi";
-import type { LiveReaction } from "@/store/interactiveSessionSlice";
+import type { InteractiveSessionChatMessageResponse } from "@store/AmbiApi";
 import styles from "./SessionChat.module.css";
+
+// TODO(migration): stubbed pending liveSession migration. Was imported from the
+// interactiveSessionSlice; kept as a local placeholder so the reaction → message
+// mapping below still type-checks.
+interface LiveReaction {
+  id: string;
+  emoji: string;
+  userName?: string;
+  queuedAt: number;
+}
 
 interface ChatMessage {
   id: string;

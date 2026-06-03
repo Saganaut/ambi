@@ -1,4 +1,4 @@
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import { useCreateDeck } from "../../hooks/useCreateDeck";
 
 const CreateDeckBtn = () => {

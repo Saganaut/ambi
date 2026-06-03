@@ -1,4 +1,4 @@
-import { DeckEditor } from "../../components/DeckEditor/DeckEditor";
+import { DeckEditor } from "../DeckEditor/DeckEditor";
 
 const DeckViewPage = () => {
   return (

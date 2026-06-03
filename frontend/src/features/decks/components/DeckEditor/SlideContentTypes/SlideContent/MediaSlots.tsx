@@ -1,14 +1,10 @@
 // Audio + video media-picker slots used at the bottom of the slide editor.
-// Each row shows the picked asset (via MediaAssetChip) and exposes "Replace"
-// + "Remove" actions; an empty slot offers an "Add" button.
 //
-// Chunk 25 — the audio/video reference fields live on {@link ElementChrome},
-// so the patch shape sits inside the chrome subdocument rather than at the
-// element top level.
-import { Btn } from "@common/Buttons/Btn";
-import { MediaAssetChip } from "@common/MediaPicker/MediaAssetChip";
-import { useMediaPicker } from "@hooks/useMediaPicker";
-import type { ElementChrome, Slide } from "@/store/AmbiApi";
+// TODO(migration): stubbed pending slide-block migration. This component was
+// built entirely on `@hooks/useMediaPicker`, which no longer exists. The body
+// is replaced with a placeholder so the file compiles; the props shape is
+// preserved so `SlideContent.tsx` still type-checks against it.
+import type { ElementChrome, Slide } from "@store/AmbiApi";
 import styles from "./SlideContent.module.css";
 
 /** Narrow patch shape — MediaSlots only ever touches the audio/video chrome
@@ -24,83 +20,9 @@ interface MediaSlotsProps {
   onFlush: () => void;
 }
 
-const MediaSlots = ({ element, onCommit, onFlush }: MediaSlotsProps) => {
-  const openMediaPicker = useMediaPicker();
-  const audioAssetId = element.chrome?.audioAssetId;
-  const videoAssetId = element.chrome?.videoAssetId;
-
+const MediaSlots = (_props: MediaSlotsProps) => {
   return (
-    <>
-      <div className={styles.mediaRow}>
-        <MediaAssetChip
-          label='Audio'
-          assetId={audioAssetId}
-          onReplace={() => {
-            onFlush();
-            openMediaPicker("AUDIO", (asset) => {
-              onCommit({ audioAssetId: asset.id, audioUrl: undefined });
-            });
-          }}
-          onRemove={() => {
-            onFlush();
-            onCommit({ audioAssetId: undefined, audioUrl: undefined });
-          }}
-        />
-        {!audioAssetId && (
-          <Btn
-            size='sm'
-            onClick={() => {
-              onFlush();
-              openMediaPicker("AUDIO", (asset) => {
-                onCommit({ audioAssetId: asset.id, audioUrl: undefined });
-              });
-            }}>
-            Add audio
-          </Btn>
-        )}
-      </div>
-
-      <div className={styles.mediaRow}>
-        <MediaAssetChip
-          label='Video'
-          assetId={videoAssetId}
-          onReplace={() => {
-            onFlush();
-            openMediaPicker("VIDEO_FILE", (asset) => {
-              onCommit({ videoAssetId: asset.id, videoUrl: undefined });
-            });
-          }}
-          onRemove={() => {
-            onFlush();
-            onCommit({ videoAssetId: undefined, videoUrl: undefined });
-          }}
-        />
-        {!videoAssetId && (
-          <>
-            <Btn
-              size='sm'
-              onClick={() => {
-                onFlush();
-                openMediaPicker("VIDEO_FILE", (asset) => {
-                  onCommit({ videoAssetId: asset.id, videoUrl: undefined });
-                });
-              }}>
-              Add video
-            </Btn>
-            <Btn
-              size='sm'
-              onClick={() => {
-                onFlush();
-                openMediaPicker("VIDEO_EMBED", (asset) => {
-                  onCommit({ videoAssetId: asset.id, videoUrl: undefined });
-                });
-              }}>
-              Add video link
-            </Btn>
-          </>
-        )}
-      </div>
-    </>
+    <div className={styles.mediaRow}>Media editor — coming soon</div>
   );
 };
 

@@ -6,7 +6,7 @@
 // Reads the live player roster off the session snapshot and ranks locally. When
 // wired off mock data this can swap to the authoritative final placements from
 // the /results endpoint, but the shape (player + score) is the same.
-import type { InteractiveSessionResponse } from "@/store/AmbiApi";
+import type { InteractiveSessionResponse } from "@store/AmbiApi";
 import styles from "./BoardOverallResults.module.css";
 
 interface BoardOverallResultsProps {

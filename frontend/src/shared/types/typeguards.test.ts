@@ -6,7 +6,7 @@ import {
   isPreRegistration,
   isAuthenticated,
 } from "./typeguards";
-import type { CurrentUserState } from "../hooks/useCurrentUser";
+import type { CurrentUserState } from "@auth/hooks/useCurrentUser";
 
 const registered: CurrentUserState = {
   state: "registered",

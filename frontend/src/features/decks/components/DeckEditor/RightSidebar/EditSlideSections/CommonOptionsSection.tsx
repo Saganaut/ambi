@@ -12,12 +12,12 @@ import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { useDebouncedCommit } from "@hooks/useDebouncedCommit";
-import { useCurrentUser } from "@hooks/useCurrentUser";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 import {
   useGetDeckQuery,
   useUpdateElementMutation,
   type DeckResponse,
-} from "@/store/AmbiApi";
+} from "@store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
@@ -26,7 +26,7 @@ const routeApi = getRouteApi("/decks/$deckId/edit");
 
 const CommonOptionsSection = () => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
   const currentUser = useCurrentUser();
   const currentUserId =
     currentUser.state === "registered" || currentUser.state === "guest"
@@ -37,7 +37,7 @@ const CommonOptionsSection = () => {
     { id: deckId },
     {
       selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === questionId),
+        element: data?.elements?.find((e) => e.id === slideId),
       }),
     },
   );

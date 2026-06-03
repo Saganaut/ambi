@@ -34,8 +34,8 @@ import { useState } from "react";
 import { useLiveSession } from "@liveSession/useLiveSession";
 import type { DeckResponse, SlideResponse } from "@store/AmbiApi";
 
-import { useDeck } from "../../hooks/useDeck";
-import { useSlide, type AddSlideOptions } from "../../hooks/useSlide";
+import { useDeck } from "./useDeck";
+import { useSlide, type AddSlideOptions } from "./useSlide";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -57,10 +57,10 @@ interface UseDeckEditorResult {
 
   /** ── Slides (left rail + canvas) ─────────────────────────────────────── */
   slides: SlideResponse[];
-  /** The slide the route's `questionId` points at, if any. */
+  /** The slide the route's `slideId` points at, if any. */
   selectedSlide: SlideResponse | undefined;
   selectedSlideId: string | undefined;
-  /** Point the editor at a slide by updating the route's `questionId`. */
+  /** Point the editor at a slide by updating the route's `slideId`. */
   selectSlide: (slideId: string) => void;
   /** Append a slide, select it, and scroll its thumbnail into view. */
   addSlide: (options?: AddSlideOptions) => void;
@@ -96,12 +96,16 @@ const scrollThumbnailIntoView = (slideId: string) => {
 
 const useDeckEditor = (): UseDeckEditorResult => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
   const { deck, isLoading, error, rename } = useDeck(deckId);
-  const { slides, addSlide: appendSlide, removeSlide, reorder } =
-    useSlide(deckId);
+  const {
+    slides,
+    addSlide: appendSlide,
+    removeSlide,
+    reorder,
+  } = useSlide(deckId);
   const { present } = useLiveSession();
 
   // ── Title draft ──────────────────────────────────────────────────────────
@@ -135,11 +139,11 @@ const useDeckEditor = (): UseDeckEditorResult => {
   };
 
   // ── Slide selection / creation ─────────────────────────────────────────────
-  const selectedSlideId = questionId;
+  const selectedSlideId = slideId;
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId);
 
   const selectSlide = (slideId: string) => {
-    void navigate({ search: (prev) => ({ ...prev, questionId: slideId }) });
+    void navigate({ search: (prev) => ({ ...prev, slideId: slideId }) });
   };
 
   const addSlide = (options?: AddSlideOptions) => {

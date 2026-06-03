@@ -24,6 +24,7 @@ public class LiveSessionOrchestrator {
     private final SessionLocks locks;
     private final SessionStateStore stateStore;
     private final TallyStore tallyStore;
+    // TODO(Claude): missing collaborators — DeadlineScheduler (round/submission timers) and EventPublisher (broadcasting state changes to clients) are stubbed out and not yet wired into the constructor or the round transitions.
     // private final DeadlineScheduler deadlines;
     // private final EventPublisher publisher;
 

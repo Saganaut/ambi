@@ -15,7 +15,7 @@ import type {
   DeckResponse,
   InteractiveSessionResponse,
   InteractiveSessionSettings,
-} from "@/store/AmbiApi";
+} from "@store/AmbiApi";
 
 export type ShowResponsesMode = "INHERIT" | "INSTANT" | "ON_CLICK" | "PRIVATE";
 export type SessionFormat = "GAME" | "PRESENTATION";

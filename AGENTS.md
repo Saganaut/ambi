@@ -60,7 +60,7 @@ cd frontend && npm install && npm run dev
 ```bash
 cd frontend
 npx @rtk-query/codegen-openapi openapi-config.cts
-# Overwrites src/store/AmbiApi.ts — do not edit that file manually
+# Overwrites src/shared/store/AmbiApi.ts — do not edit that file manually
 ```
 
 **Seed sample data** (LOTR dataset; idempotent per collection per user, never destructive — stop any running backend first):
@@ -143,7 +143,7 @@ Stacks, CI workflow, and local pre-commit / pre-push hooks: see [Testing & CI](z
 
 | File                                       | Purpose                                                   |
 | ------------------------------------------ | --------------------------------------------------------- |
-| `frontend/src/store/AmbiApi.ts`            | Auto-generated RTK Query API — **do not edit**            |
+| `frontend/src/shared/store/AmbiApi.ts`     | Auto-generated RTK Query API — **do not edit**            |
 | `frontend/src/routes/__root.tsx`           | Root layout (TanStack Router + shared AuthBar)            |
 | `frontend/src/hooks/useCurrentUser.ts`     | Auth state machine (visitor/guest/registered)             |
 | `frontend/openapi-config.cts`              | API codegen config                                        |

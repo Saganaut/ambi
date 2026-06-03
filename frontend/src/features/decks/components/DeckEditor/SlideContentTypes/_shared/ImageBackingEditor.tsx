@@ -6,9 +6,11 @@
 // The component is intentionally controlled: it doesn't own the URL state
 // so a slide editor can debounce the typed URL through its existing
 // `schedule`/`flush` pipeline without rerouting.
-import { Btn } from "@common/Buttons/Btn";
+// TODO(migration): stubbed pending slide-block migration. The Gallery picker
+// button was wired through `@hooks/useGalleryPicker`, which no longer exists.
+// The button (and its `onGalleryPick` / `onBeforePick` callbacks) is removed;
+// the URL-paste field still works. Props are kept so callers still type-check.
 import { Input } from "@components/Forms/Input/Input/Input";
-import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import { externalImage } from "@utils/image";
 import type { Image } from "@store/AmbiApi";
 import styles from "./_shared.module.css";
@@ -39,12 +41,8 @@ const ImageBackingEditor = ({
   urlPlaceholder = "https://…",
   emptyPlaceholderAlt = "No image",
   onUrlChange,
-  onGalleryPick,
-  onBeforePick,
   onUrlBlur,
 }: ImageBackingEditorProps) => {
-  const openPicker = useGalleryPicker();
-
   return (
     <div className={styles.imageEditor}>
       <div
@@ -77,16 +75,6 @@ const ImageBackingEditor = ({
               onBlur={onUrlBlur}
             />
           </div>
-          <Btn
-            size='sm'
-            onClick={() => {
-              onBeforePick?.();
-              openPicker((image) => {
-                onGalleryPick(image);
-              });
-            }}>
-            Gallery
-          </Btn>
         </div>
       </div>
     </div>

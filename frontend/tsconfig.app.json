@@ -26,10 +26,9 @@
 
       // Directory-specific aliases
       "@assets/*": ["./src/shared/assets/*"],
-
       "@shared/*": ["./src/shared/*"],
       "@components/*": ["./src/shared/components/*"],
-      "@common/*": ["./src/shared/components/Common/*"],
+      "@ui/*": ["./src/shared/components/UIElements/*"],
       "@context/*": ["./src/shared/context/*"],
       "@hooks/*": ["./src/shared/hooks/*"],
       "@pages/*": ["./src/pages/*"],

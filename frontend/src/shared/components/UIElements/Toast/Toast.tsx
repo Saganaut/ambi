@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import type { ToastItem } from "./ToastTypes";
 import styles from "./Toast.module.css";
@@ -8,17 +7,7 @@ interface ToastProps extends ToastItem {
   onDismiss: (id: string) => void;
 }
 
-const Toast = ({ id, message, variant, duration, onDismiss }: ToastProps) => {
-  useEffect(() => {
-    if (duration === 0) return;
-    const timer = setTimeout(() => {
-      onDismiss(id);
-    }, duration);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [id, duration, onDismiss]);
-
+const Toast = ({ id, message, variant, onDismiss }: ToastProps) => {
   return (
     <div
       className={[styles.toast, styles[variant]].join(" ")}

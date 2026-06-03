@@ -10,8 +10,6 @@
 // The signal is read through useSession() (the one merged session view) rather
 // than off the slice directly; clearing it is a write, so that stays a dispatch.
 import { useEffect, useRef } from "react";
-import { useAppDispatch } from "@/store/hooks";
-import { submissionsClosingConsumed } from "@/store/interactiveSessionSlice";
 import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
 
 /**
@@ -24,7 +22,6 @@ export function useFlushOnClosing(
   elementId: string | undefined,
   flush: () => void,
 ): void {
-  const dispatch = useAppDispatch();
   const { submissionsClosing: closing } = useSession();
   // Latest-ref so `nonce` is the only effect trigger — we want the current
   // draft at fire time without re-running when the flush closure changes.
@@ -39,9 +36,12 @@ export function useFlushOnClosing(
       ? closing.nonce
       : null;
 
+  // TODO(migration): stubbed pending liveSession migration. The
+  // submissionsClosingConsumed dispatch that cleared the one-shot signal lived
+  // on the interactiveSessionSlice; with the slice gone the signal never fires
+  // (useSession returns a null `submissionsClosing`), so flush stays a no-op.
   useEffect(() => {
     if (nonce == null) return;
     flushRef.current();
-    dispatch(submissionsClosingConsumed());
-  }, [nonce, dispatch]);
+  }, [nonce]);
 }

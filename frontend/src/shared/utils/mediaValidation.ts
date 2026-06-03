@@ -3,7 +3,7 @@
 // rejecting obvious junk before the multipart request saves a round trip and
 // gives the user a faster error. Audio + video accept only the formats the
 // backend currently passes through (MP3 / M4A / MP4).
-import type { MediaAssetResponse } from "@/store/AmbiApi";
+import type { MediaAssetResponse } from "@store/AmbiApi";
 
 export type MediaKind = NonNullable<MediaAssetResponse["kind"]>;
 

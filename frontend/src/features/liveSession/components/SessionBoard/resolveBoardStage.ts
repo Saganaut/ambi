@@ -7,10 +7,25 @@
 // WHICH moment (prompt / live results / revealed results / overall). This
 // collapses both into a discriminated `BoardStage` so the renderer never has to
 // re-derive any of it.
-import type { DeckElement, Slide } from "@/types/elements";
+import type { AnswerPayload, DeckElement, Slide } from "@types/elements";
 import type { InteractiveSessionResponse } from "@store/AmbiApi";
-import type { RoundResultPayload } from "@store/interactiveSessionSlice";
 import { resolveShowResponsesFor } from "@utils/showResponsesResolver";
+
+// TODO(migration): stubbed pending liveSession migration. Was imported from the
+// interactiveSessionSlice; kept as a local placeholder so the reveal-on-result
+// rule below still type-checks.
+interface RoundResultPayload {
+  round: number;
+  element: DeckElement;
+  playerResults: {
+    playerId: string;
+    userName: string;
+    payload?: AnswerPayload | null;
+    wasCorrect: boolean;
+    pointsAwarded: number;
+    totalScore: number;
+  }[];
+}
 
 /**
  * `mode` for the question stage:

@@ -1,6 +1,6 @@
-import type { DeckElement } from "@/types/elements";
+import type { DeckElement } from "@types/elements";
 import styles from "./SessionRoundTracker.module.css";
-import { SlideTypeGraphicSvg } from "@common/Slides/SlideTypeGraphics/SlideTypeGraphic";
+import { SlideTypeGraphicSvg } from "@decks/components/Slides/SlideTypeGraphics/SlideTypeGraphic";
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const PHASES = ["SUBMIT", "VOTE", "REVEAL"] as const;

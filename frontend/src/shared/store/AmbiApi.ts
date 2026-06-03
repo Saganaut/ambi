@@ -459,7 +459,19 @@ export type DeckAccessGrant = {
   userId?: string;
   role?: "VIEWER" | "EDITOR";
 };
-export type DeckStats = any;
+export type DeckStats = {
+  playCount: number;
+  completedPlayCount: number;
+  completionRate: number;
+  uniquePlayerCount: number;
+  viewCount: number;
+  forkCount: number;
+  averageScorePercent: number;
+  ratingAverage?: number;
+  ratingCount: number;
+  lastPlayedAt?: string;
+  computedAt?: string;
+};
 export type DeckResponse = {
   id: string;
   publicId: string;
@@ -500,26 +512,279 @@ export type UpdateDeckRequest = {
 export type SetVisibilityRequest = {
   visibility: "PRIVATE" | "UNLISTED" | "ORG" | "PUBLIC";
 };
-export type McqOption = {
+export type McqOptionId = {
+  value?: string;
+};
+export type McqContent = {
+  options: McqOptionId[];
+  correctOptionIds: string[];
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  shuffle: boolean;
+  maxSelections: number;
+  allowAnonymous: boolean;
+  contentType: "MCQ";
+};
+export type NumberContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  answer: number;
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  tolerance: number;
+  unit: string;
+  min: number;
+  max: number;
+  allowAnonymous: boolean;
+  contentType: "NUMBER";
+};
+export type TextContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  acceptedAnswers: string[];
+  matchMode: "EXACT" | "CONTAINS" | "WORDCLOUD";
+  caseSensitive: boolean;
+  trimWhitespace: boolean;
+  maxLength?: number;
+  allowAnonymous: boolean;
+  contentType: "TEXT";
+};
+export type RankItem = {
   id?: string;
-  optionType?: "TEXT" | "NUMBER" | "IMAGE";
+  label?: string;
+  image?: AppImage;
+};
+export type RankingContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  items: RankItem[];
+  correctOrder: string[];
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  allowAnonymous: boolean;
+  contentType: "RANKING";
+};
+export type ScaleItem = {
+  id?: string;
+  label?: string;
+};
+export type ScalesContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  min: number;
+  max: number;
+  step: number;
+  leftLabel: string;
+  rightLabel: string;
+  items: ScaleItem[];
+  correctValues: {
+    [key: string]: number;
+  };
+  tolerance: number;
+  allowAnonymous: boolean;
+  contentType: "SCALES";
+};
+export type GridItem = {
+  id?: string;
+  label?: string;
+  image?: AppImage;
+};
+export type GridContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  rowLabels: string[];
+  colLabels: string[];
+  items: GridItem[];
+  correctCells: {
+    [key: string]: string;
+  };
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  allowAnonymous: boolean;
+  contentType: "GRID";
+};
+export type Target = {
+  id?: string;
+  x?: number;
+  y?: number;
+  radius?: number;
+};
+export type PlaceOnImageContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  image: AppImage;
+  correctTargets: Target[];
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  allowAnonymous: boolean;
+  contentType: "PLACE_ON_IMAGE";
+};
+export type MatchItem = {
+  id?: string;
+  label?: string;
+  image?: AppImage;
+};
+export type MatchingContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  left: MatchItem[];
+  right: MatchItem[];
+  correctPairs: {
+    [key: string]: string;
+  };
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  allowAnonymous: boolean;
+  contentType: "MATCHING";
+};
+export type McqOption = {
+  id: McqOptionId;
+  optionType: "TEXT" | "NUMBER" | "IMAGE";
   text?: string;
   image?: AppImage;
   color?: string;
 };
-export type McqContent = {
-  options?: McqOption[];
-  correctOptionIds?: string[];
-  pointValue?: number;
-  difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+export type AllocationContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  options: McqOption[];
+  correctAllocations?: {
+    [key: string]: number;
+  };
+  totalPointsToAllocate: number;
+  tolerancePerOption: number;
+  allowAnonymous: boolean;
   explanation?: string;
-  shuffle?: boolean;
-  maxSelections?: number;
-  contentType: "MCQ";
+  contentType: "ALLOCATION";
 };
-export type SlideContent = {
-  contentType: "MCQ";
-} & McqContent;
+export type DrawingContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  imagePrompt?: AppImage;
+  correctImage?: AppImage;
+  canvasWidth: number;
+  canvasHeight: number;
+  tools: ("PEN" | "ERASER" | "SHAPES" | "TEXT" | "COLOR_PALETTE")[];
+  allowAnonymous: boolean;
+  contentType: "DRAWING";
+};
+export type SubmissionId = {
+  value?: string;
+};
+export type SubmissionOption = {
+  submissionId?: SubmissionId;
+};
+export type FollowUpContent = {
+  pointValue: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  prompt: string;
+  submissionOption: SubmissionOption;
+  allowAnonymous: boolean;
+  contentType: "FOLLOW_UP";
+};
+export type TitleContent = {
+  contentType: "TITLE";
+};
+export type MediaContent = {
+  mediaType?: "IMAGE" | "VIDEO" | "EMBED";
+  image?: AppImage;
+  url?: string;
+  caption?: string;
+  autoplay: boolean;
+  loop: boolean;
+  muted: boolean;
+  allowAnonymous: boolean;
+  contentType: "MEDIA";
+};
+export type QAndAContent = {
+  allowAnonymous: boolean;
+  maxResponses?: number;
+  moderated: boolean;
+  contentType: "Q_AND_A";
+};
+export type SlideContent =
+  | ({
+      contentType: "MCQ";
+    } & McqContent)
+  | ({
+      contentType: "NUMBER";
+    } & NumberContent)
+  | ({
+      contentType: "TEXT";
+    } & TextContent)
+  | ({
+      contentType: "RANKING";
+    } & RankingContent)
+  | ({
+      contentType: "SCALES";
+    } & ScalesContent)
+  | ({
+      contentType: "GRID";
+    } & GridContent)
+  | ({
+      contentType: "PLACE_ON_IMAGE";
+    } & PlaceOnImageContent)
+  | ({
+      contentType: "MATCHING";
+    } & MatchingContent)
+  | ({
+      contentType: "ALLOCATION";
+    } & AllocationContent)
+  | ({
+      contentType: "DRAWING";
+    } & DrawingContent)
+  | ({
+      contentType: "FOLLOW_UP";
+    } & FollowUpContent)
+  | ({
+      contentType: "TITLE";
+    } & TitleContent)
+  | ({
+      contentType: "MEDIA";
+    } & MediaContent)
+  | ({
+      contentType: "Q_AND_A";
+    } & QAndAContent);
 export type SlideResponse = {
   id: string;
   title?: string;

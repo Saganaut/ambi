@@ -13,12 +13,16 @@
  * displays the raw bucket count. Drawing + Q&A skip the distribution chart
  * entirely (their submissions live on the session record, not the rollup).
  */
-import type {
-  DeckAnalytics,
-  DeckResponse,
-  ElementStats,
-} from "@/store/AmbiApi";
-import type { DistributionRow } from "@common/Analytics";
+import type { DeckAnalytics, DeckResponse, ElementStats } from "@store/AmbiApi";
+
+// TODO(migration): stubbed pending analytics rebuild — local placeholder for
+// the DistributionRow type formerly imported from @ui/Analytics.
+interface DistributionRow {
+  key: string;
+  label: string;
+  value: number;
+  display: string;
+}
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 type ElementKind = DeckElement["kind"];

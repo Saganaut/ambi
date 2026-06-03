@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
-import type { ElementStats } from "@/store/AmbiApi";
+import type { ElementStats } from "@store/AmbiApi";
 
 import { DistributionChart } from "./DistributionChart";
 import {

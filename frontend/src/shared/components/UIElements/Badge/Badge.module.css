@@ -1,5 +1,3 @@
-/* Shared visual primitives used in multiple places.                          */
-
 /* Badge — small status pill. Owns its variant/size classes; the base .badge   */
 
 /* declares the canonical component vars and nested modifier classes override */

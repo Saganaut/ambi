@@ -4,7 +4,7 @@
 // both render the identical 16:9 tile with a clear button. Stateless: the
 // caller owns the Image record and the pick/clear handlers (typically wired to
 // useGalleryPicker + a commit path).
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { XMarkIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { isImageEmpty, resolveImageUrl } from "@utils/image";
 import type { Image } from "@store/AmbiApi";

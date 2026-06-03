@@ -37,7 +37,7 @@ import {
   PopoverDivider,
 } from "../Popover/Popover";
 import { useRichTextEditor, useLinkEditor } from "./useRichTextInput";
-import { ColorOptionBtn } from "@/shared/components/Common/Buttons/ColorOptionBtn";
+import { ColorOptionBtn } from "@ui/Buttons/ColorOptionBtn";
 
 interface RichTextInputHandle {
   /** Blur the underlying editor and close the toolbar. Used by parents that

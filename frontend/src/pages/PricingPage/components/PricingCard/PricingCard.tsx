@@ -4,7 +4,7 @@
 // recommended tier. Content is intentionally fully prop-driven so the same
 // component can render placeholder copy today and Stripe-backed plans later.
 import { Link } from "@tanstack/react-router";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import { FeatureList, type FeatureItem } from "../FeatureList/FeatureList";
 import styles from "./PricingCard.module.css";
 

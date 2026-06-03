@@ -1,9 +1,16 @@
-import { createContext, useCallback, useState, type ReactNode } from "react";
-import { Toast, ToastContainer } from "../components/Common/Toast/Toast";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Toast, ToastContainer } from "@ui/Toast/Toast";
 import type {
   ToastConfig,
   ToastItem,
-} from "../components/Common/Toast/ToastTypes";
+} from "@ui/Toast/ToastTypes";
 
 export interface ToastContextValue {
   addToast: (config: ToastConfig) => void;
@@ -16,19 +23,36 @@ let nextId = 0;
 
 const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const dismissToast = useCallback((id: string) => {
+    clearTimeout(timers.current.get(id));
+    timers.current.delete(id);
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((config: ToastConfig) => {
-    const toast: ToastItem = {
-      id: String(nextId++),
-      message: config.message,
-      variant: config.variant ?? "info",
-      duration: config.duration ?? 4000,
-    };
-    setToasts((prev) => [...prev, toast]);
+  const addToast = useCallback(
+    (config: ToastConfig) => {
+      const toast: ToastItem = {
+        id: String(nextId++),
+        message: config.message,
+        variant: config.variant ?? "info",
+        duration: config.duration ?? 4000,
+      };
+      setToasts((prev) => [...prev, toast]);
+      if (toast.duration !== 0) {
+        timers.current.set(
+          toast.id,
+          setTimeout(() => dismissToast(toast.id), toast.duration),
+        );
+      }
+    },
+    [dismissToast],
+  );
+
+  useEffect(() => {
+    const t = timers.current;
+    return () => t.forEach(clearTimeout);
   }, []);
 
   return (

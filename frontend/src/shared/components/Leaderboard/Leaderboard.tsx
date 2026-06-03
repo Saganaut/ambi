@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useGetLeaderboardQuery } from "@store/AmbiApi";
 import styles from "./Leaderboard.module.css";
-import { CollapseBtn } from "@common/Buttons/CollapseBtn";
+import { CollapseBtn } from "@ui/Buttons/CollapseBtn";
 
 const Leaderboard = () => {
   const { data, isLoading, isError } = useGetLeaderboardQuery({

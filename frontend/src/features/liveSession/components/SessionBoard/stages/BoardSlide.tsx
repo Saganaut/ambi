@@ -4,7 +4,7 @@
 // media plus its title and body, centred. The `slideKind` drives a layout
 // variant class so a TITLE card and a SECTION divider can diverge in CSS
 // without branching here.
-import type { Slide } from "@/types/elements";
+import type { Slide } from "@types/elements";
 import { RichTextDisplay } from "@components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import { largestUrl } from "@utils/image";
 import styles from "./BoardSlide.module.css";

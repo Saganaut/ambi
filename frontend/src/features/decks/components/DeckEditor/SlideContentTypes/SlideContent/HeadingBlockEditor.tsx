@@ -3,8 +3,11 @@
 // they're structural for the renderer.
 import { Input } from "@components/Forms/Input/Input/Input";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import type { HeadingBlock } from "@/store/slideBlockTypes";
-import { HEADING_LEVELS, type BlockUpdate } from "./types";
+import {
+  HEADING_LEVELS,
+  type BlockUpdate,
+  type HeadingBlock,
+} from "./types";
 import styles from "./SlideContent.module.css";
 
 interface HeadingBlockEditorProps {

@@ -23,44 +23,44 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import styles from "./DesignSystem.module.css";
-import { Accordion } from "../../components/Containers/Accordion";
-import { Btn } from "@common/Buttons/Btn";
-import { IconBtn } from "@common/Buttons/IconBtn";
-import { CollapseBtn } from "@common/Buttons/CollapseBtn";
-import { Divider } from "@common/Divider/Divider";
-import { Tag } from "@common/Tag/Tag";
-import { Avatar } from "@common/Avatar/Avatar";
-import { EmptyState } from "@common/EmptyState/EmptyState";
-import { ProgressBar } from "@common/ProgressBar/ProgressBar";
-import { CountdownTimer } from "@common/CountdownTimer/CountdownTimer";
-import { Skeleton } from "@common/Skeleton/Skeleton";
-import { Tooltip } from "@common/Tooltip/Tooltip";
-import { Tabs } from "@common/Tabs/Tabs";
-import { Alert } from "@common/Alert/Alert";
-import { Pagination } from "@common/Pagination/Pagination";
-import { useConfirm } from "@common/ConfirmDialog/useConfirm";
-import { SelectableTile } from "@common/SelectableTile/SelectableTile";
-import { Card } from "@common/Cards/Card";
-import { ActionCard } from "@common/Cards/ActionCard";
-import { Badge } from "@common/Badge";
-import { Toast } from "@common/Toast/Toast";
-import { useModal } from "../../shared/context/useModal";
-import { Loader } from "@common/Loader/Loader";
+import { Accordion } from "@components/Containers/Accordion";
+import { Btn } from "@ui/Buttons/Btn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import { CollapseBtn } from "@ui/Buttons/CollapseBtn";
+import { Divider } from "@ui/Divider/Divider";
+import { Tag } from "@ui/Tag/Tag";
+import { Avatar } from "@ui/Avatar/Avatar";
+import { EmptyState } from "@ui/EmptyState/EmptyState";
+import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
+import { CountdownTimer } from "@liveSession/components/CountdownTimer/CountdownTimer";
+import { Skeleton } from "@ui/Skeleton/Skeleton";
+import { Tooltip } from "@ui/Tooltip/Tooltip";
+import { Tabs } from "@ui/Tabs/Tabs";
+import { Alert } from "@ui/Alert/Alert";
+import { Pagination } from "@ui/Pagination/Pagination";
+import { useConfirm } from "@components/ConfirmDialog/useConfirm";
+import { SelectableTile } from "@ui/SelectableTile/SelectableTile";
+import { Card } from "@ui/Cards/Card";
+import { ActionCard } from "@ui/Cards/ActionCard";
+import { Badge } from "@ui/Badge/Badge";
+import { Toast } from "@ui/Toast/Toast";
+import { useModal } from "@hooks/useModal";
+import { Loader } from "@ui/Loader/Loader";
 import {
   DropdownMenu,
   DropdownMenuItem,
   DropdownMenuDivider,
   DropdownMenuLabel,
-} from "../../components/Menus/DropdownMenu";
-import { CephadexLogo } from "../../components/Graphic/CephadexLogo";
-import { PricingCard } from "../../components/Pricing/PricingCard/PricingCard";
-import { PricingGrid } from "../../components/Pricing/PricingGrid/PricingGrid";
-import { BillingToggle } from "../../components/Pricing/BillingToggle/BillingToggle";
-import type { BillingCycle } from "../../components/Pricing/BillingToggle/BillingToggle";
-import { FeatureList } from "../../components/Pricing/FeatureList/FeatureList";
+} from "@components/Menus/DropdownMenu";
+import { CephadexLogo } from "@components/Graphic/CephadexLogo";
+import { PricingCard } from "@pages/PricingPage/components/PricingCard/PricingCard";
+import { PricingGrid } from "@pages/PricingPage/components/PricingGrid/PricingGrid";
+import { BillingToggle } from "@pages/PricingPage/components/BillingToggle/BillingToggle";
+import type { BillingCycle } from "@pages/PricingPage/components/BillingToggle/BillingToggle";
+import { FeatureList } from "@pages/PricingPage/components/FeatureList/FeatureList";
 import { PRICING_TIERS } from "../PricingPage/data";
-import { slideTypeGraphics } from "@common/Slides/SlideTypeGraphics/slideTypeGraphics";
-import { SlideContentWrapper } from "../../components/DeckEditor/SlideContentTypes/SlideContentWrapper";
+import { slideTypeGraphics } from "@decks/components/Slides/SlideTypeGraphics/slideTypeGraphics";
+import { SlideContentWrapper } from "@decks/components/DeckEditor/SlideContentTypes/SlideContentWrapper";
 import {
   NotFoundPage,
   ServerErrorPage,

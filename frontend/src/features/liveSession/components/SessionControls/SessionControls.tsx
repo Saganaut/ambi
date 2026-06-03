@@ -13,9 +13,9 @@
 // STOMP client, provided by SessionConnectionProvider).
 import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import { useConfirm } from "@common/ConfirmDialog/useConfirm";
+import { useConfirm } from "@components/ConfirmDialog/useConfirm";
 import { resolveShowResponsesFor } from "@utils/showResponsesResolver";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import styles from "./SessionControls.module.css";
 
 interface SessionControlsProps {

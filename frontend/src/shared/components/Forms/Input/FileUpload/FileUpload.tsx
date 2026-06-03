@@ -3,7 +3,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import shared from "../Input.module.css";
 import styles from "./FileUpload.module.css";
 import { useFileUpload } from "./useFileUpload";
-import { IconBtn } from "@/shared/components/Common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 
 interface FileUploadProps {
   label?: string;

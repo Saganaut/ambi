@@ -23,23 +23,18 @@ import { useMemo, useState } from "react";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowDownTrayIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 
-import { Btn } from "@common/Buttons/Btn";
-import { Segment } from "@common/Analytics";
-import { useGetDeckQuery, useGetDeckAnalyticsQuery } from "@/store/AmbiApi";
-import type { DeckAnalytics } from "@/store/AmbiApi";
-import { apiBaseUrl } from "@/store/emptyApi";
+import { Btn } from "@ui/Buttons/Btn";
+import { useGetDeckQuery, useGetDeckAnalyticsQuery } from "@store/AmbiApi";
+import type { DeckAnalytics } from "@store/AmbiApi";
+import { apiBaseUrl } from "@store/emptyApi";
 
 import { ElementCard } from "./ElementCard";
 import { KpiStrip } from "./KpiStrip";
-import { buildOrderedElements, SEGMENT_LABELS } from "./helpers";
+import { buildOrderedElements } from "./helpers";
 import type { Segment as SegmentId } from "./helpers";
 import styles from "./DeckAnalyticsPage.module.css";
 
 const routeApi = getRouteApi("/decks/$deckId/analytics");
-
-const SEGMENT_ITEMS = (Object.keys(SEGMENT_LABELS) as SegmentId[]).map(
-  (id) => ({ id, label: SEGMENT_LABELS[id] }),
-);
 
 const DeckAnalyticsPage = () => {
   const { deckId } = routeApi.useParams();
@@ -71,7 +66,9 @@ const DeckAnalyticsPage = () => {
         ? "That deck doesn't exist."
         : "We couldn't load this deck's analytics. Please try again.";
 
-  const [segment, setSegment] = useState<SegmentId>("ALL");
+  // TODO(migration): segment control removed with @ui/Analytics; pinned to
+  // "ALL" pending analytics rebuild.
+  const [segment] = useState<SegmentId>("ALL");
 
   const orderedElements = useMemo(
     () => buildOrderedElements(deck, analytics),
@@ -108,7 +105,7 @@ const DeckAnalyticsPage = () => {
           <Link
             to='/decks/$deckId/edit'
             params={{ deckId }}
-            search={{ questionId: undefined }}>
+            search={{ slideId: undefined }}>
             <Btn size='md' shape='pill'>
               <ArrowLeftIcon className={styles.btnIcon} />
               Back to editor
@@ -134,13 +131,6 @@ const DeckAnalyticsPage = () => {
         <div className={styles.loading}>Loading analytics…</div>
       ) : (
         <>
-          <Segment
-            items={SEGMENT_ITEMS}
-            value={segment}
-            onChange={setSegment}
-            ariaLabel='Filter analytics by session format'
-            className={styles.segmentControl}
-          />
           <KpiStrip
             analytics={analytics}
             segment={segment}

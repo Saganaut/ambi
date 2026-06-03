@@ -1,24 +1,13 @@
 /**
  * Per-element distribution view for the deck-analytics accordion.
  *
- * Translates an {@link ElementStats} record into the row shape consumed by
- * {@link DistributionList} (Common/Analytics primitive) and picks the right
- * empty-state copy when the element kind doesn't bucket its responses
- * (Drawing → review in host replay, Q&A → lives on the session record).
- *
- * The kind-aware empty messages stay here rather than in the primitive so
- * DistributionList itself can stay generic across dashboards.
+ * TODO(migration): stubbed pending analytics rebuild — this component was
+ * built around the DistributionList primitive from @ui/Analytics, which is
+ * gone. Renders a placeholder until analytics is rebuilt.
  */
-import { useMemo } from "react";
+import type { ElementStats } from "@store/AmbiApi";
 
-import { DistributionList } from "@common/Analytics";
-import type { ElementStats } from "@/store/AmbiApi";
-
-import {
-  buildDistributionRows,
-  isNoDistribution,
-  type DeckElement,
-} from "./helpers";
+import type { DeckElement } from "./helpers";
 
 interface DistributionChartProps {
   elementId: string;
@@ -26,36 +15,8 @@ interface DistributionChartProps {
   stats: ElementStats;
 }
 
-const DistributionChart = ({
-  elementId,
-  element,
-  stats,
-}: DistributionChartProps) => {
-  const kind = element?.kind;
-  const rows = useMemo(
-    () => buildDistributionRows(element, stats),
-    [element, stats],
-  );
-
-  if (isNoDistribution(kind)) {
-    return (
-      <DistributionList
-        rows={[]}
-        emptyMessage={
-          kind === "DrawingQuestion"
-            ? "Drawings aren't bucketed — review them in the host replay instead."
-            : "Audience Q&A submissions live on the session record, not the rollup."
-        }
-      />
-    );
-  }
-
-  return (
-    <DistributionList
-      rows={rows}
-      emptyMessage={`No responses recorded for ${elementId.slice(0, 8)}…`}
-    />
-  );
+const DistributionChart = (_props: DistributionChartProps) => {
+  return <div>Analytics — coming soon</div>;
 };
 
 export { DistributionChart };

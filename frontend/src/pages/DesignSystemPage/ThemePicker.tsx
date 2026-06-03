@@ -1,8 +1,8 @@
 // Color scheme customizer for design system exploration.
 // Edits --hue-primary and --hue-accent on :root via useTheme so changes
 // ripple instantly through every semantic token on the page.
-import { useTheme } from "../../hooks/useTheme";
-import { Btn } from "@common/Buttons/Btn";
+import { useTheme } from "@hooks/useTheme";
+import { Btn } from "@ui/Buttons/Btn";
 import { ColorPicker } from "@components/Forms/Input/ColorPicker/ColorPicker";
 import { themePresets } from "./data";
 import styles from "./DesignSystem.module.css";

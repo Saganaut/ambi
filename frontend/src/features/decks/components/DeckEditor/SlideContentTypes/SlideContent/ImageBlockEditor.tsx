@@ -6,8 +6,7 @@
 import { Input } from "@components/Forms/Input/Input/Input";
 import { largestUrl } from "@utils/image";
 import type { Image } from "@store/AmbiApi";
-import type { ImageBlock } from "@store/slideBlockTypes";
-import type { BlockUpdate } from "./types";
+import type { ImageBlock, BlockUpdate } from "./types";
 import styles from "./SlideContent.module.css";
 
 interface ImageBlockEditorProps {

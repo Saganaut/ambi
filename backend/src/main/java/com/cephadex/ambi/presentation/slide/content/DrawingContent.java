@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.slide.content;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
+
 import java.util.Set;
 
 import com.cephadex.ambi.media.AppImage;
@@ -7,11 +9,14 @@ import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.presentation.slide.enums.Tool;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Freehand drawing slide. Typically scored by best-answer voting rather than
  * a fixed correct answer.
  *
- * <p>Runtime answer: serialized strokes (JSON) or rendered image S3 key.
+ * <p>
+ * Runtime answer: serialized strokes (JSON) or rendered image S3 key.
  *
  * @param prompt           text question shown above the canvas
  * @param imagePrompt      optional reference image shown alongside the canvas
@@ -21,16 +26,15 @@ import com.cephadex.ambi.presentation.slide.enums.Tool;
  * @param tools            drawing tools available to players
  */
 public record DrawingContent(
-        int pointValue,
-        Difficulty difficulty,
+        @Schema(requiredMode = REQUIRED) int pointValue,
+        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
         String explanation,
-        String prompt,
         AppImage imagePrompt,
-        int canvasWidth,
-        int canvasHeight,
-        Integer timeLimitSeconds,
-        Set<Tool> tools
-) implements ScorableContent {
+        AppImage correctImage, // can be used to compare with participants drawings
+        @Schema(requiredMode = REQUIRED) int canvasWidth,
+        @Schema(requiredMode = REQUIRED) int canvasHeight,
+        @Schema(requiredMode = REQUIRED) Set<Tool> tools,
+        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.DRAWING;

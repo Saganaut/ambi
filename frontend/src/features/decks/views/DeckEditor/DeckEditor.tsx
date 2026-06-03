@@ -7,8 +7,6 @@
  */
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import { Btn } from "@common/Buttons/Btn";
-import { SplitBtn } from "@common/Buttons/SplitBtn/SplitBtn";
 import { LeftSidebarContent } from "../../components/DeckEditor/LeftSidebar/LeftSidebarContent";
 import { PublishStatusControl } from "../../components/DeckEditor/PublishStatusControl";
 import { RightSidebarContent } from "../../components/DeckEditor/RightSidebar/RightSidebarContent";
@@ -31,7 +29,9 @@ import { InnerDisplay } from "@/shared/components/Layout/InnerDisplay";
 import { MainBodyDashboard } from "@/shared/components/Layout/MainBodyDashboard";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 
-import { useDeckEditor } from "./useDeckEditor";
+import { useDeckEditor } from "../../hooks/useDeckEditor";
+import { Btn } from "@ui/Buttons/Btn";
+import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
 
 const DeckEditor = () => {
   const navigate = useNavigate();

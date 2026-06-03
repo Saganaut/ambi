@@ -1,7 +1,11 @@
 package com.cephadex.ambi.presentation.slide.content.parts;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
+
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class SlideContentTypes {
 
@@ -13,9 +17,9 @@ public class SlideContentTypes {
     /**
      * Scoring strategy. Not every value applies to every content type:
      * <ul>
-     *   <li>EXACT, PARTIAL — Ranking, Grid, Matching</li>
-     *   <li>EXACT, RANGE, CLOSEST — Number</li>
-     *   <li>INSIDE_RADIUS, NEAREST, DISTANCE — PlaceOnImage</li>
+     * <li>EXACT, PARTIAL — Ranking, Grid, Matching</li>
+     * <li>EXACT, RANGE, CLOSEST — Number</li>
+     * <li>INSIDE_RADIUS, NEAREST, DISTANCE — PlaceOnImage</li>
      * </ul>
      */
     public enum ScoreMode {
@@ -25,10 +29,14 @@ public class SlideContentTypes {
     }
 
     /** Answer-matching strategy for text / word-cloud slides. */
-    public enum MatchMode { EXACT, CONTAINS, WORDCLOUD }
+    public enum MatchMode {
+        EXACT, CONTAINS, WORDCLOUD
+    }
 
     /** Media source kind for {@code MediaContent}. */
-    public enum MediaType { IMAGE, VIDEO, EMBED }
+    public enum MediaType {
+        IMAGE, VIDEO, EMBED
+    }
 
     // --------------- MCQ -------------------------------------------------
 
@@ -40,8 +48,8 @@ public class SlideContentTypes {
     }
 
     public record McqOption(
-            McqOptionId id,
-            McqOptionType optionType,
+            @Schema(requiredMode = REQUIRED) McqOptionId id,
+            @Schema(requiredMode = REQUIRED) McqOptionType optionType,
             String text,
             AppImage image,
             String color) {
@@ -50,17 +58,20 @@ public class SlideContentTypes {
     // --------------- Ranking ---------------------------------------------
 
     /** An item in a ranking question. {@code image} is optional. */
-    public record RankItem(String id, String label, AppImage image) {}
+    public record RankItem(String id, String label, AppImage image) {
+    }
 
     // --------------- Scales ----------------------------------------------
 
     /** An item to position on a scale. */
-    public record ScaleItem(String id, String label) {}
+    public record ScaleItem(String id, String label) {
+    }
 
     // --------------- Grid ------------------------------------------------
 
     /** An item to drop into a grid cell. {@code image} is optional. */
-    public record GridItem(String id, String label, AppImage image) {}
+    public record GridItem(String id, String label, AppImage image) {
+    }
 
     // --------------- PlaceOnImage ----------------------------------------
 
@@ -68,12 +79,14 @@ public class SlideContentTypes {
      * A click target on an image.
      * {@code x}, {@code y}, and {@code radius} are normalized to [0, 1].
      */
-    public record Target(String id, double x, double y, double radius) {}
+    public record Target(String id, double x, double y, double radius) {
+    }
 
     // --------------- Matching --------------------------------------------
 
     /** One side of a matching pair. {@code image} is optional. */
-    public record MatchItem(String id, String label, AppImage image) {}
+    public record MatchItem(String id, String label, AppImage image) {
+    }
 
     // --------------- FollowUp / Submission reference ---------------------
 

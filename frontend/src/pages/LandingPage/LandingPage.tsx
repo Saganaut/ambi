@@ -3,8 +3,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Route as IndexRoute } from "../../routes/index";
 
 import styles from "./LandingPage.module.css";
-import { useCurrentUser } from "@shared/hooks/useCurrentUser";
-import { useRequireLogin } from "@/features/auth/useRequireLogin";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
+import { useRequireLogin } from "@auth/hooks/useRequireLogin";
 
 const FEATURES = [
   {

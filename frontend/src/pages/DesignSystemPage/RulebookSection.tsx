@@ -5,9 +5,9 @@
 // stay visible at the demo site — the page is a teaching artifact.
 import type { CSSProperties, ReactNode } from "react";
 import styles from "./DesignSystem.module.css";
-import { Accordion } from "../../components/Containers/Accordion";
-import { Btn } from "@common/Buttons/Btn";
-import { Tag } from "@common/Tag/Tag";
+import { Accordion } from "@components/Containers/Accordion";
+import { Btn } from "@ui/Buttons/Btn";
+import { Tag } from "@ui/Tag/Tag";
 
 interface TokenChipProps {
   token: string;

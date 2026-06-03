@@ -4,7 +4,7 @@
 // /api/billing/plans endpoint without changing the page component.
 import { useState } from "react";
 import { PRICING_TIERS, type PricingTier } from "./data";
-import type { BillingCycle } from "../../components/Pricing/BillingToggle/BillingToggle";
+import type { BillingCycle } from "@pages/PricingPage/components/BillingToggle/BillingToggle";
 
 interface ResolvedTier extends PricingTier {
   displayPrice: string;

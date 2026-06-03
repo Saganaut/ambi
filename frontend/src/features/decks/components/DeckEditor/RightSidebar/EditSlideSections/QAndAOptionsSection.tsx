@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { QAndAQuestion } from "@/store/AmbiApi";
+import type { QAndAQuestion } from "@store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 const isQAndAQuestion = (e: { kind: string }): e is QAndAQuestion =>

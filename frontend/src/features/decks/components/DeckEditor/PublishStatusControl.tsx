@@ -4,8 +4,8 @@
 // mutations resolve) and dispatches the matching mutation on click.
 import { getRouteApi } from "@tanstack/react-router";
 import { useGetDeckQuery } from "@store/AmbiApi";
-import { Btn } from "@common/Buttons/Btn";
-import { Badge } from "@common/Badge";
+import { Btn } from "@ui/Buttons/Btn";
+import { Badge } from "@ui/Badge/Badge";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 import styles from "./PublishStatusControl.module.css";
 

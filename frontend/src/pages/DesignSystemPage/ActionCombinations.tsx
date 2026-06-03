@@ -14,10 +14,10 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Btn } from "@common/Buttons/Btn";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { Btn } from "@ui/Buttons/Btn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import styles from "./DesignSystem.module.css";
-import { BtnVariant, BtnFill } from "@common/Buttons/BtnTypes";
+import { BtnVariant, BtnFill } from "@ui/Buttons/BtnTypes";
 
 interface VariantInfo {
   name: BtnVariant;

@@ -3,8 +3,8 @@ import styles from "./NavBar.module.css";
 import { UserMenu } from "./UserMenu";
 // import { NotificationBell } from "../NotificationBell/NotificationBell";
 import { CephadexLogo } from "../../Graphic/CephadexLogo";
-import { useCurrentUser } from "@/features/auth";
 import { useFullScreen } from "@/shared/hooks/useFullScreen";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 const NavBar = () => {
   const userState = useCurrentUser();

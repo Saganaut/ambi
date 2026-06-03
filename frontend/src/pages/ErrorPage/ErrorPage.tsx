@@ -4,7 +4,7 @@ import styles from "./ErrorPage.module.css";
 import LostFish from "@assets/images/mascots/lost-fish.svg?react";
 import SleepyCeph from "@assets/images/mascots/sleepy-ceph.svg?react";
 import OceanFloor from "@assets/images/mascots/ocean-floor.svg?react";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 
 interface ErrorPageProps {
   statusCode: number;

@@ -22,7 +22,7 @@ import {
 } from "@store/AmbiApi";
 import { useElementEditor } from "../SlideContentTypes/useElementEditor";
 import { emptyImage } from "@utils/image";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { ImagePicker } from "./ImagePicker";
 import styles from "./ThemePanel.module.css";

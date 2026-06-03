@@ -4,7 +4,7 @@
 // need to gate the route behind a layout.
 import { createFileRoute } from "@tanstack/react-router";
 
-import { DeckAnalyticsPage } from "../../../pages/DeckAnalyticsPage/DeckAnalyticsPage";
+import { DeckAnalyticsPage } from "@decks/views/DeckAnalyticsPage/DeckAnalyticsPage";
 
 export const Route = createFileRoute("/_authenticated/decks/$deckId/analytics")({
   component: DeckAnalyticsPage,

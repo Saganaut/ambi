@@ -27,9 +27,9 @@ import { DeckReviewsPanel } from "./DeckReviewsPanel";
 import { DeckDiscussionPanel } from "./DeckDiscussionPanel";
 import { ParticipantsPanel } from "./ParticipantsPanel";
 import styles from "./RightSidebarContent.module.css";
-import { useFullScreen } from "@shared/context/useFullScreen";
-import { IconBtn } from "@common/Buttons/IconBtn";
-import { RightSidebar } from "../../Layout/RightSidebar";
+import { useFullScreen } from "@hooks/useFullScreen";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import { RightSidebar } from "@components/Layout/RightSidebar";
 
 type PanelKey =
   | "edit"

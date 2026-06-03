@@ -7,8 +7,10 @@
  * the commit.
  */
 
-import { SelectableTile } from "@common/SelectableTile/SelectableTile";
+import { SelectableTile } from "@ui/SelectableTile/SelectableTile";
 import styles from "./NewElementPicker.module.css";
+import { slideTypeGraphics } from "../Slides/SlideTypeGraphics/slideTypeGraphics";
+import { ElementKind } from "./RightSidebar/data";
 
 interface NewElementPickerProps {
   onPick: (kind: ElementKind) => void;

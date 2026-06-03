@@ -2,8 +2,12 @@
 // commit immediately (tone changes the renderer's outer chrome).
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
-import type { CalloutBlock, CalloutTone } from "@/store/slideBlockTypes";
-import { CALLOUT_TONES, type BlockUpdate } from "./types";
+import {
+  CALLOUT_TONES,
+  type BlockUpdate,
+  type CalloutBlock,
+  type CalloutTone,
+} from "./types";
 import styles from "./SlideContent.module.css";
 
 interface CalloutBlockEditorProps {

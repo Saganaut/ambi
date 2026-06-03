@@ -10,7 +10,7 @@
 // `onPageChange`.
 import { type KeyboardEvent } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import styles from "./Pagination.module.css";
 
 interface PaginationBaseProps {

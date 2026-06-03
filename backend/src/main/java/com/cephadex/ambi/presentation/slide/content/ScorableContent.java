@@ -30,4 +30,6 @@ public sealed interface ScorableContent extends SlideContent
 
         String explanation();
 
+        boolean allowAnonymous();
+
 }

@@ -6,8 +6,8 @@
  * the slice's monotonically increasing nonce makes each request distinguishable
  * even when the message text is identical, and a 500 ms guard collapses bursts.
  */
-import { useRequireLogin } from "@/features/auth";
-import { authPromptDismissed } from "@/features/auth/store/authPromptSlice";
+import { useRequireLogin } from "@auth/hooks/useRequireLogin";
+import { authPromptDismissed } from "@auth/store/authPromptSlice";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { useEffect, useRef } from "react";
 

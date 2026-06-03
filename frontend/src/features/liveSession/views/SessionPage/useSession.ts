@@ -11,17 +11,79 @@
 //
 // The slice is seeded from the same snapshot, so once seeded it is the source of
 // truth for the live fields and the snapshot only backs the static ones.
-import type { DeckResponse, InteractiveSessionResponse } from "@/store/AmbiApi";
-import {
-  useGetDeckQuery,
-  useGetInteractiveSessionQuery,
-} from "@/store/AmbiApi";
-import { useInteractiveSession } from "@hooks/useInteractiveSession";
+import type {
+  AnswerPayload,
+  DeckElement,
+} from "@types/elements";
+import type { DeckResponse, InteractiveSessionResponse } from "@store/AmbiApi";
+import { useGetDeckQuery, useGetInteractiveSessionQuery } from "@store/AmbiApi";
 import { getRouteApi } from "@tanstack/react-router";
 
 const routeApi = getRouteApi("/sessions/$sessionId/");
 
-type SliceState = ReturnType<typeof useInteractiveSession>;
+// TODO(migration): stubbed pending liveSession migration. SliceState was
+// ReturnType<typeof useInteractiveSession>; this is a local placeholder of the
+// live fields this hook merges, so consumers keep their existing field shapes.
+interface SliceState {
+  status: InteractiveSessionResponse["status"] | null;
+  roomCode: string | null;
+  phase: "SUBMIT" | "VOTE";
+  round: number;
+  totalRounds: number;
+  players: InteractiveSessionResponse["players"];
+  teams: InteractiveSessionResponse["teams"];
+  revealedElementIds: string[];
+  viewerPlayerId: string | null;
+  timerPaused: boolean;
+  timerRemainingMillis: number | null;
+  roundResult: {
+    round: number;
+    element: DeckElement;
+    playerResults: {
+      playerId: string;
+      userName: string;
+      payload?: AnswerPayload | null;
+      wasCorrect: boolean;
+      pointsAwarded: number;
+      totalScore: number;
+    }[];
+  } | null;
+  myAnswer: AnswerPayload | null;
+  submissionsClosing: {
+    elementId: string;
+    graceMillis: number;
+    nonce: number;
+  } | null;
+  chat: InteractiveSessionResponse["chat"];
+  liveReactions: {
+    id: string;
+    emoji: string;
+    userName?: string;
+    queuedAt: number;
+  }[];
+}
+
+// TODO(migration): stubbed pending liveSession migration. With the slice gone
+// the live fields default to "not yet seeded"; the merged view falls back to the
+// REST snapshot until the slice is rebuilt.
+const stubLive: SliceState = {
+  status: null,
+  roomCode: null,
+  phase: "SUBMIT",
+  round: 0,
+  totalRounds: 0,
+  players: [],
+  teams: [],
+  revealedElementIds: [],
+  viewerPlayerId: null,
+  timerPaused: false,
+  timerRemainingMillis: null,
+  roundResult: null,
+  myAnswer: null,
+  submissionsClosing: null,
+  chat: [],
+  liveReactions: [],
+};
 
 interface useSessionResponse {
   sessionId: string;
@@ -87,7 +149,7 @@ const useSession = (): useSessionResponse => {
   // The `$sessionId` route param carries the room code (the join code).
   const { sessionId: roomCode } = routeApi.useParams();
   const { data: snapshot } = useGetInteractiveSessionQuery({ roomCode });
-  const live = useInteractiveSession();
+  const live = stubLive;
   const { data: currentDeck } = useGetDeckQuery(
     { id: snapshot?.deckId ?? "" },
     { skip: !snapshot?.deckId },

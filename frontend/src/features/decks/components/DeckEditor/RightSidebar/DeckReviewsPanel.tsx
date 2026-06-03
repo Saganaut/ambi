@@ -6,11 +6,12 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 import { useGetDeckQuery } from "@store/AmbiApi";
-import { Btn } from "@common/Buttons/Btn";
-import { Pagination } from "@common/Pagination/Pagination";
-import { StarRating } from "@common/StarRating/StarRating";
+import { Btn } from "@ui/Buttons/Btn";
+import { Pagination } from "@ui/Pagination/Pagination";
+import { StarRating } from "@ui/StarRating/StarRating";
 import { resolveAvatarSrc } from "@utils/avatarUrl";
 import styles from "./DeckReviewsPanel.module.css";
+import { useCurrentUser } from "@/features/auth";
 
 const routeApi = getRouteApi("/decks/$deckId/edit");
 const PAGE_SIZE = 10;

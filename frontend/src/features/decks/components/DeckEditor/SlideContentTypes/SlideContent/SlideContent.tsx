@@ -20,8 +20,8 @@ import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Container } from "@components/Containers/Container";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { useSlideEditor } from "../useElementEditor";
-import type { Slide } from "@/store/AmbiApi";
-import type { SlideBlockKind, SlideBlockUnion } from "@/store/slideBlockTypes";
+import type { Slide } from "@store/AmbiApi";
+import type { SlideBlockKind, SlideBlockUnion } from "./types";
 import {
   EmptySelect,
   SectionHeader,

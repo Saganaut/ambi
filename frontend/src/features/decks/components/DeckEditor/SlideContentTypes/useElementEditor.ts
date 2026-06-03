@@ -21,16 +21,19 @@ import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { isSortable } from "@dnd-kit/dom/sortable";
 import type { DragEndEvent } from "@dnd-kit/dom";
-import { useCurrentUser } from "@shared/hooks/useCurrentUser";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 import { useDebouncedCommit } from "@shared/hooks/useDebouncedCommit";
 import { DeckResponse, useGetDeckQuery, McqOption, Ambi } from "@store/AmbiApi";
 import { useAppDispatch } from "@store/hooks";
+// TODO(migration): stubbed pending slide-block migration. These block types
+// + helpers used to come from `@store/slideBlockTypes`; they're now local
+// placeholders defined in the SlideContent editor's types module.
 import {
-  SlideBlockUnion,
+  type SlideBlockUnion,
   narrowSlideBlock,
-  SlideBlockKind,
+  type SlideBlockKind,
   createSlideBlock,
-} from "@store/slideBlockTypes";
+} from "./SlideContent/types";
 import {
   McqQuestion,
   TextQuestion,
@@ -76,7 +79,7 @@ const useElementEditor = <T extends DeckElement>(
   delay = 500,
 ): ElementEditorApi<T> => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
   const currentUser = useCurrentUser();
   const currentUserId =
     currentUser.state === "registered" || currentUser.state === "guest"
@@ -87,7 +90,7 @@ const useElementEditor = <T extends DeckElement>(
     { id: deckId },
     {
       selectFromResult: ({ data }) => {
-        const e = data?.elements?.find((el) => el.id === questionId);
+        const e = data?.elements?.find((el) => el.id === slideId);
         return { element: e && selectKind(e) ? e : undefined };
       },
     },

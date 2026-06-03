@@ -4,7 +4,7 @@
 
 import styles from "./NavBar.module.css";
 import { useUserMenu } from "./useUserMenu";
-import { Btn } from "@common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -12,8 +12,8 @@ import {
   DropdownMenuLink,
 } from "../../Menus/DropdownMenu";
 import { Link } from "@tanstack/react-router";
-import { IconBtn } from "@common/Buttons/IconBtn";
-import { useCurrentUser } from "@/features/auth";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 const UserMenu = () => {
   const { handleLogin, handleLogout, avatarContent } = useUserMenu();

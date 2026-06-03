@@ -1,5 +1,6 @@
 package com.cephadex.ambi.config;
 
+import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -7,7 +8,9 @@ import java.util.Map;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
+import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
@@ -63,6 +66,8 @@ public class OpenApiConfig {
      * @return a SpringDoc customizer applied to the assembled {@link io.swagger.v3.oas.models.OpenAPI}.
      */
     @Bean
+    @Order(1)
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public OpenApiCustomizer flattenPolymorphicUnions() {
         return openApi -> {
             if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {
@@ -109,6 +114,7 @@ public class OpenApiConfig {
      * into a standalone object schema, dropping the parent reference and adding the
      * discriminator property as a single-value {@code enum} (a {@code const}).
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private Schema flattenChild(Schema child, String propertyName, String discriminatorValue) {
         List<Schema> allOf = child.getAllOf();
         if (allOf == null || allOf.isEmpty()) {
@@ -139,5 +145,66 @@ public class OpenApiConfig {
     /** Extracts the schema name from a {@code #/components/schemas/Name} ref. */
     private String refName(String ref) {
         return ref.substring(ref.lastIndexOf('/') + 1);
+    }
+
+    /**
+     * SpringDoc 3.x does not propagate {@code @Schema(requiredMode = REQUIRED)} from
+     * Java record component annotations into the OpenAPI {@code required} array.
+     * This customizer reads record components directly via reflection and populates
+     * the array after the main schema pass completes.
+     *
+     * <p>Runs after {@link #flattenPolymorphicUnions()} ({@code @Order(2)}) so the
+     * schemas are already flat when required fields are injected.
+     */
+    @Bean
+    @Order(2)
+    public OpenApiCustomizer markRecordComponentsRequired() {
+        return openApi -> {
+            if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {
+                return;
+            }
+            openApi.getComponents().getSchemas().forEach((name, schema) -> {
+                Class<?> clazz = tryLoadRecordClass(name);
+                if (clazz == null) {
+                    return;
+                }
+                for (RecordComponent component : clazz.getRecordComponents()) {
+                    if (isRequiredComponent(component)) {
+                        schema.addRequiredItem(component.getName());
+                    }
+                }
+            });
+        };
+    }
+
+    private static final List<String> RECORD_SCAN_PACKAGES = List.of(
+            "com.cephadex.ambi.presentation.slide.content",
+            "com.cephadex.ambi.presentation.deck",
+            "com.cephadex.ambi.presentation.slide"
+    );
+
+    private Class<?> tryLoadRecordClass(String simpleName) {
+        for (String pkg : RECORD_SCAN_PACKAGES) {
+            try {
+                Class<?> c = Class.forName(pkg + "." + simpleName);
+                if (c.isRecord()) {
+                    return c;
+                }
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private boolean isRequiredComponent(RecordComponent component) {
+        if (component.getType().isPrimitive()) {
+            return true;
+        }
+        // @Schema's @Target does not include RECORD_COMPONENT, so annotations placed on
+        // record components are not visible via RecordComponent.getAnnotation(). They ARE
+        // propagated to the synthesized accessor method, which is where we read them.
+        io.swagger.v3.oas.annotations.media.Schema ann =
+                component.getAccessor().getAnnotation(io.swagger.v3.oas.annotations.media.Schema.class);
+        return ann != null && ann.requiredMode() == RequiredMode.REQUIRED;
     }
 }

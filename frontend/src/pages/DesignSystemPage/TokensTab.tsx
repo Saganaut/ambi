@@ -3,7 +3,7 @@
 // (ColorSwatch, TokenRow, HierarchyDemo, ExperimentPaletteSection) inline so
 // the tab is a single import for DesignSystemPage.
 import styles from "./DesignSystem.module.css";
-import { Accordion } from "../../components/Containers/Accordion";
+import { Accordion } from "@components/Containers/Accordion";
 import { ThemePicker } from "./ThemePicker";
 import { colorPalette, semanticTokenGroups } from "./data";
 

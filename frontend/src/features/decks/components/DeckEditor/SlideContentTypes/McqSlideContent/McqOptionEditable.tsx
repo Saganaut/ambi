@@ -24,15 +24,17 @@
  * The backend strips `imgUrl` on write for internal images and rehydrates
  * it on read, so there's nothing to sanitize client-side.
  */
+// TODO(migration): stubbed pending slide-block migration. The gallery image
+// picker was wired through `@hooks/useGalleryPicker`, which no longer exists.
+// `handlePickFromGallery` is reduced to a flush/close no-op; everything else
+// in the option card (text, correct toggle, color, clear-image, remove, dnd)
+// still works.
 import { useEffect, useRef, useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { Ambi, type McqOption as McqOptionType } from "@store/AmbiApi";
-import { useAppDispatch } from "@store/hooks";
+import { type McqOption as McqOptionType } from "@store/AmbiApi";
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 
-import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import { useTheme } from "@hooks/useTheme";
 import { useFitText } from "@hooks/useFitText";
 import {
@@ -44,12 +46,11 @@ import {
 import { useMcqOptionEditor } from "../useElementEditor";
 import styles from "./McqOptionEditable.module.css";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
-import { ProgressBar } from "@common/ProgressBar/ProgressBar";
+import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { EditOptionToolbar } from "./EditOptionToolbar";
 import { Container } from "@components/Containers/Container";
 import QuizPoints from "@assets/icons/content/quiz-points.svg?react";
 import Sad from "@assets/icons/content/sad.svg?react";
-const routeApi = getRouteApi("/decks/$deckId/edit");
 
 // Six swatches spaced evenly around the wheel from the theme's primary hue.
 // Constant lightness/chroma keeps them visually balanced and re-themes
@@ -74,11 +75,6 @@ interface McqOptionEditableProps {
   canAddOption: boolean;
 }
 
-/** Only external URLs prefill the picker's paste-URL field; gallery picks
- *  are internal images and have no meaningful URL for the author to edit. */
-const externalUrlOf = (image: McqOptionType["image"]): string =>
-  image?.useExternalImg ? (largestUrl(image, "") ?? "") : "";
-
 const McqOptionEditable = ({
   option: initialOption,
   sortIndex,
@@ -86,9 +82,6 @@ const McqOptionEditable = ({
   addOption,
 }: McqOptionEditableProps) => {
   const optionId = initialOption.id;
-  const { deckId } = routeApi.useParams();
-  const dispatch = useAppDispatch();
-  const openPicker = useGalleryPicker();
   const { huePrimary } = useTheme();
 
   // dnd-kit sortable: id must be stable per option so DragDropProvider can
@@ -101,7 +94,6 @@ const McqOptionEditable = ({
 
   const {
     option,
-    parent,
     schedule,
     commit,
     flush,
@@ -176,38 +168,12 @@ const McqOptionEditable = ({
     schedule({ ...option, text: next });
   };
 
-  /** Open the gallery picker: it returns a fully-populated Image whether
-   *  the author picked from the gallery or pasted an external URL inside
-   *  the modal. We write the result into both the optimistic cache and the
-   *  persisted record. The backend drops `imgUrl` on save and rehydrates
-   *  it on read, but the cache write keeps the freshly-signed URL on
-   *  screen until the mutation response lands.
-   *  Closes the toolbar popover up front — the gallery modal takes over,
-   *  and the outside-click handler would otherwise close it as soon as
-   *  the modal swallows pointer events. */
+  /** TODO(migration): stubbed pending slide-block migration. Previously
+   *  opened the gallery picker and wrote the chosen Image into the option.
+   *  The picker hook is gone, so this just flushes and closes the popover. */
   const handlePickFromGallery = () => {
     flush();
     setPopoverOpen(false);
-    openPicker(
-      (image) => {
-        if (!parent?.id) return;
-
-        // Optimistic cache write: keyed lookup into the right deck/element/option.
-        dispatch(
-          Ambi.util.updateQueryData("getDeck", { id: deckId }, (draft) => {
-            if (!draft.elements) return;
-            const el = draft.elements.find((e) => e.id === parent.id);
-            if (el?.kind !== "McqQuestion") return;
-            const opt = el.options?.find((o) => o.id === optionId);
-            if (!opt) return;
-            opt.image = image;
-          }),
-        );
-
-        commit({ ...option, image });
-      },
-      { initialUrl: externalUrlOf(option.image) },
-    );
   };
 
   const handleClearImage = () => {

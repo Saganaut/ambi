@@ -6,7 +6,7 @@
 // editors deal in many simple items rather than 4-6 visual options.
 import type { ReactNode } from "react";
 import { MinusIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import styles from "./_shared.module.css";
 
 interface ItemCardProps {

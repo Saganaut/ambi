@@ -4,8 +4,8 @@ import styles from "./Forms.module.css";
 import { Link } from "@tanstack/react-router";
 
 import { RegisterSearch, useRegister } from "@auth/hooks/useRegister";
-import { Alert } from "@/shared/components/Common/Alert/Alert";
-import { Btn } from "@/shared/components/Common/Buttons/Btn";
+import { Alert } from "@ui/Alert/Alert";
+import { Btn } from "@ui/Buttons/Btn";
 import { Checkbox } from "@/shared/components/Forms/Input/Checkbox/Checkbox";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 export type { RegisterSearch };

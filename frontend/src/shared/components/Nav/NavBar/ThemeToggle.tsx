@@ -2,7 +2,7 @@
 // UserMenu so it stays reachable for every auth state — the menu now collapses
 // to a plain Log in button for unauthenticated users, which previously was the
 // only home for this control.
-import { IconBtn } from "@common/Buttons/IconBtn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import SunIcon from "@assets/icons/theme/sun.svg?react";
 import MoonIcon from "@assets/icons/theme/moon.svg?react";
 import { useTheme } from "@hooks/useTheme";

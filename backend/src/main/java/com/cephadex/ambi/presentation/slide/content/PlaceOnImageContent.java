@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.slide.content;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
+
 import java.util.List;
 
 import com.cephadex.ambi.media.AppImage;
@@ -8,25 +10,30 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Targ
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Click-on-image slide — players pin point(s) on the provided image.
  *
- * <p>Runtime answer: {@code List<double[]>} of {@code [x, y]} pairs, normalized to [0, 1].
+ * <p>
+ * Runtime answer: {@code List<double[]>} of {@code [x, y]} pairs, normalized to
+ * [0, 1].
  *
  * @param image     the image players click on
- * @param targets   correct target regions; coordinates and radius normalized to [0, 1]
+ * @param targets   correct target regions; coordinates and radius normalized to
+ *                  [0, 1]
  * @param scoreMode {@code INSIDE_RADIUS} (point inside target circle),
  *                  {@code NEAREST} (closest target wins), or
  *                  {@code DISTANCE} (inverse-distance scoring)
  */
 public record PlaceOnImageContent(
-        int pointValue,
-        Difficulty difficulty,
+        @Schema(requiredMode = REQUIRED) int pointValue,
+        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
         String explanation,
-        AppImage image,
-        List<Target> targets,
-        ScoreMode scoreMode
-) implements ScorableContent {
+        @Schema(requiredMode = REQUIRED) AppImage image,
+        @Schema(requiredMode = REQUIRED) List<Target> correctTargets,
+        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
+        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.PLACE_ON_IMAGE;

@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { RankingQuestion } from "@/store/AmbiApi";
+import type { RankingQuestion } from "@store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 const isRankingQuestion = (e: { kind: string }): e is RankingQuestion =>

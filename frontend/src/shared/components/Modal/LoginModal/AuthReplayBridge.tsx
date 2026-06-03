@@ -20,7 +20,8 @@ import {
   readPendingMutation,
 } from "@store/pendingMutationStore";
 import type { AppDispatch } from "@store/store";
-import { useCurrentUser } from "@/features/auth";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
+
 import { useConfirm } from "../../ConfirmDialog/useConfirm";
 
 // Treat the endpoints map as a string-indexed bag at this boundary: the

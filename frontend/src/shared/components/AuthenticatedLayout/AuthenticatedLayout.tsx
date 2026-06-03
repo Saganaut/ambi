@@ -9,7 +9,8 @@
 // Lives outside the route file so Fast Refresh keeps working — the route file
 // exports a non-component (`Route`) and React Refresh requires a file to export
 // only components for HMR to apply.
-import { useCurrentUser } from "@/features/auth";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
+
 import { Outlet } from "@tanstack/react-router";
 
 const AuthenticatedLayout = () => {

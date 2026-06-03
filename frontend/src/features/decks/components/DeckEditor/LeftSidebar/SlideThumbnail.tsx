@@ -3,7 +3,7 @@
  *
  * Renders the slide preview, exposes a right-click dropdown for slide actions
  * (delete for now — clone / add / comment to come), and selects this slide on
- * click by writing `questionId` into the route search. The wrapper carries an
+ * click by writing `slideId` into the route search. The wrapper carries an
  * HTML `id` so callers (e.g. the add-element flow) can scroll a freshly-created
  * slide into view; the thumbnail also self-scrolls when it becomes the active
  * one so deep-link navigations land in the visible scroll region. Drag handle
@@ -54,7 +54,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
 
   const handleSelectQuestion = () => {
     void navigate({
-      search: (prev) => ({ ...prev, questionId: id }),
+      search: (prev) => ({ ...prev, slideId: id }),
     });
   };
 
@@ -64,7 +64,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
       .then(() => {
         if (currentQuestionId === id) {
           void navigate({
-            search: (prev) => ({ ...prev, questionId: undefined }),
+            search: (prev) => ({ ...prev, slideId: undefined }),
           });
         }
       })

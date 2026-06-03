@@ -60,7 +60,7 @@ const useDeck = (deckId: string): UseDeckResult => {
     void navigate({
       to: "/decks/$deckId/edit",
       params: { deckId },
-      search: { questionId: undefined },
+      search: { slideId: undefined },
     });
   };
 

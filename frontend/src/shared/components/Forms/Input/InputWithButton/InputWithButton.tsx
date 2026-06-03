@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { InputBaseProps } from "../InputBaseProps";
 import shared from "../Input.module.css";
 import styles from "./InputWithButton.module.css";
-import { Btn } from "@/shared/components/Common/Buttons/Btn";
+import { Btn } from "@ui/Buttons/Btn";
 
 interface InputWithButtonProps
   extends InputBaseProps, React.InputHTMLAttributes<HTMLInputElement> {

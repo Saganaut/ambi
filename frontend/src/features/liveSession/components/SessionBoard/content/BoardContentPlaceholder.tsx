@@ -3,7 +3,7 @@
 // still renders something coherent (which kind, which moment) instead of a blank
 // board, so the rest of the session flow is demonstrable while per-kind surfaces
 // land one at a time.
-import type { DeckElement } from "@/types/elements";
+import type { DeckElement } from "@types/elements";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import styles from "./BoardContentPlaceholder.module.css";
 

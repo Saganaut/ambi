@@ -6,9 +6,12 @@ import {
   ChevronUpIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { IconBtn } from "@common/Buttons/IconBtn";
-import type { SlideBlockUnion } from "@/store/slideBlockTypes";
-import { BLOCK_KIND_LABEL, type BlockUpdate } from "./types";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import {
+  BLOCK_KIND_LABEL,
+  type BlockUpdate,
+  type SlideBlockUnion,
+} from "./types";
 import { HeadingBlockEditor } from "./HeadingBlockEditor";
 import { BodyBlockEditor } from "./BodyBlockEditor";
 import { BulletListBlockEditor } from "./BulletListBlockEditor";

@@ -15,8 +15,8 @@ import type {
   BtnShape,
   BtnSize,
   BtnVariant,
-} from "@common/Buttons/BtnTypes";
-import { IconBtn } from "@common/Buttons/IconBtn";
+} from "@ui/Buttons/BtnTypes";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { slideTypeGraphics, type ElementKind } from "./slideTypeGraphics";
 import styles from "./SlideTypeGraphic.module.css";
 

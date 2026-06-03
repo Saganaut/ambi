@@ -3,7 +3,7 @@
 // <relative updatedAt>". Author display names come from useGetUserProfile
 // which is RTK-cached, so the second lookup of the same user id is free.
 // When the two author ids match, only one name is shown.
-import { useGetUserProfileQuery } from "@/store/AmbiApi";
+import { useGetUserProfileQuery } from "@store/AmbiApi";
 import styles from "./ProvenanceFooter.module.css";
 
 interface ProvenanceFooterProps {
