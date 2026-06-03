@@ -16,8 +16,9 @@ import {
   AvatarSelector,
   AVATAR_OPTIONS,
 } from "@components/Forms/Input/AvatarSelector/AvatarSelector";
-import { TagPicker } from "@common/TagPicker/TagPicker";
-import { Accordion } from "../../components/Containers/Accordion";
+import { TagPicker } from "@ui/TagPicker/TagPicker";
+import { useTagPickerData } from "@hooks/useTagPickerData";
+import { Accordion } from "@components/Containers/Accordion";
 import styles from "./DesignSystem.module.css";
 
 const GAME_MODE_OPTIONS: { value: string; label: string }[] = [
@@ -56,6 +57,10 @@ const FormsSection = () => {
   const [stretchedText, setStretchedText] = useState("");
   const [pickerTagIds, setPickerTagIds] = useState<string[]>([]);
   const [pickerCuratedTagIds, setPickerCuratedTagIds] = useState<string[]>([]);
+  const { tags: allTags, isLoading: tagsLoading } = useTagPickerData();
+  const { tags: curatedTags, isLoading: curatedLoading } = useTagPickerData({
+    curatedOnly: true,
+  });
   const [avatar, setAvatar] = useState("avatar-1");
   const [avatarMany, setAvatarMany] = useState("av-alpha-aqua");
 
@@ -276,15 +281,18 @@ const FormsSection = () => {
           <div className={styles.formExampleRow}>
             <TagPicker
               label='Deck tags (any)'
+              tags={allTags}
+              isLoading={tagsLoading}
               value={pickerTagIds}
               onChange={setPickerTagIds}
               placeholder='Search and add tags…'
             />
             <TagPicker
               label='Curated only'
+              tags={curatedTags}
+              isLoading={curatedLoading}
               value={pickerCuratedTagIds}
               onChange={setPickerCuratedTagIds}
-              curatedOnly
               placeholder='Pick a curated subject…'
             />
           </div>

@@ -1,8 +1,8 @@
 // Lists user-owned content decks and all system decks, with create/edit/delete actions.
 import { DeckResponse } from "@/shared/store/AmbiApi";
-import { Btn } from "@common/Buttons/Btn";
-import { DeckActionButton } from "@common/Buttons/DeckActionButton/DeckActionButton";
-import { DeckCard } from "@common/Cards/DeckCard";
+import { Btn } from "@ui/Buttons/Btn";
+import { DeckActionButton } from "@decks/components/DeckActionButton/DeckActionButton";
+import { DeckCard } from "@decks/components/DeckCard/DeckCard";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 
 import { Link } from "@tanstack/react-router";
@@ -38,7 +38,7 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
                     <Link
                       to='/decks/$deckId/edit'
                       params={{ deckId: deck.id }}
-                      search={{ questionId: undefined }}
+                      search={{ slideId: undefined }}
                       viewTransition>
                       <Btn size='sm'>Edit</Btn>
                     </Link>

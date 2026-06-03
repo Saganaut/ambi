@@ -5,8 +5,9 @@
 // commit through `updateDeck`; the apiEnhancements layer keeps the cached
 // deck in sync, so the rest of the editor sees the change immediately.
 import { getRouteApi } from "@tanstack/react-router";
-import { useGetDeckQuery, useUpdateDeckMutation } from "@/store/AmbiApi";
-import { TagPicker } from "@common/TagPicker/TagPicker";
+import { useGetDeckQuery, useUpdateDeckMutation } from "@store/AmbiApi";
+import { TagPicker } from "@ui/TagPicker/TagPicker";
+import { useTagPickerData } from "@hooks/useTagPickerData";
 import { ElementTagsSection } from "./EditSlideSections/ElementTagsSection";
 import styles from "./EditSlidePanel.module.css";
 
@@ -16,6 +17,7 @@ const DeckCategorizePanel = () => {
   const { deckId } = routeApi.useParams();
   const { data: deck } = useGetDeckQuery({ id: deckId });
   const [updateDeck] = useUpdateDeckMutation();
+  const { tags, isLoading, createTag } = useTagPickerData();
 
   if (!deck) {
     return (
@@ -44,8 +46,10 @@ const DeckCategorizePanel = () => {
       <section className={styles.section}>
         <h4 className={styles.heading}>Subject</h4>
         <TagPicker
+          tags={tags}
+          isLoading={isLoading}
           singleSelect
-          creatable
+          onCreate={createTag}
           value={
             subjectTagId != null && subjectTagId !== "" ? [subjectTagId] : []
           }
@@ -59,7 +63,9 @@ const DeckCategorizePanel = () => {
       <section className={styles.section}>
         <h4 className={styles.heading}>Deck tags</h4>
         <TagPicker
-          creatable
+          tags={tags}
+          isLoading={isLoading}
+          onCreate={createTag}
           value={tagIds}
           onChange={(next) => {
             commit({ tagIds: next });

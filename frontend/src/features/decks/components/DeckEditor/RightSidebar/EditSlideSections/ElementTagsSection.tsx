@@ -5,13 +5,14 @@
 // them. Wires the existing TagPicker into the same updateElement commit
 // path used by the rest of EditSlideSections.
 import { getRouteApi } from "@tanstack/react-router";
-import { TagPicker } from "@common/TagPicker/TagPicker";
-import { useCurrentUser } from "@hooks/useCurrentUser";
+import { TagPicker } from "@ui/TagPicker/TagPicker";
+import { useTagPickerData } from "@hooks/useTagPickerData";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 import {
   useGetDeckQuery,
   useUpdateElementMutation,
   type DeckResponse,
-} from "@/store/AmbiApi";
+} from "@store/AmbiApi";
 import styles from "../EditSlidePanel.module.css";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
@@ -20,7 +21,7 @@ const routeApi = getRouteApi("/decks/$deckId/edit");
 
 const ElementTagsSection = () => {
   const { deckId } = routeApi.useParams();
-  const { questionId } = routeApi.useSearch();
+  const { slideId } = routeApi.useSearch();
   const currentUser = useCurrentUser();
   const currentUserId =
     currentUser.state === "registered" || currentUser.state === "guest"
@@ -31,12 +32,13 @@ const ElementTagsSection = () => {
     { id: deckId },
     {
       selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === questionId),
+        element: data?.elements?.find((e) => e.id === slideId),
       }),
     },
   );
 
   const [updateElement] = useUpdateElementMutation();
+  const { tags, isLoading, createTag } = useTagPickerData();
 
   if (!element?.id) return null;
   if (currentUser.state !== "registered" && currentUser.state !== "guest") {
@@ -68,7 +70,9 @@ const ElementTagsSection = () => {
     <section className={styles.section}>
       <h4 className={styles.heading}>Slide tags</h4>
       <TagPicker
-        creatable
+        tags={tags}
+        isLoading={isLoading}
+        onCreate={createTag}
         value={element.chrome?.tagIds ?? []}
         onChange={(next) => {
           commit(next);

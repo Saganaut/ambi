@@ -1,0 +1,35 @@
+/* Visual styling for the deck-card split-button (Quick Start + chevron).    */
+
+/* The two Btns sit flush, sharing a hairline edge between them, and only    */
+
+/* the outer corners are rounded so they read as a single control.           */
+.splitButton {
+  display: inline-flex;
+  align-items: stretch;
+  position: relative;
+
+  .primary {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .chevron {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid var(--edge-brand);
+    padding-inline: var(--space-2);
+  }
+
+  .icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .error {
+    position: absolute;
+    top: calc(100% + var(--space-1));
+    left: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-error);
+  }
+}

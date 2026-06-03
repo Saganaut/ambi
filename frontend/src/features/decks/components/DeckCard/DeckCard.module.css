@@ -1,0 +1,104 @@
+/* Shared deck card primitive used by MyDecks, Explore, and Favorites.
+   Three variants ("full", "discovery", "compact") share the same cover +
+   favorite-heart top section and only differ in the body blocks they show. */
+
+.card {
+  background: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--duration-fast) ease-in-out;
+
+  &:hover {
+    border-color: var(--border-focus);
+    background-color: var(--bg-primary);
+  }
+}
+
+.coverWrap {
+  position: relative;
+}
+
+.cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+  display: block;
+}
+
+.heart {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  background-color: var(--bg-surface-raised);
+  border-radius: var(--radius-full);
+}
+
+.name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  flex: 1;
+}
+
+.statusRow {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.discovery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+
+  .discoveryItem {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .icon {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+}
