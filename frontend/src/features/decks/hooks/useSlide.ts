@@ -5,6 +5,7 @@
 // behaviour (optimistic patch + tag-driven reconciling refetch) lives in
 // `store/enhancements/slide.ts` so it applies no matter who calls the mutation.
 import {
+  useListDeckSlidesQuery,
   useAddSlideMutation,
   useUpdateSlideMutation,
   useRemoveSlideMutation,
@@ -57,7 +58,7 @@ interface UseSlideResult {
 }
 
 const useSlide = (deckId: string): UseSlideResult => {
-  const { data, isLoading, error } = useListSlidesQuery({ id: deckId });
+  const { data, isLoading, error } = useListDeckSlidesQuery({ id: deckId });
   const slides = data ?? [];
 
   const [addSlideMutation] = useAddSlideMutation();

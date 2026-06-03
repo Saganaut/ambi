@@ -54,7 +54,6 @@ const useDeck = (deckId: string): UseDeckResult => {
   const [setVisibilityMutation] = useSetDeckVisibilityMutation();
   const [shareMutation] = useShareDeckMutation();
   const [revokeShareMutation] = useRevokeShareDeckMutation();
-  const [deleteDeck] = useDeleteDeckMutation();
   const { present } = useLiveSession();
 
   const openDeckInEditor = () => {
@@ -83,7 +82,7 @@ const useDeck = (deckId: string): UseDeckResult => {
     });
     if (!ok) return;
     try {
-      await deleteDeck({ id: deckId }).unwrap();
+      await deleteDeckMutation({ id: deckId }).unwrap();
     } catch (e) {
       console.error("Failed to delete deck", e);
     }
