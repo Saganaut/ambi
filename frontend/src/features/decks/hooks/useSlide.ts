@@ -13,14 +13,15 @@ import {
   type SlideRequest,
   type SlideResponse,
 } from "@store/AmbiApi";
+import { buildDefaultContent } from "../utils/slideContent";
 
 type SlideType = NonNullable<SlideRequest["slideType"]>;
 
 /**
- * Minimal SlideRequest for a brand-new slide. Unlike the old element payloads,
- * every field on the slim slide API is optional, so we only stamp identity +
- * type and a blank title. Typed `content` (MCQ, …) is left off — a TITLE slide
- * has none, and the type-specific editor fills it in once the slide exists.
+ * Minimal SlideRequest for a brand-new slide. We stamp identity + type, a blank
+ * title, and type-specific placeholder `content` (required and discriminated by
+ * `contentType`) via {@link buildDefaultContent}. The type-specific editor fills
+ * the real content in once the slide exists.
  *
  * @param slideType the slide kind to create
  * @param id client-minted id, reused for the optimistic patch and the persisted
@@ -30,6 +31,7 @@ const buildNewSlide = (slideType: SlideType, id: string): SlideRequest => ({
   id,
   slideType,
   title: "",
+  content: buildDefaultContent(slideType),
 });
 
 interface AddSlideOptions {
