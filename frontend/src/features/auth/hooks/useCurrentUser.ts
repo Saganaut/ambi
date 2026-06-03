@@ -10,11 +10,8 @@
 // server failure, NOT "not signed in".
 import { useMeQuery } from "@store/AmbiApi";
 import type { GuestMe, PreRegistrationMe, RegisteredMe } from "@store/AmbiApi";
-
-// Taken from the registered variant — the one that always carries them — so
-// they track the backend enums (UserLevel, MembershipTier) on each codegen run.
-export type UserLevel = RegisteredMe["userLevel"];
-export type MembershipTier = RegisteredMe["effectiveTier"];
+import type { UserLevel, MembershipTier } from "@store/enums";
+export type { UserLevel, MembershipTier };
 
 export type CurrentUserState =
   | { state: "loading" }

@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from "react";
 
 import styles from "./DeckCard.module.css";
 import { DeckResponse } from "@store/AmbiApi";
+import { type PublishStatus } from "@store/enums";
 import { Badge } from "@ui/Badge/Badge";
 import { Tag } from "@ui/Tag/Tag";
 import { resolveDeckCover } from "@shared/utils/deckImages";
@@ -10,7 +11,7 @@ const PUBLISH_BADGE_VARIANT = {
   DRAFT: "info",
   PUBLISHED: "success",
   ARCHIVED: "warning",
-} as const;
+} as const satisfies Record<PublishStatus, string>;
 
 type DeckCardVariant = "full" | "discovery" | "compact";
 

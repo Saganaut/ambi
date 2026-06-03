@@ -4,6 +4,7 @@
 // mutations resolve) and dispatches the matching mutation on click.
 import { getRouteApi } from "@tanstack/react-router";
 import { useGetDeckQuery } from "@store/AmbiApi";
+import { type PublishStatus } from "@store/enums";
 import { Btn } from "@ui/Buttons/Btn";
 import { Badge } from "@ui/Badge/Badge";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
@@ -15,13 +16,13 @@ const STATUS_LABEL = {
   DRAFT: "Draft",
   PUBLISHED: "Published",
   ARCHIVED: "Archived",
-} as const;
+} as const satisfies Record<PublishStatus, string>;
 
 const STATUS_BADGE_VARIANT = {
   DRAFT: "info",
   PUBLISHED: "success",
   ARCHIVED: "warning",
-} as const;
+} as const satisfies Record<PublishStatus, string>;
 
 const PublishStatusControl = () => {
   const { deckId } = routeApi.useParams();
