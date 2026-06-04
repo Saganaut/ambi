@@ -69,11 +69,12 @@ const useMcqEditor = (): UseMcqEditorResult => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
-  const editor = useSlideContentEditor<"MCQ">(deckId, slideId ?? "");
+  const editor = useSlideContentEditor(deckId, slideId ?? "", "MCQ");
 
   // `editor.slide` is already narrowed to the MCQ slide (its `content` is the
-  // MCQ arm of the `SlideContent` union), since `useSlideContentEditor<"MCQ">`
-  // discriminates on `content.contentType`.
+  // MCQ arm of the `SlideContent` union): passing `"MCQ"` makes the hook
+  // runtime-guard on `content.contentType`, so a non-MCQ slide reads back as
+  // `undefined` rather than being asserted into the wrong type.
   const slide = editor.slide;
   const content = slide?.content;
   const options = content?.options ?? [];
