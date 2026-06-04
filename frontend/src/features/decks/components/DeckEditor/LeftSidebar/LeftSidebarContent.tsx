@@ -73,7 +73,7 @@ const LeftSidebarContent = () => {
                 index={index}
                 slideId={slide.id}
                 name={slideDisplayName(slide)}
-                slideType={slide.slideType}
+                slideType={slide.content.contentType}
                 currentQuestionId={slideId}
                 deckId={deckId}
               />

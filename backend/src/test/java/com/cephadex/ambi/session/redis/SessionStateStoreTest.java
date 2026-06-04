@@ -1,33 +1,32 @@
 package com.cephadex.ambi.session.redis;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
-import com.cephadex.ambi.session.SessionTypes.SessionId;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 
 /**
- * Round-trips {@link LiveRoundState} through the store over a HashMap-backed mock
+ * Round-trips {@link LiveRoundState} through the store over a HashMap-backed
+ * mock
  * template, using the real {@link RedisJsonCodec}, so the serialize/store/load
  * and clear paths are exercised together.
  */
 class SessionStateStoreTest {
 
-    private static final SessionId SID = new SessionId("session-1");
+    private static final String SID = new String("session-1");
 
     private Map<String, String> store;
     private SessionStateStore stateStore;

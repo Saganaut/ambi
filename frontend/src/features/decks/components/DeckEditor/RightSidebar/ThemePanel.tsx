@@ -27,7 +27,7 @@ import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { ImagePicker } from "./ImagePicker";
 import styles from "./ThemePanel.module.css";
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 type SessionFormat = NonNullable<DeckResponse["defaultSessionFormat"]>;
 type ShowResponsesMode = NonNullable<DeckResponse["defaultShowResponses"]>;

@@ -6,17 +6,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.cephadex.ambi.presentation.slide.Slide;
-import com.cephadex.ambi.session.SessionTypes.ParticipantId;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 
 /**
- * Derives the per-participant facts of a round <b>once</b>, from the slide and the
- * submitted answers, so scoring and the {@link RoundResult} record read the same
+ * Derives the per-participant facts of a round <b>once</b>, from the slide and
+ * the
+ * submitted answers, so scoring and the {@link RoundResult} record read the
+ * same
  * {@link AnswerEvaluation}s instead of each re-deriving them.
  *
- * <p>Pure and side-effect free: it touches no participant state and persists
+ * <p>
+ * Pure and side-effect free: it touches no participant state and persists
  * nothing, so it is safe to re-run (e.g. on {@code restartRound}). The caller
  * sequences the round close:
  *
@@ -40,15 +42,15 @@ public final class RoundEvaluator {
     public static List<AnswerEvaluation> evaluate(Slide slide, List<Answer> answers, Instant roundStartedAt) {
         // Content-independent facts + the correctness grade, in one pass; we track
         // the fastest correct responder so exactly one evaluation is flagged.
-        record Graded(ParticipantId participantId, String choice, boolean correct, long responseTimeMs) {
+        record Graded(String participantId, String choice, boolean correct, long responseTimeMs) {
         }
         List<Graded> graded = new ArrayList<>(answers.size());
 
-        ParticipantId fastest = null;
+        String fastest = null;
         long fastestMs = Long.MAX_VALUE;
 
         for (Answer answer : answers) {
-            ParticipantId pid = new ParticipantId(answer.getParticipantId());
+            String pid = new String(answer.getParticipantId());
             long responseTimeMs = responseTime(roundStartedAt, answer.getSubmittedAt());
             boolean correct = isCorrect(slide, answer.getPayload());
             String choice = describeChoice(answer.getPayload());
@@ -69,8 +71,8 @@ public final class RoundEvaluator {
                     g.choice(),
                     g.correct(),
                     fastestCorrect,
-                    false, // bestAnswer  — SEAM (see below)
-                    0,     // deceivedCount — SEAM (see below)
+                    false, // bestAnswer — SEAM (see below)
+                    0, // deceivedCount — SEAM (see below)
                     g.responseTimeMs()));
         }
         return evaluations;

@@ -4,12 +4,9 @@
  * sidebar / header chrome (slide-kind icon, footer) is owned here; the actual
  * field editors live in SlideContentTypes/.
  */
-import { useGetDeckQuery } from "@store/AmbiApi";
 import { getRouteApi } from "@tanstack/react-router";
 import styles from "./SlideDisplay.module.css";
-import { Loader } from "@ui/Loader/Loader";
 
-import { SlideContent } from "./SlideContentTypes/SlideContent/SlideContent";
 import { McqSlideContent } from "./SlideContentTypes/McqSlideContent/McqSlideContent";
 import { TextSlideContent } from "./SlideContentTypes/TextSlideContent/TextSlideContent";
 import { NumberSlideContent } from "./SlideContentTypes/NumberSlideContent/NumberSlideContent";
@@ -18,85 +15,76 @@ import { ScalesSlideContent } from "./SlideContentTypes/ScalesSlideContent/Scale
 import { QAndASlideContent } from "./SlideContentTypes/QAndASlideContent/QAndASlideContent";
 import { GridSlideContent } from "./SlideContentTypes/GridSlideContent/GridSlideContent";
 import { PlaceOnImageSlideContent } from "./SlideContentTypes/PlaceOnImageSlideContent/PlaceOnImageSlideContent";
-import { WordCloudSlideContent } from "./SlideContentTypes/WordCloudSlideContent/WordCloudSlideContent";
 import { AllocationSlideContent } from "./SlideContentTypes/AllocationSlideContent/AllocationSlideContent";
 import { MatchingSlideContent } from "./SlideContentTypes/MatchingSlideContent/MatchingSlideContent";
 import { DrawingSlideContent } from "./SlideContentTypes/DrawingSlideContent/DrawingSlideContent";
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
-import { largestUrl } from "@/shared/utils/image";
 import { SlideTypeGraphicSvg } from "../Slides/SlideTypeGraphics/SlideTypeGraphic";
+import { useSlide } from "../../hooks/useSlide";
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const SlideDisplay = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
-  const { element, isLoading } = useGetDeckQuery(
-    { id: deckId },
-    {
-      selectFromResult: ({ data, isLoading }) => ({
-        isLoading,
-        element: data?.elements?.find((e) => e.id === slideId),
-      }),
-    },
-  );
+  const { getSlide } = useSlide(deckId);
 
+  if (slideId == null) return <p>No slide found</p>;
+
+  const slide = getSlide(slideId);
+
+  if (slide == null) return <p> Error </p>;
+  console.log("slide", slide);
   const renderBody = () => {
-    if (isLoading) return <Loader />;
-    if (!element) {
-      return (
-        <p>No slide selected. Pick one from the left rail to start editing.</p>
-      );
-    }
-    switch (element.kind) {
-      case "Slide":
-        return <SlideContent />;
-      case "McqQuestion":
+    switch (slide.content.contentType) {
+      case "MCQ":
         return <McqSlideContent />;
-      case "TextQuestion":
+      case "TEXT":
         return <TextSlideContent />;
-      case "NumberQuestion":
+      case "NUMBER":
         return <NumberSlideContent />;
-      case "RankingQuestion":
+      case "RANKING":
         return <RankingSlideContent />;
-      case "ScalesQuestion":
+      case "SCALES":
         return <ScalesSlideContent />;
-      case "QAndAQuestion":
+      case "Q_AND_A":
         return <QAndASlideContent />;
-      case "GridQuestion":
+      case "GRID":
         return <GridSlideContent />;
-      case "PlaceOnImageQuestion":
+      case "PLACE_ON_IMAGE":
         return <PlaceOnImageSlideContent />;
-      case "WordCloudQuestion":
-        return <WordCloudSlideContent />;
-      case "AllocationQuestion":
+      case "ALLOCATION":
         return <AllocationSlideContent />;
-      case "MatchingQuestion":
+      case "MATCHING":
         return <MatchingSlideContent />;
-      case "DrawingQuestion":
+      case "DRAWING":
         return <DrawingSlideContent />;
+      case "FOLLOW_UP":
+        return <p> Not implemented</p>;
+      case "TITLE":
+        return <p> Not implemented</p>;
+      case "MEDIA":
+        return <p> Not implemented</p>;
       default:
         return <div>No slide selected</div>;
     }
   };
-  const backgroundUrl = element
-    ? largestUrl(element.chrome?.background, `${element.id ?? ""}-background`)
-    : null;
 
   return (
     <div
       className={styles.slideDisplay}
-      style={
-        {
-          "--background-image": backgroundUrl
-            ? `url("${backgroundUrl}")`
-            : "none",
-        } as React.CSSProperties
-      }>
+      // style={
+      //   {
+      //     "--background-image": backgroundUrl
+      //       ? `url("${backgroundUrl}")`
+      //       : "none",
+      //   } as React.CSSProperties
+      // }
+    >
       <div className={styles.slideHeader}>
         <CephadexLogo size={"md"} />{" "}
-        {element?.kind && <SlideTypeGraphicSvg kind={element.kind} />}
+        <SlideTypeGraphicSvg slideType={slide.content.contentType} />
       </div>
       <div className={styles.slideBody}>{renderBody()}</div>
     </div>

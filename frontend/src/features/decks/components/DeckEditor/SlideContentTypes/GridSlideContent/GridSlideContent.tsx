@@ -9,27 +9,6 @@
  *   - Visual `GridCellPicker` overlay where the author clicks cells to mark
  *     them correct. Replaces the old comma-separated index input.
  */
-import { useState } from "react";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useGridQuestionEditor } from "../useElementEditor";
-import type { Image } from "@store/AmbiApi";
-import { largestUrl, resolveImageUrl } from "@utils/image";
-import {
-  EmptySelect,
-  ImageBackingEditor,
-  PromptField,
-  SectionHeader,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import { GridCellPicker } from "./GridCellPicker";
-
-const pasteUrlOf = (image: Image | undefined): string =>
-  image?.useExternalImg ? (largestUrl(image, "") ?? "") : "";
-
 const GridSlideContent = () => {
   return <div>not implemented</div>;
 };

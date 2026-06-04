@@ -8,19 +8,6 @@
  *     the entire scoring rule at a glance.
  *   - Scoring card with the point value.
  */
-import { useState } from "react";
-import { Input } from "@components/Forms/Input/Input/Input";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useNumberQuestionEditor } from "../useElementEditor";
-import {
-  EmptySelect,
-  PromptField,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import styles from "./NumberSlideContent.module.css";
 
 const formatTarget = (value: number, decimals: number) =>
   value.toFixed(Math.min(Math.max(decimals, 0), 10));

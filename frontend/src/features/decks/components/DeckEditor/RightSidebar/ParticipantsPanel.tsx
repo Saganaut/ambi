@@ -18,7 +18,7 @@ import { useCurrentUser } from "@/features/auth";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 // Backend defaults (InteractiveSessionSettings) — kept in sync so a control
 // shows the right state on a deck whose settings predate a given field.

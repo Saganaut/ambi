@@ -11,23 +11,25 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
-import com.cephadex.ambi.session.SessionTypes.ParticipantId;
-import com.cephadex.ambi.session.SessionTypes.SessionId;
-import com.cephadex.ambi.session.SessionTypes.SlideId;
 import com.cephadex.ambi.session.answer.Answer;
 
 /**
- * The in-flight answers for a live round, kept in Redis as a Hash with one field
+ * The in-flight answers for a live round, kept in Redis as a Hash with one
+ * field
  * per participant. While a round is open this is the runtime store the session
  * reads and writes; at round close the orchestrator flushes these to MongoDB
  * (the durable source of truth from which {@code RoundResult} is computed).
  *
- * <p>Keyed by {@code (sessionId, slideId)} via {@link SessionKeys#answersKey} —
- * the same round identity as {@link TallyStore} — with the participant id as the
- * hash field, so a participant <strong>re-submitting overwrites their own answer</strong>
+ * <p>
+ * Keyed by {@code (sessionId, slideId)} via {@link SessionKeys#answersKey} —
+ * the same round identity as {@link TallyStore} — with the participant id as
+ * the
+ * hash field, so a participant <strong>re-submitting overwrites their own
+ * answer</strong>
  * (last write before reveal wins) and can never create a second entry. Like the
  * other session stores it does no locking: each {@link #submit} is a single
- * {@code HSET} keyed to one participant, so concurrent submissions from different
+ * {@code HSET} keyed to one participant, so concurrent submissions from
+ * different
  * participants don't contend.
  */
 @Component
@@ -50,28 +52,34 @@ public class AnswerStore {
      * Records {@code answer} for its participant in the round, overwriting any
      * earlier submission from that participant, and refreshes the round's TTL.
      *
-     * @throws NullPointerException if {@code answer} or its participant id is {@code null}
+     * @throws NullPointerException if {@code answer} or its participant id is
+     *                              {@code null}
      */
-    public void submit(SessionId sid, SlideId slideId, Answer answer) {
+    public void submit(String sessionId, String slideId, Answer answer) {
         Objects.requireNonNull(answer, "answer required");
-        ParticipantId participantId = new ParticipantId(
+        String participantId = new String(
                 Objects.requireNonNull(answer.getParticipantId(), "answer.participantId required"));
-        String key = keys.answersKey(sid, slideId);
-        redis.<String, String>opsForHash().put(key, participantId.value(), codec.serialize(answer));
+        String key = keys.answersKey(sessionId, slideId);
+        redis.<String, String>opsForHash().put(key, participantId, codec.serialize(answer));
         redis.expire(key, props.getAnswers().getTtl());
     }
 
-    /** This participant's answer for the round, or empty if they haven't submitted. */
-    public Optional<Answer> answerOf(SessionId sid, SlideId slideId, ParticipantId participantId) {
+    /**
+     * This participant's answer for the round, or empty if they haven't submitted.
+     */
+    public Optional<Answer> answerOf(String sessionId, String slideId, String participantId) {
         HashOperations<String, String, String> ops = redis.opsForHash();
-        String json = ops.get(keys.answersKey(sid, slideId), participantId.value());
+        String json = ops.get(keys.answersKey(sessionId, slideId), participantId);
         return json == null ? Optional.empty() : Optional.of(codec.deserialize(json, Answer.class));
     }
 
-    /** Every answer submitted for the round so far (the input to scoring at round close). */
-    public List<Answer> answers(SessionId sid, SlideId slideId) {
+    /**
+     * Every answer submitted for the round so far (the input to scoring at round
+     * close).
+     */
+    public List<Answer> answers(String sessionId, String slideId) {
         HashOperations<String, String, String> ops = redis.opsForHash();
-        Map<String, String> raw = ops.entries(keys.answersKey(sid, slideId));
+        Map<String, String> raw = ops.entries(keys.answersKey(sessionId, slideId));
         List<Answer> answers = new ArrayList<>(raw.size());
         for (String json : raw.values()) {
             answers.add(codec.deserialize(json, Answer.class));
@@ -79,14 +87,19 @@ public class AnswerStore {
         return answers;
     }
 
-    /** How many participants have submitted this round, without deserializing them. */
-    public long count(SessionId sid, SlideId slideId) {
-        Long size = redis.opsForHash().size(keys.answersKey(sid, slideId));
+    /**
+     * How many participants have submitted this round, without deserializing them.
+     */
+    public long count(String sessionId, String slideId) {
+        Long size = redis.opsForHash().size(keys.answersKey(sessionId, slideId));
         return size == null ? 0L : size;
     }
 
-    /** Removes the round's answers (e.g. once flushed to Mongo, or on a round restart). */
-    public void clear(SessionId sid, SlideId slideId) {
-        redis.delete(keys.answersKey(sid, slideId));
+    /**
+     * Removes the round's answers (e.g. once flushed to Mongo, or on a round
+     * restart).
+     */
+    public void clear(String sessionId, String slideId) {
+        redis.delete(keys.answersKey(sessionId, slideId));
     }
 }

@@ -12,22 +12,6 @@
  * question-level fields (prompt, pool, validation) and the structural
  * add/remove ops, both routed through `useAllocationEditor`.
  */
-import { useState } from "react";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useAllocationEditor } from "../useElementEditor";
-import {
-  EmptySelect,
-  ItemList,
-  PromptField,
-  SectionHeader,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import { AllocationOptionEditable } from "./AllocationOptionEditable";
-import styles from "./AllocationSlideContent.module.css";
 
 const AllocationSlideContent = () => {
   return <div>not implemented</div>;

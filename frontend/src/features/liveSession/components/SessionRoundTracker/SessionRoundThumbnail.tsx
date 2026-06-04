@@ -1,4 +1,3 @@
-import type { DeckElement } from "@types/elements";
 import styles from "./SessionRoundTracker.module.css";
 import { SlideTypeGraphicSvg } from "@decks/components/Slides/SlideTypeGraphics/SlideTypeGraphic";
 
@@ -9,7 +8,7 @@ type Phase = (typeof PHASES)[number];
 interface SessionRoundThumbnailInterface {
   className?: string;
   roundPhase?: Phase;
-  element: DeckElement;
+  slide: any;
   isActive: boolean;
 }
 
@@ -22,16 +21,16 @@ const phaseClasses: Record<Phase, string> = {
 const SessionRoundThumbnail = ({
   className,
   roundPhase,
-  element,
+  slide,
   isActive,
 }: SessionRoundThumbnailInterface) => {
-  console.log("element", element);
+  console.log("slide", slide);
   console.log("isActive", isActive);
   const phaseKey = roundPhase ? phaseClasses[roundPhase] : "inactive";
   return (
     <div
       className={`${styles.sessionRoundThumbnail} ${className ?? ""} ${styles[phaseKey] ?? ""} ${isActive ? styles.isActive : " "}`}>
-      <SlideTypeGraphicSvg kind={element.kind} />
+      <SlideTypeGraphicSvg slideType={slide.kind} />
     </div>
   );
 };

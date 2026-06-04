@@ -1,6 +1,6 @@
 /**
  * Tag + optimism rules for deck-lifecycle mutations (the editor's deck-level
- * surface: rename, visibility, sharing).
+ * surface: rename, visibility, sharing, cover/background images).
  *
  * `getDeck` is tagged `{ type: 'Deck', id }`; the mutations that edit an
  * existing deck invalidate it so RTK Query refetches the canonical, fully
@@ -103,7 +103,7 @@ Ambi.enhanceEndpoints({
         }
       },
     },
-    setVisibility: {
+    setDeckVisibility: {
       invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
       onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
         const patch = dispatch(
@@ -118,10 +118,70 @@ Ambi.enhanceEndpoints({
         }
       },
     },
-    share: {
+    setDeckCoverImage: {
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.coverImage = arg.setImageRequest.image;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    clearDeckCoverImage: {
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.coverImage = undefined;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    setDeckBackgroundImage: {
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.backgroundImage = arg.setImageRequest.image;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    clearDeckBackgroundImage: {
+      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.backgroundImage = undefined;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    shareDeck: {
       invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
     },
-    revokeShare: {
+    revokeShareDeck: {
       invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
     },
     deleteDeck: {

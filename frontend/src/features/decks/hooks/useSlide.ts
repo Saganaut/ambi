@@ -10,18 +10,25 @@ import {
   useUpdateSlideMutation,
   useRemoveSlideMutation,
   useMoveSlideMutation,
+  useSetSlideCoverImageMutation,
+  useClearSlideCoverImageMutation,
+  useSetSlideBackgroundImageMutation,
+  useClearSlideBackgroundImageMutation,
+  type AppImage,
   type SlideRequest,
   type SlideResponse,
 } from "@store/AmbiApi";
 import { buildDefaultContent } from "../utils/slideContent";
+import { SlideType } from "@/shared/store/enums";
 
-type SlideType = NonNullable<SlideRequest["slideType"]>;
+/** Which dedicated image slot on a slide a handler targets. */
+type ImageSlot = "cover" | "background";
 
 /**
- * Minimal SlideRequest for a brand-new slide. We stamp identity + type, a blank
- * title, and type-specific placeholder `content` (required and discriminated by
- * `contentType`) via {@link buildDefaultContent}. The type-specific editor fills
- * the real content in once the slide exists.
+ * Minimal SlideRequest for a brand-new slide. We stamp identity, a blank title,
+ * and type-specific placeholder `content` (required and discriminated by
+ * `contentType`, the slide's only kind marker) via {@link buildDefaultContent}.
+ * The type-specific editor fills the real content in once the slide exists.
  *
  * @param slideType the slide kind to create
  * @param id client-minted id, reused for the optimistic patch and the persisted
@@ -29,7 +36,6 @@ type SlideType = NonNullable<SlideRequest["slideType"]>;
  */
 const buildNewSlide = (slideType: SlideType, id: string): SlideRequest => ({
   id,
-  slideType,
   title: "",
   content: buildDefaultContent(slideType),
 });
@@ -52,6 +58,14 @@ interface UseSlideResult {
   /** Remove a slide. */
   removeSlide: (slideId: string) => void;
   /**
+   * Set a slide's cover or background image. These have a dedicated endpoint
+   * (not folded into {@link updateSlide}), so changing an image never
+   * round-trips the whole slide's content.
+   */
+  setSlideImage: (slideId: string, slot: ImageSlot, image: AppImage) => void;
+  /** Clear a slide's cover or background image. */
+  clearSlideImage: (slideId: string, slot: ImageSlot) => void;
+  /**
    * Move a slide to a new zero-based position in the deck's order. The backend
    * computes the new LexoRank `sortOrder` key from the index; the reconciling
    * refetch lands the canonical order. Pairs with the rail's drag-and-drop.
@@ -67,6 +81,10 @@ const useSlide = (deckId: string): UseSlideResult => {
   const [updateSlideMutation] = useUpdateSlideMutation();
   const [removeSlideMutation] = useRemoveSlideMutation();
   const [moveSlideMutation] = useMoveSlideMutation();
+  const [setCoverImageMutation] = useSetSlideCoverImageMutation();
+  const [clearCoverImageMutation] = useClearSlideCoverImageMutation();
+  const [setBackgroundImageMutation] = useSetSlideBackgroundImageMutation();
+  const [clearBackgroundImageMutation] = useClearSlideBackgroundImageMutation();
 
   const getSlide = (slideId: string) =>
     slides.find((slide) => slide.id === slideId);
@@ -95,6 +113,18 @@ const useSlide = (deckId: string): UseSlideResult => {
     void removeSlideMutation({ id: deckId, slideId });
   };
 
+  const setSlideImage = (slideId: string, slot: ImageSlot, image: AppImage) => {
+    const mutate =
+      slot === "cover" ? setCoverImageMutation : setBackgroundImageMutation;
+    void mutate({ id: deckId, slideId, setImageRequest: { image } });
+  };
+
+  const clearSlideImage = (slideId: string, slot: ImageSlot) => {
+    const mutate =
+      slot === "cover" ? clearCoverImageMutation : clearBackgroundImageMutation;
+    void mutate({ id: deckId, slideId });
+  };
+
   const reorder = (slideId: string, toIndex: number) => {
     void moveSlideMutation({
       id: deckId,
@@ -111,9 +141,11 @@ const useSlide = (deckId: string): UseSlideResult => {
     addSlide,
     updateSlide,
     removeSlide,
+    setSlideImage,
+    clearSlideImage,
     reorder,
   };
 };
 
 export { useSlide };
-export type { UseSlideResult, AddSlideOptions, SlideType };
+export type { UseSlideResult, AddSlideOptions, ImageSlot, SlideType };

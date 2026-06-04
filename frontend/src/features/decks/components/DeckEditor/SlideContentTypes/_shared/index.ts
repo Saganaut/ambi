@@ -6,6 +6,6 @@ export { SectionHeader } from "./SectionHeader";
 export { SettingsCard, SettingsRow } from "./SettingsCard";
 export { ItemCard } from "./ItemCard";
 export { ItemList } from "./ItemList";
-export { ImageBackingEditor } from "./ImageBackingEditor";
+// export { ImageBackingEditor } from "./ImageBackingEditor";
 export { ScoringFooter } from "./ScoringFooter";
 export { EmptySelect } from "./EmptySelect";

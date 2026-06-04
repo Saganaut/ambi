@@ -17,14 +17,15 @@ import type {
   BtnVariant,
 } from "@ui/Buttons/BtnTypes";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { slideTypeGraphics, type ElementKind } from "./slideTypeGraphics";
+import { slideTypeGraphics } from "./slideTypeGraphics";
 import styles from "./SlideTypeGraphic.module.css";
+import { SlideType } from "@/shared/store/enums";
 
 interface SlideTypeGraphicProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "type"
 > {
-  kind: ElementKind;
+  slideType: SlideType;
   size?: BtnSize;
   variant?: BtnVariant;
   fill?: BtnFill;
@@ -32,27 +33,27 @@ interface SlideTypeGraphicProps extends Omit<
 }
 
 const SlideTypeGraphic = ({
-  kind,
+  slideType,
   size = "md",
   fill = "ghost",
   ...rest
 }: SlideTypeGraphicProps) => {
-  const Graphic = slideTypeGraphics[kind];
+  const Graphic = slideTypeGraphics[slideType];
   return <IconBtn icon={<Graphic />} size={size} fill={fill} {...rest} />;
 };
 
 interface SlideTypeGraphicSvgProps {
-  kind: ElementKind;
+  slideType: SlideType;
   size?: BtnSize;
   className?: string;
 }
 
 const SlideTypeGraphicSvg = ({
-  kind,
+  slideType,
   size = "md",
   className,
 }: SlideTypeGraphicSvgProps) => {
-  const Graphic = slideTypeGraphics[kind];
+  const Graphic = slideTypeGraphics[slideType];
   return (
     <span
       className={[styles.wrapper, styles[size], className]

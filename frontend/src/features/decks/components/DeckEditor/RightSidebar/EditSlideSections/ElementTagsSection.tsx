@@ -17,7 +17,7 @@ import styles from "../EditSlidePanel.module.css";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const ElementTagsSection = () => {
   const { deckId } = routeApi.useParams();

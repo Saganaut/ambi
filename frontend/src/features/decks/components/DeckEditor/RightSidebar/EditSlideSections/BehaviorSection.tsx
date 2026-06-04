@@ -24,7 +24,7 @@ import styles from "../EditSlidePanel.module.css";
 
 type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 // Tautology predicate; lets useElementEditor narrow the union to the same
 // union (every kind shares showResponses). The cast on the way out keeps

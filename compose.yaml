@@ -37,6 +37,19 @@ services:
   # for now; add sqs,sns,lambda when the async pipeline work begins. Garage stays
   # the S3 implementation — LocalStack does NOT replace it. Point the AWS SDK at
   # http://localhost:4566 via AWS_ENDPOINT_URL in dev.env (omit in production).
+  mongo-express:
+    image: mongo-express:latest
+    container_name: ambi-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=secret
+      - ME_CONFIG_MONGODB_URL=mongodb://root:secret@mongodb:27017/
+      - ME_CONFIG_BASICAUTH=false
+    depends_on:
+      - mongodb
+    restart: unless-stopped
   localstack:
     image: localstack/localstack:latest
     container_name: ambi-localstack

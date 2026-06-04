@@ -36,14 +36,14 @@ const optimisticSlide = (request: SlideRequest): SlideResponse => ({
 Ambi.enhanceEndpoints({
   addTagTypes: ["Slide"],
   endpoints: {
-    listSlides: {
+    listDeckSlides: {
       providesTags: (_result, _error, arg) => slideTag(arg.id),
     },
     addSlide: {
       invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
       onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
         const patch = dispatch(
-          Ambi.util.updateQueryData("listSlides", { id: arg.id }, (draft) => {
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
             draft.push(optimisticSlide(arg.slideRequest));
           }),
         );
@@ -58,7 +58,7 @@ Ambi.enhanceEndpoints({
       invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
       onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
         const patch = dispatch(
-          Ambi.util.updateQueryData("listSlides", { id: arg.id }, (draft) => {
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
             const idx = draft.findIndex((slide) => slide.id === arg.slideId);
             if (idx !== -1) draft[idx] = { ...draft[idx], ...arg.slideRequest };
           }),
@@ -74,9 +74,78 @@ Ambi.enhanceEndpoints({
       invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
       onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
         const patch = dispatch(
-          Ambi.util.updateQueryData("listSlides", { id: arg.id }, (draft) => {
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
             const idx = draft.findIndex((slide) => slide.id === arg.slideId);
             if (idx !== -1) draft.splice(idx, 1);
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    // Cover/background images have a dedicated home (separate from updateSlide)
+    // so a content edit never clobbers them, and the future upload pipeline has
+    // a route to grow into. Each optimistically patches the slide in listSlides;
+    // the invalidation refetch reconciles (the backend may rewrite srcKey /
+    // variants once real uploads land).
+    setSlideCoverImage: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide) slide.coverImage = arg.setImageRequest.image;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    clearSlideCoverImage: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide) slide.coverImage = undefined;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    setSlideBackgroundImage: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide) slide.backgroundImage = arg.setImageRequest.image;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    clearSlideBackgroundImage: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide) slide.backgroundImage = undefined;
           }),
         );
         try {
@@ -93,7 +162,7 @@ Ambi.enhanceEndpoints({
       invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
       onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
         const patch = dispatch(
-          Ambi.util.updateQueryData("listSlides", { id: arg.id }, (draft) => {
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
             const from = draft.findIndex((slide) => slide.id === arg.slideId);
             if (from === -1) return;
             const to = Math.max(

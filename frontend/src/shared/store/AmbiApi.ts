@@ -84,6 +84,44 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
+    setSlideCoverImage: build.mutation<
+      SetSlideCoverImageApiResponse,
+      SetSlideCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/cover-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearSlideCoverImage: build.mutation<
+      ClearSlideCoverImageApiResponse,
+      ClearSlideCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/cover-image`,
+        method: "DELETE",
+      }),
+    }),
+    setSlideBackgroundImage: build.mutation<
+      SetSlideBackgroundImageApiResponse,
+      SetSlideBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearSlideBackgroundImage: build.mutation<
+      ClearSlideBackgroundImageApiResponse,
+      ClearSlideBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-image`,
+        method: "DELETE",
+      }),
+    }),
     shareDeck: build.mutation<ShareDeckApiResponse, ShareDeckApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/shares/${queryArg.userId}`,
@@ -97,6 +135,44 @@ const injectedRtkApi = api.injectEndpoints({
     >({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/shares/${queryArg.userId}`,
+        method: "DELETE",
+      }),
+    }),
+    setDeckCoverImage: build.mutation<
+      SetDeckCoverImageApiResponse,
+      SetDeckCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/cover-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearDeckCoverImage: build.mutation<
+      ClearDeckCoverImageApiResponse,
+      ClearDeckCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/cover-image`,
+        method: "DELETE",
+      }),
+    }),
+    setDeckBackgroundImage: build.mutation<
+      SetDeckBackgroundImageApiResponse,
+      SetDeckBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearDeckBackgroundImage: build.mutation<
+      ClearDeckBackgroundImageApiResponse,
+      ClearDeckBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-image`,
         method: "DELETE",
       }),
     }),
@@ -270,6 +346,31 @@ export type RemoveSlideApiArg = {
   id: string;
   slideId: string;
 };
+export type SetSlideCoverImageApiResponse = /** status 200 OK */ SlideResponse;
+export type SetSlideCoverImageApiArg = {
+  id: string;
+  slideId: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearSlideCoverImageApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type ClearSlideCoverImageApiArg = {
+  id: string;
+  slideId: string;
+};
+export type SetSlideBackgroundImageApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type SetSlideBackgroundImageApiArg = {
+  id: string;
+  slideId: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearSlideBackgroundImageApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type ClearSlideBackgroundImageApiArg = {
+  id: string;
+  slideId: string;
+};
 export type ShareDeckApiResponse = /** status 200 OK */ DeckResponse;
 export type ShareDeckApiArg = {
   id: string;
@@ -280,6 +381,26 @@ export type RevokeShareDeckApiResponse = /** status 200 OK */ DeckResponse;
 export type RevokeShareDeckApiArg = {
   id: string;
   userId: string;
+};
+export type SetDeckCoverImageApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckCoverImageApiArg = {
+  id: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearDeckCoverImageApiResponse = /** status 200 OK */ DeckResponse;
+export type ClearDeckCoverImageApiArg = {
+  id: string;
+};
+export type SetDeckBackgroundImageApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckBackgroundImageApiArg = {
+  id: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearDeckBackgroundImageApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type ClearDeckBackgroundImageApiArg = {
+  id: string;
 };
 export type ListDeckSlidesApiResponse = /** status 200 OK */ SlideResponse[];
 export type ListDeckSlidesApiArg = {
@@ -501,8 +622,6 @@ export type DeckResponse = {
 export type UpdateDeckRequest = {
   name?: string;
   description?: string;
-  coverImage?: AppImage;
-  backgroundImage?: AppImage;
   themeId?: string;
   language?: string;
   settings?: DeckSettings;
@@ -512,11 +631,15 @@ export type UpdateDeckRequest = {
 export type SetVisibilityRequest = {
   visibility: "PRIVATE" | "UNLISTED" | "ORG" | "PUBLIC";
 };
-export type McqOptionId = {
-  value?: string;
+export type McqOption = {
+  id: string;
+  optionType: "TEXT" | "NUMBER" | "IMAGE";
+  text?: string;
+  image?: AppImage;
+  color?: string;
 };
 export type McqContent = {
-  options: McqOptionId[];
+  options: McqOption[];
   correctOptionIds: string[];
   pointValue: number;
   difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
@@ -675,13 +798,6 @@ export type MatchingContent = {
   allowAnonymous: boolean;
   contentType: "MATCHING";
 };
-export type McqOption = {
-  id: McqOptionId;
-  optionType: "TEXT" | "NUMBER" | "IMAGE";
-  text?: string;
-  image?: AppImage;
-  color?: string;
-};
 export type AllocationContent = {
   pointValue: number;
   difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
@@ -707,15 +823,13 @@ export type DrawingContent = {
   allowAnonymous: boolean;
   contentType: "DRAWING";
 };
-export type SubmissionId = {
-  value?: string;
-};
 export type SubmissionOption = {
-  submissionId?: SubmissionId;
+  submissionId?: string;
 };
 export type FollowUpContent = {
   pointValue: number;
   difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  parentSlideId: string;
   explanation?: string;
   submissionOption: SubmissionOption;
   allowAnonymous: boolean;
@@ -786,26 +900,8 @@ export type SlideContent =
     } & QAndAContent);
 export type SlideResponse = {
   id: string;
-  title?: string;
-  styledTitle?: {
-    [key: string]: any;
-  };
+  title: string;
   section?: string;
-  slideType:
-    | "MCQ"
-    | "DRAWING"
-    | "GRID"
-    | "MATCHING"
-    | "NUMBER"
-    | "PLACE_ON_IMAGE"
-    | "Q_AND_A"
-    | "RANKING"
-    | "SCALES"
-    | "TEXT"
-    | "ALLOCATION"
-    | "TITLE"
-    | "MEDIA"
-    | "FOLLOW_UP";
   backgroundImage?: AppImage;
   coverImage?: AppImage;
   createdByUserId: string;
@@ -815,35 +911,20 @@ export type SlideResponse = {
   version?: number;
   sortOrder?: string;
   content: SlideContent;
+  speakerNotes?: string;
 };
 export type SlideRequest = {
   id: string;
-  title?: string;
-  styledTitle?: {
-    [key: string]: any;
-  };
+  title: string;
   section?: string;
-  slideType:
-    | "MCQ"
-    | "DRAWING"
-    | "GRID"
-    | "MATCHING"
-    | "NUMBER"
-    | "PLACE_ON_IMAGE"
-    | "Q_AND_A"
-    | "RANKING"
-    | "SCALES"
-    | "TEXT"
-    | "ALLOCATION"
-    | "TITLE"
-    | "MEDIA"
-    | "FOLLOW_UP";
-  backgroundImage?: AppImage;
-  coverImage?: AppImage;
   parentId?: string;
   childId?: string;
   sortOrder?: string;
   content: SlideContent;
+  speakerNotes?: string;
+};
+export type SetImageRequest = {
+  image: AppImage;
 };
 export type ShareDeckRequest = {
   role: "VIEWER" | "EDITOR";
@@ -970,8 +1051,16 @@ export const {
   useLazyGetSlideQuery,
   useUpdateSlideMutation,
   useRemoveSlideMutation,
+  useSetSlideCoverImageMutation,
+  useClearSlideCoverImageMutation,
+  useSetSlideBackgroundImageMutation,
+  useClearSlideBackgroundImageMutation,
   useShareDeckMutation,
   useRevokeShareDeckMutation,
+  useSetDeckCoverImageMutation,
+  useClearDeckCoverImageMutation,
+  useSetDeckBackgroundImageMutation,
+  useClearDeckBackgroundImageMutation,
   useListDeckSlidesQuery,
   useLazyListDeckSlidesQuery,
   useAddSlideMutation,

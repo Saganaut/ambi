@@ -7,20 +7,21 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import com.cephadex.ambi.session.SessionTypes.SessionId;
-import com.cephadex.ambi.session.SessionTypes.SlideId;
-
 /**
- * Running per-option submission counts for a live round, kept in Redis as a Hash
+ * Running per-option submission counts for a live round, kept in Redis as a
+ * Hash
  * keyed by option id. Deliberately <strong>not</strong> part of the
- * {@link LiveRoundState} snapshot: the snapshot is the host-driven control record
- * that read-modify-writes under {@link SessionLocks the session lock}, whereas a
+ * {@link LiveRoundState} snapshot: the snapshot is the host-driven control
+ * record
+ * that read-modify-writes under {@link SessionLocks the session lock}, whereas
+ * a
  * tally is bumped once per participant submission. Embedding it in the snapshot
  * would force every submission to take the session lock and rewrite the whole
  * blob; a Redis Hash lets each {@link #increment} be a single atomic
  * {@code HINCRBY} with no lock and no read-modify-write.
  *
- * <p>Counts are stored as the field values of {@link SessionKeys#tallyKey the
+ * <p>
+ * Counts are stored as the field values of {@link SessionKeys#tallyKey the
  * round's tally hash}; the hash self-expires on the configured TTL as an
  * abandoned-session backstop, refreshed on every increment.
  */
@@ -45,24 +46,29 @@ public class TallyStore {
      *
      * @return the option's new running count
      */
-    public long increment(SessionId sid, SlideId slideId, String optionId) {
-        String key = keys.tallyKey(sid, slideId);
+    public long increment(String sessionId, String slideId, String optionId) {
+        String key = keys.tallyKey(sessionId, slideId);
         Long count = redis.<String, String>opsForHash().increment(key, optionId, 1L);
         redis.expire(key, props.getTally().getTtl());
         return count == null ? 0L : count;
     }
 
-    /** The round's current per-option counts, keyed by option id (empty if none yet). */
-    public Map<String, Integer> tally(SessionId sid, SlideId slideId) {
+    /**
+     * The round's current per-option counts, keyed by option id (empty if none
+     * yet).
+     */
+    public Map<String, Integer> tally(String sessionId, String slideId) {
         HashOperations<String, String, String> ops = redis.opsForHash();
-        Map<String, String> raw = ops.entries(keys.tallyKey(sid, slideId));
+        Map<String, String> raw = ops.entries(keys.tallyKey(sessionId, slideId));
         Map<String, Integer> counts = new HashMap<>(raw.size());
         raw.forEach((optionId, value) -> counts.put(optionId, Integer.parseInt(value)));
         return counts;
     }
 
-    /** Removes the round's tally (e.g. when (re)opening the round, or when it ends). */
-    public void clear(SessionId sid, SlideId slideId) {
-        redis.delete(keys.tallyKey(sid, slideId));
+    /**
+     * Removes the round's tally (e.g. when (re)opening the round, or when it ends).
+     */
+    public void clear(String sessionId, String slideId) {
+        redis.delete(keys.tallyKey(sessionId, slideId));
     }
 }

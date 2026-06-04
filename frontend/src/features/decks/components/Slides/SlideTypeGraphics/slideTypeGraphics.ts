@@ -14,26 +14,27 @@ import RankingGraphic from "@assets/images/slide-types/ranking.svg?react";
 import ScalesGraphic from "@assets/images/slide-types/scales.svg?react";
 import SlideGraphic from "@assets/images/slide-types/slide.svg?react";
 import TextGraphic from "@assets/images/slide-types/text.svg?react";
-import WordCloudGraphic from "@assets/images/slide-types/word-cloud.svg?react";
-import { type DeckElement } from "@shared/types/elements";
 
-export type ElementKind = DeckElement["kind"];
+import { SlideType } from "@/shared/store/enums";
+
+//TODO: need images for TITLE, MEDIA, FOLLOW_UP.  Just using placeholders now.
 
 export const slideTypeGraphics: Record<
-  ElementKind,
+  SlideType,
   ComponentType<SVGProps<SVGSVGElement>>
 > = {
-  Slide: SlideGraphic,
-  McqQuestion: McqGraphic,
-  TextQuestion: TextGraphic,
-  NumberQuestion: NumberGraphic,
-  RankingQuestion: RankingGraphic,
-  ScalesQuestion: ScalesGraphic,
-  QAndAQuestion: QAndAGraphic,
-  GridQuestion: GridGraphic,
-  PlaceOnImageQuestion: PlaceOnImageGraphic,
-  WordCloudQuestion: WordCloudGraphic,
-  AllocationQuestion: AllocationGraphic,
-  MatchingQuestion: MatchingGraphic,
-  DrawingQuestion: DrawingGraphic,
+  TITLE: SlideGraphic,
+  MCQ: McqGraphic,
+  TEXT: TextGraphic,
+  NUMBER: NumberGraphic,
+  RANKING: RankingGraphic,
+  SCALES: ScalesGraphic,
+  Q_AND_A: QAndAGraphic,
+  GRID: GridGraphic,
+  PLACE_ON_IMAGE: PlaceOnImageGraphic,
+  ALLOCATION: AllocationGraphic,
+  MATCHING: MatchingGraphic,
+  DRAWING: DrawingGraphic,
+  MEDIA: SlideGraphic,
+  FOLLOW_UP: SlideGraphic,
 };

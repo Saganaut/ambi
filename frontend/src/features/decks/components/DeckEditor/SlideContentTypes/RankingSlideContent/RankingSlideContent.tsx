@@ -9,9 +9,7 @@
 import { useState } from "react";
 import { Container } from "@components/Containers/Container";
 import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useRankingEditor } from "../useElementEditor";
 import { EmptySelect, ItemList, PromptField, SectionHeader } from "../_shared";
-import { RankingItemEditable } from "./RankingItemEditable";
 
 const RankingSlideContent = () => {
   return <div>not implemented</div>;

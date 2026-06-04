@@ -18,7 +18,7 @@ import { CommonOptionsSection } from "./EditSlideSections/CommonOptionsSection";
 import { ProvenanceFooter } from "./EditSlideSections/ProvenanceFooter";
 import styles from "./EditSlidePanel.module.css";
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const PerKindSection = ({ kind }: { kind: string }) => {
   switch (kind) {

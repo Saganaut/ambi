@@ -11,7 +11,7 @@ import { useTagPickerData } from "@hooks/useTagPickerData";
 import { ElementTagsSection } from "./EditSlideSections/ElementTagsSection";
 import styles from "./EditSlidePanel.module.css";
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const DeckCategorizePanel = () => {
   const { deckId } = routeApi.useParams();

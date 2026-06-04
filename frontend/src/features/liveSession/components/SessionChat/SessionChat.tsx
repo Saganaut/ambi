@@ -20,7 +20,6 @@ import {
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { InteractiveSessionChatMessageResponse } from "@store/AmbiApi";
 import styles from "./SessionChat.module.css";
 
 // TODO(migration): stubbed pending liveSession migration. Was imported from the
@@ -223,7 +222,7 @@ const SessionChatView = ({
 // the viewer's own lines both come back from the same `players` roster, so the
 // only viewer-relative bit is `isSelf` (drives right-alignment).
 const toChatMessage = (
-  message: InteractiveSessionChatMessageResponse,
+  message: any,
   viewerPlayerId: string | undefined,
 ): ChatMessage => ({
   id:
@@ -260,7 +259,7 @@ const SessionChat = ({ className }: SessionChatProps) => {
   // messages. Sends go straight to the connection — the server echoes them back
   // on /chat and /reaction, so they land here through the same path.
   const messages: ChatMessage[] = [
-    ...chat.map((m) => ({
+    ...chat.map((m: any) => ({
       at: m.sentAt ? new Date(m.sentAt).getTime() : 0,
       msg: toChatMessage(m, viewerPlayerId),
     })),

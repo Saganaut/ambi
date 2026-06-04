@@ -21,6 +21,7 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -108,6 +109,104 @@ class DeckServiceTest {
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
+    // ── Images ───────────────────────────────────────────────────────────────────
+
+    @Test
+    void setDeckCoverImagePersistsAndReturnsDeck() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        AppImage image = image("https://img/cover.jpg");
+
+        Deck result = deckService.setDeckCoverImage("deck-1", image, owner);
+
+        assertThat(result.getCoverImage()).isSameAs(image);
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void clearDeckCoverImageNullsIt() {
+        Deck deck = deck("owner-1");
+        deck.setCoverImage(image("https://img/cover.jpg"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck result = deckService.clearDeckCoverImage("deck-1", owner);
+
+        assertThat(result.getCoverImage()).isNull();
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void setSlideCoverImageStampsAuditAndSaves() {
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        AppImage image = image("https://img/slide.jpg");
+
+        Slide result = deckService.setSlideCoverImage("deck-1", "s1", image, owner);
+
+        assertThat(result.getCoverImage()).isSameAs(image);
+        assertThat(result.getLastEditedByUserId()).isEqualTo("owner-1");
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void setSlideImageRejectsUnknownSlideWithNotFound() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.setSlideCoverImage("deck-1", "missing", image("x"), owner))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Slide not found");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void setDeckImageRequiresEdit() {
+        Deck deck = deck("someone-else");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.setDeckCoverImage("deck-1", image("x"), principal("intruder")))
+                .isInstanceOf(ForbiddenException.class);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updatePreservesExistingDeckImages() {
+        // Images have a single owner in the image endpoints; a metadata edit must
+        // leave them alone rather than null them out.
+        Deck deck = deck("owner-1");
+        AppImage cover = image("https://img/cover.jpg");
+        AppImage background = image("https://img/bg.jpg");
+        deck.setCoverImage(cover);
+        deck.setBackgroundImage(background);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck changes = new Deck();
+        changes.setName("Renamed"); // no images carried — they're not in the request DTO
+
+        Deck result = deckService.update("deck-1", changes, owner);
+
+        assertThat(result.getName()).isEqualTo("Renamed");
+        assertThat(result.getCoverImage()).isSameAs(cover);
+        assertThat(result.getBackgroundImage()).isSameAs(background);
+    }
+
+    @Test
+    void updateSlidePreservesExistingSlideImages() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        AppImage cover = image("https://img/slide-cover.jpg");
+        existing.setCoverImage(cover);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide changes = slide("s1");
+        changes.setTitle("Renamed slide"); // no image carried
+
+        Slide result = deckService.updateSlide("deck-1", "s1", changes, owner);
+
+        assertThat(result.getTitle()).isEqualTo("Renamed slide");
+        assertThat(result.getCoverImage()).isSameAs(cover);
+    }
+
     // ── permissionsFor (the capabilities the client reads off the response) ──────
 
     @Test
@@ -173,6 +272,13 @@ class DeckServiceTest {
         Slide slide = new Slide();
         slide.setId(id);
         return slide;
+    }
+
+    private static AppImage image(String externalSrc) {
+        AppImage image = new AppImage();
+        image.setExternal(true);
+        image.setExternalSrc(externalSrc);
+        return image;
     }
 
     private static List<String> orderedIds(Deck deck) {

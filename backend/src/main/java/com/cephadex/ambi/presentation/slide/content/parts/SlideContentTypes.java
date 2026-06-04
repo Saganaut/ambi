@@ -40,15 +40,8 @@ public class SlideContentTypes {
 
     // --------------- MCQ -------------------------------------------------
 
-    public record McqOptionId(String value) {
-        public McqOptionId {
-            if (value == null || value.isBlank())
-                throw new IllegalArgumentException("Mcq Option ID cannot be empty");
-        }
-    }
-
     public record McqOption(
-            @Schema(requiredMode = REQUIRED) McqOptionId id,
+            @Schema(requiredMode = REQUIRED) String id,
             @Schema(requiredMode = REQUIRED) McqOptionType optionType,
             String text,
             AppImage image,
@@ -90,15 +83,8 @@ public class SlideContentTypes {
 
     // --------------- FollowUp / Submission reference ---------------------
 
-    public record SubmissionId(String value) {
-        public SubmissionId {
-            if (value == null || value.isBlank())
-                throw new IllegalArgumentException("Submission ID cannot be empty");
-        }
-    }
-
     public record SubmissionOption(
-            SubmissionId submissionId
+            String submissionId
     // TODO: consider whether we need to add more info here or just use the
     // submission ID and get the content from the previous rounds answers
     ) {

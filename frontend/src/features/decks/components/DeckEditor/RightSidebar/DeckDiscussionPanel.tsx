@@ -7,12 +7,12 @@ import { getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Btn } from "@ui/Buttons/Btn";
-import { CommentThread } from "@decks/components/DeckEditor/CommentThread/CommentThread";
+import { CommentThread } from "@/features/decks/components/DeckEditor/RightSidebar/CommentThread/CommentThread";
 import { Pagination } from "@ui/Pagination/Pagination";
 import styles from "./DeckDiscussionPanel.module.css";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 const PAGE_SIZE = 10;
 
 const DeckDiscussionPanel = () => {

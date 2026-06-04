@@ -11,23 +11,6 @@
  * Per-statement editing lives on `ScaleStatementEditable`. This file owns
  * the question-level fields and structural add/remove via `useScalesEditor`.
  */
-import { useState } from "react";
-import { Input } from "@components/Forms/Input/Input/Input";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useScalesEditor } from "../useElementEditor";
-import {
-  EmptySelect,
-  ItemList,
-  PromptField,
-  SectionHeader,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import { ScalePreview } from "./ScalePreview";
-import { ScaleStatementEditable } from "./ScaleStatementEditable";
 
 const ScalesSlideContent = () => {
   return <div>not implemented</div>;

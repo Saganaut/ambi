@@ -22,6 +22,9 @@ echo "🐳 Starting Docker containers..."
 
 docker compose up -d
 
+echo "   → Mongo Express:  http://localhost:8081
+   → RedisInsight:   http://localhost:8001"
+
 echo "⚛️ Starting Frontend..."
 
 (cd frontend && npm run dev) &

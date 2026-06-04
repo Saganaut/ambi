@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +35,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
@@ -122,11 +122,11 @@ class DeckControllerTest {
     }
 
     @Test
-    void updateCarriesExistingSlidesThrough() throws Exception {
-        Deck existing = deck("deck-1");
-        existing.setSlides(new ArrayList<>(List.of(slide("s1"), slide("s2"))));
-        when(deckService.getEditable(eq("deck-1"), any())).thenReturn(existing);
-
+    void updateDelegatesParsedMetadataAndReturnsMetadataOnly() throws Exception {
+        // The controller parses the body into a metadata-only `changes` deck and
+        // hands it to the service; slides (and images) are preserved by the
+        // service against the loaded deck, not carried through the request. See
+        // DeckServiceTest#updatePreservesExistingDeckImages.
         Deck saved = deck("deck-1");
         saved.setName("Renamed");
         when(deckService.update(eq("deck-1"), any(Deck.class), any())).thenReturn(saved);
@@ -140,9 +140,6 @@ class DeckControllerTest {
 
         ArgumentCaptor<Deck> changes = ArgumentCaptor.forClass(Deck.class);
         verify(deckService).update(eq("deck-1"), changes.capture(), any());
-        assertThat(changes.getValue().getSlides())
-                .extracting(Slide::getId)
-                .containsExactly("s1", "s2");
         assertThat(changes.getValue().getName()).isEqualTo("Renamed");
     }
 
@@ -193,6 +190,119 @@ class DeckControllerTest {
         verify(deckService).revokeShare(eq("deck-1"), eq("user-9"), any());
     }
 
+    // ── Deck images ───────────────────────────────────────────────────────────
+
+    @Test
+    void setDeckCoverImageDelegates() throws Exception {
+        when(deckService.setDeckCoverImage(eq("deck-1"), any(AppImage.class), any()))
+                .thenReturn(deck("deck-1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/cover-image")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/c.jpg\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).setDeckCoverImage(eq("deck-1"), any(AppImage.class), any());
+    }
+
+    @Test
+    void clearDeckCoverImageDelegates() throws Exception {
+        when(deckService.clearDeckCoverImage(eq("deck-1"), any())).thenReturn(deck("deck-1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/cover-image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).clearDeckCoverImage(eq("deck-1"), any());
+    }
+
+    @Test
+    void setDeckBackgroundImageDelegates() throws Exception {
+        when(deckService.setDeckBackgroundImage(eq("deck-1"), any(AppImage.class), any()))
+                .thenReturn(deck("deck-1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/background-image")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/b.jpg\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).setDeckBackgroundImage(eq("deck-1"), any(AppImage.class), any());
+    }
+
+    @Test
+    void clearDeckBackgroundImageDelegates() throws Exception {
+        when(deckService.clearDeckBackgroundImage(eq("deck-1"), any())).thenReturn(deck("deck-1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/background-image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).clearDeckBackgroundImage(eq("deck-1"), any());
+    }
+
+    /** A null image body is rejected — clearing is an explicit DELETE, not a null PUT. */
+    @Test
+    void setDeckCoverImageRejectsMissingImage() throws Exception {
+        mockMvc.perform(put("/api/decks/deck-1/cover-image")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ── Slide images ──────────────────────────────────────────────────────────
+
+    @Test
+    void setSlideCoverImageDelegates() throws Exception {
+        when(deckService.setSlideCoverImage(eq("deck-1"), eq("s1"), any(AppImage.class), any()))
+                .thenReturn(slide("s1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/cover-image")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/c.jpg\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("s1"));
+
+        verify(deckService).setSlideCoverImage(eq("deck-1"), eq("s1"), any(AppImage.class), any());
+    }
+
+    @Test
+    void clearSlideCoverImageDelegates() throws Exception {
+        when(deckService.clearSlideCoverImage(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/cover-image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("s1"));
+
+        verify(deckService).clearSlideCoverImage(eq("deck-1"), eq("s1"), any());
+    }
+
+    @Test
+    void setSlideBackgroundImageDelegates() throws Exception {
+        when(deckService.setSlideBackgroundImage(eq("deck-1"), eq("s1"), any(AppImage.class), any()))
+                .thenReturn(slide("s1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/background-image")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/b.jpg\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("s1"));
+
+        verify(deckService).setSlideBackgroundImage(eq("deck-1"), eq("s1"), any(AppImage.class), any());
+    }
+
+    @Test
+    void clearSlideBackgroundImageDelegates() throws Exception {
+        when(deckService.clearSlideBackgroundImage(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/background-image"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("s1"));
+
+        verify(deckService).clearSlideBackgroundImage(eq("deck-1"), eq("s1"), any());
+    }
+
     // ── Slides ──────────────────────────────────────────────────────────────────
 
     @Test
@@ -235,7 +345,6 @@ class DeckControllerTest {
         String body = """
                 {
                   "id": "mcq-1",
-                  "slideType": "MCQ",
                   "content": {
                     "contentType": "MCQ",
                     "options": [{"id": "o1", "text": "Frodo"}],

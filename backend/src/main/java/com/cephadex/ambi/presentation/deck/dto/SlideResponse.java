@@ -2,12 +2,9 @@ package com.cephadex.ambi.presentation.deck.dto;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
 
-import java.util.Map;
-
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
-import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -18,10 +15,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 public record SlideResponse(
         @Schema(requiredMode = REQUIRED) String id,
-        String title,
-        Map<String, Object> styledTitle,
+        @Schema(requiredMode = REQUIRED) String title,
         String section,
-        @Schema(requiredMode = REQUIRED) SlideType slideType,
         AppImage backgroundImage,
         AppImage coverImage,
         @Schema(requiredMode = REQUIRED) String createdByUserId,
@@ -30,16 +25,17 @@ public record SlideResponse(
         String childId,
         Integer version,
         String sortOrder,
-        @Schema(requiredMode = REQUIRED) SlideContent content) {
+        @Schema(requiredMode = REQUIRED) SlideContent content,
+        String speakerNotes
+
+) {
 
     /** Projects an embedded {@link Slide} onto its response. */
     public static SlideResponse from(Slide slide) {
         return new SlideResponse(
                 slide.getId(),
                 slide.getTitle(),
-                slide.getStyledTitle(),
                 slide.getSection(),
-                slide.getSlideType(),
                 slide.getBackgroundImage(),
                 slide.getCoverImage(),
                 slide.getCreatedByUserId(),
@@ -48,6 +44,7 @@ public record SlideResponse(
                 slide.getChildId(),
                 slide.getVersion(),
                 slide.getSortOrder(),
-                slide.getContent());
+                slide.getContent(),
+                slide.getSpeakerNotes());
     }
 }

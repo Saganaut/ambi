@@ -12,7 +12,6 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.common.exception.ConflictException;
-import com.cephadex.ambi.session.SessionTypes.SessionId;
 
 /**
  * Per-session mutual exclusion over Redis, so two operations on the same live
@@ -20,21 +19,25 @@ import com.cephadex.ambi.session.SessionTypes.SessionId;
  * reveal, two app instances acting on the same room) can't interleave and
  * corrupt the in-flight state.
  *
- * <p><strong>Protocol.</strong> Acquire is {@code SET key token NX PX lease} via
+ * <p>
+ * <strong>Protocol.</strong> Acquire is {@code SET key token NX PX lease} via
  * {@link org.springframework.data.redis.core.ValueOperations#setIfAbsent}: it
  * succeeds only if no one holds the key, and the value is a per-acquisition
  * random token. Release is a Lua compare-and-delete that removes the key only
- * when it still holds <em>our</em> token, so a holder whose lease already expired
+ * when it still holds <em>our</em> token, so a holder whose lease already
+ * expired
  * (and was re-acquired by someone else) can never delete the new owner's lock.
  * The {@code lease} TTL (see {@link SessionRedisProperties.Lock#getLease()}) is
  * the deadlock backstop: a crashed holder's lock self-expires.
  *
- * <p><strong>Fail-fast.</strong> {@link #tryAcquire} does not wait — if the
+ * <p>
+ * <strong>Fail-fast.</strong> {@link #tryAcquire} does not wait — if the
  * session is already locked it throws {@link ConflictException} with code
  * {@code SESSION_LOCKED} (HTTP 409). Callers that want all-or-nothing semantics
  * should use {@link #withLock}.
  *
- * <p><strong>Not reentrant.</strong> A thread already holding a session's lock
+ * <p>
+ * <strong>Not reentrant.</strong> A thread already holding a session's lock
  * that calls {@link #tryAcquire} again for the same session will be rejected.
  * Don't nest locked sections for the same session.
  */
@@ -67,7 +70,7 @@ public class SessionLocks {
      * handle that releases the lock when {@linkplain SessionLock#close() closed}
      * (use try-with-resources); on contention throws {@link ConflictException}.
      */
-    public SessionLock tryAcquire(SessionId sid) {
+    public SessionLock tryAcquire(String sid) {
         String key = keys.lockKey(sid);
         String token = UUID.randomUUID().toString();
         Boolean acquired = redis.opsForValue().setIfAbsent(key, token, props.getLock().getLease());
@@ -83,14 +86,14 @@ public class SessionLocks {
      * {@code finally} (including when {@code work} throws). Throws
      * {@link ConflictException} if the lock can't be taken.
      */
-    public <T> T withLock(SessionId sid, Supplier<T> work) {
+    public <T> T withLock(String sid, Supplier<T> work) {
         try (SessionLock ignored = tryAcquire(sid)) {
             return work.get();
         }
     }
 
     /** {@link Runnable} overload of {@link #withLock(SessionId, Supplier)}. */
-    public void withLock(SessionId sid, Runnable work) {
+    public void withLock(String sid, Runnable work) {
         withLock(sid, () -> {
             work.run();
             return null;

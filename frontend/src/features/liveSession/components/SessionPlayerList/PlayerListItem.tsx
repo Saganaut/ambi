@@ -1,10 +1,9 @@
-import { type InteractiveSessionPlayerResponse } from "@store/AmbiApi";
 import { Avatar } from "@ui/Avatar/Avatar";
 import { resolvePlayerAvatarSrc } from "@utils/avatarUrl";
 import styles from "./SessionPlayerList.module.css";
 
 interface PlayerListItemInterface {
-  player: InteractiveSessionPlayerResponse;
+  player: any;
 }
 
 const PlayerListItem = ({ player }: PlayerListItemInterface) => {

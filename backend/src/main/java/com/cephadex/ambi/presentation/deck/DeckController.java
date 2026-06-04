@@ -23,6 +23,7 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.dto.MoveSlideRequest;
+import com.cephadex.ambi.presentation.deck.dto.SetImageRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetVisibilityRequest;
 import com.cephadex.ambi.presentation.deck.dto.ShareDeckRequest;
 import com.cephadex.ambi.presentation.deck.dto.SlideRequest;
@@ -147,6 +148,47 @@ public class DeckController {
         return toResponse(deckService.revokeShare(id, userId, principal), principal);
     }
 
+    // ── Deck images ─────────────────────────────────────────────────────────────
+    // A dedicated home for cover/background images (EDIT), separate from the
+    // metadata PATCH so an edit can't clobber an image. The future upload flow
+    // (multipart / presigned URL) adds a POST alongside these PUTs.
+
+    /** Set a deck's cover image (EDIT). */
+    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
+    @PutMapping("/{id}/cover-image")
+    public DeckResponse setDeckCoverImage(
+            @PathVariable String id,
+            @Valid @RequestBody SetImageRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setDeckCoverImage(id, body.image(), principal), principal);
+    }
+
+    /** Clear a deck's cover image (EDIT). */
+    @DeleteMapping("/{id}/cover-image")
+    public DeckResponse clearDeckCoverImage(
+            @PathVariable String id,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.clearDeckCoverImage(id, principal), principal);
+    }
+
+    /** Set a deck's background image (EDIT). */
+    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
+    @PutMapping("/{id}/background-image")
+    public DeckResponse setDeckBackgroundImage(
+            @PathVariable String id,
+            @Valid @RequestBody SetImageRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setDeckBackgroundImage(id, body.image(), principal), principal);
+    }
+
+    /** Clear a deck's background image (EDIT). */
+    @DeleteMapping("/{id}/background-image")
+    public DeckResponse clearDeckBackgroundImage(
+            @PathVariable String id,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.clearDeckBackgroundImage(id, principal), principal);
+    }
+
     // ── Slides (sub-resource of a deck) ─────────────────────────────────────────
 
     /** A deck's slides, in storage order (VIEW). */
@@ -214,6 +256,49 @@ public class DeckController {
             @PathVariable String slideId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         deckService.removeSlide(id, slideId, principal);
+    }
+
+    // ── Slide images ────────────────────────────────────────────────────────────
+    // Same set/clear split as deck images, scoped to an embedded slide (EDIT).
+
+    /** Set a slide's cover image (EDIT). */
+    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
+    @PutMapping("/{id}/slides/{slideId}/cover-image")
+    public SlideResponse setSlideCoverImage(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @Valid @RequestBody SetImageRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return SlideResponse.from(deckService.setSlideCoverImage(id, slideId, body.image(), principal));
+    }
+
+    /** Clear a slide's cover image (EDIT). */
+    @DeleteMapping("/{id}/slides/{slideId}/cover-image")
+    public SlideResponse clearSlideCoverImage(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return SlideResponse.from(deckService.clearSlideCoverImage(id, slideId, principal));
+    }
+
+    /** Set a slide's background image (EDIT). */
+    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
+    @PutMapping("/{id}/slides/{slideId}/background-image")
+    public SlideResponse setSlideBackgroundImage(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @Valid @RequestBody SetImageRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return SlideResponse.from(deckService.setSlideBackgroundImage(id, slideId, body.image(), principal));
+    }
+
+    /** Clear a slide's background image (EDIT). */
+    @DeleteMapping("/{id}/slides/{slideId}/background-image")
+    public SlideResponse clearSlideBackgroundImage(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return SlideResponse.from(deckService.clearSlideBackgroundImage(id, slideId, principal));
     }
 
     // ── Listings ────────────────────────────────────────────────────────────────

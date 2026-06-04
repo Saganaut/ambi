@@ -8,25 +8,6 @@
  *   - Live palette swatch editor (`PaletteEditor`) — replaces the legacy
  *     comma-separated palette input
  */
-import { useState } from "react";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useDrawingEditor } from "../useElementEditor";
-import { displayUrl, largestUrl } from "@utils/image";
-import {
-  EmptySelect,
-  ImageBackingEditor,
-  PromptField,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import { PaletteEditor } from "./PaletteEditor";
-import styles from "./DrawingSlideContent.module.css";
-
-//TODO: remove any
-const pasteUrlOf = (image: any | undefined): string =>
-  image?.useExternalImg ? (largestUrl(image, "") ?? "") : "";
 
 const DrawingSlideContent = () => {
   return <div>not implemented</div>;

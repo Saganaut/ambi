@@ -1,17 +1,18 @@
 /**
  * Default slide-content factory.
  *
- * `SlideRequest.content` is required and discriminated by `contentType`, so a
- * brand-new slide must ship a content object whose `contentType` matches its
- * `slideType`. This module is the single place that mints minimal placeholder
+ * `SlideRequest.content` is required and discriminated by `contentType`, which
+ * is the slide's only kind marker (there is no separate `slideType` field), so a
+ * brand-new slide must ship a content object of the desired kind. This module is
+ * the single place that mints minimal placeholder
  * content for each slide kind: every required field of the matching content
  * record gets a sensible default, while optional fields (`explanation`,
  * `maxLength`, `imagePrompt`, `caption`, …) are left off for the type-specific
  * editor to fill in once the slide exists.
  */
-import type { McqOption, SlideContent, SlideRequest } from "@store/AmbiApi";
+import type { McqOption, SlideContent } from "@store/AmbiApi";
 
-type SlideType = NonNullable<SlideRequest["slideType"]>;
+type SlideType = NonNullable<SlideContent["contentType"]>;
 
 /** Default point value for a newly created scorable slide. */
 const DEFAULT_POINTS = 10;

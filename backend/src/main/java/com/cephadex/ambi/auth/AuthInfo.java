@@ -5,7 +5,10 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 
 import lombok.Data;
+import lombok.Setter;
 
+//TODO: should we have a setter here?
+@Setter
 @Data
 public class AuthInfo {
 

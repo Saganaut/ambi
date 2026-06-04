@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,7 @@ import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
@@ -88,16 +90,16 @@ public class DeckService {
 
     /**
      * Replace the editable content/metadata of a deck (EDIT capability).
-     * Ownership, visibility, ACL and identifiers are intentionally untouched —
-     * those flow through the MANAGE-gated methods below.
+     * Cover and background images are intentionally untouched — they have a
+     * single owner in the image methods below, so existing images survive a
+     * metadata edit. Ownership, visibility, ACL and identifiers are likewise
+     * untouched; those flow through the MANAGE-gated methods.
      */
     public Deck update(String id, Deck changes, AmbiPrincipal principal) {
         Deck deck = getEditable(id, principal);
 
         deck.setName(changes.getName());
         deck.setDescription(changes.getDescription());
-        deck.setCoverImage(changes.getCoverImage());
-        deck.setBackgroundImage(changes.getBackgroundImage());
         deck.setThemeId(changes.getThemeId());
         deck.setLanguage(changes.getLanguage());
         deck.setSettings(changes.getSettings());
@@ -157,9 +159,6 @@ public class DeckService {
 
         slide.setTitle(changes.getTitle());
         slide.setSection(changes.getSection());
-        slide.setSlideType(changes.getSlideType());
-        slide.setBackgroundImage(changes.getBackgroundImage());
-        slide.setCoverImage(changes.getCoverImage());
         slide.setParentId(changes.getParentId());
         slide.setChildId(changes.getChildId());
         // sortOrder is server-owned and unchanged here — reordering goes through
@@ -197,6 +196,72 @@ public class DeckService {
             throw new NotFoundException("SLIDE_NOT_FOUND", "Slide not found");
         }
         deckRepository.save(deck);
+    }
+
+    // ── Images ────────────────────────────────────────────────────────────────
+    // Cover/background images get a dedicated home so attaching one is a single,
+    // explicit operation — and the future upload pipeline has a route to grow
+    // into — while a metadata/slide edit can never clobber them. PUT sets, the
+    // clear* methods null the slot. Slides are embedded, so a slide image change
+    // saves the whole deck, exactly like updateSlide.
+
+    /** Set a deck's cover image (EDIT). */
+    public Deck setDeckCoverImage(String id, AppImage image, AmbiPrincipal principal) {
+        return applyDeckImage(id, principal, deck -> deck.setCoverImage(image));
+    }
+
+    /** Clear a deck's cover image (EDIT). */
+    public Deck clearDeckCoverImage(String id, AmbiPrincipal principal) {
+        return applyDeckImage(id, principal, deck -> deck.setCoverImage(null));
+    }
+
+    /** Set a deck's background image (EDIT). */
+    public Deck setDeckBackgroundImage(String id, AppImage image, AmbiPrincipal principal) {
+        return applyDeckImage(id, principal, deck -> deck.setBackgroundImage(image));
+    }
+
+    /** Clear a deck's background image (EDIT). */
+    public Deck clearDeckBackgroundImage(String id, AmbiPrincipal principal) {
+        return applyDeckImage(id, principal, deck -> deck.setBackgroundImage(null));
+    }
+
+    /** Set a slide's cover image (EDIT). */
+    public Slide setSlideCoverImage(String deckId, String slideId, AppImage image, AmbiPrincipal principal) {
+        return applySlideImage(deckId, slideId, principal, slide -> slide.setCoverImage(image));
+    }
+
+    /** Clear a slide's cover image (EDIT). */
+    public Slide clearSlideCoverImage(String deckId, String slideId, AmbiPrincipal principal) {
+        return applySlideImage(deckId, slideId, principal, slide -> slide.setCoverImage(null));
+    }
+
+    /** Set a slide's background image (EDIT). */
+    public Slide setSlideBackgroundImage(String deckId, String slideId, AppImage image, AmbiPrincipal principal) {
+        return applySlideImage(deckId, slideId, principal, slide -> slide.setBackgroundImage(image));
+    }
+
+    /** Clear a slide's background image (EDIT). */
+    public Slide clearSlideBackgroundImage(String deckId, String slideId, AmbiPrincipal principal) {
+        return applySlideImage(deckId, slideId, principal, slide -> slide.setBackgroundImage(null));
+    }
+
+    private Deck applyDeckImage(String id, AmbiPrincipal principal, Consumer<Deck> mutation) {
+        Deck deck = getEditable(id, principal);
+        mutation.accept(deck);
+        return deckRepository.save(deck);
+    }
+
+    private Slide applySlideImage(String deckId, String slideId, AmbiPrincipal principal,
+            Consumer<Slide> mutation) {
+        Deck deck = getEditable(deckId, principal);
+        Slide slide = deck.findSlide(slideId)
+                .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
+        mutation.accept(slide);
+        slide.setLastEditedByUserId(principal.userId());
+        deck.backfillRanks(rankService);
+        deck.resort();
+        deckRepository.save(deck);
+        return slide;
     }
 
     // ── Manage ────────────────────────────────────────────────────────────────

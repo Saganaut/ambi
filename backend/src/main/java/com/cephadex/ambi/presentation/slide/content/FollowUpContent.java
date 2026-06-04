@@ -1,12 +1,11 @@
 package com.cephadex.ambi.presentation.slide.content;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
-
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.SubmissionOption;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * Follow-up question chained off a parent slide via
@@ -21,6 +20,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record FollowUpContent(
         @Schema(requiredMode = REQUIRED) int pointValue,
         @Schema(requiredMode = REQUIRED) Difficulty difficulty,
+        @Schema(requiredMode = REQUIRED) String parentSlideId,
         String explanation,
         @Schema(requiredMode = REQUIRED) SubmissionOption submissionOption,
         @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {

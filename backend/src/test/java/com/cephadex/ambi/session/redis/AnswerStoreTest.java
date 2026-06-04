@@ -1,37 +1,35 @@
 package com.cephadex.ambi.session.redis;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
-import com.cephadex.ambi.session.SessionTypes.ParticipantId;
-import com.cephadex.ambi.session.SessionTypes.SessionId;
-import com.cephadex.ambi.session.SessionTypes.SlideId;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 
 /**
- * Round-trips {@link Answer}s through the store over a HashMap-backed mock of the
- * Redis Hash ops, using the real {@link RedisJsonCodec}, so submit / read / count
+ * Round-trips {@link Answer}s through the store over a HashMap-backed mock of
+ * the
+ * Redis Hash ops, using the real {@link RedisJsonCodec}, so submit / read /
+ * count
  * / clear and the polymorphic {@code AnswerPayload} serialization are exercised
  * together — including that a participant re-submitting overwrites in place.
  */
 class AnswerStoreTest {
 
-    private static final SessionId SID = new SessionId("session-1");
-    private static final SlideId SLIDE = new SlideId("slide-1");
+    private static final String SID = new String("session-1");
+    private static final String SLIDE = new String("slide-1");
 
     private Map<String, Map<String, String>> store;
     private AnswerStore answerStore;
@@ -63,7 +61,7 @@ class AnswerStoreTest {
 
     @Test
     void answerOfReturnsEmptyWhenAbsent() {
-        assertThat(answerStore.answerOf(SID, SLIDE, new ParticipantId("p-1"))).isEmpty();
+        assertThat(answerStore.answerOf(SID, SLIDE, new String("p-1"))).isEmpty();
         assertThat(answerStore.count(SID, SLIDE)).isZero();
     }
 
@@ -71,7 +69,7 @@ class AnswerStoreTest {
     void submitThenReadRoundTripsThePolymorphicPayload() {
         answerStore.submit(SID, SLIDE, answer("p-1", new McqAnswer(Set.of("opt-a", "opt-b"))));
 
-        Answer back = answerStore.answerOf(SID, SLIDE, new ParticipantId("p-1")).orElseThrow();
+        Answer back = answerStore.answerOf(SID, SLIDE, new String("p-1")).orElseThrow();
         assertThat(back.getParticipantId()).isEqualTo("p-1");
         assertThat(back.getSlideId()).isEqualTo("slide-1");
         assertThat(back.getPayload()).isInstanceOf(McqAnswer.class);
@@ -84,7 +82,7 @@ class AnswerStoreTest {
         answerStore.submit(SID, SLIDE, answer("p-1", new McqAnswer(Set.of("opt-b"))));
 
         assertThat(answerStore.count(SID, SLIDE)).isEqualTo(1);
-        McqAnswer payload = (McqAnswer) answerStore.answerOf(SID, SLIDE, new ParticipantId("p-1")).orElseThrow()
+        McqAnswer payload = (McqAnswer) answerStore.answerOf(SID, SLIDE, new String("p-1")).orElseThrow()
                 .getPayload();
         assertThat(payload.optionIds()).containsExactly("opt-b");
     }
@@ -109,8 +107,8 @@ class AnswerStoreTest {
     private static Answer answer(String participantId, McqAnswer payload) {
         Answer a = new Answer();
         a.setParticipantId(participantId);
-        a.setSessionId(SID.value());
-        a.setSlideId(SLIDE.value());
+        a.setSessionId(SID);
+        a.setSlideId(SLIDE);
         a.setSubmittedAt(Instant.parse("2026-05-30T12:00:00Z"));
         a.setPayload(payload);
         return a;

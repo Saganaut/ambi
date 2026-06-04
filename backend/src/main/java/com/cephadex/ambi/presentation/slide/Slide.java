@@ -1,12 +1,9 @@
 package com.cephadex.ambi.presentation.slide;
 
-import java.util.Map;
-
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
-import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -32,17 +29,10 @@ public class Slide {
     private String id;
 
     @Field("title")
-    // This is question for ScorableContent
     private String title;
-
-    @Field("styled_title")
-    private Map<String, Object> styledTitle;
 
     @Field("section")
     private String section;
-
-    @Field("slide_type")
-    private SlideType slideType;
 
     @Field("background_image")
     private AppImage backgroundImage;
@@ -85,5 +75,8 @@ public class Slide {
     // round-trips through Mongo; only MCQ is wired in so far.
     @Field("content")
     private SlideContent content;
+
+    @Field("speaker_notes")
+    private String speakerNotes;
 
 }

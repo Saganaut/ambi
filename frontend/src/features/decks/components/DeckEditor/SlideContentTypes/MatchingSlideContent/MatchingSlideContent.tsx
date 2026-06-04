@@ -10,24 +10,6 @@
  * question-level fields (prompt, scoring mode, points) and the structural
  * add/remove ops, both routed through `useMatchingEditor`.
  */
-import { useState } from "react";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { RadioGroup } from "@components/Forms/Input/RadioGroup/RadioGroup";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useMatchingEditor } from "../useElementEditor";
-import type { MatchingQuestion } from "@store/AmbiApi";
-import {
-  EmptySelect,
-  ItemList,
-  PromptField,
-  SectionHeader,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import { MatchingPairEditable } from "./MatchingPairEditable";
-
-type MatchingScoringMode = NonNullable<MatchingQuestion["scoring"]>;
 
 const MatchingSlideContent = () => {
   return <div>not implemented</div>;

@@ -9,25 +9,6 @@
  *     correctX/correctY; the ring shows tolerance)
  *   - Numeric inputs for fine-tuning (X/Y/tolerance)
  */
-import { useState } from "react";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { usePlaceOnImageEditor } from "../useElementEditor";
-import type { Image } from "@store/AmbiApi";
-import { displayUrl, largestUrl } from "@utils/image";
-import {
-  EmptySelect,
-  ImageBackingEditor,
-  PromptField,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import { PlaceOnImageTargetPicker } from "./PlaceOnImageTargetPicker";
-import styles from "./PlaceOnImageSlideContent.module.css";
-
-const pasteUrlOf = (image: Image | undefined): string =>
-  image?.useExternalImg ? (largestUrl(image, "") ?? "") : "";
 
 const PlaceOnImageSlideContent = () => {
   return <div>not implemented</div>;

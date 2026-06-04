@@ -7,8 +7,7 @@
 // WHICH moment (prompt / live results / revealed results / overall). This
 // collapses both into a discriminated `BoardStage` so the renderer never has to
 // re-derive any of it.
-import type { AnswerPayload, DeckElement, Slide } from "@types/elements";
-import type { InteractiveSessionResponse } from "@store/AmbiApi";
+import { DeckElement, AnswerPayload } from "@/shared/types/elements";
 import { resolveShowResponsesFor } from "@utils/showResponsesResolver";
 
 // TODO(migration): stubbed pending liveSession migration. Was imported from the
@@ -47,10 +46,10 @@ const HOST_CAN_PARTICIPATE = true as boolean;
 
 export type BoardStage =
   | { type: "lobby" }
-  | { type: "slide"; slide: Slide }
+  | { type: "slide"; slide: any }
   | {
       type: "question";
-      element: DeckElement;
+      element: any;
       mode: BoardQuestionMode;
       // True only on a participant's own device while the round still accepts
       // answers — the board doubles as the answer surface. Host/projected views
@@ -65,7 +64,7 @@ export type BoardStage =
  * projected host screen and a participant device differ only by this flag.
  */
 export const resolveBoardStage = (
-  session: InteractiveSessionResponse,
+  session: any,
   viewerIsHost: boolean,
   // The live round result, once it lands for the current element. The backend
   // never sets a REVEAL phase for a normal round — it signals the reveal by

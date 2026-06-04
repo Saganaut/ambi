@@ -2,11 +2,10 @@
 // hasn't started yet. Kept on the board (rather than only the dedicated lobby
 // route) so a projected screen has something meaningful up while players trickle
 // in: the room code to join with and a running headcount.
-import type { InteractiveSessionResponse } from "@store/AmbiApi";
 import styles from "./BoardLobby.module.css";
 
 interface BoardLobbyProps {
-  session: InteractiveSessionResponse;
+  session: any;
 }
 
 const BoardLobby = ({ session }: BoardLobbyProps) => {

@@ -19,7 +19,7 @@ type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 // the signature.
 const anyElement = (_e: DeckElement): _e is DeckElement => true;
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const SlideImageSection = () => {
   // Touch the route so the section is bound to the active deck/slide the same

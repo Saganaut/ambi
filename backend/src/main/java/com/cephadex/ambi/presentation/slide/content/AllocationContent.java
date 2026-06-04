@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOptionId;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
@@ -16,7 +15,7 @@ public record AllocationContent(
         @Schema(requiredMode = REQUIRED) int pointValue,
         @Schema(requiredMode = REQUIRED) Difficulty difficulty,
         @Schema(requiredMode = REQUIRED) List<McqOption> options,
-        Map<McqOptionId, Integer> correctAllocations, // not necessary if not scorable
+        Map<String, Integer> correctAllocations, // String the id of the correct option
         @Schema(requiredMode = REQUIRED) int totalPointsToAllocate,
         @Schema(requiredMode = REQUIRED) int tolerancePerOption,
         @Schema(requiredMode = REQUIRED) boolean allowAnonymous,

@@ -4,6 +4,8 @@ Operational procedures: how to do a specific task in this project from a cold st
 
 ## Index
 
+- [Using Mongo Express](using-mongo-express.md) — browse collections, inspect documents, verify seed data, drop collections for a clean re-seed.
+- [Using RedisInsight](using-redis-insight.md) — inspect session keys, check guest TTLs, monitor pub/sub, run raw Redis commands, flush data for a clean state.
 - [Using the observability stack](using-the-observability-stack.md) — emit correlated logs front & back, run prod JSON logging locally, follow the `X-Request-Id`→`traceId` thread, exercise LocalStack CloudWatch.
 
 ## What belongs here

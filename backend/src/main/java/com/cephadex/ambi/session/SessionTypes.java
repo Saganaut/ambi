@@ -6,27 +6,6 @@ public final class SessionTypes {
     private SessionTypes() {
     }
 
-    public record SlideId(String value) {
-        public SlideId {
-            if (value == null || value.isBlank())
-                throw new IllegalArgumentException("Slide ID cannot be empty");
-        }
-    }
-
-    public record SessionId(String value) {
-        public SessionId {
-            if (value == null || value.isBlank())
-                throw new IllegalArgumentException("Session ID cannot be empty");
-        }
-    }
-
-    public record ParticipantId(String value) {
-        public ParticipantId {
-            if (value == null || value.isBlank())
-                throw new IllegalArgumentException("Participant ID cannot be empty");
-        }
-    }
-
     public record ConnectionCount(int value) {
         public ConnectionCount {
             if (value < 0)
@@ -34,12 +13,12 @@ public final class SessionTypes {
         }
     }
 
-    public record RoundResultId(SessionId sid, SlideId slideId) {
+    public record RoundResultId(String sid, String slideId) {
 
     }
 
     public record ParticipantOutcome(
-            ParticipantId participantId,
+            String participantId,
             String choice,
             boolean correct,
             int points,

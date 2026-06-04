@@ -3,7 +3,7 @@ import type {
   McqContent,
   NumberContent,
   RegisteredMe,
-  SlideResponse,
+  SlideContent,
 } from "@store/AmbiApi";
 
 export type PublishStatus = DeckResponse["publishStatus"];
@@ -21,7 +21,9 @@ export const DeckVisibility = {
   PUBLIC: "PUBLIC",
 } as const satisfies Record<DeckVisibility, DeckVisibility>;
 
-export type SlideType = SlideResponse["slideType"];
+// The slide's type discriminator. Sourced from `content.contentType` — the slide
+// has no separate top-level type field; its kind is carried solely by `content`.
+export type SlideType = NonNullable<SlideContent["contentType"]>;
 export const SlideType = {
   MCQ: "MCQ",
   DRAWING: "DRAWING",

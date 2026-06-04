@@ -27,9 +27,18 @@ import { useSlide, type SlideType } from "./useSlide";
  * @param deckId  deck whose slide cache to read/write
  * @param slideId id of the slide being edited
  */
+/**
+ * A {@link SlideResponse} whose `content` is narrowed to the arm of type `T`.
+ * The slide carries its kind solely on `content.contentType` (there is no
+ * top-level type field), so narrowing happens on the content union.
+ */
+type SlideOfType<T extends SlideType> = Omit<SlideResponse, "content"> & {
+  content: Extract<SlideContent, { contentType: T }>;
+};
+
 interface UseSlideContentEditorResult<T extends SlideType> {
   /** The live slide from the cache, narrowed to type `T` (undefined until loaded). */
-  slide: Extract<SlideResponse, { slideType: T }> | undefined;
+  slide: SlideOfType<T> | undefined;
   /** Patch slide-level metadata (debounced). */
   updateMetadata: (
     updates: Partial<Pick<SlideRequest, "title" | "section" | "speakerNotes">>,
@@ -61,9 +70,7 @@ const useSlideContentEditor = <T extends SlideType>(
   slideId: string,
 ): UseSlideContentEditorResult<T> => {
   const { getSlide, updateSlide } = useSlide(deckId);
-  const slide = getSlide(slideId) as
-    | Extract<SlideResponse, { slideType: T }>
-    | undefined;
+  const slide = getSlide(slideId) as SlideOfType<T> | undefined;
 
   // Accumulated, not-yet-committed slide patch. Lets rapid edits to different
   // fields coalesce into one PUT instead of each merge starting from a stale

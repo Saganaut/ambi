@@ -8,20 +8,6 @@
  * A small banner at the top reminds authors that this kind is survey-only so
  * the absent "correct answer" field doesn't feel like a missing feature.
  */
-import { useState } from "react";
-import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
-import { Container } from "@components/Containers/Container";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { useQAndAEditor } from "../useElementEditor";
-import {
-  EmptySelect,
-  PromptField,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import styles from "./QAndASlideContent.module.css";
 
 const QAndASlideContent = () => {
   return <div>not implemented</div>;

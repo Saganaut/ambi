@@ -10,7 +10,7 @@ import { Badge } from "@ui/Badge/Badge";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 import styles from "./PublishStatusControl.module.css";
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const STATUS_LABEL = {
   DRAFT: "Draft",
@@ -27,43 +27,44 @@ const STATUS_BADGE_VARIANT = {
 const PublishStatusControl = () => {
   const { deckId } = routeApi.useParams();
   const { data: deck } = useGetDeckQuery({ id: deckId });
-  const [publishDeck, publishState] = usePublishDeckMutation();
-  const [unpublishDeck, unpublishState] = useUnpublishDeckMutation();
-  const [archiveDeck, archiveState] = useArchiveDeckMutation();
+  // const [publishDeck, publishState] = usePublishDeckMutation();
+  // const [unpublishDeck, unpublishState] = useUnpublishDeckMutation();
+  // const [archiveDeck, archiveState] = useArchiveDeckMutation();
 
-  // Default to DRAFT so the button renders something useful while the deck
-  // is loading or for legacy decks that pre-date publishStatus.
-  const status = deck?.publishStatus ?? "DRAFT";
-  const busy =
-    publishState.isLoading ||
-    unpublishState.isLoading ||
-    archiveState.isLoading;
+  // // Default to DRAFT so the button renders something useful while the deck
+  // // is loading or for legacy decks that pre-date publishStatus.
+  // const status = deck?.publishStatus ?? "DRAFT";
+  // const busy =
+  //   publishState.isLoading ||
+  //   unpublishState.isLoading ||
+  //   archiveState.isLoading;
 
-  const handlePublish = () => {
-    void publishDeck({ id: deckId })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to publish deck", err);
-      });
-  };
-  const handleUnpublish = () => {
-    void unpublishDeck({ id: deckId })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to unpublish deck", err);
-      });
-  };
-  const handleArchive = () => {
-    void archiveDeck({ id: deckId })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to archive deck", err);
-      });
-  };
+  // const handlePublish = () => {
+  //   void publishDeck({ id: deckId })
+  //     .unwrap()
+  //     .catch((err: unknown) => {
+  //       console.error("Failed to publish deck", err);
+  //     });
+  // };
+  // const handleUnpublish = () => {
+  //   void unpublishDeck({ id: deckId })
+  //     .unwrap()
+  //     .catch((err: unknown) => {
+  //       console.error("Failed to unpublish deck", err);
+  //     });
+  // };
+  // const handleArchive = () => {
+  //   void archiveDeck({ id: deckId })
+  //     .unwrap()
+  //     .catch((err: unknown) => {
+  //       console.error("Failed to archive deck", err);
+  //     });
+  // };
 
   return (
     <div className={styles.control}>
-      <Badge
+      TO FIX
+      {/* <Badge
         variant={STATUS_BADGE_VARIANT[status]}
         label={STATUS_LABEL[status]}
       />
@@ -98,7 +99,7 @@ const PublishStatusControl = () => {
         <Btn size='md' shape='pill' disabled={busy} onClick={handlePublish}>
           Republish
         </Btn>
-      )}
+      )} */}
     </div>
   );
 };

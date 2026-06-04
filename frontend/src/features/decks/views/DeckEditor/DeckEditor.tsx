@@ -5,7 +5,7 @@
  * editor navbar. The navbar's title is an inline-editable input that patches the
  * deck name through `PUT /api/decks/{id}` on blur/Enter — no save button.
  */
-import { Link, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 
 import { LeftSidebarContent } from "../../components/DeckEditor/LeftSidebar/LeftSidebarContent";
 import { PublishStatusControl } from "../../components/DeckEditor/PublishStatusControl";
@@ -32,13 +32,13 @@ import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { useDeckEditor } from "../../hooks/useDeckEditor";
 import { Btn } from "@ui/Buttons/Btn";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const DeckEditor = () => {
   const navigate = useNavigate();
   const { toggleFullScreen } = useFullScreen();
-
+  const { deckId } = routeApi.useParams();
   const {
-    deckId,
     serverName,
     titleDraft,
     setTitleDraft,
@@ -50,7 +50,7 @@ const DeckEditor = () => {
     handleShareClick,
     handleScheduleClick,
     handlePreview,
-  } = useDeckEditor();
+  } = useDeckEditor(deckId);
 
   return (
     <MainBodyDashboard className={styles.deckEditor}>

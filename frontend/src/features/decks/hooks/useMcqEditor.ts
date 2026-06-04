@@ -16,7 +16,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
-import type { McqOption, SlideContent, SlideResponse } from "@store/AmbiApi";
+import type { McqOption } from "@store/AmbiApi";
 
 import { useSlideContentEditor } from "./useSlideContentEditor";
 import { buildDefaultMcqOption } from "../utils/slideContent";
@@ -27,8 +27,6 @@ const MIN_MCQ_OPTIONS = 2;
 const MAX_MCQ_OPTIONS = 6;
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
-
-type McqContentT = Extract<SlideContent, { contentType: "MCQ" }>;
 
 /** Flattened, UI-facing view of the active MCQ slide. */
 interface McqQuestionView {
@@ -73,13 +71,11 @@ const useMcqEditor = (): UseMcqEditorResult => {
 
   const editor = useSlideContentEditor<"MCQ">(deckId, slideId ?? "");
 
-  // `editor.slide`'s static type collapses to `never` (SlideResponse isn't a
-  // discriminated union, so the generic's `Extract<…, { slideType: "MCQ" }>`
-  // resolves to never at this concrete instantiation). Re-view it as a plain
-  // SlideResponse, then narrow `content` to MCQ — the slide is known-MCQ by the
-  // backend invariant (slideType MCQ ⇒ MCQ content).
-  const slide = editor.slide as SlideResponse | undefined;
-  const content = slide?.content as McqContentT | undefined;
+  // `editor.slide` is already narrowed to the MCQ slide (its `content` is the
+  // MCQ arm of the `SlideContent` union), since `useSlideContentEditor<"MCQ">`
+  // discriminates on `content.contentType`.
+  const slide = editor.slide;
+  const content = slide?.content;
   const options = content?.options ?? [];
 
   const canAddOption = options.length < MAX_MCQ_OPTIONS;

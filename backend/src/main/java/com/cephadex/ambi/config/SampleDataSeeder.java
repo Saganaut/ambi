@@ -35,10 +35,8 @@ import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOptionId;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
-import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.theme.Theme;
 import com.cephadex.ambi.theme.ThemeRepository;
 import com.cephadex.ambi.theme.ThemeSpec;
@@ -382,7 +380,7 @@ public class SampleDataSeeder implements ApplicationRunner {
         Set<String> correct = new LinkedHashSet<>();
         for (OptionDef def : options) {
             String optId = UUID.randomUUID().toString();
-            built.add(new McqOption(new McqOptionId(optId), McqOptionType.TEXT, def.text(), null, null));
+            built.add(new McqOption(new String(optId), McqOptionType.TEXT, def.text(), null, null));
             if (def.correct()) {
                 correct.add(optId);
             }
@@ -396,7 +394,6 @@ public class SampleDataSeeder implements ApplicationRunner {
         Slide slide = new Slide();
         slide.setId(UUID.randomUUID().toString());
         slide.setTitle(title);
-        slide.setSlideType(SlideType.MCQ);
         slide.setContent(content);
         slide.setVersion(0);
         slide.setCreatedByUserId(userId);

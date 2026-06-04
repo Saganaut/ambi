@@ -6,7 +6,7 @@ const SessionPlayerList = () => {
 
   return (
     <div className={styles.sessionPlayerList}>
-      {interactiveSession.players.map((player) => (
+      {interactiveSession.players.map((player: any) => (
         <PlayerListItem key={player.playerId} player={player} />
       ))}
     </div>

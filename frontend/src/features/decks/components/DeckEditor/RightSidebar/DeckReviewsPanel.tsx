@@ -13,7 +13,7 @@ import { resolveAvatarSrc } from "@utils/avatarUrl";
 import styles from "./DeckReviewsPanel.module.css";
 import { useCurrentUser } from "@/features/auth";
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 const PAGE_SIZE = 10;
 
 const DeckReviewsPanel = () => {
