@@ -2,11 +2,9 @@
  * Slide list for the deck editor — drives the dashboard's left rail.
  *
  * Pulls the live deck via RTK Query so we always render the server's source of
- * truth. The "New Slide" button opens a modal asking the user to pick which
- * element kind to add; clicking a tile closes the modal and appends a freshly
- * uuid'd element. The @dnd-kit drag handler persists reorders by calling the
- * moveElement mutation (with an optimistic local reorder so the drop feels
- * instant).
+ * truth. The "New Slide" button appends a freshly uuid'd slide and selects it.
+ * The @dnd-kit drag handler persists reorders by calling the moveSlide mutation
+ * (with an optimistic local reorder so the drop feels instant).
  */
 
 import { DragDropProvider } from "@dnd-kit/react";
@@ -14,44 +12,31 @@ import { PlusIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@ui/Buttons/Btn";
 import { SlideThumbnail } from "./SlideThumbnail";
 import styles from "./LeftSidebarContent.module.css";
-import { NewElementPicker } from "../NewElementPicker";
-import { useModal } from "@hooks/useModal";
 
 import { useFullScreen } from "@hooks/useFullScreen";
-import { DeckResponse } from "@store/AmbiApi";
-import { ElementKind } from "../RightSidebar/data";
 import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
 import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
+import { getRouteApi } from "@tanstack/react-router";
+import { SlideResponse } from "@/shared/store/AmbiApi";
 
-export type DeckElement = NonNullable<DeckResponse["elements"]>[number];
-
-/** Friendly label for the thumbnail — slides have titles, questions have prompts. */
-const elementDisplayName = (element: DeckElement): string => {
-  if (element.kind === "Slide") {
-    const trimmed = element.chrome?.title?.trim() ?? "";
-    return trimmed === "" ? "Untitled slide" : trimmed;
-  }
-  if ("prompt" in element && element.prompt) return element.prompt;
-  return "Untitled";
+/** Friendly label for the thumbnail — falls back when the slide is untitled. */
+const slideDisplayName = (slide: SlideResponse): string => {
+  const trimmed = slide.title.trim();
+  return trimmed === "" ? "Untitled slide" : trimmed;
 };
 
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+
 const LeftSidebarContent = () => {
-  const { handleAddElement, handleDragEnd, elements, deckId, slideId } =
-    useDeckEditor();
-  const { openModal, closeModal } = useModal();
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+
+  const { addSlide, handleDragEnd, slides } = useDeckEditor(deckId);
   const { isFullScreen } = useFullScreen();
+  // TODO: restore the slide-type picker modal once a slide-based picker exists
+  // (NewElementPicker is still element-based). For now, add a default slide.
   const handleNewSlideClick = () => {
-    openModal({
-      title: "Choose a slide type",
-      content: (
-        <NewElementPicker
-          onPick={(kind: ElementKind) => {
-            closeModal();
-            handleAddElement(kind);
-          }}
-        />
-      ),
-    });
+    addSlide();
   };
 
   return (
@@ -61,7 +46,7 @@ const LeftSidebarContent = () => {
         <Btn onClick={handleNewSlideClick}>New Slide</Btn>
       </div>
       <div className={styles.slideContainer}>
-        {elements.length === 0 ? (
+        {slides.length === 0 ? (
           <button
             type='button'
             className={styles.emptySlide}
@@ -82,13 +67,13 @@ const LeftSidebarContent = () => {
             onDragEnd={(event) => {
               handleDragEnd(event);
             }}>
-            {elements.map((element, index) => (
+            {slides.map((slide, index) => (
               <SlideThumbnail
-                key={element.id}
+                key={slide.id}
                 index={index}
-                id={element.id ?? ""}
-                name={elementDisplayName(element)}
-                slideType={element.kind}
+                slideId={slide.id}
+                name={slideDisplayName(slide)}
+                slideType={slide.slideType}
                 currentQuestionId={slideId}
                 deckId={deckId}
               />

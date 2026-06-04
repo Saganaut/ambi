@@ -12,38 +12,39 @@
  */
 import React, { useEffect, useRef } from "react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 import styles from "./LeftSidebarContent.module.css";
 import { SlideThumbnailContent } from "./SlideThumbnailContent";
-import { ElementKind } from "../RightSidebar/data";
+import { SlideType } from "@/shared/store/enums";
+import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
 
 interface SlideThumbnailProps {
   name: string;
-  id: string;
-  slideType: ElementKind;
+  slideId: string;
+  slideType: SlideType;
   index: number;
   deckId: string;
   currentQuestionId?: string;
 }
 
-const routeApi = getRouteApi("/decks/$deckId/edit");
-
 const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
   name,
-  id,
+  slideId,
   slideType,
   index,
   deckId,
   currentQuestionId,
 }) => {
-  const navigate = useNavigate({ from: routeApi.id });
-  const [deleteElement] = useDeleteElementMutation();
+  const { removeSlide } = useDeckEditor(deckId);
+
+  const navigate = useNavigate({ from: "/decks/$deckId/edit" });
+
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { ref, isDragging } = useSortable({ id, index });
+  const { ref, isDragging } = useSortable({ id: slideId, index });
 
-  const isActive = currentQuestionId === id;
+  const isActive = currentQuestionId === slideId;
   useEffect(() => {
     if (!isActive) return;
     wrapperRef.current?.scrollIntoView({
@@ -54,23 +55,12 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
 
   const handleSelectQuestion = () => {
     void navigate({
-      search: (prev) => ({ ...prev, slideId: id }),
+      search: (prev) => ({ ...prev, slideId: slideId }),
     });
   };
 
   const handleDeleteSlide = () => {
-    void deleteElement({ id: deckId, elementId: id })
-      .unwrap()
-      .then(() => {
-        if (currentQuestionId === id) {
-          void navigate({
-            search: (prev) => ({ ...prev, slideId: undefined }),
-          });
-        }
-      })
-      .catch((err: unknown) => {
-        console.error("Failed to delete slide", err);
-      });
+    void removeSlide(slideId);
   };
 
   // Combine @dnd-kit's sortable ref with our own ref so we can imperatively
@@ -82,7 +72,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
 
   return (
     <div
-      id={id}
+      id={slideId}
       className={`${styles.slideThumbnailWrapper} ${isDragging && styles.isDragging}`}
       ref={setRefs}>
       <DropdownMenu
