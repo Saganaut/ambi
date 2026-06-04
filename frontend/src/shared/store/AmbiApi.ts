@@ -717,7 +717,6 @@ export type FollowUpContent = {
   pointValue: number;
   difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
   explanation?: string;
-  prompt: string;
   submissionOption: SubmissionOption;
   allowAnonymous: boolean;
   contentType: "FOLLOW_UP";
@@ -792,7 +791,7 @@ export type SlideResponse = {
     [key: string]: any;
   };
   section?: string;
-  slideType?:
+  slideType:
     | "MCQ"
     | "DRAWING"
     | "GRID"
@@ -815,16 +814,16 @@ export type SlideResponse = {
   childId?: string;
   version?: number;
   sortOrder?: string;
-  content?: SlideContent;
+  content: SlideContent;
 };
 export type SlideRequest = {
-  id?: string;
+  id: string;
   title?: string;
   styledTitle?: {
     [key: string]: any;
   };
   section?: string;
-  slideType?:
+  slideType:
     | "MCQ"
     | "DRAWING"
     | "GRID"
@@ -844,7 +843,7 @@ export type SlideRequest = {
   parentId?: string;
   childId?: string;
   sortOrder?: string;
-  content?: SlideContent;
+  content: SlideContent;
 };
 export type ShareDeckRequest = {
   role: "VIEWER" | "EDITOR";

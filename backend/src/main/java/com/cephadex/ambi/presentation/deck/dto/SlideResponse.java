@@ -1,6 +1,6 @@
 package com.cephadex.ambi.presentation.deck.dto;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
 
 import java.util.Map;
 
@@ -21,7 +21,7 @@ public record SlideResponse(
         String title,
         Map<String, Object> styledTitle,
         String section,
-        SlideType slideType,
+        @Schema(requiredMode = REQUIRED) SlideType slideType,
         AppImage backgroundImage,
         AppImage coverImage,
         @Schema(requiredMode = REQUIRED) String createdByUserId,
@@ -30,7 +30,7 @@ public record SlideResponse(
         String childId,
         Integer version,
         String sortOrder,
-        SlideContent content) {
+        @Schema(requiredMode = REQUIRED) SlideContent content) {
 
     /** Projects an embedded {@link Slide} onto its response. */
     public static SlideResponse from(Slide slide) {

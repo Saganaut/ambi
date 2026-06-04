@@ -1,6 +1,6 @@
 package com.cephadex.ambi.presentation.slide.content;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.SubmissionOption;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
@@ -22,7 +22,6 @@ public record FollowUpContent(
         @Schema(requiredMode = REQUIRED) int pointValue,
         @Schema(requiredMode = REQUIRED) Difficulty difficulty,
         String explanation,
-        @Schema(requiredMode = REQUIRED) String prompt,
         @Schema(requiredMode = REQUIRED) SubmissionOption submissionOption,
         @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
     @Override
