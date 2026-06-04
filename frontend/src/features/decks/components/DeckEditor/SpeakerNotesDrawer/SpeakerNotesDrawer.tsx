@@ -5,71 +5,45 @@
  * drawer's top edge slides upward when toggled. The header doubles as the
  * toggle button.
  *
- * Speaker notes live on EVERY element kind (not just Slide), so this drawer
- * reads/writes the active element's `speakerNotes` field regardless of kind.
- *
- * Edits use the same debounced-commit pattern as the SlideContentTypes
- * editors: type into RichTextInput → schedule(patch) → flush() on blur. The
- * apiEnhancements layer syncs the response into the getDeck cache.
+ * Speaker notes live on EVERY slide kind, so this drawer reads/writes the
+ * active slide's `speakerNotes` field via {@link useSlideContentEditor}.
+ * Edits are debounced inside the hook and flushed on blur.
  */
 import { useRef, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useGetDeckQuery, type DeckResponse } from "@store/AmbiApi";
-import { useDebouncedCommit } from "@hooks/useDebouncedCommit";
 import {
   RichTextInput,
   type RichTextInputHandle,
 } from "@components/Forms/Input/RichTextInput/RichTextInput";
 import styles from "./SpeakerNotesDrawer.module.css";
+import { useSlideContentEditor } from "@/features/decks/hooks/useSlideContentEditor";
 
-type DeckElement = NonNullable<DeckResponse["elements"]>[number];
-
-const routeApi = getRouteApi("/decks/$deckId/edit");
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const SpeakerNotesDrawer = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
-  const { element } = useGetDeckQuery(
-    { id: deckId },
-    {
-      selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === slideId),
-      }),
-    },
+  const { slide, updateMetadata, flush } = useSlideContentEditor(
+    deckId,
+    slideId ?? "",
   );
 
-  const [updateElement] = useUpdateElementMutation();
-
-  const commit = (patch: DeckElement) => {
-    if (!element?.id) return;
-    void updateElement({
-      id: deckId,
-      elementId: element.id,
-      body: patch,
-    })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to update speaker notes", err);
-      });
-  };
-
-  const { schedule, flush } = useDebouncedCommit<DeckElement>(commit, 500);
-
-  const [notes, setNotes] = useState<string>(
-    element?.chrome?.speakerNotes ?? "",
-  );
+  const [notes, setNotes] = useState<string>(slide?.speakerNotes ?? "");
   const [syncedFromId, setSyncedFromId] = useState<string | undefined>(
-    element?.id,
+    slide?.id,
   );
-  if (element && syncedFromId !== element.id) {
-    setSyncedFromId(element.id);
-    setNotes(element.chrome?.speakerNotes ?? "");
-  }
-
   const [isOpen, setIsOpen] = useState(false);
   const editorRef = useRef<RichTextInputHandle>(null);
+
+  if (slide && syncedFromId !== slide.id) {
+    setSyncedFromId(slide.id);
+    setNotes(slide.speakerNotes ?? "");
+  }
+
+  if (slideId == null) return <p>no slide id</p>;
+  if (slide == null) return <p>Error no slide</p>;
 
   // Closing the drawer only animates `max-height` to 0 — the contenteditable
   // inside stays focused, which leaves the BubbleMenu toolbar floating in
@@ -86,8 +60,7 @@ const SpeakerNotesDrawer = () => {
 
   const handleNotesChange = (html: string) => {
     setNotes(html);
-    if (!element) return;
-    schedule({ ...element, chrome: { ...element.chrome, speakerNotes: html } });
+    updateMetadata({ speakerNotes: html });
   };
 
   const hasNotes = notes.trim() !== "" && notes !== "<p></p>";
@@ -120,20 +93,14 @@ const SpeakerNotesDrawer = () => {
         aria-label='Speaker notes editor'
         aria-hidden={!isOpen}>
         <div className={styles.bodyInner}>
-          {element ? (
-            <RichTextInput
-              ref={editorRef}
-              id={`speaker-notes-${element.id ?? ""}`}
-              placeholder='Notes for the presenter — never shown to participants.'
-              value={notes}
-              onChange={handleNotesChange}
-              onBlur={flush}
-            />
-          ) : (
-            <p className={styles.emptyState}>
-              Select a slide to add speaker notes.
-            </p>
-          )}
+          <RichTextInput
+            ref={editorRef}
+            id={`speaker-notes-${slide.id ?? ""}`}
+            placeholder='Notes for the presenter — never shown to participants.'
+            value={notes}
+            onChange={handleNotesChange}
+            onBlur={flush}
+          />
         </div>
       </div>
     </section>
