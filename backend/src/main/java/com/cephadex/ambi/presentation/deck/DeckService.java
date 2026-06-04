@@ -102,7 +102,6 @@ public class DeckService {
         deck.setLanguage(changes.getLanguage());
         deck.setSettings(changes.getSettings());
         deck.setTags(changes.getTags());
-        deck.setSlides(changes.getSlides());
         applyPublishStatus(deck, changes.getPublishStatus());
 
         return deckRepository.save(deck);
@@ -157,7 +156,6 @@ public class DeckService {
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
 
         slide.setTitle(changes.getTitle());
-        slide.setStyledTitle(changes.getStyledTitle());
         slide.setSection(changes.getSection());
         slide.setSlideType(changes.getSlideType());
         slide.setBackgroundImage(changes.getBackgroundImage());

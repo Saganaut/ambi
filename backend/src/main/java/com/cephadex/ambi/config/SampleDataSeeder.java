@@ -34,7 +34,8 @@ import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
-import com.cephadex.ambi.presentation.slide.content.parts.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOptionId;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
@@ -381,13 +382,13 @@ public class SampleDataSeeder implements ApplicationRunner {
         Set<String> correct = new LinkedHashSet<>();
         for (OptionDef def : options) {
             String optId = UUID.randomUUID().toString();
-            built.add(new McqOption(optId, McqOptionType.TEXT, def.text(), null, null));
+            built.add(new McqOption(new McqOptionId(optId), McqOptionType.TEXT, def.text(), null, null));
             if (def.correct()) {
                 correct.add(optId);
             }
         }
         McqContent content = new McqContent(built, correct, 1000, difficulty, explanation,
-                true, maxSelections);
+                true, maxSelections, false);
         return slide(question, content, userId);
     }
 
