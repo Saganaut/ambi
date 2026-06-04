@@ -14,58 +14,61 @@ import { EmptySelect, ItemList, PromptField, SectionHeader } from "../_shared";
 import { RankingItemEditable } from "./RankingItemEditable";
 
 const RankingSlideContent = () => {
-  const {
-    question: element,
-    schedule,
-    flush,
-    syncedFromId,
-    markSynced,
-    items,
-    canAdd,
-    addItem,
-  } = useRankingEditor();
-
-  const [prompt, setPrompt] = useState(element?.prompt ?? "");
-
-  if (element && syncedFromId !== element.id) {
-    markSynced(element.id);
-    setPrompt(element.prompt ?? "");
-  }
-
-  if (!element) return <EmptySelect title='Ranking' />;
-
-  const idBase = element.id ?? "";
-
-  return (
-    <Container name='RankingSlideEditor'>
-      <SlideContentWrapper>
-        <PromptField
-          idBase={`rank-${idBase}`}
-          value={prompt}
-          placeholder='How should the player rank these?'
-          onChange={(html) => {
-            setPrompt(html);
-            schedule({ prompt: html });
-          }}
-          onBlur={flush}
-        />
-
-        <SectionHeader label='Items' hint='top → bottom is the correct order' />
-
-        <ItemList addLabel='Add item' canAdd={canAdd} onAdd={addItem}>
-          {items.map((item, idx) =>
-            item.id ? (
-              <RankingItemEditable
-                key={item.id}
-                itemId={item.id}
-                sortIndex={idx}
-              />
-            ) : null,
-          )}
-        </ItemList>
-      </SlideContentWrapper>
-    </Container>
-  );
+  return <div>not implemented</div>;
 };
+
+//   const {
+//     question: element,
+//     schedule,
+//     flush,
+//     syncedFromId,
+//     markSynced,
+//     items,
+//     canAdd,
+//     addItem,
+//   } = useRankingEditor();
+
+//   const [prompt, setPrompt] = useState(element?.prompt ?? "");
+
+//   if (element && syncedFromId !== element.id) {
+//     markSynced(element.id);
+//     setPrompt(element.prompt ?? "");
+//   }
+
+//   if (!element) return <EmptySelect title='Ranking' />;
+
+//   const idBase = element.id ?? "";
+
+//   return (
+//     <Container name='RankingSlideEditor'>
+//       <SlideContentWrapper>
+//         <PromptField
+//           idBase={`rank-${idBase}`}
+//           value={prompt}
+//           placeholder='How should the player rank these?'
+//           onChange={(html) => {
+//             setPrompt(html);
+//             schedule({ prompt: html });
+//           }}
+//           onBlur={flush}
+//         />
+
+//         <SectionHeader label='Items' hint='top → bottom is the correct order' />
+
+//         <ItemList addLabel='Add item' canAdd={canAdd} onAdd={addItem}>
+//           {items.map((item, idx) =>
+//             item.id ? (
+//               <RankingItemEditable
+//                 key={item.id}
+//                 itemId={item.id}
+//                 sortIndex={idx}
+//               />
+//             ) : null,
+//           )}
+//         </ItemList>
+//       </SlideContentWrapper>
+//     </Container>
+//   );
+// };
 
 export { RankingSlideContent };

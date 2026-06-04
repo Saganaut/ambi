@@ -5,7 +5,6 @@
 // gallery (e.g. lecture content).
 import { Input } from "@components/Forms/Input/Input/Input";
 import { largestUrl } from "@utils/image";
-import type { Image } from "@store/AmbiApi";
 import type { ImageBlock, BlockUpdate } from "./types";
 import styles from "./SlideContent.module.css";
 
@@ -17,7 +16,8 @@ interface ImageBlockEditorProps {
 
 /** Materialize an external Image record from a typed URL. Mirrors the shape
  *  the backend's `Image.external(url)` factory produces. */
-const makeExternalImage = (url: string): Image => ({
+//TODO: Remove any
+const makeExternalImage = (url: string): any => ({
   useExternalImg: true,
   externalUrl: url,
   variants: {},
