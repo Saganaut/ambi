@@ -105,9 +105,7 @@ public class DeckController {
             @PathVariable String id,
             @Valid @RequestBody UpdateDeckRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        Deck existing = deckService.getEditable(id, principal);
-        Deck changes = body.toDeckChanges(existing.getSlides());
-        return toResponse(deckService.update(id, changes, principal), principal);
+        return toResponse(deckService.update(id, body.toDeck(), principal), principal);
     }
 
     /** Delete a deck and its embedded slides (MANAGE). */
