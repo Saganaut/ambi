@@ -1,10 +1,12 @@
-import { type ComponentType, type ReactNode, type SVGProps } from "react";
-import { Link } from "@tanstack/react-router";
+import { type ReactNode } from "react";
 import styles from "./ErrorPage.module.css";
 import LostFish from "@assets/images/mascots/lost-fish.svg?react";
 import SleepyCeph from "@assets/images/mascots/sleepy-ceph.svg?react";
 import OceanFloor from "@assets/images/mascots/ocean-floor.svg?react";
-import { Btn } from "@ui/Buttons/Btn";
+import {
+  ErrorDisplay,
+  type MascotComponent,
+} from "@ui/ErrorDisplay/ErrorDisplay";
 
 interface ErrorPageProps {
   statusCode: number;
@@ -12,8 +14,6 @@ interface ErrorPageProps {
   message: string;
   image?: ReactNode;
 }
-
-type MascotComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 const ERROR_CONFIGS: Record<
   number,
@@ -36,37 +36,17 @@ const ERROR_CONFIGS: Record<
   },
 };
 
-const ErrorPage = ({ statusCode, title, message, image }: ErrorPageProps) => {
-  const Mascot = ERROR_CONFIGS[statusCode].Mascot;
-  return (
-    <main className={styles.page}>
-      <p className={styles.code}>{statusCode}</p>
-      <div className={styles.mascot}>
-        {image ?? (
-          <Mascot
-            className={styles.mascotSvg}
-            role='img'
-            aria-label='Error illustration'
-          />
-        )}
-      </div>
-      <h1 className={styles.title}>{title}</h1>
-      <p className={styles.message}>{message}</p>
-      <div className={styles.actions}>
-        <Link to='/' className={styles.homeLink} viewTransition>
-          Take me home
-        </Link>
-        <Btn
-          className={styles.backBtn}
-          onClick={() => {
-            history.back();
-          }}>
-          Go back
-        </Btn>
-      </div>
-    </main>
-  );
-};
+const ErrorPage = ({ statusCode, title, message, image }: ErrorPageProps) => (
+  <main className={styles.page}>
+    <ErrorDisplay
+      statusCode={statusCode}
+      title={title}
+      message={message}
+      mascot={ERROR_CONFIGS[statusCode]?.Mascot}
+      image={image}
+    />
+  </main>
+);
 
 export function NotFoundPage() {
   const cfg = ERROR_CONFIGS[404];
