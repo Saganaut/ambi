@@ -9,7 +9,7 @@
  * `maxLength`, `imagePrompt`, `caption`, …) are left off for the type-specific
  * editor to fill in once the slide exists.
  */
-import type { SlideContent, SlideRequest } from "@store/AmbiApi";
+import type { McqOption, SlideContent, SlideRequest } from "@store/AmbiApi";
 
 type SlideType = NonNullable<SlideRequest["slideType"]>;
 
@@ -153,3 +153,15 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
       return assertNever(slideType);
   }
 };
+
+/**
+ * Build a blank MCQ option with a fresh client-minted id. `buildDefaultContent`
+ * seeds MCQ slides with an empty option list; this is the per-option factory the
+ * MCQ editor uses when the author adds a choice. `optionType` is required, so it
+ * defaults to a plain text option the author then fills in.
+ */
+export const buildDefaultMcqOption = (): McqOption => ({
+  id: { value: crypto.randomUUID() },
+  optionType: "TEXT",
+  text: "",
+});

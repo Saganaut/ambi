@@ -38,9 +38,19 @@ interface UseSlideContentEditorResult<T extends SlideType> {
    * Shallow-merge a patch onto the slide's content (debounced). `contentType`
    * is preserved from the current content, so the discriminant can't drift.
    * Nested collections (options, items, correctValues, …) must be passed whole.
+   *
+   * <p>Pass a function to derive the patch from the freshest pending content
+   * (the accumulated draft if one exists, else the live cache). Use this form
+   * for collection edits — appending an option, toggling a correct id — so
+   * back-to-back writes inside one debounce window build on each other instead
+   * of each starting from the same stale render snapshot.
    */
   updateSlideContent: (
-    patch: Partial<Extract<SlideContent, { contentType: T }>>,
+    patch:
+      | Partial<Extract<SlideContent, { contentType: T }>>
+      | ((
+          prev: Extract<SlideContent, { contentType: T }>,
+        ) => Partial<Extract<SlideContent, { contentType: T }>>),
   ) => void;
   /** Flush any pending debounced edit immediately. */
   flush: () => void;
@@ -86,7 +96,11 @@ const useSlideContentEditor = <T extends SlideType>(
   ) => mergePatch(updates);
 
   const updateSlideContent = (
-    patch: Partial<Extract<SlideContent, { contentType: T }>>,
+    patch:
+      | Partial<Extract<SlideContent, { contentType: T }>>
+      | ((
+          prev: Extract<SlideContent, { contentType: T }>,
+        ) => Partial<Extract<SlideContent, { contentType: T }>>),
   ) => {
     if (!slide) return;
     // Merge onto the freshest content: a pending draft if one exists, else the
@@ -96,7 +110,10 @@ const useSlideContentEditor = <T extends SlideType>(
       SlideContent,
       { contentType: T }
     >;
-    mergePatch({ content: { ...base, ...patch } as SlideContent });
+    // A function patch derives from `base` so collection edits chained inside
+    // one debounce window compound instead of overwriting each other.
+    const resolved = typeof patch === "function" ? patch(base) : patch;
+    mergePatch({ content: { ...base, ...resolved } as SlideContent });
   };
 
   return { slide, updateMetadata, updateSlideContent, flush };

@@ -5,29 +5,26 @@
  *   - Prompt editor (debounced rich text) — owns a local mirror so typing
  *     stays responsive.
  *   - "Options" header with the add-option button.
- *   - A CSS grid of `<McqOptionEditable />` cards. Each card is fully
- *     self-contained: it draws its own index pill, remove button,
- *     text/image/color fields, and correct-answer checkbox, and routes
- *     every write through `useMcqOptionEditor`.
+ *   - A CSS grid of controlled `<McqOptionEditable />` cards.
  *
- * Question-level operations (prompt edits, addOption) route through
- * `useMcqQuestionEditor`. Option-scoped operations (text/image/color,
- * remove, toggleCorrect) live on each `<McqOptionEditable />` via
- * `useMcqOptionEditor`. There's no local mirror of `options` or
- * `correctOptionIds` in this parent — those read straight from the deck
- * cache so concurrent option edits never get stomped by a parent rebuild.
+ * This component owns the single {@link useMcqEditor} instance for the slide
+ * (one draft + one debounce buffer), and hands each card its slice of that
+ * surface as props — the freshest option plus bound write handlers. Funnelling
+ * every write through one editor is what stops concurrent option edits from
+ * stomping each other; there is no separate per-card editor.
  *
- * MCQ rules enforced via the hooks:
- *   - `MIN_MCQ_OPTIONS`–`MAX_MCQ_OPTIONS` bound the option count.
- *   - Zero correct answers is allowed but flagged
- *     because the slide isn't scoreable in that state.
+ * MCQ rules enforced by the hook:
+ *   - `MIN_MCQ_OPTIONS`–`MAX_MCQ_OPTIONS` bound the option count (`canAddOption`
+ *     / `canRemove`).
+ *   - Zero correct answers is allowed but flagged, because the slide isn't
+ *     scoreable in that state.
  */
 import { useState } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
-import { useMcqQuestionEditor } from "../useElementEditor";
-import { McqOptionEditable } from "./McqOptionEditable";
+import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
+import { useMcqEditor } from "@/features/decks/hooks/useMcqEditor";
 import styles from "./McqSlideContent.module.css";
 
 const McqSlideContent = () => {
@@ -35,28 +32,33 @@ const McqSlideContent = () => {
     question,
     schedulePrompt,
     flush,
-    syncedFromId,
-    markSynced,
     canAddOption,
     addOption,
     handleOptionDragEnd,
-  } = useMcqQuestionEditor();
+    canRemove,
+    isCorrect,
+    scheduleOption,
+    commitOption,
+    toggleCorrect,
+    removeOption,
+  } = useMcqEditor();
 
-  // Only the prompt needs a local mirror — typing should feel responsive
-  // and the rich-text editor controls its own DOM. Options come straight
-  // from the cache via each `<McqOptionEditable />`. Auto-fit shrinking
-  // happens inside RichTextInput via its `minPx`/`maxPx` props.
+  // Only the prompt needs a local mirror — typing should feel responsive and
+  // the rich-text editor controls its own DOM. Options come down as props from
+  // the single editor. `syncedFromId` resets the mirror when the active slide
+  // changes (this resync is purely local, hence the local state).
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
+  const [syncedFromId, setSyncedFromId] = useState(question?.id);
 
-  // Resync local mirror when the active question changes. "Derive state
+  // Resync the local mirror when the active question changes. "Derive state
   // during render" pattern — safe when the new value differs.
   if (question && syncedFromId !== question.id) {
-    markSynced(question.id);
-    setPrompt(question.prompt ?? "");
+    setSyncedFromId(question.id);
+    setPrompt(question.prompt);
   }
 
   // Even-column grid: round up half the option count, never below 2.
-  const optionCount = question?.options?.length ?? 0;
+  const optionCount = question?.options.length ?? 0;
   const columns = optionCount ? Math.max(Math.ceil(optionCount / 2), 2) : 2;
 
   if (!question) {
@@ -67,8 +69,8 @@ const McqSlideContent = () => {
     );
   }
 
-  const options = question.options ?? [];
-  const hasCorrectAnswer = (question.correctOptionIds?.length ?? 0) > 0;
+  const options = question.options;
+  const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
   return (
     <SlideContentWrapper
@@ -80,7 +82,7 @@ const McqSlideContent = () => {
       <div className={styles.slideHeader}>
         <RichTextInput
           isBordered={false}
-          id={`mcq-prompt-${question.id ?? ""}`}
+          id={`mcq-prompt-${question.id}`}
           placeholder='Type your question…'
           value={prompt}
           // minPx={11}
@@ -102,11 +104,27 @@ const McqSlideContent = () => {
           }}>
           {options.map((option, idx) => (
             <McqOptionEditable
-              key={option.id ?? `__no-id-${idx.toString()}`}
+              key={option.id.value ?? `__no-id-${idx.toString()}`}
               option={option}
               sortIndex={idx}
+              index={idx}
+              isCorrect={isCorrect(option.id.value)}
+              canRemove={canRemove}
               addOption={addOption}
               canAddOption={canAddOption}
+              onScheduleText={(next) => {
+                scheduleOption(option.id.value, next);
+              }}
+              onCommit={(next) => {
+                commitOption(option.id.value, next);
+              }}
+              onToggleCorrect={() => {
+                toggleCorrect(option.id.value);
+              }}
+              onRemove={() => {
+                removeOption(option.id.value);
+              }}
+              flush={flush}
             />
           ))}
         </DragDropProvider>
