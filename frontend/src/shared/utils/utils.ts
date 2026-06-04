@@ -1,3 +1,37 @@
+import {
+  isFetchBaseQueryError,
+  isProblemDetail,
+} from "@shared/types/typeguards";
+
+export interface ApiErrorInfo {
+  statusCode: number;
+  title: string;
+  message: string;
+}
+
+/**
+ * Extracts status code, title, and message from an RTK Query error for use
+ * with ErrorPage. Handles RFC 9457 ProblemDetail and non-HTTP network errors.
+ * Falls back to 500 / generic strings when the shape is unrecognised.
+ */
+export function extractApiError(error: unknown): ApiErrorInfo {
+  if (isFetchBaseQueryError(error)) {
+    if (isProblemDetail(error.data)) {
+      return {
+        statusCode: error.data.status,
+        title: error.data.title,
+        message: error.data.detail,
+      };
+    }
+    return {
+      statusCode: error.status,
+      title: `Error ${error.status}`,
+      message: "An unexpected error occurred.",
+    };
+  }
+  return { statusCode: 500, title: "Error", message: "An unexpected error occurred." };
+}
+
 /**
  * Pulls a user-readable message out of an RTK Query error.
  * The backend sends errors as RFC 9457 ProblemDetail (`{ detail, code, status, ... }`),

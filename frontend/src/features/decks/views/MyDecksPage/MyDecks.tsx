@@ -1,10 +1,9 @@
 import styles from "./MyDecks.module.css";
 import { DeckCardWithMenu } from "./DeckCardWithMenu";
 import { useListMyDecksQuery } from "@store/AmbiApi";
-/**  Container Component for My Decks.
- *   Calls useListMyDecksQuery to populate container
- *
- *  **/
+import { ErrorPage } from "@/pages/ErrorPage/ErrorPage";
+import { extractApiError } from "@utils/utils";
+import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 
 const MyDecks = () => {
   const {
@@ -13,19 +12,24 @@ const MyDecks = () => {
     error: myDecksError,
   } = useListMyDecksQuery();
 
+  if (myDecksError) {
+    const { statusCode, title, message } = extractApiError(myDecksError);
+    return (
+      <ErrorPage statusCode={statusCode} title={title} message={message} />
+    );
+  }
+
+  if (myDecksIsLoading || myDecks === undefined) {
+    return <Loader />;
+  }
+
   return (
     <div className={styles.myDecks}>
-      {myDecksIsLoading || myDecks === undefined ? (
-        <div>Loading... </div>
-      ) : myDecksError ? (
-        <div>Error...</div>
-      ) : (
-        <div className={styles.grid}>
-          {myDecks.map((deck) => (
-            <DeckCardWithMenu key={deck.id} deck={deck} />
-          ))}
-        </div>
-      )}
+      <div className={styles.grid}>
+        {myDecks.map((deck) => (
+          <DeckCardWithMenu key={deck.id} deck={deck} />
+        ))}
+      </div>
     </div>
   );
 };
