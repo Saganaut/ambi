@@ -28,6 +28,8 @@
 //    field, so the SpeakerNotesDrawer has nothing to bind to yet.
 // ────────────────────────────────────────────────────────────────────────────
 
+import type { DragEndEvent } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/react/sortable";
 import { getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -67,6 +69,11 @@ interface UseDeckEditorResult {
   removeSlide: (slideId: string) => void;
   /** Move a slide to a new zero-based position (drag-and-drop in the rail). */
   reorder: (slideId: string, toIndex: number) => void;
+  /**
+   * @dnd-kit drop handler for the left rail's <DragDropProvider>. Translates the
+   * sortable drag into a {@link reorder} call.
+   */
+  handleDragEnd: (event: DragEndEvent) => void;
 
   /** ── Navbar actions ──────────────────────────────────────────────────── */
   canEdit: boolean;
@@ -94,8 +101,7 @@ const scrollThumbnailIntoView = (slideId: string) => {
   });
 };
 
-const useDeckEditor = (): UseDeckEditorResult => {
-  const { deckId } = routeApi.useParams();
+const useDeckEditor = (deckId: string): UseDeckEditorResult => {
   const { slideId } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
@@ -106,6 +112,7 @@ const useDeckEditor = (): UseDeckEditorResult => {
     removeSlide,
     reorder,
   } = useSlide(deckId);
+
   const { present } = useLiveSession();
 
   // ── Title draft ──────────────────────────────────────────────────────────
@@ -152,6 +159,21 @@ const useDeckEditor = (): UseDeckEditorResult => {
     scrollThumbnailIntoView(newId);
   };
 
+  // ── Drag-to-reorder (left rail) ────────────────────────────────────────────
+  // @dnd-kit hands us the source draggable carrying its starting (`initialIndex`)
+  // and final (`index`) positions; its `id` is the slide id we registered via
+  // useSortable. We only translate that into a `reorder` call — the optimistic
+  // cache patch lives in the slide enhancement, so this stays a thin adapter.
+  // Bail on canceled drags and no-op drops so we don't fire a redundant move.
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (event.canceled) return;
+    const { source } = event.operation;
+    if (!isSortable(source)) return;
+    const { initialIndex, index, id } = source;
+    if (initialIndex === index) return;
+    reorder(String(id), index);
+  };
+
   // ── Navbar ─────────────────────────────────────────────────────────────────
   const canEdit = deck?.permissions.canEdit ?? false;
   const canViewAnalytics = canEdit;
@@ -190,6 +212,7 @@ const useDeckEditor = (): UseDeckEditorResult => {
     addSlide,
     removeSlide,
     reorder,
+    handleDragEnd,
 
     canEdit,
     canViewAnalytics,
