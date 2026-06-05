@@ -2,7 +2,7 @@
 // meta line, optional description, optional badge, and a selected state.
 // Renders as a router Link when `to` is set, otherwise a button.
 //
-// Generalizes the bespoke tile patterns in NewElementPicker, DeckGrid in the
+// Generalizes the bespoke tile patterns in NewSlideModal, DeckGrid in the
 // Create Game flow, and ContentDeckPicker. ActionCard pre-dates this and
 // remains for the simpler "icon + title + description" hero placements.
 import { Link } from "@tanstack/react-router";

@@ -20,7 +20,7 @@ const useThemePanel = () => {
   return { deckId, slide, slideId, clearSlideImage };
 };
 
-const PerSlideStyle = () => {
+const PerSlideStyle = () => {../SlideContent/useElementEditor
   const { slide, slideId, clearSlideImage } = useThemePanel();
 
   if (!slide) return <div className={styles.section}><p>No slide selected.</p></div>;

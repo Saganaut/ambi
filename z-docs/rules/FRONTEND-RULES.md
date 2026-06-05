@@ -30,10 +30,10 @@ Rules specific to the React + TypeScript frontend under `frontend/`.
     - Data such as JSON used in a component should be placed in a `data.ts` file in the same directory as the component.
     - Never use `index.tsx` files; use explicit file names.
     - Favor `interface` over `type`. Props interfaces should be named `ComponentNameProps`.
-    - Anything in components/Common should only carry props, no hooks. The components should be simple enough that any styling logic fits within the component.
+    - Anything in components/UIElements should only carry props, no hooks. The components should be simple enough that any styling logic fits within the component.
     - Anything in components that has its own directory can have hooks, such as modals.
-    - _Reconciling the two above:_ `components/Common` is a legacy props-only holding pen being drained into the [blueprint](./FRONTEND-FILE-STRUCTURE.md) buckets — it stays strictly props-only. A shared widget that genuinely needs its own local UI state (hover/focus visibility, ARIA ids, roving tabindex, image-load fallback) does **not** earn a hook exception inside `Common`; it moves out into a UI-Element bucket (`Layout/`, `Forms/`, or a `[UI-Element]/` folder), where the per-directory hook allowance applies. Data fetching (RTK Query), cache mutation, and store dispatch never belong in any shared design-system component, in or out of `Common`.
     - Anything in components should carry its own storybook
+    - Only one css module file per directory. If there are more than one it means that a comoponent needs its own dir
 
 13. **Exceptions:**
     - Any exceptions to the rules must be documented

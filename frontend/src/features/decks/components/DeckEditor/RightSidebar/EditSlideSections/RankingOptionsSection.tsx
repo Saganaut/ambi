@@ -3,7 +3,7 @@
 // in RankingContent. Wire display options once the new slide model supports them.
 import styles from "../EditSlidePanel.module.css";
 
-const RankingOptionsSection = () => (
+const RankingOptionsSection = () =../../SlideContent/useElementEditor
   <section className={styles.section}>
     <h4 className={styles.heading}>Ranking</h4>
     <p className={styles.empty}>

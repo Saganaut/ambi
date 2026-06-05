@@ -12,8 +12,8 @@ The authoring dashboard at `/decks/$deckId/view`. Three-column layout: slide rai
 All under `frontend/src/components/DeckEditor/`:
 
 - `DeckEditor.tsx` — three-column shell + editor navbar with an inline-editable deck title (commits via `updateDeck` on blur/Enter).
-- `LeftSidebar.tsx` — the slide rail. Pulls deck elements live via RTK Query, supports drag-to-reorder (optimistic + a `moveElement` mutation). The "New Slide" button opens a modal containing `NewElementPicker`.
-- `NewElementPicker.tsx` — modal body listing each element kind via the `SlideTypeGraphics` icons. Click → close modal → add element. Modal uses the shared `useModal` context (`frontend/src/context/useModal.tsx`).
+- `LeftSidebar.tsx` — the slide rail. Pulls deck elements live via RTK Query, supports drag-to-reorder (optimistic + a `moveElement` mutation). The "New Slide" button opens a modal containing `NewSlideModal`.
+- `NewSlideModal.tsx` — modal body listing each element kind via the `SlideTypeGraphics` icons. Click → close modal → add element. Modal uses the shared `useModal` context (`frontend/src/context/useModal.tsx`).
 - `SlideThumbnail.tsx` — thumbnail tile with right-click dropdown (delete for now). Carries an HTML `id={elementId}` so the create flow can `getElementById(...).scrollIntoView(...)`; also self-scrolls into view when it becomes the active slide.
 - `SlideDisplay.tsx` — dispatches to the correct content editor based on `element.kind`.
 - `SlideContentTypes/` — one kind-specific editor per element kind. Shared CSS in `SlideContentTypes.module.css`.
@@ -61,7 +61,7 @@ Until the media-library picker ships, image fields render a **Lorem Picsum** pla
 | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `frontend/src/components/DeckEditor/DeckEditor.tsx`                        | Top-level layout (navbar + 3-col canvas)                         |
 | `frontend/src/components/DeckEditor/LeftSidebar.tsx`                       | Slide rail: add-via-picker, drag-reorder, live deck.elements     |
-| `frontend/src/components/DeckEditor/NewElementPicker.tsx`                  | Modal body with element-kind tiles                               |
+| `frontend/src/components/DeckEditor/NewSlideModal.tsx`                     | Modal body with element-kind tiles                               |
 | `frontend/src/components/DeckEditor/SlideThumbnail.tsx`                    | Slide tile (right-click menu, scrolls into view on select)       |
 | `frontend/src/components/DeckEditor/SlideDisplay.tsx`                      | Routes to the right `<KindSlideContent>` by `element.kind`       |
 | `frontend/src/components/DeckEditor/SlideContentTypes/useElementEditor.ts` | Shared deck-query + debounced commit hook                        |

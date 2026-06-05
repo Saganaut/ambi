@@ -11,10 +11,7 @@ import type { StorybookConfig } from "@storybook/tanstack-react";
 // Vitest + Testing Library suite already covers component tests. See
 // z-docs and the project plan for the rationale.
 const config: StorybookConfig = {
-  stories: [
-    "../src/**/*.mdx",
-    "../src/components/**/*.stories.@(ts|tsx)",
-  ],
+  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(ts|tsx)"],
   addons: ["@storybook/addon-docs", "@storybook/addon-a11y"],
   framework: "@storybook/tanstack-react",
 };

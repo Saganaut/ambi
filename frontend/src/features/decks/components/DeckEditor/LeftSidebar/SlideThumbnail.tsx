@@ -15,9 +15,9 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { useNavigate } from "@tanstack/react-router";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 import styles from "./LeftSidebarContent.module.css";
-import { SlideThumbnailContent } from "./SlideThumbnailContent";
 import { SlideType } from "@/shared/store/enums";
 import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
+import { SlideThumbnailContent } from "./SlideThumbnailContent";
 
 interface SlideThumbnailProps {
   name: string;

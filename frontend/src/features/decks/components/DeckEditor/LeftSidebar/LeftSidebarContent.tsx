@@ -34,7 +34,7 @@ const LeftSidebarContent = () => {
   const { addSlide, handleDragEnd, slides } = useDeckEditor(deckId);
   const { isFullScreen } = useFullScreen();
   // TODO: restore the slide-type picker modal once a slide-based picker exists
-  // (NewElementPicker is still element-based). For now, add a default slide.
+  // (NewSlideModal is still element-based). For now, add a default slide.
   const handleNewSlideClick = () => {
     addSlide();
   };

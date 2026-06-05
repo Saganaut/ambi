@@ -8,7 +8,7 @@ import styles from "../EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-const useSlideImageSection = () => {
+const useSlideImageSection = () =>../../SlideContent/useElementEditor
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
   const { getSlide, clearSlideImage } = useSlide(deckId);

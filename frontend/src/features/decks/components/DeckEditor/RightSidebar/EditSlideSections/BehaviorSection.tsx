@@ -2,3 +2,4 @@
 // lived on the Slide element and is not present in the new slide model (SlideResponse /
 // SlideContent). Wire this section once `showResponses` is added to the slide API.
 export {};
+../../SlideContent/useElementEditor

@@ -7,20 +7,20 @@
 import { getRouteApi } from "@tanstack/react-router";
 import styles from "./SlideDisplay.module.css";
 
-import { McqSlideContent } from "./SlideContentTypes/McqSlideContent/McqSlideContent";
-import { TextSlideContent } from "./SlideContentTypes/TextSlideContent/TextSlideContent";
-import { NumberSlideContent } from "./SlideContentTypes/NumberSlideContent/NumberSlideContent";
-import { RankingSlideContent } from "./SlideContentTypes/RankingSlideContent/RankingSlideContent";
-import { ScalesSlideContent } from "./SlideContentTypes/ScalesSlideContent/ScalesSlideContent";
-import { QAndASlideContent } from "./SlideContentTypes/QAndASlideContent/QAndASlideContent";
-import { GridSlideContent } from "./SlideContentTypes/GridSlideContent/GridSlideContent";
-import { PlaceOnImageSlideContent } from "./SlideContentTypes/PlaceOnImageSlideContent/PlaceOnImageSlideContent";
-import { AllocationSlideContent } from "./SlideContentTypes/AllocationSlideContent/AllocationSlideContent";
-import { MatchingSlideContent } from "./SlideContentTypes/MatchingSlideContent/MatchingSlideContent";
-import { DrawingSlideContent } from "./SlideContentTypes/DrawingSlideContent/DrawingSlideContent";
+import { McqSlideContent } from "../SlideContent/McqSlideContent/McqSlideContent";
+import { TextSlideContent } from "../SlideContent/TextSlideContent/TextSlideContent";
+import { NumberSlideContent } from "../SlideContent/NumberSlideContent/NumberSlideContent";
+import { RankingSlideContent } from "../SlideContent/RankingSlideContent/RankingSlideContent";
+import { ScalesSlideContent } from "../SlideContent/ScalesSlideContent/ScalesSlideContent";
+import { QAndASlideContent } from "../SlideContent/QAndASlideContent/QAndASlideContent";
+import { GridSlideContent } from "../SlideContent/GridSlideContent/GridSlideContent";
+import { PlaceOnImageSlideContent } from "../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent";
+import { AllocationSlideContent } from "../SlideContent/AllocationSlideContent/AllocationSlideContent";
+import { MatchingSlideContent } from "../SlideContent/MatchingSlideContent/MatchingSlideContent";
+import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/DrawingSlideContent";
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
-import { SlideTypeGraphicSvg } from "../Slides/SlideTypeGraphics/SlideTypeGraphic";
-import { useSlide } from "../../hooks/useSlide";
+import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
+import { useSlide } from "../../../hooks/useSlide";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

@@ -24,6 +24,7 @@ export const DeckVisibility = {
 // The slide's type discriminator. Sourced from `content.contentType` — the slide
 // has no separate top-level type field; its kind is carried solely by `content`.
 export type SlideType = NonNullable<SlideContent["contentType"]>;
+
 export const SlideType = {
   MCQ: "MCQ",
   DRAWING: "DRAWING",
@@ -40,6 +41,8 @@ export const SlideType = {
   MEDIA: "MEDIA",
   FOLLOW_UP: "FOLLOW_UP",
 } as const satisfies Record<SlideType, SlideType>;
+
+export const SLIDE_TYPE_LIST = Object.values(SlideType) as Array<SlideType>;
 
 export type Difficulty = McqContent["difficulty"];
 export const Difficulty = {

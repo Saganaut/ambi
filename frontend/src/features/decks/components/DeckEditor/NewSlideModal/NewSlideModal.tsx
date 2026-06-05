@@ -8,11 +8,11 @@
  */
 
 import { SelectableTile } from "@ui/SelectableTile/SelectableTile";
-import styles from "./NewElementPicker.module.css";
-import { slideTypeGraphics } from "../Slides/SlideTypeGraphics/slideTypeGraphics";
+import styles from "./NewSlideModal.module.css";
+import { slideTypeGraphics } from "../../Slides/SlideTypeGraphics/slideTypeGraphics";
 import { SlideType } from "@store/enums";
 
-interface NewElementPickerProps {
+interface NewSlideModalProps {
   onPick: (slideType: SlideType) => void;
 }
 
@@ -36,7 +36,7 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
 // Preserve the order defined in the graphics map by reading its keys directly.
 const SLIDE_TYPES = Object.keys(slideTypeGraphics) as SlideType[];
 
-const NewElementPicker = ({ onPick }: NewElementPickerProps) => {
+const NewSlideModal = ({ onPick }: NewSlideModalProps) => {
   return (
     <div className={styles.grid}>
       {SLIDE_TYPES.map((slideType) => {
@@ -57,4 +57,4 @@ const NewElementPicker = ({ onPick }: NewElementPickerProps) => {
   );
 };
 
-export { NewElementPicker };
+export { NewSlideModal };

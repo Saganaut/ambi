@@ -8,9 +8,9 @@
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 
 import { LeftSidebarContent } from "../../components/DeckEditor/LeftSidebar/LeftSidebarContent";
-import { PublishStatusControl } from "../../components/DeckEditor/PublishStatusControl";
+import { PublishStatusControl } from "../../components/DeckEditor/PublicStatusControl/PublishStatusControl";
 import { RightSidebarContent } from "../../components/DeckEditor/RightSidebar/RightSidebarContent";
-import { SlideDisplay } from "../../components/DeckEditor/SlideDisplay";
+import { SlideDisplay } from "../../components/DeckEditor/SlideDisplay/SlideDisplay";
 import { SpeakerNotesDrawer } from "../../components/DeckEditor/SpeakerNotesDrawer/SpeakerNotesDrawer";
 import styles from "./DeckEditor.module.css";
 

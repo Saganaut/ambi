@@ -28,9 +28,7 @@ const ImageBlockEditor = ({
   onUpdate,
   onFlush,
 }: ImageBlockEditorProps) => {
-  const externalUrl: string = block.image?.useExternalImg
-    ? (largestUrl(block.image, "") ?? "")
-    : "";
+  const externalUrl: string = "";
   return (
     <div className={styles.blockBody}>
       <Input

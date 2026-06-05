@@ -15,4 +15,4 @@ const SlideOptionsSection = () => (
   </section>
 );
 
-export { SlideOptionsSection };
+export { SlideOptionsSection };../../SlideContent/useElementEditor

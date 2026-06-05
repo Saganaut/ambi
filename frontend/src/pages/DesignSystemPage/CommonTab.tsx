@@ -60,7 +60,7 @@ import type { BillingCycle } from "@pages/PricingPage/components/BillingToggle/B
 import { FeatureList } from "@pages/PricingPage/components/FeatureList/FeatureList";
 import { PRICING_TIERS } from "../PricingPage/data";
 import { slideTypeGraphics } from "@decks/components/Slides/SlideTypeGraphics/slideTypeGraphics";
-import { SlideContentWrapper } from "@decks/components/DeckEditor/SlideContentTypes/SlideContentWrapper";
+import { SlideContentWrapper } from "@/features/decks/components/DeckEditor/SlideContent/SlideContentWrapper";
 import {
   NotFoundPage,
   ServerErrorPage,
