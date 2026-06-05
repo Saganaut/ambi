@@ -26,8 +26,15 @@ import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInp
 import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
 import { useMcqEditor } from "@/features/decks/hooks/useMcqEditor";
 import styles from "./McqSlideContent.module.css";
+import { getRouteApi } from "@tanstack/react-router";
+
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const McqSlideContent = () => {
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+  if (slideId == null) throw Error("slide id is null");
+
   const {
     question,
     schedulePrompt,
@@ -41,7 +48,7 @@ const McqSlideContent = () => {
     commitOption,
     toggleCorrect,
     removeOption,
-  } = useMcqEditor();
+  } = useMcqEditor(deckId, slideId);
 
   // Only the prompt needs a local mirror — typing should feel responsive and
   // the rich-text editor controls its own DOM. Options come down as props from
@@ -104,25 +111,25 @@ const McqSlideContent = () => {
           }}>
           {options.map((option, idx) => (
             <McqOptionEditable
-              key={option.id.value ?? `__no-id-${idx.toString()}`}
+              key={option.id ?? `__no-id-${idx.toString()}`}
               option={option}
               sortIndex={idx}
               index={idx}
-              isCorrect={isCorrect(option.id.value)}
+              isCorrect={isCorrect(option.id)}
               canRemove={canRemove}
               addOption={addOption}
               canAddOption={canAddOption}
               onScheduleText={(next) => {
-                scheduleOption(option.id.value, next);
+                scheduleOption(option.id, next);
               }}
               onCommit={(next) => {
-                commitOption(option.id.value, next);
+                commitOption(option.id, next);
               }}
               onToggleCorrect={() => {
-                toggleCorrect(option.id.value);
+                toggleCorrect(option.id);
               }}
               onRemove={() => {
-                removeOption(option.id.value);
+                removeOption(option.id);
               }}
               flush={flush}
             />

@@ -65,11 +65,10 @@ interface UseMcqEditorResult {
   removeOption: (optionId: string | undefined) => void;
 }
 
-const useMcqEditor = (): UseMcqEditorResult => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
+const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
+  if (slideId == null) throw Error("slide id is null");
 
-  const editor = useSlideContentEditor(deckId, slideId ?? "", "MCQ");
+  const editor = useSlideContentEditor(deckId, slideId, "MCQ");
 
   // `editor.slide` is already narrowed to the MCQ slide (its `content` is the
   // MCQ arm of the `SlideContent` union): passing `"MCQ"` makes the hook
@@ -86,7 +85,7 @@ const useMcqEditor = (): UseMcqEditorResult => {
   // sibling edits in the same debounce window aren't clobbered.
   const setOption = (id: string, next: McqOption) =>
     editor.updateSlideContent((prev) => ({
-      options: prev.options.map((o) => (o.id.value === id ? next : o)),
+      options: prev.options.map((o) => (o.id === id ? next : o)),
     }));
 
   const question: McqQuestionView | undefined = slide
@@ -98,7 +97,8 @@ const useMcqEditor = (): UseMcqEditorResult => {
       }
     : undefined;
 
-  const schedulePrompt = (html: string) => editor.updateMetadata({ title: html });
+  const schedulePrompt = (html: string) =>
+    editor.updateMetadata({ title: html });
 
   const addOption = () => {
     if (!canAddOption) return;
@@ -150,7 +150,7 @@ const useMcqEditor = (): UseMcqEditorResult => {
   const removeOption = (id: string | undefined) => {
     if (!id || !canRemove) return;
     editor.updateSlideContent((prev) => ({
-      options: prev.options.filter((o) => o.id.value !== id),
+      options: prev.options.filter((o) => o.id !== id),
       correctOptionIds: prev.correctOptionIds.filter((c) => c !== id),
     }));
     editor.flush();
