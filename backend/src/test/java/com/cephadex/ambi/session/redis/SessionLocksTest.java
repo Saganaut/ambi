@@ -19,11 +19,11 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import com.cephadex.ambi.common.exception.ConflictException;
-import com.cephadex.ambi.session.SessionTypes.SessionId;
 import com.cephadex.ambi.session.redis.SessionLocks.SessionLock;
 
 /**
- * Backs the mocked {@link StringRedisTemplate} with a tiny in-memory KV (the same
+ * Backs the mocked {@link StringRedisTemplate} with a tiny in-memory KV (the
+ * same
  * style as {@code RedisTokenSessionServiceTest}) so the full SET-NX / Lua
  * compare-and-delete protocol is exercised: acquire is exclusive, release frees
  * the lock, release only removes our own token, and {@code withLock} always
@@ -31,7 +31,7 @@ import com.cephadex.ambi.session.redis.SessionLocks.SessionLock;
  */
 class SessionLocksTest {
 
-    private static final SessionId SID = new SessionId("session-1");
+    private static final String SID = new String("session-1");
 
     private Map<String, String> store;
     private SessionLocks locks;

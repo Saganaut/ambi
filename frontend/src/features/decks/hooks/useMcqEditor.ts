@@ -1,9 +1,9 @@
 // MCQ-specific editing layer for the deck editor's MCQ slide.
 //
-// Sits on the generic `useSlideContentEditor<"MCQ">` and exposes the
+// Sits on the generic `useSlideEditor<"MCQ">` and exposes the
 // intent-level surface the MCQ author UI consumes: a synthesized `question`
 // view, prompt + option-collection edits, and per-option ops keyed by option
-// id. There is exactly ONE `useSlideContentEditor` instance per MCQ slide
+// id. There is exactly ONE `useSlideEditor` instance per MCQ slide
 // (this hook is instantiated once, in `McqSlideContent`), so every write — the
 // prompt, each option's text/colour, add/remove/reorder, correct-toggle —
 // funnels through a single draft + debounce buffer. That's what keeps
@@ -18,7 +18,7 @@ import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import type { McqOption } from "@store/AmbiApi";
 
-import { useSlideContentEditor } from "./useSlideContentEditor";
+import { useSlideEditor } from "./useSlideEditor";
 import { buildDefaultMcqOption } from "../utils/slideContent";
 
 /** Author can't drop below 2 options (an MCQ needs a real choice) … */
@@ -66,9 +66,7 @@ interface UseMcqEditorResult {
 }
 
 const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
-  if (slideId == null) throw Error("slide id is null");
-
-  const editor = useSlideContentEditor(deckId, slideId, "MCQ");
+  const editor = useSlideEditor(deckId, slideId, "MCQ");
 
   // `editor.slide` is already narrowed to the MCQ slide (its `content` is the
   // MCQ arm of the `SlideContent` union): passing `"MCQ"` makes the hook

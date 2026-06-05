@@ -24,20 +24,20 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "contentType")
 @JsonSubTypes({
-                @JsonSubTypes.Type(value = McqContent.class),
-                @JsonSubTypes.Type(value = NumberContent.class),
-                @JsonSubTypes.Type(value = TextContent.class),
-                @JsonSubTypes.Type(value = RankingContent.class),
-                @JsonSubTypes.Type(value = ScalesContent.class),
-                @JsonSubTypes.Type(value = GridContent.class),
-                @JsonSubTypes.Type(value = PlaceOnImageContent.class),
-                @JsonSubTypes.Type(value = MatchingContent.class),
-                @JsonSubTypes.Type(value = AllocationContent.class),
-                @JsonSubTypes.Type(value = DrawingContent.class),
-                @JsonSubTypes.Type(value = FollowUpContent.class),
-                @JsonSubTypes.Type(value = TitleContent.class),
-                @JsonSubTypes.Type(value = MediaContent.class),
-                @JsonSubTypes.Type(value = QAndAContent.class)
+                @JsonSubTypes.Type(value = McqContent.class,          name = "MCQ"),
+                @JsonSubTypes.Type(value = NumberContent.class,        name = "NUMBER"),
+                @JsonSubTypes.Type(value = TextContent.class,          name = "TEXT"),
+                @JsonSubTypes.Type(value = RankingContent.class,       name = "RANKING"),
+                @JsonSubTypes.Type(value = ScalesContent.class,        name = "SCALES"),
+                @JsonSubTypes.Type(value = GridContent.class,          name = "GRID"),
+                @JsonSubTypes.Type(value = PlaceOnImageContent.class,  name = "PLACE_ON_IMAGE"),
+                @JsonSubTypes.Type(value = MatchingContent.class,      name = "MATCHING"),
+                @JsonSubTypes.Type(value = AllocationContent.class,    name = "ALLOCATION"),
+                @JsonSubTypes.Type(value = DrawingContent.class,       name = "DRAWING"),
+                @JsonSubTypes.Type(value = FollowUpContent.class,      name = "FOLLOW_UP"),
+                @JsonSubTypes.Type(value = TitleContent.class,         name = "TITLE"),
+                @JsonSubTypes.Type(value = MediaContent.class,         name = "MEDIA"),
+                @JsonSubTypes.Type(value = QAndAContent.class,         name = "Q_AND_A")
 })
 @Schema(
                 description = "Slide body, discriminated by `contentType`.",

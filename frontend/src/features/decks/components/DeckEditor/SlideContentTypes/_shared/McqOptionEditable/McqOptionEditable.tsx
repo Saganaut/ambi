@@ -105,7 +105,7 @@ const McqOptionEditable = ({
   // `McqOptionId` is a `{ value? }` wrapper — use the bare value string for the
   // dnd id, DOM ids, and image cache-bust seeds (stringifying the object would
   // collide every card on "[object Object]").
-  const optionKey = optionId.value ?? "";
+  const optionKey = optionId ?? "";
   const { huePrimary } = useTheme();
 
   // dnd-kit sortable: id must be stable per option so DragDropProvider can

@@ -39,6 +39,7 @@ const LeftSidebarContent = () => {
     addSlide();
   };
 
+  console.log("slide in left sidebarecontent", slides);
   return (
     <LeftSidebar
       className={`${styles.leftSidebarContent} ${isFullScreen ? styles.isCollapsed : ""} `}>

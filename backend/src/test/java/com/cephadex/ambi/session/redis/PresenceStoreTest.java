@@ -16,21 +16,20 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
-import com.cephadex.ambi.session.SessionTypes.ParticipantId;
-import com.cephadex.ambi.session.SessionTypes.SessionId;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 
 /**
  * Round-trips {@link Presence} through the store over a HashMap-backed mock of
  * the Redis Hash ops, using the real {@link RedisJsonCodec}, so save / find /
- * all / remove / clear are exercised and a per-participant remove leaves the rest
+ * all / remove / clear are exercised and a per-participant remove leaves the
+ * rest
  * of the roster's presence intact.
  */
 class PresenceStoreTest {
 
-    private static final SessionId SID = new SessionId("session-1");
-    private static final ParticipantId P1 = new ParticipantId("p-1");
-    private static final ParticipantId P2 = new ParticipantId("p-2");
+    private static final String SID = new String("session-1");
+    private static final String P1 = new String("p-1");
+    private static final String P2 = new String("p-2");
 
     private Map<String, Map<String, String>> store;
     private PresenceStore presenceStore;

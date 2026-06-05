@@ -6,7 +6,7 @@
  * toggle button.
  *
  * Speaker notes live on EVERY slide kind, so this drawer reads/writes the
- * active slide's `speakerNotes` field via {@link useSlideContentEditor}.
+ * active slide's `speakerNotes` field via {@link useSlideEditor}.
  * Edits are debounced inside the hook and flushed on blur.
  */
 import { useRef, useState } from "react";
@@ -17,7 +17,7 @@ import {
   type RichTextInputHandle,
 } from "@components/Forms/Input/RichTextInput/RichTextInput";
 import styles from "./SpeakerNotesDrawer.module.css";
-import { useSlideContentEditor } from "@/features/decks/hooks/useSlideContentEditor";
+import { useSlideEditor } from "@/features/decks/hooks/useSlideEditor";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -25,7 +25,7 @@ const SpeakerNotesDrawer = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
-  const { slide, updateMetadata, flush } = useSlideContentEditor(
+  const { slide, updateMetadata, flush } = useSlideEditor(
     deckId,
     slideId ?? "",
   );

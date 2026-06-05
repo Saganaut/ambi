@@ -10,14 +10,14 @@ import { useSlide, type SlideType } from "./useSlide";
  *
  * <p>The hook is generic over the slide's {@link SlideType}, so each per-kind
  * inspector section instantiates it monomorphically
- * (<code>useSlideContentEditor&lt;"MCQ"&gt;(deckId, slideId)</code>) and gets
+ * (<code>useSlideEditor&lt;"MCQ"&gt;(deckId, slideId)</code>) and gets
  * <code>content</code> patches narrowed to that kind — no runtime
  * <code>contentType</code> switch lives here. The dispatcher in
  * <code>EditSlidePanel</code> is what routes a slide to the right section.
  *
  * <p>Commits are debounced (see {@link useDebouncedCommit}): rapid edits across
  * several fields accumulate into one slide patch and land as a single PUT once
- * editing goes quiet, or immediately on {@link UseSlideContentEditorResult#flush}
+ * editing goes quiet, or immediately on {@link UseSlideEditorResult#flush}
  * (bind to <code>onBlur</code> / before a structural change).
  *
  * <p>Image edits (<code>backgroundImage</code> / <code>coverImage</code>) are
@@ -55,7 +55,10 @@ type SlideOfType<T extends SlideType> = Omit<SlideResponse, "content"> & {
  * editor's kind `T` — the draft never holds a content arm of another kind, so
  * reading it back needs no cast.
  */
-type SlidePatch<T extends SlideType> = Omit<Partial<SlideRequest>, "content"> & {
+type SlidePatch<T extends SlideType> = Omit<
+  Partial<SlideRequest>,
+  "content"
+> & {
   content?: ContentOf<T>;
 };
 
@@ -72,7 +75,7 @@ const isSlideOfType = <T extends SlideType>(
   contentType: T,
 ): slide is SlideOfType<T> => slide.content.contentType === contentType;
 
-interface UseSlideContentEditorResult<T extends SlideType> {
+interface UseSlideEditorResult<T extends SlideType> {
   /** The live slide from the cache, narrowed to type `T` (undefined until loaded). */
   slide: SlideOfType<T> | undefined;
   /** Patch slide-level metadata (debounced). */
@@ -99,20 +102,22 @@ interface UseSlideContentEditorResult<T extends SlideType> {
   flush: () => void;
 }
 
-function useSlideContentEditor(
+function useSlideEditor(
   deckId: string,
   slideId: string,
-): UseSlideContentEditorResult<SlideType>;
-function useSlideContentEditor<T extends SlideType>(
+): UseSlideEditorResult<SlideType>;
+
+function useSlideEditor<T extends SlideType>(
   deckId: string,
   slideId: string,
   contentType: T,
-): UseSlideContentEditorResult<T>;
-function useSlideContentEditor<T extends SlideType>(
+): UseSlideEditorResult<T>;
+
+function useSlideEditor<T extends SlideType>(
   deckId: string,
   slideId: string,
   contentType?: T,
-): UseSlideContentEditorResult<T> {
+): UseSlideEditorResult<T> {
   const { getSlide, updateSlide } = useSlide(deckId);
   const raw = getSlide(slideId);
   // Narrow the cached slide to the requested kind via a runtime guard. Without a
@@ -159,7 +164,9 @@ function useSlideContentEditor<T extends SlideType>(
   ) => mergePatch(updates);
 
   const updateSlideContent = (
-    patch: Partial<ContentOf<T>> | ((prev: ContentOf<T>) => Partial<ContentOf<T>>),
+    patch:
+      | Partial<ContentOf<T>>
+      | ((prev: ContentOf<T>) => Partial<ContentOf<T>>),
   ) => {
     if (!slide) return;
     // Merge onto the freshest content: a pending draft if one exists, else the
@@ -176,5 +183,5 @@ function useSlideContentEditor<T extends SlideType>(
   return { slide, updateMetadata, updateSlideContent, flush };
 }
 
-export { useSlideContentEditor };
-export type { UseSlideContentEditorResult };
+export { useSlideEditor };
+export type { UseSlideEditorResult };

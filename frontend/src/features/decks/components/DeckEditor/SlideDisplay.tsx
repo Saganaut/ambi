@@ -70,7 +70,7 @@ const SlideDisplay = () => {
         return <div>No slide selected</div>;
     }
   };
-
+  console.log("slide", slide);
   return (
     <div
       className={styles.slideDisplay}
