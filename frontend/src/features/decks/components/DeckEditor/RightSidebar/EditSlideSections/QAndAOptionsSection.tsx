@@ -1,66 +1,79 @@
-// Per-kind inspector section for QAndAQuestion. Surfaces the chunk-10
-// moderation ergonomics: hide author identity on the moderation board, and
-// suppress submissions until they reach a minimum upvote count.
+// Per-kind inspector section for Q_AND_A slides. Uses useSlideEditor<"Q_AND_A">
+// to read and write QAndAContent fields.
+// Old field `minVotesToShow` is gone from the new model. `allowAnonymous`
+// replaces `anonymousSubmissions`. The new model adds `moderated` and
+// `maxResponses`.
 import { useState } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { QAndAQuestion } from "@store/AmbiApi";
+import { useSlideEditor } from "@/features/decks/hooks/useSlideEditor";
 import styles from "../EditSlidePanel.module.css";
 
-const isQAndAQuestion = (e: { kind: string }): e is QAndAQuestion =>
-  e.kind === "QAndAQuestion";
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+
+const useQAndAOptionsSection = () => {
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+  return useSlideEditor(deckId, slideId ?? "", "Q_AND_A");
+};
 
 const QAndAOptionsSection = () => {
-  const { element, schedule, flush, commit, syncedFromId, markSynced } =
-    useElementEditor<QAndAQuestion>(isQAndAQuestion);
+  const { slide, updateSlideContent, flush } = useQAndAOptionsSection();
 
-  const [anonymousSubmissions, setAnonymousSubmissions] = useState<boolean>(
-    element?.anonymousSubmissions ?? false,
+  const content = slide?.content;
+  const [allowAnonymous, setAllowAnonymous] = useState(
+    content?.allowAnonymous ?? false,
   );
-  const [minVotesToShow, setMinVotesToShow] = useState<number>(
-    element?.minVotesToShow ?? 0,
-  );
+  const [moderated, setModerated] = useState(content?.moderated ?? false);
+  const [maxResponses, setMaxResponses] = useState(content?.maxResponses ?? 0);
+  const [syncedId, setSyncedId] = useState<string | undefined>(slide?.id);
 
-  if (element && syncedFromId !== element.id) {
-    markSynced(element.id);
-    setAnonymousSubmissions(element.anonymousSubmissions ?? false);
-    setMinVotesToShow(element.minVotesToShow ?? 0);
+  if (slide && syncedId !== slide.id) {
+    setSyncedId(slide.id);
+    setAllowAnonymous(slide.content.allowAnonymous ?? false);
+    setModerated(slide.content.moderated ?? false);
+    setMaxResponses(slide.content.maxResponses ?? 0);
   }
 
-  if (!element) return null;
+  if (!slide) return null;
 
-  const buildPatch = (overrides: Partial<QAndAQuestion>): QAndAQuestion => ({
-    ...element,
-    anonymousSubmissions,
-    minVotesToShow,
-    ...overrides,
-  });
-
-  const elId = element.id ?? "";
+  const slideId = slide.id;
 
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Q&amp;A moderation</h4>
       <Toggle
-        id={`qa-anon-${elId}`}
-        label='Hide author names on the moderation board'
-        checked={anonymousSubmissions}
+        id={`qa-anon-${slideId}`}
+        label='Allow anonymous submissions'
+        checked={allowAnonymous}
         onChange={(e) => {
           const next = e.currentTarget.checked;
-          setAnonymousSubmissions(next);
-          commit(buildPatch({ anonymousSubmissions: next }));
+          setAllowAnonymous(next);
+          updateSlideContent({ allowAnonymous: next });
+          flush();
+        }}
+      />
+      <Toggle
+        id={`qa-moderated-${slideId}`}
+        label='Moderate submissions before showing'
+        checked={moderated}
+        onChange={(e) => {
+          const next = e.currentTarget.checked;
+          setModerated(next);
+          updateSlideContent({ moderated: next });
+          flush();
         }}
       />
       <NumberInput
-        id={`qa-min-votes-${elId}`}
-        label='Min upvotes before a question is shown'
+        id={`qa-max-responses-${slideId}`}
+        label='Max responses (0 = unlimited)'
         min={0}
-        max={100}
-        value={minVotesToShow}
+        max={1000}
+        value={maxResponses}
         onChange={(next) => {
-          setMinVotesToShow(next);
-          schedule(buildPatch({ minVotesToShow: next }));
+          setMaxResponses(next);
+          updateSlideContent({ maxResponses: next === 0 ? undefined : next });
         }}
         onBlur={flush}
       />

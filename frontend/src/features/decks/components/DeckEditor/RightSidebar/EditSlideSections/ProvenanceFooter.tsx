@@ -1,9 +1,7 @@
-// Renders the chunk-10 provenance metadata as a quiet footer beneath the
-// inspector sections: "Created by <name> · last edited by <name> · vN ·
-// <relative updatedAt>". Author display names come from useGetUserProfile
-// which is RTK-cached, so the second lookup of the same user id is free.
-// When the two author ids match, only one name is shown.
-import { useGetUserProfileQuery } from "@store/AmbiApi";
+// Renders slide provenance metadata as a quiet footer beneath the inspector
+// sections: "Created by <userId> · last edited by <userId> · vN · <relative updatedAt>".
+// TODO: Wire useGetUserProfileQuery (by userId) once that endpoint is available —
+// currently the API only exposes /me, so author names cannot be resolved.
 import styles from "./ProvenanceFooter.module.css";
 
 interface ProvenanceFooterProps {
@@ -13,20 +11,6 @@ interface ProvenanceFooterProps {
   updatedAt: string | undefined;
   version: number | undefined;
 }
-
-const useDisplayName = (
-  userId: string | undefined,
-): { displayName: string | undefined; isLoading: boolean } => {
-  const { data, isLoading } = useGetUserProfileQuery(
-    { id: userId ?? "" },
-    { skip: !userId },
-  );
-  if (!userId) return { displayName: undefined, isLoading: false };
-  return {
-    displayName: data?.name ?? data?.userName,
-    isLoading,
-  };
-};
 
 const formatRelative = (iso: string | undefined): string | undefined => {
   if (!iso) return undefined;
@@ -50,14 +34,12 @@ const ProvenanceFooter = ({
   updatedAt,
   version,
 }: ProvenanceFooterProps) => {
-  const creator = useDisplayName(createdByUserId);
-  const editor = useDisplayName(lastEditedByUserId);
-
   if (
     !createdByUserId &&
     !lastEditedByUserId &&
     version === undefined &&
-    !updatedAt
+    !updatedAt &&
+    !createdAt
   ) {
     return null;
   }
@@ -68,17 +50,11 @@ const ProvenanceFooter = ({
     createdByUserId === lastEditedByUserId;
 
   const parts: string[] = [];
-  if (creator.displayName) {
-    parts.push(`Created by ${creator.displayName}`);
-  } else if (createdByUserId) {
-    parts.push("Created");
+  if (createdByUserId) {
+    parts.push(`Created`);
   }
-  if (!sameAuthor) {
-    if (editor.displayName) {
-      parts.push(`last edited by ${editor.displayName}`);
-    } else if (lastEditedByUserId) {
-      parts.push("last edited");
-    }
+  if (!sameAuthor && lastEditedByUserId) {
+    parts.push("last edited");
   }
   const relative = formatRelative(updatedAt ?? createdAt);
   if (relative) {

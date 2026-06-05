@@ -1,18 +1,26 @@
 // Threaded comment list. Renders a flat row per top-level comment with a
-// "Show N replies" affordance underneath; replies expand inline on demand,
-// pulling their own page from the backend.
-//
-// The component does not own page-1 of top-level comments — the parent does,
-// passing them in via `items`. Pagination of the top-level list ("Show more
-// comments") is handled by the parent too; this component only handles the
-// nested reply expansion. Keeping it that way lets the same `CommentThread`
-// drop into different surfaces (right sidebar drawer, full-page detail
-// route, modal) without each having to re-implement pagination.
-//
-// Upvote toggles flow through the parent via the `onToggleUpvote` callback —
-// optimistic cache patching lives in `apiEnhancements.ts` so the same
-// optimistic flip works no matter where the comment is rendered.
+// "Show N replies" affordance underneath; replies expand inline on demand.
+// TODO: Wire useListRepliesQuery and DeckCommentResponse once comment APIs
+// are available in AmbiApi. Placeholder types are used in the interim.
 import { useState } from "react";
+
+// TODO: Remove once DeckCommentResponse is available from @store/AmbiApi.
+interface DeckCommentAuthor {
+  userId?: string;
+  name?: string;
+  pictureUrl?: string;
+}
+interface DeckCommentResponse {
+  id?: string;
+  body?: string;
+  author?: DeckCommentAuthor;
+  parentCommentId?: string;
+  upvotes?: number;
+  upvotedByMe?: boolean;
+  replyCount?: number;
+  edited?: boolean;
+  deleted?: boolean;
+}
 import {
   ArrowUturnLeftIcon,
   PencilIcon,
@@ -294,21 +302,16 @@ interface RepliesListProps {
 }
 
 const RepliesList = ({
-  deckId,
-  parentCommentId,
+  deckId: _deckId,
+  parentCommentId: _parentCommentId,
   currentUserId,
   canInteract,
   onToggleUpvote,
   onEdit,
   onDelete,
 }: RepliesListProps) => {
-  const { data } = useListRepliesQuery({
-    deckId,
-    commentId: parentCommentId,
-    page: 0,
-    size: 50,
-  });
-  const items = data?.items ?? [];
+  // TODO: Replace with useListRepliesQuery once comment reply APIs are available.
+  const items: DeckCommentResponse[] = [];
 
   if (items.length === 0) return null;
 

@@ -1,39 +1,39 @@
-// Top-level dispatcher for the deck-editor's "edit" drawer. Pulls the active
-// element from the deck cache, mounts the per-kind options section, then the
-// cross-cutting Tags + Common sections that every kind shares, and finally
-// the provenance footer. Each subsection owns its own debounced commit and
-// local-state mirror (see `useElementEditor`); this file just routes.
+// Top-level dispatcher for the deck-editor's "edit" drawer. Reads the active
+// slide from the slide cache (via useSlide), mounts the per-kind options
+// section, then the image section, session pacing, and provenance footer.
+// Per-kind sections each own their own useSlideEditor instance.
 import { getRouteApi } from "@tanstack/react-router";
-import { useGetDeckQuery } from "@store/AmbiApi";
+import { useSlide } from "@/features/decks/hooks/useSlide";
+import type { SlideType } from "@/shared/store/enums";
 import { SlideOptionsSection } from "./EditSlideSections/SlideOptionsSection";
 import { McqOptionsSection } from "./EditSlideSections/McqOptionsSection";
 import { TextOptionsSection } from "./EditSlideSections/TextOptionsSection";
 import { NumberOptionsSection } from "./EditSlideSections/NumberOptionsSection";
 import { RankingOptionsSection } from "./EditSlideSections/RankingOptionsSection";
 import { QAndAOptionsSection } from "./EditSlideSections/QAndAOptionsSection";
-import { BehaviorSection } from "./EditSlideSections/BehaviorSection";
 import { SlideImageSection } from "./EditSlideSections/SlideImageSection";
 import { SessionPacingSection } from "./EditSlideSections/SessionPacingSection";
-import { CommonOptionsSection } from "./EditSlideSections/CommonOptionsSection";
 import { ProvenanceFooter } from "./EditSlideSections/ProvenanceFooter";
 import styles from "./EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-const PerKindSection = ({ kind }: { kind: string }) => {
-  switch (kind) {
-    case "Slide":
-      return <SlideOptionsSection />;
-    case "McqQuestion":
+const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
+  switch (contentType) {
+    case "MCQ":
       return <McqOptionsSection />;
-    case "TextQuestion":
+    case "TEXT":
       return <TextOptionsSection />;
-    case "NumberQuestion":
+    case "NUMBER":
       return <NumberOptionsSection />;
-    case "RankingQuestion":
+    case "RANKING":
       return <RankingOptionsSection />;
-    case "QAndAQuestion":
+    case "Q_AND_A":
       return <QAndAOptionsSection />;
+    case "TITLE":
+    case "MEDIA":
+    case "FOLLOW_UP":
+      return <SlideOptionsSection />;
     default:
       return null;
   }
@@ -42,17 +42,10 @@ const PerKindSection = ({ kind }: { kind: string }) => {
 const EditSlidePanel = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
+  const { getSlide } = useSlide(deckId);
+  const slide = slideId ? getSlide(slideId) : undefined;
 
-  const { element } = useGetDeckQuery(
-    { id: deckId },
-    {
-      selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === slideId),
-      }),
-    },
-  );
-
-  if (!element) {
+  if (!slide) {
     return (
       <div className={styles.empty}>
         <p>Select a slide on the left to edit its display options.</p>
@@ -62,25 +55,15 @@ const EditSlidePanel = () => {
 
   return (
     <div className={styles.panel}>
-      <PerKindSection kind={element.kind} />
-      {/* Per-slide content image — moved out of ThemePanel (the deck
-          background stays there as a styling concern). */}
+      <PerKindSection contentType={slide.content.contentType} />
       <SlideImageSection />
-      {/* Chunk 24 — shared Behavior section sits between the per-kind
-          options and the universal Common section. Currently hosts the
-          promoted `showResponses` dropdown; future runtime cascade knobs
-          (scoringEnabledOverride, etc.) land here too. */}
-      <BehaviorSection />
-      {/* Deck-wide default session pacing/scoring (defaultSettings). Author
-          suggestions a host may override at session start — not per-slide. */}
       <SessionPacingSection />
-      <CommonOptionsSection />
       <ProvenanceFooter
-        createdByUserId={element.chrome?.createdByUserId}
-        lastEditedByUserId={element.chrome?.lastEditedByUserId}
-        createdAt={element.chrome?.createdAt}
-        updatedAt={element.chrome?.updatedAt}
-        version={element.chrome?.version}
+        createdByUserId={slide.createdByUserId}
+        lastEditedByUserId={slide.lastEditedByUserId}
+        createdAt={undefined}
+        updatedAt={undefined}
+        version={slide.version}
       />
     </div>
   );

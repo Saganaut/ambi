@@ -1,29 +1,19 @@
 // Participants drawer for the deck-editor right sidebar. Two scopes:
-//   1. Deck-wide default session settings (who can join + how the audience can
-//      engage) — `defaultSettings` on the deck, edited through useDeckSettings.
-//      These are author suggestions a host may override at session-start.
-//   2. The per-slide emoji-reactions opt-out — `chrome.reactionsEnabled` on the
-//      active element, layered on top of the deck-wide reactions switch (a slide
-//      can opt out even when reactions are on session-wide). It commits through
-//      the same updateElement path used elsewhere in EditSlideSections so edits
-//      stay in sync with the slide rail and live editor.
+//   1. Deck-wide audience settings (who can join + how the audience can engage)
+//      via deck.settings.audienceSettings through useDeckSettings.
+//   2. Per-slide reactions override — TODO: wire once slide-level overrides
+//      are supported in the new slide model.
 import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useGetDeckQuery, type DeckResponse } from "@store/AmbiApi";
 import { useDeckSettings } from "./useDeckSettings";
 import styles from "./EditSlidePanel.module.css";
-import { useCurrentUser } from "@/features/auth";
-
-type DeckElement = NonNullable<DeckResponse["elements"]>[number];
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-// Backend defaults (InteractiveSessionSettings) — kept in sync so a control
-// shows the right state on a deck whose settings predate a given field.
 const DEFAULTS = {
-  maxPlayers: 8,
+  maxParticipants: 8,
   allowGuests: true,
   allowLateJoin: false,
   allowReJoin: true,
@@ -33,7 +23,7 @@ const DEFAULTS = {
 };
 
 interface ParticipantForm {
-  maxPlayers: number;
+  maxParticipants: number;
   allowGuests: boolean;
   allowLateJoin: boolean;
   allowReJoin: boolean;
@@ -42,21 +32,22 @@ interface ParticipantForm {
   reactionsEnabled: boolean;
 }
 
-/** Deck-wide participant + engagement defaults. Local mirror gives toggles /
- *  the player-cap input instant feedback; updateDeck syncs the cache on the
- *  round-trip. Seeded once the deck loads, re-seeded if the deck changes. */
+const useParticipantsPanel = () => useDeckSettings();
+
 const DeckParticipantSettings = () => {
   const { deckId } = routeApi.useParams();
-  const { settings, commit, schedule, flush } = useDeckSettings();
+  const { settings, commit, schedule, flush } = useParticipantsPanel();
+
+  const audience = settings?.audienceSettings;
 
   const seed = (): ParticipantForm => ({
-    maxPlayers: settings?.maxPlayers ?? DEFAULTS.maxPlayers,
-    allowGuests: settings?.allowGuests ?? DEFAULTS.allowGuests,
-    allowLateJoin: settings?.allowLateJoin ?? DEFAULTS.allowLateJoin,
-    allowReJoin: settings?.allowReJoin ?? DEFAULTS.allowReJoin,
-    anonymousMode: settings?.anonymousMode ?? DEFAULTS.anonymousMode,
-    chatEnabled: settings?.chatEnabled ?? DEFAULTS.chatEnabled,
-    reactionsEnabled: settings?.reactionsEnabled ?? DEFAULTS.reactionsEnabled,
+    maxParticipants: audience?.maxParticipants ?? DEFAULTS.maxParticipants,
+    allowGuests: audience?.allowGuests ?? DEFAULTS.allowGuests,
+    allowLateJoin: audience?.allowLateJoin ?? DEFAULTS.allowLateJoin,
+    allowReJoin: audience?.allowReJoin ?? DEFAULTS.allowReJoin,
+    anonymousMode: audience?.anonymousMode ?? DEFAULTS.anonymousMode,
+    chatEnabled: audience?.chatEnabled ?? DEFAULTS.chatEnabled,
+    reactionsEnabled: audience?.reactionsEnabled ?? DEFAULTS.reactionsEnabled,
   });
 
   const [form, setForm] = useState<ParticipantForm>(seed);
@@ -64,7 +55,6 @@ const DeckParticipantSettings = () => {
     settings ? deckId : undefined,
   );
 
-  // Re-seed when the deck's settings first arrive or the deck changes.
   if (settings && syncedDeckId !== deckId) {
     setSyncedDeckId(deckId);
     setForm(seed());
@@ -80,7 +70,7 @@ const DeckParticipantSettings = () => {
 
   const toggle = (key: keyof ParticipantForm, next: boolean) => {
     setForm((f) => ({ ...f, [key]: next }));
-    commit({ [key]: next });
+    commit({ audienceSettings: { [key]: next } });
   };
 
   return (
@@ -92,10 +82,10 @@ const DeckParticipantSettings = () => {
           label='Maximum players'
           min={1}
           max={1000}
-          value={form.maxPlayers}
+          value={form.maxParticipants}
           onChange={(next) => {
-            setForm((f) => ({ ...f, maxPlayers: next }));
-            schedule({ maxPlayers: next });
+            setForm((f) => ({ ...f, maxParticipants: next }));
+            schedule({ audienceSettings: { maxParticipants: next } });
           }}
           onBlur={flush}
         />
@@ -156,99 +146,26 @@ const DeckParticipantSettings = () => {
   );
 };
 
-/** Per-slide reactions override (`chrome.reactionsEnabled`). Layered on top of
- *  the deck-wide reactions switch: a slide can opt out of reactions even when
- *  they're enabled session-wide. */
 const SlideReactionsOverride = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
-  const currentUser = useCurrentUser();
-  const currentUserId =
-    currentUser.state === "registered" || currentUser.state === "guest"
-      ? currentUser.user.id
-      : undefined;
-
-  const { element } = useGetDeckQuery(
-    { id: deckId },
-    {
-      selectFromResult: ({ data }) => ({
-        element: data?.elements?.find((e) => e.id === slideId),
-      }),
-    },
-  );
-
-  const [updateElement] = useUpdateElementMutation();
-
-  const [reactionsEnabled, setReactionsEnabled] = useState<boolean>(
-    element?.chrome?.reactionsEnabled ?? true,
-  );
-  const [syncedFromId, setSyncedFromId] = useState<string | undefined>(
-    element?.id,
-  );
-
-  if (element && syncedFromId !== element.id) {
-    setSyncedFromId(element.id);
-    setReactionsEnabled(element.chrome?.reactionsEnabled ?? true);
-  }
-
-  if (!element) {
-    return (
-      <section className={styles.section}>
-        <h4 className={styles.heading}>This slide</h4>
-        <p className={styles.empty}>
-          Select a slide to override reactions for it.
-        </p>
-      </section>
-    );
-  }
-
-  const commit = (next: boolean) => {
-    const stamped: DeckElement = {
-      ...element,
-      chrome: {
-        ...element.chrome,
-        reactionsEnabled: next,
-        lastEditedByUserId: currentUserId,
-        version: (element.chrome?.version ?? 0) + 1,
-      },
-    };
-    void updateElement({
-      id: deckId,
-      elementId: element.id ?? "",
-      body: stamped,
-    })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to update reactions toggle", err);
-      });
-  };
-
-  const elId = element.id ?? "";
-
+  // TODO: Wire per-slide reactions override once the new slide model supports
+  // slide-level audience settings. The old chrome.reactionsEnabled field and
+  // useUpdateElementMutation are no longer available.
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>This slide</h4>
-      <Toggle
-        id={`participants-reactions-${elId}`}
-        label='Allow reactions on this slide'
-        checked={reactionsEnabled}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setReactionsEnabled(next);
-          commit(next);
-        }}
-      />
+      <p className={styles.empty}>
+        Per-slide reaction overrides are not yet available in the new slide
+        model.
+      </p>
     </section>
   );
 };
 
-const ParticipantsPanel = () => {
-  return (
-    <div className={styles.panel}>
-      <DeckParticipantSettings />
-      <SlideReactionsOverride />
-    </div>
-  );
-};
+const ParticipantsPanel = () => (
+  <div className={styles.panel}>
+    <DeckParticipantSettings />
+    <SlideReactionsOverride />
+  </div>
+);
 
 export { ParticipantsPanel };

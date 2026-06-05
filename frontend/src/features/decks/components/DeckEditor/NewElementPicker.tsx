@@ -10,44 +10,45 @@
 import { SelectableTile } from "@ui/SelectableTile/SelectableTile";
 import styles from "./NewElementPicker.module.css";
 import { slideTypeGraphics } from "../Slides/SlideTypeGraphics/slideTypeGraphics";
-import { ElementKind } from "./RightSidebar/data";
+import { SlideType } from "@store/enums";
 
 interface NewElementPickerProps {
-  onPick: (kind: ElementKind) => void;
+  onPick: (slideType: SlideType) => void;
 }
 
-const KIND_LABELS: Record<ElementKind, string> = {
-  Slide: "Slide",
-  McqQuestion: "Multiple Choice",
-  TextQuestion: "Text Answer",
-  NumberQuestion: "Number Answer",
-  RankingQuestion: "Ranking",
-  ScalesQuestion: "Scales",
-  QAndAQuestion: "Q & A",
-  GridQuestion: "Grid",
-  PlaceOnImageQuestion: "Place on Image",
-  WordCloudQuestion: "Word Cloud",
-  AllocationQuestion: "Allocation",
-  MatchingQuestion: "Matching",
-  DrawingQuestion: "Drawing",
+const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
+  TITLE: "Slide",
+  MCQ: "Multiple Choice",
+  TEXT: "Text Answer",
+  NUMBER: "Number Answer",
+  RANKING: "Ranking",
+  SCALES: "Scales",
+  Q_AND_A: "Q & A",
+  GRID: "Grid",
+  PLACE_ON_IMAGE: "Place on Image",
+  ALLOCATION: "Allocation",
+  MATCHING: "Matching",
+  DRAWING: "Drawing",
+  MEDIA: "Media",
+  FOLLOW_UP: "Follow Up",
 };
 
 // Preserve the order defined in the graphics map by reading its keys directly.
-const ELEMENT_KINDS = Object.keys(slideTypeGraphics) as ElementKind[];
+const SLIDE_TYPES = Object.keys(slideTypeGraphics) as SlideType[];
 
 const NewElementPicker = ({ onPick }: NewElementPickerProps) => {
   return (
     <div className={styles.grid}>
-      {ELEMENT_KINDS.map((kind) => {
-        const Graphic = slideTypeGraphics[kind];
+      {SLIDE_TYPES.map((slideType) => {
+        const Graphic = slideTypeGraphics[slideType];
         return (
           <SelectableTile
-            key={kind}
+            key={slideType}
             size='sm'
             media={<Graphic />}
-            title={KIND_LABELS[kind]}
+            title={SLIDE_TYPE_LABELS[slideType]}
             onClick={() => {
-              onPick(kind);
+              onPick(slideType);
             }}
           />
         );

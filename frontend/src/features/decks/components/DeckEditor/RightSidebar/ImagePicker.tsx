@@ -7,12 +7,12 @@
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { XMarkIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { isImageEmpty, resolveImageUrl } from "@utils/image";
-import type { Image } from "@store/AmbiApi";
+import type { AppImage } from "@store/AmbiApi";
 import styles from "./ImagePicker.module.css";
 
 interface ImagePickerProps {
   label: string;
-  image: Image | undefined;
+  image: AppImage | undefined;
   /** Stable seed for the placeholder thumbnail URL (usually element id + slot). */
   seed: string;
   onPick: () => void;

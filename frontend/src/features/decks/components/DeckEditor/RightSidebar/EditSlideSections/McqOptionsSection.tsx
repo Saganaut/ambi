@@ -1,84 +1,84 @@
-// Per-kind inspector section for McqQuestion. Surfaces the chunk-10
-// ergonomics: shuffle the option order per-player, opt in to multi-select,
-// and cap how many options a participant may pick when multi-select is on.
-// Lives next to the other EditSlideSections so the dispatcher in
-// EditSlidePanel can mount it without touching the other kinds.
+// Per-kind inspector section for MCQ slides. Uses useSlideEditor<"MCQ">
+// to read and write McqContent fields. The new model uses `shuffle` (was
+// `shuffleOptions`) and `maxSelections` only — `allowMultipleSelect` is derived:
+// maxSelections === 1 means single-select, any other value means multi-select.
 import { useState } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { McqQuestion } from "@store/AmbiApi";
+import { useSlideEditor } from "@/features/decks/hooks/useSlideEditor";
 import styles from "../EditSlidePanel.module.css";
 
-const isMcqQuestion = (e: { kind: string }): e is McqQuestion =>
-  e.kind === "McqQuestion";
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+
+const useMcqOptionsSection = () => {
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+  return useSlideEditor(deckId, slideId ?? "", "MCQ");
+};
 
 const McqOptionsSection = () => {
-  const { element, schedule, flush, commit, syncedFromId, markSynced } =
-    useElementEditor<McqQuestion>(isMcqQuestion);
+  const { slide, updateSlideContent, flush } = useMcqOptionsSection();
 
-  const [shuffleOptions, setShuffleOptions] = useState<boolean>(
-    element?.shuffleOptions ?? true,
+  const content = slide?.content;
+  const [shuffle, setShuffle] = useState(content?.shuffle ?? true);
+  const allowMulti = (content?.maxSelections ?? 1) !== 1;
+  const [maxSelections, setMaxSelections] = useState(
+    allowMulti ? (content?.maxSelections ?? 0) : 0,
   );
-  const [allowMultipleSelect, setAllowMultipleSelect] = useState<boolean>(
-    element?.allowMultipleSelect ?? false,
-  );
-  const [maxSelections, setMaxSelections] = useState<number>(
-    element?.maxSelections ?? 0,
-  );
+  const [syncedId, setSyncedId] = useState<string | undefined>(slide?.id);
 
-  if (element && syncedFromId !== element.id) {
-    markSynced(element.id);
-    setShuffleOptions(element.shuffleOptions ?? true);
-    setAllowMultipleSelect(element.allowMultipleSelect ?? false);
-    setMaxSelections(element.maxSelections ?? 0);
+  if (slide && syncedId !== slide.id) {
+    setSyncedId(slide.id);
+    setShuffle(slide.content.shuffle ?? true);
+    setMaxSelections(
+      (slide.content.maxSelections ?? 1) !== 1
+        ? (slide.content.maxSelections ?? 0)
+        : 0,
+    );
   }
 
-  if (!element) return null;
+  if (!slide) return null;
 
-  const buildPatch = (overrides: Partial<McqQuestion>): McqQuestion => ({
-    ...element,
-    shuffleOptions,
-    allowMultipleSelect,
-    maxSelections,
-    ...overrides,
-  });
-
-  const elId = element.id ?? "";
+  const slideId = slide.id;
+  const isMulti = (content?.maxSelections ?? 1) !== 1;
 
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Multiple choice</h4>
       <Toggle
-        id={`mcq-shuffle-${elId}`}
+        id={`mcq-shuffle-${slideId}`}
         label='Shuffle option order per player'
-        checked={shuffleOptions}
+        checked={shuffle}
         onChange={(e) => {
           const next = e.currentTarget.checked;
-          setShuffleOptions(next);
-          commit(buildPatch({ shuffleOptions: next }));
+          setShuffle(next);
+          updateSlideContent({ shuffle: next });
+          flush();
         }}
       />
       <Toggle
-        id={`mcq-multi-${elId}`}
+        id={`mcq-multi-${slideId}`}
         label='Allow multiple correct selections'
-        checked={allowMultipleSelect}
+        checked={isMulti}
         onChange={(e) => {
           const next = e.currentTarget.checked;
-          setAllowMultipleSelect(next);
-          commit(buildPatch({ allowMultipleSelect: next }));
+          const nextMax = next ? 0 : 1;
+          setMaxSelections(next ? 0 : 0);
+          updateSlideContent({ maxSelections: nextMax });
+          flush();
         }}
       />
-      {allowMultipleSelect && (
+      {isMulti && (
         <NumberInput
-          id={`mcq-max-${elId}`}
+          id={`mcq-max-${slideId}`}
           label='Max selections (0 = unlimited)'
           min={0}
           max={6}
           value={maxSelections}
           onChange={(next) => {
             setMaxSelections(next);
-            schedule(buildPatch({ maxSelections: next }));
+            updateSlideContent({ maxSelections: next === 0 ? 0 : next });
           }}
           onBlur={flush}
         />

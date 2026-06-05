@@ -1,109 +1,91 @@
-// Per-kind inspector section for NumberQuestion. Surfaces the chunk-10
-// input-clamping ergonomics: an optional [min, max] range that the scorer
-// uses to reject out-of-range answers, plus an "allow negative" toggle.
-// `minValue` / `maxValue` are nullable on the backend; the UI gates them
-// behind a single "Limit answer range" toggle so the unbounded default
-// stays a one-click state.
+// Per-kind inspector section for NUMBER slides. Uses useSlideEditor<"NUMBER">
+// to read and write NumberContent fields.
+// Old `allowNegative` is gone. The new model always has `min`/`max` (display
+// range) plus a `tolerance` and `unit`.
 import { useState } from "react";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import { getRouteApi } from "@tanstack/react-router";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useElementEditor } from "../../SlideContentTypes/useElementEditor";
-import type { NumberQuestion } from "@store/AmbiApi";
+import { Input } from "@components/Forms/Input/Input/Input";
+import { useSlideEditor } from "@/features/decks/hooks/useSlideEditor";
 import styles from "../EditSlidePanel.module.css";
 
-const isNumberQuestion = (e: { kind: string }): e is NumberQuestion =>
-  e.kind === "NumberQuestion";
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+
+const useNumberOptionsSection = () => {
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+  return useSlideEditor(deckId, slideId ?? "", "NUMBER");
+};
 
 const NumberOptionsSection = () => {
-  const { element, commit, syncedFromId, markSynced } =
-    useElementEditor<NumberQuestion>(isNumberQuestion);
+  const { slide, updateSlideContent, flush } = useNumberOptionsSection();
 
-  const hasRange =
-    element?.minValue !== undefined || element?.maxValue !== undefined;
+  const content = slide?.content;
+  const [minValue, setMinValue] = useState(content?.min ?? 0);
+  const [maxValue, setMaxValue] = useState(content?.max ?? 100);
+  const [tolerance, setTolerance] = useState(content?.tolerance ?? 0);
+  const [unit, setUnit] = useState(content?.unit ?? "");
+  const [syncedId, setSyncedId] = useState<string | undefined>(slide?.id);
 
-  const [limitRange, setLimitRange] = useState<boolean>(hasRange);
-  const [minValue, setMinValue] = useState<number>(element?.minValue ?? 0);
-  const [maxValue, setMaxValue] = useState<number>(element?.maxValue ?? 100);
-  const [allowNegative, setAllowNegative] = useState<boolean>(
-    element?.allowNegative ?? true,
-  );
-
-  if (element && syncedFromId !== element.id) {
-    markSynced(element.id);
-    const synced =
-      element.minValue !== undefined || element.maxValue !== undefined;
-    setLimitRange(synced);
-    setMinValue(element.minValue ?? 0);
-    setMaxValue(element.maxValue ?? 100);
-    setAllowNegative(element.allowNegative ?? true);
+  if (slide && syncedId !== slide.id) {
+    setSyncedId(slide.id);
+    setMinValue(slide.content.min ?? 0);
+    setMaxValue(slide.content.max ?? 100);
+    setTolerance(slide.content.tolerance ?? 0);
+    setUnit(slide.content.unit ?? "");
   }
 
-  if (!element) return null;
+  if (!slide) return null;
 
-  const buildPatch = (overrides: Partial<NumberQuestion>): NumberQuestion => ({
-    ...element,
-    minValue: limitRange ? minValue : undefined,
-    maxValue: limitRange ? maxValue : undefined,
-    allowNegative,
-    ...overrides,
-  });
-
-  const elId = element.id ?? "";
+  const slideId = slide.id;
 
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Numeric answer</h4>
-      <Toggle
-        id={`number-allow-neg-${elId}`}
-        label='Allow negative answers'
-        checked={allowNegative}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setAllowNegative(next);
-          commit(buildPatch({ allowNegative: next }));
+      <NumberInput
+        id={`number-min-${slideId}`}
+        label='Minimum'
+        value={minValue}
+        onChange={(next) => {
+          setMinValue(next);
+          updateSlideContent({ min: next });
         }}
+        onBlur={flush}
       />
-      <Toggle
-        id={`number-limit-${elId}`}
-        label='Limit answer range'
-        checked={limitRange}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setLimitRange(next);
-          commit(
-            buildPatch({
-              minValue: next ? minValue : undefined,
-              maxValue: next ? maxValue : undefined,
-            }),
-          );
+      <NumberInput
+        id={`number-max-${slideId}`}
+        label='Maximum'
+        value={maxValue}
+        onChange={(next) => {
+          setMaxValue(next);
+          updateSlideContent({ max: next });
         }}
+        onBlur={flush}
       />
-      {limitRange && (
-        <>
-          <NumberInput
-            id={`number-min-${elId}`}
-            label='Minimum'
-            value={minValue}
-            onChange={(next) => {
-              setMinValue(next);
-            }}
-            onBlur={() => {
-              commit(buildPatch({ minValue }));
-            }}
-          />
-          <NumberInput
-            id={`number-max-${elId}`}
-            label='Maximum'
-            value={maxValue}
-            onChange={(next) => {
-              setMaxValue(next);
-            }}
-            onBlur={() => {
-              commit(buildPatch({ maxValue }));
-            }}
-          />
-        </>
-      )}
+      <NumberInput
+        id={`number-tolerance-${slideId}`}
+        label='Tolerance (accepted deviation)'
+        min={0}
+        value={tolerance}
+        onChange={(next) => {
+          setTolerance(next);
+          updateSlideContent({ tolerance: next });
+        }}
+        onBlur={flush}
+      />
+      <Input
+        id={`number-unit-${slideId}`}
+        label='Unit (e.g. km, °C)'
+        type='text'
+        value={unit}
+        placeholder='Optional unit label…'
+        onChange={(e) => {
+          const next = e.target.value;
+          setUnit(next);
+          updateSlideContent({ unit: next });
+        }}
+        onBlur={flush}
+      />
     </section>
   );
 };

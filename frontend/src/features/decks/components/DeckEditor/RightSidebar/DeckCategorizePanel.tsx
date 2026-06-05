@@ -1,23 +1,23 @@
-// Deck-level metadata panel for the right-sidebar inspector. Owns the
-// subject-tag picker (single-select, creatable) and the multi-select tag
-// picker that drives Explore discoverability — both let authors type a
-// custom tag/subject and mint it on the fly via POST /api/tags. Edits
-// commit through `updateDeck`; the apiEnhancements layer keeps the cached
-// deck in sync, so the rest of the editor sees the change immediately.
+// Deck-level metadata panel for the right-sidebar inspector.
+// TODO: The tag picker (useTagPickerData / useListTagsQuery / useCreateTagMutation)
+// is not yet implemented in the new API. The tags API endpoints are missing from
+// AmbiApi.ts. Wire tag pickers once the tag API is available.
+// TODO: DeckResponse.subjectTagId is gone from the new model.
+// The new model has deck.tags: string[] (tag names, not IDs).
 import { getRouteApi } from "@tanstack/react-router";
-import { useGetDeckQuery, useUpdateDeckMutation } from "@store/AmbiApi";
-import { TagPicker } from "@ui/TagPicker/TagPicker";
-import { useTagPickerData } from "@hooks/useTagPickerData";
-import { ElementTagsSection } from "./EditSlideSections/ElementTagsSection";
+import { useGetDeckQuery } from "@store/AmbiApi";
 import styles from "./EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-const DeckCategorizePanel = () => {
+const useDeckCategorizePanel = () => {
   const { deckId } = routeApi.useParams();
   const { data: deck } = useGetDeckQuery({ id: deckId });
-  const [updateDeck] = useUpdateDeckMutation();
-  const { tags, isLoading, createTag } = useTagPickerData();
+  return { deck };
+};
+
+const DeckCategorizePanel = () => {
+  const { deck } = useDeckCategorizePanel();
 
   if (!deck) {
     return (
@@ -27,54 +27,31 @@ const DeckCategorizePanel = () => {
     );
   }
 
-  const tagIds = deck.tagIds ?? [];
-  const subjectTagId = deck.subjectTagId;
-
-  const commit = (patch: { tagIds?: string[]; subjectTagId?: string }) => {
-    void updateDeck({
-      id: deckId,
-      updateDeckRequest: patch,
-    })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to update deck categorization", err);
-      });
-  };
+  const tags = deck.tags ?? [];
 
   return (
     <div className={styles.panel}>
       <section className={styles.section}>
-        <h4 className={styles.heading}>Subject</h4>
-        <TagPicker
-          tags={tags}
-          isLoading={isLoading}
-          singleSelect
-          onCreate={createTag}
-          value={
-            subjectTagId != null && subjectTagId !== "" ? [subjectTagId] : []
-          }
-          onChange={(values) => {
-            commit({ subjectTagId: values[0] ?? "" });
-          }}
-          placeholder='Pick or type a subject…'
-        />
+        <h4 className={styles.heading}>Deck tags</h4>
+        {/* TODO: Replace with TagPicker once useListTagsQuery / useCreateTagMutation
+            are available in AmbiApi. Currently shows the raw tag list. */}
+        {tags.length > 0 ? (
+          <ul className={styles.tagList ?? ""}>
+            {tags.map((tag) => (
+              <li key={tag}>{tag}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.empty}>No tags yet.</p>
+        )}
       </section>
 
       <section className={styles.section}>
-        <h4 className={styles.heading}>Deck tags</h4>
-        <TagPicker
-          tags={tags}
-          isLoading={isLoading}
-          onCreate={createTag}
-          value={tagIds}
-          onChange={(next) => {
-            commit({ tagIds: next });
-          }}
-          placeholder='Search, add, or create tags…'
-        />
+        <h4 className={styles.heading}>Slide tags</h4>
+        {/* TODO: Wire slide-level tags once the new slide model supports tagIds
+            and the tag API endpoints are available. */}
+        <p className={styles.empty}>Slide tags coming soon.</p>
       </section>
-
-      <ElementTagsSection />
     </div>
   );
 };

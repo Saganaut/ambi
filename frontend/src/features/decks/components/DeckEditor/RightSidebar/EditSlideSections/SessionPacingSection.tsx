@@ -1,65 +1,44 @@
-// Deck-wide default session pacing + scoring knobs, surfaced in the edit-slide
-// panel. Unlike the sibling sections in this folder (which edit the active
-// element's chrome), these write the deck's `defaultSettings`
-// (InteractiveSessionSettings) through useDeckSettings — they are author
-// suggestions a host may override at session start, not per-slide values. The
-// heading flags the deck-wide scope so it doesn't read as a per-slide control.
-//
-// Note the deliberate overlap with other surfaces: `showResponses` here is the
-// session-settings copy, distinct from the per-element BehaviorSection control
-// and the deck `defaultShowResponses` in ThemePanel; `timePerQuestion` is the
-// deck-wide fallback that per-element `displaySeconds` overrides. See
-// z-docs/to-do/finish-right-panel.md for the redundancy audit.
+// Deck-wide default session pacing + answer settings surfaced in the edit-slide
+// panel. Writes to deck.settings.answerSettings via useDeckSettings.
+// Old fields (autoAdvance, showResponses, showScoresImmediately, speedBonus,
+// timePerQuestion) have been replaced by the new nested DeckSettings structure.
+// TODO: Wire showResponses and scoring fields once they are added to the new
+// DeckSettings model (currently not present in AnswerSettings or PointSettings).
 import { useState } from "react";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { useDeckSettings } from "../useDeckSettings";
 import styles from "../EditSlidePanel.module.css";
 
-type ShowResponsesMode = "INHERIT" | "INSTANT" | "ON_CLICK" | "PRIVATE";
-
-const SHOW_RESPONSES_OPTIONS: { value: ShowResponsesMode; label: string }[] = [
-  { value: "INHERIT", label: "Inherit (per-element)" },
-  { value: "INSTANT", label: "Instant" },
-  { value: "ON_CLICK", label: "On click" },
-  { value: "PRIVATE", label: "Private" },
-];
-
-// Backend defaults (InteractiveSessionSettings) so a control reads correctly on
-// a deck whose stored settings predate a field.
 const DEFAULTS = {
-  autoAdvance: false,
-  showResponses: "INHERIT" as ShowResponsesMode,
-  showScoresImmediately: true,
-  speedBonus: true,
-  timePerQuestion: 15,
+  countdownTime: 15,
+  shuffleOptions: false,
+  displayResultsLive: false,
 };
 
 interface PacingForm {
-  autoAdvance: boolean;
-  showResponses: ShowResponsesMode;
-  showScoresImmediately: boolean;
-  speedBonus: boolean;
-  timePerQuestion: number;
+  countdownTime: number;
+  shuffleOptions: boolean;
+  displayResultsLive: boolean;
 }
 
+const useSessionPacingSection = () => useDeckSettings();
+
 const SessionPacingSection = () => {
-  const { settings, commit, schedule, flush } = useDeckSettings();
+  const { settings, commit, schedule, flush } = useSessionPacingSection();
+
+  const answer = settings?.answerSettings;
 
   const seed = (): PacingForm => ({
-    autoAdvance: settings?.autoAdvance ?? DEFAULTS.autoAdvance,
-    showResponses: settings?.showResponses ?? DEFAULTS.showResponses,
-    showScoresImmediately:
-      settings?.showScoresImmediately ?? DEFAULTS.showScoresImmediately,
-    speedBonus: settings?.speedBonus ?? DEFAULTS.speedBonus,
-    timePerQuestion: settings?.timePerQuestion ?? DEFAULTS.timePerQuestion,
+    countdownTime: answer?.countdownTime ?? DEFAULTS.countdownTime,
+    shuffleOptions: answer?.shuffleOptions ?? DEFAULTS.shuffleOptions,
+    displayResultsLive:
+      answer?.displayResultsLive ?? DEFAULTS.displayResultsLive,
   });
 
   const [form, setForm] = useState<PacingForm>(seed);
-  const [synced, setSynced] = useState<boolean>(!!settings);
+  const [synced, setSynced] = useState(!!settings);
 
-  // Seed once the deck's settings arrive.
   if (settings && !synced) {
     setSynced(true);
     setForm(seed());
@@ -69,66 +48,40 @@ const SessionPacingSection = () => {
 
   return (
     <section className={styles.section}>
-      <h4 className={styles.heading}>Pacing &amp; scoring (deck default)</h4>
+      <h4 className={styles.heading}>Pacing &amp; answers (deck default)</h4>
       <NumberInput
-        id='session-time-per-question'
+        id='session-countdown-time'
         label='Time per question (seconds)'
         min={0}
         max={3600}
-        value={form.timePerQuestion}
+        value={form.countdownTime}
         infoMessage='0 = unlimited (wait for players / host)'
         onChange={(next) => {
-          setForm((f) => ({ ...f, timePerQuestion: next }));
-          schedule({ timePerQuestion: next });
+          setForm((f) => ({ ...f, countdownTime: next }));
+          schedule({ answerSettings: { countdownTime: next } });
         }}
         onBlur={flush}
       />
       <Toggle
-        id='session-auto-advance'
-        label='Auto-advance rounds'
-        checked={form.autoAdvance}
+        id='session-shuffle-options'
+        label='Shuffle answer options'
+        checked={form.shuffleOptions}
         onChange={(e) => {
           const next = e.currentTarget.checked;
-          setForm((f) => ({ ...f, autoAdvance: next }));
-          commit({ autoAdvance: next });
+          setForm((f) => ({ ...f, shuffleOptions: next }));
+          commit({ answerSettings: { shuffleOptions: next } });
         }}
       />
       <Toggle
-        id='session-speed-bonus'
-        label='Speed bonus (faster answers score more)'
-        checked={form.speedBonus}
+        id='session-display-results-live'
+        label='Display results live during round'
+        checked={form.displayResultsLive}
         onChange={(e) => {
           const next = e.currentTarget.checked;
-          setForm((f) => ({ ...f, speedBonus: next }));
-          commit({ speedBonus: next });
+          setForm((f) => ({ ...f, displayResultsLive: next }));
+          commit({ answerSettings: { displayResultsLive: next } });
         }}
       />
-      <Toggle
-        id='session-show-scores-immediately'
-        label='Show scores immediately'
-        checked={form.showScoresImmediately}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setForm((f) => ({ ...f, showScoresImmediately: next }));
-          commit({ showScoresImmediately: next });
-        }}
-      />
-      <div>
-        <span className={styles.heading}>Show responses</span>
-        <Dropdown
-          options={SHOW_RESPONSES_OPTIONS.map((opt) => ({
-            value: opt.value,
-            label: opt.label,
-          }))}
-          value={[form.showResponses]}
-          onChange={(values) => {
-            const next = values[0] as ShowResponsesMode | undefined;
-            if (!next || next === form.showResponses) return;
-            setForm((f) => ({ ...f, showResponses: next }));
-            commit({ showResponses: next });
-          }}
-        />
-      </div>
     </section>
   );
 };

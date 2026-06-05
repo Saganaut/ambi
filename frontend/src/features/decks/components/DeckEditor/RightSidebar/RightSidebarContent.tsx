@@ -100,7 +100,7 @@ const RightSidebarContent = () => {
               />
             </div>
             <div className={styles.drawerBody}>
-              {/* {openPanel === "edit" && <EditSlidePanel />}
+              {openPanel === "edit" && <EditSlidePanel />}
               {openPanel === "theme" && <ThemePanel />}
               {openPanel === "categorize" && <DeckCategorizePanel />}
               {openPanel === "reviews" && <DeckReviewsPanel />}
@@ -108,7 +108,7 @@ const RightSidebarContent = () => {
               {openPanel === "participants" && <ParticipantsPanel />}
               {openPanel === "sharing" && (
                 <PlaceholderPanel description='Visibility, invite links, and per-org access controls for this deck.' />
-              )} */}
+              )}
             </div>
           </div>
         </aside>
