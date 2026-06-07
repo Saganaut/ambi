@@ -4,9 +4,9 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import java.time.Instant;
 
+import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.media.gallery.Gallery;
-import com.cephadex.ambi.presentation.deck.Ownership;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

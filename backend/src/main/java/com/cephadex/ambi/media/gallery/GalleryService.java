@@ -9,15 +9,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
-import com.cephadex.ambi.presentation.deck.Ownership;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;

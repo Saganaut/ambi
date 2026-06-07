@@ -6,13 +6,14 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -56,10 +57,10 @@ public class ThemeService {
 
         if (organizationId != null && !organizationId.isBlank()) {
             requireOrgManager(organizationId, principal);
-            theme.setOwnership(new ThemeOwnership(OwnershipType.ORGANIZATION, organizationId));
+            theme.setOwnership(new Ownership(OwnershipType.ORGANIZATION, organizationId));
             theme.setOrganizationId(organizationId);
         } else {
-            theme.setOwnership(new ThemeOwnership(OwnershipType.USER, userId));
+            theme.setOwnership(new Ownership(OwnershipType.USER, userId));
         }
 
         return themeRepository.save(theme);

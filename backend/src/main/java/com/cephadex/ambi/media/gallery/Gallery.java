@@ -7,9 +7,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.common.Ownership;
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.org.enums.OrgRole;
-import com.cephadex.ambi.presentation.deck.Ownership;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 import lombok.Getter;

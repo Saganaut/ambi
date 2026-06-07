@@ -7,8 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 
 public interface DeckRepository extends MongoRepository<Deck, String> {

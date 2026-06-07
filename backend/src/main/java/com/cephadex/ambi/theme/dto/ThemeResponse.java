@@ -1,15 +1,14 @@
 package com.cephadex.ambi.theme.dto;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
-
 import java.time.Instant;
 
+import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.theme.Theme;
-import com.cephadex.ambi.theme.ThemeOwnership;
 import com.cephadex.ambi.theme.ThemeSpec;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * The wire view of a {@link Theme}. The renderable colours and images are
@@ -32,7 +31,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record ThemeResponse(
         String id,
         String name,
-        ThemeOwnership ownership,
+        Ownership ownership,
         String organizationId,
         String creatorUserId,
         boolean builtIn,

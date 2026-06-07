@@ -507,7 +507,7 @@ export type UpdatePreferencesRequest = {
   theme?: ThemeSpec;
   stayLoggedIn?: boolean;
 };
-export type ThemeOwnership = {
+export type Ownership = {
   type?: "USER" | "ORGANIZATION";
   ownerId?: string;
 };
@@ -519,7 +519,7 @@ export type ViewerPermissions = {
 export type ThemeResponse = {
   id?: string;
   name?: string;
-  ownership?: ThemeOwnership;
+  ownership?: Ownership;
   organizationId?: string;
   creatorUserId?: string;
   builtIn?: boolean;
@@ -572,7 +572,7 @@ export type DeckSettings = {
   answerSettings?: AnswerSettings;
   audienceSettings?: AudienceSettings;
 };
-export type DeckOwnership = {
+export type Ownership = {
   type?: "USER" | "ORGANIZATION";
   ownerId?: string;
 };
@@ -611,7 +611,7 @@ export type DeckResponse = {
   settings?: DeckSettings;
   tags: string[];
   organizationId?: string;
-  ownership: DeckOwnership;
+  ownership: Ownership;
   acl: DeckAccessGrant[];
   parentDeckId?: string;
   stats?: DeckStats;

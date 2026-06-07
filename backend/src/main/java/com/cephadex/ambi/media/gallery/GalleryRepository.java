@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
+import com.cephadex.ambi.common.enums.OwnershipType;
 
 public interface GalleryRepository extends MongoRepository<Gallery, String> {
 

@@ -5,8 +5,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.common.Ownership;
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.org.enums.OrgRole;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 import lombok.Getter;
@@ -43,7 +44,7 @@ public class Theme extends Auditable {
     private String name = "Untitled Theme";
 
     @Field("ownership")
-    private ThemeOwnership ownership;
+    private Ownership ownership;
 
     // Denormalized, indexed mirror of an org-owned theme's owner id, so
     // "themes for this org" is a single indexed query (matches the deck pattern).

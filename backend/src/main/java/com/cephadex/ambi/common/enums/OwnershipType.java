@@ -1,4 +1,4 @@
-package com.cephadex.ambi.presentation.deck.enums;
+package com.cephadex.ambi.common.enums;
 
 /**
  * Who controls a deck. "Public" is a {@code DeckVisibility}, not an ownership —

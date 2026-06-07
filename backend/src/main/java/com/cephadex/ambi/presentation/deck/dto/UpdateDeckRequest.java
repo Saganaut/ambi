@@ -1,7 +1,5 @@
 package com.cephadex.ambi.presentation.deck.dto;
 
-import java.util.Set;
-
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
@@ -15,9 +13,11 @@ import jakarta.validation.constraints.Size;
  *
  * <p>Cover and background images are intentionally absent: they have a single
  * owner in the dedicated {@code /cover-image} and {@code /background-image}
- * endpoints, so a metadata edit never touches them. Slides, visibility,
- * ownership, ACL and identifiers are likewise absent — slides flow through the
- * {@code /slides} endpoints, and the rest through the MANAGE-gated endpoints.
+ * endpoints, so a metadata edit never touches them. Tags are likewise absent —
+ * they have a single owner in the dedicated {@code /tags} endpoint. Slides,
+ * visibility, ownership, ACL and identifiers are also absent — slides flow
+ * through the {@code /slides} endpoints, and the rest through the MANAGE-gated
+ * endpoints.
  */
 public record UpdateDeckRequest(
         @Size(max = 200) String name,
@@ -25,7 +25,6 @@ public record UpdateDeckRequest(
         String themeId,
         @Size(max = 16) String language,
         Settings.DeckSettings settings,
-        Set<String> tags,
         PublishStatus publishStatus) {
 
     /** Builds the {@code changes} {@link Deck} that {@code DeckService.update} copies from. */
@@ -36,7 +35,6 @@ public record UpdateDeckRequest(
         changes.setThemeId(themeId);
         changes.setLanguage(language);
         changes.setSettings(settings);
-        changes.setTags(tags);
         changes.setPublishStatus(publishStatus);
         return changes;
     }

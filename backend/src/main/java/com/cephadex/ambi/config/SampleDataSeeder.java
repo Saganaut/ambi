@@ -20,16 +20,16 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.auth.enums.AuthProvider;
+import com.cephadex.ambi.common.Ownership;
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Deck;
-import com.cephadex.ambi.presentation.deck.DeckOwnership;
 import com.cephadex.ambi.presentation.deck.DeckRepository;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.AudienceSettings;
 import com.cephadex.ambi.presentation.deck.Settings.DeckSettings;
 import com.cephadex.ambi.presentation.deck.Settings.PointSettings;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
@@ -344,7 +344,7 @@ public class SampleDataSeeder implements ApplicationRunner {
         deck.setLanguage("en");
         deck.setCreatorUserId(ownerId);
         deck.setOriginalAuthorUserId(ownerId);
-        deck.setOwnership(new DeckOwnership(OwnershipType.USER, ownerId));
+        deck.setOwnership(new Ownership(OwnershipType.USER, ownerId));
         deck.setTags(new LinkedHashSet<>(tags));
         deck.setSettings(defaultSettings());
 

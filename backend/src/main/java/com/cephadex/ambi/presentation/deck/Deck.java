@@ -15,11 +15,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.common.Ownership;
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
@@ -97,7 +98,7 @@ public class Deck extends Auditable {
     private String organizationId;
 
     @Field("ownership")
-    private DeckOwnership ownership;
+    private Ownership ownership;
 
     // Explicit per-user shares (VIEWER / EDITOR). A named grant wins even over
     // DRAFT.

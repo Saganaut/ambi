@@ -6,11 +6,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.DeckAccessGrant;
-import com.cephadex.ambi.presentation.deck.DeckOwnership;
 import com.cephadex.ambi.presentation.deck.DeckStats;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
@@ -42,7 +42,7 @@ public record DeckResponse(
         Settings.DeckSettings settings,
         @Schema(requiredMode = REQUIRED) Set<String> tags,
         String organizationId,
-        @Schema(requiredMode = REQUIRED) DeckOwnership ownership,
+        @Schema(requiredMode = REQUIRED) Ownership ownership,
         @Schema(requiredMode = REQUIRED) List<DeckAccessGrant> acl,
         String parentDeckId,
         DeckStats stats,

@@ -9,8 +9,9 @@ import org.junit.jupiter.api.Test;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
-import com.cephadex.ambi.presentation.deck.enums.OwnershipType;
+import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
@@ -76,7 +77,7 @@ class ThemeServiceTest {
     private static Theme personalTheme(String ownerId) {
         Theme theme = new Theme();
         theme.setId("theme-1");
-        theme.setOwnership(new ThemeOwnership(OwnershipType.USER, ownerId));
+        theme.setOwnership(new Ownership(OwnershipType.USER, ownerId));
         return theme;
     }
 }
