@@ -1,5 +1,7 @@
 package com.cephadex.ambi.user.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
@@ -16,7 +18,7 @@ import jakarta.validation.constraints.Size;
  *                    when present (it is a small value object, not patched).
  */
 public record UpdateProfileRequest(
-        @Size(min = 1, max = 60) String displayName,
-        @Size(max = 64) String timezone,
+        @Size(min = ValidationConstants.DISPLAY_NAME_MIN, max = ValidationConstants.DISPLAY_NAME_MAX) String displayName,
+        @Size(max = ValidationConstants.TIMEZONE_MAX) String timezone,
         @Valid AvatarSelection avatar) {
 }

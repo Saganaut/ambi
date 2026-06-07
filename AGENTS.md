@@ -55,13 +55,20 @@ cd frontend && npm install && npm run dev
 # http://localhost:5173
 ```
 
-**Regenerate the API client** after backend changes (backend must be running):
+**Regenerate the generated frontend artifacts** after backend changes (backend must be running). Both are committed and **must not be hand-edited**:
 
 ```bash
 cd frontend
-npx @rtk-query/codegen-openapi openapi-config.cts
-# Overwrites src/shared/store/AmbiApi.ts — do not edit that file manually
+npm run generate          # API client + validation constants (runs both below)
+
+# …or individually:
+npm run generate-api         # → src/shared/store/AmbiApi.ts (RTK Query)
+npm run generate-validation  # → src/shared/store/validationConstants.ts (validation bounds)
 ```
+
+`validationConstants.ts` is the frontend half of the validation single source of
+truth: bounds are authored once in the backend (`ValidationConstants`), surfaced
+into OpenAPI via Jakarta annotations, and lifted into TS by the generator.
 
 **Seed sample data** (LOTR dataset; idempotent per collection per user, never destructive — stop any running backend first):
 
@@ -144,6 +151,8 @@ Stacks, CI workflow, and local pre-commit / pre-push hooks: see [Testing & CI](z
 | File                                       | Purpose                                                   |
 | ------------------------------------------ | --------------------------------------------------------- |
 | `frontend/src/shared/store/AmbiApi.ts`     | Auto-generated RTK Query API — **do not edit**            |
+| `frontend/src/shared/store/validationConstants.ts` | Auto-generated validation bounds (from OpenAPI) — **do not edit** |
+| `backend/.../common/validation/ValidationConstants.java` | Source of truth for validation bounds (drives the above) |
 | `frontend/src/routes/__root.tsx`           | Root layout (TanStack Router + shared AuthBar)            |
 | `frontend/src/hooks/useCurrentUser.ts`     | Auth state machine (visitor/guest/registered)             |
 | `frontend/openapi-config.cts`              | API codegen config                                        |

@@ -3,6 +3,10 @@ package com.cephadex.ambi.presentation.deck.dto;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
+
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -13,7 +17,20 @@ import jakarta.validation.constraints.Size;
  * fully replaces the current tags, so an empty set clears them.
  */
 public record SetTagsRequest(
-        @NotNull @Size(max = 50) Set<@NotNull @Size(min = 1, max = 50) String> tags) {
+        // The Jakarta @Size annotations do the runtime validation (count + per-tag
+        // length). @ArraySchema mirrors them into the OpenAPI doc — SpringDoc drops
+        // the element @Size on Set<String> from items{}, so we state it explicitly
+        // (same constants) so the per-tag bound reaches the generated frontend
+        // validationConstants.ts. See BACKEND-RULES.
+        @NotNull
+        @Size(max = ValidationConstants.TAG_MAX_COUNT)
+        @ArraySchema(
+                maxItems = ValidationConstants.TAG_MAX_COUNT,
+                schema = @Schema(
+                        minLength = ValidationConstants.TAG_MIN_LENGTH,
+                        maxLength = ValidationConstants.TAG_MAX_LENGTH))
+        Set<@NotNull @Size(min = ValidationConstants.TAG_MIN_LENGTH,
+                max = ValidationConstants.TAG_MAX_LENGTH) String> tags) {
 
     /** A defensive, order-preserving copy of the submitted tags. */
     public Set<String> tags() {

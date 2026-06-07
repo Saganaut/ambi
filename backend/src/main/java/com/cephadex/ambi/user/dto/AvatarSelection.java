@@ -1,5 +1,6 @@
 package com.cephadex.ambi.user.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.user.Avatar;
 
 import jakarta.validation.constraints.Size;
@@ -15,8 +16,8 @@ import jakarta.validation.constraints.Size;
  * @param internalAvatarId id of a built-in avatar; used when no external URL.
  */
 public record AvatarSelection(
-        @Size(max = 2048) String externalSrc,
-        @Size(max = 64) String internalAvatarId) {
+        @Size(max = ValidationConstants.AVATAR_SRC_MAX) String externalSrc,
+        @Size(max = ValidationConstants.AVATAR_ID_MAX) String internalAvatarId) {
 
     /**
      * Maps this selection onto a fresh {@link Avatar}. A non-blank

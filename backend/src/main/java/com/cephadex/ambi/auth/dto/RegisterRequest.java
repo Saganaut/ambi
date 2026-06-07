@@ -1,5 +1,7 @@
 package com.cephadex.ambi.auth.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -22,12 +24,12 @@ import jakarta.validation.constraints.Size;
  */
 public record RegisterRequest(
         @NotBlank
-        @Size(min = 3, max = 30)
-        @Pattern(regexp = "[A-Za-z0-9._-]+",
+        @Size(min = ValidationConstants.USERNAME_MIN, max = ValidationConstants.USERNAME_MAX)
+        @Pattern(regexp = ValidationConstants.USERNAME_PATTERN,
                 message = "may only contain letters, digits, '.', '_' or '-'")
         String username,
 
-        @Size(max = 60)
+        @Size(max = ValidationConstants.DISPLAY_NAME_MAX)
         String displayName,
 
         boolean newsletter) {

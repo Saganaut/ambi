@@ -1,5 +1,6 @@
 package com.cephadex.ambi.presentation.deck.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
@@ -20,10 +21,10 @@ import jakarta.validation.constraints.Size;
  * endpoints.
  */
 public record UpdateDeckRequest(
-        @Size(max = 200) String name,
-        @Size(max = 2000) String description,
+        @Size(max = ValidationConstants.NAME_MAX) String name,
+        @Size(max = ValidationConstants.DECK_DESCRIPTION_MAX) String description,
         String themeId,
-        @Size(max = 16) String language,
+        @Size(max = ValidationConstants.LANGUAGE_MAX) String language,
         Settings.DeckSettings settings,
         PublishStatus publishStatus) {
 

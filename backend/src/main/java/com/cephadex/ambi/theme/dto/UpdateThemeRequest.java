@@ -1,5 +1,6 @@
 package com.cephadex.ambi.theme.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.theme.ThemeSpec;
 
 import jakarta.validation.constraints.Size;
@@ -16,6 +17,6 @@ import jakarta.validation.constraints.Size;
  * @param spec the renderable payload (mode, hues, background, logo)
  */
 public record UpdateThemeRequest(
-        @Size(max = 200) String name,
+        @Size(max = ValidationConstants.NAME_MAX) String name,
         ThemeSpec spec) {
 }

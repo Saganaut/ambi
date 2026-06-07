@@ -1,5 +1,6 @@
 package com.cephadex.ambi.media.gallery.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.media.AppImage;
 
 import jakarta.validation.Valid;
@@ -18,5 +19,5 @@ import jakarta.validation.constraints.Size;
  */
 public record AddImageRequest(
         @NotNull @Valid AppImage image,
-        @Size(max = 200) String name) {
+        @Size(max = ValidationConstants.NAME_MAX) String name) {
 }

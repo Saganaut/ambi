@@ -1,5 +1,7 @@
 package com.cephadex.ambi.media.gallery.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -10,5 +12,5 @@ import jakarta.validation.constraints.Size;
  * @param name the new display name
  */
 public record RenameGalleryRequest(
-        @NotBlank @Size(max = 200) String name) {
+        @NotBlank @Size(max = ValidationConstants.NAME_MAX) String name) {
 }

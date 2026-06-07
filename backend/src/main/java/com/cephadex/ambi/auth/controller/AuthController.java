@@ -22,6 +22,7 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.auth.service.AuthService;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
+import com.cephadex.ambi.common.validation.ValidationConstants;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,8 +74,8 @@ public class AuthController {
     public UsernameAvailabilityResponse usernameAvailable(
             @RequestParam
             @NotBlank
-            @Size(min = 3, max = 30)
-            @Pattern(regexp = "[A-Za-z0-9._-]+",
+            @Size(min = ValidationConstants.USERNAME_MIN, max = ValidationConstants.USERNAME_MAX)
+            @Pattern(regexp = ValidationConstants.USERNAME_PATTERN,
                     message = "may only contain letters, digits, '.', '_' or '-'")
             String username) {
         return new UsernameAvailabilityResponse(username, authService.isUsernameAvailable(username));
