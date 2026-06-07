@@ -25,7 +25,10 @@ import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
+import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
+import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.user.UserService;
@@ -49,10 +52,48 @@ class DeckServiceTest {
     void setUp() {
         deckRepository = mock(DeckRepository.class);
         userService = mock(UserService.class);
-        deckService = new DeckService(deckRepository, userService, new SlideRankService());
+        deckService = new DeckService(deckRepository, userService, new SlideRankService(),
+                new DeckDefaultsProperties());
         owner = principal("owner-1");
         // Echo back whatever the service saves — tests inspect the in-flight deck.
         when(deckRepository.save(any(Deck.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    // ── Create ─────────────────────────────────────────────────────────────────
+
+    @Test
+    void createAppliesDefaultSettingsAndMetadata() {
+        Deck created = deckService.create("deck-1", owner);
+
+        // The previously-missing piece: a new deck is no longer settings-null.
+        assertThat(created.getSettings()).isNotNull()
+                .isEqualTo(new DeckDefaultsProperties().deckSettings());
+        assertThat(created.getName()).isEqualTo("Untitled Deck");
+        assertThat(created.getLanguage()).isEqualTo("en");
+        // Safety invariants stay PRIVATE + DRAFT (not config-driven).
+        assertThat(created.getVisibility()).isEqualTo(DeckVisibility.PRIVATE);
+        assertThat(created.getPublishStatus()).isEqualTo(PublishStatus.DRAFT);
+        verify(deckRepository).save(created);
+    }
+
+    @Test
+    void createHonorsConfiguredDefaults() {
+        // Prove the tunable defaults flow through create(): override the config and
+        // the new deck reflects it.
+        DeckDefaultsProperties props = new DeckDefaultsProperties();
+        props.setName("Custom Start");
+        props.setLanguage("fr");
+        props.getAnswer().setCountdownTime(45);
+        props.getPoints().setPoints(500);
+        DeckService service = new DeckService(deckRepository, userService,
+                new SlideRankService(), props);
+
+        Deck created = service.create("deck-1", owner);
+
+        assertThat(created.getName()).isEqualTo("Custom Start");
+        assertThat(created.getLanguage()).isEqualTo("fr");
+        assertThat(created.getSettings().answerSettings().countdownTime()).isEqualTo(45);
+        assertThat(created.getSettings().pointSettings().points()).isEqualTo(500);
     }
 
     @Test
@@ -80,13 +121,14 @@ class DeckServiceTest {
     }
 
     @Test
-    void moveSlidePersistsAndReturnsDeck() {
+    void moveSlidePersistsAndReturnsReorderedSlides() {
         Deck deck = keyedDeck("owner-1", "s1", "s2", "s3");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
 
-        Deck result = deckService.moveSlide("deck-1", "s3", 0, owner);
+        List<Slide> result = deckService.moveSlide("deck-1", "s3", 0, owner);
 
-        assertThat(orderedIds(result)).containsExactly("s3", "s1", "s2");
+        assertThat(result.stream().map(Slide::getId).toList())
+                .containsExactly("s3", "s1", "s2");
         verify(deckRepository).save(deck);
     }
 
@@ -463,7 +505,7 @@ class DeckServiceTest {
     }
 
     private static Settings.AnswerSettings answerSettings(int countdownTime) {
-        return new Settings.AnswerSettings(false, false, false, false, countdownTime);
+        return new Settings.AnswerSettings(false, false, false, false, countdownTime, false, 1);
     }
 
     private static List<String> orderedIds(Deck deck) {

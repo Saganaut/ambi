@@ -232,10 +232,11 @@ Ambi.enhanceEndpoints({
       },
     },
     moveSlide: {
-      // The slide order is read back from listSlides, so invalidating the Slide
-      // tag is what reconciles the move. (moveSlide also returns a DeckResponse
-      // for the version bump, but the editor reads order from the slide list.)
-      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      // No invalidation: moveSlide returns the deck's slides in their new
+      // canonical order (with the server-owned LexoRank `sortOrder` keys), so we
+      // reconcile by writing that response straight into listSlides — no extra
+      // GET /slides round-trip per drag. The optimistic patch below reorders the
+      // rail instantly; the response then lands the authoritative order + keys.
       onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
         const patch = dispatch(
           Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
@@ -250,7 +251,10 @@ Ambi.enhanceEndpoints({
           }),
         );
         try {
-          await queryFulfilled;
+          const { data } = await queryFulfilled;
+          dispatch(
+            Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, () => data),
+          );
         } catch {
           patch.undo();
         }

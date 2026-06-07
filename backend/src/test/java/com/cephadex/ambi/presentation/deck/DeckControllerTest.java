@@ -488,16 +488,17 @@ class DeckControllerTest {
     }
 
     @Test
-    void moveDelegatesToServiceAndReturnsDeck() throws Exception {
+    void moveDelegatesToServiceAndReturnsReorderedSlides() throws Exception {
         when(deckService.moveSlide(eq("deck-1"), eq("s1"), eq(2), any()))
-                .thenReturn(deck("deck-1"));
+                .thenReturn(List.of(slide("s2"), slide("s3"), slide("s1")));
 
         mockMvc.perform(patch("/api/decks/deck-1/slides/s1/move")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"to\":2}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"))
-                .andExpect(jsonPath("$.slides").doesNotExist());
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].id").value("s2"))
+                .andExpect(jsonPath("$[2].id").value("s1"));
 
         verify(deckService).moveSlide(eq("deck-1"), eq("s1"), eq(2), any());
     }

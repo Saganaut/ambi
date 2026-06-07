@@ -615,7 +615,7 @@ export type RenameGalleryApiArg = {
   id: string;
   renameGalleryRequest: RenameGalleryRequest;
 };
-export type MoveSlideApiResponse = /** status 200 OK */ DeckResponse;
+export type MoveSlideApiResponse = /** status 200 OK */ SlideResponse[];
 export type MoveSlideApiArg = {
   id: string;
   slideId: string;

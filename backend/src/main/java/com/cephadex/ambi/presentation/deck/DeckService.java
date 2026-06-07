@@ -22,6 +22,7 @@ import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
+import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
@@ -45,26 +46,33 @@ public class DeckService {
     private final DeckRepository deckRepository;
     private final UserService userService;
     private final SlideRankService rankService;
+    private final DeckDefaultsProperties deckDefaults;
 
     public DeckService(DeckRepository deckRepository, UserService userService,
-            SlideRankService rankService) {
+            SlideRankService rankService, DeckDefaultsProperties deckDefaults) {
         this.deckRepository = deckRepository;
         this.userService = userService;
         this.rankService = rankService;
+        this.deckDefaults = deckDefaults;
     }
 
     // ── Create ──────────────────────────────────────────────────────────────
 
     /**
      * Optimistic creation: the client mints the deck's UUID and we persist a
-     * fresh personal deck owned by the caller, with the aggregate's field
-     * defaults (name, {@code PRIVATE} visibility, {@code DRAFT} status, …).
+     * fresh personal deck owned by the caller. Tunable defaults (name, language,
+     * full {@code DeckSettings}) come from {@link DeckDefaultsProperties}; the
+     * safety-invariant {@code PRIVATE} visibility / {@code DRAFT} status are the
+     * aggregate's own field defaults.
      */
     public Deck create(String id, AmbiPrincipal principal) {
         String userId = requireUserId(principal);
 
         Deck deck = new Deck();
         deck.setId(id);
+        deck.setName(deckDefaults.getName());
+        deck.setLanguage(deckDefaults.getLanguage());
+        deck.setSettings(deckDefaults.deckSettings());
         deck.setOwnership(new Ownership(OwnershipType.USER, userId));
         deck.setCreatorUserId(userId);
         deck.setOriginalAuthorUserId(userId);
@@ -188,10 +196,11 @@ public class DeckService {
 
     /**
      * Move a slide to {@code toIndex} in the deck's order (EDIT). Only the moved
-     * slide's {@code sortOrder} is rewritten; returns the full deck so the caller
-     * can echo the canonical {@link DeckResponse} back to the client.
+     * slide's {@code sortOrder} is rewritten; returns the deck's slides in their
+     * new canonical order so the caller can patch its slide cache from the
+     * response — no reconciling re-fetch of {@code GET /slides} needed.
      */
-    public Deck moveSlide(String deckId, String slideId, int toIndex, AmbiPrincipal principal) {
+    public List<Slide> moveSlide(String deckId, String slideId, int toIndex, AmbiPrincipal principal) {
         Deck deck = getEditable(deckId, principal);
         Slide slide = deck.findSlide(slideId)
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
@@ -200,7 +209,10 @@ public class DeckService {
         deck.reorderSlide(slideId, toIndex, rankService);
         slide.setLastEditedByUserId(principal.userId());
 
-        return deckRepository.save(deck);
+        deckRepository.save(deck);
+        return deck.getSlides().stream()
+                .sorted(SlideRankService.ordering())
+                .toList();
     }
 
     /** Remove a slide from a deck (EDIT). */

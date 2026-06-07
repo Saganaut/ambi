@@ -253,17 +253,19 @@ public class DeckController {
     /**
      * Move a slide to a new position in the deck's order (EDIT). The body carries
      * the target index; the backend rewrites only that slide's {@code sortOrder}.
-     * Returns the canonical {@link DeckResponse} (metadata only) like every other
-     * deck mutation, so the client can sync its deck cache; the reordered slides
-     * are read back via {@code GET /slides}.
+     * Returns the deck's slides in their new canonical order so the client can
+     * patch its slide cache straight from the response, with no follow-up
+     * {@code GET /slides} re-fetch.
      */
     @PatchMapping("/{id}/slides/{slideId}/move")
-    public DeckResponse moveSlide(
+    public List<SlideResponse> moveSlide(
             @PathVariable String id,
             @PathVariable String slideId,
             @Valid @RequestBody MoveSlideRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return toResponse(deckService.moveSlide(id, slideId, body.to(), principal), principal);
+        return deckService.moveSlide(id, slideId, body.to(), principal).stream()
+                .map(SlideResponse::from)
+                .toList();
     }
 
     /** Remove a slide from a deck (EDIT). */
