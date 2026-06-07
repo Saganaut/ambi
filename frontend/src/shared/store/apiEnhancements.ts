@@ -5,12 +5,13 @@
  * (decks, collections, favorites, …).
  *
  * Two strategies live here. Most surfaces (favorites, ratings, comments,
- * collections, …) splice the canonical mutation response into the relevant
- * query cache so subscribed components re-render without a refetch. The
- * deck + slide editor surfaces instead use tag invalidation (`providesTags`
- * / `invalidatesTags`) with an optimistic `onQueryStarted` patch: the edit
- * shows instantly, then a tag-driven refetch reconciles against server truth
+ * collections, slides, …) splice the canonical mutation response into the
+ * relevant query cache so subscribed components re-render without a refetch:
+ * the slide editor optimistically patches `listDeckSlides` in `onQueryStarted`,
+ * then folds each mutation's response back into the cache to land server truth
  * (LexoRank `sortOrder`, `version`, audit ids) — see `./enhancements/slide`.
+ * The remaining deck surfaces still lean on tag invalidation (`providesTags`
+ * / `invalidatesTags`) where a refetch is the simpler reconcile.
  *
  * This file is imported for its side effect from `store.ts`; do not remove
  * the import there or these mutations will silently fall out of sync. The
