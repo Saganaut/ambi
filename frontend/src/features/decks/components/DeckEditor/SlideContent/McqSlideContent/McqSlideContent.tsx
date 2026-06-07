@@ -79,6 +79,8 @@ const McqSlideContent = () => {
   const options = question.options;
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
+  console.log("Mcq Slide", { question, options });
+
   return (
     <SlideContentWrapper
       footer={
@@ -92,8 +94,6 @@ const McqSlideContent = () => {
           id={`mcq-prompt-${question.id}`}
           placeholder='Type your question…'
           value={prompt}
-          // minPx={11}
-          // maxPx={40}
           className={styles.titleField}
           onChange={(html) => {
             setPrompt(html);

@@ -21,6 +21,11 @@ export const validation = {
       "maxLength": 64
     }
   },
+  "CommentBodyRequest": {
+    "body": {
+      "maxLength": 4000
+    }
+  },
   "CreateThemeRequest": {
     "name": {
       "maxLength": 200

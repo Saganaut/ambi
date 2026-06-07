@@ -53,4 +53,8 @@ public final class ValidationConstants {
 
     /** Lowest valid zero-based slide position in a move request. */
     public static final int SLIDE_INDEX_MIN = 0;
+
+    // ── Comments ─────────────────────────────────────────────────────────────
+    /** Body length cap for a deck-discussion comment (top-level or reply). */
+    public static final int COMMENT_BODY_MAX = 4000;
 }

@@ -17,7 +17,7 @@ interface NewSlideModalProps {
 }
 
 const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
-  TITLE: "Slide",
+  TITLE: "Title",
   MCQ: "Multiple Choice",
   TEXT: "Text Answer",
   NUMBER: "Number Answer",

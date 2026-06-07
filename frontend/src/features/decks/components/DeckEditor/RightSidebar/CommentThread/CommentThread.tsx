@@ -1,226 +1,172 @@
-// Threaded comment list. Renders a flat row per top-level comment with a
-// "Show N replies" affordance underneath; replies expand inline on demand.
-// TODO: Wire useListRepliesQuery and DeckCommentResponse once comment APIs
-// are available in AmbiApi. Placeholder types are used in the interim.
+// A single slide-discussion thread: an opening comment plus a flat list of
+// replies, all tied to one slide. The whole thread is collapsible (chevron in
+// the header → a one-line summary). An open thread can be replied to and
+// resolved; a resolved thread shows a badge and can be reopened. Soft-deleted
+// comments keep their row with a redacted body so the conversation stays intact.
 import { useState } from "react";
-
-// TODO: Remove once DeckCommentResponse is available from @store/AmbiApi.
-interface DeckCommentAuthor {
-  userId?: string;
-  name?: string;
-  pictureUrl?: string;
-}
-interface DeckCommentResponse {
-  id?: string;
-  body?: string;
-  author?: DeckCommentAuthor;
-  parentCommentId?: string;
-  upvotes?: number;
-  upvotedByMe?: boolean;
-  replyCount?: number;
-  edited?: boolean;
-  deleted?: boolean;
-}
 import {
   ArrowUturnLeftIcon,
+  CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   PencilIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { HandThumbUpIcon as ThumbOutline } from "@heroicons/react/24/outline";
-import { HandThumbUpIcon as ThumbSolid } from "@heroicons/react/24/solid";
+import type { CommentResponse, CommentThreadResponse } from "@store/AmbiApi";
 import { Btn } from "@ui/Buttons/Btn";
 import { resolveAvatarSrc } from "@utils/avatarUrl";
 import styles from "./CommentThread.module.css";
 
+type ThreadStatus = CommentThreadResponse["status"];
+
 interface CommentThreadProps {
-  deckId: string;
-  items: DeckCommentResponse[];
+  thread: CommentThreadResponse;
   currentUserId: string | null;
   canInteract: boolean;
-  onToggleUpvote: (commentId: string) => void;
-  onReply: (parentCommentId: string, body: string) => Promise<void> | void;
-  onEdit: (commentId: string, body: string) => Promise<void> | void;
-  onDelete: (commentId: string) => Promise<void> | void;
+  onReply: (threadId: string, body: string) => Promise<void> | void;
+  onEdit: (threadId: string, commentId: string, body: string) => Promise<void> | void;
+  onDelete: (threadId: string, commentId: string) => Promise<void> | void;
+  onSetStatus: (threadId: string, status: ThreadStatus) => Promise<void> | void;
 }
 
 const CommentThread = ({
-  deckId,
-  items,
+  thread,
   currentUserId,
   canInteract,
-  onToggleUpvote,
   onReply,
   onEdit,
   onDelete,
+  onSetStatus,
 }: CommentThreadProps) => {
-  return (
-    <ul className={styles.thread}>
-      {items.map((comment) => (
-        <CommentNode
-          key={comment.id}
-          deckId={deckId}
-          comment={comment}
-          currentUserId={currentUserId}
-          canInteract={canInteract}
-          onToggleUpvote={onToggleUpvote}
-          onReply={onReply}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ))}
-    </ul>
-  );
-};
-
-interface CommentNodeProps {
-  deckId: string;
-  comment: DeckCommentResponse;
-  currentUserId: string | null;
-  canInteract: boolean;
-  onToggleUpvote: (commentId: string) => void;
-  onReply: (parentCommentId: string, body: string) => Promise<void> | void;
-  onEdit: (commentId: string, body: string) => Promise<void> | void;
-  onDelete: (commentId: string) => Promise<void> | void;
-}
-
-const CommentNode = ({
-  deckId,
-  comment,
-  currentUserId,
-  canInteract,
-  onToggleUpvote,
-  onReply,
-  onEdit,
-  onDelete,
-}: CommentNodeProps) => {
-  const [showReplies, setShowReplies] = useState(false);
+  const resolved = thread.status === "RESOLVED";
+  // Resolved threads start collapsed (out of the way); open ones start expanded.
+  const [collapsed, setCollapsed] = useState(resolved);
   const [showReplyBox, setShowReplyBox] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const replyCount = comment.replyCount ?? 0;
-  const isAuthor = currentUserId === comment.author?.userId;
+  const opener = thread.comments[0];
+  const count = thread.comments.length;
 
   return (
-    <li className={styles.item}>
-      <CommentBody
-        comment={comment}
-        canInteract={canInteract}
-        isAuthor={isAuthor}
-        editing={editing}
-        onToggleUpvote={() => {
-          onToggleUpvote(comment.id ?? "");
-        }}
-        onReplyClick={() => {
-          setShowReplyBox((prev) => !prev);
-        }}
-        onEditStart={() => {
-          setEditing(true);
-        }}
-        onEditCancel={() => {
-          setEditing(false);
-        }}
-        onEditSubmit={(body) => {
-          void Promise.resolve(onEdit(comment.id ?? "", body)).then(() => {
-            setEditing(false);
-          });
-        }}
-        onDelete={() => {
-          void onDelete(comment.id ?? "");
-        }}
-      />
-
-      {showReplyBox && canInteract && (
-        <CommentEditor
-          placeholder='Write a reply…'
-          onCancel={() => {
-            setShowReplyBox(false);
-          }}
-          onSubmit={(body) => {
-            void Promise.resolve(onReply(comment.id ?? "", body)).then(() => {
-              setShowReplyBox(false);
-              setShowReplies(true);
-            });
-          }}
-        />
-      )}
-
-      {replyCount > 0 && (
+    <li
+      className={[styles.thread, resolved && styles.threadResolved]
+        .filter(Boolean)
+        .join(" ")}>
+      <header className={styles.threadHead}>
         <button
           type='button'
-          className={styles.toggleReplies}
+          className={styles.collapseToggle}
           onClick={() => {
-            setShowReplies((prev) => !prev);
-          }}>
-          {showReplies
-            ? "Hide replies"
-            : `Show ${String(replyCount)} ${
-                replyCount === 1 ? "reply" : "replies"
-              }`}
+            setCollapsed((prev) => !prev);
+          }}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand thread" : "Collapse thread"}>
+          {collapsed ? (
+            <ChevronRightIcon className={styles.collapseIcon} />
+          ) : (
+            <ChevronDownIcon className={styles.collapseIcon} />
+          )}
         </button>
-      )}
+        <span className={styles.threadAuthor}>
+          {opener?.author.name ?? "Thread"}
+        </span>
+        {resolved && <span className={styles.resolvedBadge}>Resolved</span>}
+        {collapsed && (
+          <span className={styles.threadMeta}>
+            {count} {count === 1 ? "comment" : "comments"}
+          </span>
+        )}
+      </header>
 
-      {showReplies && (
-        <RepliesList
-          deckId={deckId}
-          parentCommentId={comment.id ?? ""}
-          currentUserId={currentUserId}
-          canInteract={canInteract}
-          onToggleUpvote={onToggleUpvote}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+      {!collapsed && (
+        <div className={styles.threadBody}>
+          <ul className={styles.comments}>
+            {thread.comments.map((comment) => (
+              <CommentRow
+                key={comment.id}
+                comment={comment}
+                isAuthor={currentUserId === comment.author.userId}
+                canInteract={canInteract}
+                onEdit={(body) => onEdit(thread.id, comment.id, body)}
+                onDelete={() => onDelete(thread.id, comment.id)}
+              />
+            ))}
+          </ul>
+
+          <div className={styles.threadActions}>
+            {canInteract && !resolved && !showReplyBox && (
+              <Btn
+                size='sm'
+                shape='pill'
+                fill='ghost'
+                icon={<ArrowUturnLeftIcon className={styles.actionIcon} />}
+                onClick={() => {
+                  setShowReplyBox(true);
+                }}>
+                Reply
+              </Btn>
+            )}
+            {canInteract && (
+              <Btn
+                size='sm'
+                shape='pill'
+                fill='ghost'
+                icon={<CheckCircleIcon className={styles.actionIcon} />}
+                onClick={() => {
+                  void onSetStatus(thread.id, resolved ? "OPEN" : "RESOLVED");
+                }}>
+                {resolved ? "Reopen" : "Resolve"}
+              </Btn>
+            )}
+          </div>
+
+          {canInteract && !resolved && showReplyBox && (
+            <CommentEditor
+              placeholder='Write a reply…'
+              onCancel={() => {
+                setShowReplyBox(false);
+              }}
+              onSubmit={(body) => {
+                void Promise.resolve(onReply(thread.id, body)).then(() => {
+                  setShowReplyBox(false);
+                });
+              }}
+            />
+          )}
+        </div>
       )}
     </li>
   );
 };
 
-interface CommentBodyProps {
-  comment: DeckCommentResponse;
-  canInteract: boolean;
+interface CommentRowProps {
+  comment: CommentResponse;
   isAuthor: boolean;
-  editing: boolean;
-  onToggleUpvote: () => void;
-  onReplyClick: () => void;
-  onEditStart: () => void;
-  onEditCancel: () => void;
-  onEditSubmit: (body: string) => void;
-  onDelete: () => void;
+  canInteract: boolean;
+  onEdit: (body: string) => Promise<void> | void;
+  onDelete: () => Promise<void> | void;
 }
 
-const CommentBody = ({
+const CommentRow = ({
   comment,
-  canInteract,
   isAuthor,
-  editing,
-  onToggleUpvote,
-  onReplyClick,
-  onEditStart,
-  onEditCancel,
-  onEditSubmit,
+  canInteract,
+  onEdit,
   onDelete,
-}: CommentBodyProps) => {
-  const ThumbIcon = comment.upvotedByMe ? ThumbSolid : ThumbOutline;
-  const upvotes = comment.upvotes ?? 0;
-  const isReply = comment.parentCommentId != null;
-  const isDeleted = comment.deleted ?? false;
+}: CommentRowProps) => {
+  const [editing, setEditing] = useState(false);
+  const isDeleted = comment.deleted;
 
   return (
-    <article
-      className={[styles.comment, isReply && styles.reply]
-        .filter(Boolean)
-        .join(" ")}>
-      <header className={styles.header}>
-        {comment.author?.pictureUrl != null &&
-          comment.author.pictureUrl !== "" && (
-            <img
-              src={resolveAvatarSrc(comment.author.pictureUrl)}
-              alt=''
-              className={styles.avatar}
-            />
-          )}
-        <span className={styles.author}>
-          {comment.author?.name ?? "Anonymous"}
-        </span>
-        {comment.edited === true && !isDeleted && (
+    <li className={styles.comment}>
+      <header className={styles.commentHead}>
+        {comment.author.pictureUrl != null && comment.author.pictureUrl !== "" && (
+          <img
+            src={resolveAvatarSrc(comment.author.pictureUrl)}
+            alt=''
+            className={styles.avatar}
+          />
+        )}
+        <span className={styles.commentAuthor}>{comment.author.name}</span>
+        {comment.edited && !isDeleted && (
           <span className={styles.editedTag}>edited</span>
         )}
       </header>
@@ -229,157 +175,46 @@ const CommentBody = ({
         <CommentEditor
           initialValue={comment.body ?? ""}
           submitLabel='Save'
-          onCancel={onEditCancel}
-          onSubmit={onEditSubmit}
+          onCancel={() => {
+            setEditing(false);
+          }}
+          onSubmit={(body) => {
+            void Promise.resolve(onEdit(body)).then(() => {
+              setEditing(false);
+            });
+          }}
         />
       ) : (
         <p
-          className={[styles.body, isDeleted && styles.bodyDeleted]
+          className={[styles.commentBody, isDeleted && styles.commentBodyDeleted]
             .filter(Boolean)
             .join(" ")}>
-          {comment.body}
+          {isDeleted ? "[comment deleted]" : comment.body}
         </p>
       )}
 
-      {!editing && (
-        <footer className={styles.footer}>
+      {!editing && canInteract && isAuthor && !isDeleted && (
+        <div className={styles.commentActions}>
           <button
             type='button'
-            className={[
-              styles.upvote,
-              comment.upvotedByMe === true && styles.upvoteActive,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={onToggleUpvote}
-            disabled={!canInteract || isDeleted}
-            aria-pressed={comment.upvotedByMe ?? false}
-            aria-label={comment.upvotedByMe ? "Remove upvote" : "Upvote"}>
-            <ThumbIcon className={styles.upvoteIcon} />
-            <span className={styles.upvoteCount}>{upvotes}</span>
+            className={styles.actionBtn}
+            onClick={() => {
+              setEditing(true);
+            }}>
+            <PencilIcon className={styles.actionIcon} />
+            <span>Edit</span>
           </button>
-          {canInteract && !isDeleted && !isReply && (
-            <button
-              type='button'
-              className={styles.actionBtn}
-              onClick={onReplyClick}>
-              <ArrowUturnLeftIcon className={styles.actionIcon} />
-              <span>Reply</span>
-            </button>
-          )}
-          {canInteract && isAuthor && !isDeleted && (
-            <>
-              <button
-                type='button'
-                className={styles.actionBtn}
-                onClick={onEditStart}>
-                <PencilIcon className={styles.actionIcon} />
-                <span>Edit</span>
-              </button>
-              <button
-                type='button'
-                className={styles.actionBtn}
-                onClick={onDelete}>
-                <TrashIcon className={styles.actionIcon} />
-                <span>Delete</span>
-              </button>
-            </>
-          )}
-        </footer>
+          <button
+            type='button'
+            className={styles.actionBtn}
+            onClick={() => {
+              void onDelete();
+            }}>
+            <TrashIcon className={styles.actionIcon} />
+            <span>Delete</span>
+          </button>
+        </div>
       )}
-    </article>
-  );
-};
-
-interface RepliesListProps {
-  deckId: string;
-  parentCommentId: string;
-  currentUserId: string | null;
-  canInteract: boolean;
-  onToggleUpvote: (commentId: string) => void;
-  onEdit: (commentId: string, body: string) => Promise<void> | void;
-  onDelete: (commentId: string) => Promise<void> | void;
-}
-
-const RepliesList = ({
-  deckId: _deckId,
-  parentCommentId: _parentCommentId,
-  currentUserId,
-  canInteract,
-  onToggleUpvote,
-  onEdit,
-  onDelete,
-}: RepliesListProps) => {
-  // TODO: Replace with useListRepliesQuery once comment reply APIs are available.
-  const items: DeckCommentResponse[] = [];
-
-  if (items.length === 0) return null;
-
-  return (
-    <ul className={styles.repliesList}>
-      {items.map((reply) => (
-        <ReplyItem
-          key={reply.id}
-          reply={reply}
-          currentUserId={currentUserId}
-          canInteract={canInteract}
-          onToggleUpvote={onToggleUpvote}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ))}
-    </ul>
-  );
-};
-
-interface ReplyItemProps {
-  reply: DeckCommentResponse;
-  currentUserId: string | null;
-  canInteract: boolean;
-  onToggleUpvote: (commentId: string) => void;
-  onEdit: (commentId: string, body: string) => Promise<void> | void;
-  onDelete: (commentId: string) => Promise<void> | void;
-}
-
-const ReplyItem = ({
-  reply,
-  currentUserId,
-  canInteract,
-  onToggleUpvote,
-  onEdit,
-  onDelete,
-}: ReplyItemProps) => {
-  const [editing, setEditing] = useState(false);
-
-  return (
-    <li className={styles.replyItem}>
-      <CommentBody
-        comment={reply}
-        canInteract={canInteract}
-        isAuthor={currentUserId === reply.author?.userId}
-        editing={editing}
-        onToggleUpvote={() => {
-          onToggleUpvote(reply.id ?? "");
-        }}
-        onReplyClick={() => {
-          // No-op: replies of replies are not allowed by the API and the
-          // CommentBody hides the reply button when `isReply` is true.
-        }}
-        onEditStart={() => {
-          setEditing(true);
-        }}
-        onEditCancel={() => {
-          setEditing(false);
-        }}
-        onEditSubmit={(body) => {
-          void Promise.resolve(onEdit(reply.id ?? "", body)).then(() => {
-            setEditing(false);
-          });
-        }}
-        onDelete={() => {
-          void onDelete(reply.id ?? "");
-        }}
-      />
     </li>
   );
 };

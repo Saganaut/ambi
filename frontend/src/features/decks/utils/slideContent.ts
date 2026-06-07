@@ -13,7 +13,7 @@
  * slide and its settings — so they are absent here entirely.
  */
 import type { McqOption, SlideContent } from "@store/AmbiApi";
-
+import { nanoid } from "nanoid";
 type SlideType = NonNullable<SlideContent["contentType"]>;
 
 const assertNever = (slideType: never): never => {
@@ -43,7 +43,7 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "MCQ":
       return {
         contentType: "MCQ",
-        options: [],
+        options: [buildDefaultMcqOption(), buildDefaultMcqOption()], // Start with 2 options, the minimum for a valid MCQ.
         correctOptionIds: [],
       };
     case "TEXT":
@@ -127,7 +127,11 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
       // A real follow-up slide also needs `parentSlideId` set to its parent
       // slide; the picker never creates FOLLOW_UP standalone, so a blank
       // submission option is enough for the placeholder.
-      return { contentType: "FOLLOW_UP", submissionOption: {} };
+      return {
+        contentType: "FOLLOW_UP",
+        submissionOption: {},
+        parentSlideId: "",
+      };
     default:
       return assertNever(slideType);
   }
@@ -140,7 +144,7 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
  * defaults to a plain text option the author then fills in.
  */
 export const buildDefaultMcqOption = (): McqOption => ({
-  id: { value: crypto.randomUUID() },
+  id: nanoid(8),
   optionType: "TEXT",
-  text: "",
+  text: "Untitled Option",
 });

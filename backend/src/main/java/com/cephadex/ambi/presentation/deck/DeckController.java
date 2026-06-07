@@ -25,7 +25,7 @@ import com.cephadex.ambi.presentation.deck.dto.AnswerSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.dto.MoveSlideRequest;
 import com.cephadex.ambi.presentation.deck.dto.PointSettingsResponse;
-import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest;
+import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest                 ;
 import com.cephadex.ambi.presentation.deck.dto.SetImageRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetPointSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetTagsRequest;

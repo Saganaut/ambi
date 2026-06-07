@@ -21,18 +21,33 @@ import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/Drawing
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
 import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
 import { useSlide } from "../../../hooks/useSlide";
+import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
+import React from "react";
+import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const SlideDisplay = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
-
+  const { slides } = useDeckEditor(deckId);
   const { getSlide } = useSlide(deckId);
 
-  if (slideId == null) return <p>No slide found</p>;
+  const slide = slideId ? getSlide(slideId) : slides[0];
+  const navigate = routeApi.useNavigate();
 
-  const slide = getSlide(slideId);
+  // useEffect justification: If there's no slideId in the URL, but there are slides in the deck
+  // Load that slide id so it can be picked up by the rest of the component.
+  React.useEffect(() => {
+    if (!slideId && slides && slides.length > 0) {
+      navigate({
+        search: { slideId: slides[0].id },
+        replace: true,
+      });
+    }
+  }, [slideId, slides, navigate]);
+
+  if (slideId == null) return <Loader />;
 
   if (slide == null) return <p> Error </p>;
   console.log("slide", slide);
@@ -70,7 +85,6 @@ const SlideDisplay = () => {
         return <div>No slide selected</div>;
     }
   };
-  console.log("slide", slide);
   return (
     <div
       className={styles.slideDisplay}

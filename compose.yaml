@@ -1,6 +1,8 @@
 services:
   mongodb:
-    image: "mongo:latest"
+    # Pinned to 7.0 (LTS): mongo:latest (8.x) segfaults during index builds on
+    # this host's 6.x kernel (SIGSEGV / exit 139). 7.0 is stable here.
+    image: "mongo:7.0"
     environment:
       - "MONGO_INITDB_DATABASE=ambi"
       - "MONGO_INITDB_ROOT_PASSWORD=secret"
@@ -51,7 +53,10 @@ services:
       - mongodb
     restart: unless-stopped
   localstack:
-    image: localstack/localstack:latest
+    # Pinned to 4.x (community): localstack/localstack:latest now resolves to a
+    # build that hard-fails on startup without a LOCALSTACK_AUTH_TOKEN (Pro
+    # license). 4.x community supports cloudwatch + logs with no token.
+    image: localstack/localstack:4
     container_name: ambi-localstack
     ports:
       - "4566:4566" # edge port — all emulated AWS service APIs

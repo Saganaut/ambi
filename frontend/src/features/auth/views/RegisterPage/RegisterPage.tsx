@@ -1,7 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useMeQuery } from "@store/AmbiApi";
 import { RegistrationForm } from "@auth/components/RegistrationForm/RegistrationForm";
-import { error } from "console";
 
 const routeApi = getRouteApi("/register");
 
@@ -12,7 +11,7 @@ const RegisterPage = () => {
   const { data: me } = useMeQuery();
 
   if (me?.state === "VISITOR" || me?.state === "GUEST")
-    throw error("Need to go through pre-registration");
+    throw new Error("Need to go through pre-registration");
   return (
     <div>
       <RegistrationForm
