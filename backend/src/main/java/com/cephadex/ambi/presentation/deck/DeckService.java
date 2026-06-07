@@ -1,8 +1,10 @@
 package com.cephadex.ambi.presentation.deck;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -62,7 +64,7 @@ public class DeckService {
 
         Deck deck = new Deck();
         deck.setId(id);
-        deck.setOwnership(new DeckOwnership(OwnershipType.USER, userId));
+        deck.setOwnership(new Ownership(OwnershipType.USER, userId));
         deck.setCreatorUserId(userId);
         deck.setOriginalAuthorUserId(userId);
         deck.setPublicId(UUID.randomUUID().toString());
@@ -92,7 +94,8 @@ public class DeckService {
      * Replace the editable content/metadata of a deck (EDIT capability).
      * Cover and background images are intentionally untouched — they have a
      * single owner in the image methods below, so existing images survive a
-     * metadata edit. Ownership, visibility, ACL and identifiers are likewise
+     * metadata edit. Tags are likewise untouched; they have a single owner in
+     * {@link #setTags}. Ownership, visibility, ACL and identifiers are also
      * untouched; those flow through the MANAGE-gated methods.
      */
     public Deck update(String id, Deck changes, AmbiPrincipal principal) {
@@ -103,9 +106,19 @@ public class DeckService {
         deck.setThemeId(changes.getThemeId());
         deck.setLanguage(changes.getLanguage());
         deck.setSettings(changes.getSettings());
-        deck.setTags(changes.getTags());
         applyPublishStatus(deck, changes.getPublishStatus());
 
+        return deckRepository.save(deck);
+    }
+
+    /**
+     * Replace a deck's tag set (EDIT capability). Like the image methods, tags
+     * have a single owner here so a metadata edit can never clobber them; the
+     * submitted set fully replaces the current tags.
+     */
+    public Deck setTags(String id, Set<String> tags, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setTags(new LinkedHashSet<>(tags));
         return deckRepository.save(deck);
     }
 
@@ -227,22 +240,22 @@ public class DeckService {
 
     /** Set a slide's cover image (EDIT). */
     public Slide setSlideCoverImage(String deckId, String slideId, AppImage image, AmbiPrincipal principal) {
-        return applySlideImage(deckId, slideId, principal, slide -> slide.setCoverImage(image));
+        return applySlideMutation(deckId, slideId, principal, slide -> slide.setCoverImage(image));
     }
 
     /** Clear a slide's cover image (EDIT). */
     public Slide clearSlideCoverImage(String deckId, String slideId, AmbiPrincipal principal) {
-        return applySlideImage(deckId, slideId, principal, slide -> slide.setCoverImage(null));
+        return applySlideMutation(deckId, slideId, principal, slide -> slide.setCoverImage(null));
     }
 
     /** Set a slide's background image (EDIT). */
     public Slide setSlideBackgroundImage(String deckId, String slideId, AppImage image, AmbiPrincipal principal) {
-        return applySlideImage(deckId, slideId, principal, slide -> slide.setBackgroundImage(image));
+        return applySlideMutation(deckId, slideId, principal, slide -> slide.setBackgroundImage(image));
     }
 
     /** Clear a slide's background image (EDIT). */
     public Slide clearSlideBackgroundImage(String deckId, String slideId, AmbiPrincipal principal) {
-        return applySlideImage(deckId, slideId, principal, slide -> slide.setBackgroundImage(null));
+        return applySlideMutation(deckId, slideId, principal, slide -> slide.setBackgroundImage(null));
     }
 
     private Deck applyDeckImage(String id, AmbiPrincipal principal, Consumer<Deck> mutation) {
@@ -251,7 +264,64 @@ public class DeckService {
         return deckRepository.save(deck);
     }
 
-    private Slide applySlideImage(String deckId, String slideId, AmbiPrincipal principal,
+    // ── Slide settings ──────────────────────────────────────────────────────────
+    // A slide carries two independent overrides — point (scoring) and answer
+    // (answering) settings — wrapped in an immutable SlideSettings. Each half has
+    // its own set/clear pair so an edit to one never disturbs the other; clearing a
+    // half lets the deck defaults apply at session time. As with images, the whole
+    // deck is saved (slides are embedded) and the two halves never flow through
+    // updateSlide. When both halves are absent the wrapper itself is dropped to null.
+
+    /** Set a slide's point (scoring) settings, preserving its answer settings (EDIT). */
+    public Slide setSlidePointSettings(String deckId, String slideId,
+            Settings.PointSettings pointSettings, AmbiPrincipal principal) {
+        return applySlideMutation(deckId, slideId, principal,
+                slide -> slide.setSettings(withPointSettings(slide.getSettings(), pointSettings)));
+    }
+
+    /** Clear a slide's point (scoring) settings, preserving its answer settings (EDIT). */
+    public Slide clearSlidePointSettings(String deckId, String slideId, AmbiPrincipal principal) {
+        return applySlideMutation(deckId, slideId, principal,
+                slide -> slide.setSettings(withPointSettings(slide.getSettings(), null)));
+    }
+
+    /** Set a slide's answer (answering) settings, preserving its point settings (EDIT). */
+    public Slide setSlideAnswerSettings(String deckId, String slideId,
+            Settings.AnswerSettings answerSettings, AmbiPrincipal principal) {
+        return applySlideMutation(deckId, slideId, principal,
+                slide -> slide.setSettings(withAnswerSettings(slide.getSettings(), answerSettings)));
+    }
+
+    /** Clear a slide's answer (answering) settings, preserving its point settings (EDIT). */
+    public Slide clearSlideAnswerSettings(String deckId, String slideId, AmbiPrincipal principal) {
+        return applySlideMutation(deckId, slideId, principal,
+                slide -> slide.setSettings(withAnswerSettings(slide.getSettings(), null)));
+    }
+
+    /** Replace the point half of a slide's settings, keeping the existing answer half. */
+    private static Settings.SlideSettings withPointSettings(
+            Settings.SlideSettings current, Settings.PointSettings points) {
+        Settings.AnswerSettings answers = current == null ? null : current.answerSettings();
+        return slideSettings(points, answers);
+    }
+
+    /** Replace the answer half of a slide's settings, keeping the existing point half. */
+    private static Settings.SlideSettings withAnswerSettings(
+            Settings.SlideSettings current, Settings.AnswerSettings answers) {
+        Settings.PointSettings points = current == null ? null : current.pointSettings();
+        return slideSettings(points, answers);
+    }
+
+    /** Collapse an all-absent override back to null so the deck defaults apply cleanly. */
+    private static Settings.SlideSettings slideSettings(
+            Settings.PointSettings points, Settings.AnswerSettings answers) {
+        if (points == null && answers == null) {
+            return null;
+        }
+        return new Settings.SlideSettings(points, answers);
+    }
+
+    private Slide applySlideMutation(String deckId, String slideId, AmbiPrincipal principal,
             Consumer<Slide> mutation) {
         Deck deck = getEditable(deckId, principal);
         Slide slide = deck.findSlide(slideId)

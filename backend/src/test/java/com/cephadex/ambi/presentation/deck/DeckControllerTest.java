@@ -303,6 +303,112 @@ class DeckControllerTest {
         verify(deckService).clearSlideBackgroundImage(eq("deck-1"), eq("s1"), any());
     }
 
+    // ── Slide point settings ──────────────────────────────────────────────────
+
+    @Test
+    void getSlidePointSettingsProjectsOverride() throws Exception {
+        when(deckService.getSlide(eq("deck-1"), eq("s1"), any()))
+                .thenReturn(slideWithSettings("s1", pointSettings(50), null));
+
+        mockMvc.perform(get("/api/decks/deck-1/slides/s1/point-settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slideId").value("s1"))
+                .andExpect(jsonPath("$.pointSettings.points").value(50));
+    }
+
+    @Test
+    void setSlidePointSettingsDelegatesParsedRecord() throws Exception {
+        when(deckService.setSlidePointSettings(eq("deck-1"), eq("s1"),
+                any(Settings.PointSettings.class), any()))
+                .thenReturn(slideWithSettings("s1", pointSettings(75), null));
+
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/point-settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pointSettings\":{\"points\":75}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slideId").value("s1"))
+                .andExpect(jsonPath("$.pointSettings.points").value(75));
+
+        ArgumentCaptor<Settings.PointSettings> sent = ArgumentCaptor.forClass(Settings.PointSettings.class);
+        verify(deckService).setSlidePointSettings(eq("deck-1"), eq("s1"), sent.capture(), any());
+        assertThat(sent.getValue().points()).isEqualTo(75);
+    }
+
+    /** A null body is rejected — clearing is an explicit DELETE, not a null PUT. */
+    @Test
+    void setSlidePointSettingsRejectsMissingBody() throws Exception {
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/point-settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void clearSlidePointSettingsDelegates() throws Exception {
+        when(deckService.clearSlidePointSettings(eq("deck-1"), eq("s1"), any()))
+                .thenReturn(slide("s1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/point-settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slideId").value("s1"))
+                .andExpect(jsonPath("$.pointSettings").doesNotExist());
+
+        verify(deckService).clearSlidePointSettings(eq("deck-1"), eq("s1"), any());
+    }
+
+    // ── Slide answer settings ─────────────────────────────────────────────────
+
+    @Test
+    void getSlideAnswerSettingsProjectsOverride() throws Exception {
+        when(deckService.getSlide(eq("deck-1"), eq("s1"), any()))
+                .thenReturn(slideWithSettings("s1", null, answerSettings(30)));
+
+        mockMvc.perform(get("/api/decks/deck-1/slides/s1/answer-settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slideId").value("s1"))
+                .andExpect(jsonPath("$.answerSettings.countdownTime").value(30));
+    }
+
+    @Test
+    void setSlideAnswerSettingsDelegatesParsedRecord() throws Exception {
+        when(deckService.setSlideAnswerSettings(eq("deck-1"), eq("s1"),
+                any(Settings.AnswerSettings.class), any()))
+                .thenReturn(slideWithSettings("s1", null, answerSettings(20)));
+
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/answer-settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answerSettings\":{\"countdownTime\":20,\"shuffleOptions\":true}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slideId").value("s1"))
+                .andExpect(jsonPath("$.answerSettings.countdownTime").value(20));
+
+        ArgumentCaptor<Settings.AnswerSettings> sent = ArgumentCaptor.forClass(Settings.AnswerSettings.class);
+        verify(deckService).setSlideAnswerSettings(eq("deck-1"), eq("s1"), sent.capture(), any());
+        assertThat(sent.getValue().countdownTime()).isEqualTo(20);
+        assertThat(sent.getValue().shuffleOptions()).isTrue();
+    }
+
+    @Test
+    void setSlideAnswerSettingsRejectsMissingBody() throws Exception {
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/answer-settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void clearSlideAnswerSettingsDelegates() throws Exception {
+        when(deckService.clearSlideAnswerSettings(eq("deck-1"), eq("s1"), any()))
+                .thenReturn(slide("s1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/answer-settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slideId").value("s1"))
+                .andExpect(jsonPath("$.answerSettings").doesNotExist());
+
+        verify(deckService).clearSlideAnswerSettings(eq("deck-1"), eq("s1"), any());
+    }
+
     // ── Slides ──────────────────────────────────────────────────────────────────
 
     @Test
@@ -445,7 +551,7 @@ class DeckControllerTest {
         deck.setId(id);
         deck.setPublicId("pub-" + id);
         deck.setName("My Deck");
-        deck.setOwnership(new DeckOwnership(OwnershipType.USER, "user-1"));
+        deck.setOwnership(new Ownership(OwnershipType.USER, "user-1"));
         return deck;
     }
 
@@ -454,5 +560,20 @@ class DeckControllerTest {
         slide.setId(id);
         slide.setTitle("Slide " + id);
         return slide;
+    }
+
+    private static Slide slideWithSettings(String id,
+            Settings.PointSettings points, Settings.AnswerSettings answers) {
+        Slide slide = slide(id);
+        slide.setSettings(new Settings.SlideSettings(points, answers));
+        return slide;
+    }
+
+    private static Settings.PointSettings pointSettings(int points) {
+        return new Settings.PointSettings(points, 0, 0, 0, null, false);
+    }
+
+    private static Settings.AnswerSettings answerSettings(int countdownTime) {
+        return new Settings.AnswerSettings(false, false, false, false, countdownTime);
     }
 }

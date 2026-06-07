@@ -21,9 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
+import com.cephadex.ambi.presentation.deck.dto.AnswerSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.dto.MoveSlideRequest;
+import com.cephadex.ambi.presentation.deck.dto.PointSettingsResponse;
+import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetImageRequest;
+import com.cephadex.ambi.presentation.deck.dto.SetPointSettingsRequest;
+import com.cephadex.ambi.presentation.deck.dto.SetTagsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetVisibilityRequest;
 import com.cephadex.ambi.presentation.deck.dto.ShareDeckRequest;
 import com.cephadex.ambi.presentation.deck.dto.SlideRequest;
@@ -189,6 +194,19 @@ public class DeckController {
         return toResponse(deckService.clearDeckBackgroundImage(id, principal), principal);
     }
 
+    // ── Deck tags ───────────────────────────────────────────────────────────────
+    // Tags get a dedicated home (EDIT), separate from the metadata PATCH so an
+    // edit can't clobber them — the same single-owner split as deck images.
+
+    /** Replace a deck's tag set (EDIT). The body fully replaces the current tags. */
+    @PutMapping("/{id}/tags")
+    public DeckResponse setDeckTags(
+            @PathVariable String id,
+            @Valid @RequestBody SetTagsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setTags(id, body.tags(), principal), principal);
+    }
+
     // ── Slides (sub-resource of a deck) ─────────────────────────────────────────
 
     /** A deck's slides, in storage order (VIEW). */
@@ -299,6 +317,74 @@ public class DeckController {
             @PathVariable String slideId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return SlideResponse.from(deckService.clearSlideBackgroundImage(id, slideId, principal));
+    }
+
+    // ── Slide point settings ─────────────────────────────────────────────────────
+    // A slide's scoring override, in its own set/clear/read trio so it can be edited
+    // without disturbing the slide's answer settings or any other field — the same
+    // single-owner split the image endpoints use. PUT sets, DELETE falls the slide
+    // back to the deck's point defaults, GET reads the current override (null = none).
+
+    /** Read a slide's point (scoring) settings (VIEW). Null when the deck defaults apply. */
+    @GetMapping("/{id}/slides/{slideId}/point-settings")
+    public PointSettingsResponse getSlidePointSettings(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return PointSettingsResponse.from(deckService.getSlide(id, slideId, principal));
+    }
+
+    /** Set a slide's point (scoring) settings (EDIT). */
+    @PutMapping("/{id}/slides/{slideId}/point-settings")
+    public PointSettingsResponse setSlidePointSettings(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @Valid @RequestBody SetPointSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return PointSettingsResponse.from(
+                deckService.setSlidePointSettings(id, slideId, body.pointSettings(), principal));
+    }
+
+    /** Clear a slide's point (scoring) settings so the deck defaults apply (EDIT). */
+    @DeleteMapping("/{id}/slides/{slideId}/point-settings")
+    public PointSettingsResponse clearSlidePointSettings(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return PointSettingsResponse.from(deckService.clearSlidePointSettings(id, slideId, principal));
+    }
+
+    // ── Slide answer settings ────────────────────────────────────────────────────
+    // The answering override, mirroring the point-settings trio: an independent
+    // set/clear/read so editing one half never touches the other.
+
+    /** Read a slide's answer (answering) settings (VIEW). Null when the deck defaults apply. */
+    @GetMapping("/{id}/slides/{slideId}/answer-settings")
+    public AnswerSettingsResponse getSlideAnswerSettings(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return AnswerSettingsResponse.from(deckService.getSlide(id, slideId, principal));
+    }
+
+    /** Set a slide's answer (answering) settings (EDIT). */
+    @PutMapping("/{id}/slides/{slideId}/answer-settings")
+    public AnswerSettingsResponse setSlideAnswerSettings(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @Valid @RequestBody SetAnswerSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return AnswerSettingsResponse.from(
+                deckService.setSlideAnswerSettings(id, slideId, body.answerSettings(), principal));
+    }
+
+    /** Clear a slide's answer (answering) settings so the deck defaults apply (EDIT). */
+    @DeleteMapping("/{id}/slides/{slideId}/answer-settings")
+    public AnswerSettingsResponse clearSlideAnswerSettings(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return AnswerSettingsResponse.from(deckService.clearSlideAnswerSettings(id, slideId, principal));
     }
 
     // ── Listings ────────────────────────────────────────────────────────────────

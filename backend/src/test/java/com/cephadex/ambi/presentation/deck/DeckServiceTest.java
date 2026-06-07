@@ -9,8 +9,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -207,6 +209,181 @@ class DeckServiceTest {
         assertThat(result.getCoverImage()).isSameAs(cover);
     }
 
+    // ── Tags ───────────────────────────────────────────────────────────────────
+
+    @Test
+    void setTagsPersistsAndReturnsDeck() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck result = deckService.setTags("deck-1", Set.of("lotr", "trivia"), owner);
+
+        assertThat(result.getTags()).containsExactlyInAnyOrder("lotr", "trivia");
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void setTagsReplacesExistingTags() {
+        Deck deck = deck("owner-1");
+        deck.setTags(new LinkedHashSet<>(List.of("old")));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck result = deckService.setTags("deck-1", Set.of("new"), owner);
+
+        assertThat(result.getTags()).containsExactly("new");
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void setEmptyTagsClearsThem() {
+        Deck deck = deck("owner-1");
+        deck.setTags(new LinkedHashSet<>(List.of("old")));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck result = deckService.setTags("deck-1", Set.of(), owner);
+
+        assertThat(result.getTags()).isEmpty();
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void setTagsRequiresEdit() {
+        Deck deck = deck("someone-else");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.setTags("deck-1", Set.of("x"), principal("intruder")))
+                .isInstanceOf(ForbiddenException.class);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updatePreservesExistingTags() {
+        // Tags have a single owner in the tags endpoint; a metadata edit must
+        // leave them alone rather than null them out.
+        Deck deck = deck("owner-1");
+        deck.setTags(new LinkedHashSet<>(List.of("keep-me")));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck changes = new Deck();
+        changes.setName("Renamed"); // no tags carried — they're not in the request DTO
+
+        Deck result = deckService.update("deck-1", changes, owner);
+
+        assertThat(result.getName()).isEqualTo("Renamed");
+        assertThat(result.getTags()).containsExactly("keep-me");
+    }
+
+    // ── Slide settings ───────────────────────────────────────────────────────────
+
+    @Test
+    void setSlidePointSettingsStampsAuditAndSaves() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Settings.PointSettings points = pointSettings(100);
+
+        Slide result = deckService.setSlidePointSettings("deck-1", "s1", points, owner);
+
+        assertThat(result.getSettings().pointSettings()).isSameAs(points);
+        assertThat(result.getLastEditedByUserId()).isEqualTo("owner-1");
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void setSlidePointSettingsPreservesExistingAnswerSettings() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        Settings.AnswerSettings answers = answerSettings(45);
+        existing.setSettings(new Settings.SlideSettings(null, answers));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.setSlidePointSettings("deck-1", "s1", pointSettings(20), owner);
+
+        assertThat(result.getSettings().pointSettings().points()).isEqualTo(20);
+        assertThat(result.getSettings().answerSettings()).isSameAs(answers);
+    }
+
+    @Test
+    void clearSlidePointSettingsKeepsAnswerSettings() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        Settings.AnswerSettings answers = answerSettings(45);
+        existing.setSettings(new Settings.SlideSettings(pointSettings(20), answers));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.clearSlidePointSettings("deck-1", "s1", owner);
+
+        assertThat(result.getSettings().pointSettings()).isNull();
+        assertThat(result.getSettings().answerSettings()).isSameAs(answers);
+    }
+
+    @Test
+    void clearingBothHalvesDropsTheWrapperToNull() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        existing.setSettings(new Settings.SlideSettings(pointSettings(20), null));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.clearSlidePointSettings("deck-1", "s1", owner);
+
+        assertThat(result.getSettings()).isNull();
+    }
+
+    @Test
+    void setSlideAnswerSettingsPreservesExistingPointSettings() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        Settings.PointSettings points = pointSettings(80);
+        existing.setSettings(new Settings.SlideSettings(points, null));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.setSlideAnswerSettings("deck-1", "s1", answerSettings(15), owner);
+
+        assertThat(result.getSettings().answerSettings().countdownTime()).isEqualTo(15);
+        assertThat(result.getSettings().pointSettings()).isSameAs(points);
+    }
+
+    @Test
+    void setSlideSettingsRejectsUnknownSlideWithNotFound() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(
+                () -> deckService.setSlidePointSettings("deck-1", "missing", pointSettings(10), owner))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Slide not found");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void setSlideSettingsRequiresEdit() {
+        Deck deck = keyedDeck("someone-else", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.setSlidePointSettings(
+                "deck-1", "s1", pointSettings(10), principal("intruder")))
+                .isInstanceOf(ForbiddenException.class);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlidePreservesExistingSettings() {
+        // Settings have a single owner in the settings endpoints; an updateSlide must
+        // leave them alone rather than null them out — exactly like images.
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        Settings.SlideSettings settings = new Settings.SlideSettings(pointSettings(20), null);
+        existing.setSettings(settings);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide changes = slide("s1");
+        changes.setTitle("Renamed slide"); // no settings carried
+
+        Slide result = deckService.updateSlide("deck-1", "s1", changes, owner);
+
+        assertThat(result.getTitle()).isEqualTo("Renamed slide");
+        assertThat(result.getSettings()).isSameAs(settings);
+    }
+
     // ── permissionsFor (the capabilities the client reads off the response) ──────
 
     @Test
@@ -253,7 +430,7 @@ class DeckServiceTest {
     private static Deck deck(String ownerId) {
         Deck deck = new Deck();
         deck.setId("deck-1");
-        deck.setOwnership(new DeckOwnership(OwnershipType.USER, ownerId));
+        deck.setOwnership(new Ownership(OwnershipType.USER, ownerId));
         deck.setSlides(new ArrayList<>());
         return deck;
     }
@@ -279,6 +456,14 @@ class DeckServiceTest {
         image.setExternal(true);
         image.setExternalSrc(externalSrc);
         return image;
+    }
+
+    private static Settings.PointSettings pointSettings(int points) {
+        return new Settings.PointSettings(points, 0, 0, 0, null, false);
+    }
+
+    private static Settings.AnswerSettings answerSettings(int countdownTime) {
+        return new Settings.AnswerSettings(false, false, false, false, countdownTime);
     }
 
     private static List<String> orderedIds(Deck deck) {

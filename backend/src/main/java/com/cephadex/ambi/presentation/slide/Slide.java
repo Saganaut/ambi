@@ -3,6 +3,7 @@ package com.cephadex.ambi.presentation.slide;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 
 import lombok.Getter;
@@ -78,5 +79,13 @@ public class Slide {
 
     @Field("speaker_notes")
     private String speakerNotes;
+
+    // Per-slide overrides for scoring (point_settings) and answering (answer_settings).
+    // Either half may be null, in which case the deck's defaults apply at session time
+    // (see Settings.SlideSettings#resolvePoints). The two halves are edited independently
+    // through the dedicated .../point-settings and .../answer-settings endpoints, never
+    // through updateSlide — exactly like cover/background images.
+    @Field("settings")
+    private Settings.SlideSettings settings;
 
 }

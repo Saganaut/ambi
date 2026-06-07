@@ -3,6 +3,7 @@ package com.cephadex.ambi.presentation.deck.dto;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
 
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 
@@ -26,7 +27,8 @@ public record SlideResponse(
         Integer version,
         String sortOrder,
         @Schema(requiredMode = REQUIRED) SlideContent content,
-        String speakerNotes
+        String speakerNotes,
+        Settings.SlideSettings settings
 
 ) {
 
@@ -45,6 +47,7 @@ public record SlideResponse(
                 slide.getVersion(),
                 slide.getSortOrder(),
                 slide.getContent(),
-                slide.getSpeakerNotes());
+                slide.getSpeakerNotes(),
+                slide.getSettings());
     }
 }
