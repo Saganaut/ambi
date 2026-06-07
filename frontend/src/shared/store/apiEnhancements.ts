@@ -4,14 +4,14 @@
  * `Ambi.enhanceEndpoints({ ... })` call for one feature surface
  * (decks, collections, favorites, …).
  *
- * Two strategies live here. Most surfaces (favorites, ratings, comments,
- * collections, slides, …) splice the canonical mutation response into the
- * relevant query cache so subscribed components re-render without a refetch:
- * the slide editor optimistically patches `listDeckSlides` in `onQueryStarted`,
- * then folds each mutation's response back into the cache to land server truth
- * (LexoRank `sortOrder`, `version`, audit ids) — see `./enhancements/slide`.
- * The remaining deck surfaces still lean on tag invalidation (`providesTags`
- * / `invalidatesTags`) where a refetch is the simpler reconcile.
+ * The shared strategy is response reconciliation: each mutation optimistically
+ * patches the relevant query cache in `onQueryStarted`, then folds its own
+ * canonical response back in to land server truth (LexoRank `sortOrder`,
+ * `version`, `acl`, audit ids) — no refetch. The slide editor reconciles the
+ * `listDeckSlides` list (see `./enhancements/slide`); the deck surface reconciles
+ * the `getDeck` object (see `./enhancements/deck`). The lone holdout is
+ * `deleteDeck`, which has no response to reconcile and instead splices the
+ * deleted deck out of every cached deck-list query.
  *
  * This file is imported for its side effect from `store.ts`; do not remove
  * the import there or these mutations will silently fall out of sync. The

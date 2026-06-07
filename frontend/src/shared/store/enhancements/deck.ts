@@ -1,32 +1,75 @@
 /**
- * Tag + optimism rules for deck-lifecycle mutations (the editor's deck-level
- * surface: rename, visibility, sharing, cover/background images).
+ * Optimistic + reconcile rules for deck-lifecycle mutations (the editor's
+ * deck-level surface: rename, visibility, tags, sharing, cover/background images).
  *
- * `getDeck` is tagged `{ type: 'Deck', id }`; the mutations that edit an
- * existing deck invalidate it so RTK Query refetches the canonical, fully
- * image-hydrated DeckResponse instead of us splicing the mutation response in
- * by hand. Rename + visibility also patch `getDeck` optimistically via
- * `onQueryStarted` so the navbar title / visibility pill update instantly; the
- * invalidation refetch then reconciles. share / revokeShare reshape the `acl`,
- * which needs server data to render, so they reconcile by refetch only.
+ * Every deck edit reconciles the `getDeck` cache *from its own HTTP response*
+ * rather than invalidating a tag and refetching. The mutations that can preview
+ * locally (rename, visibility, tags, images) optimistically patch `getDeck` in
+ * `onQueryStarted` so the navbar / pills update instantly; share / revokeShare
+ * have nothing to preview (the `acl` needs server data), so they skip the
+ * optimistic step. In all cases the resolved response — the same fully
+ * image-hydrated `DeckResponse` that `getDeck` returns, carrying server-owned
+ * `version` / `acl` / `permissions` — is written straight back into the cache.
+ * On reject the optimistic patch is undone. No deck mutation triggers a
+ * `GET /api/decks/{id}` refetch.
  *
  * `deleteDeck` is the exception: it *splices* the deck out of every cached
- * deck-list query (optimistic, rolled back on reject) and deliberately does
- * **not** invalidate the `Deck` tag — the deck no longer exists, so refetching
- * `getDeck` would 404. This mirrors the splice-without-tags convention in
- * `./favorite` / `./collection`.
+ * deck-list query (optimistic, rolled back on reject) and has nothing to
+ * reconcile — the deck no longer exists.
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
 import {
   Ambi,
+  type ClearDeckBackgroundImageApiArg,
+  type ClearDeckCoverImageApiArg,
+  type DeckResponse,
   type ListDecksForOrgApiArg,
   type ListPublicDecksApiArg,
+  type RevokeShareDeckApiArg,
+  type SetDeckBackgroundImageApiArg,
+  type SetDeckCoverImageApiArg,
+  type SetDeckTagsApiArg,
+  type SetDeckVisibilityApiArg,
+  type ShareDeckApiArg,
+  type UpdateDeckApiArg,
 } from "../AmbiApi";
-import type { CacheSyncApi } from "./types";
+import type { CacheSyncApi, CacheSyncMutationApi } from "./types";
 
-/** Tag for a single deck, keyed by id. */
-const deckTag = (id: string) => [{ type: "Deck" as const, id }];
+/**
+ * Build a deck-mutation endpoint config that reconciles `getDeck` from the
+ * mutation's response instead of invalidating + refetching.
+ *
+ * @param optimistic (optional) mutate the cached `DeckResponse` before the round
+ *   trip — omit for mutations whose result needs server data (share/revoke).
+ *
+ * The reconcile is uniform: every deck mutation returns the full canonical
+ * `DeckResponse`, so we replace the cached deck with the response wholesale.
+ */
+const reconcilingDeckMutation = <Arg extends { id: string }>(
+  optimistic?: (draft: DeckResponse, arg: Arg) => void,
+) => ({
+  onQueryStarted: async (
+    arg: Arg,
+    { dispatch, queryFulfilled }: CacheSyncMutationApi<DeckResponse>,
+  ) => {
+    const patch = optimistic
+      ? dispatch(
+          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            optimistic(draft, arg);
+          }),
+        )
+      : undefined;
+    try {
+      const { data } = await queryFulfilled;
+      // Whole-object replace: lands server truth and clears any optional field
+      // the response dropped (which Object.assign would leave behind).
+      dispatch(Ambi.util.updateQueryData("getDeck", { id: arg.id }, () => data));
+    } catch {
+      patch?.undo();
+    }
+  },
+});
 
 /**
  * Optimistically drop a deleted deck from every materialized deck-list cache,
@@ -83,107 +126,42 @@ const optimisticDeleteDeck = async (arg: { id: string }, api: CacheSyncApi) => {
 };
 
 Ambi.enhanceEndpoints({
-  addTagTypes: ["Deck"],
   endpoints: {
-    getDeck: {
-      providesTags: (_result, _error, arg) => deckTag(arg.id),
-    },
-    updateDeck: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
-        const patch = dispatch(
-          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
-            Object.assign(draft, arg.updateDeckRequest);
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patch.undo();
-        }
+    updateDeck: reconcilingDeckMutation<UpdateDeckApiArg>((draft, arg) => {
+      Object.assign(draft, arg.updateDeckRequest);
+    }),
+    setDeckVisibility: reconcilingDeckMutation<SetDeckVisibilityApiArg>(
+      (draft, arg) => {
+        draft.visibility = arg.setVisibilityRequest.visibility;
       },
-    },
-    setDeckVisibility: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
-        const patch = dispatch(
-          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
-            draft.visibility = arg.setVisibilityRequest.visibility;
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patch.undo();
-        }
+    ),
+    setDeckTags: reconcilingDeckMutation<SetDeckTagsApiArg>((draft, arg) => {
+      draft.tags = arg.setTagsRequest.tags;
+    }),
+    setDeckCoverImage: reconcilingDeckMutation<SetDeckCoverImageApiArg>(
+      (draft, arg) => {
+        draft.coverImage = arg.setImageRequest.image;
       },
-    },
-    setDeckCoverImage: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
-        const patch = dispatch(
-          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
-            draft.coverImage = arg.setImageRequest.image;
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patch.undo();
-        }
+    ),
+    clearDeckCoverImage: reconcilingDeckMutation<ClearDeckCoverImageApiArg>(
+      (draft) => {
+        draft.coverImage = undefined;
       },
-    },
-    clearDeckCoverImage: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
-        const patch = dispatch(
-          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
-            draft.coverImage = undefined;
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patch.undo();
-        }
+    ),
+    setDeckBackgroundImage: reconcilingDeckMutation<SetDeckBackgroundImageApiArg>(
+      (draft, arg) => {
+        draft.backgroundImage = arg.setImageRequest.image;
       },
-    },
-    setDeckBackgroundImage: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
-        const patch = dispatch(
-          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
-            draft.backgroundImage = arg.setImageRequest.image;
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patch.undo();
-        }
+    ),
+    clearDeckBackgroundImage: reconcilingDeckMutation<ClearDeckBackgroundImageApiArg>(
+      (draft) => {
+        draft.backgroundImage = undefined;
       },
-    },
-    clearDeckBackgroundImage: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
-        const patch = dispatch(
-          Ambi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
-            draft.backgroundImage = undefined;
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patch.undo();
-        }
-      },
-    },
-    shareDeck: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-    },
-    revokeShareDeck: {
-      invalidatesTags: (_result, _error, arg) => deckTag(arg.id),
-    },
+    ),
+    // share / revokeShare reshape the acl, which needs server data — no optimistic
+    // preview; the response reconcile lands the new acl.
+    shareDeck: reconcilingDeckMutation<ShareDeckApiArg>(),
+    revokeShareDeck: reconcilingDeckMutation<RevokeShareDeckApiArg>(),
     deleteDeck: {
       onQueryStarted: (arg, api) => optimisticDeleteDeck(arg, api),
     },
