@@ -66,6 +66,13 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.setVisibilityRequest,
       }),
     }),
+    setDeckTags: build.mutation<SetDeckTagsApiResponse, SetDeckTagsApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/tags`,
+        method: "PUT",
+        body: queryArg.setTagsRequest,
+      }),
+    }),
     getSlide: build.query<GetSlideApiResponse, GetSlideApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}`,
@@ -81,6 +88,33 @@ const injectedRtkApi = api.injectEndpoints({
     removeSlide: build.mutation<RemoveSlideApiResponse, RemoveSlideApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}`,
+        method: "DELETE",
+      }),
+    }),
+    getSlidePointSettings: build.query<
+      GetSlidePointSettingsApiResponse,
+      GetSlidePointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/point-settings`,
+      }),
+    }),
+    setSlidePointSettings: build.mutation<
+      SetSlidePointSettingsApiResponse,
+      SetSlidePointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/point-settings`,
+        method: "PUT",
+        body: queryArg.setPointSettingsRequest,
+      }),
+    }),
+    clearSlidePointSettings: build.mutation<
+      ClearSlidePointSettingsApiResponse,
+      ClearSlidePointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/point-settings`,
         method: "DELETE",
       }),
     }),
@@ -119,6 +153,33 @@ const injectedRtkApi = api.injectEndpoints({
     >({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-image`,
+        method: "DELETE",
+      }),
+    }),
+    getSlideAnswerSettings: build.query<
+      GetSlideAnswerSettingsApiResponse,
+      GetSlideAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/answer-settings`,
+      }),
+    }),
+    setSlideAnswerSettings: build.mutation<
+      SetSlideAnswerSettingsApiResponse,
+      SetSlideAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/answer-settings`,
+        method: "PUT",
+        body: queryArg.setAnswerSettingsRequest,
+      }),
+    }),
+    clearSlideAnswerSettings: build.mutation<
+      ClearSlideAnswerSettingsApiResponse,
+      ClearSlideAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/answer-settings`,
         method: "DELETE",
       }),
     }),
@@ -176,6 +237,21 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
+    listImages: build.query<ListImagesApiResponse, ListImagesApiArg>({
+      query: (queryArg) => ({
+        url: `/api/galleries/${queryArg.id}/images`,
+        params: {
+          pageable: queryArg.pageable,
+        },
+      }),
+    }),
+    addImage: build.mutation<AddImageApiResponse, AddImageApiArg>({
+      query: (queryArg) => ({
+        url: `/api/galleries/${queryArg.id}/images`,
+        method: "POST",
+        body: queryArg.addImageRequest,
+      }),
+    }),
     listDeckSlides: build.query<
       ListDeckSlidesApiResponse,
       ListDeckSlidesApiArg
@@ -215,6 +291,28 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.updateProfileRequest,
       }),
     }),
+    getGallery: build.query<GetGalleryApiResponse, GetGalleryApiArg>({
+      query: (queryArg) => ({ url: `/api/galleries/${queryArg.id}` }),
+    }),
+    deleteGallery: build.mutation<
+      DeleteGalleryApiResponse,
+      DeleteGalleryApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/galleries/${queryArg.id}`,
+        method: "DELETE",
+      }),
+    }),
+    renameGallery: build.mutation<
+      RenameGalleryApiResponse,
+      RenameGalleryApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/galleries/${queryArg.id}`,
+        method: "PATCH",
+        body: queryArg.renameGalleryRequest,
+      }),
+    }),
     moveSlide: build.mutation<MoveSlideApiResponse, MoveSlideApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/move`,
@@ -241,6 +339,28 @@ const injectedRtkApi = api.injectEndpoints({
       ListBuiltInThemesApiArg
     >({
       query: () => ({ url: `/api/themes/built-in` }),
+    }),
+    getOrgGallery: build.query<GetOrgGalleryApiResponse, GetOrgGalleryApiArg>({
+      query: (queryArg) => ({
+        url: `/api/galleries`,
+        params: {
+          orgId: queryArg.orgId,
+        },
+      }),
+    }),
+    getImage: build.query<GetImageApiResponse, GetImageApiArg>({
+      query: (queryArg) => ({
+        url: `/api/galleries/${queryArg.id}/images/${queryArg.imageId}`,
+      }),
+    }),
+    removeImage: build.mutation<RemoveImageApiResponse, RemoveImageApiArg>({
+      query: (queryArg) => ({
+        url: `/api/galleries/${queryArg.id}/images/${queryArg.imageId}`,
+        method: "DELETE",
+      }),
+    }),
+    getMyGallery: build.query<GetMyGalleryApiResponse, GetMyGalleryApiArg>({
+      query: () => ({ url: `/api/galleries/mine` }),
     }),
     listDecksForOrg: build.query<
       ListDecksForOrgApiResponse,
@@ -330,6 +450,11 @@ export type SetDeckVisibilityApiArg = {
   id: string;
   setVisibilityRequest: SetVisibilityRequest;
 };
+export type SetDeckTagsApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckTagsApiArg = {
+  id: string;
+  setTagsRequest: SetTagsRequest;
+};
 export type GetSlideApiResponse = /** status 200 OK */ SlideResponse;
 export type GetSlideApiArg = {
   id: string;
@@ -343,6 +468,25 @@ export type UpdateSlideApiArg = {
 };
 export type RemoveSlideApiResponse = unknown;
 export type RemoveSlideApiArg = {
+  id: string;
+  slideId: string;
+};
+export type GetSlidePointSettingsApiResponse =
+  /** status 200 OK */ PointSettingsResponse;
+export type GetSlidePointSettingsApiArg = {
+  id: string;
+  slideId: string;
+};
+export type SetSlidePointSettingsApiResponse =
+  /** status 200 OK */ PointSettingsResponse;
+export type SetSlidePointSettingsApiArg = {
+  id: string;
+  slideId: string;
+  setPointSettingsRequest: SetPointSettingsRequest;
+};
+export type ClearSlidePointSettingsApiResponse =
+  /** status 200 OK */ PointSettingsResponse;
+export type ClearSlidePointSettingsApiArg = {
   id: string;
   slideId: string;
 };
@@ -368,6 +512,25 @@ export type SetSlideBackgroundImageApiArg = {
 export type ClearSlideBackgroundImageApiResponse =
   /** status 200 OK */ SlideResponse;
 export type ClearSlideBackgroundImageApiArg = {
+  id: string;
+  slideId: string;
+};
+export type GetSlideAnswerSettingsApiResponse =
+  /** status 200 OK */ AnswerSettingsResponse;
+export type GetSlideAnswerSettingsApiArg = {
+  id: string;
+  slideId: string;
+};
+export type SetSlideAnswerSettingsApiResponse =
+  /** status 200 OK */ AnswerSettingsResponse;
+export type SetSlideAnswerSettingsApiArg = {
+  id: string;
+  slideId: string;
+  setAnswerSettingsRequest: SetAnswerSettingsRequest;
+};
+export type ClearSlideAnswerSettingsApiResponse =
+  /** status 200 OK */ AnswerSettingsResponse;
+export type ClearSlideAnswerSettingsApiArg = {
   id: string;
   slideId: string;
 };
@@ -402,6 +565,18 @@ export type ClearDeckBackgroundImageApiResponse =
 export type ClearDeckBackgroundImageApiArg = {
   id: string;
 };
+export type ListImagesApiResponse =
+  /** status 200 OK */ PagedModelGalleryImageResponse;
+export type ListImagesApiArg = {
+  id: string;
+  pageable: Pageable;
+};
+export type AddImageApiResponse =
+  /** status 201 Created */ GalleryImageResponse;
+export type AddImageApiArg = {
+  id: string;
+  addImageRequest: AddImageRequest;
+};
 export type ListDeckSlidesApiResponse = /** status 200 OK */ SlideResponse[];
 export type ListDeckSlidesApiArg = {
   id: string;
@@ -427,6 +602,19 @@ export type UpdateMeApiResponse = /** status 200 OK */ UserProfileResponse;
 export type UpdateMeApiArg = {
   updateProfileRequest: UpdateProfileRequest;
 };
+export type GetGalleryApiResponse = /** status 200 OK */ GalleryResponse;
+export type GetGalleryApiArg = {
+  id: string;
+};
+export type DeleteGalleryApiResponse = unknown;
+export type DeleteGalleryApiArg = {
+  id: string;
+};
+export type RenameGalleryApiResponse = /** status 200 OK */ GalleryResponse;
+export type RenameGalleryApiArg = {
+  id: string;
+  renameGalleryRequest: RenameGalleryRequest;
+};
 export type MoveSlideApiResponse = /** status 200 OK */ DeckResponse;
 export type MoveSlideApiArg = {
   id: string;
@@ -441,6 +629,22 @@ export type ListMyThemesApiResponse = /** status 200 OK */ ThemeResponse[];
 export type ListMyThemesApiArg = void;
 export type ListBuiltInThemesApiResponse = /** status 200 OK */ ThemeResponse[];
 export type ListBuiltInThemesApiArg = void;
+export type GetOrgGalleryApiResponse = /** status 200 OK */ GalleryResponse;
+export type GetOrgGalleryApiArg = {
+  orgId: string;
+};
+export type GetImageApiResponse = /** status 200 OK */ GalleryImageResponse;
+export type GetImageApiArg = {
+  id: string;
+  imageId: string;
+};
+export type RemoveImageApiResponse = unknown;
+export type RemoveImageApiArg = {
+  id: string;
+  imageId: string;
+};
+export type GetMyGalleryApiResponse = /** status 200 OK */ GalleryResponse;
+export type GetMyGalleryApiArg = void;
 export type ListDecksForOrgApiResponse = /** status 200 OK */ DeckResponse[];
 export type ListDecksForOrgApiArg = {
   orgId: string;
@@ -557,6 +761,8 @@ export type AnswerSettings = {
   shuffleOptions?: boolean;
   anonymizeAnswers?: boolean;
   countdownTime?: number;
+  allowAnonymous?: boolean;
+  maxSelections?: number;
 };
 export type AudienceSettings = {
   maxParticipants?: number;
@@ -571,10 +777,6 @@ export type DeckSettings = {
   pointSettings?: PointSettings;
   answerSettings?: AnswerSettings;
   audienceSettings?: AudienceSettings;
-};
-export type Ownership = {
-  type?: "USER" | "ORGANIZATION";
-  ownerId?: string;
 };
 export type DeckAccessGrant = {
   userId?: string;
@@ -625,11 +827,13 @@ export type UpdateDeckRequest = {
   themeId?: string;
   language?: string;
   settings?: DeckSettings;
-  tags?: string[];
   publishStatus?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 };
 export type SetVisibilityRequest = {
   visibility: "PRIVATE" | "UNLISTED" | "ORG" | "PUBLIC";
+};
+export type SetTagsRequest = {
+  tags: string[];
 };
 export type McqOption = {
   id: string;
@@ -641,18 +845,9 @@ export type McqOption = {
 export type McqContent = {
   options: McqOption[];
   correctOptionIds: string[];
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
-  shuffle: boolean;
-  maxSelections: number;
-  allowAnonymous: boolean;
   contentType: "MCQ";
 };
 export type NumberContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   answer: number;
   scoreMode:
     | "EXACT"
@@ -666,19 +861,14 @@ export type NumberContent = {
   unit: string;
   min: number;
   max: number;
-  allowAnonymous: boolean;
   contentType: "NUMBER";
 };
 export type TextContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   acceptedAnswers: string[];
   matchMode: "EXACT" | "CONTAINS" | "WORDCLOUD";
   caseSensitive: boolean;
   trimWhitespace: boolean;
   maxLength?: number;
-  allowAnonymous: boolean;
   contentType: "TEXT";
 };
 export type RankItem = {
@@ -687,9 +877,6 @@ export type RankItem = {
   image?: AppImage;
 };
 export type RankingContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   items: RankItem[];
   correctOrder: string[];
   scoreMode:
@@ -700,7 +887,6 @@ export type RankingContent = {
     | "INSIDE_RADIUS"
     | "NEAREST"
     | "DISTANCE";
-  allowAnonymous: boolean;
   contentType: "RANKING";
 };
 export type ScaleItem = {
@@ -708,9 +894,6 @@ export type ScaleItem = {
   label?: string;
 };
 export type ScalesContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   min: number;
   max: number;
   step: number;
@@ -721,7 +904,6 @@ export type ScalesContent = {
     [key: string]: number;
   };
   tolerance: number;
-  allowAnonymous: boolean;
   contentType: "SCALES";
 };
 export type GridItem = {
@@ -730,9 +912,6 @@ export type GridItem = {
   image?: AppImage;
 };
 export type GridContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   rowLabels: string[];
   colLabels: string[];
   items: GridItem[];
@@ -747,7 +926,6 @@ export type GridContent = {
     | "INSIDE_RADIUS"
     | "NEAREST"
     | "DISTANCE";
-  allowAnonymous: boolean;
   contentType: "GRID";
 };
 export type Target = {
@@ -757,9 +935,6 @@ export type Target = {
   radius?: number;
 };
 export type PlaceOnImageContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   image: AppImage;
   correctTargets: Target[];
   scoreMode:
@@ -770,7 +945,6 @@ export type PlaceOnImageContent = {
     | "INSIDE_RADIUS"
     | "NEAREST"
     | "DISTANCE";
-  allowAnonymous: boolean;
   contentType: "PLACE_ON_IMAGE";
 };
 export type MatchItem = {
@@ -779,9 +953,6 @@ export type MatchItem = {
   image?: AppImage;
 };
 export type MatchingContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   left: MatchItem[];
   right: MatchItem[];
   correctPairs: {
@@ -795,44 +966,31 @@ export type MatchingContent = {
     | "INSIDE_RADIUS"
     | "NEAREST"
     | "DISTANCE";
-  allowAnonymous: boolean;
   contentType: "MATCHING";
 };
 export type AllocationContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
   options: McqOption[];
   correctAllocations?: {
     [key: string]: number;
   };
   totalPointsToAllocate: number;
   tolerancePerOption: number;
-  allowAnonymous: boolean;
-  explanation?: string;
   contentType: "ALLOCATION";
 };
 export type DrawingContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
-  explanation?: string;
   imagePrompt?: AppImage;
   correctImage?: AppImage;
   canvasWidth: number;
   canvasHeight: number;
   tools: ("PEN" | "ERASER" | "SHAPES" | "TEXT" | "COLOR_PALETTE")[];
-  allowAnonymous: boolean;
   contentType: "DRAWING";
 };
 export type SubmissionOption = {
   submissionId?: string;
 };
 export type FollowUpContent = {
-  pointValue: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
   parentSlideId: string;
-  explanation?: string;
   submissionOption: SubmissionOption;
-  allowAnonymous: boolean;
   contentType: "FOLLOW_UP";
 };
 export type TitleContent = {
@@ -846,11 +1004,9 @@ export type MediaContent = {
   autoplay: boolean;
   loop: boolean;
   muted: boolean;
-  allowAnonymous: boolean;
   contentType: "MEDIA";
 };
 export type QAndAContent = {
-  allowAnonymous: boolean;
   maxResponses?: number;
   moderated: boolean;
   contentType: "Q_AND_A";
@@ -898,6 +1054,10 @@ export type SlideContent =
   | ({
       contentType: "Q_AND_A";
     } & QAndAContent);
+export type SlideSettings = {
+  pointSettings?: PointSettings;
+  answerSettings?: AnswerSettings;
+};
 export type SlideResponse = {
   id: string;
   title: string;
@@ -911,7 +1071,10 @@ export type SlideResponse = {
   version?: number;
   sortOrder?: string;
   content: SlideContent;
+  difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
   speakerNotes?: string;
+  settings?: SlideSettings;
 };
 export type SlideRequest = {
   id: string;
@@ -921,13 +1084,57 @@ export type SlideRequest = {
   childId?: string;
   sortOrder?: string;
   content: SlideContent;
+  difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
   speakerNotes?: string;
+};
+export type PointSettingsResponse = {
+  slideId: string;
+  pointSettings?: PointSettings;
+};
+export type SetPointSettingsRequest = {
+  pointSettings: PointSettings;
 };
 export type SetImageRequest = {
   image: AppImage;
 };
+export type AnswerSettingsResponse = {
+  slideId: string;
+  answerSettings?: AnswerSettings;
+};
+export type SetAnswerSettingsRequest = {
+  answerSettings: AnswerSettings;
+};
 export type ShareDeckRequest = {
   role: "VIEWER" | "EDITOR";
+};
+export type GalleryImageResponse = {
+  id: string;
+  galleryId: string;
+  image: AppImage;
+  name?: string;
+  creatorUserId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+export type PageMetadata = {
+  size?: number;
+  number?: number;
+  totalElements?: number;
+  totalPages?: number;
+};
+export type PagedModelGalleryImageResponse = {
+  content?: GalleryImageResponse[];
+  page?: PageMetadata;
+};
+export type Pageable = {
+  page?: number;
+  size?: number;
+  sort?: string[];
+};
+export type AddImageRequest = {
+  image: AppImage;
+  name?: string;
 };
 export type VisitorMe = {
   state: "VISITOR" | "GUEST" | "PRE_REGISTRATION" | "REGISTERED";
@@ -1012,23 +1219,27 @@ export type UpdateProfileRequest = {
   timezone?: string;
   avatar?: AvatarSelection;
 };
+export type GalleryResponse = {
+  id: string;
+  name: string;
+  ownership: Ownership;
+  organizationId?: string;
+  creatorUserId: string;
+  version: number;
+  imageCount: number;
+  createdAt: string;
+  updatedAt: string;
+  permissions: ViewerPermissions;
+};
+export type RenameGalleryRequest = {
+  name: string;
+};
 export type MoveSlideRequest = {
   to: number;
-};
-export type PageMetadata = {
-  size?: number;
-  number?: number;
-  totalElements?: number;
-  totalPages?: number;
 };
 export type PagedModelDeckResponse = {
   content?: DeckResponse[];
   page?: PageMetadata;
-};
-export type Pageable = {
-  page?: number;
-  size?: number;
-  sort?: string[];
 };
 export type UsernameAvailabilityResponse = {
   username?: string;
@@ -1047,20 +1258,32 @@ export const {
   useDeleteDeckMutation,
   useUpdateDeckMutation,
   useSetDeckVisibilityMutation,
+  useSetDeckTagsMutation,
   useGetSlideQuery,
   useLazyGetSlideQuery,
   useUpdateSlideMutation,
   useRemoveSlideMutation,
+  useGetSlidePointSettingsQuery,
+  useLazyGetSlidePointSettingsQuery,
+  useSetSlidePointSettingsMutation,
+  useClearSlidePointSettingsMutation,
   useSetSlideCoverImageMutation,
   useClearSlideCoverImageMutation,
   useSetSlideBackgroundImageMutation,
   useClearSlideBackgroundImageMutation,
+  useGetSlideAnswerSettingsQuery,
+  useLazyGetSlideAnswerSettingsQuery,
+  useSetSlideAnswerSettingsMutation,
+  useClearSlideAnswerSettingsMutation,
   useShareDeckMutation,
   useRevokeShareDeckMutation,
   useSetDeckCoverImageMutation,
   useClearDeckCoverImageMutation,
   useSetDeckBackgroundImageMutation,
   useClearDeckBackgroundImageMutation,
+  useListImagesQuery,
+  useLazyListImagesQuery,
+  useAddImageMutation,
   useListDeckSlidesQuery,
   useLazyListDeckSlidesQuery,
   useAddSlideMutation,
@@ -1071,6 +1294,10 @@ export const {
   useGetMeQuery,
   useLazyGetMeQuery,
   useUpdateMeMutation,
+  useGetGalleryQuery,
+  useLazyGetGalleryQuery,
+  useDeleteGalleryMutation,
+  useRenameGalleryMutation,
   useMoveSlideMutation,
   useListThemesForOrgQuery,
   useLazyListThemesForOrgQuery,
@@ -1078,6 +1305,13 @@ export const {
   useLazyListMyThemesQuery,
   useListBuiltInThemesQuery,
   useLazyListBuiltInThemesQuery,
+  useGetOrgGalleryQuery,
+  useLazyGetOrgGalleryQuery,
+  useGetImageQuery,
+  useLazyGetImageQuery,
+  useRemoveImageMutation,
+  useGetMyGalleryQuery,
+  useLazyGetMyGalleryQuery,
   useListDecksForOrgQuery,
   useLazyListDecksForOrgQuery,
   useListPublicDecksQuery,

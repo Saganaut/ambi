@@ -4,6 +4,7 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
 
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -29,6 +30,8 @@ public record SlideRequest(
         String childId,
         String sortOrder,
         @Schema(requiredMode = REQUIRED) SlideContent content,
+        Difficulty difficulty,
+        String explanation,
         String speakerNotes) {
 
     /** Maps this request onto a fresh {@link Slide} for the service to persist. */
@@ -41,6 +44,8 @@ public record SlideRequest(
         slide.setChildId(childId);
         slide.setSortOrder(sortOrder);
         slide.setContent(content);
+        slide.setDifficulty(difficulty);
+        slide.setExplanation(explanation);
         slide.setSpeakerNotes(speakerNotes);
 
         return slide;

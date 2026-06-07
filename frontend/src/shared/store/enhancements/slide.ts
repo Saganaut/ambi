@@ -155,6 +155,82 @@ Ambi.enhanceEndpoints({
         }
       },
     },
+    // Point/answer settings live on `slide.settings` but, like the image slots,
+    // have their own dedicated endpoints (separate from updateSlide) so a content
+    // edit never clobbers them. Each optimistically patches the slide in
+    // listSlides; the invalidation refetch reconciles against server truth.
+    setSlidePointSettings: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide)
+              slide.settings = {
+                ...slide.settings,
+                pointSettings: arg.setPointSettingsRequest.pointSettings,
+              };
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    clearSlidePointSettings: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide?.settings) slide.settings.pointSettings = undefined;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    setSlideAnswerSettings: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide)
+              slide.settings = {
+                ...slide.settings,
+                answerSettings: arg.setAnswerSettingsRequest.answerSettings,
+              };
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
+    clearSlideAnswerSettings: {
+      invalidatesTags: (_result, _error, arg) => slideTag(arg.id),
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          Ambi.util.updateQueryData("listDeckSlides", { id: arg.id }, (draft) => {
+            const slide = draft.find((s) => s.id === arg.slideId);
+            if (slide?.settings) slide.settings.answerSettings = undefined;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    },
     moveSlide: {
       // The slide order is read back from listSlides, so invalidating the Slide
       // tag is what reconciles the move. (moveSlide also returns a DeckResponse

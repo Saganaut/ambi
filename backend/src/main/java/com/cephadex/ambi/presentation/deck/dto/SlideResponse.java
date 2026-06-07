@@ -6,6 +6,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -27,6 +28,8 @@ public record SlideResponse(
         Integer version,
         String sortOrder,
         @Schema(requiredMode = REQUIRED) SlideContent content,
+        Difficulty difficulty,
+        String explanation,
         String speakerNotes,
         Settings.SlideSettings settings
 
@@ -47,6 +50,8 @@ public record SlideResponse(
                 slide.getVersion(),
                 slide.getSortOrder(),
                 slide.getContent(),
+                slide.getDifficulty(),
+                slide.getExplanation(),
                 slide.getSpeakerNotes(),
                 slide.getSettings());
     }

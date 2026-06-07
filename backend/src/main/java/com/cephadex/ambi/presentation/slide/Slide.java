@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -76,6 +77,16 @@ public class Slide {
     // round-trips through Mongo; only MCQ is wired in so far.
     @Field("content")
     private SlideContent content;
+
+    // Author-set question metadata, moved off the typed content so every scorable
+    // kind shares one home (content is now just the options + correct-answer key).
+    // difficulty is the analytics "configured difficulty"; explanation is the
+    // post-answer rationale. Null on non-scorable slides (TITLE / MEDIA / Q&A).
+    @Field("difficulty")
+    private Difficulty difficulty;
+
+    @Field("explanation")
+    private String explanation;
 
     @Field("speaker_notes")
     private String speakerNotes;

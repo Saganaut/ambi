@@ -29,11 +29,13 @@ import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.AudienceSettings;
 import com.cephadex.ambi.presentation.deck.Settings.DeckSettings;
 import com.cephadex.ambi.presentation.deck.Settings.PointSettings;
+import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
@@ -359,7 +361,7 @@ public class SampleDataSeeder implements ApplicationRunner {
 
     private DeckSettings defaultSettings() {
         PointSettings points = new PointSettings(1000, 0, 0, 250, Map.of(), false);
-        AnswerSettings answers = new AnswerSettings(true, false, true, false, 30);
+        AnswerSettings answers = new AnswerSettings(true, false, true, false, 30, true, 1);
         AudienceSettings audience = new AudienceSettings(100, true, true, true, true, false, true);
         return new DeckSettings(points, answers, audience);
     }
@@ -385,16 +387,24 @@ public class SampleDataSeeder implements ApplicationRunner {
                 correct.add(optId);
             }
         }
-        McqContent content = new McqContent(built, correct, 1000, difficulty, explanation,
-                true, maxSelections, false);
-        return slide(question, content, userId);
+        McqContent content = new McqContent(built, correct);
+        // pointValue/shuffle/maxSelections/allowAnonymous now live on the slide's
+        // answer settings; difficulty/explanation are top-level slide fields.
+        SlideSettings settings = new SlideSettings(
+                null, // inherit deck point defaults
+                new AnswerSettings(true, maxSelections != 1, true, false, 30, false, maxSelections));
+        return slide(question, content, difficulty, explanation, settings, userId);
     }
 
-    private Slide slide(String title, McqContent content, String userId) {
+    private Slide slide(String title, SlideContent content, Difficulty difficulty, String explanation,
+            SlideSettings settings, String userId) {
         Slide slide = new Slide();
         slide.setId(UUID.randomUUID().toString());
         slide.setTitle(title);
         slide.setContent(content);
+        slide.setDifficulty(difficulty);
+        slide.setExplanation(explanation);
+        slide.setSettings(settings);
         slide.setVersion(0);
         slide.setCreatedByUserId(userId);
         slide.setLastEditedByUserId(userId);

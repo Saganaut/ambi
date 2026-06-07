@@ -454,8 +454,7 @@ class DeckControllerTest {
                   "content": {
                     "contentType": "MCQ",
                     "options": [{"id": "o1", "text": "Frodo"}],
-                    "correctOptionIds": ["o1"],
-                    "maxSelections": 1
+                    "correctOptionIds": ["o1"]
                   }
                 }
                 """;
@@ -574,6 +573,6 @@ class DeckControllerTest {
     }
 
     private static Settings.AnswerSettings answerSettings(int countdownTime) {
-        return new Settings.AnswerSettings(false, false, false, false, countdownTime);
+        return new Settings.AnswerSettings(false, false, false, false, countdownTime, false, 1);
     }
 }

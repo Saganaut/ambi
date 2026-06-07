@@ -7,7 +7,6 @@ import java.util.Map;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,14 +25,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                     (per-pair points)
  */
 public record MatchingContent(
-        @Schema(requiredMode = REQUIRED) int pointValue,
-        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
-        String explanation,
         @Schema(requiredMode = REQUIRED) List<MatchItem> left,
         @Schema(requiredMode = REQUIRED) List<MatchItem> right,
         @Schema(requiredMode = REQUIRED) Map<String, String> correctPairs,
-        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
-        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
+        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.MATCHING;

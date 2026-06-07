@@ -5,7 +5,6 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
 import java.math.BigDecimal;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,17 +28,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                  unbounded
  */
 public record NumberContent(
-        @Schema(requiredMode = REQUIRED) int pointValue,
-        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
-        String explanation,
         @Schema(requiredMode = REQUIRED) BigDecimal answer,
         @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
         @Schema(requiredMode = REQUIRED) BigDecimal tolerance,
         @Schema(requiredMode = REQUIRED) String unit,
         @Schema(requiredMode = REQUIRED) BigDecimal min, // if only one answer is acceptable set min and max to be the
                                                          // same
-        @Schema(requiredMode = REQUIRED) BigDecimal max,
-        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
+        @Schema(requiredMode = REQUIRED) BigDecimal max) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.NUMBER;

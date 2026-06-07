@@ -6,24 +6,15 @@
  * brand-new slide must ship a content object of the desired kind. This module is
  * the single place that mints minimal placeholder
  * content for each slide kind: every required field of the matching content
- * record gets a sensible default, while optional fields (`explanation`,
- * `maxLength`, `imagePrompt`, `caption`, …) are left off for the type-specific
- * editor to fill in once the slide exists.
+ * record gets a sensible default, while optional fields (`maxLength`,
+ * `imagePrompt`, `caption`, …) are left off for the type-specific editor to fill
+ * in once the slide exists. Cross-cutting authoring knobs (points, difficulty,
+ * explanation, shuffle, anonymity) are no longer content — they live on the
+ * slide and its settings — so they are absent here entirely.
  */
 import type { McqOption, SlideContent } from "@store/AmbiApi";
 
 type SlideType = NonNullable<SlideContent["contentType"]>;
-
-/** Default point value for a newly created scorable slide. */
-const DEFAULT_POINTS = 10;
-
-/** The fields every scorable content type shares. */
-const scorable = () =>
-  ({
-    pointValue: DEFAULT_POINTS,
-    difficulty: "MEDIUM",
-    allowAnonymous: false,
-  }) as const;
 
 const assertNever = (slideType: never): never => {
   throw new Error(`Unhandled slideType: ${String(slideType)}`);
@@ -46,23 +37,18 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         autoplay: false,
         loop: false,
         muted: false,
-        allowAnonymous: false,
       };
     case "Q_AND_A":
-      return { contentType: "Q_AND_A", allowAnonymous: false, moderated: false };
+      return { contentType: "Q_AND_A", moderated: false };
     case "MCQ":
       return {
         contentType: "MCQ",
-        ...scorable(),
         options: [],
         correctOptionIds: [],
-        shuffle: false,
-        maxSelections: 1,
       };
     case "TEXT":
       return {
         contentType: "TEXT",
-        ...scorable(),
         acceptedAnswers: [],
         matchMode: "EXACT",
         caseSensitive: false,
@@ -71,7 +57,6 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "NUMBER":
       return {
         contentType: "NUMBER",
-        ...scorable(),
         answer: 0,
         scoreMode: "EXACT",
         tolerance: 0,
@@ -82,7 +67,6 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "RANKING":
       return {
         contentType: "RANKING",
-        ...scorable(),
         items: [],
         correctOrder: [],
         scoreMode: "EXACT",
@@ -90,7 +74,6 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "SCALES":
       return {
         contentType: "SCALES",
-        ...scorable(),
         min: 0,
         max: 10,
         step: 1,
@@ -103,7 +86,6 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "GRID":
       return {
         contentType: "GRID",
-        ...scorable(),
         rowLabels: [],
         colLabels: [],
         items: [],
@@ -113,7 +95,6 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "MATCHING":
       return {
         contentType: "MATCHING",
-        ...scorable(),
         left: [],
         right: [],
         correctPairs: {},
@@ -122,7 +103,6 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "ALLOCATION":
       return {
         contentType: "ALLOCATION",
-        ...scorable(),
         options: [],
         totalPointsToAllocate: 100,
         tolerancePerOption: 0,
@@ -130,7 +110,6 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "DRAWING":
       return {
         contentType: "DRAWING",
-        ...scorable(),
         canvasWidth: 800,
         canvasHeight: 600,
         tools: ["PEN", "ERASER"],
@@ -140,16 +119,15 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
       // so this is the minimal valid placeholder.
       return {
         contentType: "PLACE_ON_IMAGE",
-        ...scorable(),
         image: { external: true },
         correctTargets: [],
         scoreMode: "INSIDE_RADIUS",
       };
     case "FOLLOW_UP":
-      // A real follow-up slide also needs `parentId` set to its parent slide;
-      // the picker never creates FOLLOW_UP standalone, so a blank submission
-      // option is enough for the placeholder.
-      return { contentType: "FOLLOW_UP", ...scorable(), submissionOption: {} };
+      // A real follow-up slide also needs `parentSlideId` set to its parent
+      // slide; the picker never creates FOLLOW_UP standalone, so a blank
+      // submission option is enough for the placeholder.
+      return { contentType: "FOLLOW_UP", submissionOption: {} };
     default:
       return assertNever(slideType);
   }

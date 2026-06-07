@@ -38,7 +38,9 @@ public final class Settings {
                         boolean shuffleOptions,
                         boolean anonymizeAnswers, // This should always be true for deception, otherwise is a useful
                                                   // setting for QA when asking people to submit questions
-                        int countdownTime // 0 means no countdown
+                        int countdownTime, // 0 means no countdown
+                        boolean allowAnonymous, // whether unregistered/anonymous players may answer this slide
+                        int maxSelections // MCQ: max choices a player may pick; 1 = single-select, 0 = unlimited
         ) {
         }
 

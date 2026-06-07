@@ -6,7 +6,6 @@ import java.util.List;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,13 +22,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                     (per-position points)
  */
 public record RankingContent(
-        @Schema(requiredMode = REQUIRED) int pointValue,
-        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
-        String explanation,
         @Schema(requiredMode = REQUIRED) List<RankItem> items,
         @Schema(requiredMode = REQUIRED) List<String> correctOrder,
-        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
-        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
+        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.RANKING;

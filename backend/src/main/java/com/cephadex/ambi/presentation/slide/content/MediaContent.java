@@ -23,8 +23,7 @@ public record MediaContent(
         String caption,
         boolean autoplay,
         boolean loop,
-        boolean muted,
-        boolean allowAnonymous) implements NonScorableContent {
+        boolean muted) implements NonScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.MEDIA;

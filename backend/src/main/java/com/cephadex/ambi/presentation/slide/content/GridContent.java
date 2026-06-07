@@ -7,7 +7,6 @@ import java.util.Map;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,15 +27,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                     (per-item points)
  */
 public record GridContent(
-        @Schema(requiredMode = REQUIRED) int pointValue,
-        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
-        String explanation,
         @Schema(requiredMode = REQUIRED) List<String> rowLabels,
         @Schema(requiredMode = REQUIRED) List<String> colLabels,
         @Schema(requiredMode = REQUIRED) List<GridItem> items,
         @Schema(requiredMode = REQUIRED) Map<String, String> correctCells,
-        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
-        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
+        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.GRID;

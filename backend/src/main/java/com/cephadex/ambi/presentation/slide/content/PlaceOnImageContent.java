@@ -7,7 +7,6 @@ import java.util.List;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
-import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,13 +26,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                  {@code DISTANCE} (inverse-distance scoring)
  */
 public record PlaceOnImageContent(
-        @Schema(requiredMode = REQUIRED) int pointValue,
-        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
-        String explanation,
         @Schema(requiredMode = REQUIRED) AppImage image,
         @Schema(requiredMode = REQUIRED) List<Target> correctTargets,
-        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
-        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
+        @Schema(requiredMode = REQUIRED) ScoreMode scoreMode) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.PLACE_ON_IMAGE;

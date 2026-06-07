@@ -1,9 +1,9 @@
 import type {
   DeckResponse,
-  McqContent,
   NumberContent,
   RegisteredMe,
   SlideContent,
+  SlideResponse,
 } from "@store/AmbiApi";
 
 export type PublishStatus = DeckResponse["publishStatus"];
@@ -44,7 +44,8 @@ export const SlideType = {
 
 export const SLIDE_TYPE_LIST = Object.values(SlideType) as Array<SlideType>;
 
-export type Difficulty = McqContent["difficulty"];
+// difficulty moved off content onto the slide itself (`SlideResponse.difficulty`).
+export type Difficulty = NonNullable<SlideResponse["difficulty"]>;
 export const Difficulty = {
   EASY: "EASY",
   MEDIUM: "MEDIUM",

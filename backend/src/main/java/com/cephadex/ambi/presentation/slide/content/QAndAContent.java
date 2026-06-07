@@ -8,12 +8,10 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  *
  * <p>Runtime answer: free-text {@code String} per player.
  *
- * @param allowAnonymous whether responses are shown without the player's name
  * @param maxResponses   cap on accepted responses; {@code null} = unlimited
  * @param moderated      when {@code true} the host approves answers before they appear
  */
 public record QAndAContent(
-        boolean allowAnonymous,
         Integer maxResponses,
         boolean moderated
 ) implements NonScorableContent {

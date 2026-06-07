@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
-import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,9 +27,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param tolerance     ± margin around each target that counts as correct
  */
 public record ScalesContent(
-        @Schema(requiredMode = REQUIRED) int pointValue,
-        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
-        String explanation,
         @Schema(requiredMode = REQUIRED) double min,
         @Schema(requiredMode = REQUIRED) double max,
         @Schema(requiredMode = REQUIRED) double step,
@@ -38,8 +34,7 @@ public record ScalesContent(
         @Schema(requiredMode = REQUIRED) String rightLabel,
         @Schema(requiredMode = REQUIRED) List<ScaleItem> items,
         @Schema(requiredMode = REQUIRED) Map<String, Double> correctValues,
-        @Schema(requiredMode = REQUIRED) double tolerance,
-        @Schema(requiredMode = REQUIRED) boolean allowAnonymous
+        @Schema(requiredMode = REQUIRED) double tolerance
 
 ) implements ScorableContent {
     @Override

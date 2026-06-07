@@ -5,7 +5,6 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 import java.util.Set;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
-import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,15 +27,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                        unlimited
  */
 public record TextContent(
-        @Schema(requiredMode = REQUIRED) int pointValue,
-        @Schema(requiredMode = REQUIRED) Difficulty difficulty,
-        String explanation,
         @Schema(requiredMode = REQUIRED) Set<String> acceptedAnswers,
         @Schema(requiredMode = REQUIRED) MatchMode matchMode,
         @Schema(requiredMode = REQUIRED) boolean caseSensitive,
         @Schema(requiredMode = REQUIRED) boolean trimWhitespace,
-        Integer maxLength,
-        @Schema(requiredMode = REQUIRED) boolean allowAnonymous) implements ScorableContent {
+        Integer maxLength) implements ScorableContent {
     @Override
     public SlideType contentType() {
         return SlideType.TEXT;
