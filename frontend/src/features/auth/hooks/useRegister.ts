@@ -4,6 +4,8 @@ import {
   useLazyUsernameAvailableQuery,
   useRegisterMutation,
 } from "@store/AmbiApi";
+import { validation } from "@store/validationConstants";
+import { validateText } from "@utils/fieldValidation";
 import { extractErrorMessage } from "@utils/utils";
 
 export interface RegisterSearch {
@@ -16,15 +18,13 @@ export interface RegisterSearch {
 
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
 
-// Mirrors the backend RegisterRequest constraints (@Size 3-30,
-// @Pattern [A-Za-z0-9._-]). Kept in lockstep so the inline check matches what
-// the server will accept, sparing a round-trip on obviously-bad input.
+// Sourced from the generated validationConstants (backend RegisterRequest
+// @Size/@Pattern), so the inline check stays in lockstep with what the server
+// accepts and never drifts — sparing a round-trip on obviously-bad input.
 function validateUsernameFormat(value: string): string | null {
-  if (value.length < 3) return "Must be at least 3 characters";
-  if (value.length > 30) return "Must be 30 characters or less";
-  if (!/^[A-Za-z0-9._-]+$/.test(value))
-    return "Letters, digits, '.', '_' or '-' only";
-  return null;
+  return validateText(value, validation.RegisterRequest.username, {
+    patternMessage: "Letters, digits, '.', '_' or '-' only",
+  });
 }
 
 export interface UseRegisterReturn {

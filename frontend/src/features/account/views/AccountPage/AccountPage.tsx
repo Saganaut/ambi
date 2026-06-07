@@ -14,6 +14,8 @@ import { useState } from "react";
 import styles from "./AccountPage.module.css";
 import { useAccount } from "../../useAccount";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
+import { validation } from "@store/validationConstants";
+import { validateText } from "@utils/fieldValidation";
 type Tab =
   | "profile"
   | "theme"
@@ -54,6 +56,14 @@ const AccountPage = () => {
   } = account;
 
   if (isLoading || !profile) return null;
+
+  // Client-side mirror of the backend UpdateProfileRequest.displayName bound
+  // (sourced from validationConstants); the server stays authoritative.
+  const displayNameError = validateText(
+    displayName,
+    validation.UpdateProfileRequest.displayName,
+    { required: true, label: "Display name" },
+  );
 
   const profilePanel = (
     <>
@@ -99,11 +109,13 @@ const AccountPage = () => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setDisplayName(e.target.value);
           }}
+          maxLength={validation.UpdateProfileRequest.displayName.maxLength}
+          errorMessage={displayNameError ?? undefined}
           placeholder='Your display name'
         />
         <Btn
           onClick={() => void saveDisplayName()}
-          disabled={!displayNameDirty || isSavingProfile}>
+          disabled={!displayNameDirty || isSavingProfile || displayNameError != null}>
           {isSavingProfile ? "Saving..." : "Save"}
         </Btn>
         {profileSuccess && (

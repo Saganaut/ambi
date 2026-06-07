@@ -8,6 +8,7 @@ import { Alert } from "@ui/Alert/Alert";
 import { Btn } from "@ui/Buttons/Btn";
 import { Checkbox } from "@/shared/components/Forms/Input/Checkbox/Checkbox";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
+import { validation } from "@store/validationConstants";
 export type { RegisterSearch };
 
 interface RegistrationFormProps {
@@ -65,7 +66,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({
           onChange={(e) => {
             setUsername(e.target.value);
           }}
-          maxLength={30}
+          maxLength={validation.RegisterRequest.username.maxLength}
           label='Username'
           infoMessage={usernameInfoMessage}
           errorMessage={usernameErrorMessage}
