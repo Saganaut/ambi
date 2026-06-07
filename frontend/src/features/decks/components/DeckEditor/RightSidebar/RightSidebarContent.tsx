@@ -17,11 +17,15 @@ import {
   ShareIcon,
   TagIcon,
   StarIcon,
+  TrophyIcon,
+  CheckCircleIcon,
   ChatBubbleLeftRightIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { ThemePanel } from "./ThemePanel";
 import { EditSlidePanel } from "./EditSlidePanel";
+import { AnswerSettingsPanel } from "./AnswerSettingsPanel";
+import { PointSettingsPanel } from "./PointSettingsPanel";
 import { DeckCategorizePanel } from "./DeckCategorizePanel";
 import { DeckReviewsPanel } from "./DeckReviewsPanel";
 import { DeckDiscussionPanel } from "./DeckDiscussionPanel";
@@ -33,6 +37,8 @@ import { RightSidebar } from "@components/Layout/RightSidebar";
 
 type PanelKey =
   | "edit"
+  | "answers"
+  | "points"
   | "theme"
   | "categorize"
   | "reviews"
@@ -42,6 +48,8 @@ type PanelKey =
 
 const PANEL_TITLES: Record<PanelKey, string> = {
   edit: "Edit slide",
+  answers: "Answer settings",
+  points: "Point settings",
   theme: "Theme",
   categorize: "Tags",
   reviews: "Reviews",
@@ -101,6 +109,8 @@ const RightSidebarContent = () => {
             </div>
             <div className={styles.drawerBody}>
               {openPanel === "edit" && <EditSlidePanel />}
+              {openPanel === "answers" && <AnswerSettingsPanel />}
+              {openPanel === "points" && <PointSettingsPanel />}
               {openPanel === "theme" && <ThemePanel />}
               {openPanel === "categorize" && <DeckCategorizePanel />}
               {openPanel === "reviews" && <DeckReviewsPanel />}
@@ -125,6 +135,30 @@ const RightSidebarContent = () => {
           icon={<PencilIcon />}
           onClick={() => {
             toggle("edit");
+          }}
+        />
+        <IconBtn
+          fill='bordered'
+          shape='round'
+          size='md'
+          aria-label={PANEL_TITLES.answers}
+          aria-pressed={openPanel === "answers"}
+          className={openPanel === "answers" ? styles.active : undefined}
+          icon={<CheckCircleIcon />}
+          onClick={() => {
+            toggle("answers");
+          }}
+        />
+        <IconBtn
+          fill='bordered'
+          shape='round'
+          size='md'
+          aria-label={PANEL_TITLES.points}
+          aria-pressed={openPanel === "points"}
+          className={openPanel === "points" ? styles.active : undefined}
+          icon={<TrophyIcon />}
+          onClick={() => {
+            toggle("points");
           }}
         />
         <IconBtn
