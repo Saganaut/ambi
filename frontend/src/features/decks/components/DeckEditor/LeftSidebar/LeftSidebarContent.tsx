@@ -14,10 +14,13 @@ import { SlideThumbnail } from "./SlideThumbnail";
 import styles from "./LeftSidebarContent.module.css";
 
 import { useFullScreen } from "@hooks/useFullScreen";
+import { useModal } from "@/shared/hooks/useModal";
 import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
 import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
 import { getRouteApi } from "@tanstack/react-router";
 import { SlideResponse } from "@/shared/store/AmbiApi";
+import { NewSlideModal } from "../NewSlideModal/NewSlideModal";
+import { SlideType } from "@/shared/store/enums";
 
 /** Friendly label for the thumbnail — falls back when the slide is untitled. */
 const slideDisplayName = (slide: SlideResponse): string => {
@@ -33,13 +36,23 @@ const LeftSidebarContent = () => {
 
   const { addSlide, handleDragEnd, slides } = useDeckEditor(deckId);
   const { isFullScreen } = useFullScreen();
-  // TODO: restore the slide-type picker modal once a slide-based picker exists
-  // (NewSlideModal is still element-based). For now, add a default slide.
-  const handleNewSlideClick = () => {
-    addSlide();
-  };
+  const { openModal, closeModal } = useModal();
 
-  console.log("slide in left sidebarecontent", slides);
+  // Pop the slide-type picker; picking a tile creates a slide of that kind
+  // (default content stamped in `useSlide`) and closes the modal.
+  const handleNewSlideClick = () => {
+    openModal({
+      title: "New Slide",
+      content: (
+        <NewSlideModal
+          onPick={(slideType: SlideType) => {
+            addSlide({ slideType });
+            closeModal();
+          }}
+        />
+      ),
+    });
+  };
   return (
     <LeftSidebar
       className={`${styles.leftSidebarContent} ${isFullScreen ? styles.isCollapsed : ""} `}>
