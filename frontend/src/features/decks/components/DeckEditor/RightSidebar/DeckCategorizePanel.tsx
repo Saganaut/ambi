@@ -34,7 +34,12 @@ const DeckCategorizePanel = () => {
       <section className={styles.section}>
         <h4 className={styles.heading}>Deck tags</h4>
         {/* TODO: Replace with TagPicker once useListTagsQuery / useCreateTagMutation
-            are available in AmbiApi. Currently shows the raw tag list. */}
+            are available in AmbiApi. Currently shows the raw tag list.
+            When wiring the editor, cap entry + count from the generated bounds via
+            @utils/fieldValidation — they're already published:
+            validation.SetTagsRequest.tags → { maxItems: 50, items: { minLength: 1, maxLength: 50 } }.
+            Note the model is string[] tag names (not TagResponse entities), so
+            TagPicker likely needs a string-based variant. */}
         {tags.length > 0 ? (
           <ul className={styles.tagList ?? ""}>
             {tags.map((tag) => (
