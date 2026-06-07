@@ -26,10 +26,8 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.DeckRepository;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
-import com.cephadex.ambi.presentation.deck.Settings.AudienceSettings;
-import com.cephadex.ambi.presentation.deck.Settings.DeckSettings;
-import com.cephadex.ambi.presentation.deck.Settings.PointSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
+import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -97,16 +95,18 @@ public class SampleDataSeeder implements ApplicationRunner {
     private final SlideRankService ranks;
     private final MongoTemplate mongoTemplate;
     private final ConfigurableApplicationContext context;
+    private final DeckDefaultsProperties deckDefaults;
 
     public SampleDataSeeder(UserRepository userRepository, ThemeRepository themeRepository,
             DeckRepository deckRepository, SlideRankService ranks, MongoTemplate mongoTemplate,
-            ConfigurableApplicationContext context) {
+            ConfigurableApplicationContext context, DeckDefaultsProperties deckDefaults) {
         this.userRepository = userRepository;
         this.themeRepository = themeRepository;
         this.deckRepository = deckRepository;
         this.ranks = ranks;
         this.mongoTemplate = mongoTemplate;
         this.context = context;
+        this.deckDefaults = deckDefaults;
     }
 
     @Override
@@ -343,12 +343,12 @@ public class SampleDataSeeder implements ApplicationRunner {
         deck.setPublishStatus(status);
         deck.setVisibility(visibility);
         deck.setPublishedAt(status == PublishStatus.PUBLISHED ? now : null);
-        deck.setLanguage("en");
+        deck.setLanguage(deckDefaults.getLanguage());
         deck.setCreatorUserId(ownerId);
         deck.setOriginalAuthorUserId(ownerId);
         deck.setOwnership(new Ownership(OwnershipType.USER, ownerId));
         deck.setTags(new LinkedHashSet<>(tags));
-        deck.setSettings(defaultSettings());
+        deck.setSettings(deckDefaults.deckSettings());
 
         // Assign evenly-spaced LexoRank keys so the embedded list has a real order.
         List<String> sortKeys = ranks.evenlySpaced(slides.size());
@@ -357,13 +357,6 @@ public class SampleDataSeeder implements ApplicationRunner {
             deck.addSlide(slides.get(i));
         }
         return deck;
-    }
-
-    private DeckSettings defaultSettings() {
-        PointSettings points = new PointSettings(1000, 0, 0, 250, Map.of(), false);
-        AnswerSettings answers = new AnswerSettings(true, false, true, false, 30, true, 1);
-        AudienceSettings audience = new AudienceSettings(100, true, true, true, true, false, true);
-        return new DeckSettings(points, answers, audience);
     }
 
     /** A single-correct MCQ slide ({@code maxSelections = 1}). */
@@ -389,10 +382,16 @@ public class SampleDataSeeder implements ApplicationRunner {
         }
         McqContent content = new McqContent(built, correct);
         // pointValue/shuffle/maxSelections/allowAnonymous now live on the slide's
-        // answer settings; difficulty/explanation are top-level slide fields.
+        // answer settings; difficulty/explanation are top-level slide fields. Start
+        // from the deck defaults and override only what this sample slide varies:
+        // multi-select follows maxSelections, and sample MCQs disallow anonymous
+        // answers.
+        AnswerSettings base = deckDefaults.answerSettings();
         SlideSettings settings = new SlideSettings(
                 null, // inherit deck point defaults
-                new AnswerSettings(true, maxSelections != 1, true, false, 30, false, maxSelections));
+                new AnswerSettings(base.displayResultsLive(), maxSelections != 1,
+                        base.shuffleOptions(), base.anonymizeAnswers(), base.countdownTime(),
+                        false, maxSelections));
         return slide(question, content, difficulty, explanation, settings, userId);
     }
 

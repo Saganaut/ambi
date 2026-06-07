@@ -322,9 +322,13 @@ class DeckControllerTest {
                 any(Settings.PointSettings.class), any()))
                 .thenReturn(slideWithSettings("s1", pointSettings(75), null));
 
+        // Full-object PUT: under Jackson 3 every primitive component must be present
+        // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default) — see BACKEND-RULES.
         mockMvc.perform(put("/api/decks/deck-1/slides/s1/point-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pointSettings\":{\"points\":75}}"))
+                        .content("{\"pointSettings\":{\"points\":75,\"deceptionPoints\":0,"
+                                + "\"bestAnswerPoints\":0,\"fastestCorrectAnswerPoints\":0,"
+                                + "\"streakBonuses\":{},\"resetStreakOnStreakEnd\":false}}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slideId").value("s1"))
                 .andExpect(jsonPath("$.pointSettings.points").value(75));
@@ -375,9 +379,14 @@ class DeckControllerTest {
                 any(Settings.AnswerSettings.class), any()))
                 .thenReturn(slideWithSettings("s1", null, answerSettings(20)));
 
+        // Full-object PUT: under Jackson 3 every primitive component must be present
+        // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default) — see BACKEND-RULES.
         mockMvc.perform(put("/api/decks/deck-1/slides/s1/answer-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"answerSettings\":{\"countdownTime\":20,\"shuffleOptions\":true}}"))
+                        .content("{\"answerSettings\":{\"displayResultsLive\":false,"
+                                + "\"allowMultipleAnswers\":false,\"shuffleOptions\":true,"
+                                + "\"anonymizeAnswers\":false,\"countdownTime\":20,"
+                                + "\"allowAnonymous\":false,\"maxSelections\":1}}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slideId").value("s1"))
                 .andExpect(jsonPath("$.answerSettings.countdownTime").value(20));

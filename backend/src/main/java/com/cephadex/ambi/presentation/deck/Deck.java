@@ -46,8 +46,10 @@ public class Deck extends Auditable {
     @Field("public_id")
     private String publicId;
 
+    // Name/language defaults are owned by DeckDefaultsProperties and applied at
+    // the create seam (DeckService.create) so they stay env-tunable in one place.
     @Field("name")
-    private String name = "Untitled Deck";
+    private String name;
 
     @Field("description")
     private String description;
@@ -65,6 +67,9 @@ public class Deck extends Auditable {
     @Field("version")
     private Long version;
 
+    // DRAFT/PRIVATE are deliberately kept as field defaults rather than moved to
+    // config: they are safety invariants (a new deck must never default to
+    // published/public), so they are not env-tunable on purpose.
     @Field("publish_status")
     private PublishStatus publishStatus = PublishStatus.DRAFT;
 
@@ -77,7 +82,7 @@ public class Deck extends Auditable {
     private Instant publishedAt;
 
     @Field("language")
-    private String language = "en";
+    private String language;
 
     @Indexed
     @Field("creator_user_id")
