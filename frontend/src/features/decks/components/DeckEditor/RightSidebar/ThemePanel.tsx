@@ -1,11 +1,13 @@
 // Style panel for the deck-editor right sidebar.
-// TODO: useThemePicker (theme dropdown + preset list) is not yet implemented.
-// TODO: useGalleryPicker (image picker modal) is not yet implemented.
 // TODO: DeckResponse.defaultSessionFormat and defaultShowResponses are gone from
 // the new model. Wire session defaults once those fields return.
 // Background image for the active slide uses useSlide.setSlideImage / clearSlideImage.
 import { getRouteApi } from "@tanstack/react-router";
 import { useSlide } from "@/features/decks/hooks/useSlide";
+import { useDeck } from "@/features/decks/hooks/useDeck";
+import { useModal } from "@hooks/useModal";
+import { useGetThemeQuery } from "@store/AmbiApi";
+import { ThemeModal } from "@components/Theme/ThemeModal/ThemeModal";
 import { Btn } from "@ui/Buttons/Btn";
 import { ImagePicker } from "./ImagePicker";
 import styles from "./ThemePanel.module.css";
@@ -20,10 +22,54 @@ const useThemePanel = () => {
   return { deckId, slide, slideId, clearSlideImage };
 };
 
+const DeckTheme = ({ deckId }: { deckId: string }) => {
+  const { deck, updateDeck } = useDeck(deckId);
+  const { openModal, closeModal } = useModal();
+
+  const themeId = deck?.themeId;
+  // Resolve the applied theme's name for the summary line; skipped when unset.
+  const { data: activeTheme } = useGetThemeQuery(
+    { id: themeId ?? "" },
+    { skip: !themeId },
+  );
+
+  const openThemeModal = () => {
+    openModal({
+      title: "Theme",
+      content: (
+        <ThemeModal
+          activeThemeId={themeId}
+          onApply={(theme) => {
+            updateDeck({ themeId: theme.id });
+          }}
+          onClose={closeModal}
+        />
+      ),
+    });
+  };
+
+  return (
+    <section className={styles.section}>
+      <h4 className={styles.heading}>Deck theme</h4>
+      <p className={styles.empty}>
+        {themeId ? (activeTheme?.name ?? "Custom theme") : "No theme applied."}
+      </p>
+      <Btn type='button' className={styles.newBtn} onClick={openThemeModal}>
+        {themeId ? "Change theme" : "Choose theme"}
+      </Btn>
+    </section>
+  );
+};
+
 const PerSlideStyle = () => {
   const { slide, slideId, clearSlideImage } = useThemePanel();
 
-  if (!slide) return <div className={styles.section}><p>No slide selected.</p></div>;
+  if (!slide)
+    return (
+      <div className={styles.section}>
+        <p>No slide selected.</p>
+      </div>
+    );
 
   const id = slideId ?? slide.id;
 
@@ -46,25 +92,11 @@ const PerSlideStyle = () => {
 };
 
 const ThemePanel = () => {
-  useThemePanel();
+  const { deckId } = useThemePanel();
 
   return (
     <div className={styles.panel}>
-      <section className={styles.section}>
-        <h4 className={styles.heading}>Deck theme</h4>
-        {/* TODO: Wire theme picker dropdown once useThemePicker is implemented.
-            The theme picker needs: preset list, user's custom themes, and
-            a "+ New theme" action that opens ThemeEditor. */}
-        <p className={styles.empty}>Theme picker coming soon.</p>
-        <Btn
-          type='button'
-          className={styles.newBtn}
-          onClick={() => {
-            // TODO: open ThemeEditor modal
-          }}>
-          + New theme
-        </Btn>
-      </section>
+      <DeckTheme deckId={deckId} />
 
       <section className={styles.section}>
         <h4 className={styles.heading}>Session defaults</h4>

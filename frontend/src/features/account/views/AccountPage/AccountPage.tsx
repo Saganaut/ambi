@@ -13,6 +13,7 @@ import { Tabs } from "@ui/Tabs/Tabs";
 import { useState } from "react";
 import styles from "./AccountPage.module.css";
 import { useAccount } from "../../useAccount";
+import { AccountThemeSection } from "./AccountThemeSection";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { validation } from "@store/validationConstants";
 import { validateText } from "@utils/fieldValidation";
@@ -191,7 +192,7 @@ const AccountPage = () => {
         }}
         items={[
           { id: "profile", label: "Profile", panel: profilePanel },
-          { id: "theme", label: "Theme", panel: <div>Theme Section </div> },
+          { id: "theme", label: "Theme", panel: <AccountThemeSection /> },
           {
             id: "gallery",
             label: "Gallery",

@@ -152,10 +152,15 @@ public class SampleDataSeeder implements ApplicationRunner {
         }
 
         Map<String, ThemeSpec> presets = new LinkedHashMap<>();
-        // OKLCH hues: Shire green, Mordor red, Rivendell blue.
+        // OKLCH hues (primary, accent): a small spread of light/dark presets so the
+        // theme picker has a real built-in selection out of the box.
         presets.put("Middle-earth Light", new ThemeSpec(ThemeMode.LIGHT, 140, 90, null, null));
         presets.put("Mordor Dark", new ThemeSpec(ThemeMode.DARK, 25, 35, null, null));
         presets.put("Rivendell", new ThemeSpec(ThemeMode.LIGHT, 225, 280, null, null));
+        presets.put("Lothlórien", new ThemeSpec(ThemeMode.LIGHT, 160, 95, null, null));
+        presets.put("Rohan Gold", new ThemeSpec(ThemeMode.LIGHT, 75, 45, null, null));
+        presets.put("Misty Mountains", new ThemeSpec(ThemeMode.DARK, 220, 200, null, null));
+        presets.put("Shadow of Moria", new ThemeSpec(ThemeMode.DARK, 285, 50, null, null));
 
         Map<String, Theme> result = new LinkedHashMap<>();
         for (Map.Entry<String, ThemeSpec> e : presets.entrySet()) {

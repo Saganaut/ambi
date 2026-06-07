@@ -227,17 +227,11 @@ const MediaPicker = ({ kind, onPick, onClose }: MediaPickerProps) => {
   const renderThumb = (asset: MediaAssetResponse) => {
     if (asset.kind === "IMAGE") {
       const thumb = variantFor(
-        {
-          useExternalImg: false,
-          internalImgId: asset.id ?? "",
-          variants: asset.variants ?? {},
-        },
+        { external: false, variants: asset.variants ?? {} },
         "SM",
       );
-      if (thumb?.url) {
-        return (
-          <img src={thumb.url} alt={asset.name} className={styles.thumb} />
-        );
+      if (thumb) {
+        return <img src={thumb} alt={asset.name} className={styles.thumb} />;
       }
       return (
         <div className={styles.thumb} aria-hidden='true'>

@@ -265,6 +265,37 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.slideRequest,
       }),
     }),
+    listSlideCommentThreads: build.query<
+      ListSlideCommentThreadsApiResponse,
+      ListSlideCommentThreadsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.deckId}/slides/${queryArg.slideId}/comment-threads`,
+        params: {
+          pageable: queryArg.pageable,
+        },
+      }),
+    }),
+    createCommentThread: build.mutation<
+      CreateCommentThreadApiResponse,
+      CreateCommentThreadApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.deckId}/slides/${queryArg.slideId}/comment-threads`,
+        method: "POST",
+        body: queryArg.commentBodyRequest,
+      }),
+    }),
+    addThreadComment: build.mutation<
+      AddThreadCommentApiResponse,
+      AddThreadCommentApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.deckId}/slides/${queryArg.slideId}/comment-threads/${queryArg.threadId}/comments`,
+        method: "POST",
+        body: queryArg.commentBodyRequest,
+      }),
+    }),
     register: build.mutation<RegisterApiResponse, RegisterApiArg>({
       query: (queryArg) => ({
         url: `/api/auth/register`,
@@ -320,6 +351,35 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.moveSlideRequest,
       }),
     }),
+    setThreadStatus: build.mutation<
+      SetThreadStatusApiResponse,
+      SetThreadStatusApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.deckId}/slides/${queryArg.slideId}/comment-threads/${queryArg.threadId}`,
+        method: "PATCH",
+        body: queryArg.setThreadStatusRequest,
+      }),
+    }),
+    deleteThreadComment: build.mutation<
+      DeleteThreadCommentApiResponse,
+      DeleteThreadCommentApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.deckId}/slides/${queryArg.slideId}/comment-threads/${queryArg.threadId}/comments/${queryArg.commentId}`,
+        method: "DELETE",
+      }),
+    }),
+    updateThreadComment: build.mutation<
+      UpdateThreadCommentApiResponse,
+      UpdateThreadCommentApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.deckId}/slides/${queryArg.slideId}/comment-threads/${queryArg.threadId}/comments/${queryArg.commentId}`,
+        method: "PATCH",
+        body: queryArg.commentBodyRequest,
+      }),
+    }),
     listThemesForOrg: build.query<
       ListThemesForOrgApiResponse,
       ListThemesForOrgApiArg
@@ -339,6 +399,9 @@ const injectedRtkApi = api.injectEndpoints({
       ListBuiltInThemesApiArg
     >({
       query: () => ({ url: `/api/themes/built-in` }),
+    }),
+    listMyOrgs: build.query<ListMyOrgsApiResponse, ListMyOrgsApiArg>({
+      query: () => ({ url: `/api/orgs/mine` }),
     }),
     getOrgGallery: build.query<GetOrgGalleryApiResponse, GetOrgGalleryApiArg>({
       query: (queryArg) => ({
@@ -586,6 +649,28 @@ export type AddSlideApiArg = {
   id: string;
   slideRequest: SlideRequest;
 };
+export type ListSlideCommentThreadsApiResponse =
+  /** status 200 OK */ PagedModelCommentThreadResponse;
+export type ListSlideCommentThreadsApiArg = {
+  deckId: string;
+  slideId: string;
+  pageable: Pageable;
+};
+export type CreateCommentThreadApiResponse =
+  /** status 201 Created */ CommentThreadResponse;
+export type CreateCommentThreadApiArg = {
+  deckId: string;
+  slideId: string;
+  commentBodyRequest: CommentBodyRequest;
+};
+export type AddThreadCommentApiResponse =
+  /** status 201 Created */ CommentThreadResponse;
+export type AddThreadCommentApiArg = {
+  deckId: string;
+  slideId: string;
+  threadId: string;
+  commentBodyRequest: CommentBodyRequest;
+};
 export type RegisterApiResponse = /** status 200 OK */ MeResponse;
 export type RegisterApiArg = {
   registerRequest: RegisterRequest;
@@ -621,6 +706,31 @@ export type MoveSlideApiArg = {
   slideId: string;
   moveSlideRequest: MoveSlideRequest;
 };
+export type SetThreadStatusApiResponse =
+  /** status 200 OK */ CommentThreadResponse;
+export type SetThreadStatusApiArg = {
+  deckId: string;
+  slideId: string;
+  threadId: string;
+  setThreadStatusRequest: SetThreadStatusRequest;
+};
+export type DeleteThreadCommentApiResponse =
+  /** status 200 OK */ CommentThreadResponse;
+export type DeleteThreadCommentApiArg = {
+  deckId: string;
+  slideId: string;
+  threadId: string;
+  commentId: string;
+};
+export type UpdateThreadCommentApiResponse =
+  /** status 200 OK */ CommentThreadResponse;
+export type UpdateThreadCommentApiArg = {
+  deckId: string;
+  slideId: string;
+  threadId: string;
+  commentId: string;
+  commentBodyRequest: CommentBodyRequest;
+};
 export type ListThemesForOrgApiResponse = /** status 200 OK */ ThemeResponse[];
 export type ListThemesForOrgApiArg = {
   orgId: string;
@@ -629,6 +739,9 @@ export type ListMyThemesApiResponse = /** status 200 OK */ ThemeResponse[];
 export type ListMyThemesApiArg = void;
 export type ListBuiltInThemesApiResponse = /** status 200 OK */ ThemeResponse[];
 export type ListBuiltInThemesApiArg = void;
+export type ListMyOrgsApiResponse =
+  /** status 200 OK */ MyOrgMembershipResponse[];
+export type ListMyOrgsApiArg = void;
 export type GetOrgGalleryApiResponse = /** status 200 OK */ GalleryResponse;
 export type GetOrgGalleryApiArg = {
   orgId: string;
@@ -1136,6 +1249,31 @@ export type AddImageRequest = {
   image: AppImage;
   name?: string;
 };
+export type AuthorResponse = {
+  userId: string;
+  name: string;
+  pictureUrl?: string;
+};
+export type CommentResponse = {
+  id: string;
+  author: AuthorResponse;
+  body?: string;
+  edited: boolean;
+  deleted: boolean;
+};
+export type CommentThreadResponse = {
+  id: string;
+  slideId: string;
+  status: "OPEN" | "RESOLVED";
+  comments: CommentResponse[];
+};
+export type PagedModelCommentThreadResponse = {
+  content?: CommentThreadResponse[];
+  page?: PageMetadata;
+};
+export type CommentBodyRequest = {
+  body: string;
+};
 export type VisitorMe = {
   state: "VISITOR" | "GUEST" | "PRE_REGISTRATION" | "REGISTERED";
   authenticated: boolean;
@@ -1237,6 +1375,13 @@ export type RenameGalleryRequest = {
 export type MoveSlideRequest = {
   to: number;
 };
+export type SetThreadStatusRequest = {
+  status: "OPEN" | "RESOLVED";
+};
+export type MyOrgMembershipResponse = {
+  orgId: string;
+  role: "OWNER" | "ADMIN" | "USER";
+};
 export type PagedModelDeckResponse = {
   content?: DeckResponse[];
   page?: PageMetadata;
@@ -1287,6 +1432,10 @@ export const {
   useListDeckSlidesQuery,
   useLazyListDeckSlidesQuery,
   useAddSlideMutation,
+  useListSlideCommentThreadsQuery,
+  useLazyListSlideCommentThreadsQuery,
+  useCreateCommentThreadMutation,
+  useAddThreadCommentMutation,
   useRegisterMutation,
   useRefreshMutation,
   useLogoutMutation,
@@ -1299,12 +1448,17 @@ export const {
   useDeleteGalleryMutation,
   useRenameGalleryMutation,
   useMoveSlideMutation,
+  useSetThreadStatusMutation,
+  useDeleteThreadCommentMutation,
+  useUpdateThreadCommentMutation,
   useListThemesForOrgQuery,
   useLazyListThemesForOrgQuery,
   useListMyThemesQuery,
   useLazyListMyThemesQuery,
   useListBuiltInThemesQuery,
   useLazyListBuiltInThemesQuery,
+  useListMyOrgsQuery,
+  useLazyListMyOrgsQuery,
   useGetOrgGalleryQuery,
   useLazyGetOrgGalleryQuery,
   useGetImageQuery,

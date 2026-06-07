@@ -8,7 +8,7 @@
  * Theme-driven backgrounds will slot in between "deck" and "Lorem Picsum" once
  * the interactiveSession passes the host's active theme through to clients.
  */
-import type { Image } from "@store/AmbiApi";
+import type { AppImage } from "@store/AmbiApi";
 import { resolveImageUrl } from "@utils/image";
 
 const COVER_WIDTH = 480;
@@ -21,7 +21,7 @@ const picsumUrl = (seed: string, w: number, h: number): string =>
 
 /** Returns the cover thumbnail URL for a deck, falling back to a deterministic Lorem Picsum. */
 export const resolveDeckCover = (
-  cover: Image | null | undefined,
+  cover: AppImage | null | undefined,
   deckId: string | null | undefined,
 ): string => {
   const seed = `ambi-deck-cover-${deckId ?? "unknown"}`;

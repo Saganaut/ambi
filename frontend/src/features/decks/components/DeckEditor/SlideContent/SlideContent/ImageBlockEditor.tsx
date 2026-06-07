@@ -4,7 +4,7 @@
 // stays URL-only for now because image blocks aren't always backed by the
 // gallery (e.g. lecture content).
 import { Input } from "@components/Forms/Input/Input/Input";
-import { largestUrl } from "@utils/image";
+import { externalImage } from "@utils/image";
 import type { ImageBlock, BlockUpdate } from "./types";
 import styles from "./SlideContent.module.css";
 
@@ -14,21 +14,14 @@ interface ImageBlockEditorProps {
   onFlush: () => void;
 }
 
-/** Materialize an external Image record from a typed URL. Mirrors the shape
- *  the backend's `Image.external(url)` factory produces. */
-//TODO: Remove any
-const makeExternalImage = (url: string): any => ({
-  useExternalImg: true,
-  externalUrl: url,
-  variants: {},
-});
-
 const ImageBlockEditor = ({
   block,
   onUpdate,
   onFlush,
 }: ImageBlockEditorProps) => {
-  const externalUrl: string = "";
+  // Image blocks are URL-backed for now (no gallery binding), so the only
+  // renderable source is an external image's `externalSrc`.
+  const externalUrl = block.image?.external ? (block.image.externalSrc ?? "") : "";
   return (
     <div className={styles.blockBody}>
       <Input
@@ -41,7 +34,7 @@ const ImageBlockEditor = ({
         onChange={(e) => {
           const url = e.target.value.trim();
           onUpdate(
-            { ...block, image: url ? makeExternalImage(url) : undefined },
+            { ...block, image: url ? externalImage(url) : undefined },
             "schedule",
           );
         }}
