@@ -25,7 +25,8 @@ import com.cephadex.ambi.presentation.deck.dto.AnswerSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.dto.MoveSlideRequest;
 import com.cephadex.ambi.presentation.deck.dto.PointSettingsResponse;
-import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest                 ;
+import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest;
+import com.cephadex.ambi.presentation.deck.dto.SetAudienceSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetImageRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetPointSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetTagsRequest;
@@ -205,6 +206,40 @@ public class DeckController {
             @Valid @RequestBody SetTagsRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return toResponse(deckService.setTags(id, body.tags(), principal), principal);
+    }
+
+    // ── Deck settings ───────────────────────────────────────────────────────────
+    // The deck's default point / answer / audience settings. Each embedded
+    // sub-document gets its own write endpoint (EDIT) rather than flowing through
+    // the metadata PATCH, so it persists via a targeted update that never
+    // re-versions the deck — the same single-owner split as deck tags and images.
+    // The body fully replaces that sub-document; reads come back on the deck.
+
+    /** Replace a deck's default point (scoring) settings (EDIT). */
+    @PutMapping("/{id}/point-settings")
+    public DeckResponse setDeckPointSettings(
+            @PathVariable String id,
+            @Valid @RequestBody SetPointSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setDeckPointSettings(id, body.pointSettings(), principal), principal);
+    }
+
+    /** Replace a deck's default answer (answering) settings (EDIT). */
+    @PutMapping("/{id}/answer-settings")
+    public DeckResponse setDeckAnswerSettings(
+            @PathVariable String id,
+            @Valid @RequestBody SetAnswerSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setDeckAnswerSettings(id, body.answerSettings(), principal), principal);
+    }
+
+    /** Replace a deck's audience (who-can-join + engagement) settings (EDIT). */
+    @PutMapping("/{id}/audience-settings")
+    public DeckResponse setDeckAudienceSettings(
+            @PathVariable String id,
+            @Valid @RequestBody SetAudienceSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setDeckAudienceSettings(id, body.audienceSettings(), principal), principal);
     }
 
     // ── Slides (sub-resource of a deck) ─────────────────────────────────────────

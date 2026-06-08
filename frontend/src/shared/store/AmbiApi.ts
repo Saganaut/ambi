@@ -199,6 +199,16 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
+    setDeckPointSettings: build.mutation<
+      SetDeckPointSettingsApiResponse,
+      SetDeckPointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/point-settings`,
+        method: "PUT",
+        body: queryArg.setPointSettingsRequest,
+      }),
+    }),
     setDeckCoverImage: build.mutation<
       SetDeckCoverImageApiResponse,
       SetDeckCoverImageApiArg
@@ -235,6 +245,26 @@ const injectedRtkApi = api.injectEndpoints({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/background-image`,
         method: "DELETE",
+      }),
+    }),
+    setDeckAudienceSettings: build.mutation<
+      SetDeckAudienceSettingsApiResponse,
+      SetDeckAudienceSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/audience-settings`,
+        method: "PUT",
+        body: queryArg.setAudienceSettingsRequest,
+      }),
+    }),
+    setDeckAnswerSettings: build.mutation<
+      SetDeckAnswerSettingsApiResponse,
+      SetDeckAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/answer-settings`,
+        method: "PUT",
+        body: queryArg.setAnswerSettingsRequest,
       }),
     }),
     listImages: build.query<ListImagesApiResponse, ListImagesApiArg>({
@@ -608,6 +638,11 @@ export type RevokeShareDeckApiArg = {
   id: string;
   userId: string;
 };
+export type SetDeckPointSettingsApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckPointSettingsApiArg = {
+  id: string;
+  setPointSettingsRequest: SetPointSettingsRequest;
+};
 export type SetDeckCoverImageApiResponse = /** status 200 OK */ DeckResponse;
 export type SetDeckCoverImageApiArg = {
   id: string;
@@ -627,6 +662,18 @@ export type ClearDeckBackgroundImageApiResponse =
   /** status 200 OK */ DeckResponse;
 export type ClearDeckBackgroundImageApiArg = {
   id: string;
+};
+export type SetDeckAudienceSettingsApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckAudienceSettingsApiArg = {
+  id: string;
+  setAudienceSettingsRequest: SetAudienceSettingsRequest;
+};
+export type SetDeckAnswerSettingsApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckAnswerSettingsApiArg = {
+  id: string;
+  setAnswerSettingsRequest: SetAnswerSettingsRequest;
 };
 export type ListImagesApiResponse =
   /** status 200 OK */ PagedModelGalleryImageResponse;
@@ -939,7 +986,6 @@ export type UpdateDeckRequest = {
   description?: string;
   themeId?: string;
   language?: string;
-  settings?: DeckSettings;
   publishStatus?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 };
 export type SetVisibilityRequest = {
@@ -1221,6 +1267,9 @@ export type SetAnswerSettingsRequest = {
 export type ShareDeckRequest = {
   role: "VIEWER" | "EDITOR";
 };
+export type SetAudienceSettingsRequest = {
+  audienceSettings: AudienceSettings;
+};
 export type GalleryImageResponse = {
   id: string;
   galleryId: string;
@@ -1422,10 +1471,13 @@ export const {
   useClearSlideAnswerSettingsMutation,
   useShareDeckMutation,
   useRevokeShareDeckMutation,
+  useSetDeckPointSettingsMutation,
   useSetDeckCoverImageMutation,
   useClearDeckCoverImageMutation,
   useSetDeckBackgroundImageMutation,
   useClearDeckBackgroundImageMutation,
+  useSetDeckAudienceSettingsMutation,
+  useSetDeckAnswerSettingsMutation,
   useListImagesQuery,
   useLazyListImagesQuery,
   useAddImageMutation,

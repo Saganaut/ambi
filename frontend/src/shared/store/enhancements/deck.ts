@@ -27,8 +27,11 @@ import {
   type ListDecksForOrgApiArg,
   type ListPublicDecksApiArg,
   type RevokeShareDeckApiArg,
+  type SetDeckAnswerSettingsApiArg,
+  type SetDeckAudienceSettingsApiArg,
   type SetDeckBackgroundImageApiArg,
   type SetDeckCoverImageApiArg,
+  type SetDeckPointSettingsApiArg,
   type SetDeckTagsApiArg,
   type SetDeckVisibilityApiArg,
   type ShareDeckApiArg,
@@ -138,6 +141,33 @@ Ambi.enhanceEndpoints({
     setDeckTags: reconcilingDeckMutation<SetDeckTagsApiArg>((draft, arg) => {
       draft.tags = arg.setTagsRequest.tags;
     }),
+    // Deck default settings: each embedded sub-document has its own endpoint, so
+    // the optimistic patch touches only that sub-object and the response reconcile
+    // lands server truth (the same getDeck DeckResponse).
+    setDeckPointSettings: reconcilingDeckMutation<SetDeckPointSettingsApiArg>(
+      (draft, arg) => {
+        draft.settings = {
+          ...draft.settings,
+          pointSettings: arg.setPointSettingsRequest.pointSettings,
+        };
+      },
+    ),
+    setDeckAnswerSettings: reconcilingDeckMutation<SetDeckAnswerSettingsApiArg>(
+      (draft, arg) => {
+        draft.settings = {
+          ...draft.settings,
+          answerSettings: arg.setAnswerSettingsRequest.answerSettings,
+        };
+      },
+    ),
+    setDeckAudienceSettings: reconcilingDeckMutation<SetDeckAudienceSettingsApiArg>(
+      (draft, arg) => {
+        draft.settings = {
+          ...draft.settings,
+          audienceSettings: arg.setAudienceSettingsRequest.audienceSettings,
+        };
+      },
+    ),
     setDeckCoverImage: reconcilingDeckMutation<SetDeckCoverImageApiArg>(
       (draft, arg) => {
         draft.coverImage = arg.setImageRequest.image;

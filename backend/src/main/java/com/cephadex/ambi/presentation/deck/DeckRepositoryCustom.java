@@ -4,13 +4,14 @@ package com.cephadex.ambi.presentation.deck;
  * Hand-written repository operations that Spring Data can't derive. Mixed into
  * {@link DeckRepository} so callers still see one repository.
  *
- * <p>Currently a single targeted write: updating one embedded slide's settings
- * sub-document <em>without</em> re-versioning the whole deck. Slides are embedded
- * in the deck aggregate, so a normal {@code save(deck)} rewrites the entire
- * document and bumps the deck's {@code @Version} — fine for deck-structural
- * edits, but a per-slide settings tweak shouldn't contend with deck-level writes
- * on that single version counter. A positional update touches just the nested
- * field instead. See {@link DeckRepositoryImpl}.
+ * <p>These are the targeted settings writes: they touch a single embedded
+ * settings sub-document <em>without</em> re-versioning the whole deck. Settings
+ * (slide- or deck-level) live inside the deck aggregate, so a normal
+ * {@code save(deck)} rewrites the entire document and bumps the deck's
+ * {@code @Version} — fine for deck-structural edits, but a settings tweak
+ * shouldn't contend with unrelated writes on that single version counter. A
+ * positional / sub-path {@code $set} touches just the nested field instead.
+ * See {@link DeckRepositoryImpl}.
  */
 public interface DeckRepositoryCustom {
 
@@ -28,4 +29,18 @@ public interface DeckRepositoryCustom {
      */
     void updateSlideSettings(String deckId, String slideId,
             Settings.SlideSettings settings, String editorUserId);
+
+    /**
+     * Replace the deck's point (scoring) settings sub-document
+     * ({@code settings.pointSettings}) via a sub-path {@code $set}, leaving the
+     * deck's {@code @Version} untouched. The deck is assumed to already exist and
+     * be authorized — the caller loads it first.
+     */
+    void updateDeckPointSettings(String deckId, Settings.PointSettings pointSettings);
+
+    /** As {@link #updateDeckPointSettings}, for the deck's answer settings. */
+    void updateDeckAnswerSettings(String deckId, Settings.AnswerSettings answerSettings);
+
+    /** As {@link #updateDeckPointSettings}, for the deck's audience settings. */
+    void updateDeckAudienceSettings(String deckId, Settings.AudienceSettings audienceSettings);
 }

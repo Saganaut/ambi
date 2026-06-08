@@ -38,4 +38,33 @@ class DeckRepositoryImpl implements DeckRepositoryCustom {
         }
         mongoTemplate.updateFirst(query, update, Deck.class);
     }
+
+    @Override
+    public void updateDeckPointSettings(String deckId, Settings.PointSettings pointSettings) {
+        updateDeckSettingsField(deckId, "pointSettings", pointSettings);
+    }
+
+    @Override
+    public void updateDeckAnswerSettings(String deckId, Settings.AnswerSettings answerSettings) {
+        updateDeckSettingsField(deckId, "answerSettings", answerSettings);
+    }
+
+    @Override
+    public void updateDeckAudienceSettings(String deckId, Settings.AudienceSettings audienceSettings) {
+        updateDeckSettingsField(deckId, "audienceSettings", audienceSettings);
+    }
+
+    /**
+     * Sub-path {@code $set} of one of the deck's own settings sub-documents
+     * ({@code settings.<field>}). As with {@link #updateSlideSettings}, the whole
+     * sub-document is set so the Mongo converter serializes the nested record, and
+     * {@code updateFirst} skips optimistic locking so the deck's {@code @Version}
+     * is left unchanged. The {@code settings.<field>} sub-fields are records with
+     * no {@code @Field}, so the path is camelCase.
+     */
+    private void updateDeckSettingsField(String deckId, String field, Object value) {
+        Query query = new Query(Criteria.where("_id").is(deckId));
+        Update update = new Update().set("settings." + field, value);
+        mongoTemplate.updateFirst(query, update, Deck.class);
+    }
 }

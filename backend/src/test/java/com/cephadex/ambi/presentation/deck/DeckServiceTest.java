@@ -482,6 +482,70 @@ class DeckServiceTest {
         assertThat(perms.canManage()).isFalse();
     }
 
+    // ── Deck settings ─────────────────────────────────────────────────────────────
+    // Deck-level defaults persist through targeted sub-path updates, NOT a
+    // whole-deck save: the response reflects the in-memory mutation while the deck
+    // @Version is left untouched (no deckRepository.save).
+
+    @Test
+    void setDeckAnswerSettingsPersistsTargetedWithoutSaving() {
+        Deck deck = deck("owner-1");
+        deck.setSettings(new Settings.DeckSettings(pointSettings(50), answerSettings(10), audienceSettings(8)));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Settings.AnswerSettings answers = answerSettings(30);
+
+        Deck result = deckService.setDeckAnswerSettings("deck-1", answers, owner);
+
+        // In-memory answer half replaced; point + audience halves preserved.
+        assertThat(result.getSettings().answerSettings()).isSameAs(answers);
+        assertThat(result.getSettings().pointSettings().points()).isEqualTo(50);
+        assertThat(result.getSettings().audienceSettings().maxParticipants()).isEqualTo(8);
+        verify(deckRepository).updateDeckAnswerSettings("deck-1", answers);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void setDeckPointSettingsPersistsTargetedWithoutSaving() {
+        Deck deck = deck("owner-1");
+        deck.setSettings(new Settings.DeckSettings(pointSettings(50), answerSettings(10), null));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Settings.PointSettings points = pointSettings(200);
+
+        Deck result = deckService.setDeckPointSettings("deck-1", points, owner);
+
+        assertThat(result.getSettings().pointSettings()).isSameAs(points);
+        assertThat(result.getSettings().answerSettings().countdownTime()).isEqualTo(10);
+        verify(deckRepository).updateDeckPointSettings("deck-1", points);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void setDeckAudienceSettingsHandlesNullCurrentSettings() {
+        Deck deck = deck("owner-1"); // settings null
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Settings.AudienceSettings audience = audienceSettings(25);
+
+        Deck result = deckService.setDeckAudienceSettings("deck-1", audience, owner);
+
+        assertThat(result.getSettings().audienceSettings()).isSameAs(audience);
+        assertThat(result.getSettings().pointSettings()).isNull();
+        assertThat(result.getSettings().answerSettings()).isNull();
+        verify(deckRepository).updateDeckAudienceSettings("deck-1", audience);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void setDeckSettingsRequiresEdit() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.setDeckAnswerSettings(
+                "deck-1", answerSettings(10), principal("intruder")))
+                .isInstanceOf(ForbiddenException.class);
+        verify(deckRepository, never()).updateDeckAnswerSettings(any(), any());
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────────
 
     private static AmbiPrincipal principal(String userId) {
@@ -526,6 +590,10 @@ class DeckServiceTest {
 
     private static Settings.AnswerSettings answerSettings(int countdownTime) {
         return new Settings.AnswerSettings(false, false, false, false, countdownTime, false, 1);
+    }
+
+    private static Settings.AudienceSettings audienceSettings(int maxParticipants) {
+        return new Settings.AudienceSettings(maxParticipants, false, false, false, false, false, false);
     }
 
     private static List<String> orderedIds(Deck deck) {

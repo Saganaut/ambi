@@ -1,18 +1,27 @@
 /**
  * Read/write boundary for a deck's settings (`DeckResponse.settings`). The
- * deck-editor right-sidebar panels (ParticipantsPanel, SessionPacingSection)
- * edit these deck-wide knobs, so the read-modify-write plumbing is centralised
- * here instead of duplicated per panel.
+ * deck-editor right-sidebar panels (ParticipantsPanel, SessionPacingSection, the
+ * answer/point settings panels' "Apply to deck") edit these deck-wide knobs, so
+ * the plumbing is centralised here instead of duplicated per panel.
  *
  * `DeckSettings` is a nested object with sub-objects `pointSettings`,
- * `answerSettings`, and `audienceSettings`. Each `commit` deep-merges the
- * caller's partial patch so sibling sub-object edits don't clobber each other.
+ * `answerSettings`, and `audienceSettings`. Each is an **embedded sub-document
+ * with its own dedicated endpoint** (`PUT .../point-settings|answer-settings|
+ * audience-settings`), persisted server-side via a targeted update that does NOT
+ * re-version the deck — so two settings edits can't contend on the deck
+ * `@Version` the way the old whole-deck `updateDeck` PATCH did. A `commit`/
+ * `schedule` patch is split by sub-object and routed to the matching endpoint;
+ * the caller's partial sub-object is deep-merged onto the cached full sub-object
+ * first, so the PUT always carries a complete object (the backend records are
+ * primitives that reject nulls).
  */
 import { getRouteApi } from "@tanstack/react-router";
 import {
   type DeckSettings,
   useGetDeckQuery,
-  useUpdateDeckMutation,
+  useSetDeckPointSettingsMutation,
+  useSetDeckAnswerSettingsMutation,
+  useSetDeckAudienceSettingsMutation,
 } from "@store/AmbiApi";
 import { useDebouncedCommit } from "@hooks/useDebouncedCommit";
 
@@ -28,49 +37,63 @@ interface DeckSettingsApi {
   /** The deck's current settings from the getDeck cache. Undefined while the
    *  deck is still loading OR when the deck simply has no settings yet. */
   settings: DeckSettings | undefined;
-  /** Deep-merge `patch` onto the cached settings and PUT immediately. */
+  /** Route each present sub-object to its dedicated endpoint immediately. */
   commit: (patch: SettingsPatch) => void;
-  /** Deep-merge `patch` onto the cached settings and PUT after a quiet delay. */
+  /** As {@link commit}, after a quiet delay. */
   schedule: (patch: SettingsPatch) => void;
   /** Fire any pending debounced write now. */
   flush: () => void;
 }
 
-const deepMergeSettings = (
-  current: DeckSettings,
-  patch: SettingsPatch,
-): DeckSettings => ({
-  ...current,
-  ...patch,
-  pointSettings:
-    patch.pointSettings != null
-      ? { ...current.pointSettings, ...patch.pointSettings }
-      : current.pointSettings,
-  answerSettings:
-    patch.answerSettings != null
-      ? { ...current.answerSettings, ...patch.answerSettings }
-      : current.answerSettings,
-  audienceSettings:
-    patch.audienceSettings != null
-      ? { ...current.audienceSettings, ...patch.audienceSettings }
-      : current.audienceSettings,
-});
-
 const useDeckSettings = (delay = 500): DeckSettingsApi => {
   const { deckId } = routeApi.useParams();
   const { data: deck } = useGetDeckQuery({ id: deckId });
-  const [updateDeck] = useUpdateDeckMutation();
+  const [setPointSettings] = useSetDeckPointSettingsMutation();
+  const [setAnswerSettings] = useSetDeckAnswerSettingsMutation();
+  const [setAudienceSettings] = useSetDeckAudienceSettingsMutation();
 
+  const report = (err: unknown) =>
+    console.error("Failed to update deck settings", err);
+
+  // Split the patch by sub-object and PUT each through its own endpoint. Each is
+  // merged onto the cached full sub-object so the body is always complete; the
+  // three endpoints touch distinct sub-documents, so even simultaneous writes
+  // never contend on the deck version.
   const commit = (patch: SettingsPatch) => {
-    const next = deepMergeSettings(deck?.settings ?? {}, patch);
-    void updateDeck({
-      id: deckId,
-      updateDeckRequest: { settings: next },
-    })
-      .unwrap()
-      .catch((err: unknown) => {
-        console.error("Failed to update deck settings", err);
-      });
+    const current = deck?.settings;
+    if (patch.pointSettings) {
+      const pointSettings = { ...current?.pointSettings, ...patch.pointSettings };
+      void setPointSettings({
+        id: deckId,
+        setPointSettingsRequest: { pointSettings },
+      })
+        .unwrap()
+        .catch(report);
+    }
+    if (patch.answerSettings) {
+      const answerSettings = {
+        ...current?.answerSettings,
+        ...patch.answerSettings,
+      };
+      void setAnswerSettings({
+        id: deckId,
+        setAnswerSettingsRequest: { answerSettings },
+      })
+        .unwrap()
+        .catch(report);
+    }
+    if (patch.audienceSettings) {
+      const audienceSettings = {
+        ...current?.audienceSettings,
+        ...patch.audienceSettings,
+      };
+      void setAudienceSettings({
+        id: deckId,
+        setAudienceSettingsRequest: { audienceSettings },
+      })
+        .unwrap()
+        .catch(report);
+    }
   };
 
   const { schedule: scheduleCommit, flush } = useDebouncedCommit<SettingsPatch>(

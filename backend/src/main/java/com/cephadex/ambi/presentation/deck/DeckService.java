@@ -115,7 +115,11 @@ public class DeckService {
         deck.setDescription(changes.getDescription());
         deck.setThemeId(changes.getThemeId());
         deck.setLanguage(changes.getLanguage());
-        deck.setSettings(changes.getSettings());
+        // Settings are NOT edited here: each embedded settings sub-document
+        // (point/answer/audience) has a single owner in its own dedicated
+        // endpoint, persisted via a targeted update that never re-versions the
+        // deck. Routing them through this whole-deck PATCH would re-introduce the
+        // version contention those endpoints exist to avoid.
         applyPublishStatus(deck, changes.getPublishStatus());
 
         return deckRepository.save(deck);
@@ -365,6 +369,65 @@ public class DeckService {
             return null;
         }
         return new Settings.SlideSettings(points, answers);
+    }
+
+    // ── Deck settings ───────────────────────────────────────────────────────────
+    // The deck's own default point / answer / audience settings. Each embedded
+    // sub-document has a single owner in its dedicated endpoint and persists
+    // through a TARGETED sub-path update (deckRepository.updateDeck*Settings) that
+    // rewrites only that sub-document and leaves the deck's @Version alone — so two
+    // deck-settings edits (e.g. toggling several pacing switches, or an "apply to
+    // deck") can't contend on the version. The deck is loaded for the EDIT check
+    // and to build the response, mutated in memory, then persisted targeted.
+
+    /** Replace the deck's default point (scoring) settings (EDIT). */
+    public Deck setDeckPointSettings(String id, Settings.PointSettings pointSettings, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setSettings(withDeckPointSettings(deck.getSettings(), pointSettings));
+        deckRepository.updateDeckPointSettings(id, pointSettings);
+        return deck;
+    }
+
+    /** Replace the deck's default answer (answering) settings (EDIT). */
+    public Deck setDeckAnswerSettings(String id, Settings.AnswerSettings answerSettings, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setSettings(withDeckAnswerSettings(deck.getSettings(), answerSettings));
+        deckRepository.updateDeckAnswerSettings(id, answerSettings);
+        return deck;
+    }
+
+    /** Replace the deck's audience (who-can-join + engagement) settings (EDIT). */
+    public Deck setDeckAudienceSettings(String id, Settings.AudienceSettings audienceSettings, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setSettings(withDeckAudienceSettings(deck.getSettings(), audienceSettings));
+        deckRepository.updateDeckAudienceSettings(id, audienceSettings);
+        return deck;
+    }
+
+    /** Replace one third of a deck's settings, preserving the other two sub-objects. */
+    private static Settings.DeckSettings withDeckPointSettings(
+            Settings.DeckSettings current, Settings.PointSettings points) {
+        return new Settings.DeckSettings(points,
+                current == null ? null : current.answerSettings(),
+                current == null ? null : current.audienceSettings());
+    }
+
+    /** As {@link #withDeckPointSettings}, replacing the answer sub-object. */
+    private static Settings.DeckSettings withDeckAnswerSettings(
+            Settings.DeckSettings current, Settings.AnswerSettings answers) {
+        return new Settings.DeckSettings(
+                current == null ? null : current.pointSettings(),
+                answers,
+                current == null ? null : current.audienceSettings());
+    }
+
+    /** As {@link #withDeckPointSettings}, replacing the audience sub-object. */
+    private static Settings.DeckSettings withDeckAudienceSettings(
+            Settings.DeckSettings current, Settings.AudienceSettings audience) {
+        return new Settings.DeckSettings(
+                current == null ? null : current.pointSettings(),
+                current == null ? null : current.answerSettings(),
+                audience);
     }
 
     private Slide applySlideMutation(String deckId, String slideId, AmbiPrincipal principal,
