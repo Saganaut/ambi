@@ -20,7 +20,13 @@ trap 'echo -e "\nStopping all services..."; kill 0; docker compose stop; exit' S
 
 echo "🐳 Starting Docker containers..."
 
-docker compose up -d
+if ! docker compose up -d; then
+  echo "❌ Docker failed to start containers — aborting." >&2
+  echo "   Is the Docker daemon running and do you have access to it?" >&2
+  echo "   If you were recently added to the 'docker' group, start a fresh" >&2
+  echo "   login session (log out/in) or run 'newgrp docker' in this shell." >&2
+  exit 1
+fi
 
 echo "   → Mongo Express:  http://localhost:8081
    → RedisInsight:   http://localhost:8001"
