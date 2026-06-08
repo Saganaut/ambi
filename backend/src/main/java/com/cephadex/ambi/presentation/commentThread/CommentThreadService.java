@@ -83,9 +83,11 @@ public class CommentThreadService {
         User user = userService.requireUser(requireUserId(principal));
 
         CommentThread thread = loadThread(deckId, slideId, threadId);
-        thread.getComments().add(newComment(user, request.body()));
+        Comment comment = newComment(user, request.body());
+        thread.getComments().add(comment); // in-memory, for the response
 
-        return CommentThreadResponse.from(repository.save(thread));
+        repository.appendComment(threadId, comment); // targeted $push, no whole-doc rewrite
+        return CommentThreadResponse.from(thread);
     }
 
     /** Replace a comment's text (author only). Flags it {@code edited}. */
@@ -102,10 +104,12 @@ public class CommentThreadService {
             throw new ValidationException("A deleted comment cannot be edited.");
         }
 
-        thread.getComments().set(index, new Comment(existing.id(), existing.author(),
-                request.body(), existing.parentCommentId(), true, false));
+        Comment updated = new Comment(existing.id(), existing.author(),
+                request.body(), existing.parentCommentId(), true, false);
+        thread.getComments().set(index, updated); // in-memory, for the response
 
-        return CommentThreadResponse.from(repository.save(thread));
+        repository.replaceComment(threadId, commentId, updated); // positional $set
+        return CommentThreadResponse.from(thread);
     }
 
     /** Soft-delete a comment (author only): keep the row, redact the body. */
@@ -119,10 +123,12 @@ public class CommentThreadService {
         Comment existing = thread.getComments().get(index);
         requireAuthor(existing, publicId);
 
-        thread.getComments().set(index, new Comment(existing.id(), existing.author(), null,
-                existing.parentCommentId(), Boolean.TRUE.equals(existing.edited()), true));
+        Comment redacted = new Comment(existing.id(), existing.author(), null,
+                existing.parentCommentId(), Boolean.TRUE.equals(existing.edited()), true);
+        thread.getComments().set(index, redacted); // in-memory, for the response
 
-        return CommentThreadResponse.from(repository.save(thread));
+        repository.replaceComment(threadId, commentId, redacted); // positional $set
+        return CommentThreadResponse.from(thread);
     }
 
     /** Resolve or reopen a thread (VIEW + sign-in). */
@@ -132,9 +138,10 @@ public class CommentThreadService {
         requireUserId(principal);
 
         CommentThread thread = loadThread(deckId, slideId, threadId);
-        thread.setStatus(request.status());
+        thread.setStatus(request.status()); // in-memory, for the response
 
-        return CommentThreadResponse.from(repository.save(thread));
+        repository.replaceStatus(threadId, request.status()); // targeted $set, leaves comments alone
+        return CommentThreadResponse.from(thread);
     }
 
     // ── Internals ───────────────────────────────────────────────────────────────

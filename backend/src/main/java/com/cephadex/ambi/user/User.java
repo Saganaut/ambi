@@ -74,6 +74,16 @@ public class User extends Auditable {
     @Field("preferences")
     private UserPreferences preferences;
 
+    // Membership is written today only at user creation (newGuest/newRegistered),
+    // via a whole-document userRepository.save(user). Its counters
+    // (monthlyInteractiveSessionCount, feature flags, BillingState) are not yet
+    // mutated independently. WHEN they are — per-session usage increments, billing
+    // webhooks — persist them through a targeted UserRepositoryCustom MongoTemplate
+    // update on the `membership.*` sub-path, NOT a whole-document save: User has no
+    // @Version, so a whole-doc save is last-writer-wins and would clobber a
+    // concurrent profile/preferences edit. This is the same "embedded sub-documents
+    // get their own write API" rule that gave deck settings dedicated endpoints
+    // (BACKEND-RULES.md #10).
     @Field("membership")
     private Membership membership;
 

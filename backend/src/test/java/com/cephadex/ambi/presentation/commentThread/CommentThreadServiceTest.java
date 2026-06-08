@@ -9,6 +9,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -101,6 +103,11 @@ class CommentThreadServiceTest {
 
         assertThat(updated.comments()).hasSize(2);
         assertThat(updated.comments().get(1).body()).isEqualTo("A reply");
+        // Persisted with a targeted $push, never a whole-thread save.
+        ArgumentCaptor<Comment> pushed = ArgumentCaptor.forClass(Comment.class);
+        verify(repository).appendComment(eq("t1"), pushed.capture());
+        assertThat(pushed.getValue().body()).isEqualTo("A reply");
+        verify(repository, never()).save(any());
     }
 
     @Test
@@ -139,6 +146,12 @@ class CommentThreadServiceTest {
 
         assertThat(updated.comments().get(0).body()).isEqualTo("edited");
         assertThat(updated.comments().get(0).edited()).isTrue();
+        // Persisted with a positional $set on that one comment, never a save.
+        ArgumentCaptor<Comment> replaced = ArgumentCaptor.forClass(Comment.class);
+        verify(repository).replaceComment(eq("t1"), eq("c1"), replaced.capture());
+        assertThat(replaced.getValue().body()).isEqualTo("edited");
+        assertThat(replaced.getValue().edited()).isTrue();
+        verify(repository, never()).save(any());
     }
 
     @Test
@@ -172,6 +185,12 @@ class CommentThreadServiceTest {
         assertThat(updated.comments()).hasSize(1); // row kept so the conversation survives
         assertThat(updated.comments().get(0).deleted()).isTrue();
         assertThat(updated.comments().get(0).body()).isNull();
+        // Soft-delete is a positional $set of the redacted comment, never a save.
+        ArgumentCaptor<Comment> replaced = ArgumentCaptor.forClass(Comment.class);
+        verify(repository).replaceComment(eq("t1"), eq("c1"), replaced.capture());
+        assertThat(replaced.getValue().deleted()).isTrue();
+        assertThat(replaced.getValue().body()).isNull();
+        verify(repository, never()).save(any());
     }
 
     // ── Status ──────────────────────────────────────────────────────────────────
@@ -185,6 +204,9 @@ class CommentThreadServiceTest {
                 new SetThreadStatusRequest(CommentThreadStatus.RESOLVED), author);
 
         assertThat(updated.status()).isEqualTo(CommentThreadStatus.RESOLVED);
+        // Status is set with a targeted $set that leaves the comments untouched.
+        verify(repository).replaceStatus("t1", CommentThreadStatus.RESOLVED);
+        verify(repository, never()).save(any());
     }
 
     // ── Listing ─────────────────────────────────────────────────────────────────
