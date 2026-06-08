@@ -10,10 +10,10 @@
  * `variants` map (one entry per `ImageSize` tier) the backend hydrates to
  * renderable URLs on read.
  *
- * > NOTE: the S3 upload + variant-hydration pipeline is still a backend TODO, so
- * > today only `external` images resolve to a real URL. Internal images are
- * > supported here so the call sites are ready the moment that pipeline lands —
- * > `variants` values are treated as renderable URLs (their hydrated form).
+ * Internal images are produced by the gallery upload pipeline (multipart →
+ * S3/Garage → per-tier WebP); the backend hydrates each `variants` value from an
+ * S3 key to a renderable proxy URL on read, so callers here treat `variants`
+ * values as ready-to-render URLs regardless of source.
  *
  * The constructors below produce the standard "blank / external / internal"
  * shapes so callers don't reach into the object literal. `resolveImageUrl`

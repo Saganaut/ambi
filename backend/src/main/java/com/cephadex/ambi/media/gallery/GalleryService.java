@@ -143,8 +143,10 @@ public class GalleryService {
     }
 
     /**
-     * Add an image to a gallery (EDIT). The future multipart upload route lands
-     * here, ingesting bytes into the {@link AppImage} before this same persist.
+     * Add an image to a gallery (EDIT). Callers supply an already-formed
+     * {@link AppImage}: an external reference, or the S3-backed value the
+     * multipart upload route produces via {@code ImageIngestService} before this
+     * same persist.
      */
     public GalleryImage addImage(String galleryId, AppImage image, String name, AmbiPrincipal principal) {
         Gallery gallery = load(galleryId);

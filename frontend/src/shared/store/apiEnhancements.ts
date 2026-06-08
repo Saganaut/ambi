@@ -26,3 +26,4 @@ import "./enhancements/deck";
 import "./enhancements/slide";
 import "./enhancements/comment";
 import "./enhancements/theme";
+import "./enhancements/gallery";

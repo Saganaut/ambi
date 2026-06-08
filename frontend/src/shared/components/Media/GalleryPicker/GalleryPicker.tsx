@@ -5,14 +5,16 @@
 // caller is responsible for closing the modal.
 //
 // The gallery is the per-user singleton (`GET /api/galleries/mine`); its images
-// are the paginated sub-resource (`GET /api/galleries/{id}/images`). File upload
-// is intentionally absent — the backend ingest pipeline is still a TODO, so the
-// only way to add an image today is by reference (an external URL). Heavier
-// management (rename / delete) lives on the Gallery tab of the Account page so
-// this surface stays a quick browse-and-pick.
+// are the paginated sub-resource (`GET /api/galleries/{id}/images`). Images can
+// be added two ways: by reference (paste an external URL) or by uploading a file
+// — the upload POSTs multipart to the gallery ingest route, which stores the
+// bytes and derives the size-tier variants server-side. Heavier management
+// (delete) lives on the Gallery tab of the Account page so this surface stays a
+// quick browse-and-pick.
 import { useMemo, useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { Input } from "@components/Forms/Input/Input/Input";
+import { FileUpload } from "@components/Forms/Input/FileUpload/FileUpload";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import {
   useAddImageMutation,
@@ -21,9 +23,15 @@ import {
   type AppImage,
   type GalleryImageResponse,
 } from "@store/AmbiApi";
+import { useUploadGalleryImageMutation } from "@store/endpoints/galleryUpload";
 import { externalImage, resolveImageUrl } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
 import styles from "./GalleryPicker.module.css";
+
+// Mirror of the backend ingest cap (`ambi.media.max-upload-bytes`, 10 MB) so the
+// client rejects oversize files before the round-trip.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp,image/gif";
 
 interface GalleryPickerProps {
   onPick: (image: AppImage) => void;
@@ -45,6 +53,7 @@ const GalleryPicker = ({ onPick, onClose, initialUrl }: GalleryPickerProps) => {
     { skip: !galleryId },
   );
   const [addImage, { isLoading: isAdding }] = useAddImageMutation();
+  const [uploadImage, { isLoading: isUploading }] = useUploadGalleryImageMutation();
 
   const images = useMemo(() => page?.content ?? [], [page]);
 
@@ -77,6 +86,18 @@ const GalleryPicker = ({ onPick, onClose, initialUrl }: GalleryPickerProps) => {
       onPick(created.image);
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "Could not add image. Please try again."));
+    }
+  };
+
+  const handleUpload = async (files: File[]) => {
+    const file = files[0];
+    if (!file || !galleryId) return;
+    setError(null);
+    try {
+      const created = await uploadImage({ id: galleryId, file }).unwrap();
+      onPick(created.image);
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, "Could not upload image. Please try again."));
     }
   };
 
@@ -151,6 +172,23 @@ const GalleryPicker = ({ onPick, onClose, initialUrl }: GalleryPickerProps) => {
             disabled={!pasteUrl.trim() || !galleryId || isAdding}>
             {isAdding ? "Adding…" : "Add to gallery"}
           </Btn>
+        </div>
+
+        <div className={styles.toolbarRow}>
+          <FileUpload
+            label='Or upload a file'
+            accept={ACCEPT_IMAGES}
+            multiple={false}
+            maxBytes={MAX_UPLOAD_BYTES}
+            onChange={(files) => {
+              void handleUpload(files);
+            }}
+            infoMessage={
+              isUploading
+                ? "Uploading…"
+                : "PNG, JPEG, WebP or GIF · max 10 MB"
+            }
+          />
         </div>
       </div>
 

@@ -14,6 +14,7 @@ import { useState } from "react";
 import styles from "./AccountPage.module.css";
 import { useAccount } from "../../useAccount";
 import { AccountThemeSection } from "./AccountThemeSection";
+import { GallerySection } from "./GallerySection";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { validation } from "@store/validationConstants";
 import { validateText } from "@utils/fieldValidation";
@@ -196,7 +197,7 @@ const AccountPage = () => {
           {
             id: "gallery",
             label: "Gallery",
-            panel: <div>Gallery Section </div>,
+            panel: <GallerySection />,
           },
           {
             id: "organizations",

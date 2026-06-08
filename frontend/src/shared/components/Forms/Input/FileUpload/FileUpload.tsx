@@ -8,6 +8,10 @@ import { IconBtn } from "@ui/Buttons/IconBtn";
 interface FileUploadProps {
   label?: string;
   accept?: string;
+  /** Allow selecting more than one file. Default true. */
+  multiple?: boolean;
+  /** Reject files larger than this (bytes); also drives the rejection message. */
+  maxBytes?: number;
   errorMessage?: string;
   infoMessage?: string;
   onChange?: (files: File[]) => void;
@@ -16,6 +20,8 @@ interface FileUploadProps {
 const FileUpload = ({
   label,
   accept,
+  multiple = true,
+  maxBytes,
   errorMessage,
   infoMessage,
   onChange,
@@ -23,6 +29,7 @@ const FileUpload = ({
   const {
     files,
     isDragging,
+    rejection,
     inputRef,
     addFiles,
     removeFile,
@@ -30,7 +37,7 @@ const FileUpload = ({
     handleDragLeave,
     handleDrop,
     openPicker,
-  } = useFileUpload({ onChange });
+  } = useFileUpload({ onChange, multiple, accept, maxBytes });
 
   return (
     <div className={styles.fileUploadContainer}>
@@ -51,7 +58,7 @@ const FileUpload = ({
         <input
           ref={inputRef}
           type='file'
-          multiple
+          multiple={multiple}
           accept={accept}
           onChange={(e) => {
             addFiles(e.target.files);
@@ -83,16 +90,16 @@ const FileUpload = ({
           ))}
         </ul>
       )}
-      {(errorMessage != null || infoMessage != null) && (
+      {(rejection != null || errorMessage != null || infoMessage != null) && (
         <span
           className={[
             shared.inputInfoMessage,
             styles.message,
-            errorMessage && shared.errorMessage,
+            (rejection ?? errorMessage) && shared.errorMessage,
           ]
             .filter(Boolean)
             .join(" ")}>
-          {errorMessage ?? infoMessage}
+          {rejection ?? errorMessage ?? infoMessage}
         </span>
       )}
     </div>

@@ -3,6 +3,7 @@ package com.cephadex.ambi.media.gallery;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,14 +13,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.exception.ValidationException;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.gallery.dto.AddImageRequest;
 import com.cephadex.ambi.media.gallery.dto.GalleryImageResponse;
 import com.cephadex.ambi.media.gallery.dto.GalleryResponse;
 import com.cephadex.ambi.media.gallery.dto.RenameGalleryRequest;
+import com.cephadex.ambi.media.storage.ImageIngestService;
+import com.cephadex.ambi.media.storage.ImageUrlResolver;
 
 import jakarta.validation.Valid;
 
@@ -42,9 +51,14 @@ import jakarta.validation.Valid;
 public class GalleryController {
 
     private final GalleryService galleryService;
+    private final ImageIngestService imageIngestService;
+    private final ImageUrlResolver imageUrlResolver;
 
-    public GalleryController(GalleryService galleryService) {
+    public GalleryController(GalleryService galleryService,
+            ImageIngestService imageIngestService, ImageUrlResolver imageUrlResolver) {
         this.galleryService = galleryService;
+        this.imageIngestService = imageIngestService;
+        this.imageUrlResolver = imageUrlResolver;
     }
 
     // ── Gallery ───────────────────────────────────────────────────────────────
@@ -103,8 +117,8 @@ public class GalleryController {
             @PathVariable String id,
             Pageable pageable,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return new PagedModel<>(
-                galleryService.listImages(id, principal, pageable).map(GalleryImageResponse::from));
+        return new PagedModel<>(galleryService.listImages(id, principal, pageable)
+                .map(image -> GalleryImageResponse.from(image, imageUrlResolver)));
     }
 
     /** A single image of a gallery (VIEW) — the select read. */
@@ -113,19 +127,51 @@ public class GalleryController {
             @PathVariable String id,
             @PathVariable String imageId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return GalleryImageResponse.from(galleryService.getImage(id, imageId, principal));
+        return GalleryImageResponse.from(galleryService.getImage(id, imageId, principal), imageUrlResolver);
     }
 
-    /** Add an image to a gallery (EDIT). */
-    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
-    @PostMapping("/{id}/images")
+    /**
+     * Add an image to a gallery by reference (EDIT) — an external URL, or a
+     * pre-formed {@link AppImage}. The multipart sibling below ingests raw bytes;
+     * the two share this path, disambiguated by {@code consumes}.
+     */
+    @PostMapping(path = "/{id}/images", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public GalleryImageResponse addImage(
             @PathVariable String id,
             @Valid @RequestBody AddImageRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return GalleryImageResponse.from(
-                galleryService.addImage(id, body.image(), body.name(), principal));
+                galleryService.addImage(id, body.image(), body.name(), principal), imageUrlResolver);
+    }
+
+    /**
+     * Upload an image file to a gallery (EDIT). The bytes are validated, the
+     * original stored, and one WebP rendition per size tier derived
+     * ({@link ImageIngestService}); the resulting S3-backed {@link AppImage} is
+     * then persisted as a gallery item. {@code name} defaults to the original
+     * filename when omitted.
+     */
+    @PostMapping(path = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public GalleryImageResponse uploadImage(
+            @PathVariable String id,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "name", required = false) String name,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        AppImage image = imageIngestService.ingest(
+                bytesOf(file), file.getContentType(), file.getOriginalFilename());
+        String label = (name != null && !name.isBlank()) ? name : file.getOriginalFilename();
+        return GalleryImageResponse.from(
+                galleryService.addImage(id, image, label, principal), imageUrlResolver);
+    }
+
+    private static byte[] bytesOf(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new ValidationException("Could not read the uploaded file.");
+        }
     }
 
     /** Remove an image from a gallery (EDIT). */
