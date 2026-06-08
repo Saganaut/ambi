@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Btn } from "@ui/Buttons/Btn";
+import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { AnswerSettings } from "@store/AmbiApi";
 import { useSlideSettingsEditor } from "@/features/decks/hooks/useSlideSettingsEditor";
 import { useDeckSettings } from "./useDeckSettings";
@@ -129,9 +130,13 @@ const AnswerSettingsPanelBody = ({
       </section>
 
       <div className={styles.footer}>
-        <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
-          Apply to deck
-        </Btn>
+        <Tooltip
+          className={styles.applyTooltip}
+          label='Saves these as the deck default and resets this slide to use it. Other slides keep their own settings.'>
+          <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
+            Apply to deck
+          </Btn>
+        </Tooltip>
       </div>
     </div>
   );

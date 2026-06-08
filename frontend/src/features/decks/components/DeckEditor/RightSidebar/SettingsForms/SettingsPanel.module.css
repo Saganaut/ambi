@@ -26,3 +26,22 @@
   border-top: 1px solid var(--border-default);
   padding-top: var(--space-3);
 }
+
+/* The Tooltip wrapper around the full-width "Apply to deck" button. Tooltip's
+   wrapper + its trigger span are inline by default, which would shrink the
+   button; stretch both so the button keeps the footer's full width. The hint is
+   a sentence, so override the tooltip's default nowrap and cap its width. */
+.applyTooltip {
+  display: flex;
+}
+
+.applyTooltip > span:first-child {
+  display: flex;
+  flex: 1;
+}
+
+.applyTooltip [role="tooltip"] {
+  white-space: normal;
+  max-width: 14rem;
+  text-align: center;
+}
