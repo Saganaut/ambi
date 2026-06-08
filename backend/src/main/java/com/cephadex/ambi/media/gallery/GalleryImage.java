@@ -1,5 +1,6 @@
 package com.cephadex.ambi.media.gallery;
 
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -50,4 +51,11 @@ public class GalleryImage extends Auditable {
     // upload pipeline can default it from the original filename.
     @Field("name")
     private String name;
+
+    // Optimistic-lock token AND the new-entity signal: with the id server-minted
+    // before save, a null version is how Spring Data knows to INSERT (not replace),
+    // which is what makes @CreatedDate fire. Mirrors Gallery/Deck.
+    @Version
+    @Field("version")
+    private Long version;
 }

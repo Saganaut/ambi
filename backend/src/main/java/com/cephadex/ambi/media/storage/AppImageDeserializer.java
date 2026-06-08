@@ -1,72 +1,91 @@
 package com.cephadex.ambi.media.storage;
 
-import java.io.IOException;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ValueDeserializer;
 
 /**
- * Central HTTP deserializer for {@link AppImage}. Its job is to keep the
- * (expiring) presigned URLs the {@link AppImageSerializer} hands out from ever
- * being persisted: when a client copies an internal image into a usage site
- * (a slide cover, an MCQ option, a theme asset), it echoes back the presigned
- * {@code variants} — which we discard and rebuild as canonical S3 keys from the
- * raw {@code srcKey} via {@link ImageKeys}. So the stored shape is always keys,
- * regardless of what the wire carried.
+ * Central HTTP deserializer for {@link AppImage} (Jackson 3). Its job is to keep
+ * the (expiring) presigned URLs the {@link AppImageSerializer} hands out from
+ * ever being persisted: when a client copies an internal image into a usage site
+ * (a slide cover, an MCQ option, a theme asset), it echoes back presigned
+ * {@code srcKey}/{@code variants} URLs — which we turn back into raw S3 keys
+ * (via {@link ImageUrlResolver#keyFromUrl} and {@link ImageKeys}). So the stored
+ * shape is always keys, regardless of what the wire carried.
  *
  * <p>External images (and internal ones lacking a recognizable {@code srcKey})
- * keep their {@code variants} as received.
+ * keep what they were sent.
  */
-public class AppImageDeserializer extends StdDeserializer<AppImage> {
+public class AppImageDeserializer extends ValueDeserializer<AppImage> {
 
-    private static final TypeReference<Map<ImageSizeOptions, String>> VARIANTS_TYPE =
-            new TypeReference<>() {
-            };
-    private static final TypeReference<Map<String, Object>> METADATA_TYPE =
-            new TypeReference<>() {
-            };
+    private final ImageUrlResolver resolver;
 
-    public AppImageDeserializer() {
-        super(AppImage.class);
+    public AppImageDeserializer(ImageUrlResolver resolver) {
+        this.resolver = resolver;
     }
 
     @Override
-    public AppImage deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-        ObjectMapper mapper = (ObjectMapper) p.getCodec();
-        JsonNode node = mapper.readTree(p);
+    public Class<?> handledType() {
+        return AppImage.class;
+    }
+
+    @Override
+    public AppImage deserialize(JsonParser p, DeserializationContext ctxt) {
+        JsonNode node = ctxt.readTree(p);
 
         AppImage image = new AppImage();
         image.setId(text(node, "id"));
         image.setExternal(node.path("external").asBoolean(false));
-        image.setSrcKey(text(node, "srcKey"));
         image.setExternalSrc(text(node, "externalSrc"));
         image.setAltText(text(node, "altText"));
         if (node.hasNonNull("metadata")) {
-            image.setMetadata(mapper.convertValue(node.get("metadata"), METADATA_TYPE));
+            image.setMetadata(ctxt.readTreeAsValue(node.get("metadata"), Map.class));
         }
 
-        // For an internal image, rebuild variants from the original key so an
-        // echoed-back presigned URL can never be persisted. Fall back to the
-        // provided variants only when there's nothing to reconstruct from.
-        Map<ImageSizeOptions, String> reconstructed =
-                image.isExternal() ? null : ImageKeys.variantsFor(image.getSrcKey());
+        if (image.isExternal()) {
+            image.setSrcKey(text(node, "srcKey"));
+            if (node.hasNonNull("variants")) {
+                image.setVariants(readVariants(node.get("variants")));
+            }
+            return image;
+        }
+
+        // Internal: recover the raw original key from the (presigned) srcKey, then
+        // rebuild canonical variant keys — discarding any echoed-back presigned
+        // URLs so they can never be persisted.
+        String srcKey = resolver.keyFromUrl(text(node, "srcKey"));
+        image.setSrcKey(srcKey);
+        Map<ImageSizeOptions, String> reconstructed = ImageKeys.variantsFor(srcKey);
         if (reconstructed != null) {
             image.setVariants(reconstructed);
         } else if (node.hasNonNull("variants")) {
-            image.setVariants(mapper.convertValue(node.get("variants"), VARIANTS_TYPE));
+            // No usable srcKey to rebuild from — un-sign whatever variants we got.
+            Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
+            readVariants(node.get("variants"))
+                    .forEach((tier, val) -> variants.put(tier, resolver.keyFromUrl(val)));
+            image.setVariants(variants);
         }
         return image;
     }
 
+    private static Map<ImageSizeOptions, String> readVariants(JsonNode variantsNode) {
+        Map<ImageSizeOptions, String> map = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonNode> e : variantsNode.properties()) {
+            map.put(ImageSizeOptions.valueOf(e.getKey()), e.getValue().asString());
+        }
+        return map;
+    }
+
     private static String text(JsonNode node, String field) {
         JsonNode value = node.get(field);
-        return value == null || value.isNull() ? null : value.asText();
+        return value == null || value.isNull() ? null : value.asString();
     }
 }

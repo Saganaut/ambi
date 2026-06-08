@@ -1,5 +1,7 @@
 package com.cephadex.ambi.media.storage;
 
+import java.net.URI;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -15,22 +17,22 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 /**
  * Turns the opaque S3 keys an internal {@link AppImage} stores into renderable
  * URLs at read time — the "hydrate on read" half of the contract the frontend
- * {@code image.ts} documents: stored {@code variants} hold keys; the client
- * receives URLs.
+ * {@code image.ts} documents: stored {@code srcKey}/{@code variants} hold keys;
+ * the client receives ready-to-use URLs and never has to build any itself.
  *
  * <p>Those URLs are <em>presigned</em> GET URLs (SigV4) with a short TTL, so the
  * bucket stays private and access is time-limited. They expire, so they are
- * deliberately never persisted: every read re-signs (see the central
- * {@code AppImageSerializer}), and a {@code srcKey} round-trips raw so the
- * inbound deserializer can rebuild canonical keys for a copied image. External
- * images already carry a renderable {@code externalSrc} and pass through.
+ * deliberately never persisted: every read re-signs (see {@code AppImageSerializer}),
+ * and on write {@link #keyFromUrl(String)} recovers the raw key from a presigned
+ * URL the client echoes back (see {@code AppImageDeserializer}). External images
+ * already carry a renderable {@code externalSrc} and pass through.
  */
 @Component
 public class ImageUrlResolver {
 
     private final S3Presigner presigner;
     private final String bucket;
-    private final java.time.Duration ttl;
+    private final Duration ttl;
 
     public ImageUrlResolver(S3Presigner presigner, S3Properties s3Props, MediaProperties mediaProps) {
         this.presigner = presigner;
@@ -49,10 +51,26 @@ public class ImageUrlResolver {
     }
 
     /**
-     * A copy of {@code image} with its internal {@code variants} (S3 keys)
-     * rewritten to presigned URLs. External images and null/empty inputs are
-     * returned unchanged. {@code srcKey} is left raw so it can round-trip back as
-     * the reconstruction anchor. The stored entity is never mutated.
+     * The inverse of {@link #url(String)}: the raw S3 key behind a presigned URL.
+     * A value that isn't an http(s) URL is assumed to already be a key and is
+     * returned unchanged (so server-built images and legacy keys pass through).
+     * Relies on path-style addressing ({@code endpoint/bucket/key}), which Garage
+     * requires and {@code S3Config} enables.
+     */
+    public String keyFromUrl(String value) {
+        if (value == null || (!value.startsWith("http://") && !value.startsWith("https://"))) {
+            return value;
+        }
+        String path = URI.create(value).getPath(); // /{bucket}/{key}
+        String prefix = "/" + bucket + "/";
+        int idx = path.indexOf(prefix);
+        return idx >= 0 ? path.substring(idx + prefix.length()) : path.replaceFirst("^/", "");
+    }
+
+    /**
+     * A copy of {@code image} with its internal {@code srcKey} and {@code variants}
+     * (S3 keys) rewritten to presigned URLs. External images and null/empty inputs
+     * are returned unchanged. The stored entity is never mutated.
      */
     public AppImage hydrate(AppImage image) {
         if (image == null || image.isExternal() || image.getVariants() == null
@@ -66,7 +84,7 @@ public class ImageUrlResolver {
         AppImage copy = new AppImage();
         copy.setId(image.getId());
         copy.setExternal(false);
-        copy.setSrcKey(image.getSrcKey());
+        copy.setSrcKey(image.getSrcKey() != null ? url(image.getSrcKey()) : null);
         copy.setExternalSrc(image.getExternalSrc());
         copy.setAltText(image.getAltText());
         copy.setVariants(hydrated);

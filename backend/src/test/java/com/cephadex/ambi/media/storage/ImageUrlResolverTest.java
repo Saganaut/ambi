@@ -30,18 +30,22 @@ class ImageUrlResolverTest {
 
     private ImageUrlResolver resolver;
 
+    private static final String BUCKET = "ambi-images";
+
     @BeforeEach
     void setUp() {
+        // Path-style URL ({endpoint}/{bucket}/{key}) so keyFromUrl round-trips.
         S3Presigner presigner = mock(S3Presigner.class);
         when(presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenAnswer(inv -> {
             GetObjectPresignRequest req = inv.getArgument(0);
             String key = req.getObjectRequest().key();
             PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
-            when(presigned.url()).thenReturn(URI.create("https://signed/" + key + "?sig=abc").toURL());
+            when(presigned.url())
+                    .thenReturn(URI.create("https://signed/" + BUCKET + "/" + key + "?sig=abc").toURL());
             return presigned;
         });
         S3Properties s3 = new S3Properties();
-        s3.setBucket("ambi-images");
+        s3.setBucket(BUCKET);
         MediaProperties media = new MediaProperties();
         media.setPresignTtl(Duration.ofMinutes(30));
         resolver = new ImageUrlResolver(presigner, s3, media);
@@ -50,11 +54,19 @@ class ImageUrlResolverTest {
     @Test
     void urlPresignsTheKey() {
         assertThat(resolver.url("gallery/x/sm.webp"))
-                .isEqualTo("https://signed/gallery/x/sm.webp?sig=abc");
+                .isEqualTo("https://signed/ambi-images/gallery/x/sm.webp?sig=abc");
     }
 
     @Test
-    void hydrateRewritesInternalVariantsToPresignedUrls() {
+    void keyFromUrlIsTheInverseOfUrl() {
+        String signed = resolver.url("gallery/x/sm.webp");
+        assertThat(resolver.keyFromUrl(signed)).isEqualTo("gallery/x/sm.webp");
+        // A raw key (not a URL) passes through untouched.
+        assertThat(resolver.keyFromUrl("gallery/x/original")).isEqualTo("gallery/x/original");
+    }
+
+    @Test
+    void hydrateRewritesInternalSrcKeyAndVariantsToPresignedUrls() {
         Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
         variants.put(ImageSizeOptions.SM, "gallery/x/sm.webp");
         variants.put(ImageSizeOptions.LG, "gallery/x/lg.webp");
@@ -66,13 +78,15 @@ class ImageUrlResolverTest {
         AppImage hydrated = resolver.hydrate(stored);
 
         assertThat(hydrated.getVariants().get(ImageSizeOptions.SM))
-                .isEqualTo("https://signed/gallery/x/sm.webp?sig=abc");
+                .isEqualTo("https://signed/ambi-images/gallery/x/sm.webp?sig=abc");
         assertThat(hydrated.getVariants().get(ImageSizeOptions.LG))
-                .isEqualTo("https://signed/gallery/x/lg.webp?sig=abc");
-        // srcKey stays raw so it can round-trip as the reconstruction anchor.
-        assertThat(hydrated.getSrcKey()).isEqualTo("gallery/x/original");
+                .isEqualTo("https://signed/ambi-images/gallery/x/lg.webp?sig=abc");
+        // srcKey is now signed too — a full URL the client can render directly.
+        assertThat(hydrated.getSrcKey())
+                .isEqualTo("https://signed/ambi-images/gallery/x/original?sig=abc");
         // The stored entity's variants are untouched — still keys.
         assertThat(stored.getVariants().get(ImageSizeOptions.SM)).isEqualTo("gallery/x/sm.webp");
+        assertThat(stored.getSrcKey()).isEqualTo("gallery/x/original");
     }
 
     @Test
