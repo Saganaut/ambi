@@ -27,7 +27,7 @@ const AccountThemeSection = () => {
     const prefs = profile?.preferences;
     void savePreferences({
       updatePreferencesRequest: {
-        newsletter: prefs?.newsletter,
+        newsletter: prefs?.newsletter ?? false,
         marketing: prefs?.marketing ?? false,
         stayLoggedIn: prefs?.stayLoggedIn ?? false,
         theme: theme.spec,

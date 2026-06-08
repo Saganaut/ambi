@@ -10,13 +10,13 @@ import com.cephadex.ambi.user.UserPreferences;
  * state, so a wholesale replace is simpler and avoids per-field merge
  * ambiguity.
  *
- * @param newsletter   opt-in to the product newsletter; null means "not set".
+ * @param newsletter   opt-in to the product newsletter.
  * @param marketing    opt-in to marketing email.
  * @param theme        chosen UI theme.
  * @param stayLoggedIn whether to issue a persistent refresh cookie at sign-in.
  */
 public record UpdatePreferencesRequest(
-        Boolean newsletter,
+        boolean newsletter,
         boolean marketing,
         ThemeSpec theme,
         boolean stayLoggedIn) {

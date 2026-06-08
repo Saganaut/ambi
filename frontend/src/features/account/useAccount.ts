@@ -146,11 +146,17 @@ export function useAccount(): UseAccountResult {
   const setNewsletter = async (checked: boolean) => {
     setPendingNewsletter(checked);
     setNewsletterSuccess(false);
-    // Preferences are replaced wholesale — resend the current set with only
-    // `newsletter` changed so the other fields aren't dropped.
+    // PUT preferences is a wholesale replace and the body must be a complete
+    // object — Jackson 3 rejects a partial body that omits a primitive
+    // (`marketing`/`stayLoggedIn`) with a 400 (BACKEND-RULES #9). Build the full
+    // set explicitly with safe defaults rather than spreading a possibly-null
+    // `preferences` (it's null until first set), mirroring AccountThemeSection.
+    const prefs = profile?.preferences;
     const next: UpdatePreferencesRequest = {
-      ...profile?.preferences,
       newsletter: checked,
+      marketing: prefs?.marketing ?? false,
+      stayLoggedIn: prefs?.stayLoggedIn ?? false,
+      theme: prefs?.theme,
     };
     try {
       await updatePreferences({ updatePreferencesRequest: next }).unwrap();
