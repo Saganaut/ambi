@@ -21,8 +21,12 @@ const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 type SettingsPatch = Partial<DeckSettings>;
 
 interface DeckSettingsApi {
+  /** Whether the deck itself has loaded. Distinct from {@link settings} being
+   *  defined: a loaded deck can still have no settings object at all, in which
+   *  case `settings` is undefined but the deck is ready to edit. */
+  isLoaded: boolean;
   /** The deck's current settings from the getDeck cache. Undefined while the
-   *  deck is still loading. */
+   *  deck is still loading OR when the deck simply has no settings yet. */
   settings: DeckSettings | undefined;
   /** Deep-merge `patch` onto the cached settings and PUT immediately. */
   commit: (patch: SettingsPatch) => void;
@@ -75,6 +79,7 @@ const useDeckSettings = (delay = 500): DeckSettingsApi => {
   );
 
   return {
+    isLoaded: deck != null,
     settings: deck?.settings,
     commit,
     schedule: scheduleCommit,

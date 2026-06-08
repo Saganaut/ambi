@@ -46,7 +46,11 @@ const AnswerSettingsPanelBody = ({
 }) => {
   const { answerSettings, updateAnswerSettings, clearAnswerSettings, flush } =
     useSlideSettingsEditor(deckId, slideId);
-  const { settings: deckSettings, commit: commitDeck } = useDeckSettings();
+  const {
+    isLoaded,
+    settings: deckSettings,
+    commit: commitDeck,
+  } = useDeckSettings();
 
   const deckDefault = deckSettings?.answerSettings;
   const hasOverride = answerSettings != null;
@@ -55,14 +59,14 @@ const AnswerSettingsPanelBody = ({
   // Local mirror so typing reflects instantly while the slide write debounces.
   // Re-seed when the active slide changes so edits never bleed across slides.
   const [form, setForm] = useState<AnswerSettings>(effective);
-  const [syncedKey, setSyncedKey] = useState(deckSettings ? slideId : undefined);
+  const [syncedKey, setSyncedKey] = useState(isLoaded ? slideId : undefined);
 
-  if (deckSettings && syncedKey !== slideId) {
+  if (isLoaded && syncedKey !== slideId) {
     setSyncedKey(slideId);
     setForm(effective);
   }
 
-  if (!deckSettings) {
+  if (!isLoaded) {
     return (
       <div className={slidePanel.empty}>
         <p>Loading deck settings…</p>
@@ -74,8 +78,14 @@ const AnswerSettingsPanelBody = ({
     patch: Partial<AnswerSettings>,
     { immediate }: { immediate: boolean },
   ) => {
-    setForm((f) => ({ ...f, ...patch }));
-    updateAnswerSettings(patch);
+    // Send the COMPLETE settings object, never a partial patch: the backend's
+    // AnswerSettings fields are Java primitives that reject a null, so any field
+    // omitted from the PUT fails deserialization. `form` is always fully
+    // resolved (defaults <- deck <- slide), so merging the patch onto it keeps
+    // every field populated.
+    const next = { ...form, ...patch };
+    setForm(next);
+    updateAnswerSettings(next);
     if (immediate) flush();
   };
 
