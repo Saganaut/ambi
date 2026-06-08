@@ -28,7 +28,6 @@ import com.cephadex.ambi.media.gallery.dto.GalleryImageResponse;
 import com.cephadex.ambi.media.gallery.dto.GalleryResponse;
 import com.cephadex.ambi.media.gallery.dto.RenameGalleryRequest;
 import com.cephadex.ambi.media.storage.ImageIngestService;
-import com.cephadex.ambi.media.storage.ImageUrlResolver;
 
 import jakarta.validation.Valid;
 
@@ -52,13 +51,10 @@ public class GalleryController {
 
     private final GalleryService galleryService;
     private final ImageIngestService imageIngestService;
-    private final ImageUrlResolver imageUrlResolver;
 
-    public GalleryController(GalleryService galleryService,
-            ImageIngestService imageIngestService, ImageUrlResolver imageUrlResolver) {
+    public GalleryController(GalleryService galleryService, ImageIngestService imageIngestService) {
         this.galleryService = galleryService;
         this.imageIngestService = imageIngestService;
-        this.imageUrlResolver = imageUrlResolver;
     }
 
     // ── Gallery ───────────────────────────────────────────────────────────────
@@ -118,7 +114,7 @@ public class GalleryController {
             Pageable pageable,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return new PagedModel<>(galleryService.listImages(id, principal, pageable)
-                .map(image -> GalleryImageResponse.from(image, imageUrlResolver)));
+                .map(GalleryImageResponse::from));
     }
 
     /** A single image of a gallery (VIEW) — the select read. */
@@ -127,7 +123,7 @@ public class GalleryController {
             @PathVariable String id,
             @PathVariable String imageId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return GalleryImageResponse.from(galleryService.getImage(id, imageId, principal), imageUrlResolver);
+        return GalleryImageResponse.from(galleryService.getImage(id, imageId, principal));
     }
 
     /**
@@ -142,7 +138,7 @@ public class GalleryController {
             @Valid @RequestBody AddImageRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return GalleryImageResponse.from(
-                galleryService.addImage(id, body.image(), body.name(), principal), imageUrlResolver);
+                galleryService.addImage(id, body.image(), body.name(), principal));
     }
 
     /**
@@ -162,8 +158,7 @@ public class GalleryController {
         AppImage image = imageIngestService.ingest(
                 bytesOf(file), file.getContentType(), file.getOriginalFilename());
         String label = (name != null && !name.isBlank()) ? name : file.getOriginalFilename();
-        return GalleryImageResponse.from(
-                galleryService.addImage(id, image, label, principal), imageUrlResolver);
+        return GalleryImageResponse.from(galleryService.addImage(id, image, label, principal));
     }
 
     private static byte[] bytesOf(MultipartFile file) {

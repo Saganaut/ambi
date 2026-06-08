@@ -32,8 +32,6 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageIngestService;
-import com.cephadex.ambi.media.storage.ImageUrlResolver;
-import com.cephadex.ambi.media.storage.MediaProperties;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -41,7 +39,9 @@ import com.cephadex.ambi.user.enums.UserLevel;
  * standalone {@code MockMvc}, mirroring {@code DeckControllerTest}. The ingest
  * pipeline and permission semantics live in their own services (mocked here);
  * this asserts the multipart route ingests bytes, delegates to the service, and
- * returns a 201 whose image is hydrated to URLs.
+ * returns a 201. Presigning is applied centrally by {@code AppImageSerializer}
+ * (covered in {@code AppImageJacksonTest}); standalone MockMvc uses a default
+ * ObjectMapper without that module, so the response here carries the raw keys.
  */
 @ExtendWith(MockitoExtension.class)
 class GalleryControllerTest {
@@ -62,12 +62,7 @@ class GalleryControllerTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 
-        MediaProperties media = new MediaProperties();
-        media.setPublicBaseUrl("http://test-host");
-        ImageUrlResolver resolver = new ImageUrlResolver(media);
-
-        GalleryController controller =
-                new GalleryController(galleryService, imageIngestService, resolver);
+        GalleryController controller = new GalleryController(galleryService, imageIngestService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
@@ -109,9 +104,8 @@ class GalleryControllerTest {
         mockMvc.perform(multipart("/api/galleries/g1/images").file(file).param("name", "Hero"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("img-1"))
-                // variant key hydrated to the proxy URL.
-                .andExpect(jsonPath("$.image.variants.SM")
-                        .value("http://test-host/api/images/gallery/x/sm.webp"));
+                // Raw key passes through here; presigning is the serializer's job.
+                .andExpect(jsonPath("$.image.variants.SM").value("gallery/x/sm.webp"));
 
         verify(imageIngestService).ingest(any(), eq("image/png"), eq("hero.png"));
     }

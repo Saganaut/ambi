@@ -93,11 +93,6 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                        // Public image proxy: opaque content-addressed keys, and these
-                        // bytes end up embedded in publicly playable decks anyway, so the
-                        // GET carries no access secret. Only GET is opened; uploads stay
-                        // authed under the gallery routes.
-                        .requestMatchers(HttpMethod.GET, "/api/images/**").permitAll()
                         // register is the one route a preRegistration principal may POST (Inv 8).
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("PRE_REGISTRATION")
                         // Everything else requires a registered USER. Visitors (anonymous) →

@@ -4,10 +4,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriUtils;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
+
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 /**
  * Turns the opaque S3 keys an internal {@link AppImage} stores into renderable
@@ -15,32 +18,41 @@ import com.cephadex.ambi.media.enums.ImageSizeOptions;
  * {@code image.ts} documents: stored {@code variants} hold keys; the client
  * receives URLs.
  *
- * <p>Keys resolve to this backend's own image proxy
- * ({@code {publicBaseUrl}/api/images/{key}} — see {@code ImageController}), so
- * the bucket stays private and nothing host-specific is ever persisted. External
- * images (author pasted a URL) already carry a renderable {@code externalSrc}
- * and pass through untouched.
+ * <p>Those URLs are <em>presigned</em> GET URLs (SigV4) with a short TTL, so the
+ * bucket stays private and access is time-limited. They expire, so they are
+ * deliberately never persisted: every read re-signs (see the central
+ * {@code AppImageSerializer}), and a {@code srcKey} round-trips raw so the
+ * inbound deserializer can rebuild canonical keys for a copied image. External
+ * images already carry a renderable {@code externalSrc} and pass through.
  */
 @Component
 public class ImageUrlResolver {
 
-    private final String publicBaseUrl;
+    private final S3Presigner presigner;
+    private final String bucket;
+    private final java.time.Duration ttl;
 
-    public ImageUrlResolver(MediaProperties props) {
-        // Trim a trailing slash so we don't emit "…//api/images/…".
-        String base = props.getPublicBaseUrl();
-        this.publicBaseUrl = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+    public ImageUrlResolver(S3Presigner presigner, S3Properties s3Props, MediaProperties mediaProps) {
+        this.presigner = presigner;
+        this.bucket = s3Props.getBucket();
+        this.ttl = mediaProps.getPresignTtl();
     }
 
-    /** The proxy URL that serves the object stored under {@code key}. */
+    /** A short-lived presigned GET URL for the object stored under {@code key}. */
     public String url(String key) {
-        return publicBaseUrl + "/api/images/" + UriUtils.encodePath(key, "UTF-8");
+        GetObjectRequest get = GetObjectRequest.builder().bucket(bucket).key(key).build();
+        GetObjectPresignRequest presign = GetObjectPresignRequest.builder()
+                .signatureDuration(ttl)
+                .getObjectRequest(get)
+                .build();
+        return presigner.presignGetObject(presign).url().toString();
     }
 
     /**
      * A copy of {@code image} with its internal {@code variants} (S3 keys)
-     * rewritten to renderable proxy URLs. External images and null/empty inputs
-     * are returned unchanged. The stored entity is never mutated.
+     * rewritten to presigned URLs. External images and null/empty inputs are
+     * returned unchanged. {@code srcKey} is left raw so it can round-trip back as
+     * the reconstruction anchor. The stored entity is never mutated.
      */
     public AppImage hydrate(AppImage image) {
         if (image == null || image.isExternal() || image.getVariants() == null

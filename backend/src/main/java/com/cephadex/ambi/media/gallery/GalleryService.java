@@ -16,6 +16,8 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.storage.ImageKeys;
+import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.user.User;
@@ -40,12 +42,15 @@ public class GalleryService {
     private final GalleryRepository galleryRepository;
     private final GalleryImageRepository imageRepository;
     private final UserService userService;
+    private final S3StorageService storage;
 
     public GalleryService(GalleryRepository galleryRepository,
-            GalleryImageRepository imageRepository, UserService userService) {
+            GalleryImageRepository imageRepository, UserService userService,
+            S3StorageService storage) {
         this.galleryRepository = galleryRepository;
         this.imageRepository = imageRepository;
         this.userService = userService;
+        this.storage = storage;
     }
 
     // ── Get-or-create ─────────────────────────────────────────────────────────
@@ -161,12 +166,24 @@ public class GalleryService {
         return imageRepository.save(galleryImage);
     }
 
-    /** Remove an image from a gallery (EDIT). Existing usage copies are untouched. */
+    /**
+     * Remove an image from a gallery (EDIT). The backing S3 objects (original +
+     * every variant) are deleted first so we never orphan the document onto
+     * missing bytes; only once they're gone do we drop the document.
+     *
+     * <p><strong>Shared-bytes caveat:</strong> when a usage site selects this
+     * image it embeds a copy of the {@link AppImage}, which references the
+     * <em>same</em> content-addressed S3 keys. Deleting the bytes here therefore
+     * also blanks any deck/slide that selected this image. Independent per-copy
+     * bytes would need copy-time object duplication or reference counting; until
+     * then, "delete frees the bytes" is the intended behaviour.
+     */
     public void removeImage(String galleryId, String imageId, AmbiPrincipal principal) {
         Gallery gallery = load(galleryId);
         requireEdit(gallery, principal);
         GalleryImage image = imageRepository.findByIdAndGalleryId(imageId, gallery.getId())
                 .orElseThrow(() -> new NotFoundException("GALLERY_IMAGE_NOT_FOUND", "Image not found"));
+        storage.delete(ImageKeys.allKeys(image.getImage()));
         imageRepository.delete(image);
     }
 

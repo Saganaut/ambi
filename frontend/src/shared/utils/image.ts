@@ -11,9 +11,10 @@
  * renderable URLs on read.
  *
  * Internal images are produced by the gallery upload pipeline (multipart →
- * S3/Garage → per-tier WebP); the backend hydrates each `variants` value from an
- * S3 key to a renderable proxy URL on read, so callers here treat `variants`
- * values as ready-to-render URLs regardless of source.
+ * S3/Garage → per-tier WebP); the backend stores opaque S3 keys and hydrates each
+ * `variants` value to a short-lived presigned URL on read (regenerated every
+ * load), so callers here treat `variants` values as ready-to-render URLs
+ * regardless of source.
  *
  * The constructors below produce the standard "blank / external / internal"
  * shapes so callers don't reach into the object literal. `resolveImageUrl`

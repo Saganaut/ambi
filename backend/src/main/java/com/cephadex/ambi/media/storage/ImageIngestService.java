@@ -70,14 +70,14 @@ public class ImageIngestService {
         }
 
         String prefix = "gallery/" + UUID.randomUUID();
-        String originalKey = prefix + "/original";
+        String originalKey = ImageKeys.originalKey(prefix);
         storage.put(originalKey, bytes, contentType);
 
         Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
         for (Map.Entry<ImageSizeOptions, Integer> tier : TIER_BOUNDS.entrySet()) {
             int bound = tier.getValue();
             byte[] webp = toWebp(source.bound(bound, bound));
-            String key = prefix + "/" + tier.getKey().name().toLowerCase() + ".webp";
+            String key = ImageKeys.variantKey(prefix, tier.getKey());
             storage.put(key, webp, "image/webp");
             variants.put(tier.getKey(), key);
         }

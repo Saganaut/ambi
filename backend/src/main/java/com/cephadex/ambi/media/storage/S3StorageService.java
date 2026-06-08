@@ -2,12 +2,18 @@ package com.cephadex.ambi.media.storage;
 
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+import java.util.List;
+
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
@@ -53,6 +59,28 @@ public class S3StorageService {
             return null;
         } catch (S3Exception | java.io.IOException e) {
             throw new MediaStorageException("Failed to read object " + key, e);
+        }
+    }
+
+    /**
+     * Delete the given keys (no-op on an empty collection). Deleting an absent
+     * key is not an error in S3, so this is idempotent — safe to call when an
+     * image's objects may already be gone.
+     */
+    public void delete(Collection<String> keys) {
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        List<ObjectIdentifier> ids = keys.stream()
+                .map(key -> ObjectIdentifier.builder().key(key).build())
+                .toList();
+        try {
+            s3.deleteObjects(DeleteObjectsRequest.builder()
+                    .bucket(bucket)
+                    .delete(Delete.builder().objects(ids).build())
+                    .build());
+        } catch (S3Exception e) {
+            throw new MediaStorageException("Failed to delete objects " + keys, e);
         }
     }
 

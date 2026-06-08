@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -14,6 +15,8 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
@@ -24,6 +27,8 @@ import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.storage.ImageKeys;
+import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.user.User;
@@ -42,6 +47,7 @@ class GalleryServiceTest {
     private GalleryRepository galleryRepository;
     private GalleryImageRepository imageRepository;
     private UserService userService;
+    private S3StorageService storage;
     private GalleryService galleryService;
 
     @BeforeEach
@@ -49,7 +55,8 @@ class GalleryServiceTest {
         galleryRepository = mock(GalleryRepository.class);
         imageRepository = mock(GalleryImageRepository.class);
         userService = mock(UserService.class);
-        galleryService = new GalleryService(galleryRepository, imageRepository, userService);
+        storage = mock(S3StorageService.class);
+        galleryService = new GalleryService(galleryRepository, imageRepository, userService, storage);
         when(galleryRepository.save(any(Gallery.class))).thenAnswer(inv -> inv.getArgument(0));
         when(imageRepository.save(any(GalleryImage.class))).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -168,6 +175,42 @@ class GalleryServiceTest {
     }
 
     @Test
+    void removeImageDeletesBackingBytesThenDocument() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+        GalleryImage image = new GalleryImage();
+        image.setId("img-1");
+        image.setGalleryId("gal-1");
+        image.setImage(internalImage("gallery/abc/original"));
+        when(imageRepository.findByIdAndGalleryId("img-1", "gal-1")).thenReturn(Optional.of(image));
+
+        galleryService.removeImage("gal-1", "img-1", principal("owner-1"));
+
+        // Bytes (original + every variant) are freed, then the document is dropped.
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<String>> keys = ArgumentCaptor.forClass(java.util.Collection.class);
+        InOrder order = inOrder(storage, imageRepository);
+        order.verify(storage).delete(keys.capture());
+        order.verify(imageRepository).delete(image);
+        assertThat(keys.getValue()).contains("gallery/abc/original", "gallery/abc/sm.webp");
+    }
+
+    @Test
+    void removeImageOfExternalReferenceTouchesNoStorage() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+        GalleryImage image = new GalleryImage();
+        image.setId("img-2");
+        image.setGalleryId("gal-1");
+        image.setImage(externalImage());
+        when(imageRepository.findByIdAndGalleryId("img-2", "gal-1")).thenReturn(Optional.of(image));
+
+        galleryService.removeImage("gal-1", "img-2", principal("owner-1"));
+
+        // External images own no S3 objects — delete is still called, with nothing.
+        verify(storage).delete(java.util.List.of());
+        verify(imageRepository).delete(image);
+    }
+
+    @Test
     void deleteRemovesImagesThenGallery() {
         when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
 
@@ -216,6 +259,14 @@ class GalleryServiceTest {
         AppImage image = new AppImage();
         image.setExternal(true);
         image.setExternalSrc("https://example.test/x.png");
+        return image;
+    }
+
+    private static AppImage internalImage(String srcKey) {
+        AppImage image = new AppImage();
+        image.setExternal(false);
+        image.setSrcKey(srcKey);
+        image.setVariants(ImageKeys.variantsFor(srcKey));
         return image;
     }
 }

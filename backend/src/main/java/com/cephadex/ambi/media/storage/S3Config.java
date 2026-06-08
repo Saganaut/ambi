@@ -7,10 +7,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /**
  * Builds the singleton {@link S3Client} from {@link S3Properties}. In dev this
@@ -29,16 +31,41 @@ public class S3Config {
     S3Client s3Client(S3Properties props) {
         var builder = S3Client.builder()
                 .region(Region.of(props.getRegion()))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey())))
-                .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(props.isPathStyleAccess())
-                        .build());
+                .credentialsProvider(credentials(props))
+                .serviceConfiguration(serviceConfig(props));
         // Endpoint override is dev/Garage-only; left unset, the SDK uses the
         // region's real AWS endpoint.
         if (StringUtils.hasText(props.getEndpoint())) {
             builder.endpointOverride(URI.create(props.getEndpoint()));
         }
         return builder.build();
+    }
+
+    /**
+     * The presigner that mints short-lived GET URLs for image reads. Same region,
+     * credentials, path-style and endpoint as the client, so the URLs it signs
+     * point at Garage in dev and at S3 in prod.
+     */
+    @Bean
+    S3Presigner s3Presigner(S3Properties props) {
+        var builder = S3Presigner.builder()
+                .region(Region.of(props.getRegion()))
+                .credentialsProvider(credentials(props))
+                .serviceConfiguration(serviceConfig(props));
+        if (StringUtils.hasText(props.getEndpoint())) {
+            builder.endpointOverride(URI.create(props.getEndpoint()));
+        }
+        return builder.build();
+    }
+
+    private static AwsCredentialsProvider credentials(S3Properties props) {
+        return StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey()));
+    }
+
+    private static S3Configuration serviceConfig(S3Properties props) {
+        return S3Configuration.builder()
+                .pathStyleAccessEnabled(props.isPathStyleAccess())
+                .build();
     }
 }

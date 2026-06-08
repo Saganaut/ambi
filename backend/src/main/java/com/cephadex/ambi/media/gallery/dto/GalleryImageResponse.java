@@ -6,7 +6,6 @@ import java.time.Instant;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.gallery.GalleryImage;
-import com.cephadex.ambi.media.storage.ImageUrlResolver;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -15,11 +14,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * {@link AppImage} value a client copies into a usage site (deck/slide cover or
  * background, avatar, theme asset) via that resource's own image endpoint.
  *
- * <p>An internal image stores opaque S3 keys in its {@code variants}; the
- * {@link #from(GalleryImage, ImageUrlResolver)} overload hydrates those to
- * renderable proxy URLs so the client receives ready-to-render values (and copies
- * those hydrated URLs onward when the image is selected). The bare
- * {@link #from(GalleryImage)} leaves the stored shape untouched.
+ * <p>The stored {@code image} holds opaque S3 keys; the central
+ * {@code AppImageSerializer} presigns them to short-lived URLs on the way out, so
+ * this mapper just hands the raw value through.
  */
 public record GalleryImageResponse(
         @Schema(requiredMode = REQUIRED) String id,
@@ -31,19 +28,10 @@ public record GalleryImageResponse(
         @Schema(requiredMode = REQUIRED) Instant updatedAt) {
 
     public static GalleryImageResponse from(GalleryImage galleryImage) {
-        return from(galleryImage, galleryImage.getImage());
-    }
-
-    /** As {@link #from(GalleryImage)}, but with the image hydrated to URLs. */
-    public static GalleryImageResponse from(GalleryImage galleryImage, ImageUrlResolver resolver) {
-        return from(galleryImage, resolver.hydrate(galleryImage.getImage()));
-    }
-
-    private static GalleryImageResponse from(GalleryImage galleryImage, AppImage image) {
         return new GalleryImageResponse(
                 galleryImage.getId(),
                 galleryImage.getGalleryId(),
-                image,
+                galleryImage.getImage(),
                 galleryImage.getName(),
                 galleryImage.getCreatorUserId(),
                 galleryImage.getCreatedAt(),

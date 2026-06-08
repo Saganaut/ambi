@@ -1,5 +1,6 @@
 package com.cephadex.ambi.media.storage;
 
+import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -13,22 +14,21 @@ import lombok.Data;
  * about <em>how images are processed and served</em>, not how we talk to the
  * bucket.
  *
- * <p>{@link #publicBaseUrl} is the origin prepended to a stored S3 key when an
- * internal {@link com.cephadex.ambi.media.AppImage} is hydrated to renderable
- * URLs on read (see {@link ImageUrlResolver}). It is <em>not</em> persisted, so
- * moving environments only requires changing this property — stored documents
- * keep holding opaque keys.
+ * <p>Internal images are served via short-lived presigned URLs (see
+ * {@link ImageUrlResolver}): the bucket stays private, and a stored
+ * {@link com.cephadex.ambi.media.AppImage} only ever holds opaque keys — the URL
+ * is regenerated on every read and expires after {@link #presignTtl}.
  */
 @Data
 @ConfigurationProperties(prefix = "ambi.media")
 public class MediaProperties {
 
     /**
-     * Origin the image-proxy URLs are built from (this backend's own public
-     * address). Hydrated variant URLs look like
-     * {@code {publicBaseUrl}/api/images/{key}}.
+     * How long a presigned image URL stays valid. Long enough that a page open
+     * for a while keeps rendering, short enough that a leaked URL soon dies;
+     * every fresh read re-signs, so a reload always yields working URLs.
      */
-    private String publicBaseUrl = "http://localhost:8080";
+    private Duration presignTtl = Duration.ofHours(1);
 
     /** Hard cap on a single uploaded file's size, in bytes (default 10 MB). */
     private long maxUploadBytes = 10L * 1024 * 1024;

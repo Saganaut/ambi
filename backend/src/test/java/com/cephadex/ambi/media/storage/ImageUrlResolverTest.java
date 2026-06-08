@@ -1,42 +1,60 @@
 package com.cephadex.ambi.media.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.net.URI;
+import java.time.Duration;
 import java.util.EnumMap;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+
 /**
  * Hydration rules for {@link ImageUrlResolver}: internal variant keys become
- * proxy URLs, external images pass through, and the stored entity is never
- * mutated.
+ * presigned URLs, external images pass through, and the stored entity is never
+ * mutated. The presigner is stubbed to echo the key into the URL so we can assert
+ * which key each variant signed.
  */
 class ImageUrlResolverTest {
 
-    private ImageUrlResolver resolver(String baseUrl) {
-        MediaProperties props = new MediaProperties();
-        props.setPublicBaseUrl(baseUrl);
-        return new ImageUrlResolver(props);
+    private ImageUrlResolver resolver;
+
+    @BeforeEach
+    void setUp() {
+        S3Presigner presigner = mock(S3Presigner.class);
+        when(presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenAnswer(inv -> {
+            GetObjectPresignRequest req = inv.getArgument(0);
+            String key = req.getObjectRequest().key();
+            PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
+            when(presigned.url()).thenReturn(URI.create("https://signed/" + key + "?sig=abc").toURL());
+            return presigned;
+        });
+        S3Properties s3 = new S3Properties();
+        s3.setBucket("ambi-images");
+        MediaProperties media = new MediaProperties();
+        media.setPresignTtl(Duration.ofMinutes(30));
+        resolver = new ImageUrlResolver(presigner, s3, media);
     }
 
     @Test
-    void urlPrefixesProxyPathAndEncodesKey() {
-        assertThat(resolver("http://localhost:8080").url("gallery/abc/sm.webp"))
-                .isEqualTo("http://localhost:8080/api/images/gallery/abc/sm.webp");
+    void urlPresignsTheKey() {
+        assertThat(resolver.url("gallery/x/sm.webp"))
+                .isEqualTo("https://signed/gallery/x/sm.webp?sig=abc");
     }
 
     @Test
-    void trailingSlashOnBaseUrlIsNotDoubled() {
-        assertThat(resolver("http://localhost:8080/").url("k"))
-                .isEqualTo("http://localhost:8080/api/images/k");
-    }
-
-    @Test
-    void hydrateRewritesInternalVariantsToUrls() {
+    void hydrateRewritesInternalVariantsToPresignedUrls() {
         Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
         variants.put(ImageSizeOptions.SM, "gallery/x/sm.webp");
         variants.put(ImageSizeOptions.LG, "gallery/x/lg.webp");
@@ -45,13 +63,13 @@ class ImageUrlResolverTest {
         stored.setSrcKey("gallery/x/original");
         stored.setVariants(variants);
 
-        AppImage hydrated = resolver("http://host").hydrate(stored);
+        AppImage hydrated = resolver.hydrate(stored);
 
         assertThat(hydrated.getVariants().get(ImageSizeOptions.SM))
-                .isEqualTo("http://host/api/images/gallery/x/sm.webp");
+                .isEqualTo("https://signed/gallery/x/sm.webp?sig=abc");
         assertThat(hydrated.getVariants().get(ImageSizeOptions.LG))
-                .isEqualTo("http://host/api/images/gallery/x/lg.webp");
-        // srcKey is preserved (it's the original-object reference, not rendered).
+                .isEqualTo("https://signed/gallery/x/lg.webp?sig=abc");
+        // srcKey stays raw so it can round-trip as the reconstruction anchor.
         assertThat(hydrated.getSrcKey()).isEqualTo("gallery/x/original");
         // The stored entity's variants are untouched — still keys.
         assertThat(stored.getVariants().get(ImageSizeOptions.SM)).isEqualTo("gallery/x/sm.webp");
@@ -63,12 +81,11 @@ class ImageUrlResolverTest {
         external.setExternal(true);
         external.setExternalSrc("https://example.com/cat.png");
 
-        assertThat(resolver("http://host").hydrate(external)).isSameAs(external);
+        assertThat(resolver.hydrate(external)).isSameAs(external);
     }
 
     @Test
     void hydrateToleratesNullAndEmpty() {
-        ImageUrlResolver resolver = resolver("http://host");
         assertThat(resolver.hydrate(null)).isNull();
 
         AppImage noVariants = new AppImage();
