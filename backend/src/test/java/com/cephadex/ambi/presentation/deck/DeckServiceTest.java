@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -318,7 +319,7 @@ class DeckServiceTest {
     // ── Slide settings ───────────────────────────────────────────────────────────
 
     @Test
-    void setSlidePointSettingsStampsAuditAndSaves() {
+    void setSlidePointSettingsStampsAuditAndPersistsTargeted() {
         Deck deck = keyedDeck("owner-1", "s1");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
         Settings.PointSettings points = pointSettings(100);
@@ -327,7 +328,26 @@ class DeckServiceTest {
 
         assertThat(result.getSettings().pointSettings()).isSameAs(points);
         assertThat(result.getLastEditedByUserId()).isEqualTo("owner-1");
-        verify(deckRepository).save(deck);
+        // Persists via the targeted positional update (no deck @Version bump),
+        // not a whole-deck save.
+        verify(deckRepository).updateSlideSettings(
+                eq("deck-1"), eq("s1"), eq(new Settings.SlideSettings(points, null)), eq("owner-1"));
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void clearSlidePointSettingsPersistsTargetedWithoutSaving() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        existing.setSettings(new Settings.SlideSettings(pointSettings(20), null));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.clearSlidePointSettings("deck-1", "s1", owner);
+
+        // Both halves now absent → the wrapper collapses to null, persisted as an
+        // unset of the slide's settings sub-document.
+        verify(deckRepository).updateSlideSettings(eq("deck-1"), eq("s1"), eq(null), eq("owner-1"));
+        verify(deckRepository, never()).save(any(Deck.class));
     }
 
     @Test

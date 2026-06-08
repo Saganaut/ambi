@@ -11,7 +11,7 @@ import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 
-public interface DeckRepository extends MongoRepository<Deck, String> {
+public interface DeckRepository extends MongoRepository<Deck, String>, DeckRepositoryCustom {
 
     /** Resolve a deck by its public share id ({@code publicId} is unique-indexed). */
     Optional<Deck> findByPublicId(String publicId);

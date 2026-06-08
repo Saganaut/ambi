@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -281,34 +282,66 @@ public class DeckService {
     // A slide carries two independent overrides — point (scoring) and answer
     // (answering) settings — wrapped in an immutable SlideSettings. Each half has
     // its own set/clear pair so an edit to one never disturbs the other; clearing a
-    // half lets the deck defaults apply at session time. As with images, the whole
-    // deck is saved (slides are embedded) and the two halves never flow through
-    // updateSlide. When both halves are absent the wrapper itself is dropped to null.
+    // half lets the deck defaults apply at session time. When both halves are absent
+    // the wrapper itself is dropped to null. The two halves never flow through
+    // updateSlide.
+    //
+    // Unlike images, settings persist through a TARGETED positional update
+    // (applySlideSettings → deckRepository.updateSlideSettings) that rewrites only
+    // this slide's `settings` sub-document and leaves the deck's @Version alone, so
+    // a settings tweak no longer re-versions the whole deck or contends with
+    // deck-level writes on that single version counter.
+    //
+    // TODO: extend this targeted-update treatment to the other slide-scoped writes
+    //   — the image setters (applySlideMutation) and updateSlide — which still
+    //   save(deck) and bump @Version. Trade-off to keep in mind: a targeted update
+    //   is not version-guarded against a concurrent whole-deck save, so it's
+    //   last-writer-wins on the touched field (no 500, but no merge either). If we
+    //   later want real per-slide concurrency control, the dead Slide.version
+    //   (Integer, never @Version) is the natural hook to start enforcing.
 
     /** Set a slide's point (scoring) settings, preserving its answer settings (EDIT). */
     public Slide setSlidePointSettings(String deckId, String slideId,
             Settings.PointSettings pointSettings, AmbiPrincipal principal) {
-        return applySlideMutation(deckId, slideId, principal,
-                slide -> slide.setSettings(withPointSettings(slide.getSettings(), pointSettings)));
+        return applySlideSettings(deckId, slideId, principal,
+                current -> withPointSettings(current, pointSettings));
     }
 
     /** Clear a slide's point (scoring) settings, preserving its answer settings (EDIT). */
     public Slide clearSlidePointSettings(String deckId, String slideId, AmbiPrincipal principal) {
-        return applySlideMutation(deckId, slideId, principal,
-                slide -> slide.setSettings(withPointSettings(slide.getSettings(), null)));
+        return applySlideSettings(deckId, slideId, principal,
+                current -> withPointSettings(current, null));
     }
 
     /** Set a slide's answer (answering) settings, preserving its point settings (EDIT). */
     public Slide setSlideAnswerSettings(String deckId, String slideId,
             Settings.AnswerSettings answerSettings, AmbiPrincipal principal) {
-        return applySlideMutation(deckId, slideId, principal,
-                slide -> slide.setSettings(withAnswerSettings(slide.getSettings(), answerSettings)));
+        return applySlideSettings(deckId, slideId, principal,
+                current -> withAnswerSettings(current, answerSettings));
     }
 
     /** Clear a slide's answer (answering) settings, preserving its point settings (EDIT). */
     public Slide clearSlideAnswerSettings(String deckId, String slideId, AmbiPrincipal principal) {
-        return applySlideMutation(deckId, slideId, principal,
-                slide -> slide.setSettings(withAnswerSettings(slide.getSettings(), null)));
+        return applySlideSettings(deckId, slideId, principal,
+                current -> withAnswerSettings(current, null));
+    }
+
+    /**
+     * Authorize + load the deck, recompute the slide's settings wrapper, then
+     * persist just that sub-document via a positional update (no deck @Version
+     * bump). The slide is mutated in memory too so the returned object — and thus
+     * the {@code *SettingsResponse} built from it — reflects the change.
+     */
+    private Slide applySlideSettings(String deckId, String slideId, AmbiPrincipal principal,
+            UnaryOperator<Settings.SlideSettings> settingsUpdate) {
+        Deck deck = getEditable(deckId, principal);
+        Slide slide = deck.findSlide(slideId)
+                .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
+        Settings.SlideSettings next = settingsUpdate.apply(slide.getSettings());
+        slide.setSettings(next);
+        slide.setLastEditedByUserId(principal.userId());
+        deckRepository.updateSlideSettings(deckId, slideId, next, principal.userId());
+        return slide;
     }
 
     /** Replace the point half of a slide's settings, keeping the existing answer half. */
