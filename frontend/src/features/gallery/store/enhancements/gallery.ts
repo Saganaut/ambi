@@ -6,6 +6,8 @@
  *
  *   • addImage    → append the created image to every materialized `listImages`
  *                   page for the owning gallery (once the server confirms).
+ *   • uploadImage → identical fold for the multipart upload sibling, which lands
+ *                   the ingested image on the same gallery list.
  *   • removeImage → optimistically splice the image out of every materialized
  *                   `listImages` page for that gallery, rolled back on reject.
  *
@@ -22,6 +24,7 @@ import {
   type ListImagesApiArg,
   type PagedModelGalleryImageResponse,
   type RemoveImageApiArg,
+  type UploadImageApiArg,
 } from "../galleryApi.gen";
 import type {
   CacheSyncApi,
@@ -47,8 +50,8 @@ const listImageArgsForGallery = (
 /**
  * Append a freshly created image into every materialized `listImages` page for
  * its gallery, so both the account grid and the picker reflect it without a
- * refetch. Shared by the JSON `addImage` mutation (below) and the hand-injected
- * multipart `uploadGalleryImage` mutation (see `../endpoints/galleryUpload`).
+ * refetch. Shared by the JSON `addImage` mutation and its multipart
+ * `uploadImage` sibling (both enhanced below).
  */
 export const appendImageToGalleryLists = (
   dispatch: (action: unknown) => unknown,
@@ -90,6 +93,25 @@ galleryApi.enhanceEndpoints({
           appendImageToGalleryLists(dispatch, getState(), arg.id, data);
         } catch {
           // Add failed — nothing optimistic to roll back.
+        }
+      },
+    },
+    uploadImage: {
+      onQueryStarted: async (
+        arg: UploadImageApiArg,
+        {
+          dispatch,
+          getState,
+          queryFulfilled,
+        }: CacheSyncMutationApi<GalleryImageResponse> & {
+          getState: () => WithApiQueries;
+        },
+      ) => {
+        try {
+          const { data } = await queryFulfilled;
+          appendImageToGalleryLists(dispatch, getState(), arg.id, data);
+        } catch {
+          // Upload failed — nothing optimistic to roll back.
         }
       },
     },

@@ -51,6 +51,29 @@ const rawBaseQuery = fetchBaseQuery({
     /\bjson\b/.test(headers.get("content-type") ?? ""),
 });
 
+// Generated multipart endpoints (e.g. gallery `uploadImage`) describe their body
+// as a plain object of fields — `{ file: Blob }` — because that's all OpenAPI can
+// express. `fetchBaseQuery` would JSON-stringify such an object and lose the
+// bytes, so we lift any body that carries a `File`/`Blob` value into `FormData`
+// here. That lets the generated client be used verbatim (no hand-edits, no casts
+// at the call site) and keeps the multipart contract a base-query concern. We
+// leave the boundary unset so fetch derives it; setting Content-Type by hand
+// would drop it.
+const hasBinaryField = (body: unknown): body is Record<string, unknown> => {
+  if (typeof body !== "object" || body === null) return false;
+  if (body instanceof FormData || body instanceof Blob) return false;
+  return Object.values(body).some((v) => v instanceof Blob);
+};
+
+const toFormData = (body: Record<string, unknown>): FormData => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(body)) {
+    if (value === undefined || value === null) continue;
+    form.append(key, value as string | Blob);
+  }
+  return form;
+};
+
 // `/api/auth/me` is the optional-auth probe — a 401 there just means "visitor",
 // not "the user tried to do something they aren't allowed to do", so we don't
 // surface the login modal for it.
@@ -91,6 +114,10 @@ const baseQueryWithReauth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  if (typeof args !== "string" && hasBinaryField(args.body)) {
+    args = { ...args, body: toFormData(args.body) };
+  }
+
   let result = await rawBaseQuery(args, api, extraOptions);
 
   if (result.error?.status === 401 && !isAuthProbe(args)) {

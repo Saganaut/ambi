@@ -8,11 +8,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Add an image to a gallery (EDIT capability). For now the caller supplies an
- * already-formed {@link AppImage} — an external URL today, a pre-uploaded
- * {@code srcKey} once the upload pipeline lands. That pipeline will add a
- * multipart {@code POST} on the same path that ingests bytes and populates the
- * {@code AppImage} server-side, leaving this body-based route for references.
+ * Add an image to a gallery by reference (EDIT capability). The caller supplies
+ * an already-formed {@link AppImage} — an external URL, or a {@code srcKey} for
+ * bytes already in storage. Raw-byte ingestion lives on the separate multipart
+ * {@code POST /{id}/images/upload} route, leaving this body-based route purely
+ * for references.
  *
  * @param image the image reference to store
  * @param name  an optional human label for the gallery item

@@ -36,4 +36,19 @@ public class MediaProperties {
     /** Content types accepted by the upload ingest. */
     private Set<String> allowedContentTypes = new LinkedHashSet<>(Set.of(
             "image/png", "image/jpeg", "image/webp", "image/gif"));
+
+    /**
+     * Connect/read timeout for the SSRF-guarded remote-image fetch (the proxy
+     * that lets the browser load a pasted URL for client-side cropping without
+     * canvas CORS-taint). Kept short so a slow or hanging host can't pin a
+     * request thread.
+     */
+    private Duration remoteFetchTimeout = Duration.ofSeconds(10);
+
+    /**
+     * How many redirects the remote-image fetch will follow. Each hop is
+     * re-validated against the SSRF guards, so this only bounds chain length;
+     * 0 disables redirects entirely.
+     */
+    private int remoteFetchMaxRedirects = 3;
 }

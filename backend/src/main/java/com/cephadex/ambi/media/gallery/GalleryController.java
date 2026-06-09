@@ -7,6 +7,7 @@ import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -128,8 +129,9 @@ public class GalleryController {
 
     /**
      * Add an image to a gallery by reference (EDIT) — an external URL, or a
-     * pre-formed {@link AppImage}. The multipart sibling below ingests raw bytes;
-     * the two share this path, disambiguated by {@code consumes}.
+     * pre-formed {@link AppImage}. The multipart sibling below ({@code /upload})
+     * ingests raw bytes instead; the two are distinct operations on distinct
+     * paths so the generated OpenAPI client can represent each on its own.
      */
     @PostMapping(path = "/{id}/images", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -145,8 +147,10 @@ public class GalleryController {
      * Upload an image file to a gallery (EDIT). The bytes are validated, the
      * original stored, and one WebP rendition per size tier derived
      * ({@link ImageIngestService}); the resulting S3-backed {@link AppImage} is
-     * then persisted as a gallery item. {@code name} defaults to the original
-     * filename when omitted.
+     * then persisted as a gallery item. {@code name} (the gallery item's label)
+     * defaults to the original filename when omitted; {@code altText}, when
+     * supplied, is stamped onto the {@link AppImage} so it travels with the image
+     * wherever it is later embedded.
      */
     @PostMapping(path = "/{id}/images/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -154,9 +158,13 @@ public class GalleryController {
             @PathVariable String id,
             @RequestPart("file") MultipartFile file,
             @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "altText", required = false) String altText,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         AppImage image = imageIngestService.ingest(
                 bytesOf(file), file.getContentType(), file.getOriginalFilename());
+        if (StringUtils.hasText(altText)) {
+            image.setAltText(altText);
+        }
         String label = (name != null && !name.isBlank()) ? name : file.getOriginalFilename();
         return GalleryImageResponse.from(galleryService.addImage(id, image, label, principal));
     }

@@ -23,6 +23,7 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.body,
         params: {
           name: queryArg.name,
+          altText: queryArg.altText,
         },
       }),
     }),
@@ -91,6 +92,7 @@ export type UploadImageApiResponse =
 export type UploadImageApiArg = {
   id: string;
   name?: string;
+  altText?: string;
   body: {
     file: Blob;
   };
