@@ -8,7 +8,7 @@
  * username-availability checking, so it keeps its own hook ({@link useRegister}).
  */
 import { useCallback } from "react";
-import { useCreateGuestMutation, useLogoutMutation } from "@store/AmbiApi";
+import { useCreateGuestMutation, useLogoutMutation } from "@auth/store/authApi.gen";
 import { useRequireLogin } from "./useRequireLogin";
 
 interface OpenLoginOptions {

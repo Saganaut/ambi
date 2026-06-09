@@ -11,11 +11,8 @@
 // `backend/src/main/java/cephadex/ambi/service/ShowResponsesResolver.java`.
 // Keep the two in sync — the per-format default below mirrors the spec in
 // `z-docs/to-do/24-session-format-and-runtime-cascades/README.md`.
-import type {
-  DeckResponse,
-  InteractiveSessionResponse,
-  InteractiveSessionSettings,
-} from "@store/AmbiApi";
+import type { DeckResponse } from "@deck/store/deckApi.gen";
+import type { InteractiveSessionResponse, InteractiveSessionSettings } from "@store/AmbiApi";
 
 export type ShowResponsesMode = "INHERIT" | "INSTANT" | "ON_CLICK" | "PRIVATE";
 export type SessionFormat = "GAME" | "PRESENTATION";

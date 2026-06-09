@@ -36,8 +36,9 @@
       "@store/*": ["./src/shared/store/*"],
       "@types/*": ["./src/shared/types/*"],
       "@utils/*": ["./src/shared/utils/*"],
-      "@decks/*": ["./src/features/decks/*"],
+      "@deck/*": ["./src/features/deck/*"],
       "@account/*": ["./src/features/account/*"],
+      "@features/*": ["./src/features/*"],
       "@liveSession/*": ["./src/features/liveSession/*"],
       "@auth/*": ["./src/features/auth/*"]
     }

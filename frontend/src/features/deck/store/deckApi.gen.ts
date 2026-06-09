@@ -1,0 +1,918 @@
+import { emptySplitApi as api } from "../../../shared/store/emptyApi";
+const injectedRtkApi = api.injectEndpoints({
+  endpoints: (build) => ({
+    getDeck: build.query<GetDeckApiResponse, GetDeckApiArg>({
+      query: (queryArg) => ({ url: `/api/decks/${queryArg.id}` }),
+    }),
+    createDeck: build.mutation<CreateDeckApiResponse, CreateDeckApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}`,
+        method: "PUT",
+      }),
+    }),
+    deleteDeck: build.mutation<DeleteDeckApiResponse, DeleteDeckApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}`,
+        method: "DELETE",
+      }),
+    }),
+    updateDeck: build.mutation<UpdateDeckApiResponse, UpdateDeckApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}`,
+        method: "PATCH",
+        body: queryArg.updateDeckRequest,
+      }),
+    }),
+    setDeckVisibility: build.mutation<
+      SetDeckVisibilityApiResponse,
+      SetDeckVisibilityApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/visibility`,
+        method: "PUT",
+        body: queryArg.setVisibilityRequest,
+      }),
+    }),
+    setDeckTags: build.mutation<SetDeckTagsApiResponse, SetDeckTagsApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/tags`,
+        method: "PUT",
+        body: queryArg.setTagsRequest,
+      }),
+    }),
+    getSlide: build.query<GetSlideApiResponse, GetSlideApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}`,
+      }),
+    }),
+    updateSlide: build.mutation<UpdateSlideApiResponse, UpdateSlideApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}`,
+        method: "PUT",
+        body: queryArg.slideRequest,
+      }),
+    }),
+    removeSlide: build.mutation<RemoveSlideApiResponse, RemoveSlideApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}`,
+        method: "DELETE",
+      }),
+    }),
+    getSlidePointSettings: build.query<
+      GetSlidePointSettingsApiResponse,
+      GetSlidePointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/point-settings`,
+      }),
+    }),
+    setSlidePointSettings: build.mutation<
+      SetSlidePointSettingsApiResponse,
+      SetSlidePointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/point-settings`,
+        method: "PUT",
+        body: queryArg.setPointSettingsRequest,
+      }),
+    }),
+    clearSlidePointSettings: build.mutation<
+      ClearSlidePointSettingsApiResponse,
+      ClearSlidePointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/point-settings`,
+        method: "DELETE",
+      }),
+    }),
+    setSlideCoverImage: build.mutation<
+      SetSlideCoverImageApiResponse,
+      SetSlideCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/cover-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearSlideCoverImage: build.mutation<
+      ClearSlideCoverImageApiResponse,
+      ClearSlideCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/cover-image`,
+        method: "DELETE",
+      }),
+    }),
+    setSlideBackgroundImage: build.mutation<
+      SetSlideBackgroundImageApiResponse,
+      SetSlideBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearSlideBackgroundImage: build.mutation<
+      ClearSlideBackgroundImageApiResponse,
+      ClearSlideBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-image`,
+        method: "DELETE",
+      }),
+    }),
+    getSlideAnswerSettings: build.query<
+      GetSlideAnswerSettingsApiResponse,
+      GetSlideAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/answer-settings`,
+      }),
+    }),
+    setSlideAnswerSettings: build.mutation<
+      SetSlideAnswerSettingsApiResponse,
+      SetSlideAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/answer-settings`,
+        method: "PUT",
+        body: queryArg.setAnswerSettingsRequest,
+      }),
+    }),
+    clearSlideAnswerSettings: build.mutation<
+      ClearSlideAnswerSettingsApiResponse,
+      ClearSlideAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/answer-settings`,
+        method: "DELETE",
+      }),
+    }),
+    shareDeck: build.mutation<ShareDeckApiResponse, ShareDeckApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/shares/${queryArg.userId}`,
+        method: "PUT",
+        body: queryArg.shareDeckRequest,
+      }),
+    }),
+    revokeShareDeck: build.mutation<
+      RevokeShareDeckApiResponse,
+      RevokeShareDeckApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/shares/${queryArg.userId}`,
+        method: "DELETE",
+      }),
+    }),
+    setDeckPointSettings: build.mutation<
+      SetDeckPointSettingsApiResponse,
+      SetDeckPointSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/point-settings`,
+        method: "PUT",
+        body: queryArg.setPointSettingsRequest,
+      }),
+    }),
+    setDeckCoverImage: build.mutation<
+      SetDeckCoverImageApiResponse,
+      SetDeckCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/cover-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearDeckCoverImage: build.mutation<
+      ClearDeckCoverImageApiResponse,
+      ClearDeckCoverImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/cover-image`,
+        method: "DELETE",
+      }),
+    }),
+    setDeckBackgroundImage: build.mutation<
+      SetDeckBackgroundImageApiResponse,
+      SetDeckBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-image`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
+    clearDeckBackgroundImage: build.mutation<
+      ClearDeckBackgroundImageApiResponse,
+      ClearDeckBackgroundImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-image`,
+        method: "DELETE",
+      }),
+    }),
+    setDeckAudienceSettings: build.mutation<
+      SetDeckAudienceSettingsApiResponse,
+      SetDeckAudienceSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/audience-settings`,
+        method: "PUT",
+        body: queryArg.setAudienceSettingsRequest,
+      }),
+    }),
+    setDeckAnswerSettings: build.mutation<
+      SetDeckAnswerSettingsApiResponse,
+      SetDeckAnswerSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/answer-settings`,
+        method: "PUT",
+        body: queryArg.setAnswerSettingsRequest,
+      }),
+    }),
+    listDeckSlides: build.query<
+      ListDeckSlidesApiResponse,
+      ListDeckSlidesApiArg
+    >({
+      query: (queryArg) => ({ url: `/api/decks/${queryArg.id}/slides` }),
+    }),
+    addSlide: build.mutation<AddSlideApiResponse, AddSlideApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides`,
+        method: "POST",
+        body: queryArg.slideRequest,
+      }),
+    }),
+    moveSlide: build.mutation<MoveSlideApiResponse, MoveSlideApiArg>({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/move`,
+        method: "PATCH",
+        body: queryArg.moveSlideRequest,
+      }),
+    }),
+    listDecksForOrg: build.query<
+      ListDecksForOrgApiResponse,
+      ListDecksForOrgApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks`,
+        params: {
+          orgId: queryArg.orgId,
+        },
+      }),
+    }),
+    listPublicDecks: build.query<
+      ListPublicDecksApiResponse,
+      ListPublicDecksApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/public`,
+        params: {
+          pageable: queryArg.pageable,
+        },
+      }),
+    }),
+    listMyDecks: build.query<ListMyDecksApiResponse, ListMyDecksApiArg>({
+      query: () => ({ url: `/api/decks/mine` }),
+    }),
+  }),
+  overrideExisting: false,
+});
+export { injectedRtkApi as deckApi };
+export type GetDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type GetDeckApiArg = {
+  id: string;
+};
+export type CreateDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type CreateDeckApiArg = {
+  id: string;
+};
+export type DeleteDeckApiResponse = unknown;
+export type DeleteDeckApiArg = {
+  id: string;
+};
+export type UpdateDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type UpdateDeckApiArg = {
+  id: string;
+  updateDeckRequest: UpdateDeckRequest;
+};
+export type SetDeckVisibilityApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckVisibilityApiArg = {
+  id: string;
+  setVisibilityRequest: SetVisibilityRequest;
+};
+export type SetDeckTagsApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckTagsApiArg = {
+  id: string;
+  setTagsRequest: SetTagsRequest;
+};
+export type GetSlideApiResponse = /** status 200 OK */ SlideResponse;
+export type GetSlideApiArg = {
+  id: string;
+  slideId: string;
+};
+export type UpdateSlideApiResponse = /** status 200 OK */ SlideResponse;
+export type UpdateSlideApiArg = {
+  id: string;
+  slideId: string;
+  slideRequest: SlideRequest;
+};
+export type RemoveSlideApiResponse = unknown;
+export type RemoveSlideApiArg = {
+  id: string;
+  slideId: string;
+};
+export type GetSlidePointSettingsApiResponse =
+  /** status 200 OK */ PointSettingsResponse;
+export type GetSlidePointSettingsApiArg = {
+  id: string;
+  slideId: string;
+};
+export type SetSlidePointSettingsApiResponse =
+  /** status 200 OK */ PointSettingsResponse;
+export type SetSlidePointSettingsApiArg = {
+  id: string;
+  slideId: string;
+  setPointSettingsRequest: SetPointSettingsRequest;
+};
+export type ClearSlidePointSettingsApiResponse =
+  /** status 200 OK */ PointSettingsResponse;
+export type ClearSlidePointSettingsApiArg = {
+  id: string;
+  slideId: string;
+};
+export type SetSlideCoverImageApiResponse = /** status 200 OK */ SlideResponse;
+export type SetSlideCoverImageApiArg = {
+  id: string;
+  slideId: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearSlideCoverImageApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type ClearSlideCoverImageApiArg = {
+  id: string;
+  slideId: string;
+};
+export type SetSlideBackgroundImageApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type SetSlideBackgroundImageApiArg = {
+  id: string;
+  slideId: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearSlideBackgroundImageApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type ClearSlideBackgroundImageApiArg = {
+  id: string;
+  slideId: string;
+};
+export type GetSlideAnswerSettingsApiResponse =
+  /** status 200 OK */ AnswerSettingsResponse;
+export type GetSlideAnswerSettingsApiArg = {
+  id: string;
+  slideId: string;
+};
+export type SetSlideAnswerSettingsApiResponse =
+  /** status 200 OK */ AnswerSettingsResponse;
+export type SetSlideAnswerSettingsApiArg = {
+  id: string;
+  slideId: string;
+  setAnswerSettingsRequest: SetAnswerSettingsRequest;
+};
+export type ClearSlideAnswerSettingsApiResponse =
+  /** status 200 OK */ AnswerSettingsResponse;
+export type ClearSlideAnswerSettingsApiArg = {
+  id: string;
+  slideId: string;
+};
+export type ShareDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type ShareDeckApiArg = {
+  id: string;
+  userId: string;
+  shareDeckRequest: ShareDeckRequest;
+};
+export type RevokeShareDeckApiResponse = /** status 200 OK */ DeckResponse;
+export type RevokeShareDeckApiArg = {
+  id: string;
+  userId: string;
+};
+export type SetDeckPointSettingsApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckPointSettingsApiArg = {
+  id: string;
+  setPointSettingsRequest: SetPointSettingsRequest;
+};
+export type SetDeckCoverImageApiResponse = /** status 200 OK */ DeckResponse;
+export type SetDeckCoverImageApiArg = {
+  id: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearDeckCoverImageApiResponse = /** status 200 OK */ DeckResponse;
+export type ClearDeckCoverImageApiArg = {
+  id: string;
+};
+export type SetDeckBackgroundImageApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckBackgroundImageApiArg = {
+  id: string;
+  setImageRequest: SetImageRequest;
+};
+export type ClearDeckBackgroundImageApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type ClearDeckBackgroundImageApiArg = {
+  id: string;
+};
+export type SetDeckAudienceSettingsApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckAudienceSettingsApiArg = {
+  id: string;
+  setAudienceSettingsRequest: SetAudienceSettingsRequest;
+};
+export type SetDeckAnswerSettingsApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckAnswerSettingsApiArg = {
+  id: string;
+  setAnswerSettingsRequest: SetAnswerSettingsRequest;
+};
+export type ListDeckSlidesApiResponse = /** status 200 OK */ SlideResponse[];
+export type ListDeckSlidesApiArg = {
+  id: string;
+};
+export type AddSlideApiResponse = /** status 201 Created */ SlideResponse;
+export type AddSlideApiArg = {
+  id: string;
+  slideRequest: SlideRequest;
+};
+export type MoveSlideApiResponse = /** status 200 OK */ SlideResponse[];
+export type MoveSlideApiArg = {
+  id: string;
+  slideId: string;
+  moveSlideRequest: MoveSlideRequest;
+};
+export type ListDecksForOrgApiResponse = /** status 200 OK */ DeckResponse[];
+export type ListDecksForOrgApiArg = {
+  orgId: string;
+};
+export type ListPublicDecksApiResponse =
+  /** status 200 OK */ PagedModelDeckResponse;
+export type ListPublicDecksApiArg = {
+  pageable: Pageable;
+};
+export type ListMyDecksApiResponse = /** status 200 OK */ DeckResponse[];
+export type ListMyDecksApiArg = void;
+export type AppImage = {
+  id?: string;
+  external: boolean;
+  srcKey?: string;
+  externalSrc?: string;
+  altText?: string;
+  variants?: {
+    [key: string]: string;
+  };
+  metadata?: {
+    [key: string]: any;
+  };
+};
+export type StreakMilestone = {
+  countRequired?: number;
+  bonusPoints?: number;
+};
+export type PointSettings = {
+  points?: number;
+  deceptionPoints?: number;
+  bestAnswerPoints?: number;
+  fastestCorrectAnswerPoints?: number;
+  streakBonuses?: {
+    [key: string]: StreakMilestone;
+  };
+  resetStreakOnStreakEnd?: boolean;
+};
+export type AnswerSettings = {
+  displayResultsLive?: boolean;
+  allowMultipleAnswers?: boolean;
+  shuffleOptions?: boolean;
+  anonymizeAnswers?: boolean;
+  countdownTime?: number;
+  allowAnonymous?: boolean;
+  maxSelections?: number;
+};
+export type AudienceSettings = {
+  maxParticipants?: number;
+  reactionsEnabled?: boolean;
+  chatEnabled?: boolean;
+  allowLateJoin?: boolean;
+  allowReJoin?: boolean;
+  anonymousMode?: boolean;
+  allowGuests?: boolean;
+};
+export type DeckSettings = {
+  pointSettings?: PointSettings;
+  answerSettings?: AnswerSettings;
+  audienceSettings?: AudienceSettings;
+};
+export type Ownership = {
+  type?: "USER" | "ORGANIZATION";
+  ownerId?: string;
+};
+export type DeckAccessGrant = {
+  userId?: string;
+  role?: "VIEWER" | "EDITOR";
+};
+export type DeckStats = {
+  playCount: number;
+  completedPlayCount: number;
+  completionRate: number;
+  uniquePlayerCount: number;
+  viewCount: number;
+  forkCount: number;
+  averageScorePercent: number;
+  ratingAverage?: number;
+  ratingCount: number;
+  lastPlayedAt?: string;
+  computedAt?: string;
+};
+export type ViewerPermissions = {
+  canView: boolean;
+  canEdit: boolean;
+  canManage: boolean;
+};
+export type DeckResponse = {
+  id: string;
+  publicId: string;
+  name: string;
+  description?: string;
+  coverImage?: AppImage;
+  backgroundImage?: AppImage;
+  themeId?: string;
+  version: number;
+  publishStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  visibility: "PRIVATE" | "UNLISTED" | "ORG" | "PUBLIC";
+  publishedAt?: string;
+  language: string;
+  creatorUserId: string;
+  originalAuthorUserId: string;
+  settings?: DeckSettings;
+  tags: string[];
+  organizationId?: string;
+  ownership: Ownership;
+  acl: DeckAccessGrant[];
+  parentDeckId?: string;
+  stats?: DeckStats;
+  createdAt: string;
+  updatedAt: string;
+  permissions: ViewerPermissions;
+};
+export type UpdateDeckRequest = {
+  name?: string;
+  description?: string;
+  themeId?: string;
+  language?: string;
+  publishStatus?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+};
+export type SetVisibilityRequest = {
+  visibility: "PRIVATE" | "UNLISTED" | "ORG" | "PUBLIC";
+};
+export type SetTagsRequest = {
+  tags: string[];
+};
+export type McqOption = {
+  id: string;
+  optionType: "TEXT" | "NUMBER" | "IMAGE";
+  text?: string;
+  image?: AppImage;
+  color?: string;
+};
+export type McqContent = {
+  options: McqOption[];
+  correctOptionIds: string[];
+  contentType: "MCQ";
+};
+export type NumberContent = {
+  answer: number;
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  tolerance: number;
+  unit: string;
+  min: number;
+  max: number;
+  contentType: "NUMBER";
+};
+export type TextContent = {
+  acceptedAnswers: string[];
+  matchMode: "EXACT" | "CONTAINS" | "WORDCLOUD";
+  caseSensitive: boolean;
+  trimWhitespace: boolean;
+  maxLength?: number;
+  contentType: "TEXT";
+};
+export type RankItem = {
+  id?: string;
+  label?: string;
+  image?: AppImage;
+};
+export type RankingContent = {
+  items: RankItem[];
+  correctOrder: string[];
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  contentType: "RANKING";
+};
+export type ScaleItem = {
+  id?: string;
+  label?: string;
+};
+export type ScalesContent = {
+  min: number;
+  max: number;
+  step: number;
+  leftLabel: string;
+  rightLabel: string;
+  items: ScaleItem[];
+  correctValues: {
+    [key: string]: number;
+  };
+  tolerance: number;
+  contentType: "SCALES";
+};
+export type GridItem = {
+  id?: string;
+  label?: string;
+  image?: AppImage;
+};
+export type GridContent = {
+  rowLabels: string[];
+  colLabels: string[];
+  items: GridItem[];
+  correctCells: {
+    [key: string]: string;
+  };
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  contentType: "GRID";
+};
+export type Target = {
+  id?: string;
+  x?: number;
+  y?: number;
+  radius?: number;
+};
+export type PlaceOnImageContent = {
+  image: AppImage;
+  correctTargets: Target[];
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  contentType: "PLACE_ON_IMAGE";
+};
+export type MatchItem = {
+  id?: string;
+  label?: string;
+  image?: AppImage;
+};
+export type MatchingContent = {
+  left: MatchItem[];
+  right: MatchItem[];
+  correctPairs: {
+    [key: string]: string;
+  };
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  contentType: "MATCHING";
+};
+export type AllocationContent = {
+  options: McqOption[];
+  correctAllocations?: {
+    [key: string]: number;
+  };
+  totalPointsToAllocate: number;
+  tolerancePerOption: number;
+  contentType: "ALLOCATION";
+};
+export type DrawingContent = {
+  imagePrompt?: AppImage;
+  correctImage?: AppImage;
+  canvasWidth: number;
+  canvasHeight: number;
+  tools: ("PEN" | "ERASER" | "SHAPES" | "TEXT" | "COLOR_PALETTE")[];
+  contentType: "DRAWING";
+};
+export type SubmissionOption = {
+  submissionId?: string;
+};
+export type FollowUpContent = {
+  parentSlideId: string;
+  submissionOption: SubmissionOption;
+  contentType: "FOLLOW_UP";
+};
+export type TitleContent = {
+  contentType: "TITLE";
+};
+export type MediaContent = {
+  mediaType?: "IMAGE" | "VIDEO" | "EMBED";
+  image?: AppImage;
+  url?: string;
+  caption?: string;
+  autoplay: boolean;
+  loop: boolean;
+  muted: boolean;
+  contentType: "MEDIA";
+};
+export type QAndAContent = {
+  maxResponses?: number;
+  moderated: boolean;
+  contentType: "Q_AND_A";
+};
+export type SlideContent =
+  | ({
+      contentType: "MCQ";
+    } & McqContent)
+  | ({
+      contentType: "NUMBER";
+    } & NumberContent)
+  | ({
+      contentType: "TEXT";
+    } & TextContent)
+  | ({
+      contentType: "RANKING";
+    } & RankingContent)
+  | ({
+      contentType: "SCALES";
+    } & ScalesContent)
+  | ({
+      contentType: "GRID";
+    } & GridContent)
+  | ({
+      contentType: "PLACE_ON_IMAGE";
+    } & PlaceOnImageContent)
+  | ({
+      contentType: "MATCHING";
+    } & MatchingContent)
+  | ({
+      contentType: "ALLOCATION";
+    } & AllocationContent)
+  | ({
+      contentType: "DRAWING";
+    } & DrawingContent)
+  | ({
+      contentType: "FOLLOW_UP";
+    } & FollowUpContent)
+  | ({
+      contentType: "TITLE";
+    } & TitleContent)
+  | ({
+      contentType: "MEDIA";
+    } & MediaContent)
+  | ({
+      contentType: "Q_AND_A";
+    } & QAndAContent);
+export type SlideSettings = {
+  pointSettings?: PointSettings;
+  answerSettings?: AnswerSettings;
+};
+export type SlideResponse = {
+  id: string;
+  title: string;
+  section?: string;
+  backgroundImage?: AppImage;
+  coverImage?: AppImage;
+  createdByUserId: string;
+  lastEditedByUserId: string;
+  parentId?: string;
+  childId?: string;
+  version?: number;
+  sortOrder?: string;
+  content: SlideContent;
+  difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  speakerNotes?: string;
+  settings?: SlideSettings;
+};
+export type SlideRequest = {
+  id: string;
+  title: string;
+  section?: string;
+  parentId?: string;
+  childId?: string;
+  sortOrder?: string;
+  content: SlideContent;
+  difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
+  explanation?: string;
+  speakerNotes?: string;
+};
+export type PointSettingsResponse = {
+  slideId: string;
+  pointSettings?: PointSettings;
+};
+export type SetPointSettingsRequest = {
+  pointSettings: PointSettings;
+};
+export type SetImageRequest = {
+  image: AppImage;
+};
+export type AnswerSettingsResponse = {
+  slideId: string;
+  answerSettings?: AnswerSettings;
+};
+export type SetAnswerSettingsRequest = {
+  answerSettings: AnswerSettings;
+};
+export type ShareDeckRequest = {
+  role: "VIEWER" | "EDITOR";
+};
+export type SetAudienceSettingsRequest = {
+  audienceSettings: AudienceSettings;
+};
+export type MoveSlideRequest = {
+  to: number;
+};
+export type PageMetadata = {
+  size?: number;
+  number?: number;
+  totalElements?: number;
+  totalPages?: number;
+};
+export type PagedModelDeckResponse = {
+  content?: DeckResponse[];
+  page?: PageMetadata;
+};
+export type Pageable = {
+  page?: number;
+  size?: number;
+  sort?: string[];
+};
+export const {
+  useGetDeckQuery,
+  useLazyGetDeckQuery,
+  useCreateDeckMutation,
+  useDeleteDeckMutation,
+  useUpdateDeckMutation,
+  useSetDeckVisibilityMutation,
+  useSetDeckTagsMutation,
+  useGetSlideQuery,
+  useLazyGetSlideQuery,
+  useUpdateSlideMutation,
+  useRemoveSlideMutation,
+  useGetSlidePointSettingsQuery,
+  useLazyGetSlidePointSettingsQuery,
+  useSetSlidePointSettingsMutation,
+  useClearSlidePointSettingsMutation,
+  useSetSlideCoverImageMutation,
+  useClearSlideCoverImageMutation,
+  useSetSlideBackgroundImageMutation,
+  useClearSlideBackgroundImageMutation,
+  useGetSlideAnswerSettingsQuery,
+  useLazyGetSlideAnswerSettingsQuery,
+  useSetSlideAnswerSettingsMutation,
+  useClearSlideAnswerSettingsMutation,
+  useShareDeckMutation,
+  useRevokeShareDeckMutation,
+  useSetDeckPointSettingsMutation,
+  useSetDeckCoverImageMutation,
+  useClearDeckCoverImageMutation,
+  useSetDeckBackgroundImageMutation,
+  useClearDeckBackgroundImageMutation,
+  useSetDeckAudienceSettingsMutation,
+  useSetDeckAnswerSettingsMutation,
+  useListDeckSlidesQuery,
+  useLazyListDeckSlidesQuery,
+  useAddSlideMutation,
+  useMoveSlideMutation,
+  useListDecksForOrgQuery,
+  useLazyListDecksForOrgQuery,
+  useListPublicDecksQuery,
+  useLazyListPublicDecksQuery,
+  useListMyDecksQuery,
+  useLazyListMyDecksQuery,
+} = injectedRtkApi;

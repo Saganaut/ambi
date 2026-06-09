@@ -8,9 +8,9 @@
 // Note `/api/auth/me` never returns 401 — it always 200s with a visitor
 // payload for an anonymous caller — so `error` here means a genuine network /
 // server failure, NOT "not signed in".
-import { useMeQuery } from "@store/AmbiApi";
-import type { GuestMe, PreRegistrationMe, RegisteredMe } from "@store/AmbiApi";
-import type { UserLevel, MembershipTier } from "@store/enums";
+import { useMeQuery } from "@auth/store/authApi.gen";
+import type { GuestMe, PreRegistrationMe, RegisteredMe } from "@auth/store/authApi.gen";
+import type { UserLevel, MembershipTier } from "@auth/store/authEnums.gen";
 export type { UserLevel, MembershipTier };
 
 export type CurrentUserState =

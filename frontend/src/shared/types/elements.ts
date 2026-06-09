@@ -6,30 +6,8 @@
 // the literal types here must match those exact strings.
 
 //TODO: this needs to be completely re-worked when we finished updates on the backend, this should be unecessary
-import type {
-  AllocationQuestion,
-  DrawingAnswer,
-  DrawingQuestion,
-  GridQuestion,
-  MatchingPair,
-  MatchingQuestion,
-  McqAnswer,
-  McqOption,
-  McqQuestion,
-  NumberQuestion,
-  PlaceOnImageQuestion,
-  QAndAQuestion,
-  RankingAnswer,
-  RankingItem,
-  RankingQuestion,
-  ScalesAnswer,
-  ScalesQuestion,
-  Slide,
-  Stroke,
-  TextQuestion,
-  WordCloudAnswer,
-  WordCloudQuestion,
-} from "@store/AmbiApi";
+import type { McqOption } from "@deck/store/deckApi.gen";
+import type { AllocationQuestion, DrawingAnswer, DrawingQuestion, GridQuestion, MatchingPair, MatchingQuestion, McqAnswer, McqQuestion, NumberQuestion, PlaceOnImageQuestion, QAndAQuestion, RankingAnswer, RankingItem, RankingQuestion, ScalesAnswer, ScalesQuestion, Slide, Stroke, TextQuestion, WordCloudAnswer, WordCloudQuestion } from "@store/AmbiApi";
 
 // Codegen names them `<Class>Base` for the abstract parent so reproduce the answer leaves.
 export interface TextAnswer {

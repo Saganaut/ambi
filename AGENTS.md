@@ -55,20 +55,27 @@ cd frontend && npm install && npm run dev
 # http://localhost:5173
 ```
 
-**Regenerate the generated frontend artifacts** after backend changes (backend must be running). Both are committed and **must not be hand-edited**:
+**Regenerate the generated frontend artifacts** after backend changes (backend must be running). All are committed and **must not be hand-edited**:
 
 ```bash
 cd frontend
-npm run generate          # API client + validation constants (runs both below)
+npm run generate          # API client + validation constants + enums (runs all three below)
 
 # …or individually:
-npm run generate-api         # → src/shared/store/AmbiApi.ts (RTK Query)
+npm run generate-api         # → per-feature RTK Query clients (src/features/<feature>/store/<api>Api.ts)
 npm run generate-validation  # → src/shared/store/validationConstants.ts (validation bounds)
+npm run generate-enums       # → per-feature enums (src/features/<feature>/store/<feature>Enums.gen.ts)
 ```
 
 `validationConstants.ts` is the frontend half of the validation single source of
 truth: bounds are authored once in the backend (`ValidationConstants`), surfaced
 into OpenAPI via Jakarta annotations, and lifted into TS by the generator.
+
+The `*Enums.gen.ts` files work the same way for enums: the backend emits each enum
+inline into OpenAPI, and `scripts/generate-enums.mjs` lifts the values into typed
+TS. Since inline enums carry no name, that script holds a small registry mapping
+each enum to its canonical name + feature folder — add a line there to generate a
+new enum.
 
 **Seed sample data** (LOTR dataset; idempotent per collection per user, never destructive — stop any running backend first):
 

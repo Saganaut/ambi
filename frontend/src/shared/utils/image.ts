@@ -22,7 +22,7 @@
  * actual <img src=…> value at a specific tier, falling back to a seeded
  * Lorem Picsum placeholder.
  */
-import type { AppImage } from "@store/AmbiApi";
+import type { AppImage } from "@features/gallery/store/galleryApi.gen";
 
 export type ImageSize = "XS" | "SM" | "MD" | "LG" | "XL";
 

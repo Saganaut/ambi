@@ -1,5 +1,7 @@
 package com.cephadex.ambi.media.gallery;
 
+import java.io.IOException;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
@@ -17,8 +19,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.ValidationException;
@@ -148,7 +148,7 @@ public class GalleryController {
      * then persisted as a gallery item. {@code name} defaults to the original
      * filename when omitted.
      */
-    @PostMapping(path = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/{id}/images/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public GalleryImageResponse uploadImage(
             @PathVariable String id,

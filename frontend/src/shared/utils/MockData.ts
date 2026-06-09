@@ -14,42 +14,10 @@
  *    `mockFellowshipSession.deckId === mockFellowshipTriviaDeck.id`, etc. This
  *    lets components that read across entities work without further wiring.
  */
-import type {
-  AllocationQuestion,
-  DeckCollectionResponse,
-  DeckCommentResponse,
-  DeckResponse,
-  DrawingQuestion,
-  ElementChrome,
-  GalleryImageResponse,
-  GridQuestion,
-  GuestUser,
-  Image,
-  InteractiveSessionChatMessageResponse,
-  InteractiveSessionPlayerResponse,
-  InteractiveSessionResponse,
-  InteractiveSessionSettings,
-  MatchingQuestion,
-  McqOption,
-  McqQuestion,
-  MediaAssetResponse,
-  NotificationResponse,
-  NumberQuestion,
-  OrganizationResponse,
-  PlaceOnImageQuestion,
-  PlayerStats,
-  QAndAQuestion,
-  RankingQuestion,
-  RegisteredUser,
-  ScalesQuestion,
-  ScheduledInteractiveSessionResponse,
-  Slide,
-  TagResponse,
-  Team,
-  TextQuestion,
-  ThemeResponse,
-  WordCloudQuestion,
-} from "@store/AmbiApi";
+import type { DeckResponse, McqOption } from "@deck/store/deckApi.gen";
+import type { GalleryImageResponse } from "@features/gallery/store/galleryApi.gen";
+import type { ThemeResponse } from "@features/theme/store/themeApi.gen";
+import type { AllocationQuestion, DeckCollectionResponse, DeckCommentResponse, DrawingQuestion, ElementChrome, GridQuestion, GuestUser, Image, InteractiveSessionChatMessageResponse, InteractiveSessionPlayerResponse, InteractiveSessionResponse, InteractiveSessionSettings, MatchingQuestion, McqQuestion, MediaAssetResponse, NotificationResponse, NumberQuestion, OrganizationResponse, PlaceOnImageQuestion, PlayerStats, QAndAQuestion, RankingQuestion, RegisteredUser, ScalesQuestion, ScheduledInteractiveSessionResponse, Slide, TagResponse, Team, TextQuestion, WordCloudQuestion } from "@store/AmbiApi";
 
 // ─── shared primitives ──────────────────────────────────────────────────────
 

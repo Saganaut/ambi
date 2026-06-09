@@ -16,11 +16,9 @@
 // localStorage also holds the boot-time optimistic cache for everyone so the
 // first paint doesn't flash a default theme before the server look resolves.
 import { useEffect, useState } from "react";
-import {
-  useGetMeQuery,
-  useUpdatePreferencesMutation,
-  type ThemeSpec,
-} from "@store/AmbiApi";
+import { useGetMeQuery } from "@auth/store/userApi.gen";
+import { useUpdatePreferencesMutation } from "@account/store/accountApi.gen";
+import { type ThemeSpec } from "@features/theme/store/themeApi.gen";
 import { apiToUiMode, uiToApiMode } from "../utils/themeMode";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 

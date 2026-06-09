@@ -16,13 +16,7 @@ import { Btn } from "@ui/Buttons/Btn";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { FileUpload } from "@components/Forms/Input/FileUpload/FileUpload";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
-import {
-  useAddImageMutation,
-  useGetMyGalleryQuery,
-  useListImagesQuery,
-  type AppImage,
-  type GalleryImageResponse,
-} from "@store/AmbiApi";
+import { useAddImageMutation, useGetMyGalleryQuery, useListImagesQuery, type AppImage, type GalleryImageResponse } from "@features/gallery/store/galleryApi.gen";
 import { useUploadGalleryImageMutation } from "@store/endpoints/galleryUpload";
 import { externalImage, resolveImageUrl } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";

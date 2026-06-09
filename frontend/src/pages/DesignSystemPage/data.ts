@@ -1,7 +1,4 @@
-import type {
-  PlayerPlacementResponse,
-  PublicUserSnapshot,
-} from "@store/AmbiApi";
+import type { PlayerPlacementResponse, PublicUserSnapshot } from "@store/AmbiApi";
 
 const placement = (
   playerId: string,

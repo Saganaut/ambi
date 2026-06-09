@@ -22,8 +22,8 @@
  * this behavior on top via `enhanceEndpoints` instead of editing the
  * generated file.
  */
-import "./enhancements/deck";
-import "./enhancements/slide";
-import "./enhancements/comment";
-import "./enhancements/theme";
-import "./enhancements/gallery";
+import "@deck/store/enhancements/deck";
+import "@deck/store/enhancements/slide";
+import "@deck/store/enhancements/comment";
+import "@features/theme/store/enhancements/theme";
+import "@features/gallery/store/enhancements/gallery";

@@ -14,7 +14,7 @@ import { Btn } from "@ui/Buttons/Btn";
 import { Badge } from "@ui/Badge/Badge";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { useThemes } from "@hooks/useThemes";
-import type { ThemeResponse } from "@store/AmbiApi";
+import type { ThemeResponse } from "@features/theme/store/themeApi.gen";
 import { ThemeEditor, type ThemeEditorSubmit } from "./ThemeEditor";
 import styles from "./ThemeModal.module.css";
 

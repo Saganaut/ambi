@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { validateText, inputAttrs } from "./fieldValidation";
-import { validation } from "@store/validationConstants";
+import { authValidation } from "@/features/auth/store/authValidationConstants";
+import { deckValidation } from "@/features/deck/store/deckValidationConstants";
 
 // Exercise the helper against REAL generated facets so the test also guards that
 // the bridge keeps carrying the bounds the forms rely on.
-const username = validation.RegisterRequest.username;
-const deckName = validation.UpdateDeckRequest.name;
+const username = authValidation.RegisterRequest.username;
+const deckName = deckValidation.UpdateDeckRequest.name;
 
 describe("validateText", () => {
   it("rejects values under minLength", () => {
@@ -42,6 +43,6 @@ describe("inputAttrs", () => {
   });
 
   it("omits maxLength when absent", () => {
-    expect(inputAttrs(validation.MoveSlideRequest.to)).toEqual({});
+    expect(inputAttrs(deckValidation.MoveSlideRequest.to)).toEqual({});
   });
 });

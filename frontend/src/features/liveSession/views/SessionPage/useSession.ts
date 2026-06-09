@@ -15,8 +15,10 @@ import type {
   AnswerPayload,
   DeckElement,
 } from "@types/elements";
-import type { DeckResponse, InteractiveSessionResponse } from "@store/AmbiApi";
-import { useGetDeckQuery, useGetInteractiveSessionQuery } from "@store/AmbiApi";
+import type { DeckResponse } from "@deck/store/deckApi.gen";
+import type { InteractiveSessionResponse } from "@store/AmbiApi";
+import { useGetDeckQuery } from "@deck/store/deckApi.gen";
+import { useGetInteractiveSessionQuery } from "@store/AmbiApi";
 import { getRouteApi } from "@tanstack/react-router";
 
 const routeApi = getRouteApi("/sessions/$sessionId/");

@@ -2,9 +2,9 @@
  * Hand-injected multipart upload mutation for gallery images.
  *
  * The backend exposes two handlers on `POST /api/galleries/{id}/images`,
- * disambiguated by `Content-Type`: a JSON one (add by reference — the generated
+ * disgalleryApiguated by `Content-Type`: a JSON one (add by reference — the generated
  * `useAddImageMutation`) and a `multipart/form-data` one that ingests raw bytes.
- * OpenAPI keys operations by path+method, so the generated `AmbiApi.ts` can only
+ * OpenAPI keys operations by path+method, so the generated `galleryApiApi.ts` can only
  * represent one of them (the JSON variant). This file injects the multipart
  * sibling by hand so the generated client never needs editing.
  *
@@ -14,8 +14,11 @@
  *
  * Imported for its side effect from `../store` (alongside `apiEnhancements`).
  */
-import { Ambi, type GalleryImageResponse } from "../AmbiApi";
-import { appendImageToGalleryLists } from "../enhancements/gallery";
+import {
+  galleryApi,
+  type GalleryImageResponse,
+} from "@features/gallery/store/galleryApi.gen";
+import { appendImageToGalleryLists } from "../../../features/gallery/store/enhancements/gallery";
 import type { WithApiQueries } from "../enhancements/types";
 
 export interface UploadGalleryImageArg {
@@ -27,7 +30,7 @@ export interface UploadGalleryImageArg {
   name?: string;
 }
 
-const galleryUploadApi = Ambi.injectEndpoints({
+const galleryUploadApi = galleryApi.injectEndpoints({
   endpoints: (build) => ({
     uploadGalleryImage: build.mutation<
       GalleryImageResponse,
@@ -41,7 +44,10 @@ const galleryUploadApi = Ambi.injectEndpoints({
         if (name && name.trim()) body.append("name", name.trim());
         return { url: `/api/galleries/${id}/images`, method: "POST", body };
       },
-      onQueryStarted: async ({ id }, { dispatch, getState, queryFulfilled }) => {
+      onQueryStarted: async (
+        { id },
+        { dispatch, getState, queryFulfilled },
+      ) => {
         try {
           const { data } = await queryFulfilled;
           appendImageToGalleryLists(

@@ -7,7 +7,7 @@
 // Routing every read/write through these two helpers keeps the uppercase enum
 // from leaking into the UI layer (and vice-versa), so there is exactly one
 // place to look when the wire format and the DOM convention disagree.
-import type { ThemeSpec } from "@store/AmbiApi";
+import type { ThemeSpec } from "@features/theme/store/themeApi.gen";
 
 export type ApiThemeMode = NonNullable<ThemeSpec["mode"]>;
 export type UiThemeMode = "light" | "dark" | "system";

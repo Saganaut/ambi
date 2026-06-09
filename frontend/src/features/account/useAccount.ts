@@ -13,13 +13,8 @@
 // whole UserPreferences object — we merge the change onto the server's current
 // preferences before sending.
 import { useEffect, useRef, useState } from "react";
-import {
-  useGetMeQuery,
-  useUpdateMeMutation,
-  useUpdatePreferencesMutation,
-  type UserProfileResponse,
-  type UpdatePreferencesRequest,
-} from "@store/AmbiApi";
+import { useGetMeQuery, useUpdateMeMutation } from "@auth/store/userApi.gen";
+import { useUpdatePreferencesMutation, type UserProfileResponse, type UpdatePreferencesRequest } from "@account/store/accountApi.gen";
 import { builtinAvatarUrl } from "@/shared/utils/avatarUrl";
 import { extractErrorMessage } from "@/shared/utils/utils";
 

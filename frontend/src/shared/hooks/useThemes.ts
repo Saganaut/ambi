@@ -8,15 +8,7 @@
 // `listMyThemes` is auth-gated, so it is skipped for anyone not registered
 // (mirrors `useTheme`): a 401 there would trip the login-prompt funnel, and a
 // guest has no personal themes to show anyway.
-import {
-  useCreateThemeMutation,
-  useDeleteThemeMutation,
-  useListBuiltInThemesQuery,
-  useListMyThemesQuery,
-  useUpdateThemeMutation,
-  type ThemeResponse,
-  type ThemeSpec,
-} from "@store/AmbiApi";
+import { useCreateThemeMutation, useDeleteThemeMutation, useListBuiltInThemesQuery, useListMyThemesQuery, useUpdateThemeMutation, type ThemeResponse, type ThemeSpec } from "@features/theme/store/themeApi.gen";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 export interface CreateThemeInput {

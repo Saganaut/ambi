@@ -14,12 +14,7 @@ import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { GalleryPicker } from "@components/Media/GalleryPicker/GalleryPicker";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
 import { useModal } from "@hooks/useModal";
-import {
-  type GalleryImageResponse,
-  useGetMyGalleryQuery,
-  useListImagesQuery,
-  useRemoveImageMutation,
-} from "@store/AmbiApi";
+import { type GalleryImageResponse, useGetMyGalleryQuery, useListImagesQuery, useRemoveImageMutation } from "@features/gallery/store/galleryApi.gen";
 import { resolveImageUrl } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
 import accountStyles from "./AccountPage.module.css";

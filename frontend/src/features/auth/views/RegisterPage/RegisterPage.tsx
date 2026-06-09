@@ -1,5 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { useMeQuery } from "@store/AmbiApi";
+import { useMeQuery } from "@auth/store/authApi.gen";
 import { RegistrationForm } from "@auth/components/RegistrationForm/RegistrationForm";
 
 const routeApi = getRouteApi("/register");

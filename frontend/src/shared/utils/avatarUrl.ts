@@ -24,7 +24,7 @@ import {
   AvatarOption,
   AVATAR_OPTIONS,
 } from "@/shared/components/Forms/Input/AvatarSelector/AvatarSelector";
-import { Avatar } from "@store/AmbiApi";
+import { Avatar } from "@auth/store/userApi.gen";
 
 const BUILTIN_PREFIX = "builtin:";
 

@@ -9,11 +9,9 @@
 import { Btn } from "@ui/Buttons/Btn";
 import { useModal } from "@hooks/useModal";
 import { ThemeModal } from "@components/Theme/ThemeModal/ThemeModal";
-import {
-  useGetMeQuery,
-  useUpdatePreferencesMutation,
-  type ThemeResponse,
-} from "@store/AmbiApi";
+import { useGetMeQuery } from "@auth/store/userApi.gen";
+import { useUpdatePreferencesMutation } from "@account/store/accountApi.gen";
+import { type ThemeResponse } from "@features/theme/store/themeApi.gen";
 import styles from "./AccountPage.module.css";
 
 const AccountThemeSection = () => {

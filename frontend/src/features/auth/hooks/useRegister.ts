@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Dispatch, SetStateAction, SubmitEvent } from "react";
-import {
-  useLazyUsernameAvailableQuery,
-  useRegisterMutation,
-} from "@store/AmbiApi";
+import { useLazyUsernameAvailableQuery, useRegisterMutation } from "@auth/store/authApi.gen";
 import { validation } from "@store/validationConstants";
 import { validateText } from "@utils/fieldValidation";
 import { extractErrorMessage } from "@utils/utils";

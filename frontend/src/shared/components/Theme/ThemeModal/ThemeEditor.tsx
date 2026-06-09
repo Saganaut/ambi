@@ -15,7 +15,9 @@ import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { ColorPicker } from "@components/Forms/Input/ColorPicker/ColorPicker";
 import { GalleryPicker } from "@components/Media/GalleryPicker/GalleryPicker";
 import { isImageEmpty, resolveImageUrl } from "@utils/image";
-import { useListMyOrgsQuery, type AppImage, type ThemeResponse, type ThemeSpec } from "@store/AmbiApi";
+import { useListMyOrgsQuery } from "@features/org/store/orgApi.gen";
+import { type AppImage } from "@features/gallery/store/galleryApi.gen";
+import { type ThemeResponse, type ThemeSpec } from "@features/theme/store/themeApi.gen";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 import styles from "./ThemeModal.module.css";
 
