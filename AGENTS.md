@@ -160,7 +160,7 @@ Stacks, CI workflow, and local pre-commit / pre-push hooks: see [Testing & CI](z
 
 | File                                       | Purpose                                                   |
 | ------------------------------------------ | --------------------------------------------------------- |
-| `frontend/src/shared/store/AmbiApi.ts`     | Auto-generated RTK Query API — **do not edit**            |
+| `frontend/src/features/<feature>/store/<api>Api.gen.ts` | Auto-generated per-feature RTK Query clients (inject into `shared/store/emptyApi.ts`) — **do not edit** |
 | `frontend/src/features/<feature>/store/<feature>ValidationConstants.ts` | Auto-generated per-feature validation bounds (+ `shared/store/sharedValidationConstants.ts`) — **do not edit** |
 | `backend/.../common/validation/ValidationConstants.java` | Source of truth for validation bounds (drives the above) |
 | `frontend/src/routes/__root.tsx`           | Root layout (TanStack Router + shared AuthBar)            |
@@ -177,7 +177,7 @@ Feature-specific file maps live in each feature doc — e.g. [deck editor key fi
 
 ## Gotchas
 
-- `AmbiApi.ts` is regenerated from `http://localhost:8080/v3/api-docs` — the backend must be running when you run codegen.
+- The per-feature `*Api.gen.ts` clients are regenerated from `http://localhost:8080/v3/api-docs` — the backend must be running when you run codegen.
 - `spring.docker.compose.enabled=false` — Spring does **not** auto-start Docker; run `docker compose up -d` yourself.
 - **Seeding is manual.** A normal `./mvnw spring-boot:run` boot does nothing. `scripts/seed-sample-data.sh` runs the app with `--seed.run=true`, which is the only thing that activates `SampleDataSeeder`. The seeder is idempotent per collection per user and never deletes anything.
 - `dev.env` is only read by `scripts/ambi.sh` (which sources it); a bare `./mvnw spring-boot:run` ignores it and falls back to the `${VAR:default}` values baked into `application.properties`. Tests use `application-test.properties` and never read `dev.env` at all.

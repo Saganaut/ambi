@@ -13,5 +13,6 @@ A **signpost** only. Each category file below states its rules tersely; a rule w
 | Icons, SVGs, asset conventions                   | [icons-rules.md](icons-rules.md)         |
 | Exception handling, error responses, HTTP status | [exception-rules.md](exception-rules.md) |
 | Timestamps and dates                             | [time-rules.md](time-rules.md)           |
+| Test naming, fixtures, setup, queries            | [testing-rules.md](testing-rules.md)     |
 
 > Adding a rule domain? Drop a `<concern>-rules.md` file here and add a row above. Put deep per-rule detail in a `<concern>/` folder and link it from the category file. Cross-references use standard markdown links so the doc-lint chain stays intact.
