@@ -7,7 +7,7 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": ["dist", "*.config.*", "AmbiApi.ts"],
+  "ignorePatterns": ["dist", "*.config.*", "*.gen.ts*"],
   "overrides": [
     {
       "files": ["src/**/*.{ts,tsx}"],

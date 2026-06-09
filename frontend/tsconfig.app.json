@@ -43,5 +43,5 @@
       "@auth/*": ["./src/features/auth/*"]
     }
   },
-  "include": ["src", "*.ts", "openapi-config.cts"]
+  "include": ["src", "*.ts", "openapi-config.cts", ".storybook"]
 }

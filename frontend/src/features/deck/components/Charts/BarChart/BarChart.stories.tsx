@@ -1,3 +1,5 @@
+/* oxlint-disable react-hooks/rules-of-hooks, no-console */
+/* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/tanstack-react";
 import { BarChart } from "./BarChart";
 import { EVEN_SPLIT, MCQ_OPTION_COUNTS, ROUND_SCORES } from "./BarChart.mocks";

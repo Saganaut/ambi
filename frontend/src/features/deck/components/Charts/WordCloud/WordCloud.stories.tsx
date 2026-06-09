@@ -1,3 +1,5 @@
+/* oxlint-disable react-hooks/rules-of-hooks, no-console */
+/* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/tanstack-react";
 import { WordCloud } from "./WordCloud";
 import { FAVORITE_PLACES, SENTIMENT_WORDS } from "./WordCloud.mocks";

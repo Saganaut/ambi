@@ -1,9 +1,10 @@
 // Lightweight client-side field validation sourced from the generated
-// `validationConstants.ts` (single source of truth: backend ValidationConstants
-// → OpenAPI → validationConstants.ts). The backend re-validates everything and
-// is authoritative; these checks are UX only — faster inline feedback and a
-// native input cap kept in lockstep with the server. Bounds are never hardcoded
-// here: callers pass a facet object straight from `validation.<Schema>.<field>`.
+// per-feature `*ValidationConstants.ts` files (single source of truth: backend
+// ValidationConstants → OpenAPI → <feature>ValidationConstants.ts). The backend
+// re-validates everything and is authoritative; these checks are UX only — faster
+// inline feedback and a native input cap kept in lockstep with the server. Bounds
+// are never hardcoded here: callers pass a facet object straight from
+// `<feature>Validation.<Schema>.<field>`.
 
 export interface FieldFacets {
   minLength?: number;

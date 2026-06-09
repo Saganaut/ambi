@@ -1,3 +1,5 @@
+/* oxlint-disable react-hooks/rules-of-hooks, no-console */
+/* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/tanstack-react";
 import type { BtnSize } from "@ui/Buttons/BtnTypes";
 import { DeckActionButton } from "./DeckActionButton";

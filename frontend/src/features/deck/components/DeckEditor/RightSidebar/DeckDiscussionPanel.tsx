@@ -7,7 +7,7 @@ import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { useRegisteredUser } from "@auth/hooks/useCurrentUser";
 import { useAddThreadCommentMutation, useCreateCommentThreadMutation, useDeleteThreadCommentMutation, useListSlideCommentThreadsQuery, useSetThreadStatusMutation, useUpdateThreadCommentMutation, type CommentThreadResponse } from "@deck/store/commentApi.gen";
-import { validation } from "@store/validationConstants";
+import { deckValidation } from "@/features/deck/store/deckValidationConstants";
 import { Btn } from "@ui/Buttons/Btn";
 import { Pagination } from "@ui/Pagination/Pagination";
 import { CommentThread } from "./CommentThread/CommentThread";
@@ -175,7 +175,7 @@ const Composer = ({ disabled, onSubmit }: ComposerProps) => {
           setValue(e.target.value);
         }}
         rows={3}
-        maxLength={validation.CommentBodyRequest.body.maxLength}
+        maxLength={deckValidation.CommentBodyRequest.body.maxLength}
       />
       <div className={styles.composerActions}>
         <Btn

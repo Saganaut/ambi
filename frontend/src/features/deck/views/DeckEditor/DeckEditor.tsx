@@ -28,7 +28,7 @@ import { CanvasHeader } from "@/shared/components/Layout/CanvasHeader";
 import { InnerDisplay } from "@/shared/components/Layout/InnerDisplay";
 import { MainBodyDashboard } from "@/shared/components/Layout/MainBodyDashboard";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
-import { validation } from "@store/validationConstants";
+import { deckValidation } from "@/features/deck/store/deckValidationConstants";
 
 import { useDeckEditor } from "../../hooks/useDeckEditor";
 import { Btn } from "@ui/Buttons/Btn";
@@ -80,7 +80,7 @@ const DeckEditor = () => {
               value={titleDraft}
               placeholder='Untitled Deck'
               className={styles.titleDeck}
-              maxLength={validation.UpdateDeckRequest.name.maxLength}
+              maxLength={deckValidation.UpdateDeckRequest.name.maxLength}
               onChange={(e) => {
                 setTitleDraft(e.target.value);
               }}

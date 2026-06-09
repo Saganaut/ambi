@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Dispatch, SetStateAction, SubmitEvent } from "react";
 import { useLazyUsernameAvailableQuery, useRegisterMutation } from "@auth/store/authApi.gen";
-import { validation } from "@store/validationConstants";
+import { authValidation } from "@/features/auth/store/authValidationConstants";
 import { validateText } from "@utils/fieldValidation";
 import { extractErrorMessage } from "@utils/utils";
 
@@ -19,7 +19,7 @@ type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
 // @Size/@Pattern), so the inline check stays in lockstep with what the server
 // accepts and never drifts — sparing a round-trip on obviously-bad input.
 function validateUsernameFormat(value: string): string | null {
-  return validateText(value, validation.RegisterRequest.username, {
+  return validateText(value, authValidation.RegisterRequest.username, {
     patternMessage: "Letters, digits, '.', '_' or '-' only",
   });
 }

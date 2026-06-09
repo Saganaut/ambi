@@ -37,7 +37,7 @@ const DeckCategorizePanel = () => {
             are available in AmbiApi. Currently shows the raw tag list.
             When wiring the editor, cap entry + count from the generated bounds via
             @utils/fieldValidation — they're already published:
-            validation.SetTagsRequest.tags → { maxItems: 50, items: { minLength: 1, maxLength: 50 } }.
+            deckValidation.SetTagsRequest.tags → { maxItems: 50, items: { minLength: 1, maxLength: 50 } }.
             Note the model is string[] tag names (not TagResponse entities), so
             TagPicker likely needs a string-based variant. */}
         {tags.length > 0 ? (

@@ -1,3 +1,5 @@
+/* oxlint-disable react-hooks/rules-of-hooks, no-console */
+/* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/tanstack-react";
 import { RectangleStackIcon } from "@heroicons/react/24/outline";
 import { fn } from "storybook/test";

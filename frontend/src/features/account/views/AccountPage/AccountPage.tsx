@@ -16,7 +16,7 @@ import { useAccount } from "../../useAccount";
 import { AccountThemeSection } from "./AccountThemeSection";
 import { GallerySection } from "./GallerySection";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
-import { validation } from "@store/validationConstants";
+import { authValidation } from "@/features/auth/store/authValidationConstants";
 import { validateText } from "@utils/fieldValidation";
 type Tab =
   | "profile"
@@ -63,7 +63,7 @@ const AccountPage = () => {
   // (sourced from validationConstants); the server stays authoritative.
   const displayNameError = validateText(
     displayName,
-    validation.UpdateProfileRequest.displayName,
+    authValidation.UpdateProfileRequest.displayName,
     { required: true, label: "Display name" },
   );
 
@@ -111,7 +111,7 @@ const AccountPage = () => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setDisplayName(e.target.value);
           }}
-          maxLength={validation.UpdateProfileRequest.displayName.maxLength}
+          maxLength={authValidation.UpdateProfileRequest.displayName.maxLength}
           errorMessage={displayNameError ?? undefined}
           placeholder='Your display name'
         />

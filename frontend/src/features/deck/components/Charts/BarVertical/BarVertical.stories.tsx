@@ -1,3 +1,5 @@
+/* oxlint-disable react-hooks/rules-of-hooks, no-console */
+/* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/tanstack-react";
 import { BarVertical } from "./BarVertical";
 import { NUMBER_BINS, SCALE_RESPONSES } from "./BarVertical.mocks";
