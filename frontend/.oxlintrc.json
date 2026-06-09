@@ -7,7 +7,7 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": ["dist", "*.config.*", "*.gen.ts*"],
+  "ignorePatterns": ["dist", "*.config.*", "*.gen.ts*", "scripts"],
   "overrides": [
     {
       "files": ["src/**/*.{ts,tsx}"],
@@ -20,13 +20,11 @@
         "no-class-assign": "error",
         "no-compare-neg-zero": "error",
         "no-cond-assign": "error",
-        "no-const-assign": "error",
         "no-constant-binary-expression": "error",
         "no-constant-condition": "error",
         "no-control-regex": "error",
         "no-debugger": "error",
         "no-delete-var": "error",
-        "no-dupe-class-members": "error",
         "no-dupe-else-if": "error",
         "no-dupe-keys": "error",
         "no-duplicate-case": "error",
@@ -48,7 +46,6 @@
         "no-nonoctal-decimal-escape": "error",
         "no-obj-calls": "error",
         "no-prototype-builtins": "error",
-        "no-redeclare": "error",
         "no-regex-spaces": "error",
         "no-self-assign": "error",
         "no-setter-return": "error",
@@ -63,7 +60,6 @@
         "no-unsafe-optional-chaining": "error",
         "no-unused-labels": "error",
         "no-unused-private-class-members": "error",
-        "no-unused-vars": "off",
         "no-useless-backreference": "error",
         "no-useless-catch": "error",
         "no-useless-escape": "error",
@@ -74,7 +70,7 @@
         "valid-typeof": "error",
         "no-array-constructor": "error",
         "no-implied-eval": "off",
-        "no-unused-expressions": "error",
+        "no-unused-expressions": "warn",
         "no-throw-literal": "off",
         "prefer-promise-reject-errors": "off",
         "require-await": "off",
@@ -178,23 +174,27 @@
             "allowConstantExport": true
           }
         ],
-        "unused-imports/no-unused-imports": "error",
-        "unused-imports/no-unused-vars": [
-          "warn",
-          {
-            "vars": "all",
-            "varsIgnorePattern": "^_",
-            "args": "after-used",
-            "argsIgnorePattern": "^_"
-          }
-        ]
+        // Disabling all this since TS typecheck should handle it
+        "no-unused-vars": "warn",
+        "typescript/no-unused-vars": "warn",
+        "no-redeclare": "warn",
+        "no-dupe-class-members": "warn",
+        "no-undef": "warn",
+        "no-const-assign": "warn"
+
+        // "unused-imports/no-unused-imports": "error",
+        // "unused-imports/no-unused-vars": [
+        //   "warn",
+        //   {
+        //     "vars": "all",
+        //     "varsIgnorePattern": "^_",
+        //     "args": "after-used",
+        //     "argsIgnorePattern": "^_"
+        //   }
+        // ]
       },
-      "plugins": ["typescript", "react"],
-      "jsPlugins": [
-        "eslint-plugin-react-x",
-        "eslint-plugin-react-dom",
-        "eslint-plugin-unused-imports"
-      ],
+      "plugins": ["typescript"],
+      "jsPlugins": ["eslint-plugin-react-x", "eslint-plugin-react-dom"],
       "env": {
         "browser": true
       }

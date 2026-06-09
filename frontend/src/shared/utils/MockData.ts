@@ -17,7 +17,37 @@
 import type { DeckResponse, McqOption } from "@deck/store/deckApi.gen";
 import type { GalleryImageResponse } from "@features/gallery/store/galleryApi.gen";
 import type { ThemeResponse } from "@features/theme/store/themeApi.gen";
-import type { AllocationQuestion, DeckCollectionResponse, DeckCommentResponse, DrawingQuestion, ElementChrome, GridQuestion, GuestUser, Image, InteractiveSessionChatMessageResponse, InteractiveSessionPlayerResponse, InteractiveSessionResponse, InteractiveSessionSettings, MatchingQuestion, McqQuestion, MediaAssetResponse, NotificationResponse, NumberQuestion, OrganizationResponse, PlaceOnImageQuestion, PlayerStats, QAndAQuestion, RankingQuestion, RegisteredUser, ScalesQuestion, ScheduledInteractiveSessionResponse, Slide, TagResponse, Team, TextQuestion, WordCloudQuestion } from "@store/AmbiApi";
+import type {
+  AllocationQuestion,
+  DeckCollectionResponse,
+  DeckCommentResponse,
+  DrawingQuestion,
+  ElementChrome,
+  GridQuestion,
+  GuestUser,
+  Image,
+  InteractiveSessionChatMessageResponse,
+  InteractiveSessionPlayerResponse,
+  InteractiveSessionResponse,
+  InteractiveSessionSettings,
+  MatchingQuestion,
+  McqQuestion,
+  MediaAssetResponse,
+  NotificationResponse,
+  NumberQuestion,
+  OrganizationResponse,
+  PlayerStats,
+  QAndAQuestion,
+  RankingQuestion,
+  RegisteredUser,
+  ScalesQuestion,
+  ScheduledInteractiveSessionResponse,
+  Slide,
+  TagResponse,
+  Team,
+  TextQuestion,
+  WordCloudQuestion,
+} from "@store/AmbiApi";
 
 // ─── shared primitives ──────────────────────────────────────────────────────
 

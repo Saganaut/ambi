@@ -2,7 +2,7 @@
 
 Test stacks for both layers, the GitHub Actions CI workflow, and the local pre-commit / pre-push git hooks.
 
-> Rule-level testing conventions (don't change a test to make it pass, etc.) live in [BACKEND-RULES](../rules/BACKEND-RULES.md) and [FRONTEND-RULES](../rules/FRONTEND-RULES.md).
+> Rule-level testing conventions (don't change a test to make it pass, etc.) live in [backend-rules](../rules/backend-rules.md) and [frontend-rules](../rules/frontend-rules.md).
 
 ## Backend (Spring Boot)
 

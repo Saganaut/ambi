@@ -26,7 +26,7 @@ log.info("Deck published deckId={} elements={}", deckId, count);
 
 You never set `traceId` or `userId` yourself — `MdcLoggingFilter` (`backend/.../web/MdcLoggingFilter.java`) has already put them in the MDC for the request, and `logback-spring.xml` emits them on every record. Just log a clear message with structured key=value context.
 
-**Do not catch-and-swallow.** Let exceptions propagate to `GlobalExceptionHandler` (the single `@RestControllerAdvice`), which logs 5xx with the full stack trace + `traceId` and returns an RFC 9457 `ProblemDetail`. See [EXCEPTION-RULES](../rules/EXCEPTION-RULES.md).
+**Do not catch-and-swallow.** Let exceptions propagate to `GlobalExceptionHandler` (the single `@RestControllerAdvice`), which logs 5xx with the full stack trace + `traceId` and returns an RFC 9457 `ProblemDetail`. See [exception-rules](../rules/exception-rules.md).
 
 ### Run with dev (readable) logging
 

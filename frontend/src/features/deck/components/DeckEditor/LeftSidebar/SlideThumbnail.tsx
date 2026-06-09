@@ -16,7 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 import styles from "./LeftSidebarContent.module.css";
 import { SlideType } from "@deck/store/deckEnums.gen";
-import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
+import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { SlideThumbnailContent } from "./SlideThumbnailContent";
 
 interface SlideThumbnailProps {

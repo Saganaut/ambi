@@ -86,6 +86,7 @@ public class SessionLocks {
      * {@code finally} (including when {@code work} throws). Throws
      * {@link ConflictException} if the lock can't be taken.
      */
+    @SuppressWarnings("try") // the lock is held for its close-on-exit side effect; the resource is intentionally unused in the body
     public <T> T withLock(String sid, Supplier<T> work) {
         try (SessionLock ignored = tryAcquire(sid)) {
             return work.get();

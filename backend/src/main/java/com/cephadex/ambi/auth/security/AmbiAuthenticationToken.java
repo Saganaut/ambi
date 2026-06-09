@@ -12,7 +12,9 @@ import org.springframework.security.core.GrantedAuthority;
  * the {@link com.cephadex.ambi.auth.security.CookieAuthenticationFilter} only
  * builds one after Redis has validated the session, so there are no credentials.
  */
-public class AmbiAuthenticationToken extends AbstractAuthenticationToken {
+public final class AmbiAuthenticationToken extends AbstractAuthenticationToken {
+
+    private static final long serialVersionUID = 1L;
 
     private final transient AmbiPrincipal principal;
 

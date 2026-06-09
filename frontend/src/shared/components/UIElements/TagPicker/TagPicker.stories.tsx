@@ -2,7 +2,6 @@
 /* oxlint-disable react-x/rules-of-hooks, no-console */
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/tanstack-react";
-import type { TagResponse } from "@store/AmbiApi";
 import { TagPicker } from "./TagPicker";
 
 const MOCK_TAGS: TagResponse[] = [
@@ -69,7 +68,13 @@ export const Creatable: Story = {
       return Promise.resolve(newId);
     };
     return (
-      <TagPicker {...args} tags={tags} value={value} onChange={setValue} onCreate={onCreate} />
+      <TagPicker
+        {...args}
+        tags={tags}
+        value={value}
+        onChange={setValue}
+        onCreate={onCreate}
+      />
     );
   },
 };

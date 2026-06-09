@@ -21,7 +21,7 @@ import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/Drawing
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
 import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
 import { useSlide } from "../../../hooks/useSlide";
-import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
+import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import React from "react";
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 

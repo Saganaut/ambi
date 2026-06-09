@@ -15,7 +15,9 @@ import tools.jackson.databind.module.SimpleModule;
  * the HTTP boundary — gallery, slide, deck and theme responses alike.
  */
 @Component
-public class AppImageJacksonModule extends SimpleModule {
+public final class AppImageJacksonModule extends SimpleModule {
+
+    private static final long serialVersionUID = 1L;
 
     public AppImageJacksonModule(ImageUrlResolver resolver) {
         addSerializer(AppImage.class, new AppImageSerializer(resolver));

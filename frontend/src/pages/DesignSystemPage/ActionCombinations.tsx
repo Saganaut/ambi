@@ -2,7 +2,7 @@
 // (BtnVariant), each row is a fill (BtnFill = default / bordered / ghost).
 // Every cell shows a live Btn + IconBtn so the page is the source of truth
 // for what each legal combination looks like. The rule + naming convention
-// is in STYLE-RULES.md "Named button + icon-button variants".
+// is in styling-rules.md "Named button + icon-button variants".
 import type { ReactNode } from "react";
 import {
   BellIcon,

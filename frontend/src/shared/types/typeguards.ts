@@ -18,7 +18,7 @@ export interface ProblemDetail {
   instance: string;
   code: string;
   traceId: string;
-  errors?: Array<{ field: string; message: string }>;
+  errors?: { field: string; message: string }[];
 }
 
 /** Narrows an unknown RTK Query error to the HTTP-fetch branch (status is a number). */

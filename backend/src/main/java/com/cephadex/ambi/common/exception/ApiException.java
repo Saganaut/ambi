@@ -1,3 +1,7 @@
+package com.cephadex.ambi.common.exception;
+
+import org.springframework.http.HttpStatus;
+
 /**
  * Base type for every application-level error that maps to a specific HTTP
  * response. Carries the HTTP {@code status}, a stable machine-readable
@@ -6,13 +10,11 @@
  * ApiException into an RFC 9457 {@code ProblemDetail}.
  *
  * New code should throw a subclass of this rather than a raw
- * {@code ResponseStatusException} — see z-docs/rules/EXCEPTION-RULES.md.
+ * {@code ResponseStatusException} — see z-docs/rules/exception-rules.md.
  */
-package com.cephadex.ambi.common.exception;
-
-import org.springframework.http.HttpStatus;
-
 public abstract class ApiException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
 
     private final HttpStatus status;
     private final String code;

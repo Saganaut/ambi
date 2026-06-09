@@ -16,7 +16,7 @@ import styles from "./LeftSidebarContent.module.css";
 import { useFullScreen } from "@hooks/useFullScreen";
 import { useModal } from "@/shared/hooks/useModal";
 import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
-import { useDeckEditor } from "@/features/decks/hooks/useDeckEditor";
+import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { getRouteApi } from "@tanstack/react-router";
 import { SlideResponse } from "@deck/store/deckApi.gen";
 import { NewSlideModal } from "../NewSlideModal/NewSlideModal";

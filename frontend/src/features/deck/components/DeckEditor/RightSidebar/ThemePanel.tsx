@@ -3,8 +3,8 @@
 // the new model. Wire session defaults once those fields return.
 // Background image for the active slide uses useSlide.setSlideImage / clearSlideImage.
 import { getRouteApi } from "@tanstack/react-router";
-import { useSlide } from "@/features/decks/hooks/useSlide";
-import { useDeck } from "@/features/decks/hooks/useDeck";
+import { useSlide } from "@deck/hooks/useSlide";
+import { useDeck } from "@deck/hooks/useDeck";
 import { useModal } from "@hooks/useModal";
 import { useGetThemeQuery } from "@features/theme/store/themeApi.gen";
 import { ThemeModal } from "@components/Theme/ThemeModal/ThemeModal";

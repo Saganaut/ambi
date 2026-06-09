@@ -83,7 +83,7 @@ public class User extends Auditable {
     // @Version, so a whole-doc save is last-writer-wins and would clobber a
     // concurrent profile/preferences edit. This is the same "embedded sub-documents
     // get their own write API" rule that gave deck settings dedicated endpoints
-    // (BACKEND-RULES.md #10).
+    // (backend-rules.md #10).
     @Field("membership")
     private Membership membership;
 

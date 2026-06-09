@@ -2,7 +2,7 @@
 // and the setSlideImage / clearSlideImage handlers.
 // TODO: Wire a gallery picker when one is available — currently onPick is a no-op.
 import { getRouteApi } from "@tanstack/react-router";
-import { useSlide } from "@/features/decks/hooks/useSlide";
+import { useSlide } from "@deck/hooks/useSlide";
 import { ImagePicker } from "../ImagePicker";
 import styles from "../EditSlidePanel.module.css";
 

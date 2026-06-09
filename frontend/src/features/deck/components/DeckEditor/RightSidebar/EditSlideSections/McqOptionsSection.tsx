@@ -7,8 +7,8 @@ import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useSlideEditor } from "@/features/decks/hooks/useSlideEditor";
-import { useSlideSettingsEditor } from "@/features/decks/hooks/useSlideSettingsEditor";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
 import styles from "../EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -17,12 +17,12 @@ const McqOptionsSection = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
   const { slide } = useSlideEditor(deckId, slideId ?? "", "MCQ");
-  const { answerSettings, updateAnswerSettings, flush } = useSlideSettingsEditor(
-    deckId,
-    slideId ?? "",
-  );
+  const { answerSettings, updateAnswerSettings, flush } =
+    useSlideSettingsEditor(deckId, slideId ?? "");
 
-  const [shuffle, setShuffle] = useState(answerSettings?.shuffleOptions ?? true);
+  const [shuffle, setShuffle] = useState(
+    answerSettings?.shuffleOptions ?? true,
+  );
   const allowMulti = (answerSettings?.maxSelections ?? 1) !== 1;
   const [maxSelections, setMaxSelections] = useState(
     allowMulti ? (answerSettings?.maxSelections ?? 0) : 0,

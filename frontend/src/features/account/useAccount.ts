@@ -143,7 +143,7 @@ export function useAccount(): UseAccountResult {
     setNewsletterSuccess(false);
     // PUT preferences is a wholesale replace and the body must be a complete
     // object — Jackson 3 rejects a partial body that omits a primitive
-    // (`marketing`/`stayLoggedIn`) with a 400 (BACKEND-RULES #9). Build the full
+    // (`marketing`/`stayLoggedIn`) with a 400 (backend-rules #9). Build the full
     // set explicitly with safe defaults rather than spreading a possibly-null
     // `preferences` (it's null until first set), mirroring AccountThemeSection.
     const prefs = profile?.preferences;

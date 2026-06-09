@@ -59,8 +59,8 @@ import { BillingToggle } from "@pages/PricingPage/components/BillingToggle/Billi
 import type { BillingCycle } from "@pages/PricingPage/components/BillingToggle/BillingToggle";
 import { FeatureList } from "@pages/PricingPage/components/FeatureList/FeatureList";
 import { PRICING_TIERS } from "../PricingPage/data";
-import { slideTypeGraphics } from "@decks/components/Slides/SlideTypeGraphics/slideTypeGraphics";
-import { SlideContentWrapper } from "@/features/decks/components/DeckEditor/SlideContent/SlideContentWrapper";
+import { slideTypeGraphics } from "@deck/components/Slides/SlideTypeGraphics/slideTypeGraphics";
+import { SlideContentWrapper } from "@deck/components/DeckEditor/SlideContent/SlideContentWrapper";
 import {
   NotFoundPage,
   ServerErrorPage,

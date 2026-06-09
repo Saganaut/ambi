@@ -3,7 +3,7 @@
 // section, then the image section, session pacing, and provenance footer.
 // Per-kind sections each own their own useSlideEditor instance.
 import { getRouteApi } from "@tanstack/react-router";
-import { useSlide } from "@/features/decks/hooks/useSlide";
+import { useSlide } from "@deck/hooks/useSlide";
 import type { SlideType } from "@deck/store/deckEnums.gen";
 import { SlideOptionsSection } from "./EditSlideSections/SlideOptionsSection";
 import { McqOptionsSection } from "./EditSlideSections/McqOptionsSection";

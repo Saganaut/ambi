@@ -21,7 +21,7 @@ public record SetTagsRequest(
         // length). @ArraySchema mirrors them into the OpenAPI doc — SpringDoc drops
         // the element @Size on Set<String> from items{}, so we state it explicitly
         // (same constants) so the per-tag bound reaches the generated frontend
-        // validationConstants.ts. See BACKEND-RULES.
+        // validationConstants.ts. See backend-rules.
         @NotNull
         @Size(max = ValidationConstants.TAG_MAX_COUNT)
         @ArraySchema(

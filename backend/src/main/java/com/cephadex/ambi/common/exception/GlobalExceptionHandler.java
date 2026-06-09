@@ -1,20 +1,3 @@
-/**
- * Single source of truth for turning exceptions into HTTP error responses.
- * Every error leaves the API as an RFC 9457 {@code ProblemDetail}
- * (application/problem+json) with extension members {@code code}
- * (machine-readable), {@code traceId} (also written to the server log), and —
- * for validation — {@code errors[]}. 4xx {@code detail} is user-safe; 5xx
- * {@code detail} is a fixed generic string while the real exception is logged.
- *
- * Extends {@link ResponseEntityExceptionHandler} so Spring's own framework
- * exceptions (validation, unreadable body, unsupported method, …) funnel
- * through the same ProblemDetail shape via {@link #handleExceptionInternal}.
- * Supports BOTH the typed {@link ApiException} hierarchy (preferred) and the
- * legacy {@code ResponseStatusException} still thrown across the codebase, so
- * no big-bang refactor is required.
- *
- * See z-docs/features/exceptions.md and z-docs/rules/EXCEPTION-RULES.md.
- */
 package com.cephadex.ambi.common.exception;
 
 import java.net.URI;
@@ -45,6 +28,23 @@ import com.cephadex.ambi.config.MdcLoggingFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 
+/**
+ * Single source of truth for turning exceptions into HTTP error responses.
+ * Every error leaves the API as an RFC 9457 {@code ProblemDetail}
+ * (application/problem+json) with extension members {@code code}
+ * (machine-readable), {@code traceId} (also written to the server log), and —
+ * for validation — {@code errors[]}. 4xx {@code detail} is user-safe; 5xx
+ * {@code detail} is a fixed generic string while the real exception is logged.
+ *
+ * Extends {@link ResponseEntityExceptionHandler} so Spring's own framework
+ * exceptions (validation, unreadable body, unsupported method, …) funnel
+ * through the same ProblemDetail shape via {@link #handleExceptionInternal}.
+ * Supports BOTH the typed {@link ApiException} hierarchy (preferred) and the
+ * legacy {@code ResponseStatusException} still thrown across the codebase, so
+ * no big-bang refactor is required.
+ *
+ * See z-docs/features/exceptions.md and z-docs/rules/exception-rules.md.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 

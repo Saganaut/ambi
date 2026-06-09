@@ -9,6 +9,7 @@ import com.cephadex.ambi.media.enums.ImageSizeOptions;
 
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JavaType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ValueDeserializer;
 
@@ -47,7 +48,9 @@ public class AppImageDeserializer extends ValueDeserializer<AppImage> {
         image.setExternalSrc(text(node, "externalSrc"));
         image.setAltText(text(node, "altText"));
         if (node.hasNonNull("metadata")) {
-            image.setMetadata(ctxt.readTreeAsValue(node.get("metadata"), Map.class));
+            JavaType mapType = ctxt.getTypeFactory()
+                    .constructMapType(LinkedHashMap.class, String.class, Object.class);
+            image.setMetadata(ctxt.readTreeAsValue(node.get("metadata"), mapType));
         }
 
         if (image.isExternal()) {

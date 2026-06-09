@@ -24,7 +24,7 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
 import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
-import { useMcqEditor } from "@/features/decks/hooks/useMcqEditor";
+import { useMcqEditor } from "@deck/hooks/useMcqEditor";
 import styles from "./McqSlideContent.module.css";
 import { getRouteApi } from "@tanstack/react-router";
 

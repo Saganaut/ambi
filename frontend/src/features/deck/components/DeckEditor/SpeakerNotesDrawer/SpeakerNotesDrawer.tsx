@@ -17,7 +17,7 @@ import {
   type RichTextInputHandle,
 } from "@components/Forms/Input/RichTextInput/RichTextInput";
 import styles from "./SpeakerNotesDrawer.module.css";
-import { useSlideEditor } from "@/features/decks/hooks/useSlideEditor";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

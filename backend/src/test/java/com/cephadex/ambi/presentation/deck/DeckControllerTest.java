@@ -323,7 +323,7 @@ class DeckControllerTest {
                 .thenReturn(slideWithSettings("s1", pointSettings(75), null));
 
         // Full-object PUT: under Jackson 3 every primitive component must be present
-        // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default) — see BACKEND-RULES.
+        // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default) — see backend-rules.
         mockMvc.perform(put("/api/decks/deck-1/slides/s1/point-settings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pointSettings\":{\"points\":75,\"deceptionPoints\":0,"
@@ -380,7 +380,7 @@ class DeckControllerTest {
                 .thenReturn(slideWithSettings("s1", null, answerSettings(20)));
 
         // Full-object PUT: under Jackson 3 every primitive component must be present
-        // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default) — see BACKEND-RULES.
+        // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default) — see backend-rules.
         mockMvc.perform(put("/api/decks/deck-1/slides/s1/answer-settings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"answerSettings\":{\"displayResultsLive\":false,"

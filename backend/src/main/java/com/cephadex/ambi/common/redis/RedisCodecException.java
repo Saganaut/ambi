@@ -11,6 +11,8 @@ package com.cephadex.ambi.common.redis;
  */
 public class RedisCodecException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     public RedisCodecException(String message, Throwable cause) {
         super(message, cause);
     }

@@ -1,8 +1,8 @@
 // Lists user-owned content decks and all system decks, with create/edit/delete actions.
 import { DeckResponse } from "@deck/store/deckApi.gen";
 import { Btn } from "@ui/Buttons/Btn";
-import { DeckActionButton } from "@decks/components/DeckActionButton/DeckActionButton";
-import { DeckCard } from "@decks/components/DeckCard/DeckCard";
+import { DeckActionButton } from "@deck/components/DeckActionButton/DeckActionButton";
+import { DeckCard } from "@deck/components/DeckCard/DeckCard";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 
 import { Link } from "@tanstack/react-router";

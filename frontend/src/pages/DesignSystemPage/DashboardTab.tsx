@@ -7,8 +7,8 @@
 import styles from "./DesignSystem.module.css";
 import { Accordion } from "@components/Containers/Accordion";
 import { Leaderboard } from "@components/Leaderboard/Leaderboard";
-import { BarChart } from "@decks/components/Charts/BarChart/BarChart";
-import { FrequencyList } from "@decks/components/Charts/FrequencyList/FrequencyList";
+import { BarChart } from "@deck/components/Charts/BarChart/BarChart";
+import { FrequencyList } from "@deck/components/Charts/FrequencyList/FrequencyList";
 import { PlayerInfo } from "@components/PlayerInfo/PlayerInfo";
 
 const DashboardTab = () => {

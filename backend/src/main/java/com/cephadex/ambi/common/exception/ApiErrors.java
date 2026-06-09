@@ -1,14 +1,14 @@
+package com.cephadex.ambi.common.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+
 /**
  * Shared error-mapping helpers used by both the REST {@link GlobalExceptionHandler}
  * and the STOMP {@code InteractiveSessionWebSocketController.handleException}, so
  * the status→code mapping and the generic 5xx message live in exactly one place
  * and the two transports stay consistent.
  */
-package com.cephadex.ambi.common.exception;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-
 public final class ApiErrors {
 
     /**

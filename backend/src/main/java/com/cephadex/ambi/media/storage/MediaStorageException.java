@@ -9,7 +9,9 @@ import com.cephadex.ambi.common.exception.ApiException;
  * {@code GlobalExceptionHandler} collapses every 5xx body to the generic
  * message, so the real cause (logged server-side) never reaches the client.
  */
-public class MediaStorageException extends ApiException {
+public final class MediaStorageException extends ApiException {
+
+    private static final long serialVersionUID = 1L;
 
     public MediaStorageException(String message, Throwable cause) {
         super(HttpStatus.INTERNAL_SERVER_ERROR, "MEDIA_STORAGE_ERROR", message);

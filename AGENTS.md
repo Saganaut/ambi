@@ -34,7 +34,7 @@ All project documentation other than this file and the top-level `README.md` liv
 | [`z-docs/runbooks/`](z-docs/runbooks/README.md)             | Operational procedures (seeding, secret rotation, recovery)                 |
 | [`z-docs/glossary.md`](z-docs/glossary.md)                  | Domain terms (deck, element, interactive session, theme, MCQ, …)            |
 
-**Reachability is enforced.** `tools/doc-lint.js` walks the link graph from the root `README.md` and fails on any `.md` file that isn't reachable via standard markdown links. Always link new docs from the appropriate folder's `README.md`. Cross-references must use standard markdown links (e.g. `[BACKEND-RULES](BACKEND-RULES.md)`); the old `@FILENAME.md` convention has been retired.
+**Reachability is enforced.** `tools/doc-lint.js` walks the link graph from the root `README.md` and fails on any `.md` file that isn't reachable via standard markdown links. Always link new docs from the appropriate folder's `README.md`. Cross-references must use standard markdown links (e.g. `[backend-rules](backend-rules.md)`); the old `@FILENAME.md` convention has been retired.
 
 New design / rule / architecture docs belong in `z-docs/<category>/`, **not** at the repo root. The root keeps only `README.md`, `AGENTS.md`, and `CLAUDE.md` as top-level docs.
 
@@ -63,13 +63,16 @@ npm run generate          # API client + validation constants + enums (runs all 
 
 # …or individually:
 npm run generate-api         # → per-feature RTK Query clients (src/features/<feature>/store/<api>Api.ts)
-npm run generate-validation  # → src/shared/store/validationConstants.ts (validation bounds)
+npm run generate-validation  # → per-feature validation bounds (src/features/<feature>/store/<feature>ValidationConstants.ts + shared/store/sharedValidationConstants.ts)
 npm run generate-enums       # → per-feature enums (src/features/<feature>/store/<feature>Enums.gen.ts)
 ```
 
-`validationConstants.ts` is the frontend half of the validation single source of
-truth: bounds are authored once in the backend (`ValidationConstants`), surfaced
-into OpenAPI via Jakarta annotations, and lifted into TS by the generator.
+The `*ValidationConstants.ts` files are the frontend half of the validation single
+source of truth: bounds are authored once in the backend (`ValidationConstants`),
+surfaced into OpenAPI via Jakarta annotations, and lifted into TS by the generator.
+Each request DTO is routed to a feature by its controller tag (mirroring
+`openapi-config.cts`) and exported as `<feature>Validation`; DTOs shared by 2+
+features (e.g. `Pageable`) land in `sharedValidationConstants.ts` as `sharedValidation`.
 
 The `*Enums.gen.ts` files work the same way for enums: the backend emits each enum
 inline into OpenAPI, and `scripts/generate-enums.mjs` lifts the values into typed
@@ -99,9 +102,9 @@ new enum.
 | API client   | Auto-generated from OpenAPI schema                                          |
 | Styling      | CSS Modules + CSS custom properties (tokens.css)                            |
 | Rich text    | TipTap (see [Deck Editor](z-docs/features/deck-editor/README.md))           |
-| Icons        | SVG via `vite-plugin-svgr` (see [ICONS-RULES](z-docs/rules/ICONS-RULES.md)) |
+| Icons        | SVG via `vite-plugin-svgr` (see [icons-rules](z-docs/rules/icons-rules.md)) |
 
-Conventions: see [FRONTEND-RULES](z-docs/rules/FRONTEND-RULES.md) and [STYLE-RULES](z-docs/rules/STYLE-RULES.md).
+Conventions: see [frontend-rules](z-docs/rules/frontend-rules.md) and [styling-rules](z-docs/rules/styling-rules.md).
 
 ### Backend
 
@@ -116,7 +119,7 @@ Conventions: see [FRONTEND-RULES](z-docs/rules/FRONTEND-RULES.md) and [STYLE-RUL
 | API docs        | SpringDoc OpenAPI v2               |
 | Boilerplate     | Lombok                             |
 
-Package: `cephadex.ambi`. Layers: `controller/`, `service/`, `repository/`, `model/`, `dto/`, `config/`. Conventions: see [BACKEND-RULES](z-docs/rules/BACKEND-RULES.md).
+Package: `cephadex.ambi`. Layers: `controller/`, `service/`, `repository/`, `model/`, `dto/`, `config/`. Conventions: see [backend-rules](z-docs/rules/backend-rules.md).
 
 ### REST API
 
@@ -158,7 +161,7 @@ Stacks, CI workflow, and local pre-commit / pre-push hooks: see [Testing & CI](z
 | File                                       | Purpose                                                   |
 | ------------------------------------------ | --------------------------------------------------------- |
 | `frontend/src/shared/store/AmbiApi.ts`     | Auto-generated RTK Query API — **do not edit**            |
-| `frontend/src/shared/store/validationConstants.ts` | Auto-generated validation bounds (from OpenAPI) — **do not edit** |
+| `frontend/src/features/<feature>/store/<feature>ValidationConstants.ts` | Auto-generated per-feature validation bounds (+ `shared/store/sharedValidationConstants.ts`) — **do not edit** |
 | `backend/.../common/validation/ValidationConstants.java` | Source of truth for validation bounds (drives the above) |
 | `frontend/src/routes/__root.tsx`           | Root layout (TanStack Router + shared AuthBar)            |
 | `frontend/src/hooks/useCurrentUser.ts`     | Auth state machine (visitor/guest/registered)             |

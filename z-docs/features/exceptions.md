@@ -1,6 +1,6 @@
 # Exception Handling
 
-How the backend turns failures into HTTP responses, what those responses look like on the wire, and how the frontend reads them. The terse, grep-able version of the rules lives in [EXCEPTION-RULES](../rules/EXCEPTION-RULES.md); this doc is the _why_ and _how_ behind them.
+How the backend turns failures into HTTP responses, what those responses look like on the wire, and how the frontend reads them. The terse, grep-able version of the rules lives in [exception-rules](../rules/exception-rules.md); this doc is the _why_ and _how_ behind them.
 
 ---
 
@@ -18,7 +18,7 @@ The goal: **one HTTP-standard error contract** that the frontend can branch on p
 
 ## The contract: RFC 9457 Problem Details
 
-Every error response is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) _Problem Details_ object, served as `application/problem+json`. We use Spring Boot's built-in `org.springframework.http.ProblemDetail` — it is a framework type, **not** a class in `dto/`, so it is exempt from the [DTO naming rules](../rules/DTO-NAMING-RULES.md) (which forbid generic envelopes).
+Every error response is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) _Problem Details_ object, served as `application/problem+json`. We use Spring Boot's built-in `org.springframework.http.ProblemDetail` — it is a framework type, **not** a class in `dto/`, so it is exempt from the [DTO naming rules](../rules/naming/dto-naming.md) (which forbid generic envelopes).
 
 We use the five standard members and add three extension members:
 

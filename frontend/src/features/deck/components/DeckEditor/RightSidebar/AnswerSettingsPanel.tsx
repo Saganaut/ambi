@@ -15,7 +15,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { AnswerSettings } from "@deck/store/deckApi.gen";
-import { useSlideSettingsEditor } from "@/features/decks/hooks/useSlideSettingsEditor";
+import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
 import { useDeckSettings } from "./useDeckSettings";
 import { AnswerSettingsForm } from "./SettingsForms/AnswerSettingsForm";
 import { resolveAnswerSettings } from "./SettingsForms/settingsDefaults";

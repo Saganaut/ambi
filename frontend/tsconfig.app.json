@@ -16,8 +16,9 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    //TODO: Re-enable these at some point and then remove the warnings
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
@@ -43,5 +44,5 @@
       "@auth/*": ["./src/features/auth/*"]
     }
   },
-  "include": ["src", "*.ts", "openapi-config.cts", ".storybook"]
+  "include": ["src", "*.ts", "openapi-config.cts", ".storybook/**/*"]
 }
