@@ -17,9 +17,11 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.enums.OwnershipType;
+import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
+import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.enums.OrgRole;
@@ -30,6 +32,11 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
+import com.cephadex.ambi.presentation.slide.content.ScorableContent;
+import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
+import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -178,16 +185,75 @@ public class DeckService {
         return slide;
     }
 
+    /**
+     * Add a follow-up slide chained directly after a scorable parent (EDIT).
+     * The link ({@code parentId}/{@code childId}) and the placement are entirely
+     * server-owned; the client supplies only the new slide's optimistic id, the
+     * {@link FollowUpMode}, and an optional title. Returns the deck's slides in
+     * canonical order — the operation touches two slides and inserts mid-list,
+     * so the caller reconciles its cache from the response like a move.
+     */
+    public List<Slide> addFollowUpSlide(String deckId, String parentSlideId, String followUpId,
+            FollowUpMode mode, String title, AmbiPrincipal principal) {
+        Deck deck = getEditable(deckId, principal);
+        Slide parent = deck.findSlide(parentSlideId)
+                .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
+
+        if (deck.isAttachedFollowUp(parent)) {
+            throw new ValidationException("A follow-up slide cannot have its own follow-up");
+        }
+        SlideContent parentContent = parent.getContent();
+        if (!(parentContent instanceof ScorableContent)
+                || parentContent.contentType() == SlideType.FOLLOW_UP) {
+            throw new ValidationException("Only scorable slides can have a follow-up");
+        }
+        if (!mode.supportsParent(parentContent.contentType())) {
+            throw new ValidationException("Follow-up mode " + mode + " is not valid for a "
+                    + parentContent.contentType() + " slide");
+        }
+        if (deck.attachedFollowUp(parent).isPresent()) {
+            throw new ConflictException("FOLLOW_UP_EXISTS", "Slide already has a follow-up");
+        }
+        // A childId that survived the attachment check is dangling legacy data
+        // (missing target, mismatched back-pointer, or non-follow-up content) —
+        // self-heal by unlinking both ends before attaching the real follow-up.
+        if (parent.getChildId() != null) {
+            deck.findSlide(parent.getChildId()).ifPresent(stale -> {
+                if (parentSlideId.equals(stale.getParentId())) {
+                    stale.setParentId(null);
+                }
+            });
+            parent.setChildId(null);
+        }
+
+        String userId = principal.userId();
+        Slide followUp = new Slide();
+        followUp.setId(followUpId != null ? followUpId : UUID.randomUUID().toString());
+        followUp.setTitle(title != null ? title : "");
+        followUp.setContent(new FollowUpContent(mode));
+        followUp.setCreatedByUserId(userId);
+        followUp.setLastEditedByUserId(userId);
+
+        deck.backfillRanks(rankService);
+        deck.addFollowUp(followUp, parent, rankService);
+        deckRepository.save(deck);
+        return deck.getSlides().stream()
+                .sorted(SlideRankService.ordering())
+                .toList();
+    }
+
     /** Replace a slide's editable presentation fields (EDIT). */
     public Slide updateSlide(String deckId, String slideId, Slide changes, AmbiPrincipal principal) {
         Deck deck = getEditable(deckId, principal);
         Slide slide = deck.findSlide(slideId)
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
 
+        requireValidContentTransition(deck, slide, changes.getContent());
+
         slide.setTitle(changes.getTitle());
         slide.setSection(changes.getSection());
-        slide.setParentId(changes.getParentId());
-        slide.setChildId(changes.getChildId());
+        // parentId/childId are server-owned: minted only by addFollowUpSlide and
+        // cleared on delete — an update can never rewrite the link.
         // sortOrder is server-owned and unchanged here — reordering goes through
         // moveSlide, so an update never lets the client jump a slide's position.
         slide.setContent(changes.getContent());
@@ -200,9 +266,46 @@ public class DeckService {
     }
 
     /**
-     * Move a slide to {@code toIndex} in the deck's order (EDIT). Only the moved
-     * slide's {@code sortOrder} is rewritten; returns the deck's slides in their
-     * new canonical order so the caller can patch its slide cache from the
+     * The follow-up guards on a content update. A follow-up keeps its kind (and
+     * a mode its parent's type supports); a regular slide can't become one (the
+     * dedicated endpoint is the only mint); a parent can't change to a content
+     * type its attached follow-up's mode doesn't support. There is no
+     * type-switching UI today, so these are defenses against API misuse.
+     */
+    private static void requireValidContentTransition(Deck deck, Slide slide, SlideContent next) {
+        boolean isFollowUp = slide.getContent() instanceof FollowUpContent;
+        if (!isFollowUp && next instanceof FollowUpContent) {
+            throw new ValidationException(
+                    "A follow-up slide can only be created through the follow-up endpoint");
+        }
+        if (isFollowUp) {
+            if (!(next instanceof FollowUpContent nextFollowUp)) {
+                throw new ValidationException(
+                        "A follow-up slide cannot change to another slide type; delete it instead");
+            }
+            deck.findSlide(slide.getParentId()).ifPresent(parent -> {
+                if (!nextFollowUp.mode().supportsParent(parent.getContent().contentType())) {
+                    throw new ValidationException("Follow-up mode " + nextFollowUp.mode()
+                            + " is not valid for a " + parent.getContent().contentType() + " slide");
+                }
+            });
+        }
+        deck.attachedFollowUp(slide).ifPresent(child -> {
+            FollowUpMode childMode = ((FollowUpContent) child.getContent()).mode();
+            if (next != null && !childMode.supportsParent(next.contentType())) {
+                throw new ValidationException(
+                        "Changing this slide's type would invalidate its follow-up; delete the follow-up first");
+            }
+        });
+    }
+
+    /**
+     * Move a slide to {@code toIndex} in the deck's order (EDIT). The slide
+     * moves as a unit with its attached follow-up, if any; only the moved unit's
+     * {@code sortOrder} keys are rewritten, and a destination inside another
+     * parent/follow-up pair snaps past it. Moving a follow-up itself is
+     * rejected — it only moves with its parent. Returns the deck's slides in
+     * their new canonical order so the caller can patch its slide cache from the
      * response — no reconciling re-fetch of {@code GET /slides} needed.
      */
     public List<Slide> moveSlide(String deckId, String slideId, int toIndex, AmbiPrincipal principal) {
@@ -210,8 +313,13 @@ public class DeckService {
         Slide slide = deck.findSlide(slideId)
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
 
+        if (deck.isAttachedFollowUp(slide)) {
+            throw new ValidationException(
+                    "A follow-up slide moves with its parent and cannot be moved directly");
+        }
+
         deck.backfillRanks(rankService);
-        deck.reorderSlide(slideId, toIndex, rankService);
+        deck.reorderUnit(slideId, toIndex, rankService);
         slide.setLastEditedByUserId(principal.userId());
 
         deckRepository.save(deck);

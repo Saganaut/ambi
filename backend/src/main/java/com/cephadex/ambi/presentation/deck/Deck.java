@@ -3,6 +3,7 @@ package com.cephadex.ambi.presentation.deck;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -24,6 +25,7 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 import lombok.Getter;
@@ -145,16 +147,13 @@ public class Deck extends Auditable {
         if (removed == null) {
             return false;
         }
-        // TODO(follow-up): full linked-chain re-stitch + sortOrder rebalance on
-        // delete. For now we only clear dangling link back-pointers so nothing
-        // is left referencing the slide we're removing.
-        if (removed.getParentId() != null) {
-            findSlide(removed.getParentId()).ifPresent(parent -> {
-                if (slideId.equals(parent.getChildId())) {
-                    parent.setChildId(null);
-                }
-            });
-        }
+        // Removing a parent cascades to its attached follow-up — a follow-up
+        // without its parent's submissions is meaningless at runtime. A link
+        // that fails the attachment check (dangling target, mismatched
+        // back-pointer, non-follow-up content — legacy data) doesn't cascade;
+        // its back-pointer is just cleared so nothing references the removed
+        // slide.
+        attachedFollowUp(removed).ifPresent(slides::remove);
         if (removed.getChildId() != null) {
             findSlide(removed.getChildId()).ifPresent(child -> {
                 if (slideId.equals(child.getParentId())) {
@@ -162,7 +161,71 @@ public class Deck extends Auditable {
                 }
             });
         }
+        if (removed.getParentId() != null) {
+            findSlide(removed.getParentId()).ifPresent(parent -> {
+                if (slideId.equals(parent.getChildId())) {
+                    parent.setChildId(null);
+                }
+            });
+        }
         return slides.remove(removed);
+    }
+
+    // ── Follow-up linkage ────────────────────────────────────────────────────────
+    // A parent/follow-up link is real only when both back-pointers agree AND the
+    // child's content is FollowUpContent. Anything else (legacy client-written
+    // links, dangling ids) degrades to plain unlinked slides everywhere below.
+
+    /**
+     * The slide's attached follow-up, if its {@code childId} names a valid one:
+     * the child exists, points back, and carries {@link FollowUpContent}.
+     */
+    public Optional<Slide> attachedFollowUp(Slide slide) {
+        if (slide == null || slide.getChildId() == null) {
+            return Optional.empty();
+        }
+        return findSlide(slide.getChildId())
+                .filter(child -> slide.getId() != null && slide.getId().equals(child.getParentId()))
+                .filter(child -> child.getContent() instanceof FollowUpContent);
+    }
+
+    /** Whether the slide is itself a valid attached follow-up of some parent. */
+    public boolean isAttachedFollowUp(Slide slide) {
+        if (slide == null || slide.getParentId() == null
+                || !(slide.getContent() instanceof FollowUpContent)) {
+            return false;
+        }
+        return findSlide(slide.getParentId())
+                .map(parent -> slide.getId() != null && slide.getId().equals(parent.getChildId()))
+                .orElse(false);
+    }
+
+    /**
+     * Link {@code followUp} to {@code parent} and place it immediately after it
+     * in the sorted order, minting only the new slide's key (between the parent
+     * and its successor, rebalancing first if those neighbours have no gap).
+     * Callers must have validated eligibility and run
+     * {@link #backfillRanks(SlideRankService)} so the parent is keyed.
+     */
+    public void addFollowUp(Slide followUp, Slide parent, SlideRankService ranks) {
+        followUp.setParentId(parent.getId());
+        parent.setChildId(followUp.getId());
+
+        List<Slide> ordered = slides.stream().sorted(SlideRankService.ordering()).toList();
+        int parentIdx = ordered.indexOf(parent);
+        Slide successor = parentIdx + 1 < ordered.size() ? ordered.get(parentIdx + 1) : null;
+        String rank;
+        if (successor == null) {
+            rank = ranks.after(parent.getSortOrder());
+        } else {
+            if (!ranks.hasGap(parent.getSortOrder(), successor.getSortOrder())) {
+                rebalance(ordered, ranks);
+            }
+            rank = ranks.between(parent.getSortOrder(), successor.getSortOrder());
+        }
+        followUp.setSortOrder(rank);
+        slides.add(followUp);
+        resort();
     }
 
     // ── Slide ordering (Lexorank) ────────────────────────────────────────────────
@@ -220,48 +283,108 @@ public class Deck extends Auditable {
     }
 
     /**
-     * Move {@code slideId} to {@code toIndex} in the sorted order, rewriting only
-     * that slide's {@code sortOrder} to a key between its new neighbours (or before
-     * the first / after the last at the ends). {@code toIndex} is clamped into
-     * range. If the target neighbours have no representable gap the list is
-     * rebalanced first. Links ({@code parentId}/{@code childId}) are left
-     * untouched.
+     * Move the unit anchored at {@code slideId} — the slide plus its attached
+     * follow-up, if any — to {@code toIndex} in the sorted order, rewriting only
+     * the moved unit's keys. {@code toIndex} counts slides (not units) over the
+     * rest of the deck and is normalized so the unit can never land inside
+     * another parent/follow-up pair: an index that would split a pair snaps past
+     * it, and out-of-range values clamp. Moving a slide that is itself an
+     * attached follow-up is a no-op (the pair moves via its parent; the service
+     * rejects such requests upstream). If the destination neighbours have no
+     * representable gap the rest of the list is rebalanced first.
      *
-     * @param slideId the slide to move
-     * @param toIndex the destination position among the deck's slides
+     * @param slideId the unit head to move
+     * @param toIndex the destination position counted in slides
      * @param ranks   the key generator
      */
-    public void reorderSlide(String slideId, int toIndex, SlideRankService ranks) {
-        Slide moved = findSlide(slideId).orElse(null);
-        if (moved == null) {
+    public void reorderUnit(String slideId, int toIndex, SlideRankService ranks) {
+        Slide head = findSlide(slideId).orElse(null);
+        if (head == null || isAttachedFollowUp(head)) {
             return;
         }
-        // The index space is the OTHER slides, in sorted order.
+        Slide movedChild = attachedFollowUp(head).orElse(null);
+
+        // The index space is the OTHER slides, in sorted order, grouped into
+        // units so the destination can be snapped to a unit boundary.
         List<Slide> others = slides.stream()
-                .filter(s -> !slideId.equals(s.getId()))
+                .filter(s -> s != head && s != movedChild)
                 .sorted(SlideRankService.ordering())
                 .toList();
-        int target = Math.max(0, Math.min(toIndex, others.size()));
+        List<List<Slide>> units = groupIntoUnits(others);
 
-        String newRank;
-        if (others.isEmpty()) {
-            newRank = ranks.initial();
-        } else if (target == 0) {
-            newRank = ranks.before(others.get(0).getSortOrder());
-        } else if (target == others.size()) {
-            newRank = ranks.after(others.get(others.size() - 1).getSortOrder());
-        } else {
-            String lower = others.get(target - 1).getSortOrder();
-            String upper = others.get(target).getSortOrder();
-            if (!ranks.hasGap(lower, upper)) {
-                rebalance(others, ranks);
-                lower = others.get(target - 1).getSortOrder();
-                upper = others.get(target).getSortOrder();
+        // Normalize the flat slide index to a unit boundary: an index that
+        // falls inside a pair snaps to just after it.
+        int unitTarget = 0;
+        int flat = 0;
+        for (List<Slide> unit : units) {
+            if (toIndex <= flat) {
+                break;
             }
-            newRank = ranks.between(lower, upper);
+            flat += unit.size();
+            unitTarget++;
         }
-        moved.setSortOrder(newRank);
+
+        String headRank;
+        String childRank = null;
+        if (others.isEmpty()) {
+            headRank = ranks.initial();
+            childRank = movedChild == null ? null : ranks.after(headRank);
+        } else if (unitTarget == 0) {
+            String upper = units.get(0).get(0).getSortOrder();
+            headRank = ranks.before(upper);
+            childRank = movedChild == null ? null : ranks.between(headRank, upper);
+        } else if (unitTarget == units.size()) {
+            List<Slide> lastUnit = units.get(units.size() - 1);
+            headRank = ranks.after(lastUnit.get(lastUnit.size() - 1).getSortOrder());
+            childRank = movedChild == null ? null : ranks.after(headRank);
+        } else {
+            List<Slide> lowerUnit = units.get(unitTarget - 1);
+            Slide lower = lowerUnit.get(lowerUnit.size() - 1);
+            Slide upper = units.get(unitTarget).get(0);
+            if (!ranks.hasGap(lower.getSortOrder(), upper.getSortOrder())) {
+                rebalance(others, ranks);
+            }
+            headRank = ranks.between(lower.getSortOrder(), upper.getSortOrder());
+            childRank = movedChild == null ? null : ranks.between(headRank, upper.getSortOrder());
+        }
+        head.setSortOrder(headRank);
+        if (movedChild != null) {
+            movedChild.setSortOrder(childRank);
+        }
         resort();
+    }
+
+    /**
+     * Group an already-sorted run of slides into units: a parent immediately
+     * followed (logically) by its valid attached follow-up forms one unit;
+     * every other slide — including ones with dangling or half-written links —
+     * is a unit of its own. Only pairs whose both halves are present in
+     * {@code ordered} are grouped.
+     */
+    private List<List<Slide>> groupIntoUnits(List<Slide> ordered) {
+        Set<String> presentIds = new HashSet<>();
+        for (Slide s : ordered) {
+            presentIds.add(s.getId());
+        }
+        Set<String> attachedChildIds = new HashSet<>();
+        for (Slide s : ordered) {
+            attachedFollowUp(s).ifPresent(child -> {
+                if (presentIds.contains(child.getId())) {
+                    attachedChildIds.add(child.getId());
+                }
+            });
+        }
+        List<List<Slide>> units = new ArrayList<>();
+        for (Slide s : ordered) {
+            if (attachedChildIds.contains(s.getId())) {
+                continue; // emitted as part of its parent's unit
+            }
+            Slide child = attachedFollowUp(s)
+                    .filter(c -> attachedChildIds.contains(c.getId()))
+                    .orElse(null);
+            units.add(child == null ? List.of(s) : List.of(s, child));
+        }
+        return units;
     }
 
     /** Respace an already-sorted run of slides with fresh, evenly-stepped keys. */

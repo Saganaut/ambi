@@ -10,13 +10,19 @@ import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 
 /**
  * The slide-ordering invariants on the {@link Deck} aggregate, exercised with a
- * real {@link SlideRankService}: a move rewrites only the moved slide's key and
+ * real {@link SlideRankService}: a move rewrites only the moved unit's keys and
  * the embedded array stays physically sorted; a no-gap interior move rebalances
- * first; backfill keys an unkeyed list by array order; and removing a linked
- * slide clears the dangling back-pointer on the other end.
+ * first; backfill keys an unkeyed list by array order. Follow-up invariants: an
+ * added follow-up lands immediately after its parent, a parent/follow-up pair
+ * moves as one unit (and other moves can't land inside it), removing a parent
+ * cascades to its attached follow-up, and dangling or half-written links —
+ * which fail the both-back-pointers-plus-content attachment check — degrade to
+ * plain slides everywhere.
  */
 class DeckReorderTest {
 
@@ -54,7 +60,7 @@ class DeckReorderTest {
     void moveSlideToStartSortsFirst() {
         Deck deck = keyedDeck("s1", "s2", "s3");
 
-        deck.reorderSlide("s3", 0, ranks);
+        deck.reorderUnit("s3", 0, ranks);
 
         assertThat(ids(deck)).containsExactly("s3", "s1", "s2");
     }
@@ -63,7 +69,7 @@ class DeckReorderTest {
     void moveSlideToMiddleSortsBetweenNeighbors() {
         Deck deck = keyedDeck("s1", "s2", "s3", "s4");
 
-        deck.reorderSlide("s4", 1, ranks);
+        deck.reorderUnit("s4", 1, ranks);
 
         assertThat(ids(deck)).containsExactly("s1", "s4", "s2", "s3");
     }
@@ -72,7 +78,7 @@ class DeckReorderTest {
     void moveSlideToEndSortsLast() {
         Deck deck = keyedDeck("s1", "s2", "s3");
 
-        deck.reorderSlide("s1", 3, ranks);
+        deck.reorderUnit("s1", 3, ranks);
 
         assertThat(ids(deck)).containsExactly("s2", "s3", "s1");
     }
@@ -81,7 +87,7 @@ class DeckReorderTest {
     void moveSlideClampsOutOfRangeIndexToEnd() {
         Deck deck = keyedDeck("s1", "s2", "s3");
 
-        deck.reorderSlide("s1", 99, ranks);
+        deck.reorderUnit("s1", 99, ranks);
 
         assertThat(ids(deck)).containsExactly("s2", "s3", "s1");
     }
@@ -92,7 +98,7 @@ class DeckReorderTest {
         String s1 = deck.findSlide("s1").orElseThrow().getSortOrder();
         String s2 = deck.findSlide("s2").orElseThrow().getSortOrder();
 
-        deck.reorderSlide("s3", 0, ranks);
+        deck.reorderUnit("s3", 0, ranks);
 
         // The slides that didn't move keep their keys.
         assertThat(deck.findSlide("s1").orElseThrow().getSortOrder()).isEqualTo(s1);
@@ -110,7 +116,7 @@ class DeckReorderTest {
                 slide("s3", ranks.initial()),
                 slide("s4", ranks.after(ranks.initial())))));
 
-        deck.reorderSlide("s4", 2, ranks);
+        deck.reorderUnit("s4", 2, ranks);
 
         // others sorted [s1, s2, s3] (s2 before s3 on id tie-break); s4 lands at
         // index 2, i.e. between s2 and s3.
@@ -124,13 +130,79 @@ class DeckReorderTest {
     void reorderUnknownSlideIsNoOp() {
         Deck deck = keyedDeck("s1", "s2");
 
-        deck.reorderSlide("missing", 0, ranks);
+        deck.reorderUnit("missing", 0, ranks);
 
         assertThat(ids(deck)).containsExactly("s1", "s2");
     }
 
+    // ── Follow-up: add ──────────────────────────────────────────────────────────
+
     @Test
-    void removeParentClearsChildsBackPointer() {
+    void addFollowUpPlacesChildImmediatelyAfterMidListParent() {
+        Deck deck = keyedDeck("s1", "s2", "s3");
+        Slide parent = deck.findSlide("s2").orElseThrow();
+        List<String> beforeKeys = keysExcept(deck, "f");
+
+        deck.addFollowUp(followUpSlide("f", null), parent, ranks);
+
+        assertThat(ids(deck)).containsExactly("s1", "s2", "f", "s3");
+        assertThat(parent.getChildId()).isEqualTo("f");
+        assertThat(deck.findSlide("f").orElseThrow().getParentId()).isEqualTo("s2");
+        // Only the new slide's key was minted; nothing else moved.
+        assertThat(keysExcept(deck, "f")).isEqualTo(beforeKeys);
+    }
+
+    @Test
+    void addFollowUpToLastParentAppends() {
+        Deck deck = keyedDeck("s1", "s2");
+        Slide parent = deck.findSlide("s2").orElseThrow();
+
+        deck.addFollowUp(followUpSlide("f", null), parent, ranks);
+
+        assertThat(ids(deck)).containsExactly("s1", "s2", "f");
+    }
+
+    @Test
+    void addFollowUpRebalancesWhenNoGapAfterParent() {
+        // The parent and its successor share a key — no room for the follow-up
+        // until the list is rebalanced.
+        Deck deck = new Deck();
+        deck.setSlides(new ArrayList<>(List.of(
+                slide("s1", ranks.initial()),
+                slide("s2", ranks.initial()))));
+
+        deck.addFollowUp(followUpSlide("f", null), deck.findSlide("s1").orElseThrow(), ranks);
+
+        assertThat(ids(deck)).containsExactly("s1", "f", "s2");
+        List<String> keys = deck.getSlides().stream().map(Slide::getSortOrder).toList();
+        assertThat(keys).isSorted().doesNotHaveDuplicates();
+    }
+
+    // ── Follow-up: remove ───────────────────────────────────────────────────────
+
+    @Test
+    void removeParentCascadesAttachedFollowUp() {
+        Deck deck = deckWithAttachedPair("p", "f", "s2");
+
+        assertThat(deck.removeSlide("p")).isTrue();
+
+        assertThat(ids(deck)).containsExactly("s2");
+    }
+
+    @Test
+    void removeFollowUpClearsParentsBackPointer() {
+        Deck deck = deckWithAttachedPair("p", "f", "s2");
+
+        assertThat(deck.removeSlide("f")).isTrue();
+
+        assertThat(ids(deck)).containsExactly("p", "s2");
+        assertThat(deck.findSlide("p").orElseThrow().getChildId()).isNull();
+    }
+
+    @Test
+    void removeParentWithDanglingLinkClearsBackPointerWithoutCascade() {
+        // The "child" lacks FollowUpContent, so the link is legacy garbage: the
+        // parent's removal must not take the child with it, only unlink it.
         Deck deck = new Deck();
         Slide parent = slide("p", ranks.initial());
         Slide child = slide("c", ranks.after(ranks.initial()));
@@ -140,21 +212,8 @@ class DeckReorderTest {
 
         deck.removeSlide("p");
 
+        assertThat(ids(deck)).containsExactly("c");
         assertThat(deck.findSlide("c").orElseThrow().getParentId()).isNull();
-    }
-
-    @Test
-    void removeChildClearsParentsBackPointer() {
-        Deck deck = new Deck();
-        Slide parent = slide("p", ranks.initial());
-        Slide child = slide("c", ranks.after(ranks.initial()));
-        parent.setChildId("c");
-        child.setParentId("p");
-        deck.setSlides(new ArrayList<>(List.of(parent, child)));
-
-        deck.removeSlide("c");
-
-        assertThat(deck.findSlide("p").orElseThrow().getChildId()).isNull();
     }
 
     @Test
@@ -162,6 +221,80 @@ class DeckReorderTest {
         Deck deck = keyedDeck("s1");
         assertThat(deck.removeSlide("nope")).isFalse();
         assertThat(ids(deck)).containsExactly("s1");
+    }
+
+    // ── Follow-up: move as a unit ───────────────────────────────────────────────
+
+    @Test
+    void reorderUnitMovesPairAsBlock() {
+        Deck deck = deckWithAttachedPair("p", "f", "s2", "s3");
+
+        deck.reorderUnit("p", 3, ranks);
+
+        assertThat(ids(deck)).containsExactly("s2", "s3", "p", "f");
+    }
+
+    @Test
+    void reorderUnitMovesPairToStart() {
+        Deck deck = deckWithAttachedPair("p", "f", "s2", "s3");
+        deck.reorderUnit("p", 2, ranks); // s2, s3, p, f
+
+        deck.reorderUnit("p", 0, ranks);
+
+        assertThat(ids(deck)).containsExactly("p", "f", "s2", "s3");
+    }
+
+    @Test
+    void reorderUnitRewritesOnlyTheMovedPairsKeys() {
+        Deck deck = deckWithAttachedPair("p", "f", "s2", "s3");
+        String s2 = deck.findSlide("s2").orElseThrow().getSortOrder();
+        String s3 = deck.findSlide("s3").orElseThrow().getSortOrder();
+
+        deck.reorderUnit("p", 4, ranks);
+
+        assertThat(deck.findSlide("s2").orElseThrow().getSortOrder()).isEqualTo(s2);
+        assertThat(deck.findSlide("s3").orElseThrow().getSortOrder()).isEqualTo(s3);
+    }
+
+    @Test
+    void reorderUnitSnapsTargetInsideAnotherPairPastIt() {
+        // Order: p, f, s2 — moving s2 to flat index 1 would split the pair, so
+        // it snaps past it (which keeps the order unchanged here).
+        Deck deck = deckWithAttachedPair("p", "f", "s2");
+
+        deck.reorderUnit("s2", 1, ranks);
+
+        assertThat(ids(deck)).containsExactly("p", "f", "s2");
+    }
+
+    @Test
+    void reorderUnitBeforeAnotherPairLandsAheadOfIt() {
+        Deck deck = deckWithAttachedPair("p", "f", "s2");
+
+        deck.reorderUnit("s2", 0, ranks);
+
+        assertThat(ids(deck)).containsExactly("s2", "p", "f");
+    }
+
+    @Test
+    void reorderUnitOnAttachedFollowUpIsNoOp() {
+        Deck deck = deckWithAttachedPair("p", "f", "s2");
+
+        deck.reorderUnit("f", 0, ranks);
+
+        assertThat(ids(deck)).containsExactly("p", "f", "s2");
+    }
+
+    @Test
+    void reorderUnitWithDanglingLinkTreatsSlidesAsSingles() {
+        // One-sided link, no FollowUpContent: "c" is not attached, so it can be
+        // moved freely and "p" moves alone.
+        Deck deck = keyedDeck("p", "c", "s3");
+        deck.findSlide("p").orElseThrow().setChildId("c");
+
+        deck.reorderUnit("c", 3, ranks);
+
+        assertThat(ids(deck)).containsExactly("p", "s3", "c");
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────
@@ -185,6 +318,29 @@ class DeckReorderTest {
         return deck;
     }
 
+    /**
+     * A keyed deck whose first two slides are a valid attached parent/follow-up
+     * pair (both back-pointers set, child carrying {@link FollowUpContent}),
+     * followed by the given plain slides.
+     */
+    private Deck deckWithAttachedPair(String parentId, String followUpId, String... restIds) {
+        Deck deck = new Deck();
+        List<Slide> slides = new ArrayList<>();
+        Slide parent = slide(parentId, null);
+        Slide followUp = followUpSlide(followUpId, null);
+        parent.setChildId(followUpId);
+        followUp.setParentId(parentId);
+        slides.add(parent);
+        slides.add(followUp);
+        for (String id : restIds) {
+            slides.add(slide(id, null));
+        }
+        deck.setSlides(slides);
+        deck.backfillRanks(ranks);
+        deck.resort();
+        return deck;
+    }
+
     private static Slide slide(String id, String sortOrder) {
         Slide slide = new Slide();
         slide.setId(id);
@@ -192,7 +348,22 @@ class DeckReorderTest {
         return slide;
     }
 
+    private static Slide followUpSlide(String id, String sortOrder) {
+        Slide slide = slide(id, sortOrder);
+        slide.setContent(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
+        return slide;
+    }
+
     private static List<String> ids(Deck deck) {
         return deck.getSlides().stream().map(Slide::getId).toList();
+    }
+
+    /** Sort keys of every slide except {@code excludedId}, in canonical order. */
+    private static List<String> keysExcept(Deck deck, String excludedId) {
+        return deck.getSlides().stream()
+                .sorted(SlideRankService.ordering())
+                .filter(s -> !excludedId.equals(s.getId()))
+                .map(Slide::getSortOrder)
+                .toList();
     }
 }

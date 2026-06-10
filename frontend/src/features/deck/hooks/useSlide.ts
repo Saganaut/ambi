@@ -4,9 +4,9 @@
 // Query directly. The handlers are thin: they just fire the mutation. Cache
 // behaviour (optimistic patch + tag-driven reconciling refetch) lives in
 // `store/enhancements/slide.ts` so it applies no matter who calls the mutation.
-import { useListDeckSlidesQuery, useAddSlideMutation, useUpdateSlideMutation, useRemoveSlideMutation, useMoveSlideMutation, useSetSlideCoverImageMutation, useClearSlideCoverImageMutation, useSetSlideBackgroundImageMutation, useClearSlideBackgroundImageMutation, type AppImage, type SlideRequest, type SlideResponse } from "@deck/store/deckApi.gen";
+import { useListDeckSlidesQuery, useAddSlideMutation, useAddFollowUpSlideMutation, useUpdateSlideMutation, useRemoveSlideMutation, useMoveSlideMutation, useSetSlideCoverImageMutation, useClearSlideCoverImageMutation, useSetSlideBackgroundImageMutation, useClearSlideBackgroundImageMutation, type AppImage, type SlideRequest, type SlideResponse } from "@deck/store/deckApi.gen";
 import { buildDefaultContent } from "../utils/slideContent";
-import { SlideType } from "@deck/store/deckEnums.gen";
+import { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
 
 /** Which dedicated image slot on a slide a handler targets. */
 type ImageSlot = "cover" | "background";
@@ -40,6 +40,12 @@ interface UseSlideResult {
   getSlide: (slideId: string) => SlideResponse | undefined;
   /** Append a slide; returns the new client-minted id. */
   addSlide: (options?: AddSlideOptions) => string;
+  /**
+   * Attach a follow-up slide directly after a scorable parent; returns the new
+   * client-minted id. The link and placement are server-owned — the dedicated
+   * endpoint is the only way a follow-up comes to exist.
+   */
+  addFollowUp: (parentSlideId: string, mode: FollowUpMode) => string;
   /** Patch a slide (PUT replaces the whole slide). */
   updateSlide: (slideId: string, patch: Partial<SlideRequest>) => void;
   /** Remove a slide. */
@@ -65,6 +71,7 @@ const useSlide = (deckId: string): UseSlideResult => {
   const slides = data ?? [];
 
   const [addSlideMutation] = useAddSlideMutation();
+  const [addFollowUpSlideMutation] = useAddFollowUpSlideMutation();
   const [updateSlideMutation] = useUpdateSlideMutation();
   const [removeSlideMutation] = useRemoveSlideMutation();
   const [moveSlideMutation] = useMoveSlideMutation();
@@ -91,9 +98,20 @@ const useSlide = (deckId: string): UseSlideResult => {
     if (!current) return;
     // PUT replaces the whole slide, so carry the cached slide forward and
     // overlay the patch. The few response-only fields that ride along (audit
-    // ids, version) are ignored server-side.
+    // ids, version, the server-owned parentId/childId link) are ignored
+    // server-side.
     const slideRequest: SlideRequest = { ...current, ...patch };
     void updateSlideMutation({ id: deckId, slideId, slideRequest });
+  };
+
+  const addFollowUp = (parentSlideId: string, mode: FollowUpMode) => {
+    const id = crypto.randomUUID();
+    void addFollowUpSlideMutation({
+      id: deckId,
+      slideId: parentSlideId,
+      addFollowUpRequest: { id, mode, title: "" },
+    });
+    return id;
   };
 
   const removeSlide = (slideId: string) => {
@@ -126,6 +144,7 @@ const useSlide = (deckId: string): UseSlideResult => {
     error,
     getSlide,
     addSlide,
+    addFollowUp,
     updateSlide,
     removeSlide,
     setSlideImage,

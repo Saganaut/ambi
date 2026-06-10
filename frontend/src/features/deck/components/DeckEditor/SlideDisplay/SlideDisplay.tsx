@@ -18,6 +18,7 @@ import { PlaceOnImageSlideContent } from "../SlideContent/PlaceOnImageSlideConte
 import { AllocationSlideContent } from "../SlideContent/AllocationSlideContent/AllocationSlideContent";
 import { MatchingSlideContent } from "../SlideContent/MatchingSlideContent/MatchingSlideContent";
 import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/DrawingSlideContent";
+import { FollowUpSlideContent } from "../SlideContent/FollowUpSlideContent/FollowUpSlideContent";
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
 import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
 import { useSlide } from "../../../hooks/useSlide";
@@ -76,7 +77,7 @@ const SlideDisplay = () => {
       case "DRAWING":
         return <DrawingSlideContent />;
       case "FOLLOW_UP":
-        return <p> Not implemented</p>;
+        return <FollowUpSlideContent />;
       case "TITLE":
         return <p> Not implemented</p>;
       case "MEDIA":

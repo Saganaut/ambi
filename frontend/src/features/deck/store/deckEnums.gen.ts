@@ -86,3 +86,11 @@ export const ResultsDisplayMode = {
   PRESENTATION_END: "PRESENTATION_END",
   ROUND_END: "ROUND_END",
 } as const satisfies Record<ResultsDisplayMode, ResultsDisplayMode>;
+
+export type FollowUpMode = "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
+export const FollowUpMode = {
+  BEST_ANSWER_VOTE: "BEST_ANSWER_VOTE",
+  PREDICT_POPULAR: "PREDICT_POPULAR",
+} as const satisfies Record<FollowUpMode, FollowUpMode>;
+
+export const FOLLOW_UP_MODE_LIST = Object.values(FollowUpMode) as FollowUpMode[];

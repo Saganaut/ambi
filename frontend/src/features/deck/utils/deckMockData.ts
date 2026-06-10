@@ -279,8 +279,7 @@ const qAndAContent: QAndAContent = {
 
 const followUpContent: FollowUpContent = {
   contentType: "FOLLOW_UP",
-  parentSlideId: "slide_qanda",
-  submissionOption: { submissionId: "sub_taters" },
+  mode: "PREDICT_POPULAR",
 };
 
 // ─── Slides ──────────────────────────────────────────────────────────────────

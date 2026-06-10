@@ -18,15 +18,9 @@ import { useModal } from "@/shared/hooks/useModal";
 import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { getRouteApi } from "@tanstack/react-router";
-import { SlideResponse } from "@deck/store/deckApi.gen";
+import { canHaveFollowUp, groupIntoUnits } from "@deck/utils/followUp";
 import { NewSlideModal } from "../NewSlideModal/NewSlideModal";
 import { SlideType } from "@deck/store/deckEnums.gen";
-
-/** Friendly label for the thumbnail — falls back when the slide is untitled. */
-const slideDisplayName = (slide: SlideResponse): string => {
-  const trimmed = slide.title.trim();
-  return trimmed === "" ? "Untitled slide" : trimmed;
-};
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -81,17 +75,30 @@ const LeftSidebarContent = () => {
             onDragEnd={(event) => {
               handleDragEnd(event);
             }}>
-            {slides.map((slide, index) => (
-              <SlideThumbnail
-                key={slide.id}
-                index={index}
-                slideId={slide.id}
-                name={slideDisplayName(slide)}
-                slideType={slide.content.contentType}
-                currentQuestionId={slideId}
-                deckId={deckId}
-              />
-            ))}
+            {(() => {
+              // The rail renders *units*: a parent and its attached follow-up
+              // share one sortable wrapper so the pair drags as a block and the
+              // follow-up can't be dragged on its own. The number badge counts
+              // slides (the follow-up shows as "Na"), so track both indexes.
+              let slideNumber = 0;
+              return groupIntoUnits(slides).map((unit, unitIndex) => {
+                slideNumber += 1;
+                const displayNumber = slideNumber;
+                if (unit.followUp) slideNumber += 1;
+                return (
+                  <SlideThumbnail
+                    key={unit.head.id}
+                    slide={unit.head}
+                    followUp={unit.followUp}
+                    canAddFollowUp={canHaveFollowUp(unit.head, slides)}
+                    sortIndex={unitIndex}
+                    displayNumber={displayNumber}
+                    currentQuestionId={slideId}
+                    deckId={deckId}
+                  />
+                );
+              });
+            })()}
           </DragDropProvider>
         )}
       </div>

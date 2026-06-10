@@ -60,6 +60,31 @@
         }
       }
 
+      /* Attached follow-up: indented under its parent with a connector spine,
+         visually one block (the whole wrapper is the drag unit). */
+      .followUpThumbnailWrapper {
+        position: relative;
+        margin-top: var(--space-2);
+        margin-left: var(--space-5);
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: calc(-1 * var(--space-3));
+          top: calc(-1 * var(--space-2));
+          bottom: 50%;
+          width: var(--space-2);
+          border-left: var(--border-size-sm) solid var(--border-default);
+          border-bottom: var(--border-size-sm) solid var(--border-default);
+          border-bottom-left-radius: var(--radius-sm);
+        }
+
+        .followUpThumbnail {
+          width: 180px;
+          height: 144px;
+        }
+      }
+
       .slideThumbnailContent {
         display: grid;
         align-items: end;

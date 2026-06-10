@@ -23,8 +23,10 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.enums.OwnershipType;
+import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
@@ -34,6 +36,12 @@ import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
+import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.TextContent;
+import com.cephadex.ambi.presentation.slide.content.TitleContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
@@ -154,6 +162,231 @@ class DeckServiceTest {
         assertThatThrownBy(() -> deckService.moveSlide("deck-1", "s1", 0, principal("intruder")))
                 .isInstanceOf(ForbiddenException.class);
         verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    // ── Follow-up slides ─────────────────────────────────────────────────────────
+
+    @Test
+    void addFollowUpSlideLinksAndPositionsAfterParent() {
+        Deck deck = deckWithMcq("owner-1", "s1", "s2");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        List<Slide> result = deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, "Most popular?", owner);
+
+        assertThat(result.stream().map(Slide::getId).toList()).containsExactly("s1", "f1", "s2");
+        Slide followUp = deck.findSlide("f1").orElseThrow();
+        assertThat(followUp.getParentId()).isEqualTo("s1");
+        assertThat(deck.findSlide("s1").orElseThrow().getChildId()).isEqualTo("f1");
+        assertThat(followUp.getContent()).isEqualTo(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
+        assertThat(followUp.getTitle()).isEqualTo("Most popular?");
+        assertThat(followUp.getCreatedByUserId()).isEqualTo("owner-1");
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void addFollowUpSlideMintsIdWhenAbsent() {
+        Deck deck = deckWithMcq("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.addFollowUpSlide("deck-1", "s1", null, FollowUpMode.PREDICT_POPULAR, null, owner);
+
+        String childId = deck.findSlide("s1").orElseThrow().getChildId();
+        assertThat(childId).isNotNull();
+        assertThat(deck.findSlide(childId).orElseThrow().getTitle()).isEmpty();
+    }
+
+    @Test
+    void addFollowUpSlideRejectsNonScorableParent() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(new TitleContent());
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, null, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("scorable");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void addFollowUpSlideRejectsModeInvalidForParentType() {
+        // PREDICT_POPULAR needs a parent with predefined options; a TEXT parent
+        // has none, so the mode is invalid for it.
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(textContent());
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, null, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("not valid");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void addFollowUpSlideRejectsSecondFollowUpWithConflict() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "p", "f2", FollowUpMode.PREDICT_POPULAR, null, owner))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("already has a follow-up");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void addFollowUpSlideRejectsFollowUpAsParent() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "f", "f2", FollowUpMode.PREDICT_POPULAR, null, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("cannot have its own follow-up");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void addFollowUpSlideRejectsUnknownParentWithNotFound() {
+        Deck deck = deckWithMcq("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "missing", "f1", FollowUpMode.PREDICT_POPULAR, null, owner))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void addFollowUpSlideRequiresEdit() {
+        Deck deck = deckWithMcq("someone-else", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, null, principal("intruder")))
+                .isInstanceOf(ForbiddenException.class);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void addFollowUpSlideHealsDanglingChildIdAndProceeds() {
+        // Legacy client-written childId pointing at nothing: self-heal, attach.
+        Deck deck = deckWithMcq("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setChildId("ghost");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.addFollowUpSlide("deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, null, owner);
+
+        assertThat(deck.findSlide("s1").orElseThrow().getChildId()).isEqualTo("f1");
+    }
+
+    @Test
+    void moveSlideRejectsAttachedFollowUp() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.moveSlide("deck-1", "f", 0, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("moves with its parent");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void moveSlideCarriesAttachedFollowUpAsUnit() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f", "s3");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        List<Slide> result = deckService.moveSlide("deck-1", "p", 2, owner);
+
+        assertThat(result.stream().map(Slide::getId).toList()).containsExactly("s3", "p", "f");
+    }
+
+    @Test
+    void updateSlideRejectsTurningRegularSlideIntoFollowUp() {
+        Deck deck = deckWithMcq("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("s1");
+        changes.setContent(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "s1", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("follow-up endpoint");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideRejectsFollowUpChangingKind() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("f");
+        changes.setContent(new TitleContent());
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("cannot change");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideRejectsFollowUpModeInvalidForParent() {
+        // A BEST_ANSWER_VOTE follow-up on a TEXT parent can't switch to
+        // PREDICT_POPULAR — that mode needs a parent with predefined options.
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        deck.findSlide("p").orElseThrow().setContent(textContent());
+        deck.findSlide("f").orElseThrow()
+                .setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("f");
+        changes.setContent(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("not valid");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideAllowsFollowUpModeChangeWithinValidModes() {
+        // MCQ parents support both modes, so a follow-up can switch between them.
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("f");
+        changes.setTitle("Which answer was best?");
+        changes.setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+
+        Slide updated = deckService.updateSlide("deck-1", "f", changes, owner);
+
+        assertThat(updated.getTitle()).isEqualTo("Which answer was best?");
+        assertThat(updated.getContent())
+                .isEqualTo(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        // The link is server-owned and survives the update untouched.
+        assertThat(updated.getParentId()).isEqualTo("p");
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void updateSlideRejectsParentTypeChangeThatInvalidatesChildMode() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("p");
+        changes.setContent(new TitleContent());
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("invalidate its follow-up");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void removeSlideCascadesAttachedFollowUpAndSaves() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f", "s3");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.removeSlide("deck-1", "p", owner);
+
+        assertThat(orderedIds(deck)).containsExactly("s3");
+        verify(deckRepository).save(deck);
     }
 
     // ── Images ───────────────────────────────────────────────────────────────────
@@ -595,6 +828,42 @@ class DeckServiceTest {
         Slide slide = new Slide();
         slide.setId(id);
         return slide;
+    }
+
+    /** A keyed deck whose slides all carry (empty) MCQ content. */
+    private Deck deckWithMcq(String ownerId, String... slideIds) {
+        Deck deck = keyedDeck(ownerId, slideIds);
+        deck.getSlides().forEach(s -> s.setContent(mcqContent()));
+        return deck;
+    }
+
+    /**
+     * A keyed deck opening with a valid attached pair: an MCQ parent and its
+     * PREDICT_POPULAR follow-up, then the given plain MCQ slides.
+     */
+    private Deck deckWithAttachedPair(String ownerId, String parentId, String followUpId,
+            String... restIds) {
+        String[] all = new String[restIds.length + 2];
+        all[0] = parentId;
+        all[1] = followUpId;
+        System.arraycopy(restIds, 0, all, 2, restIds.length);
+        Deck deck = deckWithMcq(ownerId, all);
+        Slide parent = deck.findSlide(parentId).orElseThrow();
+        Slide followUp = deck.findSlide(followUpId).orElseThrow();
+        followUp.setContent(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
+        parent.setChildId(followUpId);
+        followUp.setParentId(parentId);
+        return deck;
+    }
+
+    private static McqContent mcqContent() {
+        return new McqContent(List.of(), Set.of(),
+                SlideContentTypes.McqDataVisualization.NONE);
+    }
+
+    private static TextContent textContent() {
+        return new TextContent(Set.of(), SlideContentTypes.MatchMode.EXACT,
+                false, true, null);
     }
 
     private static AppImage image(String externalSrc) {

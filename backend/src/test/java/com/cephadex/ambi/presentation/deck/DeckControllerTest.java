@@ -42,6 +42,7 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.user.enums.UserLevel;
 
@@ -483,6 +484,33 @@ class DeckControllerTest {
         McqContent mcq = (McqContent) sent.getValue().getContent();
         assertThat(mcq.contentType()).isEqualTo(SlideType.MCQ);
         assertThat(mcq.correctOptionIds()).containsExactly("o1");
+    }
+
+    @Test
+    void addFollowUpSlideReturns201AndCanonicalSlideList() throws Exception {
+        when(deckService.addFollowUpSlide(
+                eq("deck-1"), eq("s1"), eq("f1"), eq(FollowUpMode.PREDICT_POPULAR),
+                eq("Most popular?"), any()))
+                .thenReturn(List.of(slide("s1"), slide("f1"), slide("s2")));
+
+        mockMvc.perform(post("/api/decks/deck-1/slides/s1/follow-up")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"id\":\"f1\",\"mode\":\"PREDICT_POPULAR\",\"title\":\"Most popular?\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[1].id").value("f1"));
+
+        verify(deckService).addFollowUpSlide(
+                eq("deck-1"), eq("s1"), eq("f1"), eq(FollowUpMode.PREDICT_POPULAR),
+                eq("Most popular?"), any());
+    }
+
+    @Test
+    void addFollowUpSlideRejectsMissingModeWith400() throws Exception {
+        mockMvc.perform(post("/api/decks/deck-1/slides/s1/follow-up")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"id\":\"f1\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

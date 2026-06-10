@@ -85,13 +85,4 @@ public class SlideContentTypes {
     public record MatchItem(String id, String label, AppImage image) {
     }
 
-    // --------------- FollowUp / Submission reference ---------------------
-
-    public record SubmissionOption(
-            String submissionId
-    // TODO: consider whether we need to add more info here or just use the
-    // submission ID and get the content from the previous rounds answers
-    ) {
-    }
-
 }

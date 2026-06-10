@@ -73,6 +73,12 @@ const ENUMS = [
     feature: "deck",
     prop: ["AnswerSettings", "displayResultsMode"],
   },
+  {
+    name: "FollowUpMode",
+    feature: "deck",
+    prop: ["FollowUpContent", "mode"],
+    emitList: "FOLLOW_UP_MODE_LIST",
+  },
   { name: "UserLevel", feature: "auth", prop: ["RegisteredMe", "userLevel"] },
   {
     name: "MembershipTier",

@@ -23,6 +23,7 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.presentation.deck.dto.AnswerSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
+import com.cephadex.ambi.presentation.deck.dto.AddFollowUpRequest;
 import com.cephadex.ambi.presentation.deck.dto.MoveSlideRequest;
 import com.cephadex.ambi.presentation.deck.dto.PointSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest;
@@ -282,6 +283,28 @@ public class DeckController {
             @AuthenticationPrincipal AmbiPrincipal principal) {
         Slide added = deckService.addSlide(id, body.toSlide(), principal);
         return SlideResponse.from(added);
+    }
+
+    /**
+     * Attach a follow-up slide directly after a scorable parent slide (EDIT).
+     * The link and placement are server-owned; the client sends only the new
+     * slide's optimistic id, the follow-up mode, and an optional title. Returns
+     * the deck's slides in canonical order — the operation touches two slides
+     * and inserts mid-list, so the client reconciles its cache straight from
+     * the response, like a move.
+     */
+    @PostMapping("/{id}/slides/{slideId}/follow-up")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<SlideResponse> addFollowUpSlide(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @Valid @RequestBody AddFollowUpRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return deckService
+                .addFollowUpSlide(id, slideId, body.id(), body.mode(), body.title(), principal)
+                .stream()
+                .map(SlideResponse::from)
+                .toList();
     }
 
     /** Replace a slide's editable presentation fields (EDIT). */

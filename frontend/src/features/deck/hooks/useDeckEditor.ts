@@ -35,6 +35,8 @@ import { useState } from "react";
 
 import { useLiveSession } from "@/features/liveSession/hooks/useLiveSession";
 import type { DeckResponse, SlideResponse } from "@deck/store/deckApi.gen";
+import type { FollowUpMode } from "@deck/store/deckEnums.gen";
+import { followUpModesFor, groupIntoUnits } from "../utils/followUp";
 
 import { useDeck } from "./useDeck";
 import { useSlide, type AddSlideOptions } from "./useSlide";
@@ -66,6 +68,12 @@ interface UseDeckEditorResult {
   selectSlide: (slideId: string) => void;
   /** Append a slide, select it, and scroll its thumbnail into view. */
   addSlide: (options?: AddSlideOptions) => void;
+  /**
+   * Attach a follow-up slide directly after a scorable parent, select it, and
+   * scroll it into view. Defaults to the first mode valid for the parent's
+   * content type (the inspector can change it after); no-ops if none is.
+   */
+  addFollowUp: (parentSlideId: string, mode?: FollowUpMode) => void;
   removeSlide: (slideId: string) => void;
   /** Move a slide to a new zero-based position (drag-and-drop in the rail). */
   reorder: (slideId: string, toIndex: number) => void;
@@ -106,7 +114,7 @@ const useDeckEditor = (deckId: string): UseDeckEditorResult => {
   const navigate = routeApi.useNavigate();
 
   const { deck, isLoading, error, rename } = useDeck(deckId);
-  const { slides, addSlide: appendSlide, removeSlide, reorder } = useSlide(deckId);
+  const { slides, addSlide: appendSlide, addFollowUp: attachFollowUp, removeSlide, reorder } = useSlide(deckId);
 
   const { present } = useLiveSession();
 
@@ -154,19 +162,40 @@ const useDeckEditor = (deckId: string): UseDeckEditorResult => {
     scrollThumbnailIntoView(newId);
   };
 
+  const addFollowUp = (parentSlideId: string, mode?: FollowUpMode) => {
+    const parent = slides.find((slide) => slide.id === parentSlideId);
+    if (!parent) return;
+    const resolvedMode =
+      mode ?? followUpModesFor(parent.content.contentType)[0];
+    if (!resolvedMode) return;
+    const newId = attachFollowUp(parentSlideId, resolvedMode);
+    selectSlide(newId);
+    scrollThumbnailIntoView(newId);
+  };
+
   // ── Drag-to-reorder (left rail) ────────────────────────────────────────────
   // @dnd-kit hands us the source draggable carrying its starting (`initialIndex`)
   // and final (`index`) positions; its `id` is the slide id we registered via
-  // useSortable. We only translate that into a `reorder` call — the optimistic
-  // cache patch lives in the slide enhancement, so this stays a thin adapter.
-  // Bail on canceled drags and no-op drops so we don't fire a redundant move.
+  // useSortable. The rail registers one sortable per *unit* (a parent and its
+  // attached follow-up drag as a single block), so the sortable index counts
+  // units while the wire contract counts slides — convert by summing the sizes
+  // of the units that land before the destination, excluding the moved one.
+  // The optimistic cache patch lives in the slide enhancement, so this stays a
+  // thin adapter. Bail on canceled drags and no-op drops so we don't fire a
+  // redundant move.
   const handleDragEnd = (event: DragEndEvent) => {
     if (event.canceled) return;
     const { source } = event.operation;
     if (!isSortable(source)) return;
     const { initialIndex, index, id } = source;
     if (initialIndex === index) return;
-    reorder(String(id), index);
+    const otherUnits = groupIntoUnits(slides).filter(
+      (unit) => unit.head.id !== String(id),
+    );
+    const flatIndex = otherUnits
+      .slice(0, index)
+      .reduce((count, unit) => count + (unit.followUp ? 2 : 1), 0);
+    reorder(String(id), flatIndex);
   };
 
   // ── Navbar ─────────────────────────────────────────────────────────────────
@@ -205,6 +234,7 @@ const useDeckEditor = (deckId: string): UseDeckEditorResult => {
     selectedSlideId,
     selectSlide,
     addSlide,
+    addFollowUp,
     removeSlide,
     reorder,
     handleDragEnd,

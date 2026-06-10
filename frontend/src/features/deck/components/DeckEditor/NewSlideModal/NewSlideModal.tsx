@@ -34,7 +34,11 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
 };
 
 // Preserve the order defined in the graphics map by reading its keys directly.
-const SLIDE_TYPES = Object.keys(slideTypeGraphics) as SlideType[];
+// FOLLOW_UP is excluded: a follow-up is never created standalone — it's
+// attached to a parent slide via its "Add follow-up slide" action.
+const SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
+  (slideType) => slideType !== "FOLLOW_UP",
+);
 
 const NewSlideModal = ({ onPick }: NewSlideModalProps) => {
   return (

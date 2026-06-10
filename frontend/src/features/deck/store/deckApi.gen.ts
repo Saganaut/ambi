@@ -257,6 +257,16 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.slideRequest,
       }),
     }),
+    addFollowUpSlide: build.mutation<
+      AddFollowUpSlideApiResponse,
+      AddFollowUpSlideApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/follow-up`,
+        method: "POST",
+        body: queryArg.addFollowUpRequest,
+      }),
+    }),
     moveSlide: build.mutation<MoveSlideApiResponse, MoveSlideApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/move`,
@@ -461,6 +471,13 @@ export type AddSlideApiResponse = /** status 201 Created */ SlideResponse;
 export type AddSlideApiArg = {
   id: string;
   slideRequest: SlideRequest;
+};
+export type AddFollowUpSlideApiResponse =
+  /** status 201 Created */ SlideResponse[];
+export type AddFollowUpSlideApiArg = {
+  id: string;
+  slideId: string;
+  addFollowUpRequest: AddFollowUpRequest;
 };
 export type MoveSlideApiResponse = /** status 200 OK */ SlideResponse[];
 export type MoveSlideApiArg = {
@@ -765,12 +782,8 @@ export type DrawingContent = {
   tools: ("PEN" | "ERASER" | "SHAPES" | "TEXT" | "COLOR_PALETTE")[];
   contentType: "DRAWING";
 };
-export type SubmissionOption = {
-  submissionId?: string;
-};
 export type FollowUpContent = {
-  parentSlideId: string;
-  submissionOption: SubmissionOption;
+  mode: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
   contentType: "FOLLOW_UP";
 };
 export type TitleContent = {
@@ -861,8 +874,6 @@ export type SlideRequest = {
   id: string;
   title: string;
   section?: string;
-  parentId?: string;
-  childId?: string;
   sortOrder?: string;
   content: SlideContent;
   difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
@@ -895,6 +906,11 @@ export type SetInviteSettingsRequest = {
 };
 export type SetAudienceSettingsRequest = {
   audienceSettings: AudienceSettings;
+};
+export type AddFollowUpRequest = {
+  id: string;
+  mode: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
+  title?: string;
 };
 export type MoveSlideRequest = {
   to: number;
@@ -951,6 +967,7 @@ export const {
   useListDeckSlidesQuery,
   useLazyListDeckSlidesQuery,
   useAddSlideMutation,
+  useAddFollowUpSlideMutation,
   useMoveSlideMutation,
   useListDecksForOrgQuery,
   useLazyListDecksForOrgQuery,

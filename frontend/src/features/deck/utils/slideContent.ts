@@ -125,13 +125,12 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         scoreMode: "INSIDE_RADIUS",
       };
     case "FOLLOW_UP":
-      // A real follow-up slide also needs `parentSlideId` set to its parent
-      // slide; the picker never creates FOLLOW_UP standalone, so a blank
-      // submission option is enough for the placeholder.
+      // Follow-ups are never created through the picker — only the dedicated
+      // add-follow-up endpoint mints one, with the mode chosen for the parent.
+      // This arm exists solely to keep the switch exhaustive.
       return {
         contentType: "FOLLOW_UP",
-        submissionOption: {},
-        parentSlideId: "",
+        mode: "PREDICT_POPULAR",
       };
     default:
       return assertNever(slideType);

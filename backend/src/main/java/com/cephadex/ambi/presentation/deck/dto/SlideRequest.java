@@ -20,14 +20,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * {@code lastEditedByUserId}) and {@code version} are server-owned and absent.
  * Cover and background images are absent too: they have a single owner in the
  * dedicated {@code .../cover-image} and {@code .../background-image} endpoints,
- * so a slide edit never touches them.
+ * so a slide edit never touches them. Follow-up links ({@code parentId} /
+ * {@code childId}) are server-owned as well: minted only by the dedicated
+ * {@code .../follow-up} endpoint and cleared on delete.
  */
 public record SlideRequest(
         @Schema(requiredMode = REQUIRED) String id,
         @Schema(requiredMode = REQUIRED) String title,
         String section,
-        String parentId,
-        String childId,
         String sortOrder,
         @Schema(requiredMode = REQUIRED) SlideContent content,
         Difficulty difficulty,
@@ -41,8 +41,6 @@ public record SlideRequest(
         slide.setId(id);
         slide.setTitle(title);
         slide.setSection(section);
-        slide.setParentId(parentId);
-        slide.setChildId(childId);
         slide.setSortOrder(sortOrder);
         slide.setContent(content);
         slide.setDifficulty(difficulty);

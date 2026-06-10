@@ -18,8 +18,10 @@
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
 import { CacheSyncMutationApi } from "@/shared/store/enhancements/types";
+import { attachedFollowUpOf, groupIntoUnits } from "../../utils/followUp";
 import {
   deckApi,
+  type AddFollowUpSlideApiArg,
   type AddSlideApiArg,
   type AnswerSettingsResponse,
   type ClearSlideAnswerSettingsApiArg,
@@ -139,13 +141,50 @@ deckApi.enhanceEndpoints({
         upsertSlideById(draft, data);
       },
     ),
-    // 204 — the optimistic splice is the final state. Server-side neighbor
-    // parent/child back-pointer rewrites are invisible to the rail, so there's
-    // nothing to reconcile.
+    // addFollowUpSlide returns the deck's slides in canonical order (it touches
+    // two slides and inserts mid-list), so the reconcile replaces the whole
+    // list, like moveSlide. The optimistic patch mirrors the server: link the
+    // parent and slot the new follow-up directly after it.
+    addFollowUpSlide: reconcilingSlideMutation<
+      AddFollowUpSlideApiArg,
+      SlideResponse[]
+    >(
+      (draft, arg) => {
+        const parentIdx = draft.findIndex((slide) => slide.id === arg.slideId);
+        if (parentIdx === -1) return;
+        const request = arg.addFollowUpRequest;
+        draft[parentIdx].childId = request.id;
+        draft.splice(parentIdx + 1, 0, {
+          id: request.id,
+          title: request.title ?? "",
+          content: { contentType: "FOLLOW_UP", mode: request.mode },
+          parentId: arg.slideId,
+          createdByUserId: "",
+          lastEditedByUserId: "",
+        });
+      },
+      (draft, data) => {
+        draft.splice(0, draft.length, ...data);
+      },
+    ),
+    // 204 — the optimistic splice is the final state, so it mirrors the
+    // server's cascade: deleting a parent takes its attached follow-up with it,
+    // and deleting a follow-up frees the parent's child slot.
     removeSlide: reconcilingSlideMutation<RemoveSlideApiArg, unknown>(
       (draft, arg) => {
         const idx = draft.findIndex((slide) => slide.id === arg.slideId);
-        if (idx !== -1) draft.splice(idx, 1);
+        if (idx === -1) return;
+        const [removed] = draft.splice(idx, 1);
+        const child = attachedFollowUpOf(removed, draft);
+        if (child) {
+          const childIdx = draft.findIndex((slide) => slide.id === child.id);
+          if (childIdx !== -1) draft.splice(childIdx, 1);
+        }
+        if (removed.parentId) {
+          withSlide(draft, removed.parentId, (parent) => {
+            if (parent.childId === arg.slideId) parent.childId = undefined;
+          });
+        }
       },
     ),
     // Cover/background images have a dedicated home (separate from updateSlide)
@@ -288,18 +327,28 @@ deckApi.enhanceEndpoints({
     ),
     // moveSlide returns the deck's slides in their new canonical order (with the
     // server-owned LexoRank keys), so the reconcile replaces the whole list. The
-    // optimistic patch reorders the rail instantly; the response lands the
-    // authoritative order.
+    // optimistic patch reorders the rail instantly, moving a parent/follow-up
+    // pair as one block and snapping a target that falls inside another pair
+    // past it — the same normalization the server applies, so the reconcile
+    // doesn't visibly "jump". Minor divergence self-heals from the response.
     moveSlide: reconcilingSlideMutation<MoveSlideApiArg, SlideResponse[]>(
       (draft, arg) => {
-        const from = draft.findIndex((slide) => slide.id === arg.slideId);
+        const units = groupIntoUnits(draft);
+        const from = units.findIndex((unit) => unit.head.id === arg.slideId);
         if (from === -1) return;
-        const to = Math.max(
-          0,
-          Math.min(arg.moveSlideRequest.to, draft.length - 1),
+        const [moved] = units.splice(from, 1);
+        let to = 0;
+        let flat = 0;
+        for (const unit of units) {
+          if (arg.moveSlideRequest.to <= flat) break;
+          flat += unit.followUp ? 2 : 1;
+          to += 1;
+        }
+        units.splice(to, 0, moved);
+        const next = units.flatMap((unit) =>
+          unit.followUp ? [unit.head, unit.followUp] : [unit.head],
         );
-        const [moved] = draft.splice(from, 1);
-        draft.splice(to, 0, moved);
+        draft.splice(0, draft.length, ...next);
       },
       (draft, data) => {
         draft.splice(0, draft.length, ...data);

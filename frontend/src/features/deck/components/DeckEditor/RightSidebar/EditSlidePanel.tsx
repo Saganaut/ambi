@@ -6,6 +6,8 @@ import { getRouteApi } from "@tanstack/react-router";
 import { useSlide } from "@deck/hooks/useSlide";
 import type { SlideType } from "@deck/store/deckEnums.gen";
 import { SlideOptionsSection } from "./EditSlideSections/SlideOptionsSection";
+import { FollowUpAttachSection } from "./EditSlideSections/FollowUpAttachSection";
+import { FollowUpOptionsSection } from "./EditSlideSections/FollowUpOptionsSection";
 import { McqOptionsSection } from "./EditSlideSections/McqOptionsSection";
 import { TextOptionsSection } from "./EditSlideSections/TextOptionsSection";
 import { NumberOptionsSection } from "./EditSlideSections/NumberOptionsSection";
@@ -30,9 +32,10 @@ const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
       return <RankingOptionsSection />;
     case "Q_AND_A":
       return <QAndAOptionsSection />;
+    case "FOLLOW_UP":
+      return <FollowUpOptionsSection />;
     case "TITLE":
     case "MEDIA":
-    case "FOLLOW_UP":
       return <SlideOptionsSection />;
     default:
       return null;
@@ -56,6 +59,7 @@ const EditSlidePanel = () => {
   return (
     <div className={styles.panel}>
       <PerKindSection contentType={slide.content.contentType} />
+      <FollowUpAttachSection slide={slide} />
       <SlideImageSection />
       <SessionPacingSection />
       <ProvenanceFooter
