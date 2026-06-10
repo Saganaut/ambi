@@ -1,15 +1,18 @@
 // Style panel for the deck-editor right sidebar.
 // TODO: DeckResponse.defaultSessionFormat and defaultShowResponses are gone from
 // the new model. Wire session defaults once those fields return.
-// Background image for the active slide uses useSlide.setSlideImage / clearSlideImage.
+// Deck cover/background use useDeckImage; the active slide's background uses
+// useSlide.setSlideImage / clearSlideImage. All picks go through useGalleryPicker.
 import { getRouteApi } from "@tanstack/react-router";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useDeck } from "@deck/hooks/useDeck";
 import { useModal } from "@hooks/useModal";
+import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import { useGetThemeQuery } from "@features/theme/store/themeApi.gen";
 import { ThemeModal } from "@components/Theme/ThemeModal/ThemeModal";
 import { Btn } from "@ui/Buttons/Btn";
 import { ImagePicker } from "./ImagePicker";
+import { useDeckImage } from "./useDeckImage";
 import styles from "./ThemePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -17,9 +20,9 @@ const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 const useThemePanel = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
-  const { getSlide, clearSlideImage } = useSlide(deckId);
+  const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
-  return { deckId, slide, slideId, clearSlideImage };
+  return { deckId, slide, slideId, setSlideImage, clearSlideImage };
 };
 
 const DeckTheme = ({ deckId }: { deckId: string }) => {
@@ -61,8 +64,56 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
   );
 };
 
+// Deck-level cover + background tiles. Seeds reuse the canonical placeholder
+// seeds from utils/deckImages.ts so the sidebar thumbnails match the deck-card
+// and session-background placeholders.
+const DeckImages = ({ deckId }: { deckId: string }) => {
+  const {
+    coverImage,
+    backgroundImage,
+    setCoverImage,
+    clearCoverImage,
+    setBackgroundImage,
+    clearBackgroundImage,
+  } = useDeckImage();
+  const openPicker = useGalleryPicker();
+
+  return (
+    <section className={styles.section}>
+      <h4 className={styles.heading}>Deck</h4>
+      <ImagePicker
+        label='Cover image'
+        image={coverImage}
+        seed={`ambi-deck-cover-${deckId}`}
+        onPick={() => {
+          openPicker(setCoverImage, {
+            title: "Deck cover image",
+            cropWidth: 16,
+            cropHeight: 9,
+          });
+        }}
+        onClear={clearCoverImage}
+      />
+      <ImagePicker
+        label='Background image'
+        image={backgroundImage}
+        seed={`ambi-deck-bg-${deckId}`}
+        onPick={() => {
+          openPicker(setBackgroundImage, {
+            title: "Deck background image",
+            cropWidth: 16,
+            cropHeight: 9,
+          });
+        }}
+        onClear={clearBackgroundImage}
+      />
+    </section>
+  );
+};
+
 const PerSlideStyle = () => {
-  const { slide, slideId, clearSlideImage } = useThemePanel();
+  const { slide, slideId, setSlideImage, clearSlideImage } = useThemePanel();
+  const openPicker = useGalleryPicker();
 
   if (!slide)
     return (
@@ -81,7 +132,16 @@ const PerSlideStyle = () => {
         image={slide.backgroundImage}
         seed={`${id}-background`}
         onPick={() => {
-          // TODO: open gallery picker when available
+          openPicker(
+            (image) => {
+              setSlideImage(id, "background", image);
+            },
+            {
+              title: "Slide background image",
+              cropWidth: 16,
+              cropHeight: 9,
+            },
+          );
         }}
         onClear={() => {
           clearSlideImage(id, "background");
@@ -97,6 +157,8 @@ const ThemePanel = () => {
   return (
     <div className={styles.panel}>
       <DeckTheme deckId={deckId} />
+
+      <DeckImages deckId={deckId} />
 
       <section className={styles.section}>
         <h4 className={styles.heading}>Session defaults</h4>

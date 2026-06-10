@@ -6,8 +6,9 @@
  *     top, the option-text input below, and the "Correct" Toggle at the
  *     bottom. Anything beyond text/correct lives in the popover.
  *   - Popover (opened by clicking the trigger; dismissed by clicking outside
- *     or pressing Escape): image controls (gallery picker + paste-URL + clear),
- *     a color swatch, and the "remove option" button. Built on the shared
+ *     or pressing Escape): image controls (gallery picker + clear; the
+ *     paste-URL field lives inside the picker modal), a color swatch, and the
+ *     "remove option" button. Built on the shared
  *     `Popover` primitive so it stays visually consistent with the
  *     RichTextInput toolbar and any future inline-edit popovers.
  *
@@ -20,15 +21,11 @@
  * stomp each other.
  *
  * Image field: every option carries a single `AppImage`. The gallery picker
- * returns a complete image and we hand it straight up; pasted URLs become
- * external images. The backend strips derived URLs on write for internal
- * images and rehydrates them on read, so there's nothing to sanitize here.
+ * (opened via `useGalleryPicker`, square crop) returns a complete image and we
+ * hand it straight up; pasted URLs are stored through the picker's Upload tab.
+ * The backend strips derived URLs on write for internal images and rehydrates
+ * them on read, so there's nothing to sanitize here.
  */
-// TODO(migration): stubbed pending slide-block migration. The gallery image
-// picker was wired through `@hooks/useGalleryPicker`, which no longer exists.
-// `handlePickFromGallery` is reduced to a flush/close no-op; everything else
-// in the option card (text, correct toggle, color, clear-image, remove, dnd)
-// still works.
 import { useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { type McqOption as McqOptionType } from "@deck/store/deckApi.gen";
@@ -37,6 +34,7 @@ import { IconBtn } from "@ui/Buttons/IconBtn";
 
 import { useTheme } from "@hooks/useTheme";
 import { useFitText } from "@hooks/useFitText";
+import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import {
   emptyImage,
   isImageEmpty,
@@ -107,6 +105,7 @@ const McqOptionEditable = ({
   // collide every card on "[object Object]").
   const optionKey = optionId ?? "";
   const { huePrimary } = useTheme();
+  const openPicker = useGalleryPicker();
 
   // dnd-kit sortable: id must be stable per option so DragDropProvider can
   // identify the source on drop. The parent (McqSlideContent) wraps the grid
@@ -179,12 +178,24 @@ const McqOptionEditable = ({
     onScheduleText({ ...option, text: next });
   };
 
-  /** TODO(migration): stubbed pending slide-block migration. Previously
-   *  opened the gallery picker and wrote the chosen Image into the option.
-   *  The picker hook is gone, so this just flushes and closes the popover. */
+  /** Flush pending edits, retract the popover, then open the gallery picker
+   *  with a square crop. The popover closes first so its document-level
+   *  outside-click listener is gone before the modal renders; the card stays
+   *  mounted, so committing the pick afterwards is safe. */
   const handlePickFromGallery = () => {
     flush();
     setPopoverOpen(false);
+    openPicker(
+      (image) => {
+        onCommit({ ...option, image });
+      },
+      {
+        title: "Option image",
+        initialUrl: option.image?.externalSrc,
+        cropWidth: 1,
+        cropHeight: 1,
+      },
+    );
   };
 
   const handleClearImage = () => {

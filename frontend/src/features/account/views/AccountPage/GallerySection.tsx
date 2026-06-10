@@ -11,9 +11,8 @@
 import { useMemo, useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
-import { GalleryPicker } from "@components/Media/GalleryPicker/GalleryPicker";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
-import { useModal } from "@hooks/useModal";
+import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import { type GalleryImageResponse, useGetMyGalleryQuery, useListImagesQuery, useRemoveImageMutation } from "@features/gallery/store/galleryApi.gen";
 import { resolveImageUrl } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
@@ -35,27 +34,17 @@ const GallerySection = () => {
   const images = useMemo(() => page?.content ?? [], [page]);
 
   const [removeImage] = useRemoveImageMutation();
-  const { openModal, closeModal } = useModal();
+  const openPicker = useGalleryPicker();
   const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
 
   const isLoading = isGalleryLoading || isImagesLoading;
 
-  // The picker owns the add flow (paste URL → persist via addImage). We just
-  // close the modal once an image is picked; the gallery cache-sync rule keeps
-  // this list current, so there's nothing else to do here.
+  // The picker owns the add flow (upload / paste URL → persist) and the hook
+  // closes the modal on pick; the gallery cache-sync rule keeps this list
+  // current, so there's nothing else to do here.
   const handleAdd = () => {
-    openModal({
-      title: "Add image",
-      content: (
-        <GalleryPicker
-          onPick={() => {
-            closeModal();
-          }}
-          onClose={closeModal}
-        />
-      ),
-    });
+    openPicker(() => {}, { title: "Add image" });
   };
 
   const handleDelete = async (image: GalleryImageResponse) => {
