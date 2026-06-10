@@ -20,12 +20,6 @@ export type UpdatePreferencesApiResponse =
 export type UpdatePreferencesApiArg = {
   updatePreferencesRequest: UpdatePreferencesRequest;
 };
-export type Avatar = {
-  external?: boolean;
-  externalSrc?: string;
-  srcKey?: string;
-  internalAvatarId?: string;
-};
 export type AppImage = {
   id?: string;
   external: boolean;
@@ -38,6 +32,10 @@ export type AppImage = {
   metadata?: {
     [key: string]: any;
   };
+};
+export type Avatar = {
+  internalAvatarId?: string;
+  image?: AppImage;
 };
 export type ThemeSpec = {
   mode?: "LIGHT" | "DARK" | "SYSTEM";

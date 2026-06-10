@@ -21,12 +21,6 @@ export type UpdateMeApiResponse = /** status 200 OK */ UserProfileResponse;
 export type UpdateMeApiArg = {
   updateProfileRequest: UpdateProfileRequest;
 };
-export type Avatar = {
-  external?: boolean;
-  externalSrc?: string;
-  srcKey?: string;
-  internalAvatarId?: string;
-};
 export type AppImage = {
   id?: string;
   external: boolean;
@@ -39,6 +33,10 @@ export type AppImage = {
   metadata?: {
     [key: string]: any;
   };
+};
+export type Avatar = {
+  internalAvatarId?: string;
+  image?: AppImage;
 };
 export type ThemeSpec = {
   mode?: "LIGHT" | "DARK" | "SYSTEM";
@@ -64,8 +62,8 @@ export type UserProfileResponse = {
   preferences?: UserPreferences;
 };
 export type AvatarSelection = {
-  externalSrc?: string;
   internalAvatarId?: string;
+  image?: AppImage;
 };
 export type UpdateProfileRequest = {
   displayName?: string;

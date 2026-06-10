@@ -20,9 +20,14 @@ import type {
 
 // ─── Avatars ─────────────────────────────────────────────────────────────────
 
-const externalAvatar = (seed: string): Avatar => ({
-  external: true,
-  externalSrc: `https://picsum.photos/seed/${seed}/200/200`,
+// Gallery-backed avatar mock: an external AppImage keeps the picsum URL
+// renderable without presigned variants.
+const imageAvatar = (seed: string): Avatar => ({
+  image: {
+    external: true,
+    externalSrc: `https://picsum.photos/seed/${seed}/200/200`,
+    variants: {},
+  },
 });
 
 // ─── ThemeSpecs (preferences carry an embedded theme override) ───────────────
@@ -64,7 +69,7 @@ export const mockFrodoProfile: UserProfileResponse = {
   email: "frodo@baggins.shire",
   timezone: "Middle-earth/Shire",
   userLevel: "PREMIUM_USER",
-  avatar: externalAvatar("frodo"),
+  avatar: imageAvatar("frodo"),
   preferences: mockFrodoPreferences,
 };
 
@@ -75,7 +80,7 @@ export const mockGandalfProfile: UserProfileResponse = {
   email: "mithrandir@valinor.aman",
   timezone: "Middle-earth/Rivendell",
   userLevel: "ADMIN",
-  avatar: externalAvatar("gandalf"),
+  avatar: imageAvatar("gandalf"),
   preferences: {
     newsletter: false,
     marketing: false,
@@ -91,7 +96,7 @@ export const mockAragornProfile: UserProfileResponse = {
   email: "strider@dunedain.eriador",
   timezone: "Middle-earth/Gondor",
   userLevel: "USER",
-  avatar: externalAvatar("aragorn"),
+  avatar: imageAvatar("aragorn"),
   preferences: {
     newsletter: true,
     marketing: false,
@@ -107,7 +112,7 @@ export const mockSamProfile: UserProfileResponse = {
   email: "sam@gamgee.shire",
   timezone: "Middle-earth/Shire",
   userLevel: "USER",
-  avatar: externalAvatar("sam"),
+  avatar: imageAvatar("sam"),
   preferences: mockSamPreferences,
 };
 

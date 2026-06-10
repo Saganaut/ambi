@@ -1,30 +1,29 @@
 // Single home for avatar resolution. There are two entry points for the two
 // avatar shapes the app deals with — both ultimately feed the shared <Avatar>:
 //
-//   1. resolveAvatarSrc(src)  — for account-picture *strings* (a user's
-//      `pictureUrl`). External / presigned URLs (Google OAuth, S3) pass through
-//      as-is; built-in identifiers stored as `builtin:<value>` resolve to the
-//      Vite-bundled asset URL by looking the value up in AVATAR_OPTIONS.
-//      Built-in avatars are persisted as stable identifiers (not Vite-hashed
-//      URLs) so a frontend rebuild doesn't orphan every saved avatar.
+//   1. resolveAvatarSrc(src)  — for avatar src *strings*. External / presigned
+//      URLs (Google OAuth, S3) pass through as-is; built-in identifiers stored
+//      as `builtin:<value>` resolve to the Vite-bundled asset URL by looking
+//      the value up in AVATAR_OPTIONS. Built-in avatars are persisted as stable
+//      identifiers (not Vite-hashed URLs) so a frontend rebuild doesn't orphan
+//      every saved avatar.
 //
-//   2. resolvePlayerAvatarSrc(avatar)  — for the session player's unified
-//      `Avatar` value object (KEY|LINK). LINK is the player's real picture URL.
-//      KEY (a preset id) is dormant: the preset roster + lobby picker were
-//      removed, so nothing sets KEY today — it resolves to null until a picker
-//      is rebuilt.
+//   2. resolveProfileAvatarSrc(avatar)  — for the backend's `Avatar` value
+//      object: exactly one of `internalAvatarId` (built-in pick, becomes a
+//      `builtin:<value>` string) or `image` (a gallery-backed AppImage,
+//      resolved to a presigned variant URL).
 //
-// These compose: a LINK avatar's URL comes from the player's `pictureUrl`,
-// which may itself be a `builtin:<value>` string. So the string returned by
-// resolvePlayerAvatarSrc must still go through resolveAvatarSrc to render —
-// which is exactly what <Avatar> does internally. Always render avatar srcs
-// through <Avatar> (it owns the builtin→asset step) rather than a raw <img>.
+// These compose: resolveProfileAvatarSrc may return a `builtin:<value>` string
+// that still has to go through resolveAvatarSrc to render — which is exactly
+// what <Avatar> does internally. Always render avatar srcs through <Avatar>
+// (it owns the builtin→asset step) rather than a raw <img>.
 
 import {
   AvatarOption,
   AVATAR_OPTIONS,
 } from "@/shared/components/Forms/Input/AvatarSelector/AvatarSelector";
 import { Avatar } from "@auth/store/userApi.gen";
+import { resolveImageUrl } from "@utils/image";
 
 const BUILTIN_PREFIX = "builtin:";
 
@@ -55,21 +54,32 @@ export const resolveAvatarSrc = <T extends string | null | undefined>(
   return (option ? option.src : src) as T;
 };
 
-// Resolves a session player's unified `avatar` (the backend's KEY|LINK value
-// object) down to an image src.
-//
-//   KEY  — a preset id. Dormant: the preset roster + lobby picker were removed,
-//          so nothing sets KEY today. Returns null and <Avatar> degrades to the
-//          initial/icon. When the picker is rebuilt, resolve the key here.
-//   LINK — a direct image URL (the player's real picture). May be null/empty
-//          for a guest with no picture, in which case <Avatar> falls back to
-//          the player's initial. May also be a `builtin:<value>` string when
-//          the player picked a built-in account avatar — <Avatar> resolves that
-//          via resolveAvatarSrc, so always render the result through <Avatar>.
+// Resolves the backend's `Avatar` value object down to a src for <Avatar>.
+// A built-in pick yields a `builtin:<value>` string (resolved to the bundled
+// asset by <Avatar> via resolveAvatarSrc); a gallery-backed pick yields a
+// presigned variant URL. Returns undefined when no avatar is set, letting
+// <Avatar> degrade to the initial/icon.
+export const resolveProfileAvatarSrc = (
+  avatar: Avatar | null | undefined,
+): string | undefined => {
+  if (!avatar) return undefined;
+  if (avatar.internalAvatarId) return builtinAvatarUrl(avatar.internalAvatarId);
+  return (
+    resolveImageUrl(
+      avatar.image,
+      "SM",
+      avatar.image?.id ?? "avatar",
+      200,
+      200,
+      false,
+    ) ?? undefined
+  );
+};
+
+// Resolves a session player's avatar — the same `Avatar` value object the
+// profile uses, embedded on the participant. Kept as a separate name so
+// session call sites read naturally; <Avatar> still owns the builtin→asset
+// step for the returned string.
 export const resolvePlayerAvatarSrc = (
   avatar: Avatar | undefined,
-): string | null => {
-  if (!avatar) return null;
-  if (avatar.avatarType === "KEY") return null;
-  return avatar.avatarUrl ?? null;
-};
+): string | null => resolveProfileAvatarSrc(avatar) ?? null;

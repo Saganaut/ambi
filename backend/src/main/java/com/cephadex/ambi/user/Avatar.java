@@ -2,26 +2,27 @@ package com.cephadex.ambi.user;
 
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import com.cephadex.ambi.media.AppImage;
+
 import lombok.Data;
 
+/**
+ * A user's avatar. Exactly one of the two sources is set:
+ * <ul>
+ * <li>{@link #internalAvatarId} — id of a frontend-bundled built-in avatar
+ * (e.g. {@code "avatar-07"}); the frontend resolves it to an asset URL.</li>
+ * <li>{@link #image} — a gallery-backed custom avatar. Stored with raw S3
+ * keys; the {@code AppImage} Jackson serializer presigns them on every
+ * response, so no per-DTO hydration is needed.</li>
+ * </ul>
+ */
 @Data
 public class Avatar {
-    // If external avatar is true we use external src, otherwise refer to internal
-    // collection
-    // If isExternal is true, we should check for a src key first, then an external
-    // src
-    @Field("external")
-    private Boolean external;
-
-    // The external url if provided, used before loading the avatar into our s3
-    @Field("external_src")
-    private String externalSrc;
-
-    // Internal S3 key
-    @Field("src_key")
-    private String srcKey;
-
-    // Use internal lookup
+    // Id of a built-in avatar from the frontend-bundled collection
     @Field("internal_avatar_id")
     private String internalAvatarId;
+
+    // Gallery-backed custom avatar image
+    @Field("image")
+    private AppImage image;
 }

@@ -6,10 +6,9 @@
 // `useAccount`. It only renders what the hook exposes and forwards events back.
 import { Avatar } from "@ui/Avatar/Avatar";
 import { Btn } from "@ui/Buttons/Btn";
-import { AvatarSelector } from "@components/Forms/Input/AvatarSelector/AvatarSelector";
 import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
-import { FileUpload } from "@components/Forms/Input/FileUpload/FileUpload";
 import { Tabs } from "@ui/Tabs/Tabs";
+import { useAvatarPicker } from "@hooks/useAvatarPicker";
 import { useState } from "react";
 import styles from "./AccountPage.module.css";
 import { useAccount } from "../../useAccount";
@@ -31,6 +30,7 @@ const AccountPage = () => {
   // time this component renders — it redirects everyone else home.
   const account = useAccount();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const openAvatarPicker = useAvatarPicker();
 
   const {
     profile,
@@ -44,11 +44,9 @@ const AccountPage = () => {
     profileError,
     avatarSrc,
     selectedBuiltinAvatar,
-    pickBuiltinAvatar,
+    applyAvatarPick,
     pictureSuccess,
     pictureError,
-    uploadPicture,
-    isUploading,
     newsletter,
     setNewsletter,
     newsletterSuccess,
@@ -77,30 +75,19 @@ const AccountPage = () => {
           alt='Profile picture'
           size='xl'
         />
-        <FileUpload
-          accept='image/jpeg,image/png,image/webp,image/gif'
-          onChange={(files) => {
-            const file = files.at(-1);
-            if (file) void uploadPicture(file);
-          }}
-          infoMessage={
-            isUploading
-              ? "Uploading..."
-              : "JPEG, PNG, WebP or GIF · max 1 MB · resized to 500×500"
-          }
-          errorMessage={pictureError ?? undefined}
-        />
-        <AvatarSelector
-          name='profile-avatar'
-          legend='Or pick a built-in avatar'
-          value={selectedBuiltinAvatar}
-          onChange={(v) => {
-            void pickBuiltinAvatar(v);
-          }}
-        />
+        <Btn
+          onClick={() => {
+            openAvatarPicker((pick) => void applyAvatarPick(pick), {
+              title: "Change avatar",
+              builtinValue: selectedBuiltinAvatar,
+            });
+          }}>
+          Change avatar
+        </Btn>
         {pictureSuccess && (
           <p className={styles.success}>Profile picture updated.</p>
         )}
+        {pictureError && <p className={styles.error}>{pictureError}</p>}
       </section>
 
       <section className={styles.section}>

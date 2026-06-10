@@ -1,0 +1,17 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(80vw, 880px);
+  max-height: 70vh;
+}
+
+.tabPanel {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-2);
+}

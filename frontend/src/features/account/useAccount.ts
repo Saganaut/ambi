@@ -1,8 +1,8 @@
 /* eslint-disable react-x/set-state-in-effect */
 // Account-settings logic layer between the generated user API and the account
 // page. Owns every bit of state and every mutation the settings screen needs
-// (profile read, display-name edit, built-in avatar pick, newsletter
-// preference, timezone auto-detect) so the page component is pure UI.
+// (profile read, display-name edit, avatar pick via the AvatarPicker modal,
+// newsletter preference, timezone auto-detect) so the page component is pure UI.
 //
 // Maps onto the new self-service user endpoints (UserController):
 //   GET   /api/users/me              → useGetMeQuery        (full self profile)
@@ -15,7 +15,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useGetMeQuery, useUpdateMeMutation } from "@auth/store/userApi.gen";
 import { useUpdatePreferencesMutation, type UserProfileResponse, type UpdatePreferencesRequest } from "@account/store/accountApi.gen";
-import { builtinAvatarUrl } from "@/shared/utils/avatarUrl";
+import { type AvatarPick } from "@components/Media/AvatarPicker/AvatarPicker";
+import { resolveProfileAvatarSrc } from "@/shared/utils/avatarUrl";
 import { extractErrorMessage } from "@/shared/utils/utils";
 
 export interface UseAccountResult {
@@ -32,16 +33,13 @@ export interface UseAccountResult {
   profileSuccess: boolean;
   profileError: string | null;
 
-  // Avatar — resolved src for <Avatar>, plus the built-in picker value/handler.
+  // Avatar — resolved src for <Avatar>, the current built-in pick (feeds the
+  // picker's preselection), and the handler for whatever the picker yields.
   avatarSrc: string | undefined;
   selectedBuiltinAvatar: string;
-  pickBuiltinAvatar: (value: string) => Promise<void>;
+  applyAvatarPick: (pick: AvatarPick) => Promise<void>;
   pictureSuccess: boolean;
   pictureError: string | null;
-  // TODO: no image-upload endpoint exists on the new UserController yet.
-  // Re-wire this once a `POST /api/users/me/avatar` (or similar) lands.
-  uploadPicture: (file: File) => Promise<void>;
-  isUploading: boolean;
 
   // Newsletter preference (part of the wholesale preferences PUT).
   newsletter: boolean;
@@ -96,36 +94,31 @@ export function useAccount(): UseAccountResult {
   // --- Avatar ----------------------------------------------------------------
   const [pictureSuccess, setPictureSuccess] = useState(false);
   const [pictureError, setPictureError] = useState<string | null>(null);
-  const [isUploading] = useState(false);
 
   const avatar = profile?.avatar;
-  // Built-in avatars are stored as an internal id; render them through the same
-  // `builtin:<value>` convention <Avatar>/resolveAvatarSrc understands. An
-  // external avatar (Google OAuth, uploaded) carries a direct src instead.
+  // Built-in picks resolve to a `builtin:<value>` string; gallery-backed picks
+  // resolve to a presigned variant URL — <Avatar> handles both.
   const selectedBuiltinAvatar = avatar?.internalAvatarId ?? "";
-  const avatarSrc = avatar?.internalAvatarId
-    ? builtinAvatarUrl(avatar.internalAvatarId)
-    : (avatar?.externalSrc ?? undefined);
+  const avatarSrc = resolveProfileAvatarSrc(avatar);
 
-  const pickBuiltinAvatar = async (value: string) => {
+  // PATCHes whichever source the avatar picker yielded — a built-in id or a
+  // gallery-backed AppImage (the backend accepts exactly one of the two).
+  const applyAvatarPick = async (pick: AvatarPick) => {
     setPictureError(null);
     setPictureSuccess(false);
     try {
       await updateMe({
-        updateProfileRequest: { avatar: { internalAvatarId: value } },
+        updateProfileRequest: {
+          avatar:
+            pick.kind === "builtin"
+              ? { internalAvatarId: pick.internalAvatarId }
+              : { image: pick.image },
+        },
       }).unwrap();
       setPictureSuccess(true);
     } catch (err: unknown) {
       setPictureError(extractErrorMessage(err, "Could not update avatar."));
     }
-  };
-
-  // TODO: the new UserController has no image-upload route. Surface a clear
-  // message until one exists rather than silently doing nothing.
-  const uploadPicture = (_file: File): Promise<void> => {
-    setPictureError("Uploading a custom picture isn't available yet.");
-    setPictureSuccess(false);
-    return Promise.resolve();
   };
 
   // --- Newsletter preference -------------------------------------------------
@@ -209,11 +202,9 @@ export function useAccount(): UseAccountResult {
 
     avatarSrc,
     selectedBuiltinAvatar,
-    pickBuiltinAvatar,
+    applyAvatarPick,
     pictureSuccess,
     pictureError,
-    uploadPicture,
-    isUploading,
 
     newsletter,
     setNewsletter,

@@ -34,8 +34,6 @@ public final class ValidationConstants {
     public static final int DISPLAY_NAME_MAX = 60;
 
     public static final int TIMEZONE_MAX = 64;
-    /** External avatar URL length cap. */
-    public static final int AVATAR_SRC_MAX = 2048;
     /** Built-in avatar id length cap. */
     public static final int AVATAR_ID_MAX = 64;
 

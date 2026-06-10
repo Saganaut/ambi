@@ -10,8 +10,7 @@ import com.cephadex.ambi.user.enums.UserLevel;
  * This is the self view: it carries fields the owner may see and edit
  * ({@code timezone}, {@code avatar}, {@code preferences}) that the leaner
  * {@code /api/auth/me} session probe ({@code MeResponse}) omits. It is never
- * used to expose another user — a public view would drop {@code email} and the
- * internal avatar {@code srcKey}.
+ * used to expose another user — a public view would drop {@code email}.
  *
  * @param publicId    stable public user id.
  * @param username    account handle (not editable here).

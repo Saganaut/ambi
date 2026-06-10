@@ -11,9 +11,6 @@
 
 export const authValidation = {
   "AvatarSelection": {
-    "externalSrc": {
-      "maxLength": 2048
-    },
     "internalAvatarId": {
       "maxLength": 64
     }
