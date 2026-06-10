@@ -1,5 +1,7 @@
 package com.cephadex.ambi.user;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -11,6 +13,10 @@ import com.cephadex.ambi.auth.enums.AuthProvider;
 public interface UserRepository extends MongoRepository<User, String> {
 
     Optional<User> findByUsername(String username);
+
+    /** Batch lookup by public id — used to overlay embedded author/participant
+     *  snapshots with the users' current profile at read time. */
+    List<User> findByPublicIdIn(Collection<String> publicIds);
 
     Optional<User> findByEmailAddress(String emailAddress);
 

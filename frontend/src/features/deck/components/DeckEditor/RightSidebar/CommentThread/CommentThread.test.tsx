@@ -11,7 +11,7 @@ import type { CommentResponse, CommentThreadResponse } from "@deck/store/comment
 
 const comment = (overrides: Partial<CommentResponse> = {}): CommentResponse => ({
   id: "c1",
-  author: { userId: "u1", name: "Ann", pictureUrl: undefined },
+  author: { userId: "u1", name: "Ann", avatar: undefined },
   body: "Opening comment",
   edited: false,
   deleted: false,

@@ -7,6 +7,9 @@ import { useTheme, type ThemeMode } from "@hooks/useTheme";
 import styles from "./NavBar.module.css";
 import { useAuthActions } from "@auth/hooks/useAuthActions";
 import { useSessionUser } from "@auth/hooks/useCurrentUser";
+import { useGetMeQuery } from "@auth/store/userApi.gen";
+import { Avatar } from "@ui/Avatar/Avatar";
+import { resolveProfileAvatarSrc } from "@/shared/utils/avatarUrl";
 
 interface useUserMenuResponse {
   handleLogin: () => void;
@@ -36,6 +39,14 @@ const useUserMenu = (): useUserMenuResponse => {
   // to the generic icon.
   const me = userState?.me;
 
+  // The avatar lives on the full self profile (`/api/users/me`), which is
+  // registered-only — guests get a 403, so skip and fall back to the initial.
+  // The profile-mutation cache sync (enhancements/user) keeps this entry
+  // fresh, so an avatar change reflects here immediately.
+  const { data: profile } = useGetMeQuery(undefined, {
+    skip: userState?.state !== "registered",
+  });
+
   const handleLogin = () => {
     login();
   };
@@ -58,6 +69,10 @@ const useUserMenu = (): useUserMenuResponse => {
 
   const avatarContent = () => {
     const label = me?.displayName ?? me?.username;
+    const src = resolveProfileAvatarSrc(profile?.avatar);
+    if (src) {
+      return <Avatar src={src} name={label} alt='Your avatar' size='sm' />;
+    }
     if (label) {
       return (
         <div className={styles.avatarInitial}>{label[0].toUpperCase()}</div>

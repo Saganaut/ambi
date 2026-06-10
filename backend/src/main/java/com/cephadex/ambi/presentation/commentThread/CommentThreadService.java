@@ -1,8 +1,13 @@
 package com.cephadex.ambi.presentation.commentThread;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -54,8 +59,10 @@ public class CommentThreadService {
     public Page<CommentThreadResponse> listSlideThreads(String deckId, String slideId,
             Pageable pageable, AmbiPrincipal principal) {
         deckService.getSlide(deckId, slideId, principal); // VIEW + slide exists
-        return repository.findByDeckIdAndSlideIdOrderByCreatedAtDesc(deckId, slideId, pageable)
-                .map(CommentThreadResponse::from);
+        Page<CommentThread> threads =
+                repository.findByDeckIdAndSlideIdOrderByCreatedAtDesc(deckId, slideId, pageable);
+        UnaryOperator<Author> resolveAuthor = freshAuthors(threads.getContent());
+        return threads.map(thread -> CommentThreadResponse.from(thread, resolveAuthor));
     }
 
     // ── Write ─────────────────────────────────────────────────────────────────
@@ -73,7 +80,7 @@ public class CommentThreadService {
         thread.setStatus(CommentThreadStatus.OPEN);
         thread.setComments(new ArrayList<>(List.of(newComment(user, request.body()))));
 
-        return CommentThreadResponse.from(repository.save(thread));
+        return toResponse(repository.save(thread));
     }
 
     /** Append a comment to an existing thread (VIEW + sign-in). */
@@ -87,7 +94,7 @@ public class CommentThreadService {
         thread.getComments().add(comment); // in-memory, for the response
 
         repository.appendComment(threadId, comment); // targeted $push, no whole-doc rewrite
-        return CommentThreadResponse.from(thread);
+        return toResponse(thread);
     }
 
     /** Replace a comment's text (author only). Flags it {@code edited}. */
@@ -109,7 +116,7 @@ public class CommentThreadService {
         thread.getComments().set(index, updated); // in-memory, for the response
 
         repository.replaceComment(threadId, commentId, updated); // positional $set
-        return CommentThreadResponse.from(thread);
+        return toResponse(thread);
     }
 
     /** Soft-delete a comment (author only): keep the row, redact the body. */
@@ -128,7 +135,7 @@ public class CommentThreadService {
         thread.getComments().set(index, redacted); // in-memory, for the response
 
         repository.replaceComment(threadId, commentId, redacted); // positional $set
-        return CommentThreadResponse.from(thread);
+        return toResponse(thread);
     }
 
     /** Resolve or reopen a thread (VIEW + sign-in). */
@@ -141,7 +148,7 @@ public class CommentThreadService {
         thread.setStatus(request.status()); // in-memory, for the response
 
         repository.replaceStatus(threadId, request.status()); // targeted $set, leaves comments alone
-        return CommentThreadResponse.from(thread);
+        return toResponse(thread);
     }
 
     // ── Internals ───────────────────────────────────────────────────────────────
@@ -149,6 +156,36 @@ public class CommentThreadService {
     private Comment newComment(User user, String body) {
         Author author = new Author(user.getPublicId(), user.getDisplayName(), user.getAvatar());
         return new Comment(UUID.randomUUID().toString(), author, body, null, false, false);
+    }
+
+    /** Single-thread response with the same author overlay as the list read. */
+    private CommentThreadResponse toResponse(CommentThread thread) {
+        return CommentThreadResponse.from(thread, freshAuthors(List.of(thread)));
+    }
+
+    /**
+     * Builds the author overlay for a batch of threads: one lookup of every
+     * distinct author's current {@link User}, mapped back onto the stored
+     * snapshots so responses always carry the author's <em>current</em> display
+     * name and avatar (a profile change is reflected in old comments too). An
+     * author whose user is gone (guest reaped, account purged) keeps its
+     * snapshot — the conversation must survive its participants.
+     */
+    private UnaryOperator<Author> freshAuthors(Collection<CommentThread> threads) {
+        Set<String> authorIds = threads.stream()
+                .flatMap(thread -> thread.getComments().stream())
+                .map(Comment::author)
+                .filter(author -> author != null && author.userId() != null)
+                .map(Author::userId)
+                .collect(Collectors.toSet());
+        Map<String, User> users = userService.findByPublicIds(authorIds);
+        return author -> {
+            User user = users.get(author.userId());
+            if (user == null) {
+                return author;
+            }
+            return new Author(author.userId(), user.getDisplayName(), user.getAvatar());
+        };
     }
 
     /** Load a thread, verifying it belongs to the given deck and slide. */

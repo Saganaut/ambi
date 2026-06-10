@@ -578,13 +578,25 @@ export const mockDecks: DeckResponse[] = [
 const samAuthor: AuthorResponse = {
   userId: U_SAM,
   name: "Samwise Gamgee",
-  pictureUrl: "https://picsum.photos/seed/sam/200/200",
+  avatar: {
+    image: {
+      external: true,
+      externalSrc: "https://picsum.photos/seed/sam/200/200",
+      variants: {},
+    },
+  },
 };
 
 const frodoAuthor: AuthorResponse = {
   userId: U_FRODO,
   name: "Frodo Baggins",
-  pictureUrl: "https://picsum.photos/seed/frodo/200/200",
+  avatar: {
+    image: {
+      external: true,
+      externalSrc: "https://picsum.photos/seed/frodo/200/200",
+      variants: {},
+    },
+  },
 };
 
 export const mockOpenCommentThread: CommentThreadResponse = {

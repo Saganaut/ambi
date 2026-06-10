@@ -2,7 +2,9 @@ package com.cephadex.ambi.presentation.commentThread;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +32,7 @@ import com.cephadex.ambi.presentation.commentThread.dto.CommentThreadResponse;
 import com.cephadex.ambi.presentation.commentThread.dto.SetThreadStatusRequest;
 import com.cephadex.ambi.presentation.commentThread.enums.CommentThreadStatus;
 import com.cephadex.ambi.presentation.deck.DeckService;
+import com.cephadex.ambi.user.Avatar;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -221,6 +224,46 @@ class CommentThreadServiceTest {
         var page = service.listSlideThreads("deck-1", "slide-1", PageRequest.of(0, 10), author);
 
         assertThat(page.getContent()).extracting(CommentThreadResponse::id).containsExactly("t1");
+    }
+
+    @Test
+    void listSlideThreadsOverlaysAuthorsWithCurrentProfile() {
+        // Stored snapshot says "Name"/no avatar; the user has since renamed and
+        // picked an avatar — the response must carry the current profile.
+        CommentThread thread = thread("t1", CommentThreadStatus.OPEN, comment("c1", "pub-author-1"));
+        when(repository.findByDeckIdAndSlideIdOrderByCreatedAtDesc(
+                "deck-1", "slide-1", PageRequest.of(0, 10)))
+                .thenReturn(new PageImpl<>(List.of(thread)));
+
+        Avatar current = new Avatar();
+        current.setInternalAvatarId("avatar-07");
+        User renamed = user("pub-author-1", "Ann the Brave");
+        when(renamed.getAvatar()).thenReturn(current);
+        when(userService.findByPublicIds(Set.of("pub-author-1")))
+                .thenReturn(Map.of("pub-author-1", renamed));
+
+        var page = service.listSlideThreads("deck-1", "slide-1", PageRequest.of(0, 10), author);
+
+        var responseAuthor = page.getContent().get(0).comments().get(0).author();
+        assertThat(responseAuthor.name()).isEqualTo("Ann the Brave");
+        assertThat(responseAuthor.avatar()).isSameAs(current);
+    }
+
+    @Test
+    void listSlideThreadsKeepsSnapshotForVanishedAuthors() {
+        // A reaped guest / purged account: no live user, so the stored snapshot
+        // is served as-is and the conversation stays intact.
+        CommentThread thread = thread("t1", CommentThreadStatus.OPEN, comment("c1", "pub-gone"));
+        when(repository.findByDeckIdAndSlideIdOrderByCreatedAtDesc(
+                "deck-1", "slide-1", PageRequest.of(0, 10)))
+                .thenReturn(new PageImpl<>(List.of(thread)));
+        when(userService.findByPublicIds(Set.of("pub-gone"))).thenReturn(Map.of());
+
+        var page = service.listSlideThreads("deck-1", "slide-1", PageRequest.of(0, 10), author);
+
+        var responseAuthor = page.getContent().get(0).comments().get(0).author();
+        assertThat(responseAuthor.name()).isEqualTo("Name");
+        assertThat(responseAuthor.avatar()).isNull();
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────

@@ -112,10 +112,27 @@ export type UpdateThreadCommentApiArg = {
   commentId: string;
   commentBodyRequest: CommentBodyRequest;
 };
+export type AppImage = {
+  id?: string;
+  external: boolean;
+  srcKey?: string;
+  externalSrc?: string;
+  altText?: string;
+  variants?: {
+    [key: string]: string;
+  };
+  metadata?: {
+    [key: string]: any;
+  };
+};
+export type Avatar = {
+  internalAvatarId?: string;
+  image?: AppImage;
+};
 export type AuthorResponse = {
   userId: string;
   name: string;
-  pictureUrl?: string;
+  avatar?: Avatar;
 };
 export type CommentResponse = {
   id: string;

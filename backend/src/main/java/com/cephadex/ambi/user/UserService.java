@@ -1,7 +1,11 @@
 package com.cephadex.ambi.user;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -134,6 +138,22 @@ public class UserService {
         User user = requireUser(userId);
         user.replacePreferences(preferences);
         return userRepository.save(user);
+    }
+
+    /**
+     * Batch lookup by public id, keyed for overlay joins. Embedded snapshots
+     * (comment {@code Author}s, session participants) store the author's
+     * profile as of write time; read paths use this to swap in the users'
+     * <em>current</em> display name and avatar so a profile change is
+     * reflected everywhere. Ids without a live user are simply absent — the
+     * caller keeps its snapshot as the fallback.
+     */
+    public Map<String, User> findByPublicIds(Collection<String> publicIds) {
+        if (publicIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findByPublicIdIn(publicIds).stream()
+                .collect(Collectors.toMap(User::getPublicId, Function.identity()));
     }
 
     /**

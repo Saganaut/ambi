@@ -45,6 +45,25 @@ class UserServiceTest {
     }
 
     @Test
+    void findByPublicIdsKeysUsersByPublicId() {
+        User user = mock(User.class);
+        when(user.getPublicId()).thenReturn("pub-1");
+        when(userRepository.findByPublicIdIn(java.util.Set.of("pub-1", "pub-gone")))
+                .thenReturn(java.util.List.of(user));
+
+        var users = userService.findByPublicIds(java.util.Set.of("pub-1", "pub-gone"));
+
+        assertThat(users).containsOnlyKeys("pub-1");
+        assertThat(users.get("pub-1")).isSameAs(user);
+    }
+
+    @Test
+    void findByPublicIdsShortCircuitsOnEmptyInput() {
+        assertThat(userService.findByPublicIds(java.util.Set.of())).isEmpty();
+        verify(userRepository, times(0)).findByPublicIdIn(any());
+    }
+
+    @Test
     void createGuestSetsGuestExpiresAtFromAuthProperties() {
         Instant before = Instant.now();
         User guest = userService.createGuest();

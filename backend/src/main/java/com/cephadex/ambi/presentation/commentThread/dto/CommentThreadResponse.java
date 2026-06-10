@@ -3,7 +3,9 @@ package com.cephadex.ambi.presentation.commentThread.dto;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
+import com.cephadex.ambi.presentation.commentThread.Author;
 import com.cephadex.ambi.presentation.commentThread.CommentThread;
 import com.cephadex.ambi.presentation.commentThread.enums.CommentThreadStatus;
 
@@ -22,10 +24,14 @@ public record CommentThreadResponse(
         @Schema(requiredMode = REQUIRED) CommentThreadStatus status,
         @Schema(requiredMode = REQUIRED) List<CommentResponse> comments) {
 
-    /** Projects a stored {@link CommentThread} onto its response. */
-    public static CommentThreadResponse from(CommentThread thread) {
+    /**
+     * Projects a stored {@link CommentThread} onto its response. The author of
+     * every comment is passed through {@code resolveAuthor} so the service can
+     * overlay the stored snapshots with each user's current profile.
+     */
+    public static CommentThreadResponse from(CommentThread thread, UnaryOperator<Author> resolveAuthor) {
         List<CommentResponse> comments = thread.getComments().stream()
-                .map(CommentResponse::from)
+                .map(comment -> CommentResponse.from(comment, resolveAuthor))
                 .toList();
         return new CommentThreadResponse(
                 thread.getId(), thread.getSlideId(), thread.getStatus(), comments);

@@ -27,3 +27,4 @@ import "@deck/store/enhancements/slide";
 import "@deck/store/enhancements/comment";
 import "@features/theme/store/enhancements/theme";
 import "@features/gallery/store/enhancements/gallery";
+import "@auth/store/enhancements/user";

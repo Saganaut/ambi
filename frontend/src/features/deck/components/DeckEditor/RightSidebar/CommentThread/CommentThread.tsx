@@ -14,7 +14,8 @@ import {
 } from "@heroicons/react/24/outline";
 import type { CommentResponse, CommentThreadResponse } from "@deck/store/commentApi.gen";
 import { Btn } from "@ui/Buttons/Btn";
-import { resolveAvatarSrc } from "@utils/avatarUrl";
+import { Avatar } from "@ui/Avatar/Avatar";
+import { resolveProfileAvatarSrc } from "@utils/avatarUrl";
 import styles from "./CommentThread.module.css";
 
 type ThreadStatus = CommentThreadResponse["status"];
@@ -158,13 +159,12 @@ const CommentRow = ({
   return (
     <li className={styles.comment}>
       <header className={styles.commentHead}>
-        {comment.author.pictureUrl != null && comment.author.pictureUrl !== "" && (
-          <img
-            src={resolveAvatarSrc(comment.author.pictureUrl)}
-            alt=''
-            className={styles.avatar}
-          />
-        )}
+        <Avatar
+          src={resolveProfileAvatarSrc(comment.author.avatar)}
+          name={comment.author.name}
+          size='xs'
+          className={styles.avatar}
+        />
         <span className={styles.commentAuthor}>{comment.author.name}</span>
         {comment.edited && !isDeleted && (
           <span className={styles.editedTag}>edited</span>
