@@ -184,19 +184,36 @@
   --role-green: oklch(60% 0.13 170deg);
   --role-yellow: oklch(82% 0.19 90deg);
   --role-blue: oklch(62% 0.13 260deg);
+}
 
-  /* ─── Semantic Tokens (derived from roles) ──────────────────────────────── */
+/* ─── Semantic Tokens (derived from roles) ──────────────────────────────── */
 
-  /* These are what components consume. They are pure functions of the --role-* */
+/* These are what components consume. They are pure functions of the --role-*  */
 
-  /* values above plus the appearance flag, so they recolour automatically for  */
+/* values plus the appearance flag, so they recolour automatically for every    */
 
-  /* every theme. Mixes are toward --role-canvas / --role-foreground, both of   */
+/* theme. Mixes are toward --role-canvas / --role-foreground, both of which     */
 
-  /* which already encode the theme's light/dark character — so most tokens     */
+/* already encode the theme's light/dark character — so most tokens need no     */
 
-  /* need no per-appearance override (only --edge-tint and --shadow do).        */
+/* per-appearance override (only --edge-tint and --shadow do).                  */
 
+/* Declared on :root AND on every themed scope. The palette applier sets        */
+
+/* data-appearance (plus inline --role-*) on whatever element it themes, and a  */
+
+/* var()-referencing custom property is substituted at the element it's         */
+
+/* declared on. Re-declaring this layer on [data-appearance] therefore makes    */
+
+/* every token re-derive from that scope's role vars — without it a per-deck    */
+
+/* theme sets --role-* but these tokens, computed once at :root, keep the       */
+
+/* global values. The role defaults and static design tokens stay :root-only.   */
+
+:root,
+[data-appearance] {
   /** Background Variants **/
   --bg-canvas: var(--role-canvas);
   --bg-surface: var(--role-surface);
@@ -288,7 +305,9 @@
   --action-hover: var(--role-accent-secondary);
   --action-active: color-mix(in oklab, var(--role-accent-secondary) 72%, var(--role-foreground));
   --action-disabled: color-mix(in oklab, var(--role-muted-foreground) 45%, var(--role-surface));
+}
 
+:root {
   /* --- Shadow (Expanded Scale) --- */
   --shadow:
     rgb(0, 0, 0 / 10%) 0 10px 15px -3px, rgb(0, 0, 0 / 5%) 0 4px 6px -2px;

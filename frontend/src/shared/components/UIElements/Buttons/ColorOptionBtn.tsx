@@ -11,6 +11,8 @@ interface ColorOptionBtnProps {
   color: string;
   onClick: () => void;
   preventFocusSteal?: boolean;
+  /** Override the default `Set color <label>` aria-label (e.g. a disclosure). */
+  ariaLabel?: string;
 }
 
 const ColorOptionBtn = ({
@@ -18,12 +20,13 @@ const ColorOptionBtn = ({
   color,
   onClick,
   preventFocusSteal = false,
+  ariaLabel,
 }: ColorOptionBtnProps) => {
   return (
     <button
       type='button'
       title={label}
-      aria-label={`Set color ${label}`}
+      aria-label={ariaLabel ?? `Set color ${label}`}
       className={styles.colorOptionBtn}
       style={{ background: color || "transparent" }}
       onMouseDown={

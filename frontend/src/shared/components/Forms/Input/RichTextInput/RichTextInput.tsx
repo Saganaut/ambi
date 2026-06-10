@@ -35,6 +35,7 @@ import {
   PopoverRow,
   PopoverButton,
   PopoverDivider,
+  PopoverGroupLabel,
 } from "../Popover/Popover";
 import { useRichTextEditor, useLinkEditor } from "./useRichTextInput";
 import { ColorOptionBtn } from "@ui/Buttons/ColorOptionBtn";
@@ -69,15 +70,34 @@ interface RichTextInputProps {
   maxPx?: number;
 }
 
-// A handful of presets — "a few choices" per the spec.
+// The full basic-color set, shown in the "More colors" panel.
 const COLOR_CHOICES: { label: string; value: string }[] = [
   { label: "Default", value: "" },
+  { label: "Black", value: "#000000" },
+  { label: "White", value: "#ffffff" },
   { label: "Red", value: "#e53e3e" },
   { label: "Orange", value: "#dd6b20" },
   { label: "Green", value: "#38a169" },
   { label: "Blue", value: "#3182ce" },
   { label: "Purple", value: "#805ad5" },
 ];
+
+// The compact set always shown inline in the toolbar — black + white are always
+// here per design, plus default (clear) and three common colors. The rest live
+// behind the "More colors" button.
+const QUICK_COLOR_CHOICES: { label: string; value: string }[] = [
+  { label: "Default", value: "" },
+  { label: "Black", value: "#000000" },
+  { label: "White", value: "#ffffff" },
+  { label: "Red", value: "#e53e3e" },
+  { label: "Green", value: "#38a169" },
+  { label: "Blue", value: "#3182ce" },
+];
+
+// Swatch for the "More colors" toggle — a rainbow so it reads as "open the
+// palette", not a single color.
+const MORE_COLORS_SWATCH =
+  "conic-gradient(from 90deg, #e53e3e, #dd6b20, #38a169, #3182ce, #805ad5, #e53e3e)";
 
 const SIZE_CHOICES: { label: string; value: string }[] = [
   { label: "S", value: "0.875rem" },
@@ -101,6 +121,15 @@ const Toolbar = ({ editor, linkOpen, setLinkOpen }: ToolbarProps) => {
     removeLink,
     toggleLinkEditor,
   } = useLinkEditor({ editor, linkOpen, setLinkOpen });
+
+  // "More colors" sub-panel. Mutually exclusive with the link editor so the two
+  // don't stack below the toolbar.
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
+
+  const applyColor = (value: string) => {
+    if (value === "") editor.chain().focus().unsetColor().run();
+    else editor.chain().focus().setColor(value).run();
+  };
 
   return (
     <>
@@ -131,35 +160,37 @@ const Toolbar = ({ editor, linkOpen, setLinkOpen }: ToolbarProps) => {
             ariaLabel={linkOpen ? "Close link editor" : "Insert link"}
             isActive={editor.isActive("link") || linkOpen}
             preventFocusSteal
-            onClick={toggleLinkEditor}>
+            onClick={() => {
+              setColorMenuOpen(false);
+              toggleLinkEditor();
+            }}>
             <span aria-hidden='true'>🔗</span>
           </PopoverButton>
 
           <PopoverDivider />
 
-          {COLOR_CHOICES.map((color) => (
+          {/* Compact inline color set; the rest (+ theme colors) live behind
+              the "More colors" button. */}
+          {QUICK_COLOR_CHOICES.map((color) => (
             <ColorOptionBtn
               key={color.label}
               label={color.label}
               color={color.value}
               preventFocusSteal
               onClick={() => {
-                if (color.value === "") {
-                  editor.chain().focus().unsetColor().run();
-                } else {
-                  editor.chain().focus().setColor(color.value).run();
-                }
+                applyColor(color.value);
               }}
             />
           ))}
-
-          <PopoverDivider />
-
-          {/* Active theme's palette colors — stored as live var(--role-*) refs
-              so the text tracks the deck/global theme. */}
-          <ThemeColorSwatches
+          <ColorOptionBtn
+            label='More colors'
+            ariaLabel={colorMenuOpen ? "Close color menu" : "More colors"}
+            color={MORE_COLORS_SWATCH}
             preventFocusSteal
-            onPick={(value) => editor.chain().focus().setColor(value).run()}
+            onClick={() => {
+              setLinkOpen(false);
+              setColorMenuOpen((o) => !o);
+            }}
           />
 
           <PopoverDivider />
@@ -178,6 +209,42 @@ const Toolbar = ({ editor, linkOpen, setLinkOpen }: ToolbarProps) => {
           ))}
         </PopoverRow>
       </Popover>
+
+      {colorMenuOpen && (
+        <Popover
+          className={styles.colorPopover}
+          role='dialog'
+          ariaLabel='More colors'>
+          <PopoverGroupLabel>Basic</PopoverGroupLabel>
+          <PopoverRow>
+            {COLOR_CHOICES.map((color) => (
+              <ColorOptionBtn
+                key={color.label}
+                label={color.label}
+                color={color.value}
+                preventFocusSteal
+                onClick={() => {
+                  applyColor(color.value);
+                  setColorMenuOpen(false);
+                }}
+              />
+            ))}
+          </PopoverRow>
+          <PopoverDivider />
+          <PopoverGroupLabel>Theme</PopoverGroupLabel>
+          <PopoverRow>
+            {/* Active theme's palette colors — stored as live var(--role-*)
+                refs so the text tracks the deck/global theme. */}
+            <ThemeColorSwatches
+              preventFocusSteal
+              onPick={(value) => {
+                applyColor(value);
+                setColorMenuOpen(false);
+              }}
+            />
+          </PopoverRow>
+        </Popover>
+      )}
 
       {linkOpen && (
         <Popover

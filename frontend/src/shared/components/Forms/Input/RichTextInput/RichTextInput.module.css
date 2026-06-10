@@ -67,6 +67,15 @@
   left: 0;
 }
 
+/* "More colors" panel — hangs off the bottom-left of the toolbar like the link
+   editor. Capped width so the swatch rows wrap into a tidy grid. */
+.colorPopover {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  max-width: 15rem;
+}
+
 .editor {
   min-height: 2.5rem;
   padding: var(--p-sm);

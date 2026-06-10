@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { UseMcqEditorResult, McqQuestionView } from "@deck/hooks/useMcqEditor";
 import { mockMcqSlide } from "@deck/utils/deckMockData";
-import { withSlideCanvas } from "@storybook/decorators/withSlideCanvas";
+import { withSlideCanvas } from "@sb/decorators/withSlideCanvas";
 import { McqSlideContentView } from "./McqSlideContentView";
 
 // Flatten the mock slide into the view-facing question shape useMcqEditor would
