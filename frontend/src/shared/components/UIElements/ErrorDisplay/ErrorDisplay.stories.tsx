@@ -1,6 +1,6 @@
 /* oxlint-disable react-hooks/rules-of-hooks, no-console */
 /* oxlint-disable react-x/rules-of-hooks, no-console */
-import type { Meta, StoryObj } from "@storybook/tanstack-react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import OceanFloor from "@assets/images/mascots/ocean-floor.svg?react";
 import { ErrorDisplay } from "./ErrorDisplay";
 

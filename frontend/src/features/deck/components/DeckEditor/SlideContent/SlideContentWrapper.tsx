@@ -9,7 +9,7 @@
  *   - `footer` — warnings / help text pinned below the scrollable body.
  */
 import type { ReactNode } from "react";
-import styles from "./SlideContentTypes.module.css";
+import styles from "./SlideContentWrapper.module.css";
 
 interface SlideContentWrapperProps {
   title?: string;
@@ -25,17 +25,17 @@ const SlideContentWrapper = ({
   children,
 }: SlideContentWrapperProps) => {
   return (
-    <div className={styles.editorShell}>
+    <div className={styles.shell}>
       {(title ?? description) && (
-        <header className={styles.editorHeader}>
-          {title && <h3 className={styles.editorTitle}>{title}</h3>}
+        <header className={styles.header}>
+          {title && <h3 className={styles.title}>{title}</h3>}
           {description && (
-            <p className={styles.editorDescription}>{description}</p>
+            <p className={styles.description}>{description}</p>
           )}
         </header>
       )}
-      <div className={styles.editorBody}>{children}</div>
-      {footer && <footer className={styles.editorFooter}>{footer}</footer>}
+      <div className={styles.body}>{children}</div>
+      {footer && <footer className={styles.footer}>{footer}</footer>}
     </div>
   );
 };

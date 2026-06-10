@@ -38,6 +38,7 @@ import {
 } from "../Popover/Popover";
 import { useRichTextEditor, useLinkEditor } from "./useRichTextInput";
 import { ColorOptionBtn } from "@ui/Buttons/ColorOptionBtn";
+import { ThemeColorSwatches } from "../ColorPicker/ThemeColorSwatches";
 
 interface RichTextInputHandle {
   /** Blur the underlying editor and close the toolbar. Used by parents that
@@ -151,6 +152,15 @@ const Toolbar = ({ editor, linkOpen, setLinkOpen }: ToolbarProps) => {
               }}
             />
           ))}
+
+          <PopoverDivider />
+
+          {/* Active theme's palette colors — stored as live var(--role-*) refs
+              so the text tracks the deck/global theme. */}
+          <ThemeColorSwatches
+            preventFocusSteal
+            onPick={(value) => editor.chain().focus().setColor(value).run()}
+          />
 
           <PopoverDivider />
 

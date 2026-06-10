@@ -42,6 +42,5 @@
     height: 40px;
     flex-shrink: 0;
     border-top: var(--border-size-sm) solid var(--border-subtle);
-    background-color: var(--bg-canvas);
   }
 }

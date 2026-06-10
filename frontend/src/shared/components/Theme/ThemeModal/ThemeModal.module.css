@@ -128,10 +128,61 @@
   gap: var(--space-2, 0.5rem);
 }
 
-.hueRow {
+/* ── Palette role editor ────────────────────────────────────────────────── */
+
+.roleGroup {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4, 1rem);
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.roleGroupTitle {
+  margin: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--text-muted, #667);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: var(--space-2, 0.5rem);
+}
+
+.swatchField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  cursor: pointer;
+}
+
+.swatchInput {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border-subtle, #ccc);
+  border-radius: var(--radius-sm, 4px);
+  background: none;
+  cursor: pointer;
+}
+
+.swatchInput::-webkit-color-swatch-wrapper {
+  padding: var(--space-half, 2px);
+}
+
+.swatchInput::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.swatchFieldLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .imageRow {
@@ -199,7 +250,7 @@
 .previewDot {
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 50%;
+  border-radius: var(--radius-full, 9999px);
   flex: none;
 }
 

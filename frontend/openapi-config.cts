@@ -19,6 +19,7 @@ const tagToFeatureMap: Record<string, string> = {
   "image-controller": "gallery",
   "deck-controller": "deck",
   "comment-thread-controller": "deck",
+  "review-controller": "deck",
   "user-controller": "auth",
   "auth-controller": "auth",
   "theme-controller": "theme",

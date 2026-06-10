@@ -35,7 +35,6 @@ const NavBar = () => {
           </Link>
         )}
         {/* <NotificationBell /> */}
-        {/* <ThemeToggle /> */}
         <UserMenu />
       </div>
     </nav>

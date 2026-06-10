@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/rules-of-hooks, no-console */
 /* oxlint-disable react-x/rules-of-hooks, no-console */
 
-import type { Meta, StoryObj } from "@storybook/tanstack-react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import { AvatarSelector } from "./AvatarSelector";
 import { SAMPLE_AVATARS, MANY_AVATARS } from "./AvatarSelector.mocks";

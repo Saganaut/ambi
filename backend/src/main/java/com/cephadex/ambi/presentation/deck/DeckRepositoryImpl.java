@@ -72,4 +72,17 @@ class DeckRepositoryImpl implements DeckRepositoryCustom {
         Update update = new Update().set("settings." + field, value);
         mongoTemplate.updateFirst(query, update, Deck.class);
     }
+
+    @Override
+    public void updateRatingStats(String deckId, Double average, long count) {
+        // `stats` sub-fields are @Field-mapped on DeckStats, so the BSON paths are
+        // the snake_case names. Set only the two rating fields — the rest of the
+        // summary (play counts, etc.) is left untouched, and updateFirst skips
+        // optimistic locking so the deck's @Version is unchanged.
+        Query query = new Query(Criteria.where("_id").is(deckId));
+        Update update = new Update()
+                .set("stats.rating_average", average)
+                .set("stats.rating_count", count);
+        mongoTemplate.updateFirst(query, update, Deck.class);
+    }
 }

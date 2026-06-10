@@ -17,6 +17,15 @@ export const sharedValidation = {
     "size": {
       "minimum": 1
     }
+  },
+  "RateDeckRequest": {
+    "body": {
+      "maxLength": 2000
+    },
+    "stars": {
+      "minimum": 1,
+      "maximum": 5
+    }
   }
 } as const;
 

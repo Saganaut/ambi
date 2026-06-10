@@ -13,6 +13,7 @@
  */
 import type {
   Avatar,
+  Palette,
   ThemeSpec,
   UserPreferences,
   UserProfileResponse,
@@ -32,16 +33,52 @@ const imageAvatar = (seed: string): Avatar => ({
 
 // ─── ThemeSpecs (preferences carry an embedded theme override) ───────────────
 
+const darkPalette: Palette = {
+  canvas: "#1a1c2e",
+  surface: "#252843",
+  surfaceRaised: "#303459",
+  subtle: "#141526",
+  foreground: "#e6e9f5",
+  mutedForeground: "#9aa0c4",
+  primary: "#7c83ff",
+  onPrimary: "#1a1c2e",
+  accent: "#9be8c8",
+  accentSecondary: "#c0a0ff",
+  border: "#303459",
+  borderSubtle: "#252843",
+  red: "#ff6b6b",
+  green: "#7bd88f",
+  yellow: "#e8d27b",
+  blue: "#7c83ff",
+};
+
+const lightPalette: Palette = {
+  canvas: "#f6f4e8",
+  surface: "#ece7d2",
+  surfaceRaised: "#fffdf3",
+  subtle: "#ded7bd",
+  foreground: "#3a3220",
+  mutedForeground: "#6f6647",
+  primary: "#6a8f3c",
+  onPrimary: "#f6f4e8",
+  accent: "#c08a2d",
+  accentSecondary: "#4a8f6a",
+  border: "#c4ba94",
+  borderSubtle: "#ded7bd",
+  red: "#b5402a",
+  green: "#5a8f2c",
+  yellow: "#c08a2d",
+  blue: "#3a78a0",
+};
+
 const elvenTwilightSpec: ThemeSpec = {
-  mode: "DARK",
-  huePrimary: 230,
-  hueAccent: 100,
+  appearance: "DARK",
+  palette: darkPalette,
 };
 
 const shireMorningSpec: ThemeSpec = {
-  mode: "LIGHT",
-  huePrimary: 95,
-  hueAccent: 30,
+  appearance: "LIGHT",
+  palette: lightPalette,
 };
 
 // ─── Preferences ─────────────────────────────────────────────────────────────
@@ -84,7 +121,7 @@ export const mockGandalfProfile: UserProfileResponse = {
   preferences: {
     newsletter: false,
     marketing: false,
-    theme: { mode: "LIGHT", huePrimary: 270, hueAccent: 50 },
+    theme: { appearance: "LIGHT", palette: lightPalette },
     stayLoggedIn: true,
   },
 };
@@ -100,7 +137,7 @@ export const mockAragornProfile: UserProfileResponse = {
   preferences: {
     newsletter: true,
     marketing: false,
-    theme: { mode: "LIGHT", huePrimary: 35, hueAccent: 145 },
+    theme: { appearance: "LIGHT", palette: lightPalette },
     stayLoggedIn: false,
   },
 };

@@ -15,11 +15,9 @@ import { Badge } from "@ui/Badge/Badge";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { useThemes } from "@hooks/useThemes";
 import type { ThemeResponse } from "@features/theme/store/themeApi.gen";
+import { PALETTE_PREVIEW_ROLES } from "@features/theme/palette";
 import { ThemeEditor, type ThemeEditorSubmit } from "./ThemeEditor";
 import styles from "./ThemeModal.module.css";
-
-const DEFAULT_HUE_PRIMARY = 290;
-const DEFAULT_HUE_ACCENT = 50;
 
 interface ThemeModalProps {
   /** The theme currently applied in the calling context, highlighted as Active. */
@@ -43,21 +41,19 @@ const ThemeCard = ({
   onEdit,
   onDelete,
 }: ThemeCardProps) => {
-  const huePrimary = theme.spec?.huePrimary ?? DEFAULT_HUE_PRIMARY;
-  const hueAccent = theme.spec?.hueAccent ?? DEFAULT_HUE_ACCENT;
+  const palette = theme.spec?.palette;
   const canManage = theme.permissions.canManage;
 
   return (
     <div className={`${styles.card} ${isActive ? styles.cardActive : ""}`}>
       <div className={styles.swatch} aria-hidden='true'>
-        <div
-          className={styles.swatchBand}
-          style={{ background: `oklch(55% 0.2 ${huePrimary}deg)` }}
-        />
-        <div
-          className={styles.swatchBand}
-          style={{ background: `oklch(65% 0.22 ${hueAccent}deg)` }}
-        />
+        {PALETTE_PREVIEW_ROLES.map((role) => (
+          <div
+            key={role}
+            className={styles.swatchBand}
+            style={{ background: palette?.[role] ?? "transparent" }}
+          />
+        ))}
       </div>
       <div className={styles.cardBody}>
         <p className={styles.cardName} title={theme.name}>

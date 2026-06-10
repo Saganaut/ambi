@@ -21,10 +21,10 @@
  * stomp each other.
  *
  * Image field: every option carries a single `AppImage`. The gallery picker
- * (opened via `useGalleryPicker`, square crop) returns a complete image and we
- * hand it straight up; pasted URLs are stored through the picker's Upload tab.
- * The backend strips derived URLs on write for internal images and rehydrates
- * them on read, so there's nothing to sanitize here.
+ * (opened via the injected `openPicker` prop, square crop) returns a complete
+ * image and we hand it straight up; pasted URLs are stored through the picker's
+ * Upload tab. The backend strips derived URLs on write for internal images and
+ * rehydrates them on read, so there's nothing to sanitize here.
  */
 import { useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/react/sortable";
@@ -32,9 +32,8 @@ import { type McqOption as McqOptionType } from "@deck/store/deckApi.gen";
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 
-import { useTheme } from "@hooks/useTheme";
 import { useFitText } from "@hooks/useFitText";
-import { useGalleryPicker } from "@hooks/useGalleryPicker";
+import { OpenGalleryPicker } from "@hooks/useGalleryPicker";
 import {
   emptyImage,
   isImageEmpty,
@@ -49,15 +48,17 @@ import { Container } from "@components/Containers/Container";
 import QuizPoints from "@assets/icons/content/quiz-points.svg?react";
 import Sad from "@assets/icons/content/sad.svg?react";
 
-// Six swatches spaced evenly around the wheel from the theme's primary hue.
-// Constant lightness/chroma keeps them visually balanced and re-themes
-// cascade automatically. Authors can still override per-option via the
-// color swatch in the popover (`option.color`).
+// Six swatches spaced evenly around the colour wheel. These are starting
+// defaults for MCQ options, independent of the app/deck theme — authors can
+// override per-option via the colour swatch in the popover (`option.color`).
+// Constant lightness/chroma keeps them visually balanced.
+const OPTION_BASE_HUE = 290;
 const OPTION_HUE_OFFSETS = [0, 60, 120, 180, 240, 300] as const;
 const MAX_OPTION_COLORS = OPTION_HUE_OFFSETS.length;
-const buildOptionPalette = (huePrimary: number): string[] =>
+const buildOptionPalette = (): string[] =>
   OPTION_HUE_OFFSETS.map(
-    (offset) => `oklch(0.65 0.18 ${((huePrimary + offset) % 360).toString()})`,
+    (offset) =>
+      `oklch(0.65 0.18 ${((OPTION_BASE_HUE + offset) % 360).toString()})`,
   );
 
 interface McqOptionEditableProps {
@@ -83,6 +84,7 @@ interface McqOptionEditableProps {
   onRemove: () => void;
   /** Flush any pending debounced edit immediately (bind to blur). */
   flush: () => void;
+  openPicker: OpenGalleryPicker;
 }
 
 const McqOptionEditable = ({
@@ -98,14 +100,13 @@ const McqOptionEditable = ({
   onToggleCorrect,
   onRemove,
   flush,
+  openPicker,
 }: McqOptionEditableProps) => {
   const optionId = option.id;
   // `McqOptionId` is a `{ value? }` wrapper — use the bare value string for the
   // dnd id, DOM ids, and image cache-bust seeds (stringifying the object would
   // collide every card on "[object Object]").
   const optionKey = optionId ?? "";
-  const { huePrimary } = useTheme();
-  const openPicker = useGalleryPicker();
 
   // dnd-kit sortable: id must be stable per option so DragDropProvider can
   // identify the source on drop. The parent (McqSlideContent) wraps the grid
@@ -227,9 +228,9 @@ const McqOptionEditable = ({
   );
   const inputIdBase = `mcq-opt-${optionKey}`;
   const displayIndex = index >= 0 ? index + 1 : 0;
-  // Theme-derived default; only applied when the author hasn't overridden
-  // via the popover swatch. Indexes past MAX_OPTION_COLORS wrap.
-  const palette = buildOptionPalette(huePrimary);
+  // Default swatch; only applied when the author hasn't overridden via the
+  // popover swatch. Indexes past MAX_OPTION_COLORS wrap.
+  const palette = buildOptionPalette();
   const paletteIndex = (index >= 0 ? index : 0) % MAX_OPTION_COLORS;
   const paletteColor = palette[paletteIndex] ?? palette[0];
   const color = option.color ?? paletteColor;

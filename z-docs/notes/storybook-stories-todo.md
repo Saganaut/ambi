@@ -33,7 +33,7 @@ No action needed unless these gain renderable UI.
 ## Conventions for new stories
 
 Follow the existing stories (e.g. `features/decks/components/DeckCard/DeckCard.stories.tsx`,
-`UIElements/Alert/Alert.stories.tsx`): `@storybook/tanstack-react` `Meta`/`StoryObj`
+`UIElements/Alert/Alert.stories.tsx`): `@storybook/react-vite` `Meta`/`StoryObj`
 with `satisfies Meta<typeof X>`, `tags: ["autodocs"]`, `title` mirroring the
 folder path under `UIElements/` or `Decks/`, `fn()` from `storybook/test` for callbacks, and any
 sample data extracted to a sibling `<Component>.mocks.ts`.

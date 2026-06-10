@@ -20,7 +20,7 @@ import lombok.ToString;
  * identity, a human name, and ownership so themes can be listed, reused across
  * decks, and shared within an organization.
  *
- * <p>A {@link ThemeSpec} can also live inline (e.g. a user's ad-hoc custom hues)
+ * <p>A {@link ThemeSpec} can also live inline (e.g. a user's ad-hoc custom palette)
  * without ever becoming a {@code Theme} — the document only exists once a look
  * is worth naming and keeping. Decks reference a saved theme by id
  * ({@code Deck.themeId}).

@@ -5,7 +5,7 @@
  * field editors live in SlideContentTypes/.
  */
 import { getRouteApi } from "@tanstack/react-router";
-import styles from "./SlideDisplay.module.css";
+import { SlideCanvas } from "./SlideCanvas";
 
 import { McqSlideContent } from "../SlideContent/McqSlideContent/McqSlideContent";
 import { TextSlideContent } from "../SlideContent/TextSlideContent/TextSlideContent";
@@ -19,10 +19,10 @@ import { AllocationSlideContent } from "../SlideContent/AllocationSlideContent/A
 import { MatchingSlideContent } from "../SlideContent/MatchingSlideContent/MatchingSlideContent";
 import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/DrawingSlideContent";
 import { FollowUpSlideContent } from "../SlideContent/FollowUpSlideContent/FollowUpSlideContent";
-import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
-import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
 import { useSlide } from "../../../hooks/useSlide";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
+import { useDeck } from "@deck/hooks/useDeck";
+import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
 import React from "react";
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 
@@ -33,10 +33,14 @@ const SlideDisplay = () => {
   const { slideId } = routeApi.useSearch();
   const { slides } = useDeckEditor(deckId);
   const { getSlide } = useSlide(deckId);
+  // Per-deck theme, scoped to just the slide canvas — the surrounding editor
+  // chrome keeps the user's global theme.
+  const { deck } = useDeck(deckId);
+  const { style: themeStyle, appearance } = useDeckTheme(deck?.themeId);
 
   const slide = slideId ? getSlide(slideId) : slides[0];
   const navigate = routeApi.useNavigate();
-
+  const backgroundUrl = slide?.backgroundImage?.variants?.LG ?? "";
   // useEffect justification: If there's no slideId in the URL, but there are slides in the deck
   // Load that slide id so it can be picked up by the rest of the component.
   React.useEffect(() => {
@@ -55,7 +59,7 @@ const SlideDisplay = () => {
   const renderBody = () => {
     switch (slide.content.contentType) {
       case "MCQ":
-        return <McqSlideContent />;
+        return <McqSlideContent deckId={deckId} slideId={slide.id} />;
       case "TEXT":
         return <TextSlideContent />;
       case "NUMBER":
@@ -77,7 +81,7 @@ const SlideDisplay = () => {
       case "DRAWING":
         return <DrawingSlideContent />;
       case "FOLLOW_UP":
-        return <FollowUpSlideContent />;
+        return <FollowUpSlideContent deckId={deckId} slideId={slide.id} />;
       case "TITLE":
         return <p> Not implemented</p>;
       case "MEDIA":
@@ -86,23 +90,18 @@ const SlideDisplay = () => {
         return <div>No slide selected</div>;
     }
   };
+
+  console.log("slide content", slide);
+  console.log("Background url", backgroundUrl);
+
   return (
-    <div
-      className={styles.slideDisplay}
-      // style={
-      //   {
-      //     "--background-image": backgroundUrl
-      //       ? `url("${backgroundUrl}")`
-      //       : "none",
-      //   } as React.CSSProperties
-      // }
-    >
-      <div className={styles.slideHeader}>
-        <CephadexLogo size={"md"} />{" "}
-        <SlideTypeGraphicSvg slideType={slide.content.contentType} />
-      </div>
-      <div className={styles.slideBody}>{renderBody()}</div>
-    </div>
+    <SlideCanvas
+      slideType={slide.content.contentType}
+      themeStyle={themeStyle}
+      appearance={appearance}
+      backgroundUrl={backgroundUrl}>
+      {renderBody()}
+    </SlideCanvas>
   );
 };
 

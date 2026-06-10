@@ -15,13 +15,13 @@
 import { useEffect, useRef, useState } from "react";
 import { TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import type { HexColor } from "@uiw/color-convert";
 
 import styles from "./McqOptionEditable.module.css";
-import { hueToHex, parseHue, toHexColor } from "@utils/color";
+import { hueToHex, isHexColor, parseHue, toHexColor } from "@utils/color";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ColorSwatch } from "@components/Forms/Input/ColorPicker/ColorSwatch";
+import { ThemeColorSwatches } from "@components/Forms/Input/ColorPicker/ThemeColorSwatches";
 import {
   Popover,
   PopoverRow,
@@ -77,9 +77,17 @@ const EditOptionToolbar = ({
     };
   }, [colorOpen]);
 
-  const resolvedHex = toHexColor(hueToHex(parseHue(color)));
+  // The current color may be a hex, an oklch() palette default, or a live
+  // var(--role-*) theme reference. parseHue only understands hex/oklch, so guard
+  // it: a var() (or anything non-parseable) gets a neutral hex, used solely for
+  // the ColorSwatch active-highlight. The trigger swatch below shows the raw
+  // color directly, so the real (resolved) color is always previewed.
+  const resolvedHex =
+    isHexColor(color) || color.trim().startsWith("oklch")
+      ? toHexColor(hueToHex(parseHue(color)))
+      : toHexColor("#888888");
 
-  const handleColorPick = (colorPick: HexColor) => {
+  const handleColorPick = (colorPick: string) => {
     handleColorChange(colorPick);
     flush();
     setColorOpen(false);
@@ -96,6 +104,12 @@ const EditOptionToolbar = ({
           <Popover role='dialog' ariaLabel='Choose option color'>
             <PopoverRow>
               <ColorSwatch color={resolvedHex} onChange={handleColorPick} />
+            </PopoverRow>
+            <PopoverDivider />
+            {/* Active theme's palette colors — stored as live var(--role-*)
+                refs so the option tracks the deck/global theme. */}
+            <PopoverRow>
+              <ThemeColorSwatches onPick={handleColorPick} />
             </PopoverRow>
           </Popover>
         </div>
@@ -137,7 +151,7 @@ const EditOptionToolbar = ({
               fill='ghost'
               size='xs'
               className={styles.colorThumbBtn}
-              style={{ backgroundColor: resolvedHex }}
+              style={{ backgroundColor: color }}
               aria-label='Choose color'
               aria-expanded={colorOpen}
               aria-haspopup='dialog'

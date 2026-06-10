@@ -5,7 +5,7 @@
 ## Tokens
 
 - Colors, spacing, and typography come from tokens in `frontend/src/tokens.css`. Never hardcode values.
-- Tokens cascade through theme classes (`.theme-dark`, `.theme-custom`, `.theme-custom.theme-dark`, default light). All four states must keep working — don't touch theme classes from a component module.
+- Semantic colour tokens (`--bg-*`, `--text-*`, `--border-*`, `--action-*`) are **derived from 16 palette role vars** (`--role-canvas`, `--role-foreground`, `--role-primary`, `--role-accent`, the four `--role-{red,green,yellow,blue}` status colours, …). A theme repaints the UI by setting those `--role-*` vars (and a `data-appearance="light|dark"` flag) on an element — `<html>` for the global theme, a scope wrapper for a per-deck theme. Components never touch `--role-*` or `data-appearance`; they only consume the semantic tokens. See the **Theme** entry in the [glossary](../../glossary.md) and `frontend/src/shared/utils/applyPalette.ts`.
 
 ## Component variable manifest
 

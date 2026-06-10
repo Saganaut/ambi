@@ -37,10 +37,27 @@ export type Avatar = {
   internalAvatarId?: string;
   image?: AppImage;
 };
+export type Palette = {
+  canvas?: string;
+  surface?: string;
+  surfaceRaised?: string;
+  subtle?: string;
+  foreground?: string;
+  mutedForeground?: string;
+  primary?: string;
+  onPrimary?: string;
+  accent?: string;
+  accentSecondary?: string;
+  border?: string;
+  borderSubtle?: string;
+  red?: string;
+  green?: string;
+  yellow?: string;
+  blue?: string;
+};
 export type ThemeSpec = {
-  mode?: "LIGHT" | "DARK" | "SYSTEM";
-  huePrimary?: number;
-  hueAccent?: number;
+  appearance?: "LIGHT" | "DARK";
+  palette?: Palette;
   backgroundImage?: AppImage;
   logoImage?: AppImage;
 };

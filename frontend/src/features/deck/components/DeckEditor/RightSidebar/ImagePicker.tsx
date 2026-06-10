@@ -32,19 +32,21 @@ const ImagePicker = ({
   return (
     <div className={styles.imagePicker}>
       <span className={styles.imagePickerLabel}>{label}</span>
-      <button
-        type='button'
-        className={styles.imageTile}
-        onClick={onPick}
-        aria-label={`Pick ${label.toLowerCase()}`}>
-        {hasImage && thumbnailSrc ? (
-          <img src={thumbnailSrc} alt='' />
-        ) : (
-          <span className={styles.imageTileEmpty}>
-            <PhotoIcon aria-hidden='true' />
-            <span>Choose image</span>
-          </span>
-        )}
+      <div className={styles.imageTileWrap}>
+        <button
+          type='button'
+          className={styles.imageTile}
+          onClick={onPick}
+          aria-label={`Pick ${label.toLowerCase()}`}>
+          {hasImage && thumbnailSrc ? (
+            <img src={thumbnailSrc} alt='' />
+          ) : (
+            <span className={styles.imageTileEmpty}>
+              <PhotoIcon aria-hidden='true' />
+              <span>Choose image</span>
+            </span>
+          )}
+        </button>
         {hasImage && (
           <IconBtn
             fill='ghost'
@@ -52,13 +54,10 @@ const ImagePicker = ({
             className={styles.imageClear}
             icon={<XMarkIcon />}
             aria-label={`Clear ${label.toLowerCase()}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClear();
-            }}
+            onClick={onClear}
           />
         )}
-      </button>
+      </div>
     </div>
   );
 };

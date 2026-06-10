@@ -55,4 +55,12 @@ public final class ValidationConstants {
     // ── Comments ─────────────────────────────────────────────────────────────
     /** Body length cap for a deck-discussion comment (top-level or reply). */
     public static final int COMMENT_BODY_MAX = 4000;
+
+    // ── Reviews ──────────────────────────────────────────────────────────────
+    /** Lowest valid star score on a deck review. */
+    public static final int REVIEW_STARS_MIN = 1;
+    /** Highest valid star score on a deck review. */
+    public static final int REVIEW_STARS_MAX = 5;
+    /** Body length cap for a deck review's optional written text. */
+    public static final int REVIEW_BODY_MAX = 2000;
 }

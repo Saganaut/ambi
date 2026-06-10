@@ -10,15 +10,13 @@
  * sidebar's follow-up section.
  */
 import React, { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { FOLLOW_UP_MODE_LABELS } from "@deck/utils/followUp";
 import { SlideContentWrapper } from "../SlideContentWrapper";
+import type { SlideContentProps } from "../slideContentProps";
 import styles from "./FollowUpSlideContent.module.css";
-
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 /** Strip the title down for display; falls back when the parent is untitled. */
 const parentDisplayName = (title: string | undefined): string => {
@@ -26,11 +24,7 @@ const parentDisplayName = (title: string | undefined): string => {
   return trimmed === "" ? "the previous slide" : `“${trimmed}”`;
 };
 
-const FollowUpSlideContent = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
-  if (slideId == null) throw Error("slide id is null");
-
+const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { slide, updateMetadata, flush } = useSlideEditor(
     deckId,
     slideId,

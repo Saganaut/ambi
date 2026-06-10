@@ -21,7 +21,7 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
  * @param organizationId owning org id when org-owned, else null
  * @param creatorUserId  the user who created the theme
  * @param builtIn        true for app-provided preset themes
- * @param spec           the renderable payload (mode, hues, background, logo)
+ * @param spec           the renderable payload (appearance, palette, background, logo)
  * @param createdAt      creation timestamp
  * @param updatedAt      last-modified timestamp
  * @param permissions    the requesting principal's capabilities over this theme

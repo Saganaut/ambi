@@ -57,11 +57,12 @@ export const ScoreMode = {
   RANGE: "RANGE",
 } as const satisfies Record<ScoreMode, ScoreMode>;
 
-export type McqDataVisualization = "BAR_HORIZONTAL" | "BAR_VERTICAL" | "DONUT" | "LINE" | "NONE" | "PARETO" | "PIE";
+export type McqDataVisualization = "BAR_HORIZONTAL" | "BAR_VERTICAL" | "DONUT" | "DOT" | "LINE" | "NONE" | "PARETO" | "PIE";
 export const McqDataVisualization = {
   BAR_HORIZONTAL: "BAR_HORIZONTAL",
   BAR_VERTICAL: "BAR_VERTICAL",
   DONUT: "DONUT",
+  DOT: "DOT",
   LINE: "LINE",
   NONE: "NONE",
   PARETO: "PARETO",

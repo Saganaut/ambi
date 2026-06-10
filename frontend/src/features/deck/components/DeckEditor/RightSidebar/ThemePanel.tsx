@@ -36,6 +36,20 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
     { skip: !themeId },
   );
 
+  // The deck PATCH is a full metadata replace (an omitted field is cleared), so
+  // we resend the rest of the metadata alongside the theme change — both when
+  // applying a theme and when clearing it back to the deck's (global) default.
+  const setDeckTheme = (nextThemeId?: string) => {
+    if (!deck) return;
+    updateDeck({
+      name: deck.name,
+      description: deck.description,
+      language: deck.language,
+      publishStatus: deck.publishStatus,
+      themeId: nextThemeId,
+    });
+  };
+
   const openThemeModal = () => {
     openModal({
       title: "Theme",
@@ -43,7 +57,7 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
         <ThemeModal
           activeThemeId={themeId}
           onApply={(theme) => {
-            updateDeck({ themeId: theme.id });
+            setDeckTheme(theme.id);
           }}
           onClose={closeModal}
         />
@@ -60,6 +74,18 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
       <Btn type='button' className={styles.newBtn} onClick={openThemeModal}>
         {themeId ? "Change theme" : "Choose theme"}
       </Btn>
+      {themeId && (
+        <Btn
+          type='button'
+          variant='secondary'
+          fill='bordered'
+          className={styles.newBtn}
+          onClick={() => {
+            setDeckTheme(undefined);
+          }}>
+          Use overall theme
+        </Btn>
+      )}
     </section>
   );
 };

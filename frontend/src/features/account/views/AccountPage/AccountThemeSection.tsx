@@ -21,7 +21,7 @@ const AccountThemeSection = () => {
 
   const applyTheme = (theme: ThemeResponse) => {
     // PUT preferences is a wholesale replace, so resend the rest alongside the
-    // new theme spec to avoid clobbering them (mirrors useTheme.persistSpec).
+    // new theme spec to avoid clobbering them (mirrors useTheme).
     const prefs = profile?.preferences;
     void savePreferences({
       updatePreferencesRequest: {

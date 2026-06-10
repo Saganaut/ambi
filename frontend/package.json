@@ -53,7 +53,7 @@
     "@rtk-query/codegen-openapi": "^2.2.0",
     "@storybook/addon-a11y": "^10.4.2",
     "@storybook/addon-docs": "^10.4.2",
-    "@storybook/tanstack-react": "^10.4.2",
+    "@storybook/react-vite": "^10.4.3",
     "@svgr/cli": "^8.1.0",
     "@tanstack/react-query": "^5.100.14",
     "@tanstack/router-plugin": "^1.168.18",

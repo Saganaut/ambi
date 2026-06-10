@@ -1,4 +1,4 @@
-import type { Decorator } from "@storybook/tanstack-react";
+import type { Decorator } from "@storybook/react-vite";
 import { Provider } from "react-redux";
 import { store } from "../../src/shared/store/store";
 // Opt-in Redux wrapper for the data-bound tier. Apply per story via

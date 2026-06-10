@@ -1,4 +1,4 @@
-import type { Preview, Decorator } from "@storybook/tanstack-react";
+import type { Preview, Decorator } from "@storybook/react-vite";
 import { useEffect } from "react";
 // Pulls in tokens.css, so every story resolves the same CSS custom properties
 // (--bg-canvas, --text-primary, hue-derived colors) the real app uses.

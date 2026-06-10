@@ -1,5 +1,4 @@
-import type { StorybookConfig } from "@storybook/tanstack-react";
-
+import type { StorybookConfig } from "@storybook/react-vite";
 // Scoped to the design-system surface: stories live next to the components
 // they document (CSF3), plus any hand-written .mdx docs pages. svgr, path
 // aliases (@/*), the React Compiler babel pass, and CSS Modules are all
@@ -13,7 +12,7 @@ import type { StorybookConfig } from "@storybook/tanstack-react";
 const config: StorybookConfig = {
   stories: ["../src/**/*.mdx", "../src/**/*.stories.@(ts|tsx)"],
   addons: ["@storybook/addon-docs", "@storybook/addon-a11y"],
-  framework: "@storybook/tanstack-react",
+  framework: "@storybook/react-vite",
 };
 
 export default config;

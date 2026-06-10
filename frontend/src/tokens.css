@@ -1,9 +1,11 @@
 :root {
   /* ─── Named Color Palette ─────────────────────────────────────────────────── */
 
-  /* Reference palette — kept for status colors and any non-semantic usage.     */
+  /* Reference palette — kept for the default (brand) theme's role values below   */
 
-  /* Semantic tokens below derive from --hue-primary / --hue-accent instead.   */
+  /* and for any non-semantic usage. Curated themes set the --role-* vars         */
+
+  /* directly (via the JS palette applier), so they never touch this palette.     */
 
   --red-200: oklch(93% 0.2 25deg);
   --red-300: oklch(89% 0.2 25deg);
@@ -152,58 +154,77 @@
   --ultraviolet-800: oklch(from #260078 l c h);
   --ultraviolet-900: oklch(from #260078 16% calc(c * 0.85) h);
 
-  /* ─── Brand Hues (user-customizable) ─────────────────────────────────────── */
+  /* ─── Theme Role Palette ──────────────────────────────────────────────────── */
 
-  /* Set these two values to retheme the entire UI. Extract the hue from any   */
+  /* The 16 colour roles a theme provides. The defaults below ARE the built-in   */
 
-  /* oklch color (or convert from hex) and assign it here. All backgrounds,    */
+  /* "brand" theme (a light appearance). Curated themes (Catppuccin, Dracula,    */
 
-  /* surfaces, borders, and text scale from --hue-primary. Action states and   */
+  /* …) override these by setting --role-* inline on <html> (global) or on a     */
 
-  /* brand accents scale from --hue-accent. Lightness and chroma are fixed per */
+  /* scope wrapper (per-deck) via the JS palette applier. Every semantic token   */
 
-  /* step so contrast ratios are preserved across light and dark modes.        */
+  /* below derives from these roles, so re-skinning the whole UI is just         */
 
-  --hue-primary: 290deg; /* default: electric-violet — controls surfaces & borders  */
-  --hue-accent: 50deg; /* default: blaze-orange   — controls actions & brand accents */
+  /* swapping these 16 values + the data-appearance flag.                        */
 
-  /* ─── Light Mode Semantic Tokens (Brand Defaults) ───────────────────────── */
+  --role-canvas: var(--white-100);
+  --role-surface: var(--concrete-300);
+  --role-surface-raised: var(--white-100);
+  --role-subtle: var(--concrete-400);
+  --role-foreground: var(--violet-800);
+  --role-muted-foreground: var(--grey-600);
+  --role-primary: var(--violet-500);
+  --role-on-primary: var(--concrete-200);
+  --role-accent: var(--cyan-700);
+  --role-accent-secondary: var(--orange-500);
+  --role-border: var(--violet-700);
+  --role-border-subtle: var(--ultraviolet-200);
+  --role-red: oklch(52% 0.2 25deg);
+  --role-green: oklch(60% 0.13 170deg);
+  --role-yellow: oklch(82% 0.19 90deg);
+  --role-blue: oklch(62% 0.13 260deg);
 
-  /* Tokens reference the named brand palette by default. When a user engages */
+  /* ─── Semantic Tokens (derived from roles) ──────────────────────────────── */
 
-  /* the picker, .theme-custom overrides these with hue-derived values.       */
+  /* These are what components consume. They are pure functions of the --role-* */
+
+  /* values above plus the appearance flag, so they recolour automatically for  */
+
+  /* every theme. Mixes are toward --role-canvas / --role-foreground, both of   */
+
+  /* which already encode the theme's light/dark character — so most tokens     */
+
+  /* need no per-appearance override (only --edge-tint and --shadow do).        */
 
   /** Background Variants **/
+  --bg-canvas: var(--role-canvas);
+  --bg-surface: var(--role-surface);
+  --bg-surface-raised: var(--role-surface-raised);
+  --bg-secondary: color-mix(in oklab, var(--role-primary) 12%, var(--role-surface));
+  --bg-subtle: var(--role-subtle);
+  --bg-primary: var(--role-primary);
+  --bg-brand: color-mix(in oklab, var(--role-primary) 78%, var(--role-canvas));
+  --bg-disabled: color-mix(in oklab, var(--role-muted-foreground) 28%, var(--role-surface));
+  --bg-display-only: var(--role-canvas);
 
-  --bg-canvas: var(--white-100);
-  --bg-surface: var(--concrete-300);
-  --bg-surface-raised: var(--white-100);
-  --bg-secondary: var(--violet-100);
-  --bg-subtle: var(--concrete-400);
-  --bg-primary: var(--violet-500);
-  --bg-brand: var(--violet-700);
-  --bg-canvas-inverted: var(--tolopea-900);
-  --bg-surface-inverted: var(--ultraviolet-800);
-  --bg-primary-inverted: var(--ultraviolet-800);
-  --bg-display-only: #fff;
-  --bg-disabled: var(--white-700);
+  /** Inverted Backgrounds — swap toward the foreground end so they read as the */
 
-  /** Modal / dialog backdrop. Same value in light and dark — the overlay's job */
+  /* opposite appearance without a second palette. */
+  --bg-canvas-inverted: var(--role-foreground);
+  --bg-surface-inverted: color-mix(in oklab, var(--role-foreground) 88%, var(--role-canvas));
+  --bg-primary-inverted: var(--role-primary);
 
-  /* is to dim whatever is behind it, regardless of theme.                      */
+  /** Modal / dialog backdrop. Fixed across themes — its job is to dim whatever */
+
+  /* is behind it, regardless of palette. */
   --bg-overlay: rgb(0 0 0 / 50%);
 
-  /** Edge Tokens — hairline outline paired to each bg, used when you want a */
+  /** Edge Tokens — hairline outline paired to each bg. Darker than the fill in */
 
-  /* subtle border that visually belongs to the fill. Darker in light mode,  */
+  /* light appearance, lighter in dark, via --edge-tint (flipped under          */
 
-  /* lighter in dark mode, automatic via --edge-tint. Distinct from the      */
-
-  /* --border-* roles (which carry semantic meaning: subtle/default/focus/   */
-
-  /* brand/status). Reach for --edge-* when you just need "the line that     */
-
-  /* matches this surface."                                                  */
+  /* [data-appearance="dark"]).                                                 */
   --edge-tint: black;
   --edge-canvas: color-mix(in oklab, var(--bg-canvas) 92%, var(--edge-tint));
   --edge-surface: color-mix(in oklab, var(--bg-surface) 92%, var(--edge-tint));
@@ -222,48 +243,51 @@
   --edge-brand: color-mix(in oklab, var(--bg-brand) 92%, var(--edge-tint));
 
   /** Text Variants **/
+  --text-primary: var(--role-foreground);
+  --text-secondary: var(--role-muted-foreground);
+  --text-muted: color-mix(in oklab, var(--role-muted-foreground) 60%, var(--role-canvas));
+  --text-accent: var(--role-accent);
+  --text-on-brand: var(--role-on-primary);
+  --text-disabled: color-mix(in oklab, var(--role-muted-foreground) 55%, var(--role-canvas));
 
-  /* --text-primary: var(--shell);
-  --text-secondary: var(--aquamarine-100); */
-  --text-muted: var(--grey-300);
-  --text-on-brand: var(--concrete-200);
-  --text-primary: var(--violet-800);
-  --text-secondary: var(--grey-600);
-  --text-accent: var(--cyan-700);
-  --text-primary-inverted: var(--white-100);
-  --text-secondary-inverted: var(--grey-300);
-  --text-accent-inverted: var(--cyan-500);
+  /** Inverted Text — swap toward the canvas end (mirrors inverted backgrounds). */
+  --text-primary-inverted: var(--role-canvas);
+  --text-secondary-inverted: color-mix(in oklab, var(--role-canvas) 70%, var(--role-foreground));
+  --text-accent-inverted: var(--role-accent);
 
-  /** Background States — fixed hues; semantic meaning must not shift with brand **/
-  --bg-error: oklch(93% 0.2 25deg);
-  --bg-success: oklch(92% 0.04 170deg);
-  --bg-info: oklch(93% 0.04 260deg);
-  --bg-warning: oklch(96% 0.06 95deg);
+  /** Status Backgrounds — a canvas-tinted wash of each status role, so the wash */
 
-  /** Text States — fixed **/
-  --text-error: oklch(45% 0.2 25deg);
-  --text-success: oklch(45% 0.11 170deg);
-  --text-warning: oklch(45% 0.13 90deg);
-  --text-info: oklch(45% 0.13 260deg);
-  --text-disabled: var(--grey-300);
+  /* stays light on light themes and dark on dark themes automatically. */
+  --bg-error: color-mix(in oklab, var(--role-red) 18%, var(--role-canvas));
+  --bg-success: color-mix(in oklab, var(--role-green) 18%, var(--role-canvas));
+  --bg-info: color-mix(in oklab, var(--role-blue) 18%, var(--role-canvas));
+  --bg-warning: color-mix(in oklab, var(--role-yellow) 18%, var(--role-canvas));
+
+  /** Status Text — the status role pulled toward foreground for legibility on  */
+
+  /* its wash (darkens on light themes, lightens on dark themes). */
+  --text-error: color-mix(in oklab, var(--role-red) 72%, var(--role-foreground));
+  --text-success: color-mix(in oklab, var(--role-green) 72%, var(--role-foreground));
+  --text-warning: color-mix(in oklab, var(--role-yellow) 72%, var(--role-foreground));
+  --text-info: color-mix(in oklab, var(--role-blue) 72%, var(--role-foreground));
 
   /** Borders **/
-  --border-default: var(--violet-700);
-  --border-subtle: var(--ultraviolet-200);
-  --border-focus: var(--cyan-500);
-  --border-brand: var(--orange-500);
+  --border-default: var(--role-border);
+  --border-subtle: var(--role-border-subtle);
+  --border-focus: var(--role-accent);
+  --border-brand: var(--role-accent-secondary);
+  --border-disabled: color-mix(in oklab, var(--role-muted-foreground) 45%, var(--role-canvas));
 
-  /** Border States — fixed **/
-  --border-success: oklch(74% 0.13 170deg);
-  --border-warning: oklch(90% 0.22 95deg);
-  --border-error: oklch(77% 0.2 25deg);
-  --border-info: oklch(76% 0.13 260deg);
-  --border-disabled: var(--grey-300);
+  /** Status Borders — a mid blend of the status role toward canvas. */
+  --border-success: color-mix(in oklab, var(--role-green) 55%, var(--role-canvas));
+  --border-warning: color-mix(in oklab, var(--role-yellow) 55%, var(--role-canvas));
+  --border-error: color-mix(in oklab, var(--role-red) 55%, var(--role-canvas));
+  --border-info: color-mix(in oklab, var(--role-blue) 55%, var(--role-canvas));
 
-  /** Action States **/
-  --action-hover: var(--orange-500);
-  --action-active: var(--orange-200);
-  --action-disabled: var(--grey-700);
+  /** Action States — built on the secondary accent (the CTA colour). */
+  --action-hover: var(--role-accent-secondary);
+  --action-active: color-mix(in oklab, var(--role-accent-secondary) 72%, var(--role-foreground));
+  --action-disabled: color-mix(in oklab, var(--role-muted-foreground) 45%, var(--role-surface));
 
   /* --- Shadow (Expanded Scale) --- */
   --shadow:
@@ -400,181 +424,34 @@
   --max-screen-width: 2440px;
 }
 
-/* stylelint-disable-next-line selector-class-pattern */
-:root.theme-dark {
-  /* ─── Dark Mode Semantic Tokens (Brand Defaults) ────────────────────────── */
+/* ─── Appearance Overrides ──────────────────────────────────────────────────── */
 
-  /* Tokens reference the named brand palette by default. .theme-custom       */
+/* The palette applier sets data-appearance on whatever element it themes (the   */
 
-  /* overrides these with hue-derived values when the user engages the picker. */
+/* <html> for the global theme, a scope wrapper for a per-deck theme). Only the   */
 
-  /** Background Variants **/
-  --bg-canvas: var(--tolopea-900);
-  --bg-surface: var(--ultraviolet-800);
-  --bg-surface-raised: var(--violet-700);
-  --bg-secondary: var(--ultraviolet-800);
-  --bg-subtle: var(--ultraviolet-700);
-  --bg-primary: var(--violet-500);
-  --bg-brand: var(--violet-400);
-  --bg-canvas-inverted: var(--white-100);
-  --bg-surface-inverted: var(--concrete-300);
-  --bg-primary-inverted: var(--violet-100);
-  --bg-display-only: #000;
-  --bg-disabled: var(--white-700);
+/* tokens that can't auto-adapt from the role mixes live here: the edge tint      */
 
-  /* In dark mode, edges lighten the bg rather than darken it. The --edge-*  */
+/* (which mixes toward an explicit black/white) and the drop shadow. Both         */
 
-  /* definitions in :root reference var(--edge-tint), so flipping this one   */
+/* light and dark are written out so a light scope nested inside a dark global    */
 
-  /* value recomputes every edge token automatically.                        */
+/* (or vice-versa) resets correctly rather than inheriting the wrong value.       */
+
+[data-appearance="light"] {
+  --edge-tint: black;
+  --bg-display-only: var(--role-canvas);
+  --shadow:
+    rgb(0, 0, 0 / 10%) 0 10px 15px -3px, rgb(0, 0, 0 / 5%) 0 4px 6px -2px;
+}
+
+[data-appearance="dark"] {
+  /* In dark appearance, edges lighten the bg rather than darken it. The         */
+
+  /* --edge-* definitions reference var(--edge-tint), so flipping this one value */
+
+  /* recomputes every edge token automatically.                                  */
   --edge-tint: white;
-
-  /** Background States — same as light mode **/
-  --bg-error: oklch(93% 0.2 25deg);
-  --bg-success: oklch(92% 0.04 170deg);
-  --bg-info: oklch(93% 0.04 260deg);
-  --bg-warning: oklch(96% 0.06 95deg);
-
-  /** Text Variants **/
-
-  /* --text-primary: var(--shell);
-  --text-secondary: var(--aquamarine-100); */
-  --text-muted: var(--grey-300);
-  --text-on-brand: var(--concrete-200);
-  --text-primary: var(--white-100);
-  --text-secondary: var(--grey-300);
-  --text-accent: var(--cyan-500);
-  --text-primary-inverted: var(--violet-500);
-  --text-secondary-inverted: var(--grey-600);
-  --text-accent-inverted: var(--cyan-700);
-
-  /** Text States — fixed **/
-  --text-error: oklch(45% 0.2 25deg);
-  --text-success: oklch(45% 0.11 170deg);
-  --text-warning: oklch(45% 0.13 90deg);
-  --text-info: oklch(45% 0.13 260deg);
-  --text-disabled: var(--white-600);
-
-  /** Borders **/
-  --border-default: var(--violet-700);
-  --border-subtle: var(--ultraviolet-200);
-  --border-focus: var(--cyan-500);
-  --border-brand: var(--orange-500);
-
-  /** Border States — fixed **/
-  --border-success: oklch(74% 0.13 170deg);
-  --border-warning: oklch(90% 0.22 95deg);
-  --border-error: oklch(77% 0.2 25deg);
-  --border-info: oklch(76% 0.13 260deg);
-  --border-disabled: var(--grey-500);
-
-  /** Action States **/
-  --action-hover: var(--orange-500);
-  --action-active: var(--orange-200);
-  --action-disabled: var(--grey-700);
-
-  /** Shadows **/
+  --bg-display-only: var(--role-canvas);
   --shadow: rgb(0 0 0 / 40%) 0 10px 15px -3px, rgb(0 0 0 / 25%) 0 4px 6px -2px;
-}
-
-/* ─── Custom Theme Overrides ────────────────────────────────────────────── */
-
-/* Active when the user engages the hue picker (or activates a saved theme). */
-
-/* Semantic tokens shift from brand-color references to hue-derived oklch    */
-
-/* values driven by --hue-primary / --hue-accent.                            */
-
-/* stylelint-disable-next-line selector-class-pattern */
-:root.theme-custom {
-  /** Background Variants **/
-  --bg-canvas: oklch(93% 0.04 var(--hue-primary));
-  --bg-surface: oklch(88% 0.06 var(--hue-primary));
-  --bg-primary: oklch(52% 0.11 var(--hue-primary));
-  --bg-secondary: oklch(97% 0.03 var(--hue-primary));
-  --bg-display-only: #fff;
-
-  /* surface-raised shifts -60° from primary */
-  --bg-surface-raised: oklch(92% 0.04 calc(var(--hue-primary) - 60deg));
-  --bg-subtle: oklch(76% 0.13 var(--hue-primary));
-  --bg-brand: oklch(22% 0.05 var(--hue-primary));
-  --bg-disabled: oklch(80% 0.001 271.152deg);
-
-  /** Inverted Background Variants — flipped to dark end of primary scale **/
-  --bg-canvas-inverted: oklch(22% 0.05 var(--hue-primary));
-  --bg-surface-inverted: oklch(28% 0.06 var(--hue-primary));
-  --bg-primary-inverted: oklch(28% 0.06 var(--hue-primary));
-
-  /** Text Variants **/
-  --text-primary: oklch(39% 0.2 var(--hue-accent));
-  --text-secondary: oklch(40% 0.02 var(--hue-primary));
-  --text-accent: oklch(45% 0.13 var(--hue-accent));
-  --text-muted: oklch(93% 0.2 var(--hue-accent));
-  --text-on-brand: oklch(77% 0.2 var(--hue-accent));
-  --text-disabled: oklch(70% 0.001 271.152deg);
-
-  /** Inverted Text Variants — for use on inverted (dark) surfaces **/
-  --text-primary-inverted: oklch(98% 0.02 var(--hue-primary));
-  --text-secondary-inverted: oklch(70% 0.02 var(--hue-primary));
-  --text-accent-inverted: oklch(80% 0.13 var(--hue-accent));
-
-  /** Borders **/
-  --border-default: oklch(76% 0.13 var(--hue-primary));
-  --border-subtle: oklch(88% 0.06 var(--hue-primary));
-  --border-focus: oklch(76% 0.13 var(--hue-primary));
-  --border-brand: oklch(77% 0.2 var(--hue-accent));
-  --border-disabled: oklch(70% 0.001 271.152deg);
-
-  /** Action States **/
-  --action-hover: oklch(60% 0.2 var(--hue-accent));
-  --action-active: oklch(45% 0.2 var(--hue-accent));
-
-  /* action-disabled shifts +30° from primary */
-  --action-disabled: oklch(28% 0.06 calc(var(--hue-primary) + 30deg));
-}
-
-/* stylelint-disable-next-line selector-class-pattern */
-:root.theme-custom.theme-dark {
-  /** Background Variants — deep end of the primary scale **/
-  --bg-canvas: oklch(22% 0.05 var(--hue-primary));
-  --bg-surface: oklch(28% 0.06 var(--hue-primary));
-  --bg-primary: oklch(52% 0.11 var(--hue-primary));
-  --bg-secondary: oklch(28% 0.06 var(--hue-primary));
-  --bg-surface-raised: oklch(38% 0.08 var(--hue-primary));
-  --bg-subtle: oklch(62% 0.13 var(--hue-primary));
-  --bg-brand: oklch(22% 0.05 var(--hue-primary));
-  --bg-disabled: oklch(80% 0.001 271.152deg);
-
-  /** This is only to display components in the design page **/
-  --bg-display-only: #000;
-
-  /** Inverted Background Variants — flipped to light end of primary scale **/
-  --bg-canvas-inverted: oklch(93% 0.04 var(--hue-primary));
-  --bg-surface-inverted: oklch(88% 0.06 var(--hue-primary));
-  --bg-primary-inverted: oklch(92% 0.04 var(--hue-primary));
-
-  /** Text Variants **/
-  --text-primary: oklch(77% 0.2 var(--hue-accent));
-  --text-secondary: oklch(70% 0.02 var(--hue-primary));
-  --text-accent: oklch(80% 0.13 var(--hue-accent));
-  --text-muted: oklch(93% 0.2 var(--hue-accent));
-  --text-on-brand: oklch(77% 0.2 var(--hue-accent));
-  --text-disabled: oklch(50% 0.001 271.152deg);
-
-  /** Inverted Text Variants — for use on inverted (light) surfaces **/
-  --text-primary-inverted: oklch(22% 0.05 var(--hue-primary));
-  --text-secondary-inverted: oklch(40% 0.02 var(--hue-primary));
-  --text-accent-inverted: oklch(45% 0.13 var(--hue-accent));
-
-  /** Borders — light end of the primary scale **/
-  --border-default: oklch(93% 0.04 var(--hue-primary));
-  --border-subtle: oklch(88% 0.06 var(--hue-primary));
-  --border-focus: oklch(76% 0.13 var(--hue-primary));
-  --border-brand: oklch(77% 0.2 var(--hue-accent));
-  --border-disabled: oklch(70% 0.001 271.152deg);
-
-  /** Action States **/
-  --action-hover: oklch(89% 0.2 var(--hue-accent));
-  --action-active: oklch(93% 0.2 var(--hue-accent));
-  --action-disabled: oklch(28% 0.06 calc(var(--hue-primary) + 30deg));
 }

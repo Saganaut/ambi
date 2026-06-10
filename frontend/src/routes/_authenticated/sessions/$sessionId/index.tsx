@@ -1,5 +1,6 @@
 import { SessionPage } from "@features/liveSession/views/SessionPage/SessionPage";
 import { SessionConnectionProvider } from "@features/liveSession/views/SessionPage/SessionConnectionProvider";
+import { SessionThemeScope } from "@features/liveSession/components/SessionThemeScope";
 import { createFileRoute } from "@tanstack/react-router";
 
 // The `$sessionId` route param carries the session's room code (the join code),
@@ -10,7 +11,9 @@ export const Route = createFileRoute("/_authenticated/sessions/$sessionId/")({
     const { sessionId } = Route.useParams();
     return (
       <SessionConnectionProvider roomCode={sessionId}>
-        <SessionPage />
+        <SessionThemeScope>
+          <SessionPage />
+        </SessionThemeScope>
       </SessionConnectionProvider>
     );
   },

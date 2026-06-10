@@ -13,7 +13,6 @@
 // All option identity is compared by `option.id.value`: an `McqOptionId` is a
 // `{ value? }` wrapper, while `content.correctOptionIds` holds the bare value
 // strings.
-import { getRouteApi } from "@tanstack/react-router";
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import type { McqOption } from "@deck/store/deckApi.gen";
@@ -26,8 +25,6 @@ import { buildDefaultMcqOption } from "../utils/slideContent";
 const MIN_MCQ_OPTIONS = 2;
 /** … nor add past 6 (beyond that the card grid stops being legible). */
 const MAX_MCQ_OPTIONS = 6;
-
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 /** Flattened, UI-facing view of the active MCQ slide. */
 interface McqQuestionView {

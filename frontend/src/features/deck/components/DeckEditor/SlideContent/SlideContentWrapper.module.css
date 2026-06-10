@@ -1,0 +1,58 @@
+/* Styles for `SlideContentWrapper`, the layout shell shared by every
+   kind-specific slide editor. Slide editors in their own folders own all
+   their own visuals via `_shared/` primitives; this file only carries the
+   header / body / footer rhythm of the outer shell. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  gap: var(--space-3);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  
+  .header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-2);
+  border-bottom: var(--border-size-sm) solid var(--edge-surface);
+  }
+  .title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .description {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding-right: var(--space-1);
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    scrollbar-gutter: stable;
+  }
+  .footer {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font-size-xs);
+    font-weight: 300;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+
+

@@ -641,6 +641,7 @@ export type McqContent = {
     | "LINE"
     | "DONUT"
     | "PARETO"
+    | "DOT"
     | "NONE";
   contentType: "MCQ";
 };

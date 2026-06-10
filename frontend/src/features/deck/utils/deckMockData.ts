@@ -208,9 +208,7 @@ const gridContent: GridContent = {
 
 const placeOnImageContent: PlaceOnImageContent = {
   contentType: "PLACE_ON_IMAGE",
-  image: externalImage(
-    "https://picsum.photos/seed/middle-earth-map/1600/1200",
-  ),
+  image: externalImage("https://picsum.photos/seed/middle-earth-map/1600/1200"),
   correctTargets: [{ id: "target_minas_tirith", x: 0.62, y: 0.58, radius: 0.04 }],
   scoreMode: "INSIDE_RADIUS",
 };
@@ -301,50 +299,35 @@ const slide = (
 
 export const mockTitleSlide = slide("slide_title", "Fellowship Trivia", titleContent, {
   sortOrder: "a0",
-  backgroundImage: externalImage(
-    "https://picsum.photos/seed/title-rivendell/1920/1080",
-  ),
+  backgroundImage: externalImage("https://picsum.photos/seed/title-rivendell/1920/1080"),
 });
 
 export const mockMcqSlide = slide("slide_mcq", "The Ring Bearer", mcqContent, {
   sortOrder: "a1",
   section: "Round 1",
   difficulty: "EASY",
-  explanation:
-    "Frodo bore the Ring the whole journey — Sam carried it briefly in Cirith Ungol.",
+  explanation: "Frodo bore the Ring the whole journey — Sam carried it briefly in Cirith Ungol.",
 });
 
-export const mockNumberSlide = slide(
-  "slide_number",
-  "Nine Walkers",
-  numberContent,
-  {
-    sortOrder: "a2",
-    difficulty: "EASY",
-    explanation: "Four hobbits, two men, an elf, a dwarf, and a wizard.",
-  },
-);
+export const mockNumberSlide = slide("slide_number", "Nine Walkers", numberContent, {
+  sortOrder: "a2",
+  difficulty: "EASY",
+  explanation: "Four hobbits, two men, an elf, a dwarf, and a wizard.",
+});
 
-export const mockTextSlide = slide(
-  "slide_text",
-  "Reforged in Rivendell",
-  textContent,
-  { sortOrder: "a3", difficulty: "MEDIUM" },
-);
+export const mockTextSlide = slide("slide_text", "Reforged in Rivendell", textContent, {
+  sortOrder: "a3",
+  difficulty: "MEDIUM",
+});
 
-export const mockRankingSlide = slide(
-  "slide_ranking",
-  "Ages of Middle-earth",
-  rankingContent,
-  { sortOrder: "a4", difficulty: "MEDIUM" },
-);
+export const mockRankingSlide = slide("slide_ranking", "Ages of Middle-earth", rankingContent, {
+  sortOrder: "a4",
+  difficulty: "MEDIUM",
+});
 
-export const mockScalesSlide = slide(
-  "slide_scales",
-  "Hobbit Mealtimes",
-  scalesContent,
-  { sortOrder: "a5" },
-);
+export const mockScalesSlide = slide("slide_scales", "Hobbit Mealtimes", scalesContent, {
+  sortOrder: "a5",
+});
 
 export const mockGridSlide = slide("slide_grid", "Who Goes Where", gridContent, {
   sortOrder: "a6",
@@ -358,12 +341,10 @@ export const mockPlaceOnImageSlide = slide(
   { sortOrder: "a7", difficulty: "MEDIUM" },
 );
 
-export const mockMatchingSlide = slide(
-  "slide_matching",
-  "Blade-bearers",
-  matchingContent,
-  { sortOrder: "a8", difficulty: "MEDIUM" },
-);
+export const mockMatchingSlide = slide("slide_matching", "Blade-bearers", matchingContent, {
+  sortOrder: "a8",
+  difficulty: "MEDIUM",
+});
 
 export const mockAllocationSlide = slide(
   "slide_allocation",
@@ -372,45 +353,28 @@ export const mockAllocationSlide = slide(
   { sortOrder: "a9" },
 );
 
-export const mockDrawingSlide = slide(
-  "slide_drawing",
-  "Sketch Mordor",
-  drawingContent,
-  { sortOrder: "b0", difficulty: "HARD" },
-);
+export const mockDrawingSlide = slide("slide_drawing", "Sketch Mordor", drawingContent, {
+  sortOrder: "b0",
+  difficulty: "HARD",
+});
 
-export const mockMediaSlide = slide(
-  "slide_media",
-  "A Long-expected Party",
-  mediaContent,
-  { sortOrder: "b1" },
-);
+export const mockMediaSlide = slide("slide_media", "A Long-expected Party", mediaContent, {
+  sortOrder: "b1",
+});
 
-export const mockQAndASlide = slide(
-  "slide_qanda",
-  "Hobbit Hot Takes",
-  qAndAContent,
-  { sortOrder: "b2" },
-);
+export const mockQAndASlide = slide("slide_qanda", "Hobbit Hot Takes", qAndAContent, {
+  sortOrder: "b2",
+});
 
-export const mockFollowUpSlide = slide(
-  "slide_followup",
-  "Tell us more",
-  followUpContent,
-  { sortOrder: "b3", parentId: "slide_qanda" },
-);
+export const mockFollowUpSlide = slide("slide_followup", "Tell us more", followUpContent, {
+  sortOrder: "b3",
+  parentId: "slide_qanda",
+});
 
-export const mockEndSlide = slide(
-  "slide_end",
-  "Well done, traveller.",
-  titleContent,
-  {
-    sortOrder: "b4",
-    backgroundImage: externalImage(
-      "https://picsum.photos/seed/end-shire/1920/1080",
-    ),
-  },
-);
+export const mockEndSlide = slide("slide_end", "Well done, traveller.", titleContent, {
+  sortOrder: "b4",
+  backgroundImage: externalImage("https://picsum.photos/seed/end-shire/1920/1080"),
+});
 
 // One of each content kind, in a natural deck order — handy for editor demos.
 export const mockAllSlides: SlideResponse[] = [
@@ -468,8 +432,7 @@ export const mockFellowshipTriviaDeck: DeckResponse = {
   id: "deck_fellowship_trivia",
   publicId: "FELLOWSHIP",
   name: "Fellowship Trivia",
-  description:
-    "A grab-bag of trivia about the nine walkers, from Bag End to Mount Doom.",
+  description: "A grab-bag of trivia about the nine walkers, from Bag End to Mount Doom.",
   coverImage: deckCover("fellowship-cover"),
   backgroundImage: deckBackground("fellowship-bg"),
   themeId: "theme_elven_twilight",

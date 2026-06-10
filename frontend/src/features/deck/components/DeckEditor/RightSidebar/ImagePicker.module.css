@@ -13,8 +13,11 @@
   color: var(--text-primary);
 }
 
-.imageTile {
+.imageTileWrap {
   position: relative;
+}
+
+.imageTile {
   display: flex;
   align-items: center;
   justify-content: center;

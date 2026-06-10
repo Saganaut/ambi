@@ -20,6 +20,7 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 // Keep this list in sync with tsconfig.app.json `compilerOptions.paths`.
 // Order: most-specific first; the bare "@" (root "@/*") stays last.
 const alias = [
+  { find: "@storybook", replacement: r("./.storybook") },
   { find: "@assets", replacement: r("./src/shared/assets") },
   { find: "@components", replacement: r("./src/shared/components") },
   { find: "@ui", replacement: r("./src/shared/components/UIElements") },

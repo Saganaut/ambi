@@ -3,7 +3,6 @@ import { type JSX, useState } from "react";
 
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 
-import { useTheme, type ThemeMode } from "@hooks/useTheme";
 import styles from "./NavBar.module.css";
 import { useAuthActions } from "@auth/hooks/useAuthActions";
 import { useSessionUser } from "@auth/hooks/useCurrentUser";
@@ -20,8 +19,6 @@ interface useUserMenuResponse {
   guestError: string | null;
   guestLoading: boolean;
   showGuestInput: boolean;
-  theme: ThemeMode;
-  toggleTheme: () => void;
   setShowGuestInput: React.Dispatch<React.SetStateAction<boolean>>;
   guestName: string;
 }
@@ -31,7 +28,6 @@ const useUserMenu = (): useUserMenuResponse => {
   const [guestError, setGuestError] = useState<string | null>(null);
   const [showGuestInput, setShowGuestInput] = useState(false);
 
-  const { theme, toggleTheme } = useTheme();
   const { login, logout, createGuest, isCreatingGuest } = useAuthActions();
   const userState = useSessionUser();
   // Only the session-backed states (registered/guest) carry a profile payload;
@@ -89,8 +85,6 @@ const useUserMenu = (): useUserMenuResponse => {
     guestError,
     guestLoading: isCreatingGuest,
     showGuestInput,
-    theme,
-    toggleTheme,
     avatarContent,
     setShowGuestInput,
     guestName,

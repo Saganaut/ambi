@@ -645,6 +645,17 @@ public class DeckService {
                 deck.canBeManagedBy(userId, level, orgRole));
     }
 
+    /**
+     * Write the deck's denormalized rating headline ({@code stats.ratingAverage} /
+     * {@code ratingCount}) via a targeted sub-path {@code $set}, leaving the rest of
+     * {@code stats} and the deck's {@code @Version} untouched. Called by the review
+     * service after a rating write so the value the deck card and list views read
+     * stays current; the full per-star distribution is served live from the reviews.
+     */
+    public void setRatingStats(String deckId, Double average, long count) {
+        deckRepository.updateRatingStats(deckId, average, count);
+    }
+
     // ── Internals ───────────────────────────────────────────────────────────
 
     private Deck load(String id) {

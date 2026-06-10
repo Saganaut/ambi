@@ -38,10 +38,10 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqD
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
+import com.cephadex.ambi.theme.BuiltInPalettes;
 import com.cephadex.ambi.theme.Theme;
 import com.cephadex.ambi.theme.ThemeRepository;
 import com.cephadex.ambi.theme.ThemeSpec;
-import com.cephadex.ambi.theme.enums.ThemeMode;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserRepository;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -152,16 +152,9 @@ public class SampleDataSeeder implements ApplicationRunner {
             existing.put(t.getName(), t);
         }
 
-        Map<String, ThemeSpec> presets = new LinkedHashMap<>();
-        // OKLCH hues (primary, accent): a small spread of light/dark presets so the
+        // Curated full palettes after the popular VSCode / terminal schemes, so the
         // theme picker has a real built-in selection out of the box.
-        presets.put("Middle-earth Light", new ThemeSpec(ThemeMode.LIGHT, 140, 90, null, null));
-        presets.put("Mordor Dark", new ThemeSpec(ThemeMode.DARK, 25, 35, null, null));
-        presets.put("Rivendell", new ThemeSpec(ThemeMode.LIGHT, 225, 280, null, null));
-        presets.put("Lothlórien", new ThemeSpec(ThemeMode.LIGHT, 160, 95, null, null));
-        presets.put("Rohan Gold", new ThemeSpec(ThemeMode.LIGHT, 75, 45, null, null));
-        presets.put("Misty Mountains", new ThemeSpec(ThemeMode.DARK, 220, 200, null, null));
-        presets.put("Shadow of Moria", new ThemeSpec(ThemeMode.DARK, 285, 50, null, null));
+        Map<String, ThemeSpec> presets = BuiltInPalettes.all();
 
         Map<String, Theme> result = new LinkedHashMap<>();
         for (Map.Entry<String, ThemeSpec> e : presets.entrySet()) {

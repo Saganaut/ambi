@@ -1,36 +1,81 @@
 // Theme creator/editor — the "create your own" half of the ThemeModal. Edits a
-// name, light/dark/system mode, the two brand hues (ColorPicker), and optional
-// background + logo images. Image selection reuses the GalleryPicker rendered
-// inline (the ModalProvider hosts one dialog at a time, so we swap views inside
-// this one rather than stacking a second modal).
+// name, a light/dark appearance, the 16 palette role colours (one swatch each,
+// grouped), and optional background + logo images. Image selection reuses the
+// GalleryPicker rendered inline (the ModalProvider hosts one dialog at a time,
+// so we swap views inside this one rather than stacking a second modal).
 //
 // Saving hands the assembled { name, spec, organizationId? } back to the caller,
-// which decides whether that is a create (PUT) or an update (PATCH).
+// which decides whether that is a create (PUT) or an update (PATCH). The spec's
+// palette is what tokens.css paints from (see applyPalette).
 import { useState } from "react";
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import { ColorPicker } from "@components/Forms/Input/ColorPicker/ColorPicker";
 import { GalleryPicker } from "@components/Media/GalleryPicker/GalleryPicker";
 import { isImageEmpty, resolveImageUrl } from "@utils/image";
 import { useListMyOrgsQuery } from "@features/org/store/orgApi.gen";
 import { type AppImage } from "@features/gallery/store/galleryApi.gen";
-import { type ThemeResponse, type ThemeSpec } from "@features/theme/store/themeApi.gen";
+import {
+  type Palette,
+  type ThemeResponse,
+  type ThemeSpec,
+} from "@features/theme/store/themeApi.gen";
+import { ThemeAppearance } from "@features/theme/store/themeEnums.gen";
+import { DEFAULT_PALETTE, PALETTE_PREVIEW_ROLES } from "@features/theme/palette";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 import styles from "./ThemeModal.module.css";
 
-type Mode = "LIGHT" | "DARK" | "SYSTEM";
+const APPEARANCES: { value: ThemeAppearance; label: string }[] = [
+  { value: ThemeAppearance.LIGHT, label: "Light" },
+  { value: ThemeAppearance.DARK, label: "Dark" },
+];
 
-// Brand primary/accent hues — the same defaults useTheme falls back to.
-const DEFAULT_HUE_PRIMARY = 290;
-const DEFAULT_HUE_ACCENT = 50;
-
-const MODES: { value: Mode; label: string }[] = [
-  { value: "LIGHT", label: "Light" },
-  { value: "DARK", label: "Dark" },
-  { value: "SYSTEM", label: "System" },
+// The 16 roles, grouped for the editor. Labels are short since each sits beside
+// its colour swatch.
+const ROLE_GROUPS: { title: string; roles: { key: keyof Palette; label: string }[] }[] = [
+  {
+    title: "Surfaces",
+    roles: [
+      { key: "canvas", label: "Canvas" },
+      { key: "surface", label: "Surface" },
+      { key: "surfaceRaised", label: "Raised" },
+      { key: "subtle", label: "Subtle" },
+    ],
+  },
+  {
+    title: "Text",
+    roles: [
+      { key: "foreground", label: "Text" },
+      { key: "mutedForeground", label: "Muted" },
+    ],
+  },
+  {
+    title: "Brand",
+    roles: [
+      { key: "primary", label: "Primary" },
+      { key: "onPrimary", label: "On primary" },
+      { key: "accent", label: "Accent" },
+      { key: "accentSecondary", label: "Accent 2" },
+    ],
+  },
+  {
+    title: "Structure",
+    roles: [
+      { key: "border", label: "Border" },
+      { key: "borderSubtle", label: "Border sub" },
+    ],
+  },
+  {
+    title: "Status",
+    roles: [
+      { key: "red", label: "Error" },
+      { key: "green", label: "Success" },
+      { key: "yellow", label: "Warning" },
+      { key: "blue", label: "Info" },
+    ],
+  },
 ];
 
 export interface ThemeEditorSubmit {
@@ -94,6 +139,27 @@ const ImageSlot = ({ label, image, seed, onPick, onClear }: ImageSlotProps) => {
   );
 };
 
+interface SwatchFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const SwatchField = ({ label, value, onChange }: SwatchFieldProps) => (
+  <label className={styles.swatchField}>
+    <input
+      type='color'
+      className={styles.swatchInput}
+      value={value}
+      aria-label={label}
+      onChange={(e) => {
+        onChange(e.target.value);
+      }}
+    />
+    <span className={styles.swatchFieldLabel}>{label}</span>
+  </label>
+);
+
 const ThemeEditor = ({
   initial,
   isSaving,
@@ -102,13 +168,15 @@ const ThemeEditor = ({
 }: ThemeEditorProps) => {
   const initSpec = initial?.spec;
   const [name, setName] = useState(initial?.name ?? "");
-  const [mode, setMode] = useState<Mode>((initSpec?.mode as Mode) ?? "SYSTEM");
-  const [huePrimary, setHuePrimary] = useState(
-    initSpec?.huePrimary ?? DEFAULT_HUE_PRIMARY,
+  const [appearance, setAppearance] = useState<ThemeAppearance>(
+    (initSpec?.appearance as ThemeAppearance) ?? ThemeAppearance.LIGHT,
   );
-  const [hueAccent, setHueAccent] = useState(
-    initSpec?.hueAccent ?? DEFAULT_HUE_ACCENT,
-  );
+  // A complete palette is always edited; a new theme (or a legacy spec with no
+  // palette) starts from the brand default.
+  const [palette, setPalette] = useState<Palette>({
+    ...DEFAULT_PALETTE,
+    ...initSpec?.palette,
+  });
   const [backgroundImage, setBackgroundImage] = useState<AppImage | undefined>(
     initSpec?.backgroundImage,
   );
@@ -135,11 +203,15 @@ const ThemeEditor = ({
   const canSave = trimmedName.length > 0 && !isSaving;
   const seedBase = initial?.id ?? "new-theme";
 
+  const setRole = (key: keyof Palette, value: string) => {
+    setPalette((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleSave = () => {
     if (!canSave) return;
     onSave({
       name: trimmedName,
-      spec: { mode, huePrimary, hueAccent, backgroundImage, logoImage },
+      spec: { appearance, palette, backgroundImage, logoImage },
       organizationId: organizationId || undefined,
     });
   };
@@ -178,34 +250,43 @@ const ThemeEditor = ({
       />
 
       <div className={styles.field}>
-        <span className={styles.fieldLabel}>Mode</span>
+        <span className={styles.fieldLabel}>Appearance</span>
         <div className={styles.modeRow}>
-          {MODES.map((m) => {
-            const active = mode === m.value;
+          {APPEARANCES.map((a) => {
+            const active = appearance === a.value;
             return (
               <Btn
-                key={m.value}
+                key={a.value}
                 size='sm'
                 variant={active ? "primary" : "secondary"}
                 fill={active ? "default" : "bordered"}
                 onClick={() => {
-                  setMode(m.value);
+                  setAppearance(a.value);
                 }}>
-                {m.label}
+                {a.label}
               </Btn>
             );
           })}
         </div>
       </div>
 
-      <div className={styles.hueRow}>
-        <ColorPicker
-          label='Primary'
-          value={huePrimary}
-          onChange={setHuePrimary}
-        />
-        <ColorPicker label='Accent' value={hueAccent} onChange={setHueAccent} />
-      </div>
+      {ROLE_GROUPS.map((group) => (
+        <div key={group.title} className={styles.roleGroup}>
+          <p className={styles.roleGroupTitle}>{group.title}</p>
+          <div className={styles.roleGrid}>
+            {group.roles.map((role) => (
+              <SwatchField
+                key={role.key}
+                label={role.label}
+                value={palette[role.key] ?? "#000000"}
+                onChange={(value) => {
+                  setRole(role.key, value);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
 
       <div className={styles.imageRow}>
         <ImageSlot
@@ -256,17 +337,18 @@ const ThemeEditor = ({
         </div>
       )}
 
-      <div className={styles.preview}>
-        <span
-          className={styles.previewDot}
-          style={{ background: `oklch(55% 0.2 ${huePrimary}deg)` }}
-          aria-hidden='true'
-        />
-        <span
-          className={styles.previewDot}
-          style={{ background: `oklch(65% 0.22 ${hueAccent}deg)` }}
-          aria-hidden='true'
-        />
+      <div
+        className={styles.preview}
+        data-appearance={appearance === "DARK" ? "dark" : "light"}
+        style={{ background: palette.canvas, color: palette.foreground }}>
+        {PALETTE_PREVIEW_ROLES.map((key) => (
+          <span
+            key={key}
+            className={styles.previewDot}
+            style={{ background: palette[key] }}
+            aria-hidden='true'
+          />
+        ))}
         <span className={styles.previewLabel}>{trimmedName || "Preview"}</span>
       </div>
 

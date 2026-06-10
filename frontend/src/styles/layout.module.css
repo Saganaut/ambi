@@ -15,7 +15,7 @@
 
 .footer {
   padding: var(--space-8) var(--space-6);
-  color: var(--hue-primary);
+  color: var(--text-secondary);
   flex-direction: row;
   align-items: center;
   justify-content: space-between;

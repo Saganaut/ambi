@@ -46,4 +46,17 @@ public interface DeckRepositoryCustom {
 
     /** As {@link #updateDeckPointSettings}, for the deck's invite-display settings. */
     void updateDeckInviteSettings(String deckId, Settings.InviteSettings inviteSettings);
+
+    /**
+     * Set the deck's denormalized rating headline ({@code stats.rating_average} and
+     * {@code stats.rating_count}) via a sub-path {@code $set}, leaving the rest of
+     * {@code stats} and the deck's {@code @Version} untouched. Called after a review
+     * write so deck cards and list views stay current without recomputing the whole
+     * {@code DeckStats} summary.
+     *
+     * @param deckId  the deck whose rating headline to update
+     * @param average mean stars (1..5), or {@code null} when the deck has no reviews
+     * @param count   number of reviews
+     */
+    void updateRatingStats(String deckId, Double average, long count);
 }

@@ -14,7 +14,7 @@ import jakarta.validation.constraints.Size;
  * at creation. To re-scope a theme, create a new one.
  *
  * @param name human-facing theme name
- * @param spec the renderable payload (mode, hues, background, logo)
+ * @param spec the renderable payload (appearance, palette, background, logo)
  */
 public record UpdateThemeRequest(
         @Size(max = ValidationConstants.NAME_MAX) String name,

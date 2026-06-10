@@ -24,7 +24,7 @@
     "paths": {
       // Root alias
       "@/*": ["./src/*"],
-
+      "@storybook/*": ["./.storybook/*"],
       // Directory-specific aliases
       "@assets/*": ["./src/shared/assets/*"],
       "@shared/*": ["./src/shared/*"],

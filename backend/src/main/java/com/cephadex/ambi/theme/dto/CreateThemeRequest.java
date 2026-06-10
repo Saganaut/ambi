@@ -16,7 +16,7 @@ import jakarta.validation.constraints.Size;
  *
  * @param name           human-facing theme name
  * @param organizationId owning org id, or blank/null for a personal theme
- * @param spec           the renderable payload (mode, hues, background, logo)
+ * @param spec           the renderable payload (appearance, palette, background, logo)
  */
 public record CreateThemeRequest(
         @Size(max = ValidationConstants.NAME_MAX) String name,
