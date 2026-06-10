@@ -11,10 +11,11 @@ import { LeftSidebarContent } from "../../components/DeckEditor/LeftSidebar/Left
 import { PublishStatusControl } from "../../components/DeckEditor/PublicStatusControl/PublishStatusControl";
 import { RightSidebarContent } from "../../components/DeckEditor/RightSidebar/RightSidebarContent";
 import { SlideDisplay } from "../../components/DeckEditor/SlideDisplay/SlideDisplay";
+
 import { SpeakerNotesDrawer } from "../../components/DeckEditor/SpeakerNotesDrawer/SpeakerNotesDrawer";
 import styles from "./DeckEditor.module.css";
 
-import {
+import { 
   ArrowsPointingOutIcon,
   ChartBarIcon,
   PlayIcon,

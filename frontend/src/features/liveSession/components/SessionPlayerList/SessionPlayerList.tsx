@@ -1,4 +1,4 @@
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 import styles from "./SessionPlayerList.module.css";
 import { PlayerListItem } from "./PlayerListItem";
 const SessionPlayerList = () => {

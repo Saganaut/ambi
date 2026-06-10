@@ -10,9 +10,14 @@
 //   - number fields call onChange(patch, { immediate: false }) while typing and
 //     onBlur() when focus leaves, so the parent can flush a pending write.
 import type { AnswerSettings } from "@deck/store/deckApi.gen";
+import type { ResultsDisplayMode } from "@deck/store/deckEnums.gen";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { ANSWER_SETTINGS_DEFAULTS as D } from "./settingsDefaults";
+import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
+import {
+  ANSWER_SETTINGS_DEFAULTS as D,
+  RESULTS_DISPLAY_MODE_OPTIONS,
+} from "./settingsDefaults";
 
 interface AnswerSettingsFormProps {
   /** Resolved settings to display. Missing fields fall back to defaults. */
@@ -84,12 +89,19 @@ const AnswerSettingsForm = ({
         checked={value.shuffleOptions ?? D.shuffleOptions}
         onChange={toggle("shuffleOptions")}
       />
-      <Toggle
-        id={`${idPrefix}-display-results-live`}
-        label='Display results live during round'
-        disabled={disabled}
-        checked={value.displayResultsLive ?? D.displayResultsLive}
-        onChange={toggle("displayResultsLive")}
+      <Dropdown
+        id={`${idPrefix}-display-results-mode`}
+        label='Show results to players'
+        options={RESULTS_DISPLAY_MODE_OPTIONS}
+        value={[value.displayResultsMode ?? D.displayResultsMode]}
+        onChange={(vals) => {
+          if (vals[0]) {
+            onChange(
+              { displayResultsMode: vals[0] as ResultsDisplayMode },
+              { immediate: true },
+            );
+          }
+        }}
       />
       <Toggle
         id={`${idPrefix}-anonymize-answers`}

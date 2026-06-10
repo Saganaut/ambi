@@ -5,18 +5,19 @@
  * the plumbing is centralised here instead of duplicated per panel.
  *
  * `DeckSettings` is a nested object with sub-objects `pointSettings`,
- * `answerSettings`, and `audienceSettings`. Each is an **embedded sub-document
- * with its own dedicated endpoint** (`PUT .../point-settings|answer-settings|
- * audience-settings`), persisted server-side via a targeted update that does NOT
- * re-version the deck — so two settings edits can't contend on the deck
- * `@Version` the way the old whole-deck `updateDeck` PATCH did. A `commit`/
- * `schedule` patch is split by sub-object and routed to the matching endpoint;
- * the caller's partial sub-object is deep-merged onto the cached full sub-object
- * first, so the PUT always carries a complete object (the backend records are
- * primitives that reject nulls).
+ * `answerSettings`, `audienceSettings`, and `inviteSettings`. Each is an
+ * **embedded sub-document with its own dedicated endpoint** (`PUT
+ * .../point-settings|answer-settings|audience-settings|invite-settings`),
+ * persisted server-side via a targeted update that does NOT re-version the deck
+ * — so two settings edits can't contend on the deck `@Version` the way the old
+ * whole-deck `updateDeck` PATCH did. A `commit`/`schedule` patch is split by
+ * sub-object and routed to the matching endpoint; the caller's partial
+ * sub-object is deep-merged onto the cached full sub-object first, so the PUT
+ * always carries a complete object (the backend records are primitives that
+ * reject nulls).
  */
 import { getRouteApi } from "@tanstack/react-router";
-import { type DeckSettings, useGetDeckQuery, useSetDeckPointSettingsMutation, useSetDeckAnswerSettingsMutation, useSetDeckAudienceSettingsMutation } from "@deck/store/deckApi.gen";
+import { type DeckSettings, useGetDeckQuery, useSetDeckPointSettingsMutation, useSetDeckAnswerSettingsMutation, useSetDeckAudienceSettingsMutation, useSetDeckInviteSettingsMutation } from "@deck/store/deckApi.gen";
 import { useDebouncedCommit } from "@hooks/useDebouncedCommit";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -45,6 +46,7 @@ const useDeckSettings = (delay = 500): DeckSettingsApi => {
   const [setPointSettings] = useSetDeckPointSettingsMutation();
   const [setAnswerSettings] = useSetDeckAnswerSettingsMutation();
   const [setAudienceSettings] = useSetDeckAudienceSettingsMutation();
+  const [setInviteSettings] = useSetDeckInviteSettingsMutation();
 
   const report = (err: unknown) =>
     console.error("Failed to update deck settings", err);
@@ -84,6 +86,18 @@ const useDeckSettings = (delay = 500): DeckSettingsApi => {
       void setAudienceSettings({
         id: deckId,
         setAudienceSettingsRequest: { audienceSettings },
+      })
+        .unwrap()
+        .catch(report);
+    }
+    if (patch.inviteSettings) {
+      const inviteSettings = {
+        ...current?.inviteSettings,
+        ...patch.inviteSettings,
+      };
+      void setInviteSettings({
+        id: deckId,
+        setInviteSettingsRequest: { inviteSettings },
       })
         .unwrap()
         .catch(report);

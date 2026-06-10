@@ -43,4 +43,7 @@ public interface DeckRepositoryCustom {
 
     /** As {@link #updateDeckPointSettings}, for the deck's audience settings. */
     void updateDeckAudienceSettings(String deckId, Settings.AudienceSettings audienceSettings);
+
+    /** As {@link #updateDeckPointSettings}, for the deck's invite-display settings. */
+    void updateDeckInviteSettings(String deckId, Settings.InviteSettings inviteSettings);
 }

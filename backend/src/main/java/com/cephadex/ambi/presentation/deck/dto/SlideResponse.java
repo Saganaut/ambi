@@ -31,6 +31,7 @@ public record SlideResponse(
         Difficulty difficulty,
         String explanation,
         String speakerNotes,
+        String participantInstructions,
         Settings.SlideSettings settings
 
 ) {
@@ -53,6 +54,7 @@ public record SlideResponse(
                 slide.getDifficulty(),
                 slide.getExplanation(),
                 slide.getSpeakerNotes(),
+                slide.getParticipantInstructions(),
                 slide.getSettings());
     }
 }

@@ -7,19 +7,23 @@
 import { useState } from "react";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
+import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
+import type { ResultsDisplayMode } from "@deck/store/deckEnums.gen";
+import { ResultsDisplayMode as ResultsDisplayModeEnum } from "@deck/store/deckEnums.gen";
+import { RESULTS_DISPLAY_MODE_OPTIONS } from "../SettingsForms/settingsDefaults";
 import { useDeckSettings } from "../useDeckSettings";
 import styles from "../EditSlidePanel.module.css";
 
 const DEFAULTS = {
   countdownTime: 15,
   shuffleOptions: false,
-  displayResultsLive: false,
+  displayResultsMode: ResultsDisplayModeEnum.ROUND_END,
 };
 
 interface PacingForm {
   countdownTime: number;
   shuffleOptions: boolean;
-  displayResultsLive: boolean;
+  displayResultsMode: ResultsDisplayMode;
 }
 
 const useSessionPacingSection = () => useDeckSettings();
@@ -32,8 +36,8 @@ const SessionPacingSection = () => {
   const seed = (): PacingForm => ({
     countdownTime: answer?.countdownTime ?? DEFAULTS.countdownTime,
     shuffleOptions: answer?.shuffleOptions ?? DEFAULTS.shuffleOptions,
-    displayResultsLive:
-      answer?.displayResultsLive ?? DEFAULTS.displayResultsLive,
+    displayResultsMode:
+      answer?.displayResultsMode ?? DEFAULTS.displayResultsMode,
   });
 
   const [form, setForm] = useState<PacingForm>(seed);
@@ -72,14 +76,16 @@ const SessionPacingSection = () => {
           commit({ answerSettings: { shuffleOptions: next } });
         }}
       />
-      <Toggle
-        id='session-display-results-live'
-        label='Display results live during round'
-        checked={form.displayResultsLive}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setForm((f) => ({ ...f, displayResultsLive: next }));
-          commit({ answerSettings: { displayResultsLive: next } });
+      <Dropdown
+        id='session-display-results-mode'
+        label='Show results to players'
+        options={RESULTS_DISPLAY_MODE_OPTIONS}
+        value={[form.displayResultsMode]}
+        onChange={(vals) => {
+          const next = vals[0] as ResultsDisplayMode | undefined;
+          if (!next) return;
+          setForm((f) => ({ ...f, displayResultsMode: next }));
+          commit({ answerSettings: { displayResultsMode: next } });
         }}
       />
     </section>

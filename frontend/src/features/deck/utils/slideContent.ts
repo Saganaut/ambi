@@ -45,6 +45,7 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         contentType: "MCQ",
         options: [buildDefaultMcqOption(), buildDefaultMcqOption()], // Start with 2 options, the minimum for a valid MCQ.
         correctOptionIds: [],
+        dataVisualization: "NONE", // No results chart until the author picks one.
       };
     case "TEXT":
       return {

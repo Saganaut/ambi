@@ -33,7 +33,7 @@ import { isSortable } from "@dnd-kit/react/sortable";
 import { getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { useLiveSession } from "@liveSession/useLiveSession";
+import { useLiveSession } from "@/features/liveSession/hooks/useLiveSession";
 import type { DeckResponse, SlideResponse } from "@deck/store/deckApi.gen";
 
 import { useDeck } from "./useDeck";
@@ -106,12 +106,7 @@ const useDeckEditor = (deckId: string): UseDeckEditorResult => {
   const navigate = routeApi.useNavigate();
 
   const { deck, isLoading, error, rename } = useDeck(deckId);
-  const {
-    slides,
-    addSlide: appendSlide,
-    removeSlide,
-    reorder,
-  } = useSlide(deckId);
+  const { slides, addSlide: appendSlide, removeSlide, reorder } = useSlide(deckId);
 
   const { present } = useLiveSession();
 

@@ -39,6 +39,7 @@ import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
+import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
@@ -383,7 +384,7 @@ class DeckControllerTest {
         // (FAIL_ON_NULL_FOR_PRIMITIVES is on by default) — see backend-rules.
         mockMvc.perform(put("/api/decks/deck-1/slides/s1/answer-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"answerSettings\":{\"displayResultsLive\":false,"
+                        .content("{\"answerSettings\":{\"displayResultsMode\":\"ROUND_END\","
                                 + "\"allowMultipleAnswers\":false,\"shuffleOptions\":true,"
                                 + "\"anonymizeAnswers\":false,\"countdownTime\":20,"
                                 + "\"allowAnonymous\":false,\"maxSelections\":1}}"))
@@ -583,6 +584,6 @@ class DeckControllerTest {
     }
 
     private static Settings.AnswerSettings answerSettings(int countdownTime) {
-        return new Settings.AnswerSettings(false, false, false, false, countdownTime, false, 1);
+        return new Settings.AnswerSettings(ResultsDisplayMode.ROUND_END, false, false, false, countdownTime, false, 1);
     }
 }

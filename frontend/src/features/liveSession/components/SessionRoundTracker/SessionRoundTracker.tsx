@@ -1,4 +1,4 @@
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 import styles from "./SessionRoundTracker.module.css";
 import { SessionRoundThumbnail } from "./SessionRoundThumbnail";
 const SessionRoundTracker = () => {

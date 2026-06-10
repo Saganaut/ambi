@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -26,7 +25,6 @@ import { Route as AuthenticatedSessionsSessionIdIndexRouteImport } from './route
 import { Route as AuthenticatedDecksDeckIdViewRouteImport } from './routes/_authenticated/decks/$deckId/view'
 import { Route as AuthenticatedDecksDeckIdPresentRouteImport } from './routes/_authenticated/decks/$deckId/present'
 import { Route as AuthenticatedDecksDeckIdEditRouteImport } from './routes/_authenticated/decks/$deckId/edit'
-import { Route as AuthenticatedDecksDeckIdAnalyticsRouteImport } from './routes/_authenticated/decks/$deckId/analytics'
 
 const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
   id: '/terms-and-conditions',
@@ -41,11 +39,6 @@ const RegisterRoute = RegisterRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesignSystemRoute = DesignSystemRouteImport.update({
-  id: '/design-system',
-  path: '/design-system',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -118,17 +111,10 @@ const AuthenticatedDecksDeckIdEditRoute =
     path: '/decks/$deckId/edit',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedDecksDeckIdAnalyticsRoute =
-  AuthenticatedDecksDeckIdAnalyticsRouteImport.update({
-    id: '/decks/$deckId/analytics',
-    path: '/decks/$deckId/analytics',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/design-system': typeof DesignSystemRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -138,7 +124,6 @@ export interface FileRoutesByFullPath {
   '/scheduled': typeof AuthenticatedScheduledRoute
   '/invite/$token': typeof InviteTokenRoute
   '/decks/': typeof AuthenticatedDecksIndexRoute
-  '/decks/$deckId/analytics': typeof AuthenticatedDecksDeckIdAnalyticsRoute
   '/decks/$deckId/edit': typeof AuthenticatedDecksDeckIdEditRoute
   '/decks/$deckId/present': typeof AuthenticatedDecksDeckIdPresentRoute
   '/decks/$deckId/view': typeof AuthenticatedDecksDeckIdViewRoute
@@ -147,7 +132,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/design-system': typeof DesignSystemRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -157,7 +141,6 @@ export interface FileRoutesByTo {
   '/scheduled': typeof AuthenticatedScheduledRoute
   '/invite/$token': typeof InviteTokenRoute
   '/decks': typeof AuthenticatedDecksIndexRoute
-  '/decks/$deckId/analytics': typeof AuthenticatedDecksDeckIdAnalyticsRoute
   '/decks/$deckId/edit': typeof AuthenticatedDecksDeckIdEditRoute
   '/decks/$deckId/present': typeof AuthenticatedDecksDeckIdPresentRoute
   '/decks/$deckId/view': typeof AuthenticatedDecksDeckIdViewRoute
@@ -168,7 +151,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
-  '/design-system': typeof DesignSystemRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -178,7 +160,6 @@ export interface FileRoutesById {
   '/_authenticated/scheduled': typeof AuthenticatedScheduledRoute
   '/invite/$token': typeof InviteTokenRoute
   '/_authenticated/decks/': typeof AuthenticatedDecksIndexRoute
-  '/_authenticated/decks/$deckId/analytics': typeof AuthenticatedDecksDeckIdAnalyticsRoute
   '/_authenticated/decks/$deckId/edit': typeof AuthenticatedDecksDeckIdEditRoute
   '/_authenticated/decks/$deckId/present': typeof AuthenticatedDecksDeckIdPresentRoute
   '/_authenticated/decks/$deckId/view': typeof AuthenticatedDecksDeckIdViewRoute
@@ -189,7 +170,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/design-system'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -199,7 +179,6 @@ export interface FileRouteTypes {
     | '/scheduled'
     | '/invite/$token'
     | '/decks/'
-    | '/decks/$deckId/analytics'
     | '/decks/$deckId/edit'
     | '/decks/$deckId/present'
     | '/decks/$deckId/view'
@@ -208,7 +187,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/design-system'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -218,7 +196,6 @@ export interface FileRouteTypes {
     | '/scheduled'
     | '/invite/$token'
     | '/decks'
-    | '/decks/$deckId/analytics'
     | '/decks/$deckId/edit'
     | '/decks/$deckId/present'
     | '/decks/$deckId/view'
@@ -228,7 +205,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
-    | '/design-system'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -238,7 +214,6 @@ export interface FileRouteTypes {
     | '/_authenticated/scheduled'
     | '/invite/$token'
     | '/_authenticated/decks/'
-    | '/_authenticated/decks/$deckId/analytics'
     | '/_authenticated/decks/$deckId/edit'
     | '/_authenticated/decks/$deckId/present'
     | '/_authenticated/decks/$deckId/view'
@@ -249,7 +224,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AboutRoute: typeof AboutRoute
-  DesignSystemRoute: typeof DesignSystemRoute
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
@@ -277,13 +251,6 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/design-system': {
-      id: '/design-system'
-      path: '/design-system'
-      fullPath: '/design-system'
-      preLoaderRoute: typeof DesignSystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -377,13 +344,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDecksDeckIdEditRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/decks/$deckId/analytics': {
-      id: '/_authenticated/decks/$deckId/analytics'
-      path: '/decks/$deckId/analytics'
-      fullPath: '/decks/$deckId/analytics'
-      preLoaderRoute: typeof AuthenticatedDecksDeckIdAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
   }
 }
 
@@ -393,7 +353,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMyFavoritesRoute: typeof AuthenticatedMyFavoritesRoute
   AuthenticatedScheduledRoute: typeof AuthenticatedScheduledRoute
   AuthenticatedDecksIndexRoute: typeof AuthenticatedDecksIndexRoute
-  AuthenticatedDecksDeckIdAnalyticsRoute: typeof AuthenticatedDecksDeckIdAnalyticsRoute
   AuthenticatedDecksDeckIdEditRoute: typeof AuthenticatedDecksDeckIdEditRoute
   AuthenticatedDecksDeckIdPresentRoute: typeof AuthenticatedDecksDeckIdPresentRoute
   AuthenticatedDecksDeckIdViewRoute: typeof AuthenticatedDecksDeckIdViewRoute
@@ -406,8 +365,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMyFavoritesRoute: AuthenticatedMyFavoritesRoute,
   AuthenticatedScheduledRoute: AuthenticatedScheduledRoute,
   AuthenticatedDecksIndexRoute: AuthenticatedDecksIndexRoute,
-  AuthenticatedDecksDeckIdAnalyticsRoute:
-    AuthenticatedDecksDeckIdAnalyticsRoute,
   AuthenticatedDecksDeckIdEditRoute: AuthenticatedDecksDeckIdEditRoute,
   AuthenticatedDecksDeckIdPresentRoute: AuthenticatedDecksDeckIdPresentRoute,
   AuthenticatedDecksDeckIdViewRoute: AuthenticatedDecksDeckIdViewRoute,
@@ -423,7 +380,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AboutRoute: AboutRoute,
-  DesignSystemRoute: DesignSystemRoute,
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,

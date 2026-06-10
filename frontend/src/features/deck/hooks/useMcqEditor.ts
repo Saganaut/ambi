@@ -17,6 +17,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import type { McqOption } from "@deck/store/deckApi.gen";
+import type { McqDataVisualization } from "@deck/store/deckEnums.gen";
 
 import { useSlideEditor } from "./useSlideEditor";
 import { buildDefaultMcqOption } from "../utils/slideContent";
@@ -35,6 +36,8 @@ interface McqQuestionView {
   prompt: string;
   options: McqOption[];
   correctOptionIds: string[];
+  /** How live results for this MCQ are charted (NONE = no chart). */
+  dataVisualization: McqDataVisualization;
 }
 
 interface UseMcqEditorResult {
@@ -52,6 +55,11 @@ interface UseMcqEditorResult {
   addOption: () => void;
   /** @dnd-kit drop handler for the option grid. */
   handleOptionDragEnd: (event: DragEndEvent) => void;
+  /**
+   * Set how this MCQ's live results are charted (immediate commit — it's a
+   * discrete pick, like {@link toggleCorrect}, not a typed-into field).
+   */
+  setDataVisualization: (viz: McqDataVisualization) => void;
 
   /** ── Per-option (keyed by `option.id.value`) ─────────────────────────── */
   /** True while above {@link MIN_MCQ_OPTIONS} — same for every option. */
@@ -92,6 +100,7 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
         prompt: slide.title,
         options,
         correctOptionIds: content?.correctOptionIds ?? [],
+        dataVisualization: content?.dataVisualization ?? "NONE",
       }
     : undefined;
 
@@ -103,6 +112,11 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
     editor.updateSlideContent((prev) => ({
       options: [...prev.options, buildDefaultMcqOption()],
     }));
+    editor.flush();
+  };
+
+  const setDataVisualization = (viz: McqDataVisualization) => {
+    editor.updateSlideContent({ dataVisualization: viz });
     editor.flush();
   };
 
@@ -161,6 +175,7 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
     canAddOption,
     addOption,
     handleOptionDragEnd,
+    setDataVisualization,
     canRemove,
     isCorrect,
     scheduleOption,

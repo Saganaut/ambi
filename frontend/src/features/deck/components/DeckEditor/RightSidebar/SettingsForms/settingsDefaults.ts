@@ -8,11 +8,12 @@
 // They live here, separate from the form components, so the forthcoming deck
 // settings panel can resolve against the same baseline without importing UI.
 import type { AnswerSettings, PointSettings } from "@deck/store/deckApi.gen";
+import { ResultsDisplayMode } from "@deck/store/deckEnums.gen";
 
 const ANSWER_SETTINGS_DEFAULTS: Required<
   Omit<AnswerSettings, never>
 > = {
-  displayResultsLive: false,
+  displayResultsMode: ResultsDisplayMode.ROUND_END,
   allowMultipleAnswers: false,
   shuffleOptions: false,
   anonymizeAnswers: false,
@@ -20,6 +21,20 @@ const ANSWER_SETTINGS_DEFAULTS: Required<
   allowAnonymous: false,
   maxSelections: 1,
 };
+
+// When players see the answer breakdown. Ordered roughly by how early results
+// appear during a session. Shared by the slide-override and deck-default forms.
+const RESULTS_DISPLAY_MODE_OPTIONS: {
+  value: ResultsDisplayMode;
+  label: string;
+}[] = [
+  { value: ResultsDisplayMode.IMMEDIATE, label: "Live / immediate" },
+  { value: ResultsDisplayMode.ROUND_END, label: "At round end" },
+  { value: ResultsDisplayMode.PRESENTATION_END, label: "At presentation end" },
+  { value: ResultsDisplayMode.AFTER_FOLLOWUP, label: "After follow-up" },
+  { value: ResultsDisplayMode.MANUAL, label: "Manual reveal" },
+  { value: ResultsDisplayMode.NEVER, label: "Never" },
+];
 
 const POINT_SETTINGS_DEFAULTS: Required<
   Omit<PointSettings, "streakBonuses">
@@ -54,6 +69,7 @@ const resolvePointSettings = (
 export {
   ANSWER_SETTINGS_DEFAULTS,
   POINT_SETTINGS_DEFAULTS,
+  RESULTS_DISPLAY_MODE_OPTIONS,
   resolveAnswerSettings,
   resolvePointSettings,
 };

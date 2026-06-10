@@ -91,6 +91,9 @@ public class Slide {
     @Field("speaker_notes")
     private String speakerNotes;
 
+    @Field("participant_instructions")
+    private String participantInstructions;
+
     // Per-slide overrides for scoring (point_settings) and answering (answer_settings).
     // Either half may be null, in which case the deck's defaults apply at session time
     // (see Settings.SlideSettings#resolvePoints). The two halves are edited independently

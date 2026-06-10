@@ -80,7 +80,12 @@ interface UseSlideEditorResult<T extends SlideType> {
   slide: SlideOfType<T> | undefined;
   /** Patch slide-level metadata (debounced). */
   updateMetadata: (
-    updates: Partial<Pick<SlideRequest, "title" | "section" | "speakerNotes">>,
+    updates: Partial<
+      Pick<
+        SlideRequest,
+        "title" | "section" | "speakerNotes" | "participantInstructions"
+      >
+    >,
   ) => void;
   /**
    * Shallow-merge a patch onto the slide's content (debounced). `contentType`
@@ -160,7 +165,12 @@ function useSlideEditor<T extends SlideType>(
   };
 
   const updateMetadata = (
-    updates: Partial<Pick<SlideRequest, "title" | "section" | "speakerNotes">>,
+    updates: Partial<
+      Pick<
+        SlideRequest,
+        "title" | "section" | "speakerNotes" | "participantInstructions"
+      >
+    >,
   ) => mergePatch(updates);
 
   const updateSlideContent = (

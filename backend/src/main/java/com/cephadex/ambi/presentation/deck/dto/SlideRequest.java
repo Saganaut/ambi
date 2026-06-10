@@ -32,7 +32,8 @@ public record SlideRequest(
         @Schema(requiredMode = REQUIRED) SlideContent content,
         Difficulty difficulty,
         String explanation,
-        String speakerNotes) {
+        String speakerNotes,
+        String participantInstructions) {
 
     /** Maps this request onto a fresh {@link Slide} for the service to persist. */
     public Slide toSlide() {
@@ -47,6 +48,7 @@ public record SlideRequest(
         slide.setDifficulty(difficulty);
         slide.setExplanation(explanation);
         slide.setSpeakerNotes(speakerNotes);
+        slide.setParticipantInstructions(participantInstructions);
 
         return slide;
     }

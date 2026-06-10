@@ -30,6 +30,7 @@ import { DeckCategorizePanel } from "./DeckCategorizePanel";
 import { DeckReviewsPanel } from "./DeckReviewsPanel";
 import { DeckDiscussionPanel } from "./DeckDiscussionPanel";
 import { ParticipantsPanel } from "./ParticipantsPanel";
+import { InviteSettingsPanel } from "./InviteSettingsPanel";
 import styles from "./RightSidebarContent.module.css";
 import { useFullScreen } from "@hooks/useFullScreen";
 import { IconBtn } from "@ui/Buttons/IconBtn";
@@ -57,13 +58,6 @@ const PANEL_TITLES: Record<PanelKey, string> = {
   participants: "Participants",
   sharing: "Sharing preferences",
 };
-
-const PlaceholderPanel = ({ description }: { description: string }) => (
-  <div className={styles.placeholder}>
-    <p>{description}</p>
-    <p className={styles.placeholderMuted}>Coming soon.</p>
-  </div>
-);
 
 const RightSidebarContent = () => {
   const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
@@ -116,9 +110,7 @@ const RightSidebarContent = () => {
               {openPanel === "reviews" && <DeckReviewsPanel />}
               {openPanel === "discussion" && <DeckDiscussionPanel />}
               {openPanel === "participants" && <ParticipantsPanel />}
-              {openPanel === "sharing" && (
-                <PlaceholderPanel description='Visibility, invite links, and per-org access controls for this deck.' />
-              )}
+              {openPanel === "sharing" && <InviteSettingsPanel />}
             </div>
           </div>
         </aside>

@@ -54,6 +54,11 @@ class DeckRepositoryImpl implements DeckRepositoryCustom {
         updateDeckSettingsField(deckId, "audienceSettings", audienceSettings);
     }
 
+    @Override
+    public void updateDeckInviteSettings(String deckId, Settings.InviteSettings inviteSettings) {
+        updateDeckSettingsField(deckId, "inviteSettings", inviteSettings);
+    }
+
     /**
      * Sub-path {@code $set} of one of the deck's own settings sub-documents
      * ({@code settings.<field>}). As with {@link #updateSlideSettings}, the whole

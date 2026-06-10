@@ -56,3 +56,33 @@ export const ScoreMode = {
   PARTIAL: "PARTIAL",
   RANGE: "RANGE",
 } as const satisfies Record<ScoreMode, ScoreMode>;
+
+export type McqDataVisualization = "BAR_HORIZONTAL" | "BAR_VERTICAL" | "DONUT" | "LINE" | "NONE" | "PARETO" | "PIE";
+export const McqDataVisualization = {
+  BAR_HORIZONTAL: "BAR_HORIZONTAL",
+  BAR_VERTICAL: "BAR_VERTICAL",
+  DONUT: "DONUT",
+  LINE: "LINE",
+  NONE: "NONE",
+  PARETO: "PARETO",
+  PIE: "PIE",
+} as const satisfies Record<McqDataVisualization, McqDataVisualization>;
+
+export type DisplayLocation = "HEADER" | "LOBBY" | "RESULTS" | "SLIDES" | "TITLE";
+export const DisplayLocation = {
+  HEADER: "HEADER",
+  LOBBY: "LOBBY",
+  RESULTS: "RESULTS",
+  SLIDES: "SLIDES",
+  TITLE: "TITLE",
+} as const satisfies Record<DisplayLocation, DisplayLocation>;
+
+export type ResultsDisplayMode = "AFTER_FOLLOWUP" | "IMMEDIATE" | "MANUAL" | "NEVER" | "PRESENTATION_END" | "ROUND_END";
+export const ResultsDisplayMode = {
+  AFTER_FOLLOWUP: "AFTER_FOLLOWUP",
+  IMMEDIATE: "IMMEDIATE",
+  MANUAL: "MANUAL",
+  NEVER: "NEVER",
+  PRESENTATION_END: "PRESENTATION_END",
+  ROUND_END: "ROUND_END",
+} as const satisfies Record<ResultsDisplayMode, ResultsDisplayMode>;

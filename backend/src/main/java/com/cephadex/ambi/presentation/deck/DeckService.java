@@ -404,12 +404,21 @@ public class DeckService {
         return deck;
     }
 
-    /** Replace one third of a deck's settings, preserving the other two sub-objects. */
+    /** Replace the deck's invite-display (QR / room-code surfacing) settings (EDIT). */
+    public Deck setDeckInviteSettings(String id, Settings.InviteSettings inviteSettings, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setSettings(withDeckInviteSettings(deck.getSettings(), inviteSettings));
+        deckRepository.updateDeckInviteSettings(id, inviteSettings);
+        return deck;
+    }
+
+    /** Replace one of a deck's settings sub-objects, preserving the others. */
     private static Settings.DeckSettings withDeckPointSettings(
             Settings.DeckSettings current, Settings.PointSettings points) {
         return new Settings.DeckSettings(points,
                 current == null ? null : current.answerSettings(),
-                current == null ? null : current.audienceSettings());
+                current == null ? null : current.audienceSettings(),
+                current == null ? null : current.inviteSettings());
     }
 
     /** As {@link #withDeckPointSettings}, replacing the answer sub-object. */
@@ -418,7 +427,8 @@ public class DeckService {
         return new Settings.DeckSettings(
                 current == null ? null : current.pointSettings(),
                 answers,
-                current == null ? null : current.audienceSettings());
+                current == null ? null : current.audienceSettings(),
+                current == null ? null : current.inviteSettings());
     }
 
     /** As {@link #withDeckPointSettings}, replacing the audience sub-object. */
@@ -427,7 +437,18 @@ public class DeckService {
         return new Settings.DeckSettings(
                 current == null ? null : current.pointSettings(),
                 current == null ? null : current.answerSettings(),
-                audience);
+                audience,
+                current == null ? null : current.inviteSettings());
+    }
+
+    /** As {@link #withDeckPointSettings}, replacing the invite sub-object. */
+    private static Settings.DeckSettings withDeckInviteSettings(
+            Settings.DeckSettings current, Settings.InviteSettings invite) {
+        return new Settings.DeckSettings(
+                current == null ? null : current.pointSettings(),
+                current == null ? null : current.answerSettings(),
+                current == null ? null : current.audienceSettings(),
+                invite);
     }
 
     private Slide applySlideMutation(String deckId, String slideId, AmbiPrincipal principal,

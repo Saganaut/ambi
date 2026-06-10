@@ -1,0 +1,69 @@
+/* Deck-level tag editor in the right-sidebar inspector. Shares the spacing
+   rhythm of the other RightSidebar panels (see EditSlidePanel.module.css). */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.heading {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.tagLabel {
+  overflow-wrap: anywhere;
+}
+
+.tagRemoveIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.addRow {
+  display: flex;
+}
+
+.count {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin: 0;
+}

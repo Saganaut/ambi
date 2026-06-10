@@ -7,9 +7,20 @@
 // Always scoped to one existing deck — deck *creation* has no deckId to scope
 // to and lives in `useCreateDeck`.
 
-import { useLiveSession } from "@liveSession/useLiveSession";
+import { useLiveSession } from "@/features/liveSession/hooks/useLiveSession";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
-import { DeckResponse, UpdateDeckRequest, ShareDeckRequest, useGetDeckQuery, useUpdateDeckMutation, useDeleteDeckMutation, useSetDeckVisibilityMutation, useShareDeckMutation, useRevokeShareDeckMutation, SetVisibilityRequest } from "@deck/store/deckApi.gen";
+import {
+  DeckResponse,
+  UpdateDeckRequest,
+  ShareDeckRequest,
+  useGetDeckQuery,
+  useUpdateDeckMutation,
+  useDeleteDeckMutation,
+  useSetDeckVisibilityMutation,
+  useShareDeckMutation,
+  useRevokeShareDeckMutation,
+  SetVisibilityRequest,
+} from "@deck/store/deckApi.gen";
 import { useNavigate } from "@tanstack/react-router";
 
 interface UseDeckResult {

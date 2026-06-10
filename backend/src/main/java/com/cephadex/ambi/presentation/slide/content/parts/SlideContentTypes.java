@@ -1,11 +1,10 @@
 package com.cephadex.ambi.presentation.slide.content.parts;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
-
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 public class SlideContentTypes {
 
@@ -22,6 +21,11 @@ public class SlideContentTypes {
      * <li>INSIDE_RADIUS, NEAREST, DISTANCE — PlaceOnImage</li>
      * </ul>
      */
+    public enum McqDataVisualization {
+        PIE, BAR_HORIZONTAL, BAR_VERTICAL, LINE, DONUT, PARETO, NONE
+    }
+
+
     public enum ScoreMode {
         EXACT, PARTIAL,
         RANGE, CLOSEST,

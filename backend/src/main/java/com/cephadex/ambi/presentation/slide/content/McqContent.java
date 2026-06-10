@@ -3,6 +3,7 @@ package com.cephadex.ambi.presentation.slide.content;
 import java.util.List;
 import java.util.Set;
 
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
@@ -17,7 +18,8 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
  */
 public record McqContent(
         @Schema(requiredMode = REQUIRED) List<McqOption> options,
-        @Schema(requiredMode = REQUIRED) Set<String> correctOptionIds
+        @Schema(requiredMode = REQUIRED) Set<String> correctOptionIds,
+        @Schema(requiredMode = REQUIRED) SlideContentTypes.McqDataVisualization dataVisualization
 
 ) implements ScorableContent {
     @Override

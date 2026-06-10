@@ -29,7 +29,9 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
+import com.cephadex.ambi.presentation.deck.enums.DisplayLocation;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
+import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.user.UserService;
@@ -490,16 +492,18 @@ class DeckServiceTest {
     @Test
     void setDeckAnswerSettingsPersistsTargetedWithoutSaving() {
         Deck deck = deck("owner-1");
-        deck.setSettings(new Settings.DeckSettings(pointSettings(50), answerSettings(10), audienceSettings(8)));
+        deck.setSettings(new Settings.DeckSettings(
+                pointSettings(50), answerSettings(10), audienceSettings(8), inviteSettings(true)));
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
         Settings.AnswerSettings answers = answerSettings(30);
 
         Deck result = deckService.setDeckAnswerSettings("deck-1", answers, owner);
 
-        // In-memory answer half replaced; point + audience halves preserved.
+        // In-memory answer half replaced; point + audience + invite halves preserved.
         assertThat(result.getSettings().answerSettings()).isSameAs(answers);
         assertThat(result.getSettings().pointSettings().points()).isEqualTo(50);
         assertThat(result.getSettings().audienceSettings().maxParticipants()).isEqualTo(8);
+        assertThat(result.getSettings().inviteSettings().enableQr()).isTrue();
         verify(deckRepository).updateDeckAnswerSettings("deck-1", answers);
         verify(deckRepository, never()).save(any(Deck.class));
     }
@@ -507,7 +511,7 @@ class DeckServiceTest {
     @Test
     void setDeckPointSettingsPersistsTargetedWithoutSaving() {
         Deck deck = deck("owner-1");
-        deck.setSettings(new Settings.DeckSettings(pointSettings(50), answerSettings(10), null));
+        deck.setSettings(new Settings.DeckSettings(pointSettings(50), answerSettings(10), null, null));
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
         Settings.PointSettings points = pointSettings(200);
 
@@ -531,6 +535,22 @@ class DeckServiceTest {
         assertThat(result.getSettings().pointSettings()).isNull();
         assertThat(result.getSettings().answerSettings()).isNull();
         verify(deckRepository).updateDeckAudienceSettings("deck-1", audience);
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void setDeckInviteSettingsHandlesNullCurrentSettings() {
+        Deck deck = deck("owner-1"); // settings null
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Settings.InviteSettings invite = inviteSettings(false);
+
+        Deck result = deckService.setDeckInviteSettings("deck-1", invite, owner);
+
+        assertThat(result.getSettings().inviteSettings()).isSameAs(invite);
+        assertThat(result.getSettings().pointSettings()).isNull();
+        assertThat(result.getSettings().answerSettings()).isNull();
+        assertThat(result.getSettings().audienceSettings()).isNull();
+        verify(deckRepository).updateDeckInviteSettings("deck-1", invite);
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
@@ -589,11 +609,16 @@ class DeckServiceTest {
     }
 
     private static Settings.AnswerSettings answerSettings(int countdownTime) {
-        return new Settings.AnswerSettings(false, false, false, false, countdownTime, false, 1);
+        return new Settings.AnswerSettings(ResultsDisplayMode.ROUND_END, false, false, false, countdownTime, false, 1);
     }
 
     private static Settings.AudienceSettings audienceSettings(int maxParticipants) {
         return new Settings.AudienceSettings(maxParticipants, false, false, false, false, false, false);
+    }
+
+    private static Settings.InviteSettings inviteSettings(boolean enableQr) {
+        return new Settings.InviteSettings(
+                enableQr, Set.of(DisplayLocation.LOBBY), true, Set.of(DisplayLocation.HEADER));
     }
 
     private static List<String> orderedIds(Deck deck) {

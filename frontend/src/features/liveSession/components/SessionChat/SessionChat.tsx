@@ -18,7 +18,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import styles from "./SessionChat.module.css";
 

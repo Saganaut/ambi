@@ -9,7 +9,7 @@
 // SessionBoard itself stays a thin switch: `resolveBoardStage` decides the stage
 // from session state and each stage component owns its own rendering.
 import { Container } from "@components/Containers/Container";
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 import { resolveBoardStage } from "./resolveBoardStage";
 import { BoardSlide } from "./stages/BoardSlide";
 import { BoardQuestion } from "./stages/BoardQuestion";

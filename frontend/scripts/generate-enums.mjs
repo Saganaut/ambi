@@ -57,6 +57,22 @@ const ENUMS = [
     prop: ["SlideResponse", "difficulty"],
   },
   { name: "ScoreMode", feature: "deck", prop: ["NumberContent", "scoreMode"] },
+  {
+    name: "McqDataVisualization",
+    feature: "deck",
+    prop: ["McqContent", "dataVisualization"],
+  },
+  {
+    // Set<DisplayLocation> — the enum values live on the array's `items`.
+    name: "DisplayLocation",
+    feature: "deck",
+    prop: ["InviteSettings", "qrLocations"],
+  },
+  {
+    name: "ResultsDisplayMode",
+    feature: "deck",
+    prop: ["AnswerSettings", "displayResultsMode"],
+  },
   { name: "UserLevel", feature: "auth", prop: ["RegisteredMe", "userLevel"] },
   {
     name: "MembershipTier",
@@ -82,10 +98,13 @@ function resolveValues(entry, schemas) {
           `Did the backend rename it? Update the ENUMS registry in scripts/generate-enums.mjs.`,
       );
     }
-    raw = prop.enum;
+    // A scalar enum field carries `enum` directly; a Set/array of an enum
+    // (e.g. Set<DisplayLocation>) carries it on the array's `items`.
+    raw = prop.enum ?? prop.items?.enum;
     if (!Array.isArray(raw)) {
       throw new Error(
-        `Enum "${entry.name}": ${schemaName}.${fieldName} has no \`enum\` array.`,
+        `Enum "${entry.name}": ${schemaName}.${fieldName} has no \`enum\` array ` +
+          `(checked the property and its \`items\`).`,
       );
     }
   } else if (entry.discriminatorOf) {

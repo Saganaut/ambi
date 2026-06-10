@@ -10,7 +10,7 @@
 // The signal is read through useSession() (the one merged session view) rather
 // than off the slice directly; clearing it is a write, so that stays a dispatch.
 import { useEffect, useRef } from "react";
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 
 /**
  * Run `flush` once when the host closes the submit phase for `elementId`.
@@ -18,10 +18,7 @@ import { useSession } from "@/features/liveSession/views/SessionPage/useSession"
  * when there's nothing to send). The signal is consumed after flushing so a
  * single end-submit can't double-fire.
  */
-export function useFlushOnClosing(
-  elementId: string | undefined,
-  flush: () => void,
-): void {
+export function useFlushOnClosing(elementId: string | undefined, flush: () => void): void {
   const { submissionsClosing: closing } = useSession();
   // Latest-ref so `nonce` is the only effect trigger — we want the current
   // draft at fire time without re-running when the flush closure changes.
@@ -31,10 +28,7 @@ export function useFlushOnClosing(
   });
 
   // Only react when the close targets this element; the nonce is the trigger.
-  const nonce =
-    closing && elementId && closing.elementId === elementId
-      ? closing.nonce
-      : null;
+  const nonce = closing && elementId && closing.elementId === elementId ? closing.nonce : null;
 
   // TODO(migration): stubbed pending liveSession migration. The
   // submissionsClosingConsumed dispatch that cleared the one-shot signal lived

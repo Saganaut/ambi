@@ -16,7 +16,7 @@ import { useState } from "react";
 import type { AnswerPayload, McqQuestion } from "@types/elements";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { useFlushOnClosing } from "./useFlushOnClosing";
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { Btn } from "@ui/Buttons/Btn";
 import styles from "./McqBoardContent.module.css";

@@ -1,6 +1,6 @@
 import { CountdownTimer } from "@/features/liveSession/components/CountdownTimer/CountdownTimer";
 import styles from "./SessionHeader.module.css";
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 
 const SessionTimer = () => {
   return (

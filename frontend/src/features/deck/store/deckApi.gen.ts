@@ -176,6 +176,16 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.setPointSettingsRequest,
       }),
     }),
+    setDeckInviteSettings: build.mutation<
+      SetDeckInviteSettingsApiResponse,
+      SetDeckInviteSettingsApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/invite-settings`,
+        method: "PUT",
+        body: queryArg.setInviteSettingsRequest,
+      }),
+    }),
     setDeckCoverImage: build.mutation<
       SetDeckCoverImageApiResponse,
       SetDeckCoverImageApiArg
@@ -405,6 +415,12 @@ export type SetDeckPointSettingsApiArg = {
   id: string;
   setPointSettingsRequest: SetPointSettingsRequest;
 };
+export type SetDeckInviteSettingsApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckInviteSettingsApiArg = {
+  id: string;
+  setInviteSettingsRequest: SetInviteSettingsRequest;
+};
 export type SetDeckCoverImageApiResponse = /** status 200 OK */ DeckResponse;
 export type SetDeckCoverImageApiArg = {
   id: string;
@@ -491,7 +507,13 @@ export type PointSettings = {
   resetStreakOnStreakEnd?: boolean;
 };
 export type AnswerSettings = {
-  displayResultsLive?: boolean;
+  displayResultsMode?:
+    | "IMMEDIATE"
+    | "ROUND_END"
+    | "PRESENTATION_END"
+    | "MANUAL"
+    | "AFTER_FOLLOWUP"
+    | "NEVER";
   allowMultipleAnswers?: boolean;
   shuffleOptions?: boolean;
   anonymizeAnswers?: boolean;
@@ -508,10 +530,17 @@ export type AudienceSettings = {
   anonymousMode?: boolean;
   allowGuests?: boolean;
 };
+export type InviteSettings = {
+  enableQr?: boolean;
+  qrLocations?: ("LOBBY" | "TITLE" | "HEADER" | "SLIDES" | "RESULTS")[];
+  showRoomCode?: boolean;
+  roomCodeLocations?: ("LOBBY" | "TITLE" | "HEADER" | "SLIDES" | "RESULTS")[];
+};
 export type DeckSettings = {
   pointSettings?: PointSettings;
   answerSettings?: AnswerSettings;
   audienceSettings?: AudienceSettings;
+  inviteSettings?: InviteSettings;
 };
 export type Ownership = {
   type?: "USER" | "ORGANIZATION";
@@ -588,6 +617,14 @@ export type McqOption = {
 export type McqContent = {
   options: McqOption[];
   correctOptionIds: string[];
+  dataVisualization:
+    | "PIE"
+    | "BAR_HORIZONTAL"
+    | "BAR_VERTICAL"
+    | "LINE"
+    | "DONUT"
+    | "PARETO"
+    | "NONE";
   contentType: "MCQ";
 };
 export type NumberContent = {
@@ -817,6 +854,7 @@ export type SlideResponse = {
   difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
   explanation?: string;
   speakerNotes?: string;
+  participantInstructions?: string;
   settings?: SlideSettings;
 };
 export type SlideRequest = {
@@ -830,6 +868,7 @@ export type SlideRequest = {
   difficulty?: "EASY" | "MEDIUM" | "HARD" | "IMPOSSIBLE";
   explanation?: string;
   speakerNotes?: string;
+  participantInstructions?: string;
 };
 export type PointSettingsResponse = {
   slideId: string;
@@ -850,6 +889,9 @@ export type SetAnswerSettingsRequest = {
 };
 export type ShareDeckRequest = {
   role: "VIEWER" | "EDITOR";
+};
+export type SetInviteSettingsRequest = {
+  inviteSettings: InviteSettings;
 };
 export type SetAudienceSettingsRequest = {
   audienceSettings: AudienceSettings;
@@ -899,6 +941,7 @@ export const {
   useShareDeckMutation,
   useRevokeShareDeckMutation,
   useSetDeckPointSettingsMutation,
+  useSetDeckInviteSettingsMutation,
   useSetDeckCoverImageMutation,
   useClearDeckCoverImageMutation,
   useSetDeckBackgroundImageMutation,

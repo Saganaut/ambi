@@ -11,7 +11,7 @@
 // still the source the STOMP subscriptions feed; consumers just don't reach into
 // it directly). Host actions are sent through the session connection (one shared
 // STOMP client, provided by SessionConnectionProvider).
-import { useSession } from "@/features/liveSession/views/SessionPage/useSession";
+import { useSession } from "@/features/liveSession/hooks/useSession";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
 import { resolveShowResponsesFor } from "@utils/showResponsesResolver";

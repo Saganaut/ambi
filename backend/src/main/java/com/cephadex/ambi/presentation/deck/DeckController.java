@@ -28,6 +28,7 @@ import com.cephadex.ambi.presentation.deck.dto.PointSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetAudienceSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetImageRequest;
+import com.cephadex.ambi.presentation.deck.dto.SetInviteSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetPointSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetTagsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetVisibilityRequest;
@@ -240,6 +241,15 @@ public class DeckController {
             @Valid @RequestBody SetAudienceSettingsRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return toResponse(deckService.setDeckAudienceSettings(id, body.audienceSettings(), principal), principal);
+    }
+
+    /** Replace a deck's invite-display (QR / room-code surfacing) settings (EDIT). */
+    @PutMapping("/{id}/invite-settings")
+    public DeckResponse setDeckInviteSettings(
+            @PathVariable String id,
+            @Valid @RequestBody SetInviteSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setDeckInviteSettings(id, body.inviteSettings(), principal), principal);
     }
 
     // ── Slides (sub-resource of a deck) ─────────────────────────────────────────

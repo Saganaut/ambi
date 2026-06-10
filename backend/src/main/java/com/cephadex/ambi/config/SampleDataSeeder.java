@@ -34,6 +34,7 @@ import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
@@ -385,7 +386,7 @@ public class SampleDataSeeder implements ApplicationRunner {
                 correct.add(optId);
             }
         }
-        McqContent content = new McqContent(built, correct);
+        McqContent content = new McqContent(built, correct, McqDataVisualization.BAR_VERTICAL);
         // pointValue/shuffle/maxSelections/allowAnonymous now live on the slide's
         // answer settings; difficulty/explanation are top-level slide fields. Start
         // from the deck defaults and override only what this sample slide varies:
@@ -394,7 +395,7 @@ public class SampleDataSeeder implements ApplicationRunner {
         AnswerSettings base = deckDefaults.answerSettings();
         SlideSettings settings = new SlideSettings(
                 null, // inherit deck point defaults
-                new AnswerSettings(base.displayResultsLive(), maxSelections != 1,
+                new AnswerSettings(base.displayResultsMode(), maxSelections != 1,
                         base.shuffleOptions(), base.anonymizeAnswers(), base.countdownTime(),
                         false, maxSelections));
         return slide(question, content, difficulty, explanation, settings, userId);
