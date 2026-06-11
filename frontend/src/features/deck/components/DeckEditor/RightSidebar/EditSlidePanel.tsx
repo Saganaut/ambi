@@ -17,6 +17,12 @@ import { SlideImageSection } from "./EditSlideSections/SlideImageSection";
 import { SessionPacingSection } from "./EditSlideSections/SessionPacingSection";
 import { ProvenanceFooter } from "./EditSlideSections/ProvenanceFooter";
 import styles from "./EditSlidePanel.module.css";
+import { ImagePicker } from "./ImagePicker";
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { Btn } from "@ui/Buttons/Btn";
+import { Tooltip } from "@ui/Tooltip/Tooltip";
+import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApiPromote";
+import settingsPanel from "./SettingsForms/SettingsPanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -41,6 +47,77 @@ const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
       return null;
   }
 };
+
+
+const useThemePanel = () => {
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+  const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
+  const slide = slideId ? getSlide(slideId) : undefined;
+  return { deckId, slide, slideId, setSlideImage, clearSlideImage };
+};
+
+
+const PerSlideStyle = () => {
+  const { deckId, slide, slideId, setSlideImage, clearSlideImage } = useThemePanel();
+  const openPicker = useGalleryPicker();
+  const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
+
+  if (!slide)
+    return (
+      <div className={styles.section}>
+        <p>No slide selected.</p>
+      </div>
+    );
+
+  const id = slideId ?? slide.id;
+
+  return (
+    <section className={styles.section}>
+      <h4 className={styles.heading}>This slide</h4>
+      <ImagePicker
+        label='Background image'
+        image={slide.backgroundImage}
+        seed={`${id}-background`}
+        onPick={() => {
+          openPicker(
+            (image) => {
+              setSlideImage(id, "background", image);
+            },
+            {
+              title: "Slide background image",
+              cropWidth: 16,
+              cropHeight: 9,
+            },
+          );
+        }}
+        onClear={() => {
+          clearSlideImage(id, "background");
+        }}
+      />
+      {slide.backgroundImage != null && (
+        <div className={settingsPanel.footer}>
+          <Tooltip
+            className={settingsPanel.applyTooltip}
+            label='Sets this as the deck background and removes all per-slide background overrides, so every slide inherits it.'>
+            <Btn
+              variant='secondary'
+              fill='bordered'
+              onClick={() => {
+                void promoteBackgroundImage({
+                  id: deckId,
+                  setImageRequest: { image: slide.backgroundImage! },
+                });
+              }}>
+              Apply to deck
+            </Btn>
+          </Tooltip>
+        </div>
+      )}
+    </section>
+  );
+};
+
 
 const EditSlidePanel = () => {
   const { deckId } = routeApi.useParams();
@@ -69,6 +146,8 @@ const EditSlidePanel = () => {
         updatedAt={undefined}
         version={slide.version}
       />
+
+      <PerSlideStyle />
     </div>
   );
 };

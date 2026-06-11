@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.deck;
 
+import com.cephadex.ambi.media.AppImage;
+
 /**
  * Hand-written repository operations that Spring Data can't derive. Mixed into
  * {@link DeckRepository} so callers still see one repository.
@@ -46,6 +48,35 @@ public interface DeckRepositoryCustom {
 
     /** As {@link #updateDeckPointSettings}, for the deck's invite-display settings. */
     void updateDeckInviteSettings(String deckId, Settings.InviteSettings inviteSettings);
+
+    /**
+     * Atomically promote {@code value} to the deck's {@code settings.{field}} default
+     * <em>and</em> clear that same field from every embedded slide's {@code settings}
+     * sub-document — all in a single {@code $set/$unset} update without bumping the
+     * deck's {@code @Version}.
+     *
+     * <p>This is the "apply to deck" persistence step: a slide's override is promoted
+     * to the deck default and all per-slide overrides for that field are dropped so
+     * every slide inherits the new default. The two-field {@link Settings.SlideSettings}
+     * wrapper on a slide may remain non-null after the {@code $unset} if the other
+     * half still carries an override — that is fine, since resolution checks the
+     * individual sub-field, not the wrapper.
+     *
+     * @param deckId  owning deck id
+     * @param field   camelCase sub-field name within {@code settings} (e.g. {@code "pointSettings"})
+     * @param value   the new deck default
+     */
+    void promoteSettingsToDeck(String deckId, String field, Object value);
+
+    /**
+     * Atomically promote {@code image} to the deck's {@code background_image} field
+     * <em>and</em> clear {@code background_image} from every embedded slide — all in
+     * a single {@code $set/$unset} update without bumping the deck's {@code @Version}.
+     *
+     * @param deckId  owning deck id
+     * @param image   the new deck background image to set
+     */
+    void promoteBackgroundImageToDeck(String deckId, AppImage image);
 
     /**
      * Set the deck's denormalized rating headline ({@code stats.rating_average} and

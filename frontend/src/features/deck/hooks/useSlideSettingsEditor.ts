@@ -51,6 +51,12 @@ interface UseSlideSettingsEditorResult {
   clearAnswerSettings: () => void;
   /** Flush any pending debounced edit (point and answer) immediately. */
   flush: () => void;
+  /**
+   * Cancel any pending debounced writes without flushing or firing any
+   * mutation. Use before a promote-to-deck call so the buffered slide write
+   * can't race the promote and re-set the just-cleared override.
+   */
+  cancelPendingWrites: () => void;
 }
 
 const useSlideSettingsEditor = (
@@ -145,6 +151,13 @@ const useSlideSettingsEditor = (
     answer.flush();
   };
 
+  const cancelPendingWrites = () => {
+    point.cancel();
+    pointDraftRef.current = null;
+    answer.cancel();
+    answerDraftRef.current = null;
+  };
+
   return {
     pointSettings: settings?.pointSettings,
     answerSettings: settings?.answerSettings,
@@ -153,6 +166,7 @@ const useSlideSettingsEditor = (
     clearPointSettings,
     clearAnswerSettings,
     flush,
+    cancelPendingWrites,
   };
 };
 

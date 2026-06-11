@@ -119,6 +119,7 @@ public class DeckService {
         Deck deck = getEditable(id, principal);
 
         deck.setName(changes.getName());
+        deck.setLabel(changes.getLabel());
         deck.setDescription(changes.getDescription());
         deck.setThemeId(changes.getThemeId());
         deck.setLanguage(changes.getLanguage());
@@ -384,6 +385,20 @@ public class DeckService {
         return applySlideMutation(deckId, slideId, principal, slide -> slide.setBackgroundImage(null));
     }
 
+    /**
+     * Promote a background image to the deck default and clear every slide's own
+     * background image in a single atomic update (EDIT). Unlike the plain
+     * {@link #setDeckBackgroundImage} which only updates the deck, this also drops
+     * all per-slide overrides so every slide falls through to the new deck image.
+     */
+    public Deck promoteBackgroundImageToDeck(String id, AppImage image, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setBackgroundImage(image);
+        deck.getSlides().forEach(s -> s.setBackgroundImage(null));
+        deckRepository.promoteBackgroundImageToDeck(id, image);
+        return deck;
+    }
+
     private Deck applyDeckImage(String id, AmbiPrincipal principal, Consumer<Deck> mutation) {
         Deck deck = getEditable(id, principal);
         mutation.accept(deck);
@@ -517,6 +532,39 @@ public class DeckService {
         Deck deck = getEditable(id, principal);
         deck.setSettings(withDeckInviteSettings(deck.getSettings(), inviteSettings));
         deckRepository.updateDeckInviteSettings(id, inviteSettings);
+        return deck;
+    }
+
+    // ── Promote settings to deck (apply to deck) ────────────────────────────────
+    // A single atomic operation: set the new deck default AND clear all per-slide
+    // overrides for that field. The slide hierarchy means a null per-slide value
+    // falls through to the deck default, so after a promote every slide inherits
+    // the value that was just pushed up. The in-memory deck object is updated too
+    // so the returned DeckResponse reflects the change; slide objects in the
+    // embedded list are cleared in-memory but the caller is expected to invalidate
+    // any separate slide cache on the frontend.
+
+    /**
+     * Promote point settings to the deck default and clear all per-slide overrides
+     * in one atomic update (EDIT).
+     */
+    public Deck promotePointSettingsToDeck(String id, Settings.PointSettings pointSettings, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setSettings(withDeckPointSettings(deck.getSettings(), pointSettings));
+        deck.getSlides().forEach(s -> s.setSettings(withPointSettings(s.getSettings(), null)));
+        deckRepository.promoteSettingsToDeck(id, "pointSettings", pointSettings);
+        return deck;
+    }
+
+    /**
+     * Promote answer settings to the deck default and clear all per-slide overrides
+     * in one atomic update (EDIT).
+     */
+    public Deck promoteAnswerSettingsToDeck(String id, Settings.AnswerSettings answerSettings, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setSettings(withDeckAnswerSettings(deck.getSettings(), answerSettings));
+        deck.getSlides().forEach(s -> s.setSettings(withAnswerSettings(s.getSettings(), null)));
+        deckRepository.promoteSettingsToDeck(id, "answerSettings", answerSettings);
         return deck;
     }
 

@@ -197,6 +197,15 @@ public class DeckController {
         return toResponse(deckService.clearDeckBackgroundImage(id, principal), principal);
     }
 
+    /** Promote a background image to the deck default, clearing all slide overrides (EDIT). */
+    @PutMapping("/{id}/background-image/promote")
+    public DeckResponse promoteBackgroundImageToDeck(
+            @PathVariable String id,
+            @Valid @RequestBody SetImageRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.promoteBackgroundImageToDeck(id, body.image(), principal), principal);
+    }
+
     // ── Deck tags ───────────────────────────────────────────────────────────────
     // Tags get a dedicated home (EDIT), separate from the metadata PATCH so an
     // edit can't clobber them — the same single-owner split as deck images.
@@ -251,6 +260,32 @@ public class DeckController {
             @Valid @RequestBody SetInviteSettingsRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return toResponse(deckService.setDeckInviteSettings(id, body.inviteSettings(), principal), principal);
+    }
+
+    // ── Apply to deck (promote a slide's setting to the deck default) ────────────
+    // A single atomic round-trip: set the new deck default and clear every slide's
+    // per-slide override for that field. Unlike the plain PUT endpoints above, the
+    // slide-level overrides are dropped too, so every slide inherits the new default
+    // unless it had an override for the *other* half (which is left untouched).
+    // The response is a DeckResponse reflecting the updated deck; the frontend must
+    // invalidate its slide-settings cache separately.
+
+    /** Promote point settings to the deck default, clearing all per-slide overrides (EDIT). */
+    @PutMapping("/{id}/point-settings/promote")
+    public DeckResponse promotePointSettingsToDeck(
+            @PathVariable String id,
+            @Valid @RequestBody SetPointSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.promotePointSettingsToDeck(id, body.pointSettings(), principal), principal);
+    }
+
+    /** Promote answer settings to the deck default, clearing all per-slide overrides (EDIT). */
+    @PutMapping("/{id}/answer-settings/promote")
+    public DeckResponse promoteAnswerSettingsToDeck(
+            @PathVariable String id,
+            @Valid @RequestBody SetAnswerSettingsRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.promoteAnswerSettingsToDeck(id, body.answerSettings(), principal), principal);
     }
 
     // ── Slides (sub-resource of a deck) ─────────────────────────────────────────

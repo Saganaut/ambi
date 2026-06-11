@@ -1,63 +1,55 @@
-// Per-slide answer settings drawer. Three-layer model:
-//   - The form shows the effective value: hardcoded defaults ← deck default ←
-//     this slide's override (resolveAnswerSettings).
-//   - Editing a field writes a *slide override* (useSlideSettingsEditor) so the
-//     change applies to this slide only.
-//   - "Apply to deck" promotes the current values to the deck-wide default
-//     (useDeckSettings) and drops the now-redundant slide override, so the slide
-//     simply inherits the new default.
-//   - "Reset to deck default" clears the override when one exists.
-//
-// The form itself is the reusable AnswerSettingsForm; this panel is only the
-// slide/deck wiring around it.
+// Per-slide point settings drawer. Same three-layer model as
+// AnswerSettingsPanel (defaults ← deck default ← slide override); see that file
+// for the full rationale. This panel only differs in the settings shape it
+// wires: point settings instead of answer settings.
 import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
-import type { AnswerSettings } from "@deck/store/deckApi.gen";
+import type { PointSettings } from "@deck/store/deckApi.gen";
 import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
-import { usePromoteAnswerSettingsToDeckMutation } from "@deck/store/deckApiPromote";
-import { useDeckSettings } from "./useDeckSettings";
-import { AnswerSettingsForm } from "./SettingsForms/AnswerSettingsForm";
-import { resolveAnswerSettings } from "./SettingsForms/settingsDefaults";
-import slidePanel from "./EditSlidePanel.module.css";
-import styles from "./SettingsForms/SettingsPanel.module.css";
+import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApiPromote";
+import { useDeckSettings } from "../useDeckSettings";
+import { PointSettingsForm } from "../SettingsForms/PointSettingsForm";
+import { resolvePointSettings } from "../SettingsForms/settingsDefaults";
+import slidePanel from "../EditSlidePanel.module.css";
+import styles from "../SettingsForms/SettingsPanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-const AnswerSettingsPanel = () => {
+const QuizPanel = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
   if (!slideId) {
     return (
       <div className={slidePanel.empty}>
-        <p>Select a slide on the left to edit its answer settings.</p>
+        <p>Select a slide on the left to edit its point settings.</p>
       </div>
     );
   }
-  return <AnswerSettingsPanelBody deckId={deckId} slideId={slideId} />;
+  return <QuizPanelBody deckId={deckId} slideId={slideId} />;
 };
 
-const AnswerSettingsPanelBody = ({
+const QuizPanelBody = ({
   deckId,
   slideId,
 }: {
   deckId: string;
   slideId: string;
 }) => {
-  const { answerSettings, updateAnswerSettings, clearAnswerSettings, flush, cancelPendingWrites } =
+  const { pointSettings, updatePointSettings, clearPointSettings, flush, cancelPendingWrites } =
     useSlideSettingsEditor(deckId, slideId);
   const { isLoaded, settings: deckSettings } = useDeckSettings();
-  const [promoteAnswerSettings] = usePromoteAnswerSettingsToDeckMutation();
+  const [promotePointSettings] = usePromotePointSettingsToDeckMutation();
 
-  const deckDefault = deckSettings?.answerSettings;
-  const hasOverride = answerSettings != null;
-  const effective = resolveAnswerSettings(deckDefault, answerSettings);
+  const deckDefault = deckSettings?.pointSettings;
+  const hasOverride = pointSettings != null;
+  const effective = resolvePointSettings(deckDefault, pointSettings);
 
   // Local mirror so typing reflects instantly while the slide write debounces.
   // Re-seed when the active slide changes so edits never bleed across slides.
-  const [form, setForm] = useState<AnswerSettings>(effective);
+  const [form, setForm] = useState<PointSettings>(effective);
   const [syncedKey, setSyncedKey] = useState(isLoaded ? slideId : undefined);
 
   if (isLoaded && syncedKey !== slideId) {
@@ -74,31 +66,33 @@ const AnswerSettingsPanelBody = ({
   }
 
   const handleChange = (
-    patch: Partial<AnswerSettings>,
+    patch: Partial<PointSettings>,
     { immediate }: { immediate: boolean },
   ) => {
     // Send the COMPLETE settings object, never a partial patch: the backend's
-    // AnswerSettings fields are Java primitives that reject a null, so any field
+    // PointSettings fields are Java primitives that reject a null, so any field
     // omitted from the PUT fails deserialization. `form` is always fully
     // resolved (defaults <- deck <- slide), so merging the patch onto it keeps
     // every field populated.
     const next = { ...form, ...patch };
     setForm(next);
-    updateAnswerSettings(next);
+    updatePointSettings(next);
     if (immediate) flush();
   };
 
   const applyToDeck = () => {
+    // Cancel any buffered slide write first so it can't race the promote and
+    // re-set the override that the backend is about to clear on all slides.
     cancelPendingWrites();
-    void promoteAnswerSettings({
+    void promotePointSettings({
       id: deckId,
-      setAnswerSettingsRequest: { answerSettings: form },
+      setPointSettingsRequest: { pointSettings: form },
     });
   };
 
   const resetToDeckDefault = () => {
-    clearAnswerSettings();
-    setForm(resolveAnswerSettings(deckDefault, undefined));
+    clearPointSettings();
+    setForm(resolvePointSettings(deckDefault, undefined));
   };
 
   return (
@@ -121,9 +115,9 @@ const AnswerSettingsPanelBody = ({
       )}
 
       <section className={slidePanel.section}>
-        <AnswerSettingsForm
+        <PointSettingsForm
           value={form}
-          idPrefix='slide-answer'
+          idPrefix='slide-point'
           onChange={handleChange}
           onBlur={flush}
         />
@@ -132,7 +126,7 @@ const AnswerSettingsPanelBody = ({
       <div className={styles.footer}>
         <Tooltip
           className={styles.applyTooltip}
-          label='Sets these as the deck default and removes all per-slide answer-settings overrides, so every slide inherits this value.'>
+          label='Sets these as the deck default and removes all per-slide point-settings overrides, so every slide inherits this value.'>
           <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
             Apply to deck
           </Btn>
@@ -142,4 +136,4 @@ const AnswerSettingsPanelBody = ({
   );
 };
 
-export { AnswerSettingsPanel };
+export { QuizPanel };

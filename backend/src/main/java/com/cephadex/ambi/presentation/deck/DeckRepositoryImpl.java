@@ -1,5 +1,6 @@
 package com.cephadex.ambi.presentation.deck;
 
+import com.cephadex.ambi.media.AppImage;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -57,6 +58,36 @@ class DeckRepositoryImpl implements DeckRepositoryCustom {
     @Override
     public void updateDeckInviteSettings(String deckId, Settings.InviteSettings inviteSettings) {
         updateDeckSettingsField(deckId, "inviteSettings", inviteSettings);
+    }
+
+    @Override
+    public void promoteSettingsToDeck(String deckId, String field, Object value) {
+        promoteFieldToDeck(deckId, "settings." + field, "slides.$[].settings." + field, value);
+    }
+
+    @Override
+    public void promoteBackgroundImageToDeck(String deckId, AppImage image) {
+        promoteFieldToDeck(deckId, "background_image", "slides.$[].background_image", image);
+    }
+
+    /**
+     * Single {@code $set/$unset} update: write {@code value} to {@code deckPath} on
+     * the deck document and remove {@code slidesPath} from every embedded slide. Uses
+     * {@code $[]} to target all array elements without a filter. {@code updateFirst}
+     * skips optimistic locking so the deck's {@code @Version} is left unchanged —
+     * consistent with all other targeted writes in this class. Pass {@code null} as
+     * {@code value} to unset the deck field too.
+     */
+    private void promoteFieldToDeck(String deckId, String deckPath, String slidesPath, Object value) {
+        Query query = new Query(Criteria.where("_id").is(deckId));
+        Update update = new Update();
+        if (value == null) {
+            update.unset(deckPath);
+        } else {
+            update.set(deckPath, value);
+        }
+        update.unset(slidesPath);
+        mongoTemplate.updateFirst(query, update, Deck.class);
     }
 
     /**

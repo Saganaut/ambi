@@ -37,6 +37,7 @@ public final class Settings {
 
   public record AnswerSettings(
       ResultsDisplayMode displayResultsMode,
+      Boolean displayResultsAsPercentage,
       boolean allowMultipleAnswers, // For MCQ they can select several, for text they can input
                                     // several
       boolean shuffleOptions,
@@ -76,6 +77,13 @@ public final class Settings {
     public PointSettings resolvePoints(PointSettings deckDefaults) {
       if (this.pointSettings != null) {
         return this.pointSettings;
+      }
+      return deckDefaults;
+    }
+
+    public AnswerSettings resolveAnswerSettings(AnswerSettings deckDefaults) {
+      if (this.answerSettings != null) {
+        return this.answerSettings;
       }
       return deckDefaults;
     }

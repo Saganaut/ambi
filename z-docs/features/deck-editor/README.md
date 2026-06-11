@@ -55,6 +55,38 @@ App-level fullscreen state lives in `LayoutProvider` (`frontend/src/context/Layo
 
 Until the media-library picker ships, image fields render a **Lorem Picsum** placeholder seeded on the element/option id (`https://picsum.photos/seed/${id}/...`). Each editor also exposes a raw URL input so authors with a hosted URL can paste it. When the library lands, replace the URL field + `picsum.photos` placeholder with the real picker — search for `TODO: Get more specs` / `placeholderImageUrl` to find every site.
 
+## Settings hierarchy
+
+Slides can override a subset of deck-level defaults. The resolution order is:
+
+1. **Hardcoded defaults** — the values baked into the frontend when no server value exists.
+2. **Deck defaults** — `Deck.settings` (`DeckSettings`): `pointSettings`, `answerSettings`, `audienceSettings`, `inviteSettings`.
+3. **Per-slide overrides** — `Slide.settings` (`SlideSettings`): `pointSettings` and `answerSettings` only. A null sub-field falls through to the deck default; null `settings` wrapper is equivalent to both sub-fields being null.
+
+`AudienceSettings` and `InviteSettings` are deck-only — slides cannot override them.
+
+Resolution helpers live in `Settings.SlideSettings`:
+- `resolvePoints(deckDefaults)` — returns the slide's `pointSettings` if present, else the deck default.
+- `resolveAnswerSettings(deckDefaults)` — symmetric; returns the slide's `answerSettings` if present, else the deck default.
+
+### Apply to deck
+
+"Apply to deck" is a one-click action in the inspector that promotes the current slide's value to the deck default and clears every slide's override for that field, so all slides immediately inherit the new default.
+
+**Backend — three endpoints, each a single atomic MongoDB update:**
+
+| Endpoint | Body | Effect |
+|---|---|---|
+| `PUT /api/decks/{id}/point-settings/promote` | `SetPointSettingsRequest` | Sets `settings.pointSettings` on the deck; unsets `slides.$[].settings.pointSettings` on all slides |
+| `PUT /api/decks/{id}/answer-settings/promote` | `SetAnswerSettingsRequest` | Sets `settings.answerSettings` on the deck; unsets `slides.$[].settings.answerSettings` on all slides |
+| `PUT /api/decks/{id}/background-image/promote` | `SetImageRequest` | Sets `background_image` on the deck; unsets `slides.$[].background_image` on all slides |
+
+All return a `DeckResponse` with the updated deck. The frontend must separately invalidate its per-slide cache after calling these endpoints.
+
+The shared persistence logic lives in `DeckRepositoryImpl.promoteFieldToDeck(deckId, deckPath, slidesPath, value)` (private), which issues a single `$set`+`$unset` update without touching the deck's `@Version`. `promoteSettingsToDeck` and `promoteBackgroundImageToDeck` both delegate to it.
+
+The plain `PUT` endpoints (`/point-settings`, `/answer-settings`, `/background-image`) only update the deck value, leaving slide overrides intact — use those for editing the deck default independently of any slide.
+
 ## Key files
 
 | File                                                                       | Purpose                                                          |
