@@ -85,6 +85,12 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
 		</dependency>
+		<!-- Caffeine: in-memory cache for short-lived presigned image URLs
+		     (see ImageUrlResolver). Version managed by the Spring Boot BOM. -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
 				<!-- Image processing: resize + WebP -->
 		<dependency>
 			<groupId>com.sksamuel.scrimage</groupId>

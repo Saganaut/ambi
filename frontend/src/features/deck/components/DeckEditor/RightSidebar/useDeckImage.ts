@@ -17,7 +17,7 @@ import { useGetDeckQuery, useSetDeckCoverImageMutation, useClearDeckCoverImageMu
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-interface DeckImageApi {
+interface UseDeckImageResult {
   /** The deck's current cover image from the getDeck cache, if any. */
   coverImage: AppImage | undefined;
   /** The deck's current background image from the getDeck cache, if any. */
@@ -32,7 +32,7 @@ interface DeckImageApi {
   clearBackgroundImage: () => void;
 }
 
-const useDeckImage = (): DeckImageApi => {
+const useDeckImage = (): UseDeckImageResult => {
   const { deckId } = routeApi.useParams();
   const { data: deck } = useGetDeckQuery({ id: deckId });
   const [setCover] = useSetDeckCoverImageMutation();
@@ -59,4 +59,4 @@ const useDeckImage = (): DeckImageApi => {
 };
 
 export { useDeckImage };
-export type { DeckImageApi };
+export type { UseDeckImageResult };

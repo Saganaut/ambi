@@ -8,89 +8,17 @@
 // step with the list after a write. There are no RTK Query tags in this app, so
 // after rating / clearing we simply refetch the three review queries.
 import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
-import { useGetDeckQuery } from "@deck/store/deckApi.gen";
-import {
-  useDeleteMyReviewMutation,
-  useGetDeckReviewSummaryQuery,
-  useGetMyReviewQuery,
-  useListDeckReviewsQuery,
-  useRateDeckMutation,
-} from "@deck/store/reviewApi.gen";
-import { sharedValidation } from "@/shared/store/sharedValidationConstants";
+
 import { Avatar } from "@ui/Avatar/Avatar";
 import { Btn } from "@ui/Buttons/Btn";
 import { Pagination } from "@ui/Pagination/Pagination";
 import { StarRating } from "@ui/StarRating/StarRating";
 import { resolveProfileAvatarSrc } from "@utils/avatarUrl";
-import styles from "./ReviewsPanel.module.css";
+import styles from "./Reviews.module.css";
+import { REVIEW_BODY_MAX, useReviews } from "./useReviews";
 
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
-const PAGE_SIZE = 10;
-const REVIEW_BODY_MAX = sharedValidation.RateDeckRequest.body.maxLength;
 
-const useReviewsPanel = () => {
-  const { deckId } = routeApi.useParams();
-  const [page, setPage] = useState(0);
-
-  const { data: deck } = useGetDeckQuery({ id: deckId });
-  // A deck's own editor/owner cannot review it (the backend 403s); hide the
-  // editor for them. Everyone with VIEW still sees the summary and the list.
-  const canReview = deck != null && !deck.permissions.canEdit;
-
-  const summaryQuery = useGetDeckReviewSummaryQuery({ deckId });
-  const listQuery = useListDeckReviewsQuery({
-    deckId,
-    pageable: { page, size: PAGE_SIZE },
-  });
-  const myReviewQuery = useGetMyReviewQuery({ deckId }, { skip: !canReview });
-
-  const [rateDeck, { isLoading: saving }] = useRateDeckMutation();
-  const [deleteMyReview, { isLoading: clearing }] = useDeleteMyReviewMutation();
-
-  const refresh = async () => {
-    await Promise.all([
-      summaryQuery.refetch(),
-      listQuery.refetch(),
-      canReview ? myReviewQuery.refetch() : Promise.resolve(),
-    ]);
-  };
-
-  const submit = async (stars: number, body: string) => {
-    const trimmed = body.trim();
-    await rateDeck({
-      deckId,
-      rateDeckRequest: { stars, body: trimmed === "" ? undefined : trimmed },
-    }).unwrap();
-    setPage(0); // a fresh review lands at the top of page 0
-    await refresh();
-  };
-
-  const clear = async () => {
-    await deleteMyReview({ deckId }).unwrap();
-    await refresh();
-  };
-
-  const summary = summaryQuery.data;
-  return {
-    canReview,
-    average: summary?.average ?? null,
-    count: summary?.count ?? 0,
-    distribution: summary?.distribution ?? [0, 0, 0, 0, 0],
-    reviews: listQuery.data?.content ?? [],
-    pageCount: listQuery.data?.page?.totalPages ?? 0,
-    page,
-    setPage,
-    isLoading: listQuery.isLoading,
-    myReview: myReviewQuery.data ?? null,
-    saving,
-    clearing,
-    submit,
-    clear,
-  };
-};
-
-const ReviewsPanel = () => {
+const Reviews = ({ deckId }: { deckId: string }) => {
   const {
     canReview,
     average,
@@ -106,7 +34,7 @@ const ReviewsPanel = () => {
     clearing,
     submit,
     clear,
-  } = useReviewsPanel();
+  } = useReviews({ deckId });
 
   return (
     <div className={styles.panel}>
@@ -143,7 +71,7 @@ const ReviewsPanel = () => {
         {isLoading ? (
           <p className={styles.empty}>Loading reviews…</p>
         ) : reviews.length === 0 ? (
-          <p className={styles.empty}>No written reviews yet.</p>
+          <p className={styles.empty}></p>
         ) : (
           <>
             <ul className={styles.reviewList}>
@@ -290,4 +218,4 @@ const MyRatingEditor = ({
   );
 };
 
-export { ReviewsPanel };
+export { Reviews };

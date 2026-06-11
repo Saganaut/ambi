@@ -3,7 +3,6 @@
 // for the full rationale. This panel only differs in the settings shape it
 // wires: point settings instead of answer settings.
 import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { PointSettings } from "@deck/store/deckApi.gen";
@@ -14,12 +13,10 @@ import { PointSettingsForm } from "../SettingsForms/PointSettingsForm";
 import { resolvePointSettings } from "../SettingsForms/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "@deck/components/DeckEditor/RightSidebar/SettingsForms/SettingsPanel.module.css";
+import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-const QuizPanel = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
+const QuizPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
   if (!slideId) {
     return (
@@ -34,10 +31,7 @@ const QuizPanel = () => {
 const QuizPanelBody = ({
   deckId,
   slideId,
-}: {
-  deckId: string;
-  slideId: string;
-}) => {
+}: deckAndSlideIdProps) => {
   const { pointSettings, updatePointSettings, clearPointSettings, flush, cancelPendingWrites } =
     useSlideSettingsEditor(deckId, slideId);
   const { isLoaded, settings: deckSettings } = useDeckSettings();

@@ -6,7 +6,7 @@
   --bg-color: var(--bg-surface);
   --border-color: var(--edge-surface);
   --background-image: none;
-
+  position: relative;
   display: flex;
   flex-direction: column;
   border: var(--border-size-lg) solid var(--border-color);
@@ -35,7 +35,17 @@
     flex: 1;
     min-height: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+
+    .optionalImageContent {
+      width: 400px !important;
+      height: 100%;
+      order: 1;
+    }
+    .slideChild {
+      flex: 1;
+      order: 2;
+    }
   }
 
   .slideFooter {

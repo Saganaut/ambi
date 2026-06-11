@@ -10,7 +10,7 @@ import { useGetMeQuery } from "@auth/store/userApi.gen";
 import { Avatar } from "@ui/Avatar/Avatar";
 import { resolveProfileAvatarSrc } from "@/shared/utils/avatarUrl";
 
-interface useUserMenuResponse {
+interface UseUserMenuResult {
   handleLogin: () => void;
   handleLogout: () => Promise<void>;
   handleGuestLogin: () => Promise<void>;
@@ -23,7 +23,7 @@ interface useUserMenuResponse {
   guestName: string;
 }
 
-const useUserMenu = (): useUserMenuResponse => {
+const useUserMenu = (): UseUserMenuResult => {
   const [guestName, setGuestName] = useState("");
   const [guestError, setGuestError] = useState<string | null>(null);
   const [showGuestInput, setShowGuestInput] = useState(false);

@@ -9,6 +9,7 @@ import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useDeckSettings } from "../useDeckSettings";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
+import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -34,8 +35,7 @@ interface ParticipantForm {
 
 const useParticipantsPanel = () => useDeckSettings();
 
-const DeckParticipantSettings = () => {
-  const { deckId } = routeApi.useParams();
+const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
   const { settings, commit, schedule, flush } = useParticipantsPanel();
 
   const audience = settings?.audienceSettings;
@@ -146,10 +146,12 @@ const DeckParticipantSettings = () => {
   );
 };
 
-const SlideReactionsOverride = () => {
+const SlideReactionsOverride = ({ deckId, slideId }: deckAndSlideIdProps) => {
   // TODO: Wire per-slide reactions override once the new slide model supports
   // slide-level audience settings. The old chrome.reactionsEnabled field and
   // useUpdateElementMutation are no longer available.
+  const _deckId = deckId
+  const _slideId = slideId
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>This slide</h4>
@@ -161,10 +163,10 @@ const SlideReactionsOverride = () => {
   );
 };
 
-const ParticipantsPanel = () => (
+const ParticipantsPanel = ({ deckId, slideId }: deckAndSlideIdProps) => (
   <div className={styles.panel}>
-    <DeckParticipantSettings />
-    <SlideReactionsOverride />
+    <DeckParticipantSettings deckId={deckId} />
+    <SlideReactionsOverride slideId={slideId} deckId={deckId} />
   </div>
 );
 

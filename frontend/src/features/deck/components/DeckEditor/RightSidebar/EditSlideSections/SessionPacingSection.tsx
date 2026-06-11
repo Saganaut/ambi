@@ -26,10 +26,9 @@ interface PacingForm {
   displayResultsMode: ResultsDisplayMode;
 }
 
-const useSessionPacingSection = () => useDeckSettings();
 
 const SessionPacingSection = () => {
-  const { settings, commit, schedule, flush } = useSessionPacingSection();
+  const { settings, commit, schedule, flush } = useDeckSettings();
 
   const answer = settings?.answerSettings;
 

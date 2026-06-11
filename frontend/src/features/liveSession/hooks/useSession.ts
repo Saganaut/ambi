@@ -87,7 +87,7 @@ const stubLive: SliceState = {
   liveReactions: [],
 };
 
-interface useSessionResponse {
+interface UseSessionResult {
   sessionId: string;
   interactiveSession: InteractiveSessionResponse;
   // Resolved from the session's deckId for the header title. Optional: a
@@ -147,7 +147,7 @@ const mergeSessionView = (
   };
 };
 
-const useSession = (): useSessionResponse => {
+const useSession = (): UseSessionResult => {
   // The `$sessionId` route param carries the room code (the join code).
   const { sessionId: roomCode } = routeApi.useParams();
   const { data: snapshot } = useGetInteractiveSessionQuery({ roomCode });

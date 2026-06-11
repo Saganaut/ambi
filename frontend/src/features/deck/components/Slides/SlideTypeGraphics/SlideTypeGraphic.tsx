@@ -9,7 +9,12 @@
 // `SlideTypeGraphicSvg` — bare svg inside a sizing wrapper. Use in purely
 // decorative spots, or anywhere the icon already sits inside a clickable
 // ancestor and rendering a nested <button> would be wrong.
-import type { ButtonHTMLAttributes } from "react";
+//
+// Color props — both components accept `fillColor` and `outlineColor` to
+// override the SVG's two-color palette (defaults: #54FFF1 / #6019FF). These
+// are wired as `--graphic-fill` / `--graphic-outline` CSS custom properties
+// on the SVG element so all descendant paths/strokes pick them up.
+import type { ButtonHTMLAttributes, CSSProperties, SVGProps } from "react";
 import type {
   BtnFill,
   BtnShape,
@@ -30,36 +35,65 @@ interface SlideTypeGraphicProps extends Omit<
   variant?: BtnVariant;
   fill?: BtnFill;
   shape?: BtnShape;
+  fillColor?: string;
+  outlineColor?: string;
+  svgProps?: SVGProps<SVGSVGElement>;
 }
 
 const SlideTypeGraphic = ({
   slideType,
   size = "md",
   fill = "ghost",
+  fillColor,
+  outlineColor,
+  svgProps,
   ...rest
 }: SlideTypeGraphicProps) => {
   const Graphic = slideTypeGraphics[slideType];
-  return <IconBtn icon={<Graphic />} size={size} fill={fill} {...rest} />;
+  const graphicStyle: CSSProperties = {
+    ...(fillColor && { "--graphic-fill": fillColor } as CSSProperties),
+    ...(outlineColor && { "--graphic-outline": outlineColor } as CSSProperties),
+    ...svgProps?.style,
+  };
+  return (
+    <IconBtn
+      icon={<Graphic {...svgProps} style={graphicStyle} />}
+      size={size}
+      fill={fill}
+      {...rest}
+    />
+  );
 };
 
 interface SlideTypeGraphicSvgProps {
   slideType: SlideType;
   size?: BtnSize;
   className?: string;
+  fillColor?: string;
+  outlineColor?: string;
+  svgProps?: SVGProps<SVGSVGElement>;
 }
 
 const SlideTypeGraphicSvg = ({
   slideType,
   size = "md",
   className,
+  fillColor,
+  outlineColor,
+  svgProps,
 }: SlideTypeGraphicSvgProps) => {
   const Graphic = slideTypeGraphics[slideType];
+  const graphicStyle: CSSProperties = {
+    ...(fillColor && { "--graphic-fill": fillColor } as CSSProperties),
+    ...(outlineColor && { "--graphic-outline": outlineColor } as CSSProperties),
+    ...svgProps?.style,
+  };
   return (
     <span
       className={[styles.wrapper, styles[size], className]
         .filter(Boolean)
         .join(" ")}>
-      <Graphic />
+      <Graphic {...svgProps} style={graphicStyle} />
     </span>
   );
 };

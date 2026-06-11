@@ -11,7 +11,6 @@
 // The form itself is the reusable AnswerSettingsForm; this panel is only the
 // slide/deck wiring around it.
 import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { AnswerSettings } from "@deck/store/deckApi.gen";
@@ -22,12 +21,10 @@ import { AnswerSettingsForm } from "../SettingsForms/AnswerSettingsForm";
 import { resolveAnswerSettings } from "../SettingsForms/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "../SettingsForms/SettingsPanel.module.css";
+import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-const AnswerPanel = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
+const AnswerPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
   if (!slideId) {
     return (
@@ -42,10 +39,7 @@ const AnswerPanel = () => {
 const AnswerPanelBody = ({
   deckId,
   slideId,
-}: {
-  deckId: string;
-  slideId: string;
-}) => {
+}: deckAndSlideIdProps) => {
   const { answerSettings, updateAnswerSettings, clearAnswerSettings, flush, cancelPendingWrites } =
     useSlideSettingsEditor(deckId, slideId);
   const { isLoaded, settings: deckSettings } = useDeckSettings();

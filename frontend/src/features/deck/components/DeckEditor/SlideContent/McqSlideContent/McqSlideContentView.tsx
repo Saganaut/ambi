@@ -31,17 +31,17 @@ import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import styles from "./McqSlideContent.module.css";
 import { type OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 
+
 interface McqSlideContentViewProps {
   UseMcqEditorResult: UseMcqEditorResult;
   openPicker: OpenGalleryPicker;
+
 
 }
 
 
 
 const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContentViewProps) => {
-
-
 
   const { question, schedulePrompt, flush, canAddOption, addOption, handleOptionDragEnd, canRemove, isCorrect, scheduleOption, commitOption, toggleCorrect, removeOption } = UseMcqEditorResult;
   // Only the prompt needs a local mirror — typing should feel responsive and
@@ -82,6 +82,7 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
       }>
       <div className={styles.slideHeader}>
         <RichTextInput
+          showGradient={true}
           isBordered={false}
           id={`mcq-prompt-${question.id}`}
           placeholder='Type your question…'

@@ -35,7 +35,11 @@ const SlideContentWrapper = ({
         </header>
       )}
       <div className={styles.body}>{children}</div>
-      {footer && <footer className={styles.footer}>{footer}</footer>}
+      {footer && <footer className={styles.footer}>{footer}</footer>
+
+
+      }
+      <div></div>
     </div>
   );
 };

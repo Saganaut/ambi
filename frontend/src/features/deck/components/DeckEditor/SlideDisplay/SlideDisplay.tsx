@@ -26,18 +26,27 @@ import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
 import React from "react";
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 import { resolveSlideBackground } from "@/shared/utils/deckImages";
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { ImagePickerSmall } from "../RightSidebar/ImagePicker";
+
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+
+
+
+
 
 const SlideDisplay = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
   const { slides } = useDeckEditor(deckId);
-  const { getSlide } = useSlide(deckId);
+
+  const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
   // Per-deck theme, scoped to just the slide canvas — the surrounding editor
   // chrome keeps the user's global theme.
   const { deck } = useDeck(deckId);
   const { style: themeStyle, appearance } = useDeckTheme(deck?.themeId);
+  const openPicker = useGalleryPicker();
 
   const slide = slideId ? getSlide(slideId) : slides[0];
   const navigate = routeApi.useNavigate();
@@ -56,7 +65,8 @@ const SlideDisplay = () => {
   if (slideId == null) return <Loader />;
 
   if (slide == null) return <p> Error </p>;
-  console.log("slide", slide);
+  const slideContentImgUrl = slide.coverImage?.variants?.XL
+
   const renderBody = () => {
     switch (slide.content.contentType) {
       case "MCQ":
@@ -92,15 +102,36 @@ const SlideDisplay = () => {
     }
   };
 
-  console.log("Background url", backgroundUrl);
-
   return (
     <SlideCanvas
       slideType={slide.content.contentType}
       themeStyle={themeStyle}
       appearance={appearance}
-      backgroundUrl={backgroundUrl}>
+      backgroundUrl={backgroundUrl}
+      slideContentImgUrl={slideContentImgUrl}
+    >
       {renderBody()}
+      <ImagePickerSmall
+        image={slide.coverImage}
+        onPick={() => {
+          openPicker(
+            (image) => {
+              setSlideImage(slide.id, "cover", image);
+            },
+            {
+              title: "Slide background image",
+              cropWidth: 16,
+              cropHeight: 9,
+            },
+          );
+        }}
+        onClear={() => {
+          clearSlideImage(slide.id, "cover");
+        }}
+      />
+      <div>
+
+      </div>
     </SlideCanvas>
   );
 };

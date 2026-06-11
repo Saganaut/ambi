@@ -24,7 +24,7 @@ const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 type SettingsPatch = Partial<DeckSettings>;
 
-interface DeckSettingsApi {
+interface UseDeckSettingsResult {
   /** Whether the deck itself has loaded. Distinct from {@link settings} being
    *  defined: a loaded deck can still have no settings object at all, in which
    *  case `settings` is undefined but the deck is ready to edit. */
@@ -40,7 +40,7 @@ interface DeckSettingsApi {
   flush: () => void;
 }
 
-const useDeckSettings = (delay = 500): DeckSettingsApi => {
+const useDeckSettings = (delay = 500): UseDeckSettingsResult => {
   const { deckId } = routeApi.useParams();
   const { data: deck } = useGetDeckQuery({ id: deckId });
   const [setPointSettings] = useSetDeckPointSettingsMutation();

@@ -24,7 +24,6 @@ import { EditSlidePanel } from "./EditSlidePanel/EditSlidePanel.tsx";
 import { AnswerPanel } from "./AnswerPanel/AnswerPanel";
 import { QuizPanel } from "./QuizPanel/QuizPanel";
 import { DeckPanel } from "./DeckPanel/DeckPanel";
-import { ReviewsPanel } from "./ReviewsPanel/ReviewsPanel";
 import { DeckDiscussionPanel } from "./DiscussionPanel/DeckDiscussionPanel.tsx";
 import { ParticipantsPanel } from "./ParticipantPanel/ParticipantsPanel";
 import { InviteSettingsPanel } from "./InviteSettingsPanel";
@@ -33,11 +32,11 @@ import { useFullScreen } from "@hooks/useFullScreen";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { RightSidebar } from "@components/Layout/RightSidebar";
 import DeckIcon from "@shared/assets/icons/content/deck-icon.svg?react";
+import { getRouteApi } from "@tanstack/react-router";
 type PanelKey =
   | "deck"
   | "edit"
   | "answers"
-  | "reviews"
   | "quiz"
   | "discussion"
   | "participants"
@@ -48,15 +47,20 @@ const PANEL_TITLES: Record<PanelKey, string> = {
   answers: "Answer settings",
   deck: "Deck",
   quiz: "Quiz",
-  reviews: "Reviews",
   discussion: "Discussion",
   participants: "Participants",
   sharing: "Sharing preferences",
 };
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const RightSidebarContent = () => {
   const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
   const { isFullScreen } = useFullScreen();
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+
+  if (slideId == null) throw Error("No slide ID");
+
 
   const setPanel = (next: PanelKey | null) => {
     const isSwap = openPanel !== null && next !== null && openPanel !== next;
@@ -97,14 +101,13 @@ const RightSidebarContent = () => {
               />
             </div>
             <div className={styles.drawerBody}>
-              {openPanel === "deck" && <DeckPanel />}
-              {openPanel === "edit" && <EditSlidePanel />}
-              {openPanel === "answers" && <AnswerPanel />}
-              {openPanel === "quiz" && <QuizPanel />}
-              {openPanel === "reviews" && <ReviewsPanel />}
-              {openPanel === "discussion" && <DeckDiscussionPanel />}
-              {openPanel === "participants" && <ParticipantsPanel />}
-              {openPanel === "sharing" && <InviteSettingsPanel />}
+              {openPanel === "deck" && <DeckPanel deckId={deckId} />}
+              {openPanel === "edit" && <EditSlidePanel deckId={deckId} slideId={slideId} />}
+              {openPanel === "answers" && <AnswerPanel deckId={deckId} slideId={slideId} />}
+              {openPanel === "quiz" && <QuizPanel deckId={deckId} slideId={slideId} />}
+              {openPanel === "discussion" && <DeckDiscussionPanel slideId={slideId} deckId={deckId} />}
+              {openPanel === "participants" && <ParticipantsPanel deckId={deckId} slideId={slideId} />}
+              {openPanel === "sharing" && <InviteSettingsPanel deckId={deckId} />}
             </div>
           </div>
         </aside>
@@ -164,19 +167,6 @@ const RightSidebarContent = () => {
           }}
         />
 
-
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.reviews}
-          aria-pressed={openPanel === "reviews"}
-          className={openPanel === "reviews" ? styles.active : undefined}
-          icon={<StarIcon />}
-          onClick={() => {
-            toggle("reviews");
-          }}
-        />
         <IconBtn
           fill='bordered'
           shape='round'

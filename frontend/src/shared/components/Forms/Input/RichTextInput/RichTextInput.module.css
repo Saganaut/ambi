@@ -33,6 +33,10 @@
   }
 }
 
+.surface.withGradient {
+  background: color-mix(in oklch, var(--role-primary) 45%, transparent);
+}
+
 .surface:hover {
   border: var(--border-size-sm) solid var(--border-default);
   border-color: var(--action-hover);

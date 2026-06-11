@@ -25,6 +25,7 @@ import { ThemeModal } from "@/shared/components/Theme/ThemeModal/ThemeModal";
 import { Btn } from "@/shared/components/UIElements/Buttons/Btn";
 import { useModal } from "@/shared/hooks/useModal";
 import { ThemeColorSwatches } from "@/shared/components/Forms/Input/ColorPicker/ThemeColorSwatches";
+import { Reviews } from "./Reviews";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -131,8 +132,8 @@ const DeckImages = ({ deckId }: { deckId: string }) => {
 
 
 
-const DeckPanel = () => {
-  const { isLoaded, tags, commit, isSaving, deckId } = useDeckTags();
+const DeckPanel = ({ deckId }: { deckId: string }) => {
+  const { isLoaded, tags, commit, isSaving } = useDeckTags();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -219,6 +220,9 @@ const DeckPanel = () => {
           />
         </div>
         <DeckTheme deckId={deckId} />
+      </section>
+      <section className={styles.section}>
+        <Reviews deckId={deckId} />
       </section>
     </div>
   );

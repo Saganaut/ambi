@@ -23,6 +23,7 @@ import { Tooltip } from "@ui/Tooltip/Tooltip";
 import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApiPromote";
 import settingsPanel from "../SettingsForms/SettingsPanel.module.css";
 import { useDeck } from "@/features/deck/hooks/useDeck";
+import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -49,17 +50,19 @@ const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
 };
 
 
-const useThemePanel = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
+
+
+const useThemePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
+
+
   const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
   return { deckId, slide, slideId, setSlideImage, clearSlideImage };
 };
 
 
-const PerSlideStyle = () => {
-  const { deckId, slide, slideId, setSlideImage, clearSlideImage } = useThemePanel();
+const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
+  const { slide, setSlideImage, clearSlideImage } = useThemePanel({ deckId, slideId });
   const { deck } = useDeck(deckId);
   const openPicker = useGalleryPicker();
   const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
@@ -123,9 +126,8 @@ const PerSlideStyle = () => {
 };
 
 
-const EditSlidePanel = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
+const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
+
   const { getSlide } = useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
 
@@ -139,8 +141,7 @@ const EditSlidePanel = () => {
 
   return (
     <div className={styles.panel}>
-      <PerSlideStyle />
-
+      <PerSlideStyle deckId={deckId} slideId={slideId} />
       <PerKindSection contentType={slide.content.contentType} />
       <FollowUpAttachSection slide={slide} />
       <SessionPacingSection />

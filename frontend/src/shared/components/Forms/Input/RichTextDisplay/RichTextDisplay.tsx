@@ -141,6 +141,7 @@ const RichTextDisplay = ({
   return (
     <div
       className={`${styles.content} ${className ?? ""}`.trim()}
+      //TODO: still need to double check this
       // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml -- HTML originates from RichTextInput (TipTap), constrained to the editor's mark/node schema
       dangerouslySetInnerHTML={{ __html: styledHtml }}
     />

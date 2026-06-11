@@ -14,3 +14,4 @@
 - A `components` item with its own directory (e.g. a modal) may have hooks.
 - Everything in `components` carries its own Storybook.
 - One CSS module file per directory. More than one means a component needs its own directory.
+- **Route params stay at the top level.** Only top-level route components (pages) may read route params (e.g. `deckId`, `slideId`, `liveSessionId`) from the router. All child components receive these IDs as props, and hooks accept them as parameters. A component or hook that reaches into the router is implicitly coupled to a specific URL shape and cannot be reused elsewhere.

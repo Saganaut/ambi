@@ -24,7 +24,7 @@ function validateUsernameFormat(value: string): string | null {
   });
 }
 
-export interface UseRegisterReturn {
+export interface UseRegisterResult {
   username: string;
   setUsername: Dispatch<SetStateAction<string>>;
   agreedToTerms: boolean;
@@ -39,7 +39,7 @@ export interface UseRegisterReturn {
   handleSubmit: (e: SubmitEvent<HTMLFormElement>) => Promise<void>;
 }
 
-const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterReturn => {
+const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterResult => {
   const [username, setUsername] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [newsletter, setNewsletter] = useState(true);

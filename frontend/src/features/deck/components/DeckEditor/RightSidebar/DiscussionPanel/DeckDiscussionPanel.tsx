@@ -4,7 +4,6 @@
 // conversation (see CommentThread). With no slide selected there is nothing to
 // discuss yet.
 import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { useRegisteredUser } from "@auth/hooks/useCurrentUser";
 import { useAddThreadCommentMutation, useCreateCommentThreadMutation, useDeleteThreadCommentMutation, useListSlideCommentThreadsQuery, useSetThreadStatusMutation, useUpdateThreadCommentMutation, type CommentThreadResponse } from "@deck/store/commentApi.gen";
 import { deckValidation } from "@/features/deck/store/deckValidationConstants";
@@ -12,16 +11,15 @@ import { Btn } from "@ui/Buttons/Btn";
 import { Pagination } from "@ui/Pagination/Pagination";
 import { CommentThread } from "./CommentThread";
 import styles from "./DeckDiscussionPanel.module.css";
+import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 
 type ThreadStatus = CommentThreadResponse["status"];
 
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const PAGE_SIZE = 10;
 
-const useDeckDiscussionPanel = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
+const useDeckDiscussionPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
+
   const { me } = useRegisteredUser();
   const [page, setPage] = useState(0);
 
@@ -90,7 +88,7 @@ const useDeckDiscussionPanel = () => {
   };
 };
 
-const DeckDiscussionPanel = () => {
+const DeckDiscussionPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const {
     hasSlide,
     currentUserId,
@@ -105,7 +103,7 @@ const DeckDiscussionPanel = () => {
     edit,
     remove,
     setThreadStatus,
-  } = useDeckDiscussionPanel();
+  } = useDeckDiscussionPanel({ deckId, slideId });
 
   if (!hasSlide) {
     return (

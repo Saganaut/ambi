@@ -12,7 +12,6 @@
 // succession coalesces into one PUT of the final state, and any pending write
 // flushes when the drawer unmounts (useDebouncedCommit).
 import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
 import type { InviteSettings } from "@deck/store/deckApi.gen";
@@ -20,7 +19,6 @@ import { DisplayLocation } from "@deck/store/deckEnums.gen";
 import { useDeckSettings } from "./useDeckSettings";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 type Location = (typeof DisplayLocation)[keyof typeof DisplayLocation];
 
@@ -65,8 +63,7 @@ const LocationChecklist = ({
   </div>
 );
 
-const InviteSettingsPanel = () => {
-  const { deckId } = routeApi.useParams();
+const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
   const { settings, schedule } = useDeckSettings();
 
   const invite = settings?.inviteSettings;

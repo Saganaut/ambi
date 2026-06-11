@@ -24,6 +24,7 @@ interface SlideCanvasProps {
   backgroundUrl?: string;
   /** The kind-specific authoring surface, rendered in the scrollable body. */
   children: ReactNode;
+  slideContentImgUrl?: string;
 }
 
 const SlideCanvas = ({
@@ -32,6 +33,7 @@ const SlideCanvas = ({
   appearance,
   backgroundUrl,
   children,
+  slideContentImgUrl
 }: SlideCanvasProps) => {
   return (
     <div
@@ -49,7 +51,16 @@ const SlideCanvas = ({
         <CephadexLogo size={"md"} />{" "}
         <SlideTypeGraphicSvg slideType={slideType} />
       </div>
-      <div className={styles.slideBody}>{children}</div>
+      <div className={styles.slideBody}>
+        {slideContentImgUrl &&
+
+          <div className={styles.optionalImageContent}>
+            <img src={slideContentImgUrl} />
+
+
+          </div>}
+        <div className={styles.slideChild}>{children}</div>
+      </div>
       <div className={styles.slideFooter}>Footer goes here</div>
     </div>
   );

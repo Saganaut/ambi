@@ -59,6 +59,7 @@ interface RichTextInputProps {
   id?: string;
   ref?: React.Ref<RichTextInputHandle>;
   isBordered?: boolean;
+  showGradient?: boolean;
   className?: string;
   /** Auto-shrink the editor's font-size so its content fits inside its
    *  bounded box — same algorithm as `useFitText` (the shared hook can't
@@ -308,6 +309,7 @@ const RichTextInput = ({
   id,
   ref,
   isBordered = true,
+  showGradient = false,
   className,
   minPx,
   maxPx,
@@ -430,7 +432,13 @@ const RichTextInput = ({
         </label>
       )}
       <div
-        className={`${styles.surface} ${isBordered ? " " : styles.noBorders}`}
+        className={[
+          styles.surface,
+          !isBordered && styles.noBorders,
+          showGradient && styles.withGradient,
+        ]
+          .filter(Boolean)
+          .join(" ")}
         style={{ anchorName }}>
         {toolbarOpen && (
           <div
