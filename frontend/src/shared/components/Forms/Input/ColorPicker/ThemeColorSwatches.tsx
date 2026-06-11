@@ -8,7 +8,7 @@ import { THEME_COLOR_ROLES } from "@utils/roleColors";
 
 interface ThemeColorSwatchesProps {
   /** Receives the picked role's CSS value, e.g. "var(--role-accent)". */
-  onPick: (value: string) => void;
+  onPick?: (value: string) => void;
   /** Suppress mousedown focus-steal (for toolbars floating over an editor). */
   preventFocusSteal?: boolean;
 }
@@ -24,9 +24,7 @@ const ThemeColorSwatches = ({
         label={r.label}
         color={r.cssVar}
         preventFocusSteal={preventFocusSteal}
-        onClick={() => {
-          onPick(r.cssVar);
-        }}
+        onClick={onPick ? () => onPick(r.cssVar) : undefined}
       />
     ))}
   </>

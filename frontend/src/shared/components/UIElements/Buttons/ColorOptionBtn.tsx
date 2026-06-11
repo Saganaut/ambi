@@ -9,7 +9,7 @@ import styles from "./Buttons.module.css";
 interface ColorOptionBtnProps {
   label: string;
   color: string;
-  onClick: () => void;
+  onClick?: () => void;
   preventFocusSteal?: boolean;
   /** Override the default `Set color <label>` aria-label (e.g. a disclosure). */
   ariaLabel?: string;
@@ -32,8 +32,8 @@ const ColorOptionBtn = ({
       onMouseDown={
         preventFocusSteal
           ? (e) => {
-              e.preventDefault();
-            }
+            e.preventDefault();
+          }
           : undefined
       }
       onClick={onClick}

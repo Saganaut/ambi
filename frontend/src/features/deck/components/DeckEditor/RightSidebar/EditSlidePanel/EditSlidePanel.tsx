@@ -13,7 +13,6 @@ import { TextOptionsSection } from "../EditSlideSections/TextOptionsSection";
 import { NumberOptionsSection } from "../EditSlideSections/NumberOptionsSection";
 import { RankingOptionsSection } from "../EditSlideSections/RankingOptionsSection";
 import { QAndAOptionsSection } from "../EditSlideSections/QAndAOptionsSection";
-import { SlideImageSection } from "../EditSlideSections/SlideImageSection";
 import { SessionPacingSection } from "../EditSlideSections/SessionPacingSection";
 import { ProvenanceFooter } from "../EditSlideSections/ProvenanceFooter";
 import styles from "./EditSlidePanel.module.css";
@@ -23,6 +22,7 @@ import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApiPromote";
 import settingsPanel from "../SettingsForms/SettingsPanel.module.css";
+import { useDeck } from "@/features/deck/hooks/useDeck";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -60,9 +60,11 @@ const useThemePanel = () => {
 
 const PerSlideStyle = () => {
   const { deckId, slide, slideId, setSlideImage, clearSlideImage } = useThemePanel();
+  const { deck } = useDeck(deckId);
   const openPicker = useGalleryPicker();
   const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
 
+  console.log("deck", deck)
   if (!slide)
     return (
       <div className={styles.section}>
@@ -74,11 +76,12 @@ const PerSlideStyle = () => {
 
   return (
     <section className={styles.section}>
-      <h4 className={styles.heading}>This slide</h4>
       <ImagePicker
-        label='Background image'
+        label=''
         image={slide.backgroundImage}
         seed={`${id}-background`}
+        placeholderText={"Choose background"}
+        placeholderBackgroundImageUrl={deck?.backgroundImage?.variants?.SM}
         onPick={() => {
           openPicker(
             (image) => {
@@ -136,9 +139,10 @@ const EditSlidePanel = () => {
 
   return (
     <div className={styles.panel}>
+      <PerSlideStyle />
+
       <PerKindSection contentType={slide.content.contentType} />
       <FollowUpAttachSection slide={slide} />
-      <SlideImageSection />
       <SessionPacingSection />
       <ProvenanceFooter
         createdByUserId={slide.createdByUserId}
@@ -148,7 +152,6 @@ const EditSlidePanel = () => {
         version={slide.version}
       />
 
-      <PerSlideStyle />
     </div>
   );
 };

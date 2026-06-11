@@ -10,13 +10,11 @@
 import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-
 import { useGetDeckQuery, useSetDeckTagsMutation } from "@deck/store/deckApi.gen";
 import { deckValidation } from "@deck/store/deckValidationConstants";
 import { validateText } from "@utils/fieldValidation";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-
 import styles from "./DeckPanel.module.css";
 import { useDeckImage } from "../useDeckImage";
 import { ImagePicker } from "../ImagePicker";
@@ -26,6 +24,7 @@ import { useGetThemeQuery } from "@/features/theme/store/themeApi.gen";
 import { ThemeModal } from "@/shared/components/Theme/ThemeModal/ThemeModal";
 import { Btn } from "@/shared/components/UIElements/Buttons/Btn";
 import { useModal } from "@/shared/hooks/useModal";
+import { ThemeColorSwatches } from "@/shared/components/Forms/Input/ColorPicker/ThemeColorSwatches";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -36,13 +35,10 @@ const useDeckTags = () => {
   const { deckId } = routeApi.useParams();
   const { data: deck } = useGetDeckQuery({ id: deckId });
   const [setDeckTags, { isLoading: isSaving }] = useSetDeckTagsMutation();
-
   const tags = deck?.tags ?? [];
-
   const commit = (next: string[]) => {
     void setDeckTags({ id: deckId, setTagsRequest: { tags: next } });
   };
-
   return { isLoaded: deck != null, tags, commit, isSaving, deckId };
 };
 
@@ -90,50 +86,35 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
 
   return (
     <section className={styles.section}>
-      <h4 className={styles.heading}>Deck theme</h4>
       <p className={styles.empty}>
         {themeId ? (activeTheme?.name ?? "Custom theme") : "No theme applied."}
       </p>
+      {themeId && <div className={styles.themeColors}><ThemeColorSwatches
+        preventFocusSteal
+      /></div>}
       <Btn type='button' className={styles.newBtn} onClick={openThemeModal}>
         {themeId ? "Change theme" : "Choose theme"}
       </Btn>
-      {themeId && (
-        <Btn
-          type='button'
-          variant='secondary'
-          fill='bordered'
-          className={styles.newBtn}
-          onClick={() => {
-            setDeckTheme(undefined);
-          }}>
-          Use overall theme
-        </Btn>
-      )}
     </section>
   );
 };
 
-// Deck-level cover + background tiles. Seeds reuse the canonical placeholder
-// seeds from utils/deckImages.ts so the sidebar thumbnails match the deck-card
-// and session-background placeholders.
+
 const DeckImages = ({ deckId }: { deckId: string }) => {
   const {
     coverImage,
-    backgroundImage,
     setCoverImage,
     clearCoverImage,
-    setBackgroundImage,
-    clearBackgroundImage,
   } = useDeckImage();
   const openPicker = useGalleryPicker();
 
   return (
     <section className={styles.section}>
-      <h4 className={styles.heading}>Deck</h4>
       <ImagePicker
-        label='Cover image'
+        label=''
         image={coverImage}
         seed={`ambi-deck-cover-${deckId}`}
+        placeholderText={"Deck cover"}
         onPick={() => {
           openPicker(setCoverImage, {
             title: "Deck cover image",
@@ -143,19 +124,6 @@ const DeckImages = ({ deckId }: { deckId: string }) => {
         }}
         onClear={clearCoverImage}
       />
-      {/* <ImagePicker
-        label='Background image'
-        image={backgroundImage}
-        seed={`ambi-deck-bg-${deckId}`}
-        onPick={() => {
-          openPicker(setBackgroundImage, {
-            title: "Deck background image",
-            cropWidth: 16,
-            cropHeight: 9,
-          });
-        }}
-        onClear={clearBackgroundImage}
-      /> */}
     </section>
   );
 };
@@ -207,17 +175,9 @@ const DeckPanel = () => {
 
   return (
     <div className={styles.panel}>
-
-
-      <DeckTheme deckId={deckId} />
-
       <DeckImages deckId={deckId} />
-
-
       <section className={styles.section}>
-        <h4 className={styles.heading}>Deck tags</h4>
-
-        {tags.length > 0 ? (
+        {tags.length > 0 && (
           <ul className={styles.tagList}>
             {tags.map((tag) => (
               <li key={tag} className={styles.tag}>
@@ -235,10 +195,7 @@ const DeckPanel = () => {
               </li>
             ))}
           </ul>
-        ) : (
-          <p className={styles.empty}>No tags yet.</p>
         )}
-
         <div className={styles.addRow}>
           <Input
             ariaLabel='Add a tag'
@@ -261,7 +218,7 @@ const DeckPanel = () => {
             }}
           />
         </div>
-
+        <DeckTheme deckId={deckId} />
       </section>
     </div>
   );

@@ -15,11 +15,13 @@
 
 .imageTileWrap {
   position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .imageTile {
   display: flex;
-  align-items: center;
+
   justify-content: center;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -44,12 +46,27 @@
 }
 
 .imageTileEmpty {
-  display: inline-flex;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), var(--emptyBackground);
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+  /* This tells the background to be 100% of the container's width, 
+     and the height will scale automatically to keep the aspect ratio. */
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  width: 100%; 
+  div {
+  display: flex;
   flex-direction: column;
+ /* text-shadow: 1px 1px 2px black, 0 0 1em rgb(0, 0, 0), 0 0 0.2em rgb(0, 0, 0); */
+  justify-content: center;
   align-items: center;
+    height: 100%;
+    width: 100%;
   gap: var(--space-1);
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
+color: oklch(from var(--text-secondary) 95% c h);  font-size: var(--font-size-sm);
+  }
+  
 
   & svg {
     width: 24px;

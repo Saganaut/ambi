@@ -6,7 +6,6 @@
 import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
@@ -23,21 +22,16 @@ const McqOptionsSection = () => {
   const [shuffle, setShuffle] = useState(
     answerSettings?.shuffleOptions ?? true,
   );
-  const allowMulti = (answerSettings?.maxSelections ?? 1) !== 1;
-  const [maxSelections, setMaxSelections] = useState(
-    allowMulti ? (answerSettings?.maxSelections ?? 2) : 1,
-  );
+
   const [syncedId, setSyncedId] = useState<string | undefined>(slide?.id);
 
   if (slide && syncedId !== slide.id) {
     setSyncedId(slide.id);
     setShuffle(answerSettings?.shuffleOptions ?? true);
-    setMaxSelections(answerSettings?.maxSelections ?? 1);
   }
 
   if (!slide) return null;
 
-  const isMulti = (answerSettings?.maxSelections ?? 1) !== 1;
 
   return (
     <section className={styles.section}>
@@ -53,32 +47,6 @@ const McqOptionsSection = () => {
           flush();
         }}
       />
-      <Toggle
-        id={`mcq-multi-${slide.id}`}
-        label='Allow multiple correct selections'
-        checked={isMulti}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          const nextMax = next ? 1 : 2;
-          setMaxSelections(1);
-          updateAnswerSettings({ maxSelections: nextMax });
-          flush();
-        }}
-      />
-      {isMulti && (
-        <NumberInput
-          id={`mcq-max-${slide.id}`}
-          label='Max selections (0 = unlimited)'
-          min={0}
-          max={6}
-          value={maxSelections}
-          onChange={(next) => {
-            setMaxSelections(next);
-            updateAnswerSettings({ maxSelections: next === 0 ? 0 : next });
-          }}
-          onBlur={flush}
-        />
-      )}
     </section>
   );
 };

@@ -13,6 +13,17 @@
   gap: var(--space-3);
 }
 
+.newBtn {
+  width: 100%;
+}
+
+.themeColors {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+}
+
 .heading {
   font-size: var(--font-size-xs);
   font-weight: 600;

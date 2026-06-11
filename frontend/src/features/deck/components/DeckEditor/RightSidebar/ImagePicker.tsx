@@ -17,6 +17,8 @@ interface ImagePickerProps {
   seed: string;
   onPick: () => void;
   onClear: () => void;
+  placeholderText?: string;
+  placeholderBackgroundImageUrl?: string;
 }
 
 const ImagePicker = ({
@@ -25,9 +27,12 @@ const ImagePicker = ({
   seed,
   onPick,
   onClear,
+  placeholderText = "Choose image",
+  placeholderBackgroundImageUrl
 }: ImagePickerProps) => {
   const hasImage = !isImageEmpty(image);
   const thumbnailSrc = resolveImageUrl(image, "SM", seed, 200, 200, false);
+
 
   return (
     <div className={styles.imagePicker}>
@@ -40,12 +45,15 @@ const ImagePicker = ({
           aria-label={`Pick ${label.toLowerCase()}`}>
           {hasImage && thumbnailSrc ? (
             <img src={thumbnailSrc} alt='' />
-          ) : (
-            <span className={styles.imageTileEmpty}>
-              <PhotoIcon aria-hidden='true' />
-              <span>Choose image</span>
-            </span>
-          )}
+          ) :
+            <div className={styles.imageTileEmpty} style={{ '--emptyBackground': `url(${(placeholderBackgroundImageUrl)})` } as React.CSSProperties}>
+
+              <div>
+                <PhotoIcon aria-hidden='true' />
+                <span>{placeholderText}</span>
+              </div>
+            </div>
+          }
         </button>
         {hasImage && (
           <IconBtn
