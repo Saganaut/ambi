@@ -8,7 +8,7 @@ import { Btn } from "@ui/Buttons/Btn";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import type { SlideResponse } from "@deck/store/deckApi.gen";
 import { attachedFollowUpOf, canHaveFollowUp } from "@deck/utils/followUp";
-import styles from "../EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

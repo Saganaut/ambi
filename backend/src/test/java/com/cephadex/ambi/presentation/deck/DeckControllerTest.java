@@ -386,7 +386,7 @@ class DeckControllerTest {
         mockMvc.perform(put("/api/decks/deck-1/slides/s1/answer-settings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"answerSettings\":{\"displayResultsMode\":\"ROUND_END\","
-                                + "\"allowMultipleAnswers\":false,\"shuffleOptions\":true,"
+                                + "\"displayResultsAsPercentage\":false,\"shuffleOptions\":true,"
                                 + "\"anonymizeAnswers\":false,\"countdownTime\":20,"
                                 + "\"allowAnonymous\":false,\"maxSelections\":1}}"))
                 .andExpect(status().isOk())

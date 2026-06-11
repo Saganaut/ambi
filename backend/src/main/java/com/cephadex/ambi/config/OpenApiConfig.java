@@ -10,7 +10,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
+import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
@@ -148,16 +150,37 @@ public class OpenApiConfig {
     }
 
     /**
+     * Injects enums that are used only as {@code Map} keys (which SpringDoc does not
+     * resolve automatically) into {@code components.schemas} so the frontend codegen
+     * can lift them into typed TypeScript constants.
+     */
+    @Bean
+    @Order(2)
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public OpenApiCustomizer exposeMapKeyEnums() {
+        return openApi -> {
+            if (openApi.getComponents() == null) {
+                openApi.setComponents(new Components());
+            }
+            StringSchema imageSizeOptions = new StringSchema();
+            for (ImageSizeOptions v : ImageSizeOptions.values()) {
+                imageSizeOptions.addEnumItem(v.name());
+            }
+            openApi.getComponents().addSchemas("ImageSizeOptions", imageSizeOptions);
+        };
+    }
+
+    /**
      * SpringDoc 3.x does not propagate {@code @Schema(requiredMode = REQUIRED)} from
      * Java record component annotations into the OpenAPI {@code required} array.
      * This customizer reads record components directly via reflection and populates
      * the array after the main schema pass completes.
      *
-     * <p>Runs after {@link #flattenPolymorphicUnions()} ({@code @Order(2)}) so the
+     * <p>Runs after {@link #flattenPolymorphicUnions()} ({@code @Order(1)}) so the
      * schemas are already flat when required fields are injected.
      */
     @Bean
-    @Order(2)
+    @Order(3)
     public OpenApiCustomizer markRecordComponentsRequired() {
         return openApi -> {
             if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {

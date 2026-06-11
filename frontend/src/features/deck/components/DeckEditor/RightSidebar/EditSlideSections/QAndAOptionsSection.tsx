@@ -8,7 +8,7 @@ import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
-import styles from "../EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

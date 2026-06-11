@@ -5,24 +5,24 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useSlide } from "@deck/hooks/useSlide";
 import type { SlideType } from "@deck/store/deckEnums.gen";
-import { SlideOptionsSection } from "./EditSlideSections/SlideOptionsSection";
-import { FollowUpAttachSection } from "./EditSlideSections/FollowUpAttachSection";
-import { FollowUpOptionsSection } from "./EditSlideSections/FollowUpOptionsSection";
-import { McqOptionsSection } from "./EditSlideSections/McqOptionsSection";
-import { TextOptionsSection } from "./EditSlideSections/TextOptionsSection";
-import { NumberOptionsSection } from "./EditSlideSections/NumberOptionsSection";
-import { RankingOptionsSection } from "./EditSlideSections/RankingOptionsSection";
-import { QAndAOptionsSection } from "./EditSlideSections/QAndAOptionsSection";
-import { SlideImageSection } from "./EditSlideSections/SlideImageSection";
-import { SessionPacingSection } from "./EditSlideSections/SessionPacingSection";
-import { ProvenanceFooter } from "./EditSlideSections/ProvenanceFooter";
+import { SlideOptionsSection } from "../EditSlideSections/SlideOptionsSection";
+import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSection";
+import { FollowUpOptionsSection } from "../EditSlideSections/FollowUpOptionsSection";
+import { McqOptionsSection } from "../EditSlideSections/McqOptionsSection";
+import { TextOptionsSection } from "../EditSlideSections/TextOptionsSection";
+import { NumberOptionsSection } from "../EditSlideSections/NumberOptionsSection";
+import { RankingOptionsSection } from "../EditSlideSections/RankingOptionsSection";
+import { QAndAOptionsSection } from "../EditSlideSections/QAndAOptionsSection";
+import { SlideImageSection } from "../EditSlideSections/SlideImageSection";
+import { SessionPacingSection } from "../EditSlideSections/SessionPacingSection";
+import { ProvenanceFooter } from "../EditSlideSections/ProvenanceFooter";
 import styles from "./EditSlidePanel.module.css";
-import { ImagePicker } from "./ImagePicker";
-import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { ImagePicker } from "../ImagePicker";
+import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApiPromote";
-import settingsPanel from "./SettingsForms/SettingsPanel.module.css";
+import settingsPanel from "../SettingsForms/SettingsPanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -104,10 +104,11 @@ const PerSlideStyle = () => {
               variant='secondary'
               fill='bordered'
               onClick={() => {
-                void promoteBackgroundImage({
-                  id: deckId,
-                  setImageRequest: { image: slide.backgroundImage! },
-                });
+                if (slide.backgroundImage != null)
+                  void promoteBackgroundImage({
+                    id: deckId,
+                    setImageRequest: { image: slide.backgroundImage },
+                  });
               }}>
               Apply to deck
             </Btn>

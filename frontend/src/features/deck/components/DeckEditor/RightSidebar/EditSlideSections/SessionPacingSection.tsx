@@ -12,7 +12,7 @@ import type { ResultsDisplayMode } from "@deck/store/deckEnums.gen";
 import { ResultsDisplayMode as ResultsDisplayModeEnum } from "@deck/store/deckEnums.gen";
 import { RESULTS_DISPLAY_MODE_OPTIONS } from "../SettingsForms/settingsDefaults";
 import { useDeckSettings } from "../useDeckSettings";
-import styles from "../EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const DEFAULTS = {
   countdownTime: 15,

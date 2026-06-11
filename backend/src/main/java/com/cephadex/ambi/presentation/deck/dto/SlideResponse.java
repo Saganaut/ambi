@@ -1,7 +1,5 @@
 package com.cephadex.ambi.presentation.deck.dto;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
-
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -9,6 +7,7 @@ import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * The wire view of a single {@link Slide}. Slides have no permissions of their

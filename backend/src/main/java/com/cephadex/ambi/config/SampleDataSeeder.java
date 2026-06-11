@@ -388,9 +388,9 @@ public class SampleDataSeeder implements ApplicationRunner {
         AnswerSettings base = deckDefaults.answerSettings();
         SlideSettings settings = new SlideSettings(
                 null, // inherit deck point defaults
-                new AnswerSettings(base.displayResultsMode(), maxSelections != 1,
-                        base.shuffleOptions(), base.anonymizeAnswers(), base.countdownTime(),
-                        false, maxSelections));
+                new AnswerSettings(base.displayResultsMode(), base.displayResultsAsPercentage(),
+                        base.shuffleOptions(), base.anonymizeAnswers(),
+                        base.countdownTime(), false, maxSelections));
         return slide(question, content, difficulty, explanation, settings, userId);
     }
 

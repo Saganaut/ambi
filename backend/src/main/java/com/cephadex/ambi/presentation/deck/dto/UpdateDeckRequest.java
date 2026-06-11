@@ -24,6 +24,7 @@ import jakarta.validation.constraints.Size;
  */
 public record UpdateDeckRequest(
         @Size(max = ValidationConstants.NAME_MAX) String name,
+        @Size(max = ValidationConstants.NAME_MAX) String label,
         @Size(max = ValidationConstants.DECK_DESCRIPTION_MAX) String description,
         String themeId,
         @Size(max = ValidationConstants.LANGUAGE_MAX) String language,
@@ -33,6 +34,7 @@ public record UpdateDeckRequest(
     public Deck toDeck() {
         Deck changes = new Deck();
         changes.setName(name);
+        changes.setLabel(label);
         changes.setDescription(description);
         changes.setThemeId(themeId);
         changes.setLanguage(language);

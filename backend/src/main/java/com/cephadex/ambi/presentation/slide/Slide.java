@@ -36,6 +36,8 @@ public class Slide {
     @Field("section")
     private String section;
 
+    /** This should be deleted if a user applies a slides background image to a deck
+   as in that case the background image will be stored there. **/
     @Field("background_image")
     private AppImage backgroundImage;
 
@@ -93,6 +95,7 @@ public class Slide {
 
     @Field("participant_instructions")
     private String participantInstructions;
+
 
     // Per-slide overrides for scoring (point_settings) and answering (answer_settings).
     // Either half may be null, in which case the deck's defaults apply at session time

@@ -53,12 +53,18 @@ public class Deck extends Auditable {
     @Field("name")
     private String name;
 
+    @Field("label")
+    private String label; // to appear above the name/title
+
     @Field("description")
     private String description;
 
     @Field("cover_image")
     private AppImage coverImage;
 
+
+    // Background image is the slides background images
+    // If set applies to all slides, but indivudal slides can supercede
     @Field("background_image")
     private AppImage backgroundImage;
 

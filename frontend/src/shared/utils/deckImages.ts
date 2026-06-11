@@ -8,6 +8,7 @@
  * Theme-driven backgrounds will slot in between "deck" and "Lorem Picsum" once
  * the interactiveSession passes the host's active theme through to clients.
  */
+import { ImageSizeOptions } from "@/features/gallery/store/galleryEnums.gen";
 import type { AppImage } from "@features/gallery/store/galleryApi.gen";
 import { resolveImageUrl } from "@utils/image";
 
@@ -27,28 +28,22 @@ export const resolveDeckCover = (
   const seed = `ambi-deck-cover-${deckId ?? "unknown"}`;
   // Cover cards sit at ~480×280, so SM (200px) is too small and MD (600px)
   // overshoots by a hair — MD gives a sharp 2x render on retina.
-  const url = resolveImageUrl(
-    cover,
-    "MD",
-    seed,
-    COVER_WIDTH,
-    COVER_HEIGHT,
-    false,
-  );
+  const url = resolveImageUrl(cover, "MD", seed, COVER_WIDTH, COVER_HEIGHT, false);
   return url ?? picsumUrl(seed, COVER_WIDTH, COVER_HEIGHT);
 };
 
-/** Returns the interactiveSession background URL, with Lorem Picsum as the placeholder
- *  fallback. Takes a plain string because the InteractiveSession model snapshots a
- *  single URL at session-create time (the largest variant URL frozen at that
- *  moment) — there are no per-tier variants to choose from at play time. */
-export const resolveInteractiveSessionBackground = (
-  deckBackgroundUrl: string | null | undefined,
-  deckId: string | null | undefined,
+/** Takes the background values of a deck and slide
+ * If the slide has a background returns the slide, otherwise returns the deck
+ * Optionally takes a size
+ **/
+export const resolveSlideBackground = (
+  deckBackground?: AppImage,
+  slideBackground?: AppImage,
+  size?: ImageSizeOptions,
 ): string => {
-  const seed = `ambi-deck-bg-${deckId ?? "unknown"}`;
-  if (deckBackgroundUrl && deckBackgroundUrl.trim().length > 0) {
-    return deckBackgroundUrl;
+  const imageSize = size ?? "LG";
+  if (slideBackground != null) {
+    return slideBackground.variants?.[imageSize] ?? "";
   }
-  return picsumUrl(seed, BG_WIDTH, BG_HEIGHT);
+  return deckBackground?.variants?.[imageSize] ?? "";
 };

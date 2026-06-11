@@ -37,9 +37,8 @@ public final class Settings {
 
   public record AnswerSettings(
       ResultsDisplayMode displayResultsMode,
-      Boolean displayResultsAsPercentage,
-      boolean allowMultipleAnswers, // For MCQ they can select several, for text they can input
-                                    // several
+      boolean displayResultsAsPercentage,
+
       boolean shuffleOptions,
       boolean anonymizeAnswers, // This should always be true for deception, otherwise is a useful
                                 // setting for QA when asking people to submit questions
@@ -67,7 +66,8 @@ public final class Settings {
       PointSettings pointSettings,
       AnswerSettings answerSettings,
       AudienceSettings audienceSettings,
-      InviteSettings inviteSettings) {
+      InviteSettings inviteSettings
+    ) {
   }
 
   public record SlideSettings(
@@ -77,13 +77,6 @@ public final class Settings {
     public PointSettings resolvePoints(PointSettings deckDefaults) {
       if (this.pointSettings != null) {
         return this.pointSettings;
-      }
-      return deckDefaults;
-    }
-
-    public AnswerSettings resolveAnswerSettings(AnswerSettings deckDefaults) {
-      if (this.answerSettings != null) {
-        return this.answerSettings;
       }
       return deckDefaults;
     }

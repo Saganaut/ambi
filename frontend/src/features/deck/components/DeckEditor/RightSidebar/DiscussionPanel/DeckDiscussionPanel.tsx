@@ -10,7 +10,7 @@ import { useAddThreadCommentMutation, useCreateCommentThreadMutation, useDeleteT
 import { deckValidation } from "@/features/deck/store/deckValidationConstants";
 import { Btn } from "@ui/Buttons/Btn";
 import { Pagination } from "@ui/Pagination/Pagination";
-import { CommentThread } from "./CommentThread/CommentThread";
+import { CommentThread } from "./CommentThread";
 import styles from "./DeckDiscussionPanel.module.css";
 
 type ThreadStatus = CommentThreadResponse["status"];

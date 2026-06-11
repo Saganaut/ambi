@@ -18,7 +18,7 @@ import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
 import type { InviteSettings } from "@deck/store/deckApi.gen";
 import { DisplayLocation } from "@deck/store/deckEnums.gen";
 import { useDeckSettings } from "./useDeckSettings";
-import styles from "./EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

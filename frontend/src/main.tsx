@@ -21,6 +21,9 @@ window.addEventListener("error", (event) => {
   });
 });
 window.addEventListener("unhandledrejection", (event) => {
+  // View-transition races throw AbortError when a second navigation supersedes
+  // an in-flight transition — harmless, not a real error.
+  if (event.reason?.name === "AbortError") return;
   logger.error("Unhandled promise rejection", { reason: String(event.reason) });
 });
 

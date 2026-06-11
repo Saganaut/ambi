@@ -13,7 +13,7 @@ import {
   FOLLOW_UP_MODE_LABELS,
   followUpModesFor,
 } from "@deck/utils/followUp";
-import styles from "../EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

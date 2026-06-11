@@ -65,19 +65,12 @@ const AnswerSettingsForm = ({
         onChange={number("countdownTime")}
         onBlur={onBlur}
       />
-      <Toggle
-        id={`${idPrefix}-allow-multiple`}
-        label='Allow multiple answers'
-        disabled={disabled}
-        checked={value.allowMultipleAnswers ?? D.allowMultipleAnswers}
-        onChange={toggle("allowMultipleAnswers")}
-      />
       <NumberInput
         id={`${idPrefix}-max-selections`}
         label='Max selections per player'
         min={1}
         max={50}
-        disabled={disabled || !(value.allowMultipleAnswers ?? false)}
+        disabled={disabled}
         value={value.maxSelections ?? D.maxSelections}
         onChange={number("maxSelections")}
         onBlur={onBlur}

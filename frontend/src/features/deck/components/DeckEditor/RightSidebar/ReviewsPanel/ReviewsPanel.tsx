@@ -23,13 +23,13 @@ import { Btn } from "@ui/Buttons/Btn";
 import { Pagination } from "@ui/Pagination/Pagination";
 import { StarRating } from "@ui/StarRating/StarRating";
 import { resolveProfileAvatarSrc } from "@utils/avatarUrl";
-import styles from "./DeckReviewsPanel.module.css";
+import styles from "./ReviewsPanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 const PAGE_SIZE = 10;
 const REVIEW_BODY_MAX = sharedValidation.RateDeckRequest.body.maxLength;
 
-const useDeckReviewsPanel = () => {
+const useReviewsPanel = () => {
   const { deckId } = routeApi.useParams();
   const [page, setPage] = useState(0);
 
@@ -90,7 +90,7 @@ const useDeckReviewsPanel = () => {
   };
 };
 
-const DeckReviewsPanel = () => {
+const ReviewsPanel = () => {
   const {
     canReview,
     average,
@@ -106,7 +106,7 @@ const DeckReviewsPanel = () => {
     clearing,
     submit,
     clear,
-  } = useDeckReviewsPanel();
+  } = useReviewsPanel();
 
   return (
     <div className={styles.panel}>
@@ -290,4 +290,4 @@ const MyRatingEditor = ({
   );
 };
 
-export { DeckReviewsPanel };
+export { ReviewsPanel };

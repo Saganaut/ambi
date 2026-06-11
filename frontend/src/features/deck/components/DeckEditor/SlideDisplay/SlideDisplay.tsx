@@ -25,6 +25,7 @@ import { useDeck } from "@deck/hooks/useDeck";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
 import React from "react";
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
+import { resolveSlideBackground } from "@/shared/utils/deckImages";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -40,7 +41,7 @@ const SlideDisplay = () => {
 
   const slide = slideId ? getSlide(slideId) : slides[0];
   const navigate = routeApi.useNavigate();
-  const backgroundUrl = slide?.backgroundImage?.variants?.LG ?? "";
+  const backgroundUrl = resolveSlideBackground(deck?.backgroundImage, slide?.backgroundImage)
   // useEffect justification: If there's no slideId in the URL, but there are slides in the deck
   // Load that slide id so it can be picked up by the rest of the component.
   React.useEffect(() => {
@@ -91,7 +92,6 @@ const SlideDisplay = () => {
     }
   };
 
-  console.log("slide content", slide);
   console.log("Background url", backgroundUrl);
 
   return (

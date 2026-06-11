@@ -14,7 +14,7 @@ const ANSWER_SETTINGS_DEFAULTS: Required<
   Omit<AnswerSettings, never>
 > = {
   displayResultsMode: ResultsDisplayMode.ROUND_END,
-  allowMultipleAnswers: false,
+  displayResultsAsPercentage: false,
   shuffleOptions: false,
   anonymizeAnswers: false,
   countdownTime: 15,

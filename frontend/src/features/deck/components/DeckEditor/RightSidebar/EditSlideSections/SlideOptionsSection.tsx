@@ -4,7 +4,7 @@
 // participantInformation, autoAdvanceSeconds, and showResponses. None of these
 // fields exist on the new TitleContent / MediaContent / FollowUpContent types.
 // Wire these controls once the new slide model supports them.
-import styles from "../EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const SlideOptionsSection = () => (
   <section className={styles.section}>

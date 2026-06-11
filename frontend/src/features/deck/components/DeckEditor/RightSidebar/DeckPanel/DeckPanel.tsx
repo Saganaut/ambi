@@ -17,7 +17,15 @@ import { validateText } from "@utils/fieldValidation";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 
-import styles from "./DeckCategorizePanel.module.css";
+import styles from "./DeckPanel.module.css";
+import { useDeckImage } from "../useDeckImage";
+import { ImagePicker } from "../ImagePicker";
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { useDeck } from "@/features/deck/hooks/useDeck";
+import { useGetThemeQuery } from "@/features/theme/store/themeApi.gen";
+import { ThemeModal } from "@/shared/components/Theme/ThemeModal/ThemeModal";
+import { Btn } from "@/shared/components/UIElements/Buttons/Btn";
+import { useModal } from "@/shared/hooks/useModal";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -35,11 +43,128 @@ const useDeckTags = () => {
     void setDeckTags({ id: deckId, setTagsRequest: { tags: next } });
   };
 
-  return { isLoaded: deck != null, tags, commit, isSaving };
+  return { isLoaded: deck != null, tags, commit, isSaving, deckId };
 };
 
-const DeckCategorizePanel = () => {
-  const { isLoaded, tags, commit, isSaving } = useDeckTags();
+
+
+const DeckTheme = ({ deckId }: { deckId: string }) => {
+  const { deck, updateDeck } = useDeck(deckId);
+  const { openModal, closeModal } = useModal();
+
+  const themeId = deck?.themeId;
+  // Resolve the applied theme's name for the summary line; skipped when unset.
+  const { data: activeTheme } = useGetThemeQuery(
+    { id: themeId ?? "" },
+    { skip: !themeId },
+  );
+
+  // The deck PATCH is a full metadata replace (an omitted field is cleared), so
+  // we resend the rest of the metadata alongside the theme change — both when
+  // applying a theme and when clearing it back to the deck's (global) default.
+  const setDeckTheme = (nextThemeId?: string) => {
+    if (!deck) return;
+    updateDeck({
+      name: deck.name,
+      description: deck.description,
+      language: deck.language,
+      publishStatus: deck.publishStatus,
+      themeId: nextThemeId,
+    });
+  };
+
+  const openThemeModal = () => {
+    openModal({
+      title: "Theme",
+      content: (
+        <ThemeModal
+          activeThemeId={themeId}
+          onApply={(theme) => {
+            setDeckTheme(theme.id);
+          }}
+          onClose={closeModal}
+        />
+      ),
+    });
+  };
+
+  return (
+    <section className={styles.section}>
+      <h4 className={styles.heading}>Deck theme</h4>
+      <p className={styles.empty}>
+        {themeId ? (activeTheme?.name ?? "Custom theme") : "No theme applied."}
+      </p>
+      <Btn type='button' className={styles.newBtn} onClick={openThemeModal}>
+        {themeId ? "Change theme" : "Choose theme"}
+      </Btn>
+      {themeId && (
+        <Btn
+          type='button'
+          variant='secondary'
+          fill='bordered'
+          className={styles.newBtn}
+          onClick={() => {
+            setDeckTheme(undefined);
+          }}>
+          Use overall theme
+        </Btn>
+      )}
+    </section>
+  );
+};
+
+// Deck-level cover + background tiles. Seeds reuse the canonical placeholder
+// seeds from utils/deckImages.ts so the sidebar thumbnails match the deck-card
+// and session-background placeholders.
+const DeckImages = ({ deckId }: { deckId: string }) => {
+  const {
+    coverImage,
+    backgroundImage,
+    setCoverImage,
+    clearCoverImage,
+    setBackgroundImage,
+    clearBackgroundImage,
+  } = useDeckImage();
+  const openPicker = useGalleryPicker();
+
+  return (
+    <section className={styles.section}>
+      <h4 className={styles.heading}>Deck</h4>
+      <ImagePicker
+        label='Cover image'
+        image={coverImage}
+        seed={`ambi-deck-cover-${deckId}`}
+        onPick={() => {
+          openPicker(setCoverImage, {
+            title: "Deck cover image",
+            cropWidth: 16,
+            cropHeight: 9,
+          });
+        }}
+        onClear={clearCoverImage}
+      />
+      {/* <ImagePicker
+        label='Background image'
+        image={backgroundImage}
+        seed={`ambi-deck-bg-${deckId}`}
+        onPick={() => {
+          openPicker(setBackgroundImage, {
+            title: "Deck background image",
+            cropWidth: 16,
+            cropHeight: 9,
+          });
+        }}
+        onClear={clearBackgroundImage}
+      /> */}
+    </section>
+  );
+};
+
+
+
+
+const DeckPanel = () => {
+  const { isLoaded, tags, commit, isSaving, deckId } = useDeckTags();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +207,13 @@ const DeckCategorizePanel = () => {
 
   return (
     <div className={styles.panel}>
+
+
+      <DeckTheme deckId={deckId} />
+
+      <DeckImages deckId={deckId} />
+
+
       <section className={styles.section}>
         <h4 className={styles.heading}>Deck tags</h4>
 
@@ -130,12 +262,9 @@ const DeckCategorizePanel = () => {
           />
         </div>
 
-        <p className={styles.count}>
-          {tags.length} / {TAGS_FACETS.maxItems} tags · press Enter to add
-        </p>
       </section>
     </div>
   );
 };
 
-export { DeckCategorizePanel };
+export { DeckPanel };

@@ -7,8 +7,8 @@ import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useDeckSettings } from "./useDeckSettings";
-import styles from "./EditSlidePanel.module.css";
+import { useDeckSettings } from "../useDeckSettings";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

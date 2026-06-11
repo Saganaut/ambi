@@ -1,5 +1,5 @@
 // Per-slide point settings drawer. Same three-layer model as
-// AnswerSettingsPanel (defaults ← deck default ← slide override); see that file
+// AnswerPanel (defaults ← deck default ← slide override); see that file
 // for the full rationale. This panel only differs in the settings shape it
 // wires: point settings instead of answer settings.
 import { useState } from "react";
@@ -12,8 +12,8 @@ import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApiPromot
 import { useDeckSettings } from "../useDeckSettings";
 import { PointSettingsForm } from "../SettingsForms/PointSettingsForm";
 import { resolvePointSettings } from "../SettingsForms/settingsDefaults";
-import slidePanel from "../EditSlidePanel.module.css";
-import styles from "../SettingsForms/SettingsPanel.module.css";
+import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/SettingsForms/SettingsPanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

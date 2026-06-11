@@ -95,6 +95,12 @@ const ENUMS = [
     feature: "auth",
     prop: ["RegisteredMe", "membershipStatus"],
   },
+  {
+    // Map key enum — exposed via OpenApiConfig.exposeMapKeyEnums(), not a property.
+    name: "ImageSizeOptions",
+    feature: "gallery",
+    component: "ImageSizeOptions",
+  },
 ];
 
 /** Resolve the (sorted, de-duped) string values for one registry entry. */
@@ -118,6 +124,20 @@ function resolveValues(entry, schemas) {
           `(checked the property and its \`items\`).`,
       );
     }
+  } else if (entry.component) {
+    const schema = schemas[entry.component];
+    if (!schema) {
+      throw new Error(
+        `Enum "${entry.name}": component schema "${entry.component}" not found. ` +
+          `Is it registered in OpenApiConfig.exposeMapKeyEnums()?`,
+      );
+    }
+    raw = schema.enum;
+    if (!Array.isArray(raw)) {
+      throw new Error(
+        `Enum "${entry.name}": component schema "${entry.component}" has no \`enum\` array.`,
+      );
+    }
   } else if (entry.discriminatorOf) {
     const mapping = schemas[entry.discriminatorOf]?.discriminator?.mapping;
     if (!mapping) {
@@ -129,7 +149,7 @@ function resolveValues(entry, schemas) {
     raw = Object.keys(mapping);
   } else {
     throw new Error(
-      `Enum "${entry.name}": registry entry needs \`prop\` or \`discriminatorOf\`.`,
+      `Enum "${entry.name}": registry entry needs \`prop\`, \`component\`, or \`discriminatorOf\`.`,
     );
   }
   // Sort for deterministic, minimal diffs on regeneration.

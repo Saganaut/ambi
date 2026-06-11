@@ -15,7 +15,7 @@ import { SlideDisplay } from "../../components/DeckEditor/SlideDisplay/SlideDisp
 import { SpeakerNotesDrawer } from "../../components/DeckEditor/SpeakerNotesDrawer/SpeakerNotesDrawer";
 import styles from "./DeckEditor.module.css";
 
-import { 
+import {
   ArrowsPointingOutIcon,
   ChartBarIcon,
   PlayIcon,
@@ -45,7 +45,6 @@ const DeckEditor = () => {
     titleDraft,
     setTitleDraft,
     commitTitle,
-    canViewAnalytics,
     isStarting,
     startError,
     quickStart,
@@ -99,14 +98,7 @@ const DeckEditor = () => {
 
           <div className={styles.rightControlButtons}>
             <PublishStatusControl />
-            {canViewAnalytics && (
-              <Link to='/decks/$deckId/analytics' params={{ deckId }}>
-                <Btn size={"md"} shape={"pill"}>
-                  <ChartBarIcon className={styles.iconMd} />
-                  Analytics
-                </Btn>
-              </Link>
-            )}
+
             <Btn size={"md"} shape={"pill"} onClick={handleShareClick}>
               <ShareIcon className={styles.iconMd} />
               Share

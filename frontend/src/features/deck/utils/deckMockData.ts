@@ -98,7 +98,7 @@ const pointSettings: PointSettings = {
 
 const answerSettings: AnswerSettings = {
   displayResultsMode: ResultsDisplayMode.ROUND_END,
-  allowMultipleAnswers: false,
+  displayResultsAsPercentage: false,
   shuffleOptions: true,
   anonymizeAnswers: false,
   countdownTime: 30,

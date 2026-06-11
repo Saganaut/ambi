@@ -1,7 +1,5 @@
 package com.cephadex.ambi.presentation.deck.dto;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -17,6 +15,7 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * The metadata view of a {@link Deck}. Slides are deliberately excluded — the
@@ -28,6 +27,7 @@ public record DeckResponse(
         @Schema(requiredMode = REQUIRED) String id,
         @Schema(requiredMode = REQUIRED) String publicId,
         @Schema(requiredMode = REQUIRED) String name,
+        String label,
         String description,
         AppImage coverImage,
         AppImage backgroundImage,
@@ -60,6 +60,7 @@ public record DeckResponse(
                 deck.getId(),
                 deck.getPublicId(),
                 deck.getName(),
+                deck.getLabel(),
                 deck.getDescription(),
                 deck.getCoverImage(),
                 deck.getBackgroundImage(),

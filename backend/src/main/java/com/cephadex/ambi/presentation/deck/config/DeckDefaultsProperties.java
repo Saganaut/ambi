@@ -61,7 +61,7 @@ public class DeckDefaultsProperties {
     @Data
     public static class Answer {
         private ResultsDisplayMode displayResultsMode = ResultsDisplayMode.ROUND_END;
-        private boolean allowMultipleAnswers = false;
+        private boolean displayResultsAsPercentage = false;
         private boolean shuffleOptions = true;
         private boolean anonymizeAnswers = false;
         /** Countdown seconds; 0 = no countdown. */
@@ -112,7 +112,7 @@ public class DeckDefaultsProperties {
     public Settings.AnswerSettings answerSettings() {
         return new Settings.AnswerSettings(
                 answer.displayResultsMode,
-                answer.allowMultipleAnswers,
+                answer.displayResultsAsPercentage,
                 answer.shuffleOptions,
                 answer.anonymizeAnswers,
                 answer.countdownTime,

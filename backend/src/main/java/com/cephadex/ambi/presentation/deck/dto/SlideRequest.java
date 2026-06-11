@@ -1,12 +1,11 @@
 package com.cephadex.ambi.presentation.deck.dto;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.*;
-
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * The editable presentation fields of a slide, shared by the add and update
@@ -33,7 +32,9 @@ public record SlideRequest(
         Difficulty difficulty,
         String explanation,
         String speakerNotes,
-        String participantInstructions) {
+        String participantInstructions
+
+    ) {
 
     /** Maps this request onto a fresh {@link Slide} for the service to persist. */
     public Slide toSlide() {
@@ -47,7 +48,6 @@ public record SlideRequest(
         slide.setExplanation(explanation);
         slide.setSpeakerNotes(speakerNotes);
         slide.setParticipantInstructions(participantInstructions);
-
         return slide;
     }
 }

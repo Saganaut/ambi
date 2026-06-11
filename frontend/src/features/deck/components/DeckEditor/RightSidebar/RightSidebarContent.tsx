@@ -12,37 +12,33 @@ import { useState } from "react";
 import { flushSync } from "react-dom";
 import {
   PencilIcon,
-  PaintBrushIcon,
   UsersIcon,
   ShareIcon,
-  TagIcon,
   StarIcon,
   TrophyIcon,
   CheckCircleIcon,
   ChatBubbleLeftRightIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { ThemePanel } from "./ThemePanel";
-import { EditSlidePanel } from "./EditSlidePanel";
-import { AnswerSettingsPanel } from "./AnswerSettingsPanel";
-import { PointSettingsPanel } from "./PointSettingsPanel";
-import { DeckCategorizePanel } from "./DeckCategorizePanel";
-import { DeckReviewsPanel } from "./DeckReviewsPanel";
-import { DeckDiscussionPanel } from "./DeckDiscussionPanel";
-import { ParticipantsPanel } from "./ParticipantsPanel";
+import { EditSlidePanel } from "./EditSlidePanel/EditSlidePanel.tsx";
+import { AnswerPanel } from "./AnswerPanel/AnswerPanel";
+import { QuizPanel } from "./QuizPanel/QuizPanel";
+import { DeckPanel } from "./DeckPanel/DeckPanel";
+import { ReviewsPanel } from "./ReviewsPanel/ReviewsPanel";
+import { DeckDiscussionPanel } from "./DiscussionPanel/DeckDiscussionPanel.tsx";
+import { ParticipantsPanel } from "./ParticipantPanel/ParticipantsPanel";
 import { InviteSettingsPanel } from "./InviteSettingsPanel";
 import styles from "./RightSidebarContent.module.css";
 import { useFullScreen } from "@hooks/useFullScreen";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { RightSidebar } from "@components/Layout/RightSidebar";
-
+import DeckIcon from "@shared/assets/icons/content/deck-icon.svg?react";
 type PanelKey =
+  | "deck"
   | "edit"
   | "answers"
-  | "points"
-  | "theme"
-  | "categorize"
   | "reviews"
+  | "quiz"
   | "discussion"
   | "participants"
   | "sharing";
@@ -50,9 +46,8 @@ type PanelKey =
 const PANEL_TITLES: Record<PanelKey, string> = {
   edit: "Edit slide",
   answers: "Answer settings",
-  points: "Point settings",
-  theme: "Theme",
-  categorize: "Tags",
+  deck: "Deck",
+  quiz: "Quiz",
   reviews: "Reviews",
   discussion: "Discussion",
   participants: "Participants",
@@ -102,12 +97,11 @@ const RightSidebarContent = () => {
               />
             </div>
             <div className={styles.drawerBody}>
+              {openPanel === "deck" && <DeckPanel />}
               {openPanel === "edit" && <EditSlidePanel />}
-              {openPanel === "answers" && <AnswerSettingsPanel />}
-              {openPanel === "points" && <PointSettingsPanel />}
-              {openPanel === "theme" && <ThemePanel />}
-              {openPanel === "categorize" && <DeckCategorizePanel />}
-              {openPanel === "reviews" && <DeckReviewsPanel />}
+              {openPanel === "answers" && <AnswerPanel />}
+              {openPanel === "quiz" && <QuizPanel />}
+              {openPanel === "reviews" && <ReviewsPanel />}
               {openPanel === "discussion" && <DeckDiscussionPanel />}
               {openPanel === "participants" && <ParticipantsPanel />}
               {openPanel === "sharing" && <InviteSettingsPanel />}
@@ -117,6 +111,22 @@ const RightSidebarContent = () => {
       )}
 
       <div className={styles.iconStrip} role='toolbar' aria-label='Deck panels'>
+
+
+        <IconBtn
+          fill='bordered'
+          shape='round'
+          size='md'
+          aria-label={PANEL_TITLES.deck}
+          aria-pressed={openPanel === "deck"}
+          className={openPanel === "deck" ? styles.active : undefined}
+          icon={<DeckIcon />}
+          onClick={() => {
+            toggle("deck");
+          }}
+        />
+
+
         <IconBtn
           fill='bordered'
           shape='round'
@@ -145,38 +155,16 @@ const RightSidebarContent = () => {
           fill='bordered'
           shape='round'
           size='md'
-          aria-label={PANEL_TITLES.points}
-          aria-pressed={openPanel === "points"}
-          className={openPanel === "points" ? styles.active : undefined}
+          aria-label={PANEL_TITLES.quiz}
+          aria-pressed={openPanel === "quiz"}
+          className={openPanel === "quiz" ? styles.active : undefined}
           icon={<TrophyIcon />}
           onClick={() => {
-            toggle("points");
+            toggle("quiz");
           }}
         />
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.theme}
-          aria-pressed={openPanel === "theme"}
-          className={openPanel === "theme" ? styles.active : undefined}
-          icon={<PaintBrushIcon />}
-          onClick={() => {
-            toggle("theme");
-          }}
-        />
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.categorize}
-          aria-pressed={openPanel === "categorize"}
-          className={openPanel === "categorize" ? styles.active : undefined}
-          icon={<TagIcon />}
-          onClick={() => {
-            toggle("categorize");
-          }}
-        />
+
+
         <IconBtn
           fill='bordered'
           shape='round'
