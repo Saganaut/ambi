@@ -37,6 +37,7 @@ const McqOptionsSection = () => {
     <section className={styles.section}>
       <h4 className={styles.heading}>Multiple choice</h4>
       <Toggle
+        labelPosition="labelBefore"
         id={`mcq-shuffle-${slide.id}`}
         label='Shuffle option order per player'
         checked={shuffle}

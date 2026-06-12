@@ -14,7 +14,6 @@ import {
   PencilIcon,
   UsersIcon,
   ShareIcon,
-  StarIcon,
   TrophyIcon,
   CheckCircleIcon,
   ChatBubbleLeftRightIcon,
@@ -59,7 +58,6 @@ const RightSidebarContent = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
-  if (slideId == null) throw Error("No slide ID");
 
 
   const setPanel = (next: PanelKey | null) => {
@@ -102,11 +100,16 @@ const RightSidebarContent = () => {
             </div>
             <div className={styles.drawerBody}>
               {openPanel === "deck" && <DeckPanel deckId={deckId} />}
-              {openPanel === "edit" && <EditSlidePanel deckId={deckId} slideId={slideId} />}
-              {openPanel === "answers" && <AnswerPanel deckId={deckId} slideId={slideId} />}
-              {openPanel === "quiz" && <QuizPanel deckId={deckId} slideId={slideId} />}
-              {openPanel === "discussion" && <DeckDiscussionPanel slideId={slideId} deckId={deckId} />}
-              {openPanel === "participants" && <ParticipantsPanel deckId={deckId} slideId={slideId} />}
+
+              {slideId && (
+                <>{openPanel === "edit" && <EditSlidePanel deckId={deckId} slideId={slideId} />}
+                  {openPanel === "answers" && <AnswerPanel deckId={deckId} slideId={slideId} />}
+                  {openPanel === "quiz" && <QuizPanel deckId={deckId} slideId={slideId} />}
+                  {openPanel === "discussion" && <DeckDiscussionPanel slideId={slideId} deckId={deckId} />}
+                  {openPanel === "participants" && <ParticipantsPanel deckId={deckId} slideId={slideId} />}</>
+              )
+
+              }
               {openPanel === "sharing" && <InviteSettingsPanel deckId={deckId} />}
             </div>
           </div>
@@ -129,80 +132,81 @@ const RightSidebarContent = () => {
           }}
         />
 
+        {slideId && <>
+          <IconBtn
+            fill='bordered'
+            shape='round'
+            size='md'
+            aria-label={PANEL_TITLES.edit}
+            aria-pressed={openPanel === "edit"}
+            className={openPanel === "edit" ? styles.active : undefined}
+            icon={<PencilIcon />}
+            onClick={() => {
+              toggle("edit");
+            }}
+          />
+          <IconBtn
+            fill='bordered'
+            shape='round'
+            size='md'
+            aria-label={PANEL_TITLES.answers}
+            aria-pressed={openPanel === "answers"}
+            className={openPanel === "answers" ? styles.active : undefined}
+            icon={<CheckCircleIcon />}
+            onClick={() => {
+              toggle("answers");
+            }}
+          />
+          <IconBtn
+            fill='bordered'
+            shape='round'
+            size='md'
+            aria-label={PANEL_TITLES.quiz}
+            aria-pressed={openPanel === "quiz"}
+            className={openPanel === "quiz" ? styles.active : undefined}
+            icon={<TrophyIcon />}
+            onClick={() => {
+              toggle("quiz");
+            }}
+          />
 
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.edit}
-          aria-pressed={openPanel === "edit"}
-          className={openPanel === "edit" ? styles.active : undefined}
-          icon={<PencilIcon />}
-          onClick={() => {
-            toggle("edit");
-          }}
-        />
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.answers}
-          aria-pressed={openPanel === "answers"}
-          className={openPanel === "answers" ? styles.active : undefined}
-          icon={<CheckCircleIcon />}
-          onClick={() => {
-            toggle("answers");
-          }}
-        />
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.quiz}
-          aria-pressed={openPanel === "quiz"}
-          className={openPanel === "quiz" ? styles.active : undefined}
-          icon={<TrophyIcon />}
-          onClick={() => {
-            toggle("quiz");
-          }}
-        />
-
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.discussion}
-          aria-pressed={openPanel === "discussion"}
-          className={openPanel === "discussion" ? styles.active : undefined}
-          icon={<ChatBubbleLeftRightIcon />}
-          onClick={() => {
-            toggle("discussion");
-          }}
-        />
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.participants}
-          aria-pressed={openPanel === "participants"}
-          className={openPanel === "participants" ? styles.active : undefined}
-          icon={<UsersIcon />}
-          onClick={() => {
-            toggle("participants");
-          }}
-        />
-        <IconBtn
-          fill='bordered'
-          shape='round'
-          size='md'
-          aria-label={PANEL_TITLES.sharing}
-          aria-pressed={openPanel === "sharing"}
-          className={openPanel === "sharing" ? styles.active : undefined}
-          icon={<ShareIcon />}
-          onClick={() => {
-            toggle("sharing");
-          }}
-        />
+          <IconBtn
+            fill='bordered'
+            shape='round'
+            size='md'
+            aria-label={PANEL_TITLES.discussion}
+            aria-pressed={openPanel === "discussion"}
+            className={openPanel === "discussion" ? styles.active : undefined}
+            icon={<ChatBubbleLeftRightIcon />}
+            onClick={() => {
+              toggle("discussion");
+            }}
+          />
+          <IconBtn
+            fill='bordered'
+            shape='round'
+            size='md'
+            aria-label={PANEL_TITLES.participants}
+            aria-pressed={openPanel === "participants"}
+            className={openPanel === "participants" ? styles.active : undefined}
+            icon={<UsersIcon />}
+            onClick={() => {
+              toggle("participants");
+            }}
+          />
+          <IconBtn
+            fill='bordered'
+            shape='round'
+            size='md'
+            aria-label={PANEL_TITLES.sharing}
+            aria-pressed={openPanel === "sharing"}
+            className={openPanel === "sharing" ? styles.active : undefined}
+            icon={<ShareIcon />}
+            onClick={() => {
+              toggle("sharing");
+            }}
+          />
+        </>}
       </div>
     </RightSidebar>
   );

@@ -123,6 +123,15 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
+    hideSlideBackground: build.mutation<
+      HideSlideBackgroundApiResponse,
+      HideSlideBackgroundApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-image/hide`,
+        method: "PUT",
+      }),
+    }),
     getSlideAnswerSettings: build.query<
       GetSlideAnswerSettingsApiResponse,
       GetSlideAnswerSettingsApiArg
@@ -176,6 +185,16 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.setPointSettingsRequest,
       }),
     }),
+    promotePointSettingsToDeck: build.mutation<
+      PromotePointSettingsToDeckApiResponse,
+      PromotePointSettingsToDeckApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/point-settings/promote`,
+        method: "PUT",
+        body: queryArg.setPointSettingsRequest,
+      }),
+    }),
     setDeckInviteSettings: build.mutation<
       SetDeckInviteSettingsApiResponse,
       SetDeckInviteSettingsApiArg
@@ -224,6 +243,16 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
+    promoteBackgroundImageToDeck: build.mutation<
+      PromoteBackgroundImageToDeckApiResponse,
+      PromoteBackgroundImageToDeckApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-image/promote`,
+        method: "PUT",
+        body: queryArg.setImageRequest,
+      }),
+    }),
     setDeckAudienceSettings: build.mutation<
       SetDeckAudienceSettingsApiResponse,
       SetDeckAudienceSettingsApiArg
@@ -240,6 +269,16 @@ const injectedRtkApi = api.injectEndpoints({
     >({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/answer-settings`,
+        method: "PUT",
+        body: queryArg.setAnswerSettingsRequest,
+      }),
+    }),
+    promoteAnswerSettingsToDeck: build.mutation<
+      PromoteAnswerSettingsToDeckApiResponse,
+      PromoteAnswerSettingsToDeckApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/answer-settings/promote`,
         method: "PUT",
         body: queryArg.setAnswerSettingsRequest,
       }),
@@ -390,6 +429,11 @@ export type ClearSlideBackgroundImageApiArg = {
   id: string;
   slideId: string;
 };
+export type HideSlideBackgroundApiResponse = /** status 200 OK */ SlideResponse;
+export type HideSlideBackgroundApiArg = {
+  id: string;
+  slideId: string;
+};
 export type GetSlideAnswerSettingsApiResponse =
   /** status 200 OK */ AnswerSettingsResponse;
 export type GetSlideAnswerSettingsApiArg = {
@@ -425,6 +469,12 @@ export type SetDeckPointSettingsApiArg = {
   id: string;
   setPointSettingsRequest: SetPointSettingsRequest;
 };
+export type PromotePointSettingsToDeckApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type PromotePointSettingsToDeckApiArg = {
+  id: string;
+  setPointSettingsRequest: SetPointSettingsRequest;
+};
 export type SetDeckInviteSettingsApiResponse =
   /** status 200 OK */ DeckResponse;
 export type SetDeckInviteSettingsApiArg = {
@@ -451,6 +501,12 @@ export type ClearDeckBackgroundImageApiResponse =
 export type ClearDeckBackgroundImageApiArg = {
   id: string;
 };
+export type PromoteBackgroundImageToDeckApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type PromoteBackgroundImageToDeckApiArg = {
+  id: string;
+  setImageRequest: SetImageRequest;
+};
 export type SetDeckAudienceSettingsApiResponse =
   /** status 200 OK */ DeckResponse;
 export type SetDeckAudienceSettingsApiArg = {
@@ -460,6 +516,12 @@ export type SetDeckAudienceSettingsApiArg = {
 export type SetDeckAnswerSettingsApiResponse =
   /** status 200 OK */ DeckResponse;
 export type SetDeckAnswerSettingsApiArg = {
+  id: string;
+  setAnswerSettingsRequest: SetAnswerSettingsRequest;
+};
+export type PromoteAnswerSettingsToDeckApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type PromoteAnswerSettingsToDeckApiArg = {
   id: string;
   setAnswerSettingsRequest: SetAnswerSettingsRequest;
 };
@@ -531,7 +593,7 @@ export type AnswerSettings = {
     | "MANUAL"
     | "AFTER_FOLLOWUP"
     | "NEVER";
-  allowMultipleAnswers?: boolean;
+  displayResultsAsPercentage?: boolean;
   shuffleOptions?: boolean;
   anonymizeAnswers?: boolean;
   countdownTime?: number;
@@ -589,6 +651,7 @@ export type DeckResponse = {
   id: string;
   publicId: string;
   name: string;
+  label?: string;
   description?: string;
   coverImage?: AppImage;
   backgroundImage?: AppImage;
@@ -613,6 +676,7 @@ export type DeckResponse = {
 };
 export type UpdateDeckRequest = {
   name?: string;
+  label?: string;
   description?: string;
   themeId?: string;
   language?: string;
@@ -857,6 +921,7 @@ export type SlideResponse = {
   title: string;
   section?: string;
   backgroundImage?: AppImage;
+  hideBackground?: boolean;
   coverImage?: AppImage;
   createdByUserId: string;
   lastEditedByUserId: string;
@@ -951,6 +1016,7 @@ export const {
   useClearSlideCoverImageMutation,
   useSetSlideBackgroundImageMutation,
   useClearSlideBackgroundImageMutation,
+  useHideSlideBackgroundMutation,
   useGetSlideAnswerSettingsQuery,
   useLazyGetSlideAnswerSettingsQuery,
   useSetSlideAnswerSettingsMutation,
@@ -958,13 +1024,16 @@ export const {
   useShareDeckMutation,
   useRevokeShareDeckMutation,
   useSetDeckPointSettingsMutation,
+  usePromotePointSettingsToDeckMutation,
   useSetDeckInviteSettingsMutation,
   useSetDeckCoverImageMutation,
   useClearDeckCoverImageMutation,
   useSetDeckBackgroundImageMutation,
   useClearDeckBackgroundImageMutation,
+  usePromoteBackgroundImageToDeckMutation,
   useSetDeckAudienceSettingsMutation,
   useSetDeckAnswerSettingsMutation,
+  usePromoteAnswerSettingsToDeckMutation,
   useListDeckSlidesQuery,
   useLazyListDeckSlidesQuery,
   useAddSlideMutation,

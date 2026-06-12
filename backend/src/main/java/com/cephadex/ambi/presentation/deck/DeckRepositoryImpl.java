@@ -67,7 +67,20 @@ class DeckRepositoryImpl implements DeckRepositoryCustom {
 
     @Override
     public void promoteBackgroundImageToDeck(String deckId, AppImage image) {
-        promoteFieldToDeck(deckId, "background_image", "slides.$[].background_image", image);
+        // Like promoteFieldToDeck, but the background lives in two per-slide fields:
+        // the image override AND the hide_background suppress flag. Both must be
+        // unset on every slide so each one falls through to the new deck default,
+        // so this can't reuse the single-slidesPath helper.
+        Query query = new Query(Criteria.where("_id").is(deckId));
+        Update update = new Update();
+        if (image == null) {
+            update.unset("background_image");
+        } else {
+            update.set("background_image", image);
+        }
+        update.unset("slides.$[].background_image");
+        update.unset("slides.$[].hide_background");
+        mongoTemplate.updateFirst(query, update, Deck.class);
     }
 
     /**

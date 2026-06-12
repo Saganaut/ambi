@@ -487,6 +487,70 @@ class DeckServiceTest {
         assertThat(result.getCoverImage()).isSameAs(cover);
     }
 
+    // ── Slide background (three-state override) ─────────────────────────────────
+
+    @Test
+    void hideSlideBackgroundSuppressesDeckDefaultAndDropsOwnImage() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        existing.setBackgroundImage(image("https://img/slide-bg.jpg"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.hideSlideBackground("deck-1", "s1", owner);
+
+        assertThat(result.getBackgroundImage()).isNull();
+        assertThat(result.isHideBackground()).isTrue();
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void setSlideBackgroundImageClearsTheSuppressFlag() {
+        // An explicit image always wins, so setting one must lift a prior "hidden".
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        existing.setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        AppImage bg = image("https://img/slide-bg.jpg");
+        Slide result = deckService.setSlideBackgroundImage("deck-1", "s1", bg, owner);
+
+        assertThat(result.getBackgroundImage()).isSameAs(bg);
+        assertThat(result.isHideBackground()).isFalse();
+    }
+
+    @Test
+    void clearSlideBackgroundImageResetsToDeckInherit() {
+        // "Reset to deck" drops both the image and the suppress flag, unlike hide.
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        existing.setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.clearSlideBackgroundImage("deck-1", "s1", owner);
+
+        assertThat(result.getBackgroundImage()).isNull();
+        assertThat(result.isHideBackground()).isFalse();
+    }
+
+    @Test
+    void promoteBackgroundImageClearsEveryOverrideIncludingHideFlags() {
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        deck.findSlide("s1").orElseThrow().setBackgroundImage(image("https://img/s1.jpg"));
+        deck.findSlide("s2").orElseThrow().setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        AppImage promoted = image("https://img/deck.jpg");
+        Deck result = deckService.promoteBackgroundImageToDeck("deck-1", promoted, owner);
+
+        assertThat(result.getBackgroundImage()).isSameAs(promoted);
+        assertThat(result.getSlides())
+                .allSatisfy(s -> {
+                    assertThat(s.getBackgroundImage()).isNull();
+                    assertThat(s.isHideBackground()).isFalse();
+                });
+        verify(deckRepository).promoteBackgroundImageToDeck("deck-1", promoted);
+    }
+
     // ── Tags ───────────────────────────────────────────────────────────────────
 
     @Test

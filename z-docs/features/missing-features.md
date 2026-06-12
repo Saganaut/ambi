@@ -17,6 +17,8 @@
 
 - Fix modal, come up with consistent style for modals and variants.  sm md lg. Make responsive.
 
+- Input components need to be more re-usable and better styles. For example they should have style defaults and variants but be able to be customized by ecah parent, especially layout.  Also need to allow space for info messages.
+
 BUGS
 Allow multiple selection correct answers
 

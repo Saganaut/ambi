@@ -32,18 +32,29 @@ export const resolveDeckCover = (
   return url ?? picsumUrl(seed, COVER_WIDTH, COVER_HEIGHT);
 };
 
-/** Takes the background values of a deck and slide
- * If the slide has a background returns the slide, otherwise returns the deck
- * Optionally takes a size
+/**
+ * Resolves the background URL for a slide through its three-state cascade:
+ *   1. the slide's own `slideBackground` image wins outright;
+ *   2. else, if `hideBackground` is set, the slide is explicitly background-less
+ *      ("" — the deck default is suppressed);
+ *   3. else the slide inherits the deck's `deckBackground`.
+ *
+ * Steps 2 and 3 are why a bare null can't carry the intent alone: null only says
+ * "no own image", and `hideBackground` disambiguates suppress-vs-inherit.
+ * Optionally takes a variant size (defaults to LG).
  **/
 export const resolveSlideBackground = (
   deckBackground?: AppImage,
   slideBackground?: AppImage,
   size?: ImageSizeOptions,
+  hideBackground?: boolean,
 ): string => {
   const imageSize = size ?? "LG";
   if (slideBackground != null) {
     return slideBackground.variants?.[imageSize] ?? "";
+  }
+  if (hideBackground) {
+    return "";
   }
   return deckBackground?.variants?.[imageSize] ?? "";
 };

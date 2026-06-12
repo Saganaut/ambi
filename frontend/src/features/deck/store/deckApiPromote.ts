@@ -131,10 +131,12 @@ const promoteDeckApi = deckApi.injectEndpoints({
             "listDeckSlides",
             { id: arg.id },
             (draft) => {
+              // Every slide falls through to the new deck default: drop both the
+              // per-slide image override and the hideBackground suppress flag,
+              // mirroring the atomic backend unset.
               for (const slide of draft) {
-                if (slide.backgroundImage != null) {
-                  slide.backgroundImage = undefined;
-                }
+                slide.backgroundImage = undefined;
+                slide.hideBackground = false;
               }
             },
           ),

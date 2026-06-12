@@ -415,13 +415,31 @@ public class DeckController {
         return SlideResponse.from(deckService.setSlideBackgroundImage(id, slideId, body.image(), principal));
     }
 
-    /** Clear a slide's background image (EDIT). */
+    /**
+     * Clear a slide's background image so it inherits the deck default (EDIT).
+     * The "reset to deck" action — to instead suppress the deck default entirely,
+     * see {@link #hideSlideBackground}.
+     */
     @DeleteMapping("/{id}/slides/{slideId}/background-image")
     public SlideResponse clearSlideBackgroundImage(
             @PathVariable String id,
             @PathVariable String slideId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return SlideResponse.from(deckService.clearSlideBackgroundImage(id, slideId, principal));
+    }
+
+    /**
+     * Remove a slide's background entirely (EDIT): no own image and the deck
+     * default suppressed, so the slide renders with no background even when the
+     * deck has one. The third background state, distinct from the DELETE above
+     * ("reset to deck"). Idempotent.
+     */
+    @PutMapping("/{id}/slides/{slideId}/background-image/hide")
+    public SlideResponse hideSlideBackground(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return SlideResponse.from(deckService.hideSlideBackground(id, slideId, principal));
     }
 
     // ── Slide point settings ─────────────────────────────────────────────────────

@@ -79,13 +79,33 @@ Resolution helpers live in `Settings.SlideSettings`:
 |---|---|---|
 | `PUT /api/decks/{id}/point-settings/promote` | `SetPointSettingsRequest` | Sets `settings.pointSettings` on the deck; unsets `slides.$[].settings.pointSettings` on all slides |
 | `PUT /api/decks/{id}/answer-settings/promote` | `SetAnswerSettingsRequest` | Sets `settings.answerSettings` on the deck; unsets `slides.$[].settings.answerSettings` on all slides |
-| `PUT /api/decks/{id}/background-image/promote` | `SetImageRequest` | Sets `background_image` on the deck; unsets `slides.$[].background_image` on all slides |
+| `PUT /api/decks/{id}/background-image/promote` | `SetImageRequest` | Sets `background_image` on the deck; unsets **both** `slides.$[].background_image` and `slides.$[].hide_background` on all slides |
 
 All return a `DeckResponse` with the updated deck. The frontend must separately invalidate its per-slide cache after calling these endpoints.
 
-The shared persistence logic lives in `DeckRepositoryImpl.promoteFieldToDeck(deckId, deckPath, slidesPath, value)` (private), which issues a single `$set`+`$unset` update without touching the deck's `@Version`. `promoteSettingsToDeck` and `promoteBackgroundImageToDeck` both delegate to it.
+The shared persistence logic lives in `DeckRepositoryImpl.promoteFieldToDeck(deckId, deckPath, slidesPath, value)` (private), which issues a single `$set`+`$unset` update without touching the deck's `@Version`; `promoteSettingsToDeck` delegates to it. `promoteBackgroundImageToDeck` issues the same kind of update directly rather than delegating, because the background spans two per-slide fields (the image override **and** the `hide_background` suppress flag — see below) and both must be unset so every slide falls through to the new deck default.
 
 The plain `PUT` endpoints (`/point-settings`, `/answer-settings`, `/background-image`) only update the deck value, leaving slide overrides intact — use those for editing the deck default independently of any slide.
+
+### Slide background — three states
+
+A deck has one default `background_image`; a slide can override it. Because `null` alone can't distinguish "inherit the deck" from "show nothing", a slide carries a separate `hide_background` boolean alongside its optional `background_image`. The pair resolves in three states (see `resolveSlideBackground` on the frontend and `Slide` on the backend):
+
+| Slide state | `background_image` | `hide_background` | Renders |
+|---|---|---|---|
+| **Own image** | set | (ignored) | the slide's image |
+| **Inherit** (default) | null | `false` | the deck's `background_image` |
+| **Hidden** | null | `true` | nothing — the deck default is suppressed |
+
+An explicit image always wins, so setting one normalizes `hide_background` to `false`. The three slide-level endpoints map to the three states:
+
+| Endpoint | Effect |
+|---|---|
+| `PUT /api/decks/{id}/slides/{slideId}/background-image` | Own image (clears the suppress flag) |
+| `DELETE /api/decks/{id}/slides/{slideId}/background-image` | **Reset to deck** — drop the image and the flag, so the slide inherits |
+| `PUT /api/decks/{id}/slides/{slideId}/background-image/hide` | **Remove background** — no image, deck default suppressed |
+
+In the inspector (`EditSlidePanel`), the image picker covers "own image" vs "reset to deck", and a "Hide background on this slide" toggle (shown only when the slide has no own image and the deck *has* a background) switches between Inherit and Hidden.
 
 ## Key files
 

@@ -33,6 +33,9 @@ export const deckValidation = {
     "description": {
       "maxLength": 2000
     },
+    "label": {
+      "maxLength": 200
+    },
     "language": {
       "maxLength": 16
     },

@@ -305,6 +305,17 @@ class DeckControllerTest {
         verify(deckService).clearSlideBackgroundImage(eq("deck-1"), eq("s1"), any());
     }
 
+    @Test
+    void hideSlideBackgroundDelegates() throws Exception {
+        when(deckService.hideSlideBackground(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/background-image/hide"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("s1"));
+
+        verify(deckService).hideSlideBackground(eq("deck-1"), eq("s1"), any());
+    }
+
     // ── Slide point settings ──────────────────────────────────────────────────
 
     @Test

@@ -27,7 +27,7 @@ import React from "react";
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 import { resolveSlideBackground } from "@/shared/utils/deckImages";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { ImagePickerSmall } from "../RightSidebar/ImagePicker";
+import { ImagePickerSmall } from "../RightSidebar/shared/ImagePicker";
 
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -50,7 +50,7 @@ const SlideDisplay = () => {
 
   const slide = slideId ? getSlide(slideId) : slides[0];
   const navigate = routeApi.useNavigate();
-  const backgroundUrl = resolveSlideBackground(deck?.backgroundImage, slide?.backgroundImage)
+  const backgroundUrl = resolveSlideBackground(deck?.backgroundImage, slide?.backgroundImage, undefined, slide?.hideBackground)
   // useEffect justification: If there's no slideId in the URL, but there are slides in the deck
   // Load that slide id so it can be picked up by the rest of the component.
   React.useEffect(() => {

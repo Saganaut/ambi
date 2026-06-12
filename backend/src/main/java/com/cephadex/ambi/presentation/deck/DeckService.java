@@ -375,26 +375,59 @@ public class DeckService {
         return applySlideMutation(deckId, slideId, principal, slide -> slide.setCoverImage(null));
     }
 
-    /** Set a slide's background image (EDIT). */
+    /**
+     * Set a slide's background image (EDIT). An explicit image always wins over the
+     * deck default, so the {@code hideBackground} suppress flag is cleared too — the
+     * two can never be meaningfully set at once.
+     */
     public Slide setSlideBackgroundImage(String deckId, String slideId, AppImage image, AmbiPrincipal principal) {
-        return applySlideMutation(deckId, slideId, principal, slide -> slide.setBackgroundImage(image));
+        return applySlideMutation(deckId, slideId, principal, slide -> {
+            slide.setBackgroundImage(image);
+            slide.setHideBackground(false);
+        });
     }
 
-    /** Clear a slide's background image (EDIT). */
+    /**
+     * Clear a slide's background image so it falls back to the deck default (EDIT).
+     * This is the "reset to deck" action: it drops the slide's own image <em>and</em>
+     * the suppress flag, leaving the slide to inherit. To instead remove the
+     * background entirely (ignoring the deck default), see {@link #hideSlideBackground}.
+     */
     public Slide clearSlideBackgroundImage(String deckId, String slideId, AmbiPrincipal principal) {
-        return applySlideMutation(deckId, slideId, principal, slide -> slide.setBackgroundImage(null));
+        return applySlideMutation(deckId, slideId, principal, slide -> {
+            slide.setBackgroundImage(null);
+            slide.setHideBackground(false);
+        });
+    }
+
+    /**
+     * Remove a slide's background entirely (EDIT): no image of its own <em>and</em>
+     * the deck default suppressed, so the slide renders with no background even when
+     * the deck has one. This is the third background state, distinct from
+     * {@link #clearSlideBackgroundImage} ("reset to deck"): it sets the suppress flag
+     * rather than clearing it.
+     */
+    public Slide hideSlideBackground(String deckId, String slideId, AmbiPrincipal principal) {
+        return applySlideMutation(deckId, slideId, principal, slide -> {
+            slide.setBackgroundImage(null);
+            slide.setHideBackground(true);
+        });
     }
 
     /**
      * Promote a background image to the deck default and clear every slide's own
-     * background image in a single atomic update (EDIT). Unlike the plain
+     * background override in a single atomic update (EDIT). Unlike the plain
      * {@link #setDeckBackgroundImage} which only updates the deck, this also drops
-     * all per-slide overrides so every slide falls through to the new deck image.
+     * all per-slide overrides — both the image and the {@code hideBackground}
+     * suppress flag — so every slide falls through to the new deck image.
      */
     public Deck promoteBackgroundImageToDeck(String id, AppImage image, AmbiPrincipal principal) {
         Deck deck = getEditable(id, principal);
         deck.setBackgroundImage(image);
-        deck.getSlides().forEach(s -> s.setBackgroundImage(null));
+        deck.getSlides().forEach(s -> {
+            s.setBackgroundImage(null);
+            s.setHideBackground(false);
+        });
         deckRepository.promoteBackgroundImageToDeck(id, image);
         return deck;
     }

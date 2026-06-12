@@ -36,10 +36,23 @@ public class Slide {
     @Field("section")
     private String section;
 
-    /** This should be deleted if a user applies a slides background image to a deck
-   as in that case the background image will be stored there. **/
+    // Per-slide background override. Resolves in three states against the deck's
+    // default (see Deck#backgroundImage): a non-null image wins outright; null +
+    // hideBackground=false inherits the deck background; null + hideBackground=true
+    // suppresses it entirely (no background, even when the deck has one). Cleared
+    // to null on every slide when a background is promoted to the deck, since the
+    // deck then carries the value — see DeckService#promoteBackgroundImageToDeck.
     @Field("background_image")
     private AppImage backgroundImage;
+
+    // The third background state: when this slide has no backgroundImage of its
+    // own, true means "render no background and ignore the deck default" while
+    // false (the default) means "inherit the deck default". Without this flag a
+    // null backgroundImage could only mean "inherit", leaving no way to opt a
+    // single slide out of a deck-wide background. Meaningless (and normalized to
+    // false) whenever backgroundImage is set — an explicit image always wins.
+    @Field("hide_background")
+    private boolean hideBackground;
 
     @Field("cover_image")
     private AppImage coverImage;

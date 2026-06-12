@@ -3,48 +3,18 @@
 // section, then the image section, session pacing, and provenance footer.
 // Per-kind sections each own their own useSlideEditor instance.
 import { useSlide } from "@deck/hooks/useSlide";
-import type { SlideType } from "@deck/store/deckEnums.gen";
-import { SlideOptionsSection } from "../EditSlideSections/SlideOptionsSection";
 import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSection";
-import { FollowUpOptionsSection } from "../EditSlideSections/FollowUpOptionsSection";
-import { McqOptionsSection } from "../EditSlideSections/McqOptionsSection";
-import { TextOptionsSection } from "../EditSlideSections/TextOptionsSection";
-import { NumberOptionsSection } from "../EditSlideSections/NumberOptionsSection";
-import { RankingOptionsSection } from "../EditSlideSections/RankingOptionsSection";
-import { QAndAOptionsSection } from "../EditSlideSections/QAndAOptionsSection";
-import { SessionPacingSection } from "../EditSlideSections/SessionPacingSection";
-import { ProvenanceFooter } from "../EditSlideSections/ProvenanceFooter";
 import styles from "./EditSlidePanel.module.css";
-import { ImagePicker } from "../ImagePicker";
+import { ImagePicker } from "../shared/ImagePicker";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
+import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApiPromote";
 import settingsPanel from "../SettingsForms/SettingsPanel.module.css";
 import { useDeck } from "@/features/deck/hooks/useDeck";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 
-const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
-  switch (contentType) {
-    case "MCQ":
-      return <McqOptionsSection />;
-    case "TEXT":
-      return <TextOptionsSection />;
-    case "NUMBER":
-      return <NumberOptionsSection />;
-    case "RANKING":
-      return <RankingOptionsSection />;
-    case "Q_AND_A":
-      return <QAndAOptionsSection />;
-    case "FOLLOW_UP":
-      return <FollowUpOptionsSection />;
-    case "TITLE":
-    case "MEDIA":
-      return <SlideOptionsSection />;
-    default:
-      return null;
-  }
-};
 
 
 
@@ -52,19 +22,20 @@ const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
 const useThemePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
 
-  const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
+  const { getSlide, setSlideImage, clearSlideImage, hideSlideBackground } =
+    useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
-  return { deckId, slide, slideId, setSlideImage, clearSlideImage };
+  return { deckId, slide, slideId, setSlideImage, clearSlideImage, hideSlideBackground };
 };
 
 
 const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
-  const { slide, setSlideImage, clearSlideImage } = useThemePanel({ deckId, slideId });
+  const { slide, setSlideImage, clearSlideImage, hideSlideBackground } =
+    useThemePanel({ deckId, slideId });
   const { deck } = useDeck(deckId);
   const openPicker = useGalleryPicker();
   const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
 
-  console.log("deck", deck)
   if (!slide)
     return (
       <div className={styles.section}>
@@ -73,6 +44,11 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
     );
 
   const id = slideId ?? slide.id;
+  // Three-state background: an own image wins; else `hideBackground` toggles
+  // between "no background at all" and inheriting the deck default.
+  const hasOwnImage = slide.backgroundImage != null;
+  const isHidden = slide.hideBackground === true;
+  const deckHasBackground = deck?.backgroundImage != null;
 
   return (
     <section className={styles.section}>
@@ -80,8 +56,12 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
         label=''
         image={slide.backgroundImage}
         seed={`${id}-background`}
-        placeholderText={"Choose background"}
-        placeholderBackgroundImageUrl={deck?.backgroundImage?.variants?.SM}
+        placeholderText={isHidden ? "No background" : "Choose background"}
+        // Preview the inherited deck background in the empty tile — but not when
+        // the slide explicitly suppresses it, since then nothing is inherited.
+        placeholderBackgroundImageUrl={
+          isHidden ? undefined : deck?.backgroundImage?.variants?.SM
+        }
         onPick={() => {
           openPicker(
             (image) => {
@@ -98,6 +78,23 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
           clearSlideImage(id, "background");
         }}
       />
+      {/* With no own image, choose between suppressing the deck background and
+          inheriting it. Only meaningful when the deck actually has a background. */}
+      {!hasOwnImage && deckHasBackground && (
+        <Toggle
+          labelPosition={"labelBefore"}
+          label='Hide background'
+          checked={isHidden}
+
+          onChange={() => {
+            if (isHidden) {
+              clearSlideImage(id, "background");
+            } else {
+              hideSlideBackground(id);
+            }
+          }}
+        />
+      )}
       {slide.backgroundImage != null && (
         <div className={settingsPanel.footer}>
           <Tooltip
@@ -139,16 +136,14 @@ const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
   return (
     <div className={styles.panel}>
       <PerSlideStyle deckId={deckId} slideId={slideId} />
-      <PerKindSection contentType={slide.content.contentType} />
       <FollowUpAttachSection slide={slide} />
-      <SessionPacingSection deckId={deckId} />
-      <ProvenanceFooter
+      {/* <ProvenanceFooter
         createdByUserId={slide.createdByUserId}
         lastEditedByUserId={slide.lastEditedByUserId}
         createdAt={undefined}
         updatedAt={undefined}
         version={slide.version}
-      />
+      /> */}
 
     </div>
   );

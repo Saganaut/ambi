@@ -15,7 +15,7 @@ const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 interface FollowUpAttachSectionProps {
   slide: SlideResponse;
 }
-
+//TODO: this can only be enabled when the slide is a scorable one
 const FollowUpAttachSection = ({ slide }: FollowUpAttachSectionProps) => {
   const { deckId } = routeApi.useParams();
   const navigate = routeApi.useNavigate();
@@ -26,7 +26,7 @@ const FollowUpAttachSection = ({ slide }: FollowUpAttachSectionProps) => {
   if (attached) {
     return (
       <section className={styles.section}>
-        <h4 className={styles.heading}>Follow-up</h4>
+        {/* <h4 className={styles.heading}>Follow-up</h4> */}
         <p className={styles.empty}>
           A follow-up slide is attached — it runs right after this one and
           builds on its answers.

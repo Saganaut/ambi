@@ -3,9 +3,9 @@
 
 .toggleContainer {
   display: flex;
-  width: fit-content;
   align-items: center;
   position: relative;
+  width: 100%;
 
   .message {
     position: absolute;
@@ -37,6 +37,8 @@
 
 .toggleContainer.labelBefore .toggleWrap {
   flex-direction: row-reverse;
+  width: 100%;
+  justify-content: space-between;
 }
 
 .toggleTrack {
@@ -83,4 +85,5 @@
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   cursor: pointer;
+  text-align: start;
 }

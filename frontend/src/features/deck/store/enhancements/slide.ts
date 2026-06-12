@@ -28,6 +28,7 @@ import {
   type ClearSlideBackgroundImageApiArg,
   type ClearSlideCoverImageApiArg,
   type ClearSlidePointSettingsApiArg,
+  type HideSlideBackgroundApiArg,
   type MoveSlideApiArg,
   type PointSettingsResponse,
   type RemoveSlideApiArg,
@@ -217,6 +218,9 @@ deckApi.enhanceEndpoints({
         upsertSlideById(draft, data);
       },
     ),
+    // The slide background is a three-state override (own image → hidden → inherit
+    // deck), so these patches keep `backgroundImage` and the `hideBackground` flag
+    // in lockstep — an explicit image always wins, so it clears the flag.
     setSlideBackgroundImage: reconcilingSlideMutation<
       SetSlideBackgroundImageApiArg,
       SlideResponse
@@ -224,12 +228,15 @@ deckApi.enhanceEndpoints({
       (draft, arg) => {
         withSlide(draft, arg.slideId, (slide) => {
           slide.backgroundImage = arg.setImageRequest.image;
+          slide.hideBackground = false;
         });
       },
       (draft, data) => {
         upsertSlideById(draft, data);
       },
     ),
+    // "Reset to deck": drop the own image AND the suppress flag so the slide
+    // inherits the deck default again.
     clearSlideBackgroundImage: reconcilingSlideMutation<
       ClearSlideBackgroundImageApiArg,
       SlideResponse
@@ -237,6 +244,22 @@ deckApi.enhanceEndpoints({
       (draft, arg) => {
         withSlide(draft, arg.slideId, (slide) => {
           slide.backgroundImage = undefined;
+          slide.hideBackground = false;
+        });
+      },
+      (draft, data) => {
+        upsertSlideById(draft, data);
+      },
+    ),
+    // "Remove background": no own image, deck default suppressed — the third state.
+    hideSlideBackground: reconcilingSlideMutation<
+      HideSlideBackgroundApiArg,
+      SlideResponse
+    >(
+      (draft, arg) => {
+        withSlide(draft, arg.slideId, (slide) => {
+          slide.backgroundImage = undefined;
+          slide.hideBackground = true;
         });
       },
       (draft, data) => {

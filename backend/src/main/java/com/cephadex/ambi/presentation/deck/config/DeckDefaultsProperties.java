@@ -65,7 +65,7 @@ public class DeckDefaultsProperties {
         private boolean shuffleOptions = true;
         private boolean anonymizeAnswers = false;
         /** Countdown seconds; 0 = no countdown. */
-        private int countdownTime = 30;
+        private int countdownTime = 0;
         private boolean allowAnonymous = true;
         /** MCQ max choices; 1 = single-select, 0 = unlimited. */
         private int maxSelections = 1;

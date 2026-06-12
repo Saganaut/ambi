@@ -71,7 +71,8 @@
   }
 }
 
-.imageClear {
+button.imageClear {
+  width: auto;
   position: absolute;
   top: var(--space-1);
   right: var(--space-1);
@@ -83,6 +84,6 @@
   position: absolute;
   top: 30px;
   right: 50px;
-  max-height: 200px;
+  max-height: 020px;
   max-width: 200px;
 }

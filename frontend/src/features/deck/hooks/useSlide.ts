@@ -4,7 +4,7 @@
 // Query directly. The handlers are thin: they just fire the mutation. Cache
 // behaviour (optimistic patch + tag-driven reconciling refetch) lives in
 // `store/enhancements/slide.ts` so it applies no matter who calls the mutation.
-import { useListDeckSlidesQuery, useAddSlideMutation, useAddFollowUpSlideMutation, useUpdateSlideMutation, useRemoveSlideMutation, useMoveSlideMutation, useSetSlideCoverImageMutation, useClearSlideCoverImageMutation, useSetSlideBackgroundImageMutation, useClearSlideBackgroundImageMutation, type AppImage, type SlideRequest, type SlideResponse } from "@deck/store/deckApi.gen";
+import { useListDeckSlidesQuery, useAddSlideMutation, useAddFollowUpSlideMutation, useUpdateSlideMutation, useRemoveSlideMutation, useMoveSlideMutation, useSetSlideCoverImageMutation, useClearSlideCoverImageMutation, useSetSlideBackgroundImageMutation, useClearSlideBackgroundImageMutation, useHideSlideBackgroundMutation, type AppImage, type SlideRequest, type SlideResponse } from "@deck/store/deckApi.gen";
 import { buildDefaultContent } from "../utils/slideContent";
 import { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
 
@@ -56,8 +56,20 @@ interface UseSlideResult {
    * round-trips the whole slide's content.
    */
   setSlideImage: (slideId: string, slot: ImageSlot, image: AppImage) => void;
-  /** Clear a slide's cover or background image. */
+  /**
+   * Clear a slide's cover or background image. For a background this is the
+   * "reset to deck" action — it drops the slide's own image and lets it inherit
+   * the deck default again. To instead remove the background entirely (ignoring
+   * the deck default), use {@link hideSlideBackground}.
+   */
   clearSlideImage: (slideId: string, slot: ImageSlot) => void;
+  /**
+   * Remove a slide's background entirely: no own image and the deck default
+   * suppressed, so the slide renders with no background even when the deck has
+   * one. The third background state, distinct from {@link clearSlideImage}
+   * ("reset to deck"). Background-only — covers have no such state.
+   */
+  hideSlideBackground: (slideId: string) => void;
   /**
    * Move a slide to a new zero-based position in the deck's order. The backend
    * computes the new LexoRank `sortOrder` key from the index; the reconciling
@@ -79,6 +91,7 @@ const useSlide = (deckId: string): UseSlideResult => {
   const [clearCoverImageMutation] = useClearSlideCoverImageMutation();
   const [setBackgroundImageMutation] = useSetSlideBackgroundImageMutation();
   const [clearBackgroundImageMutation] = useClearSlideBackgroundImageMutation();
+  const [hideBackgroundMutation] = useHideSlideBackgroundMutation();
 
   const getSlide = (slideId: string) =>
     slides.find((slide) => slide.id === slideId);
@@ -130,6 +143,10 @@ const useSlide = (deckId: string): UseSlideResult => {
     void mutate({ id: deckId, slideId });
   };
 
+  const hideSlideBackground = (slideId: string) => {
+    void hideBackgroundMutation({ id: deckId, slideId });
+  };
+
   const reorder = (slideId: string, toIndex: number) => {
     void moveSlideMutation({
       id: deckId,
@@ -149,6 +166,7 @@ const useSlide = (deckId: string): UseSlideResult => {
     removeSlide,
     setSlideImage,
     clearSlideImage,
+    hideSlideBackground,
     reorder,
   };
 };
