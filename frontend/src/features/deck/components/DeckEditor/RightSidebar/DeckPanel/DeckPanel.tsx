@@ -8,7 +8,6 @@
 // bounds (`deckValidation.SetTagsRequest.tags`), so the backend stays the single
 // source of truth for the 50-tag / 50-char-per-tag limits.
 import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useGetDeckQuery, useSetDeckTagsMutation } from "@deck/store/deckApi.gen";
 import { deckValidation } from "@deck/store/deckValidationConstants";
@@ -27,13 +26,10 @@ import { useModal } from "@/shared/hooks/useModal";
 import { ThemeColorSwatches } from "@/shared/components/Forms/Input/ColorPicker/ThemeColorSwatches";
 import { Reviews } from "./Reviews";
 
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
-
 const TAGS_FACETS = deckValidation.SetTagsRequest.tags;
 const ITEM_FACETS = TAGS_FACETS.items;
 
-const useDeckTags = () => {
-  const { deckId } = routeApi.useParams();
+const useDeckTags = (deckId: string) => {
   const { data: deck } = useGetDeckQuery({ id: deckId });
   const [setDeckTags, { isLoading: isSaving }] = useSetDeckTagsMutation();
   const tags = deck?.tags ?? [];
@@ -106,7 +102,7 @@ const DeckImages = ({ deckId }: { deckId: string }) => {
     coverImage,
     setCoverImage,
     clearCoverImage,
-  } = useDeckImage();
+  } = useDeckImage(deckId);
   const openPicker = useGalleryPicker();
 
   return (
@@ -133,7 +129,7 @@ const DeckImages = ({ deckId }: { deckId: string }) => {
 
 
 const DeckPanel = ({ deckId }: { deckId: string }) => {
-  const { isLoaded, tags, commit, isSaving } = useDeckTags();
+  const { isLoaded, tags, commit, isSaving } = useDeckTags(deckId);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
 

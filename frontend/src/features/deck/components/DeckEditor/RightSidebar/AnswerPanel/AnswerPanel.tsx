@@ -42,7 +42,7 @@ const AnswerPanelBody = ({
 }: deckAndSlideIdProps) => {
   const { answerSettings, updateAnswerSettings, clearAnswerSettings, flush, cancelPendingWrites } =
     useSlideSettingsEditor(deckId, slideId);
-  const { isLoaded, settings: deckSettings } = useDeckSettings();
+  const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
   const [promoteAnswerSettings] = usePromoteAnswerSettingsToDeckMutation();
 
   const deckDefault = deckSettings?.answerSettings;

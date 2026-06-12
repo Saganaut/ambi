@@ -53,7 +53,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
   deckId,
   currentQuestionId,
 }) => {
-  const { removeSlide, addFollowUp } = useDeckEditor(deckId);
+  const { removeSlide, addFollowUp } = useDeckEditor(deckId, currentQuestionId);
   const confirm = useConfirm();
 
   const navigate = useNavigate({ from: "/decks/$deckId/edit" });

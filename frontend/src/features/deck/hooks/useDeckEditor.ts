@@ -109,8 +109,7 @@ const scrollThumbnailIntoView = (slideId: string) => {
   });
 };
 
-const useDeckEditor = (deckId: string): UseDeckEditorResult => {
-  const { slideId } = routeApi.useSearch();
+const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult => {
   const navigate = routeApi.useNavigate();
 
   const { deck, isLoading, error, rename } = useDeck(deckId);

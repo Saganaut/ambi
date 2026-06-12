@@ -64,7 +64,7 @@ const LocationChecklist = ({
 );
 
 const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
-  const { settings, schedule } = useDeckSettings();
+  const { settings, schedule } = useDeckSettings(deckId);
 
   const invite = settings?.inviteSettings;
 

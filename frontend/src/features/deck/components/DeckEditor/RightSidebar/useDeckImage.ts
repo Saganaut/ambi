@@ -12,10 +12,7 @@
  * shape — the deck-editor right-sidebar panels call this instead of folding
  * images into `updateDeck`.
  */
-import { getRouteApi } from "@tanstack/react-router";
 import { useGetDeckQuery, useSetDeckCoverImageMutation, useClearDeckCoverImageMutation, useSetDeckBackgroundImageMutation, useClearDeckBackgroundImageMutation, type AppImage } from "@deck/store/deckApi.gen";
-
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 interface UseDeckImageResult {
   /** The deck's current cover image from the getDeck cache, if any. */
@@ -32,8 +29,7 @@ interface UseDeckImageResult {
   clearBackgroundImage: () => void;
 }
 
-const useDeckImage = (): UseDeckImageResult => {
-  const { deckId } = routeApi.useParams();
+const useDeckImage = (deckId: string): UseDeckImageResult => {
   const { data: deck } = useGetDeckQuery({ id: deckId });
   const [setCover] = useSetDeckCoverImageMutation();
   const [clearCover] = useClearDeckCoverImageMutation();

@@ -27,8 +27,8 @@ interface PacingForm {
 }
 
 
-const SessionPacingSection = () => {
-  const { settings, commit, schedule, flush } = useDeckSettings();
+const SessionPacingSection = ({ deckId }: { deckId: string }) => {
+  const { settings, commit, schedule, flush } = useDeckSettings(deckId);
 
   const answer = settings?.answerSettings;
 

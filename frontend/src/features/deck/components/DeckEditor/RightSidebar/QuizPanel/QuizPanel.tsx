@@ -34,7 +34,7 @@ const QuizPanelBody = ({
 }: deckAndSlideIdProps) => {
   const { pointSettings, updatePointSettings, clearPointSettings, flush, cancelPendingWrites } =
     useSlideSettingsEditor(deckId, slideId);
-  const { isLoaded, settings: deckSettings } = useDeckSettings();
+  const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
   const [promotePointSettings] = usePromotePointSettingsToDeckMutation();
 
   const deckDefault = deckSettings?.pointSettings;

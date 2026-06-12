@@ -39,7 +39,7 @@ const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 const SlideDisplay = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
-  const { slides } = useDeckEditor(deckId);
+  const { slides } = useDeckEditor(deckId, slideId);
 
   const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
   // Per-deck theme, scoped to just the slide canvas — the surrounding editor

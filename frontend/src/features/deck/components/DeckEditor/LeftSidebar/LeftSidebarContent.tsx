@@ -28,7 +28,7 @@ const LeftSidebarContent = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
-  const { addSlide, handleDragEnd, slides } = useDeckEditor(deckId);
+  const { addSlide, handleDragEnd, slides } = useDeckEditor(deckId, slideId);
   const { isFullScreen } = useFullScreen();
   const { openModal, closeModal } = useModal();
 

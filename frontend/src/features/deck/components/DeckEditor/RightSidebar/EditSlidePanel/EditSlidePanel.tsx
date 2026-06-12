@@ -2,7 +2,6 @@
 // slide from the slide cache (via useSlide), mounts the per-kind options
 // section, then the image section, session pacing, and provenance footer.
 // Per-kind sections each own their own useSlideEditor instance.
-import { getRouteApi } from "@tanstack/react-router";
 import { useSlide } from "@deck/hooks/useSlide";
 import type { SlideType } from "@deck/store/deckEnums.gen";
 import { SlideOptionsSection } from "../EditSlideSections/SlideOptionsSection";
@@ -24,8 +23,6 @@ import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApiProm
 import settingsPanel from "../SettingsForms/SettingsPanel.module.css";
 import { useDeck } from "@/features/deck/hooks/useDeck";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
-
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
   switch (contentType) {
@@ -144,7 +141,7 @@ const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
       <PerSlideStyle deckId={deckId} slideId={slideId} />
       <PerKindSection contentType={slide.content.contentType} />
       <FollowUpAttachSection slide={slide} />
-      <SessionPacingSection />
+      <SessionPacingSection deckId={deckId} />
       <ProvenanceFooter
         createdByUserId={slide.createdByUserId}
         lastEditedByUserId={slide.lastEditedByUserId}

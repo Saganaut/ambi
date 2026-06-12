@@ -16,11 +16,8 @@
  * always carries a complete object (the backend records are primitives that
  * reject nulls).
  */
-import { getRouteApi } from "@tanstack/react-router";
 import { type DeckSettings, useGetDeckQuery, useSetDeckPointSettingsMutation, useSetDeckAnswerSettingsMutation, useSetDeckAudienceSettingsMutation, useSetDeckInviteSettingsMutation } from "@deck/store/deckApi.gen";
 import { useDebouncedCommit } from "@hooks/useDebouncedCommit";
-
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 type SettingsPatch = Partial<DeckSettings>;
 
@@ -40,8 +37,7 @@ interface UseDeckSettingsResult {
   flush: () => void;
 }
 
-const useDeckSettings = (delay = 500): UseDeckSettingsResult => {
-  const { deckId } = routeApi.useParams();
+const useDeckSettings = (deckId: string, delay = 500): UseDeckSettingsResult => {
   const { data: deck } = useGetDeckQuery({ id: deckId });
   const [setPointSettings] = useSetDeckPointSettingsMutation();
   const [setAnswerSettings] = useSetDeckAnswerSettingsMutation();

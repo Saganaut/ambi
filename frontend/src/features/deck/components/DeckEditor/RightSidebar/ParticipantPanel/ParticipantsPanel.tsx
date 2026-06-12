@@ -4,14 +4,11 @@
 //   2. Per-slide reactions override — TODO: wire once slide-level overrides
 //      are supported in the new slide model.
 import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useDeckSettings } from "../useDeckSettings";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
-
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const DEFAULTS = {
   maxParticipants: 8,
@@ -33,10 +30,10 @@ interface ParticipantForm {
   reactionsEnabled: boolean;
 }
 
-const useParticipantsPanel = () => useDeckSettings();
+const useParticipantsPanel = (deckId: string) => useDeckSettings(deckId);
 
 const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
-  const { settings, commit, schedule, flush } = useParticipantsPanel();
+  const { settings, commit, schedule, flush } = useParticipantsPanel(deckId);
 
   const audience = settings?.audienceSettings;
 
