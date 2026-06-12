@@ -33,7 +33,6 @@ import { isSortable } from "@dnd-kit/react/sortable";
 import { getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { useLiveSession } from "@/features/liveSession/hooks/useLiveSession";
 import type { DeckResponse, SlideResponse } from "@deck/store/deckApi.gen";
 import type { FollowUpMode } from "@deck/store/deckEnums.gen";
 import { followUpModesFor, groupIntoUnits } from "../utils/followUp";
@@ -88,7 +87,7 @@ interface UseDeckEditorResult {
   /** See TODO header — derived from `canEdit`, missing the system-deck rule. */
   canViewAnalytics: boolean;
   /** Live-session "Start". Stubbed — see TODO header. */
-  quickStart: (deckId: string) => void;
+  quickStart: () => void;
   /** Always false until the live-session flow exists. */
   isStarting: boolean;
   /** Always null until the live-session flow exists. */
@@ -112,10 +111,8 @@ const scrollThumbnailIntoView = (slideId: string) => {
 const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult => {
   const navigate = routeApi.useNavigate();
 
-  const { deck, isLoading, error, rename } = useDeck(deckId);
+  const { deck, isLoading, error, rename, handlePresent } = useDeck(deckId);
   const { slides, addSlide: appendSlide, addFollowUp: attachFollowUp, removeSlide, reorder } = useSlide(deckId);
-
-  const { present } = useLiveSession();
 
   // ── Title draft ──────────────────────────────────────────────────────────
   // Mirror the server name into local state, re-syncing whenever the server
@@ -201,9 +198,7 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   const canEdit = deck?.permissions.canEdit ?? false;
   const canViewAnalytics = canEdit;
 
-  const quickStart = (id: string) => {
-    present(id);
-  };
+  const quickStart = () => handlePresent();
 
   const handleShareClick = () => {
     console.log("share not implemented yet");

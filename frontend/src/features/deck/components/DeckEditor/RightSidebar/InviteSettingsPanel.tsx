@@ -16,7 +16,7 @@ import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
 import type { InviteSettings } from "@deck/store/deckApi.gen";
 import { DisplayLocation } from "@deck/store/deckEnums.gen";
-import { useDeckSettings } from "./useDeckSettings";
+import { useDeckSettings } from "../../../hooks/useDeckSettings";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 

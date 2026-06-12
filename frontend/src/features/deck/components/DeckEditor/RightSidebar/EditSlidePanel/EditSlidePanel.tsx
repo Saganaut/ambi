@@ -10,8 +10,8 @@ import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
-import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApiPromote";
-import settingsPanel from "../SettingsForms/SettingsPanel.module.css";
+import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApi.gen";
+import settingsPanel from "../shared/SettingsPanel.module.css";
 import { useDeck } from "@/features/deck/hooks/useDeck";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 

@@ -172,4 +172,4 @@ const useSlide = (deckId: string): UseSlideResult => {
 };
 
 export { useSlide };
-export type { UseSlideResult, AddSlideOptions, ImageSlot, SlideType };
+export type { UseSlideResult, AddSlideOptions, ImageSlot };

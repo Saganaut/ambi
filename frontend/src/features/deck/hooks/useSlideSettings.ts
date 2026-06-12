@@ -22,7 +22,7 @@ import { useSetSlidePointSettingsMutation, useSetSlideAnswerSettingsMutation, us
 import { useDebouncedCommit } from "@/shared/hooks/useDebouncedCommit";
 import { useSlide } from "./useSlide";
 
-interface UseSlideSettingsEditorResult {
+interface UseSlideSettingsResult {
   /** The active slide's point settings from the cache (undefined until set). */
   pointSettings: PointSettings | undefined;
   /** The active slide's answer settings from the cache (undefined until set). */
@@ -59,10 +59,10 @@ interface UseSlideSettingsEditorResult {
   cancelPendingWrites: () => void;
 }
 
-const useSlideSettingsEditor = (
+const useSlideSettings = (
   deckId: string,
   slideId: string,
-): UseSlideSettingsEditorResult => {
+): UseSlideSettingsResult => {
   const { getSlide } = useSlide(deckId);
   const slide = getSlide(slideId);
   const settings = slide?.settings;
@@ -170,5 +170,5 @@ const useSlideSettingsEditor = (
   };
 };
 
-export { useSlideSettingsEditor };
-export type { UseSlideSettingsEditorResult };
+export { useSlideSettings };
+export type { UseSlideSettingsResult };

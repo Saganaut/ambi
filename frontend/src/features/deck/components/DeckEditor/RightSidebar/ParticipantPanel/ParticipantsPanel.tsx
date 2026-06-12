@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useDeckSettings } from "../useDeckSettings";
+import { useDeckSettings } from "../../../../hooks/useDeckSettings";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 

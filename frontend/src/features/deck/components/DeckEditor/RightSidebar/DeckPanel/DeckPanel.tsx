@@ -15,7 +15,7 @@ import { validateText } from "@utils/fieldValidation";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import styles from "./DeckPanel.module.css";
-import { useDeckImage } from "../useDeckImage";
+import { useDeckImage } from "../../../../hooks/useDeckImage";
 import { ImagePicker } from "../shared/ImagePicker";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { useDeck } from "@/features/deck/hooks/useDeck";

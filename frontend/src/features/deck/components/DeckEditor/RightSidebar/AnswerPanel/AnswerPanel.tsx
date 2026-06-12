@@ -1,7 +1,7 @@
 // Per-slide answer settings drawer. Three-layer model:
 //   - The form shows the effective value: hardcoded defaults ← deck default ←
 //     this slide's override (resolveAnswerSettings).
-//   - Editing a field writes a *slide override* (useSlideSettingsEditor) so the
+//   - Editing a field writes a *slide override* (useSlideSettings) so the
 //     change applies to this slide only.
 //   - "Apply to deck" promotes the current values to the deck-wide default
 //     (useDeckSettings) and drops the now-redundant slide override, so the slide
@@ -14,12 +14,12 @@ import { useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { AnswerSettings } from "@deck/store/deckApi.gen";
-import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
-import { usePromoteAnswerSettingsToDeckMutation } from "@deck/store/deckApiPromote";
-import { useDeckSettings } from "../useDeckSettings";
-import { resolveAnswerSettings, RESULTS_DISPLAY_MODE_OPTIONS } from "../SettingsForms/settingsDefaults";
+import { useSlideSettings } from "@deck/hooks/useSlideSettings";
+import { usePromoteAnswerSettingsToDeckMutation } from "@deck/store/deckApi.gen";
+import { useDeckSettings } from "../../../../hooks/useDeckSettings";
+import { resolveAnswerSettings, RESULTS_DISPLAY_MODE_OPTIONS } from "../shared/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
-import styles from "../SettingsForms/SettingsPanel.module.css";
+import styles from "../shared/SettingsPanel.module.css";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 import { ResultsDisplayMode, SlideType } from "@/features/deck/store/deckEnums.gen";
 import { FollowUpOptionsSection } from "../EditSlideSections/FollowUpOptionsSection";
@@ -36,7 +36,7 @@ import { Toggle } from "@/shared/components/Forms/Input/Toggle/Toggle";
 
 import {
   ANSWER_SETTINGS_DEFAULTS as D,
-} from "../SettingsForms/settingsDefaults";
+} from "../shared/settingsDefaults";
 
 
 const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
@@ -68,7 +68,7 @@ const AnswerPanel = ({
   slideId,
 }: deckAndSlideIdProps) => {
   const { answerSettings, updateAnswerSettings, clearAnswerSettings, flush, cancelPendingWrites } =
-    useSlideSettingsEditor(deckId, slideId);
+    useSlideSettings(deckId, slideId);
   const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
   const { getSlide } = useSlide(deckId)
   const [promoteAnswerSettings] = usePromoteAnswerSettingsToDeckMutation();
@@ -116,7 +116,6 @@ const AnswerPanel = ({
   };
 
   const applyToDeck = () => {
-    console.log("applying to deck")
     cancelPendingWrites();
     void promoteAnswerSettings({
       id: deckId,

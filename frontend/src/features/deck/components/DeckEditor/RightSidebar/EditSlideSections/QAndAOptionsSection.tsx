@@ -1,13 +1,13 @@
 // Per-kind inspector section for Q_AND_A slides. `moderated` and `maxResponses`
 // are content fields (edited via useSlideEditor<"Q_AND_A">); `allowAnonymous`
 // has moved onto the slide's answer settings, so it is written through
-// useSlideSettingsEditor.
+// useSlideSettings.
 import { useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
-import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
+import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -24,7 +24,7 @@ const QAndAOptionsSection = () => {
     answerSettings,
     updateAnswerSettings,
     flush: flushSettings,
-  } = useSlideSettingsEditor(deckId, slideId ?? "");
+  } = useSlideSettings(deckId, slideId ?? "");
 
   const content = slide?.content;
   const [allowAnonymous, setAllowAnonymous] = useState(

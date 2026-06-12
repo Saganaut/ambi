@@ -23,6 +23,7 @@
  * generated file.
  */
 import "@deck/store/enhancements/deck";
+import "@deck/store/enhancements/promote";
 import "@deck/store/enhancements/slide";
 import "@deck/store/enhancements/comment";
 import "@features/theme/store/enhancements/theme";

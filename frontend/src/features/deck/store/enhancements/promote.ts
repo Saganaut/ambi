@@ -1,40 +1,37 @@
 /**
- * The three "apply to deck" promote mutations: each atomically sets the new
- * deck-level default AND clears every slide's per-slide override for that
- * field in one backend round-trip.
+ * Cache-sync rules for the three "apply to deck" promote mutations: each
+ * atomically sets a new deck-level default AND clears every slide's per-slide
+ * override for that field in one backend round-trip.
  *
- * These endpoints don't appear in the auto-generated `deckApi.gen.ts` yet
- * (they were added after the last codegen run), so they are injected here as a
- * hand-written extension. Once the backend is running and `npm run generate`
- * is re-run, move them into the generated file and delete this one.
+ * These endpoints are generated into `deckApi.gen.ts`, so the behavior is
+ * layered on with `enhanceEndpoints` (not `injectEndpoints`, which would be
+ * silently ignored as a duplicate). Each `onQueryStarted`:
+ *   - Optimistically patches `getDeck` with the new deck-level value.
+ *   - Optimistically clears the affected field from every slide in the
+ *     `listDeckSlides` cache (a slide override otherwise takes precedence over
+ *     the deck default, so the promote would look like a no-op).
+ *   - On success replaces the `getDeck` entry with the authoritative response.
+ *   - On reject undoes both patches.
  *
- * Cache sync is inline in each mutation's `onQueryStarted`:
- *   - Optimistically patch `getDeck` (settings) and `listDeckSlides` (clear the
- *     affected field from every slide) before the round trip.
- *   - On success, replace the `getDeck` entry with the authoritative response;
- *     the slides patch is already correct so no second pass is needed.
- *   - On reject, undo both patches.
+ * Imported for its side effect via the `../../../../shared/store/apiEnhancements`
+ * barrel.
  */
+import { CacheSyncMutationApi } from "@/shared/store/enhancements/types";
 import {
   deckApi,
   type DeckResponse,
-  type SetAnswerSettingsRequest,
-  type SetImageRequest,
-  type SetPointSettingsRequest,
-} from "./deckApi.gen";
+  type PromoteAnswerSettingsToDeckApiArg,
+  type PromoteBackgroundImageToDeckApiArg,
+  type PromotePointSettingsToDeckApiArg,
+} from "../deckApi.gen";
 
-const promoteDeckApi = deckApi.injectEndpoints({
-  endpoints: (build) => ({
-    promotePointSettingsToDeck: build.mutation<
-      DeckResponse,
-      { id: string; setPointSettingsRequest: SetPointSettingsRequest }
-    >({
-      query: (arg) => ({
-        url: `/api/decks/${arg.id}/point-settings/promote`,
-        method: "PUT",
-        body: arg.setPointSettingsRequest,
-      }),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+deckApi.enhanceEndpoints({
+  endpoints: {
+    promotePointSettingsToDeck: {
+      onQueryStarted: async (
+        arg: PromotePointSettingsToDeckApiArg,
+        { dispatch, queryFulfilled }: CacheSyncMutationApi<DeckResponse>,
+      ) => {
         const deckPatch = dispatch(
           deckApi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
             draft.settings = {
@@ -66,18 +63,13 @@ const promoteDeckApi = deckApi.injectEndpoints({
           slidesPatch.undo();
         }
       },
-    }),
+    },
 
-    promoteAnswerSettingsToDeck: build.mutation<
-      DeckResponse,
-      { id: string; setAnswerSettingsRequest: SetAnswerSettingsRequest }
-    >({
-      query: (arg) => ({
-        url: `/api/decks/${arg.id}/answer-settings/promote`,
-        method: "PUT",
-        body: arg.setAnswerSettingsRequest,
-      }),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+    promoteAnswerSettingsToDeck: {
+      onQueryStarted: async (
+        arg: PromoteAnswerSettingsToDeckApiArg,
+        { dispatch, queryFulfilled }: CacheSyncMutationApi<DeckResponse>,
+      ) => {
         const deckPatch = dispatch(
           deckApi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
             draft.settings = {
@@ -109,18 +101,13 @@ const promoteDeckApi = deckApi.injectEndpoints({
           slidesPatch.undo();
         }
       },
-    }),
+    },
 
-    promoteBackgroundImageToDeck: build.mutation<
-      DeckResponse,
-      { id: string; setImageRequest: SetImageRequest }
-    >({
-      query: (arg) => ({
-        url: `/api/decks/${arg.id}/background-image/promote`,
-        method: "PUT",
-        body: arg.setImageRequest,
-      }),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+    promoteBackgroundImageToDeck: {
+      onQueryStarted: async (
+        arg: PromoteBackgroundImageToDeckApiArg,
+        { dispatch, queryFulfilled }: CacheSyncMutationApi<DeckResponse>,
+      ) => {
         const deckPatch = dispatch(
           deckApi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
             draft.backgroundImage = arg.setImageRequest.image;
@@ -151,12 +138,6 @@ const promoteDeckApi = deckApi.injectEndpoints({
           slidesPatch.undo();
         }
       },
-    }),
-  }),
+    },
+  },
 });
-
-export const {
-  usePromotePointSettingsToDeckMutation,
-  usePromoteAnswerSettingsToDeckMutation,
-  usePromoteBackgroundImageToDeckMutation,
-} = promoteDeckApi;

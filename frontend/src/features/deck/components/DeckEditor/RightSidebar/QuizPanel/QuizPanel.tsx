@@ -6,41 +6,33 @@ import { useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { PointSettings } from "@deck/store/deckApi.gen";
-import { useSlideSettingsEditor } from "@deck/hooks/useSlideSettingsEditor";
-import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApiPromote";
-import { useDeckSettings } from "../useDeckSettings";
-import { PointSettingsForm } from "../SettingsForms/PointSettingsForm";
-import { resolvePointSettings } from "../SettingsForms/settingsDefaults";
+import { useSlideSettings } from "@deck/hooks/useSlideSettings";
+import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApi.gen";
+import { useDeckSettings } from "../../../../hooks/useDeckSettings";
+import { resolvePointSettings } from "../shared/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
-import styles from "@deck/components/DeckEditor/RightSidebar/SettingsForms/SettingsPanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/shared/SettingsPanel.module.css";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
+import { Toggle } from "@/shared/components/Forms/Input/Toggle/Toggle";
+import { POINT_SETTINGS_DEFAULTS as D } from "../shared/settingsDefaults";
 
 
-const QuizPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
-  if (!slideId) {
-    return (
-      <div className={slidePanel.empty}>
-        <p>Select a slide on the left to edit its point settings.</p>
-      </div>
-    );
-  }
-  return <QuizPanelBody deckId={deckId} slideId={slideId} />;
-};
-
-const QuizPanelBody = ({
+const QuizPanel = ({
   deckId,
   slideId,
 }: deckAndSlideIdProps) => {
   const { pointSettings, updatePointSettings, clearPointSettings, flush, cancelPendingWrites } =
-    useSlideSettingsEditor(deckId, slideId);
+    useSlideSettings(deckId, slideId);
   const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
   const [promotePointSettings] = usePromotePointSettingsToDeckMutation();
 
   const deckDefault = deckSettings?.pointSettings;
   const hasOverride = pointSettings != null;
   const effective = resolvePointSettings(deckDefault, pointSettings);
-
+  const idPrefix = "slide-point"
+  const disabled = false
   // Local mirror so typing reflects instantly while the slide write debounces.
   // Re-seed when the active slide changes so edits never bleed across slides.
   const [form, setForm] = useState<PointSettings>(effective);
@@ -88,7 +80,10 @@ const QuizPanelBody = ({
     clearPointSettings();
     setForm(resolvePointSettings(deckDefault, undefined));
   };
-
+  const number =
+    (key: keyof PointSettings) => (next: number) => {
+      handleChange({ [key]: next }, { immediate: false });
+    };
   return (
     <div className={slidePanel.panel}>
       {hasOverride ? (
@@ -109,18 +104,68 @@ const QuizPanelBody = ({
       )}
 
       <section className={slidePanel.section}>
-        <PointSettingsForm
-          value={form}
-          idPrefix='slide-point'
-          onChange={handleChange}
-          onBlur={flush}
-        />
+
+        <>
+          <NumberInput
+            id={`${idPrefix}-points`}
+            label='Points for a correct answer'
+            min={0}
+            max={100000}
+            disabled={disabled}
+            value={form.points ?? D.points}
+            onChange={number("points")}
+            onBlur={flush}
+          />
+          <NumberInput
+            id={`${idPrefix}-fastest-points`}
+            label='Bonus for the fastest correct answer'
+            min={0}
+            max={100000}
+            disabled={disabled}
+            value={form.fastestCorrectAnswerPoints ?? D.fastestCorrectAnswerPoints}
+            onChange={number("fastestCorrectAnswerPoints")}
+            onBlur={flush}
+          />
+          <NumberInput
+            id={`${idPrefix}-best-answer-points`}
+            label='Bonus for the best answer'
+            min={0}
+            max={100000}
+            disabled={disabled}
+            value={form.bestAnswerPoints ?? D.bestAnswerPoints}
+            onChange={number("bestAnswerPoints")}
+            onBlur={flush}
+          />
+          <NumberInput
+            id={`${idPrefix}-deception-points`}
+            label='Points for deceiving other players'
+            min={0}
+            max={100000}
+            disabled={disabled}
+            value={form.deceptionPoints ?? D.deceptionPoints}
+            infoMessage='Awarded when a player picks this answer believing it correct'
+            onChange={number("deceptionPoints")}
+            onBlur={flush}
+          />
+          <Toggle
+            id={`${idPrefix}-reset-streak`}
+            label='Reset streak when a streak ends'
+            disabled={disabled}
+            checked={form.resetStreakOnStreakEnd ?? D.resetStreakOnStreakEnd}
+            onChange={(e) => {
+              handleChange(
+                { resetStreakOnStreakEnd: e.currentTarget.checked },
+                { immediate: true },
+              );
+            }}
+          />
+        </>
       </section>
 
       <div className={styles.footer}>
         <Tooltip
           className={styles.applyTooltip}
-          label='Sets these as the deck default and removes all per-slide point-settings overrides, so every slide inherits this value.'>
+          label='Sets these as the deck default and removes all per-slide point-settings overrides, so every slide inherits this form.'>
           <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
             Apply to deck
           </Btn>

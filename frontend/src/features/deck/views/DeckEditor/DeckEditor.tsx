@@ -112,7 +112,7 @@ const DeckEditor = () => {
                 startError ? "start-interactiveSession-error" : undefined
               }
               onClick={() => {
-                void quickStart(deckId);
+                void quickStart();
               }}
               menuAriaLabel='More start options'
               menuItems={
