@@ -101,8 +101,7 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
       }
     : undefined;
 
-  const schedulePrompt = (html: string) =>
-    editor.updateMetadata({ title: html });
+  const schedulePrompt = (html: string) => editor.updateMetadata({ title: html });
 
   const addOption = () => {
     if (!canAddOption) return;

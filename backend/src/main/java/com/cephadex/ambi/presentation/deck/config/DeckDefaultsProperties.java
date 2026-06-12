@@ -48,10 +48,10 @@ public class DeckDefaultsProperties {
     /** Mirrors {@link Settings.PointSettings}; 0 means "does not apply". */
     @Data
     public static class Points {
-        private int points = 1000;
+        private int points = 0;
         private int deceptionPoints = 0;
         private int bestAnswerPoints = 0;
-        private int fastestCorrectAnswerPoints = 250;
+        private int fastestCorrectAnswerPoints = 0;
         private boolean resetStreakOnStreakEnd = false;
         // Streak milestones aren't bound here — a new deck starts with none; authors
         // add them per deck. The factory supplies an empty map.

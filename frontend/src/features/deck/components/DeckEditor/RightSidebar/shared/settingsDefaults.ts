@@ -39,7 +39,7 @@ const RESULTS_DISPLAY_MODE_OPTIONS: {
 const POINT_SETTINGS_DEFAULTS: Required<
   Omit<PointSettings, "streakBonuses">
 > = {
-  points: 100,
+  points: 0,
   deceptionPoints: 0,
   bestAnswerPoints: 0,
   fastestCorrectAnswerPoints: 0,

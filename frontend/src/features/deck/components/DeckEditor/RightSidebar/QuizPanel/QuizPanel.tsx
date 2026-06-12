@@ -8,7 +8,7 @@ import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { PointSettings } from "@deck/store/deckApi.gen";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApi.gen";
-import { useDeckSettings } from "../../../../hooks/useDeckSettings";
+import { useDeckSettings } from "@deck/hooks/useDeckSettings";
 import { resolvePointSettings } from "../shared/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "@deck/components/DeckEditor/RightSidebar/shared/SettingsPanel.module.css";
@@ -84,11 +84,28 @@ const QuizPanel = ({
     (key: keyof PointSettings) => (next: number) => {
       handleChange({ [key]: next }, { immediate: false });
     };
+
+
+  const toggleQuizMode = () => {
+    if (form.points == 0) {
+      handleChange({ ['points']: 10 }, { immediate: true })
+
+    }
+    else {
+      handleChange({ ['points']: 0 }, { immediate: true })
+    }
+
+
+  }
+
+
+
+
   return (
     <div className={slidePanel.panel}>
       {hasOverride ? (
         <div className={styles.overrideHint}>
-          <span>Overriding the deck default for this slide.</span>
+          <span>Overriding deck defaults</span>
           <Btn
             size='sm'
             fill='ghost'
@@ -104,62 +121,73 @@ const QuizPanel = ({
       )}
 
       <section className={slidePanel.section}>
+        <Toggle
+          labelPosition="labelBefore"
+          id={`${idPrefix}-quiz-mode`}
+          label='Quiz mode'
+          disabled={disabled}
+          checked={(form.points ?? 0) > 0}
+          onChange={toggleQuizMode}
+        />
 
-        <>
-          <NumberInput
-            id={`${idPrefix}-points`}
-            label='Points for a correct answer'
-            min={0}
-            max={100000}
-            disabled={disabled}
-            value={form.points ?? D.points}
-            onChange={number("points")}
-            onBlur={flush}
-          />
-          <NumberInput
-            id={`${idPrefix}-fastest-points`}
-            label='Bonus for the fastest correct answer'
-            min={0}
-            max={100000}
-            disabled={disabled}
-            value={form.fastestCorrectAnswerPoints ?? D.fastestCorrectAnswerPoints}
-            onChange={number("fastestCorrectAnswerPoints")}
-            onBlur={flush}
-          />
-          <NumberInput
-            id={`${idPrefix}-best-answer-points`}
-            label='Bonus for the best answer'
-            min={0}
-            max={100000}
-            disabled={disabled}
-            value={form.bestAnswerPoints ?? D.bestAnswerPoints}
-            onChange={number("bestAnswerPoints")}
-            onBlur={flush}
-          />
-          <NumberInput
-            id={`${idPrefix}-deception-points`}
-            label='Points for deceiving other players'
-            min={0}
-            max={100000}
-            disabled={disabled}
-            value={form.deceptionPoints ?? D.deceptionPoints}
-            infoMessage='Awarded when a player picks this answer believing it correct'
-            onChange={number("deceptionPoints")}
-            onBlur={flush}
-          />
-          <Toggle
-            id={`${idPrefix}-reset-streak`}
-            label='Reset streak when a streak ends'
-            disabled={disabled}
-            checked={form.resetStreakOnStreakEnd ?? D.resetStreakOnStreakEnd}
-            onChange={(e) => {
-              handleChange(
-                { resetStreakOnStreakEnd: e.currentTarget.checked },
-                { immediate: true },
-              );
-            }}
-          />
-        </>
+        {((form.points ?? 0) > 0) &&
+          <>
+            <NumberInput
+              id={`${idPrefix}-points`}
+              label='Correct answer'
+              min={0}
+              max={100000}
+              disabled={disabled}
+              value={form.points ?? D.points}
+              onChange={number("points")}
+              onBlur={flush}
+            />
+            <NumberInput
+              id={`${idPrefix}-fastest-points`}
+              label='Fastest answer'
+              min={0}
+              max={100000}
+              disabled={disabled}
+              value={form.fastestCorrectAnswerPoints ?? D.fastestCorrectAnswerPoints}
+              onChange={number("fastestCorrectAnswerPoints")}
+              onBlur={flush}
+            />
+            <NumberInput
+              id={`${idPrefix}-best-answer-points`}
+              label='Best answer'
+              min={0}
+              max={100000}
+              disabled={disabled}
+              value={form.bestAnswerPoints ?? D.bestAnswerPoints}
+              onChange={number("bestAnswerPoints")}
+              onBlur={flush}
+            />
+            <NumberInput
+              id={`${idPrefix}-deception-points`}
+              label='Most deceitful'
+              min={0}
+              max={100000}
+              disabled={disabled}
+              value={form.deceptionPoints ?? D.deceptionPoints}
+              infoMessage='Awarded when a player picks this answer believing it correct'
+              onChange={number("deceptionPoints")}
+              onBlur={flush}
+            />
+            <Toggle
+              labelPosition="labelBefore"
+              id={`${idPrefix}-reset-streak`}
+              label='Reset streak when it ends'
+              disabled={disabled}
+              checked={form.resetStreakOnStreakEnd ?? D.resetStreakOnStreakEnd}
+              onChange={(e) => {
+                handleChange(
+                  { resetStreakOnStreakEnd: e.currentTarget.checked },
+                  { immediate: true },
+                );
+              }}
+            />
+          </>
+        }
       </section>
 
       <div className={styles.footer}>
@@ -167,7 +195,7 @@ const QuizPanel = ({
           className={styles.applyTooltip}
           label='Sets these as the deck default and removes all per-slide point-settings overrides, so every slide inherits this form.'>
           <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
-            Apply to deck
+            Apply to all slides
           </Btn>
         </Tooltip>
       </div>

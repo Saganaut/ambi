@@ -11,14 +11,14 @@ import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/Edit
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-const useNumberOptionsSection = () => {
+const NumberOptionsSection = () => {
+
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
-  return useSlideEditor(deckId, slideId ?? "", "NUMBER");
-};
 
-const NumberOptionsSection = () => {
-  const { slide, updateSlideContent, flush } = useNumberOptionsSection();
+  if (slideId == null) throw Error("Missing Slide ID");
+
+  const { slide, updateSlideContent, flush } = useSlideEditor(deckId, slideId, "NUMBER");
 
   const content = slide?.content;
   const [minValue, setMinValue] = useState(content?.min ?? 0);
@@ -37,7 +37,6 @@ const NumberOptionsSection = () => {
 
   if (!slide) return null;
 
-  const slideId = slide.id;
 
   return (
     <section className={styles.section}>

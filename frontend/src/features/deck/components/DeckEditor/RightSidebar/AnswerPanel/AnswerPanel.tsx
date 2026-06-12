@@ -148,7 +148,7 @@ const AnswerPanel = ({
     }
   }
   const toggleMultipleAnswers = () => {
-    if (form.countdownTime == 0) {
+    if (form.maxSelections == 1) {
       handleChange({ ['maxSelections']: 2 }, { immediate: true });
     }
     else {
@@ -193,23 +193,23 @@ const AnswerPanel = ({
               max={3600}
               disabled={disabled}
               value={form.countdownTime ?? D.countdownTime}
-              infoMessage='0 = unlimited (wait for players / host)'
+              infoMessage='0 = No time limit'
               onChange={number("countdownTime")}
               onBlur={flush}
             />
           }
           <Toggle
             labelPosition="labelBefore"
-            id={`${idPrefix}-enable-time-limit`}
+            id={`${idPrefix}-enable-max-selections`}
             label='Allow multiple answers'
             disabled={disabled}
-            checked={(form.maxSelections ?? 1) > 1}
+            checked={!(form.maxSelections == 1)}
             onChange={toggleMultipleAnswers}
           />
           {(form.maxSelections ?? 1) > 1 &&
             <NumberInput
               id={`${idPrefix}-max-selections`}
-              label='Max selections per player'
+              label='Answers per participant'
               min={1}
               max={50}
               disabled={disabled}
@@ -254,7 +254,7 @@ const AnswerPanel = ({
           className={styles.applyTooltip}
           label='Sets these as the deck default and removes all per-slide answer-settings overrides, so every slide inherits this value.'>
           <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
-            Apply to deck
+            Apply to all slides
           </Btn>
         </Tooltip>
       </section>

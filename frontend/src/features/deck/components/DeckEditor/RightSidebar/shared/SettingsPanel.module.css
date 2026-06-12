@@ -33,6 +33,10 @@
    a sentence, so override the tooltip's default nowrap and cap its width. */
 .applyTooltip {
   display: flex;
+
+  button {
+    width: 100%;
+  }
 }
 
 .applyTooltip > span:first-child {

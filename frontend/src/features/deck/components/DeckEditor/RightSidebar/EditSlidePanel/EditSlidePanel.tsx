@@ -110,7 +110,7 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
                     setImageRequest: { image: slide.backgroundImage },
                   });
               }}>
-              Apply to deck
+              Apply to all slides
             </Btn>
           </Tooltip>
         </div>

@@ -1,7 +1,8 @@
 import { useRef } from "react";
 import type { SlideContent, SlideRequest, SlideResponse } from "@deck/store/deckApi.gen";
 import { useDebouncedCommit } from "@/shared/hooks/useDebouncedCommit";
-import { useSlide, type SlideType } from "./useSlide";
+import { useSlide } from "./useSlide";
+import { SlideType } from "@deck/store/deckEnums.gen";
 
 /**
  * Editing layer for a single slide's content. Sits on top of {@link useSlide}
@@ -55,10 +56,7 @@ type SlideOfType<T extends SlideType> = Omit<SlideResponse, "content"> & {
  * editor's kind `T` — the draft never holds a content arm of another kind, so
  * reading it back needs no cast.
  */
-type SlidePatch<T extends SlideType> = Omit<
-  Partial<SlideRequest>,
-  "content"
-> & {
+type SlidePatch<T extends SlideType> = Omit<Partial<SlideRequest>, "content"> & {
   content?: ContentOf<T>;
 };
 
@@ -81,10 +79,7 @@ interface UseSlideEditorResult<T extends SlideType> {
   /** Patch slide-level metadata (debounced). */
   updateMetadata: (
     updates: Partial<
-      Pick<
-        SlideRequest,
-        "title" | "section" | "speakerNotes" | "participantInstructions"
-      >
+      Pick<SlideRequest, "title" | "section" | "speakerNotes" | "participantInstructions">
     >,
   ) => void;
   /**
@@ -99,18 +94,13 @@ interface UseSlideEditorResult<T extends SlideType> {
    * of each starting from the same stale render snapshot.
    */
   updateSlideContent: (
-    patch:
-      | Partial<ContentOf<T>>
-      | ((prev: ContentOf<T>) => Partial<ContentOf<T>>),
+    patch: Partial<ContentOf<T>> | ((prev: ContentOf<T>) => Partial<ContentOf<T>>),
   ) => void;
   /** Flush any pending debounced edit immediately. */
   flush: () => void;
 }
 
-function useSlideEditor(
-  deckId: string,
-  slideId: string,
-): UseSlideEditorResult<SlideType>;
+function useSlideEditor(deckId: string, slideId: string): UseSlideEditorResult<SlideType>;
 
 function useSlideEditor<T extends SlideType>(
   deckId: string,
@@ -144,12 +134,10 @@ function useSlideEditor<T extends SlideType>(
   const draftRef = useRef<SlidePatch<T> | null>(null);
   const syncedIdRef = useRef<string | null>(null);
 
-  const { schedule, flush } = useDebouncedCommit<Partial<SlideRequest>>(
-    (patch) => {
-      updateSlide(slideId, patch);
-      draftRef.current = null;
-    },
-  );
+  const { schedule, flush } = useDebouncedCommit<Partial<SlideRequest>>((patch) => {
+    updateSlide(slideId, patch);
+    draftRef.current = null;
+  });
 
   // Drop any pending draft when the editor switches slides so edits never bleed
   // from one slide into the next.
@@ -166,17 +154,12 @@ function useSlideEditor<T extends SlideType>(
 
   const updateMetadata = (
     updates: Partial<
-      Pick<
-        SlideRequest,
-        "title" | "section" | "speakerNotes" | "participantInstructions"
-      >
+      Pick<SlideRequest, "title" | "section" | "speakerNotes" | "participantInstructions">
     >,
   ) => mergePatch(updates);
 
   const updateSlideContent = (
-    patch:
-      | Partial<ContentOf<T>>
-      | ((prev: ContentOf<T>) => Partial<ContentOf<T>>),
+    patch: Partial<ContentOf<T>> | ((prev: ContentOf<T>) => Partial<ContentOf<T>>),
   ) => {
     if (!slide) return;
     // Merge onto the freshest content: a pending draft if one exists, else the
