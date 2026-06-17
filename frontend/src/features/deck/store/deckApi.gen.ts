@@ -558,6 +558,12 @@ export type ListPublicDecksApiArg = {
 };
 export type ListMyDecksApiResponse = /** status 200 OK */ DeckResponse[];
 export type ListMyDecksApiArg = void;
+export type Placement = {
+  start: number;
+  end: number;
+  top: number;
+  bottom: number;
+};
 export type AppImage = {
   id?: string;
   external: boolean;
@@ -570,6 +576,7 @@ export type AppImage = {
   metadata?: {
     [key: string]: any;
   };
+  placement?: Placement;
 };
 export type StreakMilestone = {
   countRequired?: number;

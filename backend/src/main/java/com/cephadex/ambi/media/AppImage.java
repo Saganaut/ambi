@@ -41,4 +41,10 @@ public class AppImage {
 
     @Field("metadata")
     private Map<String, Object> metadata;
+
+    // Optional grid placement on a slide (6 cols × 4 rows). Null when the
+    // consumer decides positioning. See {@link Placement}.
+    @Schema(nullable = true)
+    @Field("placement")
+    private Placement placement;
 }

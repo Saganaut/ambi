@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.Placement;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 
 import tools.jackson.core.JsonParser;
@@ -51,6 +52,9 @@ public class AppImageDeserializer extends ValueDeserializer<AppImage> {
             JavaType mapType = ctxt.getTypeFactory()
                     .constructMapType(LinkedHashMap.class, String.class, Object.class);
             image.setMetadata(ctxt.readTreeAsValue(node.get("metadata"), mapType));
+        }
+        if (node.hasNonNull("placement")) {
+            image.setPlacement(ctxt.readTreeAsValue(node.get("placement"), Placement.class));
         }
 
         if (image.isExternal()) {

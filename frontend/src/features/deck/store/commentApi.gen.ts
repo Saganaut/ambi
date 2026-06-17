@@ -112,6 +112,12 @@ export type UpdateThreadCommentApiArg = {
   commentId: string;
   commentBodyRequest: CommentBodyRequest;
 };
+export type Placement = {
+  start: number;
+  end: number;
+  top: number;
+  bottom: number;
+};
 export type AppImage = {
   id?: string;
   external: boolean;
@@ -124,6 +130,7 @@ export type AppImage = {
   metadata?: {
     [key: string]: any;
   };
+  placement?: Placement;
 };
 export type Avatar = {
   internalAvatarId?: string;

@@ -49,6 +49,8 @@ public class AppImageSerializer extends ValueSerializer<AppImage> {
         gen.writePOJO(image.getVariants());
         gen.writeName("metadata");
         gen.writePOJO(image.getMetadata());
+        gen.writeName("placement");
+        gen.writePOJO(image.getPlacement());
         gen.writeEndObject();
     }
 }
