@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.Placement;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.github.benmanes.caffeine.cache.Ticker;
 
@@ -74,10 +75,12 @@ class ImageUrlResolverTest {
         Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
         variants.put(ImageSizeOptions.SM, "gallery/x/sm.webp");
         variants.put(ImageSizeOptions.LG, "gallery/x/lg.webp");
+        Placement placement = new Placement(1, 4, 1, 4);
         AppImage stored = new AppImage();
         stored.setExternal(false);
         stored.setSrcKey("gallery/x/original");
         stored.setVariants(variants);
+        stored.setPlacement(placement);
 
         AppImage hydrated = resolver.hydrate(stored);
 
@@ -88,6 +91,9 @@ class ImageUrlResolverTest {
         // srcKey is now signed too — a full URL the client can render directly.
         assertThat(hydrated.getSrcKey())
                 .isEqualTo("https://signed/ambi-images/gallery/x/original?sig=abc");
+        // Non-URL metadata fields ride through untouched — placement must survive
+        // hydration or the client never learns where to position the image.
+        assertThat(hydrated.getPlacement()).isEqualTo(placement);
         // The stored entity's variants are untouched — still keys.
         assertThat(stored.getVariants().get(ImageSizeOptions.SM)).isEqualTo("gallery/x/sm.webp");
         assertThat(stored.getSrcKey()).isEqualTo("gallery/x/original");

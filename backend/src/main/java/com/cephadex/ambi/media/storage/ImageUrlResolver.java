@@ -124,6 +124,7 @@ public class ImageUrlResolver {
         copy.setAltText(image.getAltText());
         copy.setVariants(hydrated);
         copy.setMetadata(image.getMetadata());
+        copy.setPlacement(image.getPlacement());
         return copy;
     }
 }
