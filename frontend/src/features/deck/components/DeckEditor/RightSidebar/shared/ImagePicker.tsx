@@ -13,17 +13,17 @@ import styles from "./ImagePicker.module.css";
 interface ImagePickerProps {
   label: string;
   image: AppImage | undefined;
-  seed: string;
+  seed?: string;
   onPick: () => void;
   onClear: () => void;
   placeholderText?: string;
   placeholderBackgroundImageUrl?: string;
 }
-
+//TODO: for production we replace random lorem picsum images with a standard image placeholder
 const ImagePicker = ({
   label,
   image,
-  seed,
+  seed = "random",
   onPick,
   onClear,
   placeholderText = "Choose image",

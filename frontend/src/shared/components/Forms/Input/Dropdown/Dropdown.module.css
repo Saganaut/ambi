@@ -12,6 +12,9 @@
     bottom: -24px;
     left: 10px;
   }
+  button {
+    text-align: start;
+  }
 }
 
 .dropdownTrigger {
@@ -85,6 +88,7 @@
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   transition: background-color var(--duration-fast) ease-in-out;
+  text-align: start;
 
   input[type="checkbox"] {
     width: var(--space-4);

@@ -40,11 +40,9 @@
     .optionalImageContent {
       width: 400px !important;
       height: 100%;
-      order: 1;
     }
     .slideChild {
       flex: 1;
-      order: 2;
     }
   }
 

@@ -14,24 +14,24 @@ import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApi.gen
 import settingsPanel from "../shared/SettingsPanel.module.css";
 import { useDeck } from "@/features/deck/hooks/useDeck";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { slotButtons, slotMappingOptions } from "@/features/deck/contexts/ImageSlot.types";
+import { useImageSlot } from "@/features/deck/contexts/useImageSlot";
+import { ImageSlotProvider } from "@/features/deck/contexts/ImageSlotContext";
 
 
 
 
 
-const useThemePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
+
+
+const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
   const { getSlide, setSlideImage, clearSlideImage, hideSlideBackground } =
     useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
-  return { deckId, slide, slideId, setSlideImage, clearSlideImage, hideSlideBackground };
-};
 
 
-const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
-  const { slide, setSlideImage, clearSlideImage, hideSlideBackground } =
-    useThemePanel({ deckId, slideId });
   const { deck } = useDeck(deckId);
   const openPicker = useGalleryPicker();
   const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
@@ -119,6 +119,75 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
   );
 };
 
+// On hover we change the placement but don't save changes in backend. On click we fully save changes
+// So we have the current position saved so we can go back to it.
+// Need a mapping 
+const ImagePlacementPicker = () => {
+  const { imageConfig, setPreviewPlacement } = useImageSlot();
+
+
+  if (imageConfig == null) return;
+
+
+  return <div className={styles.imagePlacementPicker}>
+
+
+
+    <h5>Placement picker</h5>
+
+
+    <div className={styles.placementContainer}>
+      {slotButtons.map((button) => {
+        return <div
+
+          onMouseEnter={() => setPreviewPlacement(button.placement)}
+          onMouseLeave={() => setPreviewPlacement(null)}
+
+          key={button.name}>{button.name}</div>
+      })}
+    </div>
+
+
+  </div>
+}
+
+
+const FeatureImageSelector = ({ deckId, slideId }: deckAndSlideIdProps) => {
+
+
+
+  const { getSlide, setSlideImage, clearSlideImage } =
+    useSlide(deckId);
+
+  const slide = getSlide(slideId);
+  const openPicker = useGalleryPicker();
+
+  const defaultPlacement = slotMappingOptions[0]
+
+
+  console.log("Default placement", defaultPlacement)
+  return (
+    <>
+      <ImagePicker label={""} image={slide?.coverImage} onClear={() => { clearSlideImage(slideId, "cover") }}
+        onPick={() => {
+          openPicker(
+            (image) => {
+              setSlideImage(slideId, "cover", image, defaultPlacement);
+            },
+            {
+              title: "Slide background image",
+              cropWidth: 16,
+              cropHeight: 9,
+            },
+          );
+        }} />
+
+      <ImagePlacementPicker />
+
+    </>
+  )
+}
+
 
 const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
@@ -136,6 +205,9 @@ const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
   return (
     <div className={styles.panel}>
       <PerSlideStyle deckId={deckId} slideId={slideId} />
+
+      <FeatureImageSelector deckId={deckId} slideId={slideId} />
+
       <FollowUpAttachSection slide={slide} />
       {/* <ProvenanceFooter
         createdByUserId={slide.createdByUserId}
@@ -144,7 +216,6 @@ const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
         updatedAt={undefined}
         version={slide.version}
       /> */}
-
     </div>
   );
 };

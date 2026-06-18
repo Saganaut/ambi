@@ -83,3 +83,10 @@
     transform: rotate(-90deg);
   }
 }
+
+.imagePlacementPicker {
+  .placementContainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}

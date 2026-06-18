@@ -4,12 +4,28 @@
 // Query directly. The handlers are thin: they just fire the mutation. Cache
 // behaviour (optimistic patch + tag-driven reconciling refetch) lives in
 // `store/enhancements/slide.ts` so it applies no matter who calls the mutation.
-import { useListDeckSlidesQuery, useAddSlideMutation, useAddFollowUpSlideMutation, useUpdateSlideMutation, useRemoveSlideMutation, useMoveSlideMutation, useSetSlideCoverImageMutation, useClearSlideCoverImageMutation, useSetSlideBackgroundImageMutation, useClearSlideBackgroundImageMutation, useHideSlideBackgroundMutation, type AppImage, type Placement, type SlideRequest, type SlideResponse } from "@deck/store/deckApi.gen";
+import {
+  useListDeckSlidesQuery,
+  useAddSlideMutation,
+  useAddFollowUpSlideMutation,
+  useUpdateSlideMutation,
+  useRemoveSlideMutation,
+  useMoveSlideMutation,
+  useSetSlideCoverImageMutation,
+  useClearSlideCoverImageMutation,
+  useSetSlideBackgroundImageMutation,
+  useClearSlideBackgroundImageMutation,
+  useHideSlideBackgroundMutation,
+  type AppImage,
+  type Placement,
+  type SlideRequest,
+  type SlideResponse,
+} from "@deck/store/deckApi.gen";
 import { buildDefaultContent } from "../utils/slideContent";
 import { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
 
 /** Which dedicated image slot on a slide a handler targets. */
-type ImageSlot = "cover" | "background";
+type ImageRole = "cover" | "background";
 
 /**
  * Minimal SlideRequest for a brand-new slide. We stamp identity, a blank title,
@@ -57,14 +73,14 @@ interface UseSlideResult {
    * the slide grid (see {@link Placement}) and is honoured only for the cover
    * slot; it is ignored for the background.
    */
-  setSlideImage: (slideId: string, slot: ImageSlot, image: AppImage, placement?: Placement) => void;
+  setSlideImage: (slideId: string, slot: ImageRole, image: AppImage, placement?: Placement) => void;
   /**
    * Clear a slide's cover or background image. For a background this is the
    * "reset to deck" action — it drops the slide's own image and lets it inherit
    * the deck default again. To instead remove the background entirely (ignoring
    * the deck default), use {@link hideSlideBackground}.
    */
-  clearSlideImage: (slideId: string, slot: ImageSlot) => void;
+  clearSlideImage: (slideId: string, slot: ImageRole) => void;
   /**
    * Remove a slide's background entirely: no own image and the deck default
    * suppressed, so the slide renders with no background even when the deck has
@@ -95,8 +111,7 @@ const useSlide = (deckId: string): UseSlideResult => {
   const [clearBackgroundImageMutation] = useClearSlideBackgroundImageMutation();
   const [hideBackgroundMutation] = useHideSlideBackgroundMutation();
 
-  const getSlide = (slideId: string) =>
-    slides.find((slide) => slide.id === slideId);
+  const getSlide = (slideId: string) => slides.find((slide) => slide.id === slideId);
 
   const addSlide = (options: AddSlideOptions = {}) => {
     const id = crypto.randomUUID();
@@ -133,18 +148,21 @@ const useSlide = (deckId: string): UseSlideResult => {
     void removeSlideMutation({ id: deckId, slideId });
   };
 
-  const setSlideImage = (slideId: string, slot: ImageSlot, image: AppImage, placement?: Placement) => {
-    const mutate =
-      slot === "cover" ? setCoverImageMutation : setBackgroundImageMutation;
+  const setSlideImage = (
+    slideId: string,
+    slot: ImageRole,
+    image: AppImage,
+    placement?: Placement,
+  ) => {
+    const mutate = slot === "cover" ? setCoverImageMutation : setBackgroundImageMutation;
     // Placement is a cover-only concern for now; the background ignores it.
-    const payload =
-      slot === "cover" && placement !== undefined ? { ...image, placement } : image;
+    const payload = slot === "cover" && placement !== undefined ? { ...image, placement } : image;
+    console.log("Payload", payload);
     void mutate({ id: deckId, slideId, setImageRequest: { image: payload } });
   };
 
-  const clearSlideImage = (slideId: string, slot: ImageSlot) => {
-    const mutate =
-      slot === "cover" ? clearCoverImageMutation : clearBackgroundImageMutation;
+  const clearSlideImage = (slideId: string, slot: ImageRole) => {
+    const mutate = slot === "cover" ? clearCoverImageMutation : clearBackgroundImageMutation;
     void mutate({ id: deckId, slideId });
   };
 
@@ -177,4 +195,4 @@ const useSlide = (deckId: string): UseSlideResult => {
 };
 
 export { useSlide };
-export type { UseSlideResult, AddSlideOptions, ImageSlot };
+export type { UseSlideResult, AddSlideOptions, ImageRole };

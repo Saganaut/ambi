@@ -12,6 +12,8 @@ import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
 import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
 import { type SlideType } from "@deck/store/deckEnums.gen";
 import styles from "./SlideDisplay.module.css";
+import { ImageSlot } from "../../ImageSlot";
+import { ImageSlotProvider } from "@/features/deck/contexts/ImageSlotContext";
 
 interface SlideCanvasProps {
   /** Slide kind — drives the header graphic. */
@@ -33,7 +35,6 @@ const SlideCanvas = ({
   appearance,
   backgroundUrl,
   children,
-  slideContentImgUrl
 }: SlideCanvasProps) => {
   return (
     <div
@@ -52,14 +53,19 @@ const SlideCanvas = ({
         <SlideTypeGraphicSvg slideType={slideType} />
       </div>
       <div className={styles.slideBody}>
-        {slideContentImgUrl &&
-
-          <div className={styles.optionalImageContent}>
-            <img src={slideContentImgUrl} />
-
-
-          </div>}
+        <ImageSlot slotId={{
+          start: 1,
+          end: 4,
+          top: 1,
+          bottom: 4,
+        }} />
         <div className={styles.slideChild}>{children}</div>
+        <ImageSlot slotId={{
+          start: 5,
+          end: 8,
+          top: 1,
+          bottom: 4,
+        }} />
       </div>
       <div className={styles.slideFooter}>Footer goes here</div>
     </div>

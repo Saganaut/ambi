@@ -88,6 +88,7 @@
 /* "+ New theme" tile */
 .newCard {
   display: flex;
+  border-color: transparent;
   align-items: center;
   justify-content: center;
   min-height: 7rem;
@@ -97,11 +98,6 @@
   color: var(--text-muted, #667);
   cursor: pointer;
   font-weight: 600;
-}
-
-.newCard:hover {
-  border-color: var(--color-primary, #74f);
-  color: var(--color-primary, #74f);
 }
 
 /* ── Editor view ────────────────────────────────────────────────────────── */

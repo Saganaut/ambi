@@ -1,5 +1,8 @@
-import { createContext, Dispatch, SetStateAction, useCallback, useState, type ReactNode } from "react";
+import { createContext, Dispatch, SetStateAction, useState, type ReactNode } from "react";
 
+import { ImageSlotConfig } from "./ImageSlot.types";
+import { getRouteApi } from "@tanstack/react-router";
+import { useSlide } from "@deck/hooks/useSlide";
 import type { Placement } from "@deck/store/deckApi.gen";
 
 
@@ -33,60 +36,45 @@ import type { Placement } from "@deck/store/deckApi.gen";
 // source of truth for the grid coordinates. `satisfies` keeps each entry's
 // literal types (so `SlotMapping` stays a union of the known slots) while
 // guaranteeing every option is a valid `Placement`.
-const slotMappingOptions = [
-  {
-    start: 1,
-    end: 3,
-    top: 1,
-    bottom: 4,
-  }, {
-    start: 4,
-    end: 6,
-    top: 1,
-    bottom: 4,
-  }, {
-    start: 2,
-    end: 3,
-    top: 2,
-    bottom: 3,
-  }, {
-    start: 4,
-    end: 5,
-    top: 2,
-    bottom: 3,
-  },
-] as const satisfies readonly Placement[];
-
-
-export type SlotMapping = typeof slotMappingOptions[number];
-
-export interface ImageSlotConfig {
-  imgUrl: string;
-  placement: SlotMapping;
-}
-
-
-
-
-
-
-
 
 
 export interface ImageSlotContextValue {
+  /**
+   * The effective image + placement to render, derived from the active slide's
+   * persisted cover image and overlaid with any transient hover preview. Null
+   * when the slide has no cover image yet.
+   */
   imageConfig: null | ImageSlotConfig;
-  setImageConfig: Dispatch<SetStateAction<ImageSlotConfig | null>>;
+  /**
+   * Set a transient placement preview (e.g. on hover). Pass `null` to drop the
+   * preview and fall back to the persisted placement. This never touches the
+   * backend — committing is the cover-image mutation's job.
+   */
+  setPreviewPlacement: Dispatch<SetStateAction<Placement | null>>;
 }
 const ImageSlotContext = createContext<ImageSlotContextValue | null>(null);
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const ImageSlotProvider = ({ children }: { children: ReactNode }) => {
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+  const { getSlide } = useSlide(deckId);
 
-  const [imageConfig, setImageConfig] = useState<ImageSlotConfig | null>(null);
+  // The only genuinely local state: a hover preview that overrides the
+  // persisted placement until released. Everything else is derived from the
+  // RTK cache, so the config reacts to async load, slide switches, and saves
+  // with no effect and no stale snapshot.
+  const [previewPlacement, setPreviewPlacement] = useState<Placement | null>(null);
 
+  const cover = slideId ? getSlide(slideId)?.coverImage : undefined;
+  const imgUrl = cover?.variants?.XL;
+  const placement = previewPlacement ?? cover?.placement;
 
+  const imageConfig: ImageSlotConfig | null =
+    imgUrl && placement ? { imgUrl, placement } : null;
 
   return (
-    <ImageSlotContext.Provider value={{ imageConfig, setImageConfig }}>
+    <ImageSlotContext.Provider value={{ imageConfig, setPreviewPlacement }}>
       {children}
     </ImageSlotContext.Provider>
   );
