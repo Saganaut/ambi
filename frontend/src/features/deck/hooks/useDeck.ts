@@ -27,9 +27,7 @@ import {
   SetVisibilityRequest,
 } from "@deck/store/deckApi.gen";
 import { useNavigate } from "@tanstack/react-router";
-
-/** Which dedicated image slot on a deck a handler targets. */
-type ImageRole = "cover" | "background";
+import type { ImageRole } from "../deck.types";
 
 interface UseDeckResult {
   deck: DeckResponse | undefined;

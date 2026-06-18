@@ -23,9 +23,7 @@ import {
 } from "@deck/store/deckApi.gen";
 import { buildDefaultContent } from "../utils/slideContent";
 import { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
-
-/** Which dedicated image slot on a slide a handler targets. */
-type ImageRole = "cover" | "background";
+import type { ImageRole } from "../deck.types";
 
 /**
  * Minimal SlideRequest for a brand-new slide. We stamp identity, a blank title,
