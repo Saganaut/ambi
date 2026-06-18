@@ -14,4 +14,5 @@ Rules for the React + TypeScript frontend under `frontend/`. Styling and icons h
 10. **File structure** — All code adheres to the four-layer architecture blueprint. — [details](frontend/file-structure.md)
 11. **Component design** — Arrow consts with bottom exports, pages hold no logic, logic extracted to hooks, one CSS module per directory, route params read only at the top-level page then passed as props, and more. — [details](frontend/component-design.md)
 12. **Shared conventions** — `ProblemDetail` error helpers (branch on `code`/`status`, never `detail`); derive types from the generated schema via indexed access; typed Redux hooks; `filter(Boolean).join(" ")` for classNames (no clsx); polymorphic `as`; promise-based dialogs. — [details](frontend/conventions.md)
-13. **Document exceptions** — Any exception to these rules must be documented.
+13. **Hook method naming** — Methods returned by hooks use plain verbs (`present`, `share`, `schedule`). Reserve `handle*` exclusively for methods whose signature takes a framework event object (e.g. `handleDragEnd(event: DragEndEvent)`). Debounced-write surfaces follow `commit` (immediate) / `schedule*` (debounced) / `flush` (fire pending) / `cancel` (discard pending).
+14. **Document exceptions** — Any exception to these rules must be documented.
