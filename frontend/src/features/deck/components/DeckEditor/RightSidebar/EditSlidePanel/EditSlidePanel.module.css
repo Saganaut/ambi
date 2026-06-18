@@ -37,6 +37,16 @@
   margin: 0;
 }
 
+/* Slim location rows — label left, checkbox pinned right (used by
+   InviteSettingsPanel for the QR / room-code surfaces). The shared Checkbox
+   reserves bottom space for validation messages; these rows carry none, so
+   the gap alone sets the rhythm. */
+.locationList {
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--space-2);
+}
+
 .chartPicker {
   display: flex;
   gap: var(--space-2);

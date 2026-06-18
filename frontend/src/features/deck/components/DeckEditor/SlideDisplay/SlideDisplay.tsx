@@ -16,7 +16,6 @@ import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
 import React from "react";
 import { slotMappingOptions, type SlotMapping } from "../../../contexts/ImageSlot.types";
 import { useSlide } from "../../../hooks/useSlide";
-import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
 import { AllocationSlideContent } from "../SlideContent/AllocationSlideContent/AllocationSlideContent";
 import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/DrawingSlideContent";
 import { FollowUpSlideContent } from "../SlideContent/FollowUpSlideContent/FollowUpSlideContent";
@@ -29,6 +28,7 @@ import { QAndASlideContent } from "../SlideContent/QAndASlideContent/QAndASlideC
 import { RankingSlideContent } from "../SlideContent/RankingSlideContent/RankingSlideContent";
 import { ScalesSlideContent } from "../SlideContent/ScalesSlideContent/ScalesSlideContent";
 import { TextSlideContent } from "../SlideContent/TextSlideContent/TextSlideContent";
+import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -145,7 +145,7 @@ const SlideDisplay = () => {
           }}
         />
         <div></div>
-      </SlideCanvas>
+      </SlideCanvas>{" "}
     </>
   );
 };

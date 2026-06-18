@@ -74,6 +74,7 @@
     "globals": "^17.5.0",
     "jsdom": "^29.1.1",
     "msw": "^2.14.3",
+    "oxlint": "^1.69.0",
     "prettier": "^3.8.4",
     "storybook": "^10.4.2",
     "stylelint": "^17.10.0",

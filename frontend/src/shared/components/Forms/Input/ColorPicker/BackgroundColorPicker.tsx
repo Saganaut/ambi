@@ -8,7 +8,7 @@ import Block from "@uiw/react-color-block";
 import type { ColorResult } from "@uiw/color-convert";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { COLOR_CHOICES } from "@utils/color";
+import { BACKGROUND_COLOR_CHOICES } from "@utils/color";
 import styles from "./ColorPicker.module.css";
 
 // Shown when nothing has resolved yet, so the picker has a defined starting hue.
@@ -46,7 +46,7 @@ const BackgroundColorPicker = ({
     <Block
       className={styles.block}
       color={value ?? FALLBACK_HEX}
-      colors={[...COLOR_CHOICES]}
+      colors={[...BACKGROUND_COLOR_CHOICES]}
       onChange={(color: ColorResult) => {
         onChange(color.hex);
       }}

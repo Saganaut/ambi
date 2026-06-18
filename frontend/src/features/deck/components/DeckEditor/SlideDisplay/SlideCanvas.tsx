@@ -66,7 +66,7 @@ const SlideCanvas = ({
           top: 1,
           bottom: 4,
         }}
-      />{" "}
+      />
       <ImageSlot
         slotId={{
           start: 2,
@@ -81,7 +81,7 @@ const SlideCanvas = ({
             {children}
           </SlideCanvasProvider>
         </div>
-      </div>{" "}
+      </div>
       <ImageSlot
         slotId={{
           start: 5,
@@ -89,7 +89,7 @@ const SlideCanvas = ({
           top: 1,
           bottom: 4,
         }}
-      />{" "}
+      />
       <ImageSlot
         slotId={{
           start: 6,

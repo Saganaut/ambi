@@ -22,3 +22,4 @@ Reachability is enforced by `tools/doc-lint.js`: every `.md` file under the repo
 ## Single-file references
 
 - [Glossary](glossary.md) — Domain terms (deck, element, interactive session, organization, theme, slide, MCQ, …).
+- [Live Session — Open Decisions](live-session-open-decisions.md) — Pre-implementation review of the live-session feature: unresolved design decisions (transport, identity, scoring, persistence) with suggestions.

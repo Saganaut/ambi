@@ -1,0 +1,69 @@
+import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
+import { useAppDispatch } from "@/shared/hooks/storeHooks";
+import { RootState } from "@/shared/store/store";
+import { close } from "@deck/store/panelSlice.ts";
+import { XMarkIcon } from "@heroicons/react/24/solid";
+import { getRouteApi } from "@tanstack/react-router";
+import { useSelector } from "react-redux";
+import { AnswerPanel } from "../AnswerPanel/AnswerPanel";
+import { PANEL_TITLES } from "../data";
+import { DeckPanel } from "../DeckPanel/DeckPanel";
+import { DeckDiscussionPanel } from "../DiscussionPanel/DeckDiscussionPanel";
+import { EditSlidePanel } from "../EditSlidePanel/EditSlidePanel";
+import { InviteSettingsPanel } from "../InviteSettingsPanel";
+import { ParticipantsPanel } from "../ParticipantPanel/ParticipantsPanel";
+import { QuizPanel } from "../QuizPanel/QuizPanel";
+
+import styles from "../RightSidebarContent.module.css";
+const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+
+const SidePanelDrawer = () => {
+  const { deckId } = routeApi.useParams();
+  const { slideId } = routeApi.useSearch();
+  const { panelKey, isOpen } = useSelector((state: RootState) => state.panel);
+  const dispatch = useAppDispatch();
+
+  return (
+    <>
+      <aside
+        className={`${[styles.drawer, isOpen && styles.isOpen].join(" ")}`}
+        aria-label={PANEL_TITLES[panelKey]}
+      >
+        <div className={styles.panelContent} key={panelKey}>
+          <div className={styles.drawerHeader}>
+            <h3 className={styles.drawerTitle}>{PANEL_TITLES[panelKey]}</h3>
+            <IconBtn
+              fill="ghost"
+              icon={<XMarkIcon />}
+              size="sm"
+              aria-label="Close panel"
+              onClick={() => {
+                dispatch(close());
+              }}
+            />
+          </div>
+          <div className={styles.drawerBody}>
+            {panelKey === "deck" && <DeckPanel deckId={deckId} />}
+
+            {slideId && (
+              <>
+                {panelKey === "edit" && <EditSlidePanel deckId={deckId} slideId={slideId} />}
+                {panelKey === "answers" && <AnswerPanel deckId={deckId} slideId={slideId} />}
+                {panelKey === "quiz" && <QuizPanel deckId={deckId} slideId={slideId} />}
+                {panelKey === "discussion" && (
+                  <DeckDiscussionPanel slideId={slideId} deckId={deckId} />
+                )}
+                {panelKey === "participants" && (
+                  <ParticipantsPanel deckId={deckId} slideId={slideId} />
+                )}
+              </>
+            )}
+            {panelKey === "sharing" && <InviteSettingsPanel deckId={deckId} />}
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export { SidePanelDrawer };

@@ -53,6 +53,29 @@ export const COLOR_CHOICES: HexColor[] = [
   "#ffdf20",
 ];
 
+// Muted, low-saturation tones suited to slide / deck *backgrounds* — the vivid
+// COLOR_CHOICES above read as accent/foreground colors and overpower content.
+// Soft neutrals, pastels, and a few muted darks (Tailwind 50–300 lights, 600–800
+// darks). These are just quick-pick swatches; the picker's hex input still
+// accepts any custom color.
+export const BACKGROUND_COLOR_CHOICES: HexColor[] = [
+  "#ffffff",
+  "#f5f5f4",
+  "#e7e5e4",
+  "#d6d3d1",
+  "#fef3c7",
+  "#fed7aa",
+  "#fecaca",
+  "#fbcfe8",
+  "#e9d5ff",
+  "#c7d2fe",
+  "#bfdbfe",
+  "#a5f3fc",
+  "#bbf7d0",
+  "#475569",
+  "#1e293b",
+];
+
 export function isHexColor(value: string): value is HexColor {
   return /^#([A-Fa-f0-9]{3,4}){1,2}$/.test(value);
 }

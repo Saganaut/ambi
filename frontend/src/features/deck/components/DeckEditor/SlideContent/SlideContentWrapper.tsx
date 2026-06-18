@@ -12,8 +12,8 @@
  *   - children — the editor's fields (flex column with `--space-4` gap).
  *   - `footer` — warnings / help text pinned below the scrollable body.
  */
-import type { ReactNode } from "react";
 import { useSlideCanvas } from "@deck/contexts/useSlideCanvas";
+import type { ReactNode } from "react";
 import { ImageSlot } from "../../ImageSlot";
 import { PromptField, type PromptFieldProps } from "./_shared";
 import styles from "./SlideContentWrapper.module.css";
@@ -67,7 +67,6 @@ const SlideContentWrapper = ({
         />
       </div>
       {footer && <footer className={styles.footer}>{footer}</footer>}
-      <div></div>
     </div>
   );
 };

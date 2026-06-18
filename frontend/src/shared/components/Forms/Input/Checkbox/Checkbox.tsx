@@ -8,12 +8,16 @@ interface CheckboxProps
   extends InputBaseProps,
     React.InputHTMLAttributes<HTMLInputElement> {
   labelPosition?: "labelBefore" | "labelAfter";
+  /** Fill the row width so the label sits left and the control pins to the
+      opposite edge (label and box are spaced apart). */
+  stretch?: boolean;
 }
 
 const Checkbox = ({
   id,
   label,
   labelPosition = "labelAfter",
+  stretch = false,
   checked,
   onChange,
   disabled,
@@ -28,6 +32,7 @@ const Checkbox = ({
       className={[
         styles.checkboxContainer,
         labelPosition === "labelBefore" ? styles.labelBefore : "",
+        stretch ? styles.stretch : "",
       ]
         .filter(Boolean)
         .join(" ")}>

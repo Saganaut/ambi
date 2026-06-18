@@ -54,18 +54,11 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
     { skip: !themeId },
   );
 
-  // The deck PATCH is a full metadata replace (an omitted field is cleared), so
-  // we resend the rest of the metadata alongside the theme change — both when
-  // applying a theme and when clearing it back to the deck's (global) default.
+  // updateDeck merges this partial over the deck's current metadata, so this
+  // both applies a theme and clears it back to the deck's (global) default
+  // without disturbing the rest of the metadata.
   const setDeckTheme = (nextThemeId?: string) => {
-    if (!deck) return;
-    updateDeck({
-      name: deck.name,
-      description: deck.description,
-      language: deck.language,
-      publishStatus: deck.publishStatus,
-      themeId: nextThemeId,
-    });
+    updateDeck({ themeId: nextThemeId });
   };
 
   const openThemeModal = () => {

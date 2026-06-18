@@ -5,7 +5,7 @@
  * editor navbar. The navbar's title is an inline-editable input that patches the
  * deck name through `PUT /api/decks/{id}` on blur/Enter — no save button.
  */
-import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { LeftSidebarContent } from "../../components/DeckEditor/LeftSidebar/LeftSidebarContent";
 import { PublishStatusControl } from "../../components/DeckEditor/PublicStatusControl/PublishStatusControl";
@@ -15,26 +15,22 @@ import { SlideDisplay } from "../../components/DeckEditor/SlideDisplay/SlideDisp
 import { SpeakerNotesDrawer } from "../../components/DeckEditor/SpeakerNotesDrawer/SpeakerNotesDrawer";
 import styles from "./DeckEditor.module.css";
 
-import {
-  ArrowsPointingOutIcon,
-  ChartBarIcon,
-  PlayIcon,
-  ShareIcon,
-} from "@heroicons/react/24/outline";
+import { ArrowsPointingOutIcon, PlayIcon, ShareIcon } from "@heroicons/react/24/outline";
 
-import { DropdownMenuItem } from "@/shared/components/Menus/DropdownMenu";
-import { useFullScreen } from "@/shared/hooks/useFullScreen";
+import { deckValidation } from "@/features/deck/store/deckValidationConstants";
+import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { CanvasBody } from "@/shared/components/Layout/CanvasBody";
 import { CanvasHeader } from "@/shared/components/Layout/CanvasHeader";
 import { InnerDisplay } from "@/shared/components/Layout/InnerDisplay";
 import { MainBodyDashboard } from "@/shared/components/Layout/MainBodyDashboard";
-import { Input } from "@/shared/components/Forms/Input/Input/Input";
-import { deckValidation } from "@/features/deck/store/deckValidationConstants";
+import { DropdownMenuItem } from "@/shared/components/Menus/DropdownMenu";
+import { useFullScreen } from "@/shared/hooks/useFullScreen";
 
-import { useDeckEditor } from "../../hooks/useDeckEditor";
 import { Btn } from "@ui/Buttons/Btn";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
+import { SidePanelDrawer } from "../../components/DeckEditor/RightSidebar/SidePanelDrawer/SidePanelDrawer";
 import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
+import { useDeckEditor } from "../../hooks/useDeckEditor";
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const DeckEditor = () => {
@@ -66,20 +62,22 @@ const DeckEditor = () => {
                 void navigate({
                   to: "/decks",
                 });
-              }}>
+              }}
+            >
               Back
             </Btn>
             <Btn
               shape={"pill"}
               size={"md"}
-              aria-label='Enter fullscreen'
-              onClick={toggleFullScreen}>
+              aria-label="Enter fullscreen"
+              onClick={toggleFullScreen}
+            >
               <ArrowsPointingOutIcon className={styles.iconMd} />
             </Btn>{" "}
             <Input
-              ariaLabel='Deck title'
+              ariaLabel="Deck title"
               value={titleDraft}
-              placeholder='Untitled Deck'
+              placeholder="Untitled Deck"
               className={styles.titleDeck}
               maxLength={deckValidation.UpdateDeckRequest.name.maxLength}
               onChange={(e) => {
@@ -109,31 +107,23 @@ const DeckEditor = () => {
               shape={"pill"}
               variant={"brand"}
               disabled={isStarting}
-              aria-describedby={
-                startError ? "start-interactiveSession-error" : undefined
-              }
+              aria-describedby={startError ? "start-interactiveSession-error" : undefined}
               onClick={() => {
                 void present();
               }}
-              menuAriaLabel='More start options'
+              menuAriaLabel="More start options"
               menuItems={
                 <>
-                  <DropdownMenuItem onClick={preview}>
-                    Preview
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={schedule}>
-                    Schedule
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={preview}>Preview</DropdownMenuItem>
+                  <DropdownMenuItem onClick={schedule}>Schedule</DropdownMenuItem>
                 </>
-              }>
+              }
+            >
               <PlayIcon className={styles.iconMd} />
               {isStarting ? "Starting…" : "Start"}
             </SplitBtn>
             {startError && (
-              <span
-                id='start-interactiveSession-error'
-                className={styles.startError}
-                role='alert'>
+              <span id="start-interactiveSession-error" className={styles.startError} role="alert">
                 {startError}
               </span>
             )}
@@ -142,15 +132,16 @@ const DeckEditor = () => {
       </CanvasHeader>
 
       <CanvasBody>
-        <ImageSlotProvider >
-
+        <ImageSlotProvider>
           <LeftSidebarContent />
           <InnerDisplay className={styles.slideCanvasContainer}>
             <SlideDisplay />
             <SpeakerNotesDrawer />
           </InnerDisplay>
+          <SidePanelDrawer />
+
           <RightSidebarContent />
-        </ImageSlotProvider >
+        </ImageSlotProvider>
       </CanvasBody>
     </MainBodyDashboard>
   );

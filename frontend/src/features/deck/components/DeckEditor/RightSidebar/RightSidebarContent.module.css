@@ -34,56 +34,35 @@
 }
 
 .drawer {
-  position: absolute;
-  top: var(--space-3);
-  bottom: var(--space-3);
-  right: calc(100% + var(--space-2));
+  right: calc(100% + var(--space-4));
   width: 320px;
+  max-width: 0;
   display: flex;
   flex-direction: column;
   background-color: oklch(from var(--bg-surface) l c h / 95%);
-  border: var(--border-size-sm) solid var(--edge-surface);
   border-radius: var(--radius-md);
+  margin-right: var(--space-1);
+  margin-left: var(--space-1);
   z-index: 3;
   overflow: hidden;
-  animation: slide-in-left var(--duration-base, 200ms) var(--ease-out, ease-out);
-}
+  border: var(--border-size-sm) solid var(--edge-surface);
+  opacity: 0;
+  transition:
+    max-width var(--duration-base, 200ms) ease-in-out,
+    opacity var(--duration-base, 200ms) ease-in-out;
 
-@keyframes slide-in-left {
-  from {
-    transform: translateX(16px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
+  &.isOpen {
+    max-width: 1000px;
     opacity: 1;
   }
 }
 
-/* Inner wrapper around the title + body. The view-transition name is on this
-   element (not on .drawer) so that opening/closing the drawer keeps using the
-   slide-in keyframe above, and only panel-to-panel swaps — which run inside
-   document.startViewTransition() — produce a crossfade. */
 .panelContent {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   view-transition-name: right-drawer-panel;
-}
-
-::view-transition-old(right-drawer-panel),
-::view-transition-new(right-drawer-panel) {
-  animation-duration: var(--duration-base);
-  animation-timing-function: var(--ease-out);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(right-drawer-panel),
-  ::view-transition-new(right-drawer-panel) {
-    animation-duration: 0.01ms;
-  }
 }
 
 .drawerHeader {

@@ -58,7 +58,7 @@
   .slideCanvasContainer {
     background-color: var(--bg-canvas);
     display: flex;
-    padding: var(--p-lg);
+    padding: var(--p-md);
     padding-bottom: var(--space-16);
     position: relative;
     min-width: 0;

@@ -41,6 +41,8 @@ const DEFAULTS: Required<InviteSettings> = {
   roomCodeLocations: [DisplayLocation.LOBBY, DisplayLocation.HEADER],
 };
 
+// Each surface is a slim full-width row: location name on the left, checkbox
+// pinned to the right edge (Checkbox `labelBefore` + `stretch`).
 const LocationChecklist = ({
   idPrefix,
   selected,
@@ -50,12 +52,14 @@ const LocationChecklist = ({
   selected: Location[];
   onToggle: (location: Location, on: boolean) => void;
 }) => (
-  <div className={styles.section}>
+  <div className={styles.locationList}>
     {LOCATIONS.map(({ value, label }) => (
       <Checkbox
         key={value}
         id={`${idPrefix}-${value}`}
         label={label}
+        labelPosition='labelBefore'
+        stretch
         checked={selected.includes(value)}
         onChange={(e) => {
           onToggle(value, e.currentTarget.checked);
