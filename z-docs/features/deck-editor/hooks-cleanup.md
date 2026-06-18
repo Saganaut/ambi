@@ -57,11 +57,13 @@ pattern as `useSlide`. `useDeck` now exposes `setDeckImage(slot, image)` and
 `clearDeckImage(slot)` alongside `coverImage` / `backgroundImage` read fields.
 `useDeckImage.ts` is deleted; `DeckPanel` updated to use `useDeck` directly.
 
-### 5. `ImageRole` type exported from the wrong hook
+### 5. `ImageRole` type exported from the wrong hook *(FIXED)*
 
-`ImageRole` is now defined independently in both `useDeck.ts` and `useSlide.ts`
-(`"cover" | "background"`). It should be moved to a shared types file so both
-hooks import it from one place rather than duplicating the definition.
+`ImageRole` was defined independently in both `useDeck.ts` and `useSlide.ts`.
+
+**Resolution:** moved to `deck.types.ts` (the feature-level shared types file).
+Both hooks now import it from there; `useSlide` still re-exports it for consumers
+that already import it from that path.
 
 ### 6. `UseDeckSettingsResult` interface not exported
 
