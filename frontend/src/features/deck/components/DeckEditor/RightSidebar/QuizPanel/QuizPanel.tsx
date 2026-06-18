@@ -23,7 +23,7 @@ const QuizPanel = ({
   deckId,
   slideId,
 }: deckAndSlideIdProps) => {
-  const { pointSettings, updatePointSettings, clearPointSettings, flush, cancelPendingWrites } =
+  const { pointSettings, schedulePointSettings, clearPointSettings, flush, cancel } =
     useSlideSettings(deckId, slideId);
   const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
   const [promotePointSettings] = usePromotePointSettingsToDeckMutation();
@@ -62,14 +62,14 @@ const QuizPanel = ({
     // every field populated.
     const next = { ...form, ...patch };
     setForm(next);
-    updatePointSettings(next);
+    schedulePointSettings(next);
     if (immediate) flush();
   };
 
   const applyToDeck = () => {
     // Cancel any buffered slide write first so it can't race the promote and
     // re-set the override that the backend is about to clear on all slides.
-    cancelPendingWrites();
+    cancel();
     void promotePointSettings({
       id: deckId,
       setPointSettingsRequest: { pointSettings: form },
@@ -130,7 +130,7 @@ const QuizPanel = ({
           onChange={toggleQuizMode}
         />
 
-        {((form.points ?? 0) > 0) &&
+        {(form.points ?? 0 > 0) &&
           <>
             <NumberInput
               id={`${idPrefix}-points`}

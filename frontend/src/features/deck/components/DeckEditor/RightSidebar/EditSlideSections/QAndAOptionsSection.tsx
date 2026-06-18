@@ -22,7 +22,7 @@ const QAndAOptionsSection = () => {
   );
   const {
     answerSettings,
-    updateAnswerSettings,
+    scheduleAnswerSettings,
     flush: flushSettings,
   } = useSlideSettings(deckId, slideId ?? "");
 
@@ -55,7 +55,7 @@ const QAndAOptionsSection = () => {
         onChange={(e) => {
           const next = e.currentTarget.checked;
           setAllowAnonymous(next);
-          updateAnswerSettings({ allowAnonymous: next });
+          scheduleAnswerSettings({ allowAnonymous: next });
           flushSettings();
         }}
       />

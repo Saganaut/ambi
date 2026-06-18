@@ -107,6 +107,11 @@ An explicit image always wins, so setting one normalizes `hide_background` to `f
 
 In the inspector (`EditSlidePanel`), the image picker covers "own image" vs "reset to deck", and a "Hide background on this slide" toggle (shown only when the slide has no own image and the deck *has* a background) switches between Inherit and Hidden.
 
+## Hooks cleanup backlog
+
+Outstanding naming inconsistencies and overlap issues across the deck hook layer:
+see [hooks-cleanup.md](hooks-cleanup.md).
+
 ## Key files
 
 | File                                                                       | Purpose                                                          |

@@ -67,7 +67,7 @@ const AnswerPanel = ({
   deckId,
   slideId,
 }: deckAndSlideIdProps) => {
-  const { answerSettings, updateAnswerSettings, clearAnswerSettings, flush, cancelPendingWrites } =
+  const { answerSettings, scheduleAnswerSettings, clearAnswerSettings, flush, cancel } =
     useSlideSettings(deckId, slideId);
   const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
   const { getSlide } = useSlide(deckId)
@@ -111,12 +111,12 @@ const AnswerPanel = ({
     // every field populated.
     const next = { ...form, ...patch };
     setForm(next);
-    updateAnswerSettings(next);
+    scheduleAnswerSettings(next);
     if (immediate) flush();
   };
 
   const applyToDeck = () => {
-    cancelPendingWrites();
+    cancel();
     void promoteAnswerSettings({
       id: deckId,
       setAnswerSettingsRequest: { answerSettings: form },

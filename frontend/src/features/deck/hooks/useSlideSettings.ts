@@ -34,13 +34,13 @@ interface UseSlideSettingsResult {
    * writes inside one debounce window build on each other instead of each
    * starting from the same stale render snapshot.
    */
-  updatePointSettings: (
+  schedulePointSettings: (
     patch:
       | Partial<PointSettings>
       | ((prev: PointSettings) => Partial<PointSettings>),
   ) => void;
-  /** As {@link updatePointSettings}, for answer settings. */
-  updateAnswerSettings: (
+  /** As {@link schedulePointSettings}, for answer settings. */
+  scheduleAnswerSettings: (
     patch:
       | Partial<AnswerSettings>
       | ((prev: AnswerSettings) => Partial<AnswerSettings>),
@@ -56,7 +56,7 @@ interface UseSlideSettingsResult {
    * mutation. Use before a promote-to-deck call so the buffered slide write
    * can't race the promote and re-set the just-cleared override.
    */
-  cancelPendingWrites: () => void;
+  cancel: () => void;
 }
 
 const useSlideSettings = (
@@ -105,7 +105,7 @@ const useSlideSettings = (
     answerDraftRef.current = null;
   }
 
-  const updatePointSettings = (
+  const schedulePointSettings = (
     patch:
       | Partial<PointSettings>
       | ((prev: PointSettings) => Partial<PointSettings>),
@@ -120,7 +120,7 @@ const useSlideSettings = (
     point.schedule(next);
   };
 
-  const updateAnswerSettings = (
+  const scheduleAnswerSettings = (
     patch:
       | Partial<AnswerSettings>
       | ((prev: AnswerSettings) => Partial<AnswerSettings>),
@@ -151,7 +151,7 @@ const useSlideSettings = (
     answer.flush();
   };
 
-  const cancelPendingWrites = () => {
+  const cancel = () => {
     point.cancel();
     pointDraftRef.current = null;
     answer.cancel();
@@ -161,12 +161,12 @@ const useSlideSettings = (
   return {
     pointSettings: settings?.pointSettings,
     answerSettings: settings?.answerSettings,
-    updatePointSettings,
-    updateAnswerSettings,
+    schedulePointSettings,
+    scheduleAnswerSettings,
     clearPointSettings,
     clearAnswerSettings,
     flush,
-    cancelPendingWrites,
+    cancel,
   };
 };
 

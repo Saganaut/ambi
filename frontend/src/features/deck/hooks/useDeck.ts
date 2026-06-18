@@ -37,8 +37,8 @@ interface UseDeckResult {
   remove: () => Promise<unknown>;
   openDeckInEditor: () => void;
   openDeleteDeckModal: () => Promise<void>;
-  handlePresent: () => void;
-  handleAddToCollection: () => void;
+  present: () => void;
+  addToCollection: () => void;
 }
 
 /**
@@ -54,7 +54,7 @@ const useDeck = (deckId: string): UseDeckResult => {
   const [setVisibilityMutation] = useSetDeckVisibilityMutation();
   const [shareMutation] = useShareDeckMutation();
   const [revokeShareMutation] = useRevokeShareDeckMutation();
-  const { present } = useLiveSession();
+  const { present: livePresent } = useLiveSession();
 
   const openDeckInEditor = () => {
     void navigate({
@@ -64,13 +64,13 @@ const useDeck = (deckId: string): UseDeckResult => {
     });
   };
 
-  const handleAddToCollection = () => {
+  const addToCollection = () => {
     console.log("adding to collection not implemented yet");
   };
 
-  const handlePresent = () => {
+  const present = () => {
     // Placeholder until the live-session flow exists; logs "not yet implemented".
-    present(deckId);
+    livePresent(deckId);
   };
 
   const openDeleteDeckModal = async () => {
@@ -125,8 +125,8 @@ const useDeck = (deckId: string): UseDeckResult => {
     remove,
     openDeckInEditor,
     openDeleteDeckModal,
-    handlePresent,
-    handleAddToCollection,
+    present,
+    addToCollection,
   };
 };
 

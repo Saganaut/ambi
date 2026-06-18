@@ -21,9 +21,9 @@
 //    gates analytics on non-system decks — there's no `isSystem` flag on
 //    DeckResponse to honour that half of the rule yet.
 //  • Share: `useDeck.share/revokeShare` exist, but there's no user-search
-//    endpoint or share modal, so `handleShareClick` is a stub.
-//  • Schedule: no scheduling endpoint — `handleScheduleClick` is a stub.
-//  • Preview: no read-only deck-renderer route — `handlePreview` is a stub.
+//    endpoint or share modal, so `share` is a stub.
+//  • Schedule: no scheduling endpoint — `schedule` is a stub.
+//  • Preview: no read-only deck-renderer route — `preview` is a stub.
 //  • Speaker notes: neither SlideRequest nor SlideResponse carries a notes
 //    field, so the SpeakerNotesDrawer has nothing to bind to yet.
 // ────────────────────────────────────────────────────────────────────────────
@@ -87,14 +87,14 @@ interface UseDeckEditorResult {
   /** See TODO header — derived from `canEdit`, missing the system-deck rule. */
   canViewAnalytics: boolean;
   /** Live-session "Start". Stubbed — see TODO header. */
-  quickStart: () => void;
+  present: () => void;
   /** Always false until the live-session flow exists. */
   isStarting: boolean;
   /** Always null until the live-session flow exists. */
   startError: string | null;
-  handleShareClick: () => void;
-  handleScheduleClick: () => void;
-  handlePreview: () => void;
+  share: () => void;
+  schedule: () => void;
+  preview: () => void;
 }
 
 /** Scroll the newly-added thumbnail into view; runs after the route commits. */
@@ -111,7 +111,7 @@ const scrollThumbnailIntoView = (slideId: string) => {
 const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult => {
   const navigate = routeApi.useNavigate();
 
-  const { deck, isLoading, error, rename, handlePresent } = useDeck(deckId);
+  const { deck, isLoading, error, rename, present } = useDeck(deckId);
   const { slides, addSlide: appendSlide, addFollowUp: attachFollowUp, removeSlide, reorder } = useSlide(deckId);
 
   // ── Title draft ──────────────────────────────────────────────────────────
@@ -198,17 +198,15 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   const canEdit = deck?.permissions.canEdit ?? false;
   const canViewAnalytics = canEdit;
 
-  const quickStart = () => handlePresent();
-
-  const handleShareClick = () => {
+  const share = () => {
     console.log("share not implemented yet");
   };
 
-  const handleScheduleClick = () => {
+  const schedule = () => {
     console.log("schedule not implemented yet");
   };
 
-  const handlePreview = () => {
+  const preview = () => {
     console.log("preview not implemented yet");
   };
 
@@ -235,12 +233,12 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
 
     canEdit,
     canViewAnalytics,
-    quickStart,
+    present,
     isStarting: false,
     startError: null,
-    handleShareClick,
-    handleScheduleClick,
-    handlePreview,
+    share,
+    schedule,
+    preview,
   };
 };
 

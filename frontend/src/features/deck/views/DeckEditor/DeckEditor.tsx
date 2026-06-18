@@ -34,6 +34,7 @@ import { deckValidation } from "@/features/deck/store/deckValidationConstants";
 import { useDeckEditor } from "../../hooks/useDeckEditor";
 import { Btn } from "@ui/Buttons/Btn";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
+import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const DeckEditor = () => {
@@ -47,10 +48,10 @@ const DeckEditor = () => {
     commitTitle,
     isStarting,
     startError,
-    quickStart,
-    handleShareClick,
-    handleScheduleClick,
-    handlePreview,
+    present,
+    share,
+    schedule,
+    preview,
   } = useDeckEditor(deckId);
 
   return (
@@ -99,7 +100,7 @@ const DeckEditor = () => {
           <div className={styles.rightControlButtons}>
             <PublishStatusControl />
 
-            <Btn size={"md"} shape={"pill"} onClick={handleShareClick}>
+            <Btn size={"md"} shape={"pill"} onClick={share}>
               <ShareIcon className={styles.iconMd} />
               Share
             </Btn>
@@ -112,15 +113,15 @@ const DeckEditor = () => {
                 startError ? "start-interactiveSession-error" : undefined
               }
               onClick={() => {
-                void quickStart();
+                void present();
               }}
               menuAriaLabel='More start options'
               menuItems={
                 <>
-                  <DropdownMenuItem onClick={handlePreview}>
+                  <DropdownMenuItem onClick={preview}>
                     Preview
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleScheduleClick}>
+                  <DropdownMenuItem onClick={schedule}>
                     Schedule
                   </DropdownMenuItem>
                 </>
@@ -139,13 +140,17 @@ const DeckEditor = () => {
           </div>
         </div>
       </CanvasHeader>
+
       <CanvasBody>
-        <LeftSidebarContent />
-        <InnerDisplay className={styles.slideCanvasContainer}>
-          <SlideDisplay />
-          <SpeakerNotesDrawer />
-        </InnerDisplay>
-        <RightSidebarContent />
+        <ImageSlotProvider >
+
+          <LeftSidebarContent />
+          <InnerDisplay className={styles.slideCanvasContainer}>
+            <SlideDisplay />
+            <SpeakerNotesDrawer />
+          </InnerDisplay>
+          <RightSidebarContent />
+        </ImageSlotProvider >
       </CanvasBody>
     </MainBodyDashboard>
   );

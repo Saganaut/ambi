@@ -16,7 +16,7 @@ const McqOptionsSection = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
   const { slide } = useSlideEditor(deckId, slideId ?? "", "MCQ");
-  const { answerSettings, updateAnswerSettings, flush } =
+  const { answerSettings, scheduleAnswerSettings, flush } =
     useSlideSettings(deckId, slideId ?? "");
 
   const [shuffle, setShuffle] = useState(
@@ -39,12 +39,12 @@ const McqOptionsSection = () => {
       <Toggle
         labelPosition="labelBefore"
         id={`mcq-shuffle-${slide.id}`}
-        label='Shuffle option order per player'
+        label='Shuffle option order'
         checked={shuffle}
         onChange={(e) => {
           const next = e.currentTarget.checked;
           setShuffle(next);
-          updateAnswerSettings({ shuffleOptions: next });
+          scheduleAnswerSettings({ shuffleOptions: next });
           flush();
         }}
       />

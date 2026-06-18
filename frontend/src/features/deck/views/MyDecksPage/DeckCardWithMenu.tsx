@@ -12,8 +12,8 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
   const {
     openDeckInEditor,
     openDeleteDeckModal,
-    handlePresent,
-    handleAddToCollection,
+    present,
+    addToCollection,
   } = useDeck(deck.id);
 
   return (
@@ -57,10 +57,10 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
           }
         />
       )}>
-      <DropdownMenuItem onClick={handlePresent}>
+      <DropdownMenuItem onClick={present}>
         Use as presentation
       </DropdownMenuItem>
-      <DropdownMenuItem onClick={handleAddToCollection}>
+      <DropdownMenuItem onClick={addToCollection}>
         Add to collection…
       </DropdownMenuItem>
     </DropdownMenu>
