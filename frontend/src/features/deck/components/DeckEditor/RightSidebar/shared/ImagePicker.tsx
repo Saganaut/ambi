@@ -70,55 +70,5 @@ const ImagePicker = ({
 };
 
 
-interface ImagePickerSmallProps {
-  image: AppImage | undefined;
-  onPick: () => void;
-  onClear: () => void;
-
-}
-
-const ImagePickerSmall = ({ image, onPick, onClear }: ImagePickerSmallProps) => {
-  const hasImage = !isImageEmpty(image);
-  const thumbnailSrc = resolveImageUrl(image, "SM", "");
-
-
-  return (
-    <div className={styles.imagePickerSmall}>
-      <button
-        type='button'
-        className={styles.imageTile}
-        onClick={onPick}
-        aria-label={`Pick image`}>
-        {hasImage && thumbnailSrc ? (
-          <img src={thumbnailSrc} alt='' />
-        ) :
-          <div className={styles.imageTileEmpty} >
-
-            <div>
-              <PhotoIcon aria-hidden='true' />
-            </div>
-          </div>
-        }
-      </button>
-      {hasImage && (
-        <IconBtn
-          fill='ghost'
-          size='xs'
-          className={styles.imageClear}
-          icon={<XMarkIcon />}
-          aria-label={`Clear image`}
-          onClick={onClear}
-        />
-      )}
-    </div>
-  )
-}
-
-
-
-
-
-
-
-export { ImagePicker, ImagePickerSmall };
+export { ImagePicker };
 export type { ImagePickerProps };

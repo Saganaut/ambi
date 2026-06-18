@@ -1,6 +1,6 @@
 // Deck-*creation* layer between the generated deck API and the "New deck" button.
 // Creation is the one deck operation that has no deckId to scope to, so it lives
-// apart from `useDeck` (which requires a deckId and only mutates an existing deck).
+// apart from `useDeckMutate` (which requires a deckId and only mutates an existing deck).
 // Cache behaviour for the underlying mutation lives in `store/enhancements/deck.ts`
 // so it applies no matter who calls it.
 import { useNavigate } from "@tanstack/react-router";

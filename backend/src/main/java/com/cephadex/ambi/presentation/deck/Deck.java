@@ -68,6 +68,13 @@ public class Deck extends Auditable {
     @Field("background_image")
     private AppImage backgroundImage;
 
+    // Deck-wide default background color (hex "#RRGGBB"), the color counterpart
+    // to backgroundImage. If set, every slide inherits it unless the slide
+    // overrides it with its own backgroundColor or suppresses inheritance via
+    // hideBackground. Composes behind the background image when both are present.
+    @Field("background_color")
+    private String backgroundColor;
+
     @Field("theme_id")
     private String themeId;
 

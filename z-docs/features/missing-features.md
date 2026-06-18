@@ -19,6 +19,8 @@
 
 - Input components need to be more re-usable and better styles. For example they should have style defaults and variants but be able to be customized by ecah parent, especially layout.  Also need to allow space for info messages.
 
+- We need to stop using the term player, instead we should use participant
+
 BUGS
 Allow multiple selection correct answers
 

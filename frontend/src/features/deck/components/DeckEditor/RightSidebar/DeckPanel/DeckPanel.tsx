@@ -9,7 +9,7 @@
 // source of truth for the 50-tag / 50-char-per-tag limits.
 import { useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { useGetDeckQuery, useSetDeckTagsMutation } from "@deck/store/deckApi.gen";
+import { useSetDeckTagsMutation } from "@deck/store/deckApi.gen";
 import { deckValidation } from "@deck/store/deckValidationConstants";
 import { validateText } from "@utils/fieldValidation";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
@@ -17,7 +17,9 @@ import { IconBtn } from "@ui/Buttons/IconBtn";
 import styles from "./DeckPanel.module.css";
 import { ImagePicker } from "../shared/ImagePicker";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { useDeck } from "@/features/deck/hooks/useDeck";
+import { useDeckMutate } from "@/features/deck/hooks/useDeckMutate";
+import { useDeckQuery } from "@/features/deck/hooks/useDeckQuery";
+import { useDeckImageMutate } from "@/features/deck/hooks/useDeckImageMutate";
 import { useGetThemeQuery } from "@/features/theme/store/themeApi.gen";
 import { ThemeModal } from "@/shared/components/Theme/ThemeModal/ThemeModal";
 import { Btn } from "@/shared/components/UIElements/Buttons/Btn";
@@ -29,7 +31,7 @@ const TAGS_FACETS = deckValidation.SetTagsRequest.tags;
 const ITEM_FACETS = TAGS_FACETS.items;
 
 const useDeckTags = (deckId: string) => {
-  const { data: deck } = useGetDeckQuery({ id: deckId });
+  const { deck } = useDeckQuery(deckId);
   const [setDeckTags, { isLoading: isSaving }] = useSetDeckTagsMutation();
   const tags = deck?.tags ?? [];
   const commit = (next: string[]) => {
@@ -41,7 +43,8 @@ const useDeckTags = (deckId: string) => {
 
 
 const DeckTheme = ({ deckId }: { deckId: string }) => {
-  const { deck, updateDeck } = useDeck(deckId);
+  const { deck } = useDeckQuery(deckId);
+  const { updateDeck } = useDeckMutate(deckId);
   const { openModal, closeModal } = useModal();
 
   const themeId = deck?.themeId;
@@ -97,14 +100,15 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
 
 
 const DeckImages = ({ deckId }: { deckId: string }) => {
-  const { coverImage, setDeckImage, clearDeckImage } = useDeck(deckId);
+  const { deck } = useDeckQuery(deckId);
+  const { setDeckImage, clearDeckImage } = useDeckImageMutate(deckId);
   const openPicker = useGalleryPicker();
 
   return (
     <section className={styles.section}>
       <ImagePicker
         label=''
-        image={coverImage}
+        image={deck?.coverImage}
         seed={`ambi-deck-cover-${deckId}`}
         placeholderText={"Deck cover"}
         onPick={() => {

@@ -87,13 +87,46 @@ non-hook result type if callers don't need it directly.
 
 ## Overlap Issues
 
-### 1. `useGetDeckQuery` subscribed independently in three hooks
+### 1. `useGetDeckQuery` subscribed independently in three hooks *(RESOLVED — formalized)*
 
 `useDeck`, `useDeckImage`, and `useDeckSettings` each call
 `useGetDeckQuery({ id: deckId })`. RTK Query dedupes the network request, but three
-separate subscriptions are mounted per `deckId`. Acknowledged as safe; no consolidation
-point exists. Consider whether any of these hooks should be composed (e.g.
-`useDeckImage` taking the deck as a prop rather than fetching it).
+separate subscriptions are mounted per `deckId`. This was never a perf problem (the
+request is deduped and the store slice shared) — it was a *conceptual ownership* gap:
+no single hook owned "the deck read," so each re-opened it.
+
+**Resolution:** the hook layer is split into three kinds along a CQRS seam, formalized
+in [hook-roles.md](../../rules/frontend/hook-roles.md):
+
+- `use<Entity>Query` — read only; the **sole** caller of the generated
+  `useGet<Entity>Query`.
+- `use<Entity><Slice>Mutate` — write only; may read the cache *internally* to build
+  command payloads (and hold debounce state) but never returns query data.
+- `use<Workflow>` view-model (`useDeckEditor`, `use<Page>`) — composes query + mutate
+  hooks and owns UI concerns (confirm dialogs, navigation, route params).
+
+The load-bearing rule that closes this item: **`useGetDeckQuery` is imported in
+exactly one file, `useDeckQuery.ts`.** Everything else composes it.
+
+**Step plan:**
+1. ✅ **Done.** `useDeckQuery(deckId) → { deck, isLoading, error }` is the only
+   `useGetDeckQuery` caller in the feature. (The cross-feature
+   `liveSession/useSession.ts` still reaches into the generated query directly — its
+   own follow-up.)
+2. ✅ **Done.** Image and settings writes extracted as write-only hooks
+   `useDeckImageMutate` (role-param `setDeckImage`/`clearDeckImage`) and
+   `useDeckSettingsMutate` (`commit`/`schedule`/`flush`, reads cache internally only to
+   build complete PUT bodies). Returned slice data dropped from their public surface;
+   panels read `deck.settings` / `deck.coverImage` from `useDeckQuery`. (By the time
+   this landed, the image ops had already been folded into `useDeck`, so this was an
+   *extraction* rather than the rename of a standalone `useDeckImage`.)
+3. ✅ **Done (resolves #5).** `useDeck` split into the write-only `useDeckMutate`
+   (`rename`/`updateDeck`/`setVisibility`/`share`/`revokeShare`/`remove`) and the
+   view-model `useDeckActions` (`openDeckInEditor`/`openDeleteDeckModal`/`present`/
+   `addToCollection`), which owns the `useConfirm`/`useNavigate`/`useLiveSession`
+   concerns. `useDeck.ts` is deleted.
+4. ⬜ **Pending.** Apply the same split to the `useSlide` cluster (resolves #2/#4 —
+   `ImageSlotContext` is the slide-side instance of this problem).
 
 ### 2. `useSlide` mounted in four separate hooks
 
@@ -119,12 +152,14 @@ Consider extracting `previewPlacement` state into the component that owns the ho
 behaviour and removing the context wrapper, or at minimum documenting why a context
 is needed here.
 
-### 5. `useDeck` conflates data and confirm-dialog concerns
+### 5. `useDeck` conflates data and confirm-dialog concerns *(RESOLVED)*
 
-`useDeck` exposes both `remove` (raw mutation promise) and `openDeleteDeckModal`
+`useDeck` exposed both `remove` (raw mutation promise) and `openDeleteDeckModal`
 (confirm dialog + delete), embedding `useConfirm` dialog logic inside a data hook.
-The dialog concern should live in the component or a UI-layer hook, not in the data
-layer.
+
+**Resolution:** resolved by step 3 of #1. The confirm/navigate/live-session concerns
+moved to the `useDeckActions` view-model hook; the write boundary `useDeckMutate`
+exposes only `remove`. `useDeck` no longer exists.
 
 ---
 
@@ -133,9 +168,9 @@ layer.
 - `useSlide.ts:162` — `console.log("Payload", payload)` debug line. Remove.
 - `ImageSlotContext.tsx:13-31` — unresolved planning comment block ("concerns:",
   "consider…"). Resolve or delete.
-- `useDeck.ts:67-69` — `handleAddToCollection` is a stub (`console.log` only) on an
-  otherwise complete hook. Implement or remove.
+- `useDeckActions.ts` — `addToCollection` is a stub (`console.log` only). Implement or
+  remove.
 - `useCreateDeck.ts:44` — unresolved `// TODO` comment.
-- `ImageSlot.types.ts` — `slotButtons[5]` (`"right-centered"`) has identical
-  `placement` coordinates to `slotButtons[1]` (`"right-half"`). Likely a copy-paste
+- `ImageSlot.types.ts` — `slotButtons[5]` (`"rightCentered"`) has identical
+  `placement` coordinates to `slotButtons[1]` (`"rightHalf"`). Likely a copy-paste
   error; verify the intended grid coords.

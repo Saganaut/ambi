@@ -28,6 +28,7 @@ import com.cephadex.ambi.presentation.deck.dto.MoveSlideRequest;
 import com.cephadex.ambi.presentation.deck.dto.PointSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.SetAnswerSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetAudienceSettingsRequest;
+import com.cephadex.ambi.presentation.deck.dto.SetColorRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetImageRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetInviteSettingsRequest;
 import com.cephadex.ambi.presentation.deck.dto.SetPointSettingsRequest;
@@ -204,6 +205,36 @@ public class DeckController {
             @Valid @RequestBody SetImageRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return toResponse(deckService.promoteBackgroundImageToDeck(id, body.image(), principal), principal);
+    }
+
+    // ── Deck background color ─────────────────────────────────────────────────
+    // The color counterpart to the deck background image, with the same set /
+    // clear / promote split (EDIT). A color composes behind the image.
+
+    /** Set a deck's default background color (EDIT). */
+    @PutMapping("/{id}/background-color")
+    public DeckResponse setDeckBackgroundColor(
+            @PathVariable String id,
+            @Valid @RequestBody SetColorRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.setDeckBackgroundColor(id, body.color(), principal), principal);
+    }
+
+    /** Clear a deck's default background color (EDIT). */
+    @DeleteMapping("/{id}/background-color")
+    public DeckResponse clearDeckBackgroundColor(
+            @PathVariable String id,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.clearDeckBackgroundColor(id, principal), principal);
+    }
+
+    /** Promote a background color to the deck default, clearing all slide overrides (EDIT). */
+    @PutMapping("/{id}/background-color/promote")
+    public DeckResponse promoteBackgroundColorToDeck(
+            @PathVariable String id,
+            @Valid @RequestBody SetColorRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.promoteBackgroundColorToDeck(id, body.color(), principal), principal);
     }
 
     // ── Deck tags ───────────────────────────────────────────────────────────────
@@ -440,6 +471,30 @@ public class DeckController {
             @PathVariable String slideId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return SlideResponse.from(deckService.hideSlideBackground(id, slideId, principal));
+    }
+
+    // ── Slide background color ────────────────────────────────────────────────
+    // The color counterpart to the slide background image (EDIT). A color
+    // composes behind the image and is independent of the hideBackground flag;
+    // the DELETE simply resets the slide to inherit the deck color.
+
+    /** Set a slide's background-color override (EDIT). */
+    @PutMapping("/{id}/slides/{slideId}/background-color")
+    public SlideResponse setSlideBackgroundColor(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @Valid @RequestBody SetColorRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return SlideResponse.from(deckService.setSlideBackgroundColor(id, slideId, body.color(), principal));
+    }
+
+    /** Clear a slide's background-color override so it inherits the deck default (EDIT). */
+    @DeleteMapping("/{id}/slides/{slideId}/background-color")
+    public SlideResponse clearSlideBackgroundColor(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return SlideResponse.from(deckService.clearSlideBackgroundColor(id, slideId, principal));
     }
 
     // ── Slide point settings ─────────────────────────────────────────────────────

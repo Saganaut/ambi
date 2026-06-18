@@ -1,6 +1,7 @@
 // Sharing / invite-display drawer for the deck-editor right sidebar. Deck-wide
 // only (no per-slide override), mirroring ParticipantsPanel: it edits
-// deck.settings.inviteSettings through useDeckSettings.
+// deck.settings.inviteSettings (read from useDeckQuery, written through
+// useDeckSettingsMutate).
 //
 // The actual room code / invite token are minted per run on the LiveSession;
 // these knobs only decide WHETHER and WHERE the join QR and room code are shown
@@ -16,7 +17,8 @@ import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
 import type { InviteSettings } from "@deck/store/deckApi.gen";
 import { DisplayLocation } from "@deck/store/deckEnums.gen";
-import { useDeckSettings } from "../../../hooks/useDeckSettings";
+import { useDeckQuery } from "../../../hooks/useDeckQuery";
+import { useDeckSettingsMutate } from "../../../hooks/useDeckSettingsMutate";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 
 
@@ -64,7 +66,9 @@ const LocationChecklist = ({
 );
 
 const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
-  const { settings, schedule } = useDeckSettings(deckId);
+  const { deck } = useDeckQuery(deckId);
+  const settings = deck?.settings;
+  const { schedule } = useDeckSettingsMutate(deckId);
 
   const invite = settings?.inviteSettings;
 

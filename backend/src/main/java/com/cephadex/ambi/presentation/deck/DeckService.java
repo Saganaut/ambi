@@ -438,6 +438,52 @@ public class DeckService {
         return deckRepository.save(deck);
     }
 
+    // ── Background color ──────────────────────────────────────────────────────
+    // The color counterpart to the background image, with the same set/clear
+    // split and "apply to deck" promote. A color composes BEHIND the image (it
+    // paints the base layer), so unlike the image these operations are wholly
+    // independent of the shared hideBackground flag: an own color always wins its
+    // layer, and clearing one just falls back to deck inheritance. hideBackground
+    // still governs whether an inherited color (and image) is suppressed — it is
+    // left untouched by every color operation, including promote.
+
+    /** Set a deck's default background color (EDIT). */
+    public Deck setDeckBackgroundColor(String id, String color, AmbiPrincipal principal) {
+        return applyDeckImage(id, principal, deck -> deck.setBackgroundColor(color));
+    }
+
+    /** Clear a deck's default background color (EDIT). */
+    public Deck clearDeckBackgroundColor(String id, AmbiPrincipal principal) {
+        return applyDeckImage(id, principal, deck -> deck.setBackgroundColor(null));
+    }
+
+    /** Set a slide's background-color override (EDIT). */
+    public Slide setSlideBackgroundColor(String deckId, String slideId, String color, AmbiPrincipal principal) {
+        return applySlideMutation(deckId, slideId, principal, slide -> slide.setBackgroundColor(color));
+    }
+
+    /** Clear a slide's background-color override so it inherits the deck default (EDIT). */
+    public Slide clearSlideBackgroundColor(String deckId, String slideId, AmbiPrincipal principal) {
+        return applySlideMutation(deckId, slideId, principal, slide -> slide.setBackgroundColor(null));
+    }
+
+    /**
+     * Promote a background color to the deck default and clear every slide's own
+     * background-color override in a single atomic update (EDIT). Unlike the plain
+     * {@link #setDeckBackgroundColor} which only updates the deck, this also drops
+     * all per-slide color overrides so every slide falls through to the new deck
+     * color. The shared {@code hideBackground} flag is deliberately left untouched
+     * — promoting a color must not un-suppress a slide that opted out of the
+     * inherited background.
+     */
+    public Deck promoteBackgroundColorToDeck(String id, String color, AmbiPrincipal principal) {
+        Deck deck = getEditable(id, principal);
+        deck.setBackgroundColor(color);
+        deck.getSlides().forEach(s -> s.setBackgroundColor(null));
+        deckRepository.promoteBackgroundColorToDeck(id, color);
+        return deck;
+    }
+
     // ── Slide settings ──────────────────────────────────────────────────────────
     // A slide carries two independent overrides — point (scoring) and answer
     // (answering) settings — wrapped in an immutable SlideSettings. Each half has

@@ -1,8 +1,8 @@
 /**
- * Read/write boundary for a deck's settings (`DeckResponse.settings`). The
- * deck-editor right-sidebar panels (ParticipantsPanel, SessionPacingSection, the
- * answer/point settings panels' "Apply to deck") edit these deck-wide knobs, so
- * the plumbing is centralised here instead of duplicated per panel.
+ * Write boundary for a deck's settings (`DeckResponse.settings`). The deck-editor
+ * right-sidebar panels (ParticipantsPanel, the answer/point/invite settings
+ * panels' "Apply to deck") edit these deck-wide knobs, so the plumbing is
+ * centralised here instead of duplicated per panel.
  *
  * `DeckSettings` is a nested object with sub-objects `pointSettings`,
  * `answerSettings`, `audienceSettings`, and `inviteSettings`. Each is an
@@ -11,24 +11,21 @@
  * persisted server-side via a targeted update that does NOT re-version the deck
  * — so two settings edits can't contend on the deck `@Version` the way the old
  * whole-deck `updateDeck` PATCH did. A `commit`/`schedule` patch is split by
- * sub-object and routed to the matching endpoint; the caller's partial
- * sub-object is deep-merged onto the cached full sub-object first, so the PUT
- * always carries a complete object (the backend records are primitives that
- * reject nulls).
+ * sub-object and routed to the matching endpoint.
+ *
+ * Write-only by design (see hook-roles.md): to *render* current settings, read
+ * `deck.settings` from `useDeckQuery`. This hook reads the cache *internally*
+ * (via `useDeckQuery`) only to deep-merge the caller's partial sub-object onto
+ * the cached full sub-object, so the PUT always carries a complete object (the
+ * backend records are primitives that reject nulls).
  */
-import { type DeckSettings, useGetDeckQuery, useSetDeckPointSettingsMutation, useSetDeckAnswerSettingsMutation, useSetDeckAudienceSettingsMutation, useSetDeckInviteSettingsMutation } from "@deck/store/deckApi.gen";
+import { type DeckSettings, useSetDeckPointSettingsMutation, useSetDeckAnswerSettingsMutation, useSetDeckAudienceSettingsMutation, useSetDeckInviteSettingsMutation } from "@deck/store/deckApi.gen";
 import { useDebouncedCommit } from "@hooks/useDebouncedCommit";
+import { useDeckQuery } from "./useDeckQuery";
 
 type SettingsPatch = Partial<DeckSettings>;
 
-interface UseDeckSettingsResult {
-  /** Whether the deck itself has loaded. Distinct from {@link settings} being
-   *  defined: a loaded deck can still have no settings object at all, in which
-   *  case `settings` is undefined but the deck is ready to edit. */
-  isLoaded: boolean;
-  /** The deck's current settings from the getDeck cache. Undefined while the
-   *  deck is still loading OR when the deck simply has no settings yet. */
-  settings: DeckSettings | undefined;
+interface UseDeckSettingsMutateResult {
   /** Route each present sub-object to its dedicated endpoint immediately. */
   commit: (patch: SettingsPatch) => void;
   /** As {@link commit}, after a quiet delay. */
@@ -37,8 +34,11 @@ interface UseDeckSettingsResult {
   flush: () => void;
 }
 
-const useDeckSettings = (deckId: string, delay = 500): UseDeckSettingsResult => {
-  const { data: deck } = useGetDeckQuery({ id: deckId });
+const useDeckSettingsMutate = (
+  deckId: string,
+  delay = 500,
+): UseDeckSettingsMutateResult => {
+  const { deck } = useDeckQuery(deckId);
   const [setPointSettings] = useSetDeckPointSettingsMutation();
   const [setAnswerSettings] = useSetDeckAnswerSettingsMutation();
   const [setAudienceSettings] = useSetDeckAudienceSettingsMutation();
@@ -49,8 +49,8 @@ const useDeckSettings = (deckId: string, delay = 500): UseDeckSettingsResult => 
 
   // Split the patch by sub-object and PUT each through its own endpoint. Each is
   // merged onto the cached full sub-object so the body is always complete; the
-  // three endpoints touch distinct sub-documents, so even simultaneous writes
-  // never contend on the deck version.
+  // endpoints touch distinct sub-documents, so even simultaneous writes never
+  // contend on the deck version.
   const commit = (patch: SettingsPatch) => {
     const current = deck?.settings;
     if (patch.pointSettings) {
@@ -106,13 +106,11 @@ const useDeckSettings = (deckId: string, delay = 500): UseDeckSettingsResult => 
   );
 
   return {
-    isLoaded: deck != null,
-    settings: deck?.settings,
     commit,
     schedule: scheduleCommit,
     flush,
   };
 };
 
-export { useDeckSettings };
-export type { SettingsPatch };
+export { useDeckSettingsMutate };
+export type { SettingsPatch, UseDeckSettingsMutateResult };

@@ -3,7 +3,6 @@
 // apiEnhancements keeps the pill fresh after any of the lifecycle
 // mutations resolve) and dispatches the matching mutation on click.
 import { getRouteApi } from "@tanstack/react-router";
-import { useGetDeckQuery } from "@deck/store/deckApi.gen";
 import { type PublishStatus } from "@deck/store/deckEnums.gen";
 import { Btn } from "@ui/Buttons/Btn";
 import { Badge } from "@ui/Badge/Badge";
@@ -26,7 +25,8 @@ const STATUS_BADGE_VARIANT = {
 
 const PublishStatusControl = () => {
   const { deckId } = routeApi.useParams();
-  const { data: deck } = useGetDeckQuery({ id: deckId });
+  void deckId;
+  // const { data: deck } = useGetDeckQuery({ id: deckId });
   // const [publishDeck, publishState] = usePublishDeckMutation();
   // const [unpublishDeck, unpublishState] = useUnpublishDeckMutation();
   // const [archiveDeck, archiveState] = useArchiveDeckMutation();

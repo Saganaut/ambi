@@ -9,6 +9,7 @@
  *   - `footer` — warnings / help text pinned below the scrollable body.
  */
 import type { ReactNode } from "react";
+import { ImageSlot } from "../../ImageSlot";
 import styles from "./SlideContentWrapper.module.css";
 
 interface SlideContentWrapperProps {
@@ -29,16 +30,29 @@ const SlideContentWrapper = ({
       {(title ?? description) && (
         <header className={styles.header}>
           {title && <h3 className={styles.title}>{title}</h3>}
-          {description && (
-            <p className={styles.description}>{description}</p>
-          )}
+          {description && <p className={styles.description}>{description}</p>}
         </header>
       )}
-      <div className={styles.body}>{children}</div>
-      {footer && <footer className={styles.footer}>{footer}</footer>
-
-
-      }
+      <div className={styles.body}>
+        <ImageSlot
+          slotId={{
+            start: 2,
+            end: 3,
+            top: 2,
+            bottom: 3,
+          }}
+        />
+        <div className={styles.innerBody}>{children}</div>
+        <ImageSlot
+          slotId={{
+            start: 5,
+            end: 8,
+            top: 2,
+            bottom: 3,
+          }}
+        />
+      </div>
+      {footer && <footer className={styles.footer}>{footer}</footer>}
       <div></div>
     </div>
   );

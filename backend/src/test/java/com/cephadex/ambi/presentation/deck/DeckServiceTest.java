@@ -551,6 +551,66 @@ class DeckServiceTest {
         verify(deckRepository).promoteBackgroundImageToDeck("deck-1", promoted);
     }
 
+    // ── Background color ────────────────────────────────────────────────────────
+
+    @Test
+    void setSlideBackgroundColorSetsOwnColorAndLeavesHideFlagAlone() {
+        // A color composes behind the image and is independent of hideBackground:
+        // setting one must NOT touch the suppress flag (unlike setSlideBackgroundImage).
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        existing.setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.setSlideBackgroundColor("deck-1", "s1", "#1A2B3C", owner);
+
+        assertThat(result.getBackgroundColor()).isEqualTo("#1A2B3C");
+        assertThat(result.isHideBackground()).isTrue();
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void clearSlideBackgroundColorResetsToDeckInheritWithoutTouchingHideFlag() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        Slide existing = deck.findSlide("s1").orElseThrow();
+        existing.setBackgroundColor("#1A2B3C");
+        existing.setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Slide result = deckService.clearSlideBackgroundColor("deck-1", "s1", owner);
+
+        assertThat(result.getBackgroundColor()).isNull();
+        assertThat(result.isHideBackground()).isTrue();
+    }
+
+    @Test
+    void promoteBackgroundColorClearsEverySlideColorButNotHideFlags() {
+        // Unlike the image promote, promoting a color must leave hideBackground
+        // alone — a slide that opted out of the background stays opted out.
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        deck.findSlide("s1").orElseThrow().setBackgroundColor("#111111");
+        deck.findSlide("s2").orElseThrow().setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck result = deckService.promoteBackgroundColorToDeck("deck-1", "#ABCDEF", owner);
+
+        assertThat(result.getBackgroundColor()).isEqualTo("#ABCDEF");
+        assertThat(result.getSlides()).allSatisfy(s -> assertThat(s.getBackgroundColor()).isNull());
+        assertThat(deck.findSlide("s2").orElseThrow().isHideBackground()).isTrue();
+        verify(deckRepository).promoteBackgroundColorToDeck("deck-1", "#ABCDEF");
+    }
+
+    @Test
+    void setAndClearDeckBackgroundColor() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThat(deckService.setDeckBackgroundColor("deck-1", "#ABCDEF", owner).getBackgroundColor())
+                .isEqualTo("#ABCDEF");
+        assertThat(deckService.clearDeckBackgroundColor("deck-1", owner).getBackgroundColor())
+                .isNull();
+    }
+
     // ── Tags ───────────────────────────────────────────────────────────────────
 
     @Test

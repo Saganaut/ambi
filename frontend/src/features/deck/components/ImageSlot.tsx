@@ -1,20 +1,27 @@
 import { SlotMapping } from "../contexts/ImageSlot.types";
 import { useImageSlot } from "../contexts/useImageSlot";
-import { doesImageSlotConfigMatchSlotId } from "../utils/imageSlotUtil";
+import { doesImageSlotConfigMatchSlotId, resolveSlot } from "../utils/imageSlotUtil";
+import styles from "./ImageSlot.module.css";
 
-const ImageSlot = ({ slotId, className }: { slotId: SlotMapping, className?: string }) => {
-    const { imageConfig } = useImageSlot()
-    console.log("image config", imageConfig)
-    if (imageConfig == null) return null;
+// Every slot stays mounted so placement changes animate (collapsed slots sit at
+// `max-width: 0`; the active one expands) — returning `null` would drop the
+// element from the DOM and CSS couldn't transition it. The slot's size class
+// comes from its own `slotId`, not the active placement, so each slot keeps a
+// stable identity; `.active` gates the expanded size.
+const ImageSlot = ({ slotId, className }: { slotId: SlotMapping; className?: string }) => {
+  const { imageConfig } = useImageSlot();
+  const isActive = imageConfig != null && doesImageSlotConfigMatchSlotId(imageConfig, slotId);
+  const slotName = resolveSlot(slotId)?.name;
 
-    if (!doesImageSlotConfigMatchSlotId(imageConfig, slotId)) return null
-
-
-    return (
-        <div className={className}>
-            <div style={{ backgroundImage: `url(${imageConfig.imgUrl})` }} />
-        </div>
-    );
+  return (
+    <div
+      className={[className, styles.imageSlot, slotName && styles[slotName], isActive && styles.active]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <div style={{ backgroundImage: imageConfig ? `url(${imageConfig.imgUrl})` : undefined }} />
+    </div>
+  );
 };
 
-export { ImageSlot } 
+export { ImageSlot };

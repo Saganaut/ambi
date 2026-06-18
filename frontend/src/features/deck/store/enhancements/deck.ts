@@ -25,6 +25,7 @@ import {
 } from "@/shared/store/enhancements/types";
 import {
   deckApi,
+  type ClearDeckBackgroundColorApiArg,
   type ClearDeckBackgroundImageApiArg,
   type ClearDeckCoverImageApiArg,
   type DeckResponse,
@@ -33,6 +34,7 @@ import {
   type RevokeShareDeckApiArg,
   type SetDeckAnswerSettingsApiArg,
   type SetDeckAudienceSettingsApiArg,
+  type SetDeckBackgroundColorApiArg,
   type SetDeckBackgroundImageApiArg,
   type SetDeckCoverImageApiArg,
   type SetDeckPointSettingsApiArg,
@@ -189,6 +191,14 @@ deckApi.enhanceEndpoints({
     clearDeckBackgroundImage:
       reconcilingDeckMutation<ClearDeckBackgroundImageApiArg>((draft) => {
         draft.backgroundImage = undefined;
+      }),
+    setDeckBackgroundColor:
+      reconcilingDeckMutation<SetDeckBackgroundColorApiArg>((draft, arg) => {
+        draft.backgroundColor = arg.setColorRequest.color;
+      }),
+    clearDeckBackgroundColor:
+      reconcilingDeckMutation<ClearDeckBackgroundColorApiArg>((draft) => {
+        draft.backgroundColor = undefined;
       }),
     // share / revokeShare reshape the acl, which needs server data — no optimistic
     // preview; the response reconcile lands the new acl.

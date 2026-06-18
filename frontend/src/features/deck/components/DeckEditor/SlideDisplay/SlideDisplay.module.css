@@ -6,9 +6,10 @@
   --bg-color: var(--bg-surface);
   --border-color: var(--edge-surface);
   --background-image: none;
+
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   border: var(--border-size-lg) solid var(--border-color);
   border-radius: var(--radius-md);
   background-color: var(--bg-color);
@@ -22,6 +23,8 @@
   min-height: 0;
 
   .slideHeader {
+    position: absolute;
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -31,22 +34,29 @@
     flex-shrink: 0;
   }
 
+  /** TODO: Need to add custom vars for the margins here. Probably handle with styles? **/
   .slideBody {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: row;
+    margin-bottom: 40px;
+    margin-top: var(--navbar-height);
 
     .optionalImageContent {
       width: 400px !important;
       height: 100%;
     }
+
     .slideChild {
       flex: 1;
     }
   }
 
   .slideFooter {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
     height: 40px;
     flex-shrink: 0;
     border-top: var(--border-size-sm) solid var(--border-subtle);

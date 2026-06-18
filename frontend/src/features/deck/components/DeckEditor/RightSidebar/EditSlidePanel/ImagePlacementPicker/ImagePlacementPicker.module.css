@@ -1,0 +1,31 @@
+.imagePlacementPicker {
+  .placementContainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap-md);
+
+    .iconWrapper {
+      border-radius: var(--radius-md);
+      border: 2px solid var(--edge-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--p-sm);
+      cursor: pointer;
+      transition: border-color var(--duration-base) ease-in-out;
+
+      .svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      &:hover {
+        border-color: var(--edge-primary);
+      }
+
+      &.isActive {
+        border-color: var(--edge-primary);
+      }
+    }
+  }
+}

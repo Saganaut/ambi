@@ -1,0 +1,69 @@
+/* Every slot is always mounted (see ImageSlot.tsx). Collapsed slots sit at
+   max-width: 0; the active slot expands to its placement size. We animate
+   max-width (not width) so the content-sized centered slots — which have no
+   fixed % width — can transition too. */
+.imageSlot {
+  max-width: 0;
+  min-width: 0;
+  overflow: hidden;
+  height: 100%;
+  transition:
+    max-width var(--duration-base) ease-in-out,
+    margin var(--duration-base) ease-in-out;
+
+  div {
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+  }
+
+  &.leftHalf,
+  &.rightHalf {
+    width: 40%;
+  }
+
+  &.leftQuarter,
+  &.rightQuarter {
+    width: 20%;
+  }
+
+  &.rightCentered,
+  &.leftCentered {
+    display: flex;
+    align-items: center;
+
+    div {
+      min-width: 250px;
+      height: 200px;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+    }
+  }
+
+  /* Expanded sizes only apply to the active slot; everything else stays at 0. */
+  &.active {
+    &.leftHalf,
+    &.rightHalf {
+      max-width: 40%;
+    }
+
+    &.leftQuarter,
+    &.rightQuarter {
+      max-width: 20%;
+    }
+
+    /* Content-sized: cap just above the inner min-width so the reveal finishes
+       as the slot reaches its natural width. The inner-facing margin replaces
+       the container gap removed from SlideContentWrapper's .body, so it
+       collapses with the slot instead of leaving a phantom gap when empty. */
+    &.leftCentered {
+      max-width: 280px;
+      margin-inline-end: var(--space-3);
+    }
+
+    &.rightCentered {
+      max-width: 280px;
+      margin-inline-start: var(--space-3);
+    }
+  }
+}

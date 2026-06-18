@@ -7,34 +7,30 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { SlideCanvas } from "./SlideCanvas";
 
-import { McqSlideContent } from "../SlideContent/McqSlideContent/McqSlideContent";
-import { TextSlideContent } from "../SlideContent/TextSlideContent/TextSlideContent";
-import { NumberSlideContent } from "../SlideContent/NumberSlideContent/NumberSlideContent";
-import { RankingSlideContent } from "../SlideContent/RankingSlideContent/RankingSlideContent";
-import { ScalesSlideContent } from "../SlideContent/ScalesSlideContent/ScalesSlideContent";
-import { QAndASlideContent } from "../SlideContent/QAndASlideContent/QAndASlideContent";
-import { GridSlideContent } from "../SlideContent/GridSlideContent/GridSlideContent";
-import { PlaceOnImageSlideContent } from "../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent";
-import { AllocationSlideContent } from "../SlideContent/AllocationSlideContent/AllocationSlideContent";
-import { MatchingSlideContent } from "../SlideContent/MatchingSlideContent/MatchingSlideContent";
-import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/DrawingSlideContent";
-import { FollowUpSlideContent } from "../SlideContent/FollowUpSlideContent/FollowUpSlideContent";
-import { useSlide } from "../../../hooks/useSlide";
+import { Loader } from "@/shared/components/UIElements/Loader/Loader";
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { resolveSlideBackground, resolveSlideBackgroundColor } from "@/shared/utils/deckImages";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
-import { useDeck } from "@deck/hooks/useDeck";
+import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
 import React from "react";
-import { Loader } from "@/shared/components/UIElements/Loader/Loader";
-import { resolveSlideBackground } from "@/shared/utils/deckImages";
-import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { ImagePickerSmall } from "../RightSidebar/shared/ImagePicker";
-
+import { slotMappingOptions, type SlotMapping } from "../../../contexts/ImageSlot.types";
+import { useSlide } from "../../../hooks/useSlide";
+import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
+import { AllocationSlideContent } from "../SlideContent/AllocationSlideContent/AllocationSlideContent";
+import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/DrawingSlideContent";
+import { FollowUpSlideContent } from "../SlideContent/FollowUpSlideContent/FollowUpSlideContent";
+import { GridSlideContent } from "../SlideContent/GridSlideContent/GridSlideContent";
+import { MatchingSlideContent } from "../SlideContent/MatchingSlideContent/MatchingSlideContent";
+import { McqSlideContent } from "../SlideContent/McqSlideContent/McqSlideContent";
+import { NumberSlideContent } from "../SlideContent/NumberSlideContent/NumberSlideContent";
+import { PlaceOnImageSlideContent } from "../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent";
+import { QAndASlideContent } from "../SlideContent/QAndASlideContent/QAndASlideContent";
+import { RankingSlideContent } from "../SlideContent/RankingSlideContent/RankingSlideContent";
+import { ScalesSlideContent } from "../SlideContent/ScalesSlideContent/ScalesSlideContent";
+import { TextSlideContent } from "../SlideContent/TextSlideContent/TextSlideContent";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
-
-
-
-
 
 const SlideDisplay = () => {
   const { deckId } = routeApi.useParams();
@@ -44,13 +40,23 @@ const SlideDisplay = () => {
   const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
   // Per-deck theme, scoped to just the slide canvas — the surrounding editor
   // chrome keeps the user's global theme.
-  const { deck } = useDeck(deckId);
+  const { deck } = useDeckQuery(deckId);
   const { style: themeStyle, appearance } = useDeckTheme(deck?.themeId);
   const openPicker = useGalleryPicker();
 
   const slide = slideId ? getSlide(slideId) : slides[0];
   const navigate = routeApi.useNavigate();
-  const backgroundUrl = resolveSlideBackground(deck?.backgroundImage, slide?.backgroundImage, undefined, slide?.hideBackground)
+  const backgroundUrl = resolveSlideBackground(
+    deck?.backgroundImage,
+    slide?.backgroundImage,
+    undefined,
+    slide?.hideBackground,
+  );
+  const backgroundColor = resolveSlideBackgroundColor(
+    deck?.backgroundColor,
+    slide?.backgroundColor,
+    slide?.hideBackground,
+  );
   // useEffect justification: If there's no slideId in the URL, but there are slides in the deck
   // Load that slide id so it can be picked up by the rest of the component.
   React.useEffect(() => {
@@ -65,7 +71,13 @@ const SlideDisplay = () => {
   if (slideId == null) return <Loader />;
 
   if (slide == null) return <p> Error </p>;
-  const slideContentImgUrl = slide.coverImage?.variants?.XL
+  const slideContentImgUrl = slide.coverImage?.variants?.XL;
+  const defaultPlacement = slotMappingOptions[0];
+
+  const updateSlidePlacement = (placement: SlotMapping) => {
+    if (slide.coverImage == null) return;
+    setSlideImage(slide.id, "cover", slide.coverImage, placement);
+  };
 
   const renderBody = () => {
     switch (slide.content.contentType) {
@@ -103,36 +115,38 @@ const SlideDisplay = () => {
   };
 
   return (
-    <SlideCanvas
-      slideType={slide.content.contentType}
-      themeStyle={themeStyle}
-      appearance={appearance}
-      backgroundUrl={backgroundUrl}
-      slideContentImgUrl={slideContentImgUrl}
-    >
-      {renderBody()}
-      <ImagePickerSmall
-        image={slide.coverImage}
-        onPick={() => {
-          openPicker(
-            (image) => {
-              setSlideImage(slide.id, "cover", image);
-            },
-            {
-              title: "Slide background image",
-              cropWidth: 16,
-              cropHeight: 9,
-            },
-          );
-        }}
-        onClear={() => {
-          clearSlideImage(slide.id, "cover");
-        }}
-      />
-      <div>
-
-      </div>
-    </SlideCanvas>
+    <>
+      <SlideCanvas
+        slideType={slide.content.contentType}
+        themeStyle={themeStyle}
+        appearance={appearance}
+        backgroundUrl={backgroundUrl}
+        backgroundColor={backgroundColor}
+        slideContentImgUrl={slideContentImgUrl}
+      >
+        {renderBody()}
+        <CoverImagePicker
+          image={slide.coverImage}
+          updateSlidePlacement={updateSlidePlacement}
+          onPick={() => {
+            openPicker(
+              (image) => {
+                setSlideImage(slide.id, "cover", image, defaultPlacement);
+              },
+              {
+                title: "Slide background image",
+                cropWidth: 16,
+                cropHeight: 9,
+              },
+            );
+          }}
+          onClear={() => {
+            clearSlideImage(slide.id, "cover");
+          }}
+        />
+        <div></div>
+      </SlideCanvas>
+    </>
   );
 };
 

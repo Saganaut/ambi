@@ -83,6 +83,14 @@ class DeckRepositoryImpl implements DeckRepositoryCustom {
         mongoTemplate.updateFirst(query, update, Deck.class);
     }
 
+    @Override
+    public void promoteBackgroundColorToDeck(String deckId, String color) {
+        // Unlike the image promote, the color lives in a single per-slide field and
+        // never touches hide_background, so it reuses the generic helper: set the
+        // deck color (or unset when null) and unset background_color on every slide.
+        promoteFieldToDeck(deckId, "background_color", "slides.$[].background_color", color);
+    }
+
     /**
      * Single {@code $set/$unset} update: write {@code value} to {@code deckPath} on
      * the deck document and remove {@code slidesPath} from every embedded slide. Uses

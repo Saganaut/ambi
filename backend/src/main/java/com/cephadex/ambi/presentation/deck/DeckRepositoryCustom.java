@@ -79,6 +79,19 @@ public interface DeckRepositoryCustom {
     void promoteBackgroundImageToDeck(String deckId, AppImage image);
 
     /**
+     * Atomically promote {@code color} to the deck's {@code background_color} field
+     * <em>and</em> clear {@code background_color} from every embedded slide — all in
+     * a single {@code $set/$unset} update without bumping the deck's {@code @Version}.
+     * The shared {@code hide_background} flag is left untouched (a color composes
+     * behind the image and never drives the suppress flag); pass {@code null} to
+     * unset the deck color too.
+     *
+     * @param deckId owning deck id
+     * @param color  the new deck background color to set, or {@code null} to unset
+     */
+    void promoteBackgroundColorToDeck(String deckId, String color);
+
+    /**
      * Set the deck's denormalized rating headline ({@code stats.rating_average} and
      * {@code stats.rating_count}) via a sub-path {@code $set}, leaving the rest of
      * {@code stats} and the deck's {@code @Version} untouched. Called after a review

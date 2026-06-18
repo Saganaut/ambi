@@ -25,6 +25,7 @@ import {
   type AddSlideApiArg,
   type AnswerSettingsResponse,
   type ClearSlideAnswerSettingsApiArg,
+  type ClearSlideBackgroundColorApiArg,
   type ClearSlideBackgroundImageApiArg,
   type ClearSlideCoverImageApiArg,
   type ClearSlidePointSettingsApiArg,
@@ -33,6 +34,7 @@ import {
   type PointSettingsResponse,
   type RemoveSlideApiArg,
   type SetSlideAnswerSettingsApiArg,
+  type SetSlideBackgroundColorApiArg,
   type SetSlideBackgroundImageApiArg,
   type SetSlideCoverImageApiArg,
   type SetSlidePointSettingsApiArg,
@@ -260,6 +262,37 @@ deckApi.enhanceEndpoints({
         withSlide(draft, arg.slideId, (slide) => {
           slide.backgroundImage = undefined;
           slide.hideBackground = true;
+        });
+      },
+      (draft, data) => {
+        upsertSlideById(draft, data);
+      },
+    ),
+    // Background color is the color counterpart to the background image, but it
+    // composes BEHIND the image and is independent of the hideBackground flag —
+    // so these patches only touch `backgroundColor`, leaving the image state
+    // (and the suppress flag) untouched. Set writes the own color; clear drops it
+    // back to deck inheritance.
+    setSlideBackgroundColor: reconcilingSlideMutation<
+      SetSlideBackgroundColorApiArg,
+      SlideResponse
+    >(
+      (draft, arg) => {
+        withSlide(draft, arg.slideId, (slide) => {
+          slide.backgroundColor = arg.setColorRequest.color;
+        });
+      },
+      (draft, data) => {
+        upsertSlideById(draft, data);
+      },
+    ),
+    clearSlideBackgroundColor: reconcilingSlideMutation<
+      ClearSlideBackgroundColorApiArg,
+      SlideResponse
+    >(
+      (draft, arg) => {
+        withSlide(draft, arg.slideId, (slide) => {
+          slide.backgroundColor = undefined;
         });
       },
       (draft, data) => {

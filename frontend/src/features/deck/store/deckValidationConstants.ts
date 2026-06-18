@@ -20,6 +20,12 @@ export const deckValidation = {
       "minimum": 0
     }
   },
+  "SetColorRequest": {
+    "color": {
+      "minLength": 1,
+      "pattern": "#[0-9a-fA-F]{6}"
+    }
+  },
   "SetTagsRequest": {
     "tags": {
       "maxItems": 50,

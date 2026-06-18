@@ -6,7 +6,7 @@ import { DeckCard } from "@deck/components/DeckCard/DeckCard";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 
 import { Link } from "@tanstack/react-router";
-import { useDeck } from "../../hooks/useDeck";
+import { useDeckActions } from "../../hooks/useDeckActions";
 
 const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
   const {
@@ -14,7 +14,7 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
     openDeleteDeckModal,
     present,
     addToCollection,
-  } = useDeck(deck.id);
+  } = useDeckActions(deck.id);
 
   return (
     <DropdownMenu

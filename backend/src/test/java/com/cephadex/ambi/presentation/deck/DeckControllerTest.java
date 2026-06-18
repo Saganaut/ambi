@@ -316,6 +316,81 @@ class DeckControllerTest {
         verify(deckService).hideSlideBackground(eq("deck-1"), eq("s1"), any());
     }
 
+    // ── Background color ───────────────────────────────────────────────────────
+
+    @Test
+    void setDeckBackgroundColorDelegates() throws Exception {
+        when(deckService.setDeckBackgroundColor(eq("deck-1"), eq("#1A2B3C"), any()))
+                .thenReturn(deck("deck-1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/background-color")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"color\":\"#1A2B3C\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).setDeckBackgroundColor(eq("deck-1"), eq("#1A2B3C"), any());
+    }
+
+    @Test
+    void clearDeckBackgroundColorDelegates() throws Exception {
+        when(deckService.clearDeckBackgroundColor(eq("deck-1"), any())).thenReturn(deck("deck-1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/background-color"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).clearDeckBackgroundColor(eq("deck-1"), any());
+    }
+
+    @Test
+    void promoteBackgroundColorToDeckDelegates() throws Exception {
+        when(deckService.promoteBackgroundColorToDeck(eq("deck-1"), eq("#1A2B3C"), any()))
+                .thenReturn(deck("deck-1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/background-color/promote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"color\":\"#1A2B3C\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).promoteBackgroundColorToDeck(eq("deck-1"), eq("#1A2B3C"), any());
+    }
+
+    /** A malformed (non-hex) color is rejected by the @Pattern bound. */
+    @Test
+    void setDeckBackgroundColorRejectsBadHex() throws Exception {
+        mockMvc.perform(put("/api/decks/deck-1/background-color")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"color\":\"red\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void setSlideBackgroundColorDelegates() throws Exception {
+        when(deckService.setSlideBackgroundColor(eq("deck-1"), eq("s1"), eq("#1A2B3C"), any()))
+                .thenReturn(slide("s1"));
+
+        mockMvc.perform(put("/api/decks/deck-1/slides/s1/background-color")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"color\":\"#1A2B3C\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("s1"));
+
+        verify(deckService).setSlideBackgroundColor(eq("deck-1"), eq("s1"), eq("#1A2B3C"), any());
+    }
+
+    @Test
+    void clearSlideBackgroundColorDelegates() throws Exception {
+        when(deckService.clearSlideBackgroundColor(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/background-color"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("s1"));
+
+        verify(deckService).clearSlideBackgroundColor(eq("deck-1"), eq("s1"), any());
+    }
+
     // ── Slide point settings ──────────────────────────────────────────────────
 
     @Test

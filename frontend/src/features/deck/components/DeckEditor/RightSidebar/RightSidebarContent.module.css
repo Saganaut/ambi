@@ -41,7 +41,7 @@
   width: 320px;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-surface);
+  background-color: oklch(from var(--bg-surface) l c h / 95%);
   border: var(--border-size-sm) solid var(--edge-surface);
   border-radius: var(--radius-md);
   z-index: 3;

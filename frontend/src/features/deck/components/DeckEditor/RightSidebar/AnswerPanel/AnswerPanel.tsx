@@ -4,7 +4,7 @@
 //   - Editing a field writes a *slide override* (useSlideSettings) so the
 //     change applies to this slide only.
 //   - "Apply to deck" promotes the current values to the deck-wide default
-//     (useDeckSettings) and drops the now-redundant slide override, so the slide
+//     (read via useDeckQuery) and drops the now-redundant slide override, so the slide
 //     simply inherits the new default.
 //   - "Reset to deck default" clears the override when one exists.
 //
@@ -16,7 +16,7 @@ import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { AnswerSettings } from "@deck/store/deckApi.gen";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import { usePromoteAnswerSettingsToDeckMutation } from "@deck/store/deckApi.gen";
-import { useDeckSettings } from "../../../../hooks/useDeckSettings";
+import { useDeckQuery } from "../../../../hooks/useDeckQuery";
 import { resolveAnswerSettings, RESULTS_DISPLAY_MODE_OPTIONS } from "../shared/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "../shared/SettingsPanel.module.css";
@@ -69,7 +69,9 @@ const AnswerPanel = ({
 }: deckAndSlideIdProps) => {
   const { answerSettings, scheduleAnswerSettings, clearAnswerSettings, flush, cancel } =
     useSlideSettings(deckId, slideId);
-  const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
+  const { deck } = useDeckQuery(deckId);
+  const isLoaded = deck != null;
+  const deckSettings = deck?.settings;
   const { getSlide } = useSlide(deckId)
   const [promoteAnswerSettings] = usePromoteAnswerSettingsToDeckMutation();
 

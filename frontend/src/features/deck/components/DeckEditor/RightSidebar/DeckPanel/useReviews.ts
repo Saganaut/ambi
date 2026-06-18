@@ -1,4 +1,4 @@
-import { useGetDeckQuery } from "@/features/deck/store/deckApi.gen";
+import { useDeckQuery } from "@/features/deck/hooks/useDeckQuery";
 import {
   useGetDeckReviewSummaryQuery,
   useListDeckReviewsQuery,
@@ -37,7 +37,7 @@ interface UseReviewsResult {
 export const useReviews = ({ deckId }: UseReviewsProps): UseReviewsResult => {
   const [page, setPage] = useState(0);
 
-  const { data: deck } = useGetDeckQuery({ id: deckId });
+  const { deck } = useDeckQuery(deckId);
   // A deck's own editor/owner cannot review it (the backend 403s); hide the
   // editor for them. Everyone with VIEW still sees the summary and the list.
   const canReview = deck != null && !deck.permissions.canEdit;

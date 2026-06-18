@@ -5,25 +5,27 @@
 // behaviour (optimistic patch + tag-driven reconciling refetch) lives in
 // `store/enhancements/slide.ts` so it applies no matter who calls the mutation.
 import {
-  useListDeckSlidesQuery,
-  useAddSlideMutation,
   useAddFollowUpSlideMutation,
-  useUpdateSlideMutation,
-  useRemoveSlideMutation,
-  useMoveSlideMutation,
-  useSetSlideCoverImageMutation,
-  useClearSlideCoverImageMutation,
-  useSetSlideBackgroundImageMutation,
+  useAddSlideMutation,
+  useClearSlideBackgroundColorMutation,
   useClearSlideBackgroundImageMutation,
+  useClearSlideCoverImageMutation,
   useHideSlideBackgroundMutation,
+  useListDeckSlidesQuery,
+  useMoveSlideMutation,
+  useRemoveSlideMutation,
+  useSetSlideBackgroundColorMutation,
+  useSetSlideBackgroundImageMutation,
+  useSetSlideCoverImageMutation,
+  useUpdateSlideMutation,
   type AppImage,
   type Placement,
   type SlideRequest,
   type SlideResponse,
 } from "@deck/store/deckApi.gen";
-import { buildDefaultContent } from "../utils/slideContent";
 import { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
 import type { ImageRole } from "../deck.types";
+import { buildDefaultContent } from "../utils/slideContent";
 
 /**
  * Minimal SlideRequest for a brand-new slide. We stamp identity, a blank title,
@@ -87,6 +89,18 @@ interface UseSlideResult {
    */
   hideSlideBackground: (slideId: string) => void;
   /**
+   * Set a slide's own background color (hex `#RRGGBB`). The color counterpart to
+   * {@link setSlideImage}'s background slot — it composes behind any background
+   * image and is independent of the hideBackground flag.
+   */
+  setSlideColor: (slideId: string, color: string) => void;
+  /**
+   * Clear a slide's own background color so it inherits the deck default again.
+   * The "reset to deck" action for the color layer; leaves the image state and
+   * the hideBackground flag untouched.
+   */
+  clearSlideColor: (slideId: string) => void;
+  /**
    * Move a slide to a new zero-based position in the deck's order. The backend
    * computes the new LexoRank `sortOrder` key from the index; the reconciling
    * refetch lands the canonical order. Pairs with the rail's drag-and-drop.
@@ -108,6 +122,8 @@ const useSlide = (deckId: string): UseSlideResult => {
   const [setBackgroundImageMutation] = useSetSlideBackgroundImageMutation();
   const [clearBackgroundImageMutation] = useClearSlideBackgroundImageMutation();
   const [hideBackgroundMutation] = useHideSlideBackgroundMutation();
+  const [setBackgroundColorMutation] = useSetSlideBackgroundColorMutation();
+  const [clearBackgroundColorMutation] = useClearSlideBackgroundColorMutation();
 
   const getSlide = (slideId: string) => slides.find((slide) => slide.id === slideId);
 
@@ -155,7 +171,6 @@ const useSlide = (deckId: string): UseSlideResult => {
     const mutate = slot === "cover" ? setCoverImageMutation : setBackgroundImageMutation;
     // Placement is a cover-only concern for now; the background ignores it.
     const payload = slot === "cover" && placement !== undefined ? { ...image, placement } : image;
-    console.log("Payload", payload);
     void mutate({ id: deckId, slideId, setImageRequest: { image: payload } });
   };
 
@@ -166,6 +181,14 @@ const useSlide = (deckId: string): UseSlideResult => {
 
   const hideSlideBackground = (slideId: string) => {
     void hideBackgroundMutation({ id: deckId, slideId });
+  };
+
+  const setSlideColor = (slideId: string, color: string) => {
+    void setBackgroundColorMutation({ id: deckId, slideId, setColorRequest: { color } });
+  };
+
+  const clearSlideColor = (slideId: string) => {
+    void clearBackgroundColorMutation({ id: deckId, slideId });
   };
 
   const reorder = (slideId: string, toIndex: number) => {
@@ -188,9 +211,11 @@ const useSlide = (deckId: string): UseSlideResult => {
     setSlideImage,
     clearSlideImage,
     hideSlideBackground,
+    setSlideColor,
+    clearSlideColor,
     reorder,
   };
 };
 
 export { useSlide };
-export type { UseSlideResult, AddSlideOptions, ImageRole };
+export type { AddSlideOptions, ImageRole, UseSlideResult };

@@ -54,6 +54,19 @@ public class Slide {
     @Field("hide_background")
     private boolean hideBackground;
 
+    // Per-slide background-color override (hex "#RRGGBB"), the color counterpart
+    // to backgroundImage. Composes BEHIND any background image: it paints this
+    // slide's base layer while an image (own or inherited) draws on top, so the
+    // two are independent and can both apply at once. Resolves against the deck
+    // default (see Deck#backgroundColor): a non-null color wins its layer
+    // outright; null inherits the deck color — unless the shared hideBackground
+    // flag is set, which suppresses the inherited image AND color alike (an own
+    // color still wins regardless, exactly like an own image). Cleared to null on
+    // every slide when a color is promoted to the deck — see
+    // DeckService#promoteBackgroundColorToDeck.
+    @Field("background_color")
+    private String backgroundColor;
+
     @Field("cover_image")
     private AppImage coverImage;
 

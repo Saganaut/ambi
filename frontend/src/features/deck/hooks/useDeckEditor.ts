@@ -37,7 +37,9 @@ import type { DeckResponse, SlideResponse } from "@deck/store/deckApi.gen";
 import type { FollowUpMode } from "@deck/store/deckEnums.gen";
 import { followUpModesFor, groupIntoUnits } from "../utils/followUp";
 
-import { useDeck } from "./useDeck";
+import { useLiveSession } from "@/features/liveSession/hooks/useLiveSession";
+import { useDeckMutate } from "./useDeckMutate";
+import { useDeckQuery } from "./useDeckQuery";
 import { useSlide, type AddSlideOptions } from "./useSlide";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -111,7 +113,9 @@ const scrollThumbnailIntoView = (slideId: string) => {
 const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult => {
   const navigate = routeApi.useNavigate();
 
-  const { deck, isLoading, error, rename, present } = useDeck(deckId);
+  const { deck, isLoading, error } = useDeckQuery(deckId);
+  const { rename } = useDeckMutate(deckId);
+  const { present: livePresent } = useLiveSession();
   const { slides, addSlide: appendSlide, addFollowUp: attachFollowUp, removeSlide, reorder } = useSlide(deckId);
 
   // ── Title draft ──────────────────────────────────────────────────────────
@@ -197,6 +201,11 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   // ── Navbar ─────────────────────────────────────────────────────────────────
   const canEdit = deck?.permissions.canEdit ?? false;
   const canViewAnalytics = canEdit;
+
+  const present = () => {
+    // Live-session "Start" — stubbed via useLiveSession until the flow exists.
+    livePresent(deckId);
+  };
 
   const share = () => {
     console.log("share not implemented yet");

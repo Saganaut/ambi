@@ -1,12 +1,14 @@
 // Participants drawer for the deck-editor right sidebar. Two scopes:
 //   1. Deck-wide audience settings (who can join + how the audience can engage)
-//      via deck.settings.audienceSettings through useDeckSettings.
+//      via deck.settings.audienceSettings (read from useDeckQuery, written
+//      through useDeckSettingsMutate).
 //   2. Per-slide reactions override — TODO: wire once slide-level overrides
 //      are supported in the new slide model.
 import { useState } from "react";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useDeckSettings } from "../../../../hooks/useDeckSettings";
+import { useDeckQuery } from "../../../../hooks/useDeckQuery";
+import { useDeckSettingsMutate } from "../../../../hooks/useDeckSettingsMutate";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 
@@ -30,7 +32,11 @@ interface ParticipantForm {
   reactionsEnabled: boolean;
 }
 
-const useParticipantsPanel = (deckId: string) => useDeckSettings(deckId);
+const useParticipantsPanel = (deckId: string) => {
+  const { deck } = useDeckQuery(deckId);
+  const { commit, schedule, flush } = useDeckSettingsMutate(deckId);
+  return { settings: deck?.settings, commit, schedule, flush };
+};
 
 const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
   const { settings, commit, schedule, flush } = useParticipantsPanel(deckId);

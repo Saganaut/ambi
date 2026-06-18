@@ -132,6 +132,25 @@ const injectedRtkApi = api.injectEndpoints({
         method: "PUT",
       }),
     }),
+    setSlideBackgroundColor: build.mutation<
+      SetSlideBackgroundColorApiResponse,
+      SetSlideBackgroundColorApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-color`,
+        method: "PUT",
+        body: queryArg.setColorRequest,
+      }),
+    }),
+    clearSlideBackgroundColor: build.mutation<
+      ClearSlideBackgroundColorApiResponse,
+      ClearSlideBackgroundColorApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/background-color`,
+        method: "DELETE",
+      }),
+    }),
     getSlideAnswerSettings: build.query<
       GetSlideAnswerSettingsApiResponse,
       GetSlideAnswerSettingsApiArg
@@ -251,6 +270,35 @@ const injectedRtkApi = api.injectEndpoints({
         url: `/api/decks/${queryArg.id}/background-image/promote`,
         method: "PUT",
         body: queryArg.setImageRequest,
+      }),
+    }),
+    setDeckBackgroundColor: build.mutation<
+      SetDeckBackgroundColorApiResponse,
+      SetDeckBackgroundColorApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-color`,
+        method: "PUT",
+        body: queryArg.setColorRequest,
+      }),
+    }),
+    clearDeckBackgroundColor: build.mutation<
+      ClearDeckBackgroundColorApiResponse,
+      ClearDeckBackgroundColorApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-color`,
+        method: "DELETE",
+      }),
+    }),
+    promoteBackgroundColorToDeck: build.mutation<
+      PromoteBackgroundColorToDeckApiResponse,
+      PromoteBackgroundColorToDeckApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-color/promote`,
+        method: "PUT",
+        body: queryArg.setColorRequest,
       }),
     }),
     setDeckAudienceSettings: build.mutation<
@@ -434,6 +482,19 @@ export type HideSlideBackgroundApiArg = {
   id: string;
   slideId: string;
 };
+export type SetSlideBackgroundColorApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type SetSlideBackgroundColorApiArg = {
+  id: string;
+  slideId: string;
+  setColorRequest: SetColorRequest;
+};
+export type ClearSlideBackgroundColorApiResponse =
+  /** status 200 OK */ SlideResponse;
+export type ClearSlideBackgroundColorApiArg = {
+  id: string;
+  slideId: string;
+};
 export type GetSlideAnswerSettingsApiResponse =
   /** status 200 OK */ AnswerSettingsResponse;
 export type GetSlideAnswerSettingsApiArg = {
@@ -506,6 +567,23 @@ export type PromoteBackgroundImageToDeckApiResponse =
 export type PromoteBackgroundImageToDeckApiArg = {
   id: string;
   setImageRequest: SetImageRequest;
+};
+export type SetDeckBackgroundColorApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type SetDeckBackgroundColorApiArg = {
+  id: string;
+  setColorRequest: SetColorRequest;
+};
+export type ClearDeckBackgroundColorApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type ClearDeckBackgroundColorApiArg = {
+  id: string;
+};
+export type PromoteBackgroundColorToDeckApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type PromoteBackgroundColorToDeckApiArg = {
+  id: string;
+  setColorRequest: SetColorRequest;
 };
 export type SetDeckAudienceSettingsApiResponse =
   /** status 200 OK */ DeckResponse;
@@ -662,6 +740,7 @@ export type DeckResponse = {
   description?: string;
   coverImage?: AppImage;
   backgroundImage?: AppImage;
+  backgroundColor?: string;
   themeId?: string;
   version: number;
   publishStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
@@ -929,6 +1008,7 @@ export type SlideResponse = {
   section?: string;
   backgroundImage?: AppImage;
   hideBackground?: boolean;
+  backgroundColor?: string;
   coverImage?: AppImage;
   createdByUserId: string;
   lastEditedByUserId: string;
@@ -963,6 +1043,9 @@ export type SetPointSettingsRequest = {
 };
 export type SetImageRequest = {
   image: AppImage;
+};
+export type SetColorRequest = {
+  color: string;
 };
 export type AnswerSettingsResponse = {
   slideId: string;
@@ -1024,6 +1107,8 @@ export const {
   useSetSlideBackgroundImageMutation,
   useClearSlideBackgroundImageMutation,
   useHideSlideBackgroundMutation,
+  useSetSlideBackgroundColorMutation,
+  useClearSlideBackgroundColorMutation,
   useGetSlideAnswerSettingsQuery,
   useLazyGetSlideAnswerSettingsQuery,
   useSetSlideAnswerSettingsMutation,
@@ -1038,6 +1123,9 @@ export const {
   useSetDeckBackgroundImageMutation,
   useClearDeckBackgroundImageMutation,
   usePromoteBackgroundImageToDeckMutation,
+  useSetDeckBackgroundColorMutation,
+  useClearDeckBackgroundColorMutation,
+  usePromoteBackgroundColorToDeckMutation,
   useSetDeckAudienceSettingsMutation,
   useSetDeckAnswerSettingsMutation,
   usePromoteAnswerSettingsToDeckMutation,

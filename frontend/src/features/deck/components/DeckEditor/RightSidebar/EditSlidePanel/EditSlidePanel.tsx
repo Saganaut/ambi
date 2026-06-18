@@ -2,37 +2,31 @@
 // slide from the slide cache (via useSlide), mounts the per-kind options
 // section, then the image section, session pacing, and provenance footer.
 // Per-kind sections each own their own useSlideEditor instance.
+import { SlotMapping, slotMappingOptions } from "@/features/deck/contexts/ImageSlot.types";
+import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { useDeckQuery } from "@/features/deck/hooks/useDeckQuery";
 import { useSlide } from "@deck/hooks/useSlide";
-import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSection";
-import styles from "./EditSlidePanel.module.css";
-import { ImagePicker } from "../shared/ImagePicker";
+import {
+  usePromoteBackgroundColorToDeckMutation,
+  usePromoteBackgroundImageToDeckMutation,
+} from "@deck/store/deckApi.gen";
+import { BackgroundColorPicker } from "@shared/components/Forms/Input/ColorPicker/BackgroundColorPicker";
+import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
-import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
-import { usePromoteBackgroundImageToDeckMutation } from "@deck/store/deckApi.gen";
+import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSection";
+import { ImagePicker } from "../shared/ImagePicker";
 import settingsPanel from "../shared/SettingsPanel.module.css";
-import { useDeck } from "@/features/deck/hooks/useDeck";
-import { deckAndSlideIdProps } from "@/features/deck/deck.types";
-import { slotButtons, slotMappingOptions } from "@/features/deck/contexts/ImageSlot.types";
-import { useImageSlot } from "@/features/deck/contexts/useImageSlot";
-import { ImageSlotProvider } from "@/features/deck/contexts/ImageSlotContext";
+import styles from "./EditSlidePanel.module.css";
 
-
-
-
-
-
-
+import { ImagePlacementPicker } from "./ImagePlacementPicker/ImagePlacementPicker";
 
 const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
-
-  const { getSlide, setSlideImage, clearSlideImage, hideSlideBackground } =
-    useSlide(deckId);
+  const { getSlide, setSlideImage, clearSlideImage, hideSlideBackground } = useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
 
-
-  const { deck } = useDeck(deckId);
+  const { deck } = useDeckQuery(deckId);
   const openPicker = useGalleryPicker();
   const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
 
@@ -53,15 +47,13 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
   return (
     <section className={styles.section}>
       <ImagePicker
-        label=''
+        label=""
         image={slide.backgroundImage}
         seed={`${id}-background`}
         placeholderText={isHidden ? "No background" : "Choose background"}
         // Preview the inherited deck background in the empty tile — but not when
         // the slide explicitly suppresses it, since then nothing is inherited.
-        placeholderBackgroundImageUrl={
-          isHidden ? undefined : deck?.backgroundImage?.variants?.SM
-        }
+        placeholderBackgroundImageUrl={isHidden ? undefined : deck?.backgroundImage?.variants?.SM}
         onPick={() => {
           openPicker(
             (image) => {
@@ -83,9 +75,8 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
       {!hasOwnImage && deckHasBackground && (
         <Toggle
           labelPosition={"labelBefore"}
-          label='Hide background'
+          label="Hide background"
           checked={isHidden}
-
           onChange={() => {
             if (isHidden) {
               clearSlideImage(id, "background");
@@ -99,17 +90,78 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
         <div className={settingsPanel.footer}>
           <Tooltip
             className={settingsPanel.applyTooltip}
-            label='Sets this as the deck background and removes all per-slide background overrides, so every slide inherits it.'>
+            label="Sets this as the deck background and removes all per-slide background overrides, so every slide inherits it."
+          >
             <Btn
-              variant='secondary'
-              fill='bordered'
+              variant="secondary"
+              fill="bordered"
               onClick={() => {
                 if (slide.backgroundImage != null)
                   void promoteBackgroundImage({
                     id: deckId,
                     setImageRequest: { image: slide.backgroundImage },
                   });
-              }}>
+              }}
+            >
+              Apply to all slides
+            </Btn>
+          </Tooltip>
+        </div>
+      )}
+    </section>
+  );
+};
+
+// The color counterpart to PerSlideStyle's background image. A color composes
+// behind the image, follows its own inherit-from-deck cascade, and (like the
+// image) can be promoted to the deck via "Apply to all slides". There is no
+// hide toggle here — the shared `hideBackground` flag lives with the image
+// section above and suppresses the inherited color too.
+const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
+  const { getSlide, setSlideColor, clearSlideColor } = useSlide(deckId);
+  const slide = slideId ? getSlide(slideId) : undefined;
+
+  const { deck } = useDeckQuery(deckId);
+  const [promoteBackgroundColor] = usePromoteBackgroundColorToDeckMutation();
+
+  if (!slide) return null;
+
+  const id = slideId ?? slide.id;
+  const ownColor = slide.backgroundColor ?? undefined;
+  // The color in effect: an own color wins; otherwise inherit the deck color —
+  // unless the slide suppresses the inherited background entirely.
+  const inheritedColor = slide.hideBackground ? undefined : deck?.backgroundColor;
+  const effectiveColor = ownColor ?? inheritedColor ?? undefined;
+
+  return (
+    <section className={styles.section}>
+      <BackgroundColorPicker
+        label="Background color"
+        value={effectiveColor}
+        onChange={(hex) => {
+          setSlideColor(id, hex);
+        }}
+        // Clearing is "reset to deck" — only offered once the slide has its own
+        // color to drop.
+        onClear={ownColor != null ? () => clearSlideColor(id) : undefined}
+      />
+      {ownColor != null && (
+        <div className={settingsPanel.footer}>
+          <Tooltip
+            className={settingsPanel.applyTooltip}
+            label="Sets this as the deck background color and removes all per-slide color overrides, so every slide inherits it."
+          >
+            <Btn
+              variant="secondary"
+              fill="bordered"
+              onClick={() => {
+                if (slide.backgroundColor != null)
+                  void promoteBackgroundColor({
+                    id: deckId,
+                    setColorRequest: { color: slide.backgroundColor },
+                  });
+              }}
+            >
               Apply to all slides
             </Btn>
           </Tooltip>
@@ -121,54 +173,28 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
 // On hover we change the placement but don't save changes in backend. On click we fully save changes
 // So we have the current position saved so we can go back to it.
-// Need a mapping 
-const ImagePlacementPicker = () => {
-  const { imageConfig, setPreviewPlacement } = useImageSlot();
-
-
-  if (imageConfig == null) return;
-
-
-  return <div className={styles.imagePlacementPicker}>
-
-
-
-    <h5>Placement picker</h5>
-
-
-    <div className={styles.placementContainer}>
-      {slotButtons.map((button) => {
-        return <div
-
-          onMouseEnter={() => setPreviewPlacement(button.placement)}
-          onMouseLeave={() => setPreviewPlacement(null)}
-
-          key={button.name}>{button.name}</div>
-      })}
-    </div>
-
-
-  </div>
-}
-
+// Need a mapping
 
 const FeatureImageSelector = ({ deckId, slideId }: deckAndSlideIdProps) => {
-
-
-
-  const { getSlide, setSlideImage, clearSlideImage } =
-    useSlide(deckId);
+  const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
 
   const slide = getSlide(slideId);
   const openPicker = useGalleryPicker();
+  const defaultPlacement = slotMappingOptions[0];
 
-  const defaultPlacement = slotMappingOptions[0]
+  const updateSlidePlacement = (slidePlacement: SlotMapping) => {
+    if (slide?.coverImage == null) return;
+    setSlideImage(slideId, "cover", slide?.coverImage, slidePlacement);
+  };
 
-
-  console.log("Default placement", defaultPlacement)
   return (
     <>
-      <ImagePicker label={""} image={slide?.coverImage} onClear={() => { clearSlideImage(slideId, "cover") }}
+      <ImagePicker
+        label={""}
+        image={slide?.coverImage}
+        onClear={() => {
+          clearSlideImage(slideId, "cover");
+        }}
         onPick={() => {
           openPicker(
             (image) => {
@@ -180,17 +206,15 @@ const FeatureImageSelector = ({ deckId, slideId }: deckAndSlideIdProps) => {
               cropHeight: 9,
             },
           );
-        }} />
+        }}
+      />
 
-      <ImagePlacementPicker />
-
+      <ImagePlacementPicker updateSlidePlacement={updateSlidePlacement} />
     </>
-  )
-}
-
+  );
+};
 
 const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
-
   const { getSlide } = useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
 
@@ -205,17 +229,9 @@ const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
   return (
     <div className={styles.panel}>
       <PerSlideStyle deckId={deckId} slideId={slideId} />
-
+      <PerSlideColor deckId={deckId} slideId={slideId} />
       <FeatureImageSelector deckId={deckId} slideId={slideId} />
-
       <FollowUpAttachSection slide={slide} />
-      {/* <ProvenanceFooter
-        createdByUserId={slide.createdByUserId}
-        lastEditedByUserId={slide.lastEditedByUserId}
-        createdAt={undefined}
-        updatedAt={undefined}
-        version={slide.version}
-      /> */}
     </div>
   );
 };

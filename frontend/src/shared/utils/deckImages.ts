@@ -58,3 +58,30 @@ export const resolveSlideBackground = (
   }
   return deckBackground?.variants?.[imageSize] ?? "";
 };
+
+/**
+ * Resolves the background COLOR for a slide through the same cascade as
+ * {@link resolveSlideBackground}, but for the color layer:
+ *   1. the slide's own `slideColor` wins outright;
+ *   2. else, if `hideBackground` is set, the slide is explicitly background-less
+ *      ("" — the inherited color is suppressed, just like the image);
+ *   3. else the slide inherits the deck's `deckColor`.
+ *
+ * The color composes *behind* the image (it paints the canvas base layer), so
+ * the two resolve independently; `hideBackground` is the one piece of shared
+ * state — it suppresses the inherited image and color alike. Returns "" when no
+ * color applies, so callers fall back to the canvas default.
+ **/
+export const resolveSlideBackgroundColor = (
+  deckColor?: string,
+  slideColor?: string,
+  hideBackground?: boolean,
+): string => {
+  if (slideColor != null && slideColor !== "") {
+    return slideColor;
+  }
+  if (hideBackground) {
+    return "";
+  }
+  return deckColor ?? "";
+};

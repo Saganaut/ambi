@@ -44,6 +44,12 @@ public final class ValidationConstants {
     /** Language code length (BCP-47 with variants/extensions). */
     public static final int LANGUAGE_MAX = 16;
 
+    /**
+     * Background color for a slide / deck: a 6-digit hex triplet ({@code #RRGGBB},
+     * case-insensitive). Matches the value the frontend color picker emits.
+     */
+    public static final String COLOR_HEX_PATTERN = "#[0-9a-fA-F]{6}";
+
     /** Maximum number of tags on a deck. */
     public static final int TAG_MAX_COUNT = 50;
     public static final int TAG_MIN_LENGTH = 1;

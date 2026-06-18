@@ -8,7 +8,7 @@ import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { PointSettings } from "@deck/store/deckApi.gen";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApi.gen";
-import { useDeckSettings } from "@deck/hooks/useDeckSettings";
+import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { resolvePointSettings } from "../shared/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "@deck/components/DeckEditor/RightSidebar/shared/SettingsPanel.module.css";
@@ -25,7 +25,9 @@ const QuizPanel = ({
 }: deckAndSlideIdProps) => {
   const { pointSettings, schedulePointSettings, clearPointSettings, flush, cancel } =
     useSlideSettings(deckId, slideId);
-  const { isLoaded, settings: deckSettings } = useDeckSettings(deckId);
+  const { deck } = useDeckQuery(deckId);
+  const isLoaded = deck != null;
+  const deckSettings = deck?.settings;
   const [promotePointSettings] = usePromotePointSettingsToDeckMutation();
 
   const deckDefault = deckSettings?.pointSettings;

@@ -79,11 +79,3 @@ button.imageClear {
   background: var(--bg-surface-raised);
   border-radius: var(--radius-full);
 }
-
-.imagePickerSmall {
-  position: absolute;
-  top: 30px;
-  right: 50px;
-  max-height: 020px;
-  max-width: 200px;
-}

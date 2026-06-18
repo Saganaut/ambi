@@ -21,6 +21,7 @@ import {
   deckApi,
   type DeckResponse,
   type PromoteAnswerSettingsToDeckApiArg,
+  type PromoteBackgroundColorToDeckApiArg,
   type PromoteBackgroundImageToDeckApiArg,
   type PromotePointSettingsToDeckApiArg,
 } from "../deckApi.gen";
@@ -124,6 +125,43 @@ deckApi.enhanceEndpoints({
               for (const slide of draft) {
                 slide.backgroundImage = undefined;
                 slide.hideBackground = false;
+              }
+            },
+          ),
+        );
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            deckApi.util.updateQueryData("getDeck", { id: arg.id }, () => data),
+          );
+        } catch {
+          deckPatch.undo();
+          slidesPatch.undo();
+        }
+      },
+    },
+
+    promoteBackgroundColorToDeck: {
+      onQueryStarted: async (
+        arg: PromoteBackgroundColorToDeckApiArg,
+        { dispatch, queryFulfilled }: CacheSyncMutationApi<DeckResponse>,
+      ) => {
+        const deckPatch = dispatch(
+          deckApi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.backgroundColor = arg.setColorRequest.color;
+          }),
+        );
+        const slidesPatch = dispatch(
+          deckApi.util.updateQueryData(
+            "listDeckSlides",
+            { id: arg.id },
+            (draft) => {
+              // Every slide falls through to the new deck color: drop the
+              // per-slide color override only. Unlike the image promote, the
+              // shared hideBackground flag is left untouched — promoting a color
+              // must not un-suppress a slide that opted out of the background.
+              for (const slide of draft) {
+                slide.backgroundColor = undefined;
               }
             },
           ),
