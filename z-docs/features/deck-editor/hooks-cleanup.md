@@ -45,22 +45,23 @@ now use plain verbs. The `open*` prefix (`openDeckInEditor`, `openDeleteDeckModa
 is treated as part of the plain-verb convention — "open" is an action verb, not a
 naming-style category.
 
-### 4. Asymmetric deck / slide image API
+### 4. Asymmetric deck / slide image API *(FIXED)*
 
-`useDeckImage` is a dedicated hook with explicit named methods
+`useDeckImage` was a dedicated hook with explicit named methods
 (`setCoverImage`, `clearCoverImage`, `setBackgroundImage`, `clearBackgroundImage`).
 For slides there is no `useSlideImage` — image ops are inlined into `useSlide` itself
 via a discriminated `ImageRole` type (`"cover" | "background"`).
 
-**Fix:** either pull slide image ops into a `useSlideImage` hook (symmetric with
-`useDeckImage`) or collapse `useDeckImage` into explicit `ImageRole` params (symmetric
-with `useSlide`). Pick one shape and use it at both layers.
+**Resolution:** folded `useDeckImage` into `useDeck` using the same `ImageRole`
+pattern as `useSlide`. `useDeck` now exposes `setDeckImage(slot, image)` and
+`clearDeckImage(slot)` alongside `coverImage` / `backgroundImage` read fields.
+`useDeckImage.ts` is deleted; `DeckPanel` updated to use `useDeck` directly.
 
 ### 5. `ImageRole` type exported from the wrong hook
 
-`useSlide.ts` exports `ImageRole` even though `useDeckImage` doesn't use it.
-`ImageRole` should live in a shared types file or in whichever hook owns the
-discriminated-role API.
+`ImageRole` is now defined independently in both `useDeck.ts` and `useSlide.ts`
+(`"cover" | "background"`). It should be moved to a shared types file so both
+hooks import it from one place rather than duplicating the definition.
 
 ### 6. `UseDeckSettingsResult` interface not exported
 

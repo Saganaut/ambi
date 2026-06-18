@@ -10,6 +10,7 @@
 import { useLiveSession } from "@/features/liveSession/hooks/useLiveSession";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
 import {
+  AppImage,
   DeckResponse,
   UpdateDeckRequest,
   ShareDeckRequest,
@@ -19,14 +20,25 @@ import {
   useSetDeckVisibilityMutation,
   useShareDeckMutation,
   useRevokeShareDeckMutation,
+  useSetDeckCoverImageMutation,
+  useClearDeckCoverImageMutation,
+  useSetDeckBackgroundImageMutation,
+  useClearDeckBackgroundImageMutation,
   SetVisibilityRequest,
 } from "@deck/store/deckApi.gen";
 import { useNavigate } from "@tanstack/react-router";
+
+/** Which dedicated image slot on a deck a handler targets. */
+type ImageRole = "cover" | "background";
 
 interface UseDeckResult {
   deck: DeckResponse | undefined;
   isLoading: boolean;
   error: unknown;
+  /** The deck's current cover image from the getDeck cache, if any. */
+  coverImage: AppImage | undefined;
+  /** The deck's current background image from the getDeck cache, if any. */
+  backgroundImage: AppImage | undefined;
   rename: (name: string) => void;
   /** Patch deck fields (PATCH, partial). */
   updateDeck: (patch: UpdateDeckRequest) => void;
@@ -39,6 +51,10 @@ interface UseDeckResult {
   openDeleteDeckModal: () => Promise<void>;
   present: () => void;
   addToCollection: () => void;
+  /** Set the deck's cover or background image. */
+  setDeckImage: (slot: ImageRole, image: AppImage) => void;
+  /** Clear the deck's cover or background image. */
+  clearDeckImage: (slot: ImageRole) => void;
 }
 
 /**
@@ -54,6 +70,10 @@ const useDeck = (deckId: string): UseDeckResult => {
   const [setVisibilityMutation] = useSetDeckVisibilityMutation();
   const [shareMutation] = useShareDeckMutation();
   const [revokeShareMutation] = useRevokeShareDeckMutation();
+  const [setCoverMutation] = useSetDeckCoverImageMutation();
+  const [clearCoverMutation] = useClearDeckCoverImageMutation();
+  const [setBackgroundMutation] = useSetDeckBackgroundImageMutation();
+  const [clearBackgroundMutation] = useClearDeckBackgroundImageMutation();
   const { present: livePresent } = useLiveSession();
 
   const openDeckInEditor = () => {
@@ -113,10 +133,22 @@ const useDeck = (deckId: string): UseDeckResult => {
 
   const remove = () => deleteDeckMutation({ id: deckId }).unwrap();
 
+  const setDeckImage = (slot: ImageRole, image: AppImage) => {
+    const mutate = slot === "cover" ? setCoverMutation : setBackgroundMutation;
+    void mutate({ id: deckId, setImageRequest: { image } });
+  };
+
+  const clearDeckImage = (slot: ImageRole) => {
+    const mutate = slot === "cover" ? clearCoverMutation : clearBackgroundMutation;
+    void mutate({ id: deckId });
+  };
+
   return {
     deck,
     isLoading,
     error,
+    coverImage: deck?.coverImage,
+    backgroundImage: deck?.backgroundImage,
     rename,
     updateDeck,
     setVisibility,
@@ -127,8 +159,10 @@ const useDeck = (deckId: string): UseDeckResult => {
     openDeleteDeckModal,
     present,
     addToCollection,
+    setDeckImage,
+    clearDeckImage,
   };
 };
 
 export { useDeck };
-export type { UseDeckResult };
+export type { UseDeckResult, ImageRole };
