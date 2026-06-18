@@ -11,6 +11,10 @@ interface PromptFieldProps {
   onChange: (html: string) => void;
   onBlur?: () => void;
   placeholder?: string;
+  /** Contrast glow behind the field. Driven centrally by whether the canvas has
+   *  a background image — set by {@link SlideContentWrapper}, not individual
+   *  editors, so the prompt stays legible over a busy background. */
+  showGradient?: boolean;
 }
 
 const PromptField = ({
@@ -19,12 +23,14 @@ const PromptField = ({
   onChange,
   onBlur,
   placeholder = "Type your question…",
+  showGradient = false,
 }: PromptFieldProps) => {
   return (
     <div className={styles.promptShell}>
       <RichTextInput
         id={`prompt-${idBase}`}
         isBordered={false}
+        showGradient={showGradient}
         value={value}
         placeholder={placeholder}
         onChange={onChange}
@@ -36,3 +42,4 @@ const PromptField = ({
 };
 
 export { PromptField };
+export type { PromptFieldProps };

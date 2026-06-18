@@ -5,16 +5,25 @@
  *
  * Slots:
  *   - `title` and `description` — small text block at the top of the editor.
+ *   - `prompt` — the big rich-text question editor at the top of the body. Owned
+ *     here (rather than repeated per content type) so its contrast glow can be
+ *     driven centrally: it lights up only when the canvas has a background image
+ *     (see {@link useSlideCanvas}), keeping the prompt legible over a busy image.
  *   - children — the editor's fields (flex column with `--space-4` gap).
  *   - `footer` — warnings / help text pinned below the scrollable body.
  */
 import type { ReactNode } from "react";
+import { useSlideCanvas } from "@deck/contexts/useSlideCanvas";
 import { ImageSlot } from "../../ImageSlot";
+import { PromptField, type PromptFieldProps } from "./_shared";
 import styles from "./SlideContentWrapper.module.css";
 
 interface SlideContentWrapperProps {
   title?: string;
   description?: string;
+  /** Prompt-editor wiring. `showGradient` is owned by the wrapper (driven by the
+   *  canvas background), so editors don't pass it. */
+  prompt?: Omit<PromptFieldProps, "showGradient">;
   footer?: ReactNode;
   children: ReactNode;
 }
@@ -22,9 +31,11 @@ interface SlideContentWrapperProps {
 const SlideContentWrapper = ({
   title,
   description,
+  prompt,
   footer,
   children,
 }: SlideContentWrapperProps) => {
+  const { hasBackgroundImage } = useSlideCanvas();
   return (
     <div className={styles.shell}>
       {(title ?? description) && (
@@ -42,7 +53,10 @@ const SlideContentWrapper = ({
             bottom: 3,
           }}
         />
-        <div className={styles.innerBody}>{children}</div>
+        <div className={styles.innerBody}>
+          {prompt && <PromptField {...prompt} showGradient={hasBackgroundImage} />}
+          {children}
+        </div>
         <ImageSlot
           slotId={{
             start: 5,

@@ -25,7 +25,6 @@
 import { useState } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { SlideContentWrapper } from "../SlideContentWrapper";
-import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
 import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import styles from "./McqSlideContent.module.css";
@@ -75,26 +74,21 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
 
   return (
     <SlideContentWrapper
+      prompt={{
+        idBase: `mcq-${question.id}`,
+        value: prompt,
+        placeholder: "Type your question…",
+        onChange: (html) => {
+          setPrompt(html);
+          schedulePrompt(html);
+        },
+        onBlur: flush,
+      }}
       footer={
         <p className={hasCorrectAnswer ? styles.footerPlaceholder : undefined}>
           Not setting a correct answer means this slide is not scoreable.
         </p>
       }>
-      <div className={styles.slideHeader}>
-        <RichTextInput
-          showGradient={true}
-          isBordered={false}
-          id={`mcq-prompt-${question.id}`}
-          placeholder='Type your question…'
-          value={prompt}
-          className={styles.titleField}
-          onChange={(html) => {
-            setPrompt(html);
-            schedulePrompt(html);
-          }}
-          onBlur={flush}
-        />
-      </div>
       <div
         className={styles.optionsRow}
         style={{ "--cols": columns } as React.CSSProperties}>

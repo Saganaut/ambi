@@ -9,11 +9,6 @@
   font-weight: 600;
 }
 
-.titleField {
-  font-size: var(--font-size-xl);
-  text-align: center;
-}
-
 /* Read-only preview of the parent's options: same grid rhythm as the MCQ
    editor, but ghosted and inert — the live session owns the real options. */
 .ghostOptions {

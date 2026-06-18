@@ -3,12 +3,6 @@
    own per-option chrome (index, remove, correct toggle, fields). Styles
    that belong to a single option card live in McqOptionEditable.module.css. */
 
-.slideHeader {
-  display: flex;
-  align-items: center;
-  justify-content: start;
-}
-
 .optionsHeader {
   display: flex;
   align-items: center;
@@ -41,9 +35,4 @@
   gap: var(--space-3);
   align-items: start;
   max-height: 80%;
-}
-
-.titleField {
-  min-height: 5rem;
-  padding-top: var(--space-2);
 }

@@ -8,6 +8,7 @@
  * with its container (one CSS module per directory).
  */
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
+import { SlideCanvasProvider } from "@deck/contexts/SlideCanvasContext";
 import { type SlideType } from "@deck/store/deckEnums.gen";
 import type { CSSProperties, ReactNode } from "react";
 import { ImageSlot } from "../../ImageSlot";
@@ -75,7 +76,11 @@ const SlideCanvas = ({
         }}
       />
       <div className={styles.slideBody}>
-        <div className={styles.slideChild}>{children}</div>
+        <div className={styles.slideChild}>
+          <SlideCanvasProvider hasBackgroundImage={Boolean(backgroundUrl)}>
+            {children}
+          </SlideCanvasProvider>
+        </div>
       </div>{" "}
       <ImageSlot
         slotId={{

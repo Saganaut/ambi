@@ -10,7 +10,6 @@
  * sidebar's follow-up section.
  */
 import React, { useState } from "react";
-import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { FOLLOW_UP_MODE_LABELS } from "@deck/utils/followUp";
@@ -65,6 +64,16 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   return (
     <SlideContentWrapper
+      prompt={{
+        idBase: `follow-up-${slide.id}`,
+        value: prompt,
+        placeholder: "Type your question…",
+        onChange: (html) => {
+          setPrompt(html);
+          updateMetadata({ title: html });
+        },
+        onBlur: flush,
+      }}
       footer={
         <p>
           Options are filled in from {parentDisplayName(parent?.title)} during
@@ -72,18 +81,6 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         </p>
       }>
       <div className={styles.modeBanner}>{FOLLOW_UP_MODE_LABELS[mode]}</div>
-      <RichTextInput
-        isBordered={false}
-        id={`follow-up-prompt-${slide.id}`}
-        placeholder='Type your question…'
-        value={prompt}
-        className={styles.titleField}
-        onChange={(html) => {
-          setPrompt(html);
-          updateMetadata({ title: html });
-        }}
-        onBlur={flush}
-      />
       {parentMcqOptions ? (
         <>
           <div

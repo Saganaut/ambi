@@ -2,6 +2,7 @@
 // editor pulls everything it needs from this barrel so the import lines
 // stay short.
 export { PromptField } from "./PromptField";
+export type { PromptFieldProps } from "./PromptField";
 export { SectionHeader } from "./SectionHeader";
 export { SettingsCard, SettingsRow } from "./SettingsCard";
 export { ItemCard } from "./ItemCard";
