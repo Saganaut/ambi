@@ -95,6 +95,7 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
         <Toggle
           id='participants-allow-guests'
           label='Allow guests (no account)'
+          labelPosition='labelBefore'
           checked={form.allowGuests}
           onChange={(e) => {
             toggle("allowGuests", e.currentTarget.checked);
@@ -103,6 +104,7 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
         <Toggle
           id='participants-allow-late-join'
           label='Allow late join'
+          labelPosition='labelBefore'
           checked={form.allowLateJoin}
           onChange={(e) => {
             toggle("allowLateJoin", e.currentTarget.checked);
@@ -111,6 +113,7 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
         <Toggle
           id='participants-allow-rejoin'
           label='Allow players to rejoin'
+          labelPosition='labelBefore'
           checked={form.allowReJoin}
           onChange={(e) => {
             toggle("allowReJoin", e.currentTarget.checked);
@@ -119,6 +122,7 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
         <Toggle
           id='participants-anonymous-mode'
           label='Anonymous mode (hide real names)'
+          labelPosition='labelBefore'
           checked={form.anonymousMode}
           onChange={(e) => {
             toggle("anonymousMode", e.currentTarget.checked);
@@ -131,6 +135,7 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
         <Toggle
           id='participants-chat-enabled'
           label='Enable chat'
+          labelPosition='labelBefore'
           checked={form.chatEnabled}
           onChange={(e) => {
             toggle("chatEnabled", e.currentTarget.checked);
@@ -139,6 +144,7 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
         <Toggle
           id='participants-reactions-enabled'
           label='Allow emoji reactions (all slides)'
+          labelPosition='labelBefore'
           checked={form.reactionsEnabled}
           onChange={(e) => {
             toggle("reactionsEnabled", e.currentTarget.checked);
