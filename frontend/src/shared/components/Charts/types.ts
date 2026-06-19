@@ -11,6 +11,8 @@ export interface ChartDatum {
   /** Explicit slice/bar colour (e.g. an MCQ option's colour). Renderers fall
    *  back to their tone palette when absent. */
   color?: string;
+  imageUrl?: string;
+  isCorrect?: boolean;
 }
 
 // The visualisation kinds the dispatcher knows how to render. Deliberately a

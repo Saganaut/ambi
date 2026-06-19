@@ -1,14 +1,21 @@
 // Results-visualisation picker + live preview for an MCQ slide, shown in the
 // answers inspector. The author picks how this MCQ's responses are charted; the
-// chosen mode is persisted on the content (`McqContent.dataVisualization`) via
-// useMcqEditor. Hovering/focusing a mode shows it in the preview *without*
-// committing — the transient choice rides on ResultsPreviewContext, exactly like
-// the cover-image placement preview. Because there are no real responses at
-// authoring time, the preview renders a deterministic sample distribution; the
-// same ResultsChart + adapter render live results on the session board later.
+// chosen mode is persisted on the content (`McqContent.dataVisualization`).
+// Hovering/focusing a mode shows it in the preview *without* committing — the
+// transient choice rides on ResultsPreviewContext, exactly like the cover-image
+// placement preview. Because there are no real responses at authoring time, the
+// preview renders a deterministic sample distribution; the same ResultsChart +
+// adapter render live results on the session board later.
+//
+// `dataVisualization` is a discrete, immediate setting (like the image/colour
+// pickers), so it commits straight through `useSlide.updateSlide` rather than
+// the debounced slide editor. Crucially this means NOT instantiating a second
+// `useMcqEditor`/`useSlideEditor` for this slide — the canvas already owns the
+// one allowed instance, and a second draft buffer raced the write so clicks
+// didn't persist.
 import { getRouteApi } from "@tanstack/react-router";
 
-import { useMcqEditor } from "@deck/hooks/useMcqEditor";
+import { useSlide } from "@deck/hooks/useSlide";
 import { useResultsPreview } from "@deck/contexts/useResultsPreview";
 import { ResultsChart } from "@components/Charts/ResultsChart/ResultsChart";
 import { mcqResults } from "@components/Charts/registry";
@@ -44,21 +51,31 @@ const VIZ_META: Record<ChartType, { label: string; Icon: VizIcon }> = {
 const McqResultsSection = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
-  const { question, setDataVisualization } = useMcqEditor(deckId, slideId ?? "");
+  const { getSlide, updateSlide } = useSlide(deckId);
   const { previewVisualization, setPreviewVisualization } = useResultsPreview();
 
-  if (!question) return null;
+  const slide = slideId ? getSlide(slideId) : undefined;
+  if (!slide || slide.content.contentType !== "MCQ") return null;
+  const content = slide.content;
 
-  const committed = question.dataVisualization;
+  const committed = content.dataVisualization;
   // The hover/focus preview wins over the persisted choice. Both are ChartType
   // literals (MCQ's enum is a subset), so this is assignable to ResultsChart.
   const effective = previewVisualization ?? committed;
 
   const chartData = mcqResults.toChartData(
-    question.options,
-    question.correctOptionIds,
-    mcqResults.sampleDistribution(question.options, question.correctOptionIds),
+    content.options,
+    content.correctOptionIds,
+    mcqResults.sampleDistribution(content.options, content.correctOptionIds),
   );
+
+  // Discrete, immediate commit: overlay the new viz onto the freshest content
+  // and PUT directly (updateSlide carries the full slide forward + optimistic
+  // patches the cache), then drop the transient preview.
+  const commit = (viz: ChartType) => {
+    updateSlide(slide.id, { content: { ...content, dataVisualization: viz } });
+    setPreviewVisualization(null);
+  };
 
   return (
     <section className={panel.section}>
@@ -79,8 +96,7 @@ const McqResultsSection = () => {
               aria-checked={selected}
               className={`${styles.option} ${selected ? styles.selected : ""}`}
               onClick={() => {
-                setDataVisualization(viz);
-                setPreviewVisualization(null);
+                commit(viz);
               }}
               onMouseEnter={() => {
                 setPreviewVisualization(viz);

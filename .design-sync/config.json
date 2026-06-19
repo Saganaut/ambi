@@ -1,0 +1,9 @@
+{
+  "shape": "storybook",
+  "storybookConfigDir": "frontend/.storybook",
+  "pkg": "ambi-frontend",
+  "globalName": "AmbiDS",
+  "readmeHeader": ".design-sync/conventions.md",
+  "syncScope": "tokens-and-rules-only",
+  "projectId": "274ff3e9-b6ef-41b7-87b6-9e84ff2e60cd"
+}

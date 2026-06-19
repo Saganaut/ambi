@@ -22,33 +22,45 @@
  *   - Zero correct answers is allowed but flagged, because the slide isn't
  *     scoreable in that state.
  */
-import { useState } from "react";
+import { useResultsPreview } from "@/features/deck/contexts/useResultsPreview";
+import { McqOption } from "@/features/deck/store/deckApi.gen";
+import { ResultsChart } from "@/shared/components/Charts/ResultsChart/ResultsChart";
+import { ChartDatum } from "@/shared/components/Charts/types";
+import { type OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import { DragDropProvider } from "@dnd-kit/react";
+import { useState } from "react";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
-import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import styles from "./McqSlideContent.module.css";
-import { type OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-
 
 interface McqSlideContentViewProps {
   UseMcqEditorResult: UseMcqEditorResult;
   openPicker: OpenGalleryPicker;
-
-
 }
 
-
-
 const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContentViewProps) => {
-
-  const { question, schedulePrompt, flush, canAddOption, addOption, handleOptionDragEnd, canRemove, isCorrect, scheduleOption, commitOption, toggleCorrect, removeOption } = UseMcqEditorResult;
+  const {
+    question,
+    schedulePrompt,
+    flush,
+    canAddOption,
+    addOption,
+    handleOptionDragEnd,
+    canRemove,
+    isCorrect,
+    scheduleOption,
+    commitOption,
+    toggleCorrect,
+    removeOption,
+  } = UseMcqEditorResult;
   // Only the prompt needs a local mirror — typing should feel responsive and
   // the rich-text editor controls its own DOM. Options come down as props from
   // the single editor. `syncedFromId` resets the mirror when the active slide
   // changes (this resync is purely local, hence the local state).
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
+  const { previewVisualization } = useResultsPreview();
 
   // Resync the local mirror when the active question changes. "Derive state
   // during render" pattern — safe when the new value differs.
@@ -63,7 +75,7 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
 
   if (!question) {
     return (
-      <SlideContentWrapper title='Multiple choice'>
+      <SlideContentWrapper title="Multiple choice">
         <p>Select a slide to edit.</p>
       </SlideContentWrapper>
     );
@@ -71,6 +83,23 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
 
   const options = question.options;
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
+  console.log("preview visualization", previewVisualization);
+
+  const convertMcqOptionsToChartDatum = (McqOptions: McqOption[]): ChartDatum[] => {
+    const DatumArray: ChartDatum[] = [];
+
+    McqOptions.forEach((option) => {
+      const randomInt = Math.floor(Math.random() * 11);
+      const newOption: ChartDatum = {
+        label: option.text ?? "",
+        color: option.color,
+        value: randomInt,
+        imageUrl: option?.image?.variants?.MD ?? undefined,
+      };
+      DatumArray.push(newOption);
+    });
+    return DatumArray;
+  };
 
   return (
     <SlideContentWrapper
@@ -78,7 +107,7 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
         idBase: `mcq-${question.id}`,
         value: prompt,
         placeholder: "Type your question…",
-        onChange: (html) => {
+        onChange: (html: string) => {
           setPrompt(html);
           schedulePrompt(html);
         },
@@ -88,41 +117,49 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
         <p className={hasCorrectAnswer ? styles.footerPlaceholder : undefined}>
           Not setting a correct answer means this slide is not scoreable.
         </p>
-      }>
-      <div
-        className={styles.optionsRow}
-        style={{ "--cols": columns } as React.CSSProperties}>
-        <DragDropProvider
-          onDragEnd={(event) => {
-            handleOptionDragEnd(event);
-          }}>
-          {options.map((option, idx) => (
-            <McqOptionEditable
-              key={option.id ?? `__no-id-${idx.toString()}`}
-              option={option}
-              sortIndex={idx}
-              index={idx}
-              isCorrect={isCorrect(option.id)}
-              canRemove={canRemove}
-              addOption={addOption}
-              canAddOption={canAddOption}
-              onScheduleText={(next) => {
-                scheduleOption(option.id, next);
-              }}
-              onCommit={(next) => {
-                commitOption(option.id, next);
-              }}
-              onToggleCorrect={() => {
-                toggleCorrect(option.id);
-              }}
-              onRemove={() => {
-                removeOption(option.id);
-              }}
-              flush={flush}
-              openPicker={openPicker}
-            />
-          ))}
-        </DragDropProvider>
+      }
+    >
+      <div className={styles.optionsRow} style={{ "--cols": columns } as React.CSSProperties}>
+        {previewVisualization === "NONE" || previewVisualization == null ? (
+          <DragDropProvider
+            onDragEnd={(event) => {
+              handleOptionDragEnd(event);
+            }}
+          >
+            {options.map((option, idx) => (
+              <McqOptionEditable
+                key={option.id ?? `__no-id-${idx.toString()}`}
+                option={option}
+                sortIndex={idx}
+                index={idx}
+                isCorrect={isCorrect(option.id)}
+                canRemove={canRemove}
+                addOption={addOption}
+                canAddOption={canAddOption}
+                onScheduleText={(next) => {
+                  scheduleOption(option.id, next);
+                }}
+                onCommit={(next) => {
+                  commitOption(option.id, next);
+                }}
+                onToggleCorrect={() => {
+                  toggleCorrect(option.id);
+                }}
+                onRemove={() => {
+                  removeOption(option.id);
+                }}
+                flush={flush}
+                openPicker={openPicker}
+              />
+            ))}
+          </DragDropProvider>
+        ) : (
+          <ResultsChart
+            viz={previewVisualization}
+            data={convertMcqOptionsToChartDatum(options)}
+            caption="Sample data"
+          />
+        )}
       </div>
     </SlideContentWrapper>
   );
