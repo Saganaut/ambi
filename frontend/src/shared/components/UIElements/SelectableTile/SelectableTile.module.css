@@ -19,8 +19,7 @@
   text-decoration: none;
   transition:
     border-color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out);
 }
 
 .tile:focus-visible {
@@ -40,7 +39,6 @@
 
 .tile:hover:not(.disabled) {
   border-color: var(--action-hover);
-  transform: translateY(-2px);
 }
 
 .sm {

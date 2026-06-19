@@ -1,5 +1,5 @@
 .avatar {
-  --size: 40px;
+  --size: var(--space-10);
   --font-size: var(--font-size-base);
 
   display: inline-flex;
@@ -19,27 +19,27 @@
 }
 
 .xs {
-  --size: 24px;
+  --size: var(--space-6);
   --font-size: var(--font-size-xs);
 }
 
 .sm {
-  --size: 32px;
+  --size: var(--space-8);
   --font-size: var(--font-size-sm);
 }
 
 .md {
-  --size: 40px;
+  --size: var(--space-10);
   --font-size: var(--font-size-base);
 }
 
 .lg {
-  --size: 56px;
+  --size: var(--space-14);
   --font-size: var(--font-size-lg);
 }
 
 .xl {
-  --size: 80px;
+  --size: var(--space-20);
   --font-size: var(--font-size-2xl);
 }
 

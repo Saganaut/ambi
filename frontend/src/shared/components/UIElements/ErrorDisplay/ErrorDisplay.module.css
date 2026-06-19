@@ -101,16 +101,16 @@
   font-weight: 700;
   padding: var(--space-3) var(--space-6);
   border-radius: var(--radius-md);
-  border: var(--border-size-sm) solid var(--red-500);
-  background: var(--red-500);
-  color: var(--bg-canvas);
+  border: var(--border-size-sm) solid var(--border-error);
+  background: var(--bg-error);
+  color: var(--text-error);
   text-decoration: none;
   transition: all var(--duration-fast) var(--ease-out);
 }
 
 .homeLink:hover {
-  background: var(--red-400);
-  border-color: var(--red-400);
+  background: oklch(from var(--bg-error) calc(l + 0.05) c h);
+  border-color: oklch(from var(--border-error) calc(l + 0.05) c h);
 }
 
 .backBtn {
@@ -127,6 +127,6 @@
 }
 
 .backBtn:hover {
-  border-color: var(--red-500);
-  color: var(--red-500);
+  border-color: var(--border-error);
+  color: var(--text-error);
 }

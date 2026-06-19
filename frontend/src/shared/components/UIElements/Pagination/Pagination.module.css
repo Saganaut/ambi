@@ -22,8 +22,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2rem;
-    height: 2rem;
+    min-width: var(--space-8);
+    height: var(--space-8);
     padding: 0 var(--space-2);
     border: var(--border-size-sm) solid transparent;
     border-radius: var(--radius-full);
@@ -64,8 +64,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2rem;
-    height: 2rem;
+    min-width: var(--space-8);
+    height: var(--space-8);
     color: var(--text-secondary);
     font-family: var(--font-mono);
     font-size: var(--font-size-sm);
@@ -73,8 +73,8 @@
   }
 
   .chevron {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: var(--space-5);
+    height: var(--space-5);
   }
 
   .compactLabel {

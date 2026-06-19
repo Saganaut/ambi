@@ -25,8 +25,8 @@
 }
 
 .circle {
-  width: 40px;
-  height: 40px;
+  width: var(--space-10);
+  height: var(--space-10);
   border-radius: var(--radius-full);
 }
 

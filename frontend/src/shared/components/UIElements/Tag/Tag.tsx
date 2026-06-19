@@ -9,10 +9,11 @@ interface TagProps {
   children: ReactNode;
   size?: "sm" | "md";
   onRemove?: () => void;
+  removeLabel?: string;
   className?: string;
 }
 
-const Tag = ({ children, size = "md", onRemove, className }: TagProps) => (
+const Tag = ({ children, size = "md", onRemove, removeLabel, className }: TagProps) => (
   <span
     className={[styles.tag, styles[size], className].filter(Boolean).join(" ")}>
     <span className={styles.label}>{children}</span>
@@ -21,7 +22,7 @@ const Tag = ({ children, size = "md", onRemove, className }: TagProps) => (
         type='button'
         className={styles.remove}
         onClick={onRemove}
-        aria-label='Remove tag'>
+        aria-label={removeLabel ?? 'Remove tag'}>
         <XMarkIcon />
       </button>
     )}

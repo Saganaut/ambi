@@ -68,13 +68,9 @@ const SelectableTile = (props: SelectableTileProps) => {
 
   if (disabled) {
     return (
-      <div
-        className={composed}
-        role='button'
-        aria-disabled='true'
-        tabIndex={-1}>
+      <button type='button' className={composed} disabled aria-pressed={selected}>
         {content}
-      </div>
+      </button>
     );
   }
 

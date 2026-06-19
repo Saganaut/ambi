@@ -40,7 +40,7 @@ const Tooltip = ({
       onBlur={() => {
         setVisible(false);
       }}>
-      <span aria-describedby={visible ? tooltipId : undefined}>{children}</span>
+      <span aria-describedby={tooltipId}>{children}</span>
       <span
         id={tooltipId}
         role='tooltip'

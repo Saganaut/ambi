@@ -28,7 +28,7 @@ const Avatar = ({ src, name, alt, size = "md", className }: AvatarProps) => {
       {showImage ? (
         <img
           src={resolvedSrc ?? ""}
-          alt={alt ?? name ?? ""}
+          alt={alt ?? name ?? "User avatar"}
           className={styles.image}
           onError={() => {
             setErrored(true);

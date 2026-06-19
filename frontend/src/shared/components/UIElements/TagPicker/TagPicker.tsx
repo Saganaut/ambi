@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import type { TagResponse } from "@store/AmbiApi";
 import { Tag } from "../Tag/Tag";
 import styles from "./TagPicker.module.css";
@@ -33,6 +33,7 @@ const TagPicker = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const menuId = useId();
 
   const byId = useMemo(() => {
     const map = new Map<string, TagResponse>();
@@ -108,6 +109,7 @@ const TagPicker = ({
               <Tag
                 key={id}
                 size='sm'
+                removeLabel={`Remove ${displayName ?? id}`}
                 onRemove={() => {
                   remove(id);
                 }}>
@@ -118,6 +120,10 @@ const TagPicker = ({
           <input
             ref={inputRef}
             type='text'
+            role='combobox'
+            aria-expanded={isFocused}
+            aria-controls={menuId}
+            aria-autocomplete='list'
             className={styles.input}
             value={query}
             placeholder={value.length === 0 ? placeholder : ""}
@@ -150,7 +156,7 @@ const TagPicker = ({
           />
         </div>
         {isFocused && (
-          <div className={styles.menu} role='listbox'>
+          <div id={menuId} className={styles.menu} role='listbox'>
             {isLoading && <div className={styles.menuEmpty}>Loading…</div>}
             {!isLoading && filtered.length === 0 && !showCreate && (
               <div className={styles.menuEmpty}>No matching tags</div>

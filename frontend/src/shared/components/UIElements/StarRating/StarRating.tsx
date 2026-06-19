@@ -88,7 +88,7 @@ const StarRating = ({
       aria-label={label ?? formatAriaLabel(safeValue, isInput)}
       tabIndex={isInput ? 0 : undefined}
       onKeyDown={isInput ? handleKeyDown : undefined}>
-      <div className={styles.stars} aria-hidden={!isInput}>
+      <div className={styles.stars} aria-hidden={true}>
         <div className={styles.outlineRow}>
           {STARS.map((n, index) =>
             index + 1 > safeValue ? (

@@ -2,7 +2,7 @@
 // Used on MainPage and Create Game flow to surface high-level user choices.
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import styles from "./ActionCard.module.css";
+import styles from "./Cards.module.css";
 
 interface ActionCardBaseProps {
   icon: ReactNode;
@@ -29,7 +29,7 @@ const ActionCard = (props: ActionCardProps) => {
   const { icon, title, description, disabled, badge, selected } = props;
 
   const className = [
-    styles.card,
+    styles.actionCard,
     disabled ? styles.disabled : "",
     selected ? styles.selected : "",
   ]
@@ -49,13 +49,9 @@ const ActionCard = (props: ActionCardProps) => {
 
   if (disabled) {
     return (
-      <div
-        className={className}
-        aria-disabled='true'
-        role='button'
-        tabIndex={-1}>
+      <button type='button' className={className} disabled aria-pressed={selected}>
         {content}
-      </div>
+      </button>
     );
   }
 

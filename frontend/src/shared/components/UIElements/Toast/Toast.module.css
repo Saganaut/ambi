@@ -73,7 +73,7 @@
 
   .closeBtn {
     position: absolute;
-    right: 10px;
+    right: var(--space-2);
   }
 }
 

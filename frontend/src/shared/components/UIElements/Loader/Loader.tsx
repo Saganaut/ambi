@@ -7,9 +7,10 @@ interface LoaderProps {
 
 const Loader = ({ withMessage = true, message }: LoaderProps) => {
   return (
-    <div className={styles.loader}>
+    <div className={styles.loader} role='status' aria-label={withMessage ? undefined : 'Loading'}>
       <svg
         className={styles.spinner}
+        aria-hidden='true'
         width='50'
         height='49'
         viewBox='0 0 50 49'

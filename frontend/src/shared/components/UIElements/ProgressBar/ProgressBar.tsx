@@ -56,6 +56,7 @@ const ProgressBar = ({
         aria-valuenow={indeterminate ? undefined : clamped}
         aria-valuemin={0}
         aria-valuemax={safeMax}
+        aria-busy={indeterminate ? true : undefined}
         aria-label={label ?? "Progress"}>
         <div
           className={[
