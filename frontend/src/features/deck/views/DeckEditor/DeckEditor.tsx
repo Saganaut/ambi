@@ -30,6 +30,7 @@ import { Btn } from "@ui/Buttons/Btn";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
 import { SidePanelDrawer } from "../../components/DeckEditor/RightSidebar/SidePanelDrawer/SidePanelDrawer";
 import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
+import { ResultsPreviewProvider } from "../../contexts/ResultsPreviewContext";
 import { useDeckEditor } from "../../hooks/useDeckEditor";
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -133,14 +134,16 @@ const DeckEditor = () => {
 
       <CanvasBody>
         <ImageSlotProvider>
-          <LeftSidebarContent />
-          <InnerDisplay className={styles.slideCanvasContainer}>
-            <SlideDisplay />
-            <SpeakerNotesDrawer />
-          </InnerDisplay>
-          <SidePanelDrawer />
+          <ResultsPreviewProvider>
+            <LeftSidebarContent />
+            <InnerDisplay className={styles.slideCanvasContainer}>
+              <SlideDisplay />
+              <SpeakerNotesDrawer />
+            </InnerDisplay>
+            <SidePanelDrawer />
 
-          <RightSidebarContent />
+            <RightSidebarContent />
+          </ResultsPreviewProvider>
         </ImageSlotProvider>
       </CanvasBody>
     </MainBodyDashboard>

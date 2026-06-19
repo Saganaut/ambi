@@ -1,0 +1,69 @@
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  width: 100%;
+}
+
+.caption {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.svg {
+  width: 100%;
+  height: 9rem;
+}
+
+.axis {
+  stroke: var(--border-subtle);
+  stroke-width: 0.5;
+}
+
+.line {
+  fill: none;
+  stroke: var(--bg-brand);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.marker {
+  fill: var(--bg-brand);
+}
+
+.marker.highlight {
+  fill: var(--role-green);
+}
+
+.labels {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-2);
+  justify-content: space-between;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-half);
+  min-width: 0;
+  flex: 1;
+}
+
+.labelText {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.labelValue {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}

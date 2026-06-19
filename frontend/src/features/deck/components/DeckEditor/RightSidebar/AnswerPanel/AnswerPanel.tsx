@@ -24,6 +24,7 @@ import { deckAndSlideIdProps } from "@/features/deck/deck.types";
 import { ResultsDisplayMode, SlideType } from "@/features/deck/store/deckEnums.gen";
 import { FollowUpOptionsSection } from "../EditSlideSections/FollowUpOptionsSection";
 import { McqOptionsSection } from "../EditSlideSections/McqOptionsSection";
+import { McqResultsSection } from "../EditSlideSections/McqResultsSection/McqResultsSection";
 import { NumberOptionsSection } from "../EditSlideSections/NumberOptionsSection";
 import { QAndAOptionsSection } from "../EditSlideSections/QAndAOptionsSection";
 import { RankingOptionsSection } from "../EditSlideSections/RankingOptionsSection";
@@ -42,7 +43,12 @@ import {
 const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
   switch (contentType) {
     case "MCQ":
-      return <McqOptionsSection />;
+      return (
+        <>
+          <McqOptionsSection />
+          <McqResultsSection />
+        </>
+      );
     case "TEXT":
       return <TextOptionsSection />;
     case "NUMBER":

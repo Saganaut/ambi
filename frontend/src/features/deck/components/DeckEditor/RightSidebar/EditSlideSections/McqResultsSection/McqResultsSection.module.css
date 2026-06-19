@@ -1,0 +1,63 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap-sm);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--p-square-xs);
+  border: var(--border-size-sm) solid var(--border-color, var(--border-subtle));
+  border-radius: var(--radius-md);
+  background: var(--background-color, var(--bg-surface-raised));
+  color: var(--color, var(--text-secondary));
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.option:hover {
+  --color: var(--text-primary);
+  --border-color: var(--border-default);
+}
+
+.option.selected {
+  --color: var(--text-on-brand);
+  --background-color: var(--bg-brand);
+  --border-color: var(--bg-brand);
+}
+
+.option:focus-visible {
+  outline: var(--border-size-sm) solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+}
+
+.preview {
+  margin-top: var(--space-4);
+  padding: var(--p-sm);
+  border: var(--space-px) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  min-height: 6rem;
+  display: flex;
+  align-items: center;
+}
+
+.noneHint {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
