@@ -24,7 +24,7 @@ import styles from "./GalleryPicker.module.css";
 // Mirror of the backend ingest cap (`ambi.media.max-upload-bytes`, 10 MB) so the
 // client rejects oversize files before the round-trip.
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
-const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp,image/gif";
+const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp,image/gif,image/avif";
 
 interface UploadSource {
   /** Blob/object URL the crop editor renders. */

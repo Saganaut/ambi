@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { UseMcqEditorResult, McqQuestionView } from "@deck/hooks/useMcqEditor";
+import { McqOptionEditingProvider } from "@deck/contexts/McqOptionEditingContext";
 import { mockMcqSlide } from "@deck/utils/deckMockData";
 import { withSlideCanvas } from "@sb/decorators/withSlideCanvas";
 import { McqSlideContentView } from "./McqSlideContentView";
@@ -39,10 +40,18 @@ const meta = {
   title: "Deck/SlideContent/McqSlideContent",
   component: McqSlideContentView,
   tags: ["autodocs"],
-  decorators: [withSlideCanvas("MCQ")],
+  decorators: [
+    // The option pieces (card / chart label) read editing off the per-option
+    // context, so the view needs the provider the container normally mounts.
+    (Story) => (
+      <McqOptionEditingProvider editor={mockEditor} openPicker={fn()}>
+        <Story />
+      </McqOptionEditingProvider>
+    ),
+    withSlideCanvas("MCQ"),
+  ],
   args: {
     UseMcqEditorResult: mockEditor,
-    openPicker: fn(),
   },
 } satisfies Meta<typeof McqSlideContentView>;
 

@@ -12,7 +12,7 @@
 
 .svg {
   width: 100%;
-  height: 9rem;
+  height: 8rem;
 }
 
 .axis {
@@ -36,42 +36,20 @@
   fill: var(--role-green);
 }
 
-.labels {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0 var(--space-2);
-  justify-content: space-between;
-}
-
-.label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-half);
-  min-width: 0;
-  flex: 1;
-}
-
-/* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
-   Menu's popover (position: relative), letting buttons overflow rather than clip. */
-.optionControls {
+/* Value badges (counts / percentages) pinned above each SVG point */
+.valueRow {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  min-width: 0;
-  max-width: 100%;
+  height: 2rem;
   overflow: visible;
 }
 
-.labelText {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
+.valueItem {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   white-space: nowrap;
-  max-width: 100%;
 }
 
 .labelValue {
@@ -82,4 +60,45 @@
 
 .share {
   color: var(--text-secondary);
+}
+
+/* Option labels / editable controls pinned below each SVG point */
+.controlsRow {
+  position: relative;
+  min-height: 3rem;
+  overflow: visible;
+}
+
+.controlsItem {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 6rem;
+}
+
+/* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
+   Menu's popover (position: relative), letting buttons overflow rather than clip. */
+.optionControls {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-xs);
+  min-width: 0;
+  overflow: visible;
+
+  textarea {
+    font-size: var(--font-size-xs);
+  }
+}
+
+.labelText {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }

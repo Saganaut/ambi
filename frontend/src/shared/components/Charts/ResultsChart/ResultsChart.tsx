@@ -16,13 +16,14 @@ import { LineChart } from "../LineChart/LineChart";
 import { ParetoChart } from "../ParetoChart/ParetoChart";
 import { PieChart } from "../PieChart/PieChart";
 import { ChartDatum, type ChartProps, type ChartType } from "../types";
-import { SortableDragHandle } from "./SortableDragHandle";
 
 // ResultsChart owns `chartMode` (always editable here) and generates the
 // label/menu/toggle render props from the slide's editor context, so callers
 // only supply the data + the chosen visualisation.
-export interface ResultsChartProps
-  extends Pick<ChartProps, "data" | "caption" | "displayAsPercentage" | "animateOnMount"> {
+export interface ResultsChartProps extends Pick<
+  ChartProps,
+  "data" | "caption" | "displayAsPercentage" | "animateOnMount"
+> {
   viz: ChartType;
 }
 
@@ -35,15 +36,19 @@ const ResultsChart = ({
 }: ResultsChartProps) => {
   const { editor, openPicker } = useMcqSlideContext();
 
-  const { flush, scheduleOption, canRemove, isCorrect, commitOption, toggleCorrect, removeOption } =
-    editor;
+  const {
+    flush,
+    scheduleOption,
+    canRemove,
+    isCorrect,
+    commitOption,
+    toggleCorrect,
+    removeOption,
+    handleOptionDragEnd,
+  } = editor;
 
   const [openOptionId, setOpenOptionId] = useState<string | null>(null);
 
-  // Separate render props so each chart can place the option's controls
-  // independently. `index` is the option's position in the slide's list (via
-  // `data`, which is in option order) so reorder + the "Option N" label stay
-  // correct even for charts that sort their display (e.g. Pareto).
   const optionIndex = (datum: ChartDatum) => data.findIndex((d) => d.id === datum.id);
 
   const renderLabel = (datum: ChartDatum) => (
@@ -89,10 +94,6 @@ const ResultsChart = ({
     />
   );
 
-  const renderDragHandle = (datum: ChartDatum) => (
-    <SortableDragHandle id={datum.id} index={optionIndex(datum)} />
-  );
-
   switch (viz) {
     case "NONE":
       return <p>Placeholder</p>;
@@ -108,7 +109,7 @@ const ResultsChart = ({
           renderLabel={renderLabel}
           renderToggle={renderToggle}
           renderMenu={renderMenu}
-          renderDragHandle={renderDragHandle}
+          handleOptionDragEnd={handleOptionDragEnd}
           displayAsPercentage={displayAsPercentage}
         />
       );
@@ -123,7 +124,7 @@ const ResultsChart = ({
           renderLabel={renderLabel}
           renderToggle={renderToggle}
           renderMenu={renderMenu}
-          renderDragHandle={renderDragHandle}
+          handleOptionDragEnd={handleOptionDragEnd}
           displayAsPercentage={displayAsPercentage}
         />
       );
@@ -138,7 +139,7 @@ const ResultsChart = ({
           renderLabel={renderLabel}
           renderToggle={renderToggle}
           renderMenu={renderMenu}
-          renderDragHandle={renderDragHandle}
+          handleOptionDragEnd={handleOptionDragEnd}
           displayAsPercentage={displayAsPercentage}
         />
       );
@@ -153,7 +154,7 @@ const ResultsChart = ({
           renderLabel={renderLabel}
           renderToggle={renderToggle}
           renderMenu={renderMenu}
-          renderDragHandle={renderDragHandle}
+          handleOptionDragEnd={handleOptionDragEnd}
           displayAsPercentage={displayAsPercentage}
         />
       );
@@ -167,7 +168,7 @@ const ResultsChart = ({
           renderLabel={renderLabel}
           renderToggle={renderToggle}
           renderMenu={renderMenu}
-          renderDragHandle={renderDragHandle}
+          handleOptionDragEnd={handleOptionDragEnd}
           displayAsPercentage={displayAsPercentage}
         />
       );
@@ -181,7 +182,7 @@ const ResultsChart = ({
           renderLabel={renderLabel}
           renderToggle={renderToggle}
           renderMenu={renderMenu}
-          renderDragHandle={renderDragHandle}
+          handleOptionDragEnd={handleOptionDragEnd}
           displayAsPercentage={displayAsPercentage}
         />
       );
@@ -195,7 +196,7 @@ const ResultsChart = ({
           renderLabel={renderLabel}
           renderToggle={renderToggle}
           renderMenu={renderMenu}
-          renderDragHandle={renderDragHandle}
+          handleOptionDragEnd={handleOptionDragEnd}
           displayAsPercentage={displayAsPercentage}
         />
       );

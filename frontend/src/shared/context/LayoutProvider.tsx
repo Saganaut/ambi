@@ -8,16 +8,11 @@
  * and a floating X button rendered top-right (only while fullscreen) clicks
  * to exit.
  */
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { close } from "@deck/store/panelSlice";
 import { ArrowsPointingInIcon } from "@heroicons/react/24/outline";
+import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
+import { useAppDispatch } from "../hooks/storeHooks";
 import styles from "./LayoutProvider.module.css";
-
 interface LayoutContextValue {
   isFullScreen: boolean;
   enterFullScreen: () => void;
@@ -29,16 +24,23 @@ const LayoutContext = createContext<LayoutContextValue | null>(null);
 
 const LayoutProvider = ({ children }: { children: ReactNode }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const dispatch = useAppDispatch();
 
   const enterFullScreen = useCallback(() => {
+    console.log("entering full screen");
+
     setIsFullScreen(true);
   }, []);
+
   const exitFullScreen = useCallback(() => {
     setIsFullScreen(false);
   }, []);
+
   const toggleFullScreen = useCallback(() => {
+    dispatch(close());
+
     setIsFullScreen((v) => !v);
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (!isFullScreen) return;
@@ -58,14 +60,16 @@ const LayoutProvider = ({ children }: { children: ReactNode }) => {
         enterFullScreen,
         exitFullScreen,
         toggleFullScreen,
-      }}>
+      }}
+    >
       {children}
       {isFullScreen && (
         <button
-          type='button'
+          type="button"
           className={styles.exitButton}
-          aria-label='Exit fullscreen'
-          onClick={exitFullScreen}>
+          aria-label="Exit fullscreen"
+          onClick={exitFullScreen}
+        >
           <ArrowsPointingInIcon className={styles.exitIcon} />
         </button>
       )}

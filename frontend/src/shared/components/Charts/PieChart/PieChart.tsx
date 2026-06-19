@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { DragDropProvider } from "@dnd-kit/react";
+import { useSortable } from "@dnd-kit/react/sortable";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import type { ChartDatum, GeneralChartProps } from "../types";
 import styles from "./PieChart.module.css";
 
@@ -8,6 +10,76 @@ const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
 const RADII = { pie: 25, donut: 38 } as const;
 const STROKE = { pie: 50, donut: 16 } as const;
 
+interface SortableListItem {
+  sortIndex: number;
+  sliceId: string;
+  renderLabel?: (datum: ChartDatum) => ReactNode;
+  /** The correct/incorrect toggle. */
+  renderToggle?: (datum: ChartDatum) => ReactNode;
+  /** The option's menu (image/colour/remove). */
+  renderMenu?: (datum: ChartDatum) => ReactNode;
+  displayAsPercentage: boolean;
+  slice: {
+    datum: ChartDatum;
+    label: string;
+    pct: number;
+    start: number;
+    tone: string;
+    color?: string;
+    highlight?: boolean;
+    index: number;
+  };
+}
+
+const SortableListItem = ({
+  sortIndex,
+  sliceId,
+  renderLabel,
+  renderToggle,
+  renderMenu,
+  displayAsPercentage,
+  slice,
+}: SortableListItem) => {
+  const { ref: sortableRef } = useSortable({
+    id: sliceId,
+    index: sortIndex,
+  });
+
+  const cardRef = useRef<HTMLLIElement>(null);
+
+  const setCardRef = (node: HTMLLIElement | null) => {
+    cardRef.current = node;
+    if (typeof sortableRef === "function") sortableRef(node);
+  };
+
+  return (
+    <li
+      ref={setCardRef}
+      key={slice.datum.id}
+      className={`${styles.legendItem} ${slice.highlight ? styles.highlight : ""}`}
+    >
+      <span
+        className={`${styles.swatch} ${styles[slice.tone]}`}
+        style={slice.color ? { background: slice.color } : undefined}
+        aria-hidden="true"
+      />
+      <div className={styles.optionControls}>
+        {renderLabel ? (
+          renderLabel(slice.datum)
+        ) : (
+          <span className={styles.legendLabel}>{slice.label}</span>
+        )}
+        {renderToggle?.(slice.datum)}
+        {renderMenu?.(slice.datum)}
+      </div>
+      <span className={styles.legendValue}>
+        {slice.datum.value}
+        {displayAsPercentage && ` (${Math.round(slice.pct).toString()}%)`}
+      </span>
+    </li>
+  );
+};
+
 const PieChart = ({
   data,
   variant = "pie",
@@ -16,8 +88,9 @@ const PieChart = ({
   renderLabel,
   renderToggle,
   renderMenu,
-  renderDragHandle,
   displayAsPercentage = false,
+  handleOptionDragEnd,
+  chartMode,
 }: GeneralChartProps) => {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const [revealed, setRevealed] = useState(!animateOnMount);
@@ -39,7 +112,7 @@ const PieChart = ({
       </div>
     );
   }
-
+  if (chartMode !== "editable") return;
   const slices = data.reduce<
     {
       datum: ChartDatum;
@@ -99,32 +172,24 @@ const PieChart = ({
           </g>
         </svg>
         <ul className={styles.legend}>
-          {slices.map((s) => (
-            <li
-              key={s.index}
-              className={`${styles.legendItem} ${s.highlight ? styles.highlight : ""}`}
-            >
-              <span
-                className={`${styles.swatch} ${styles[s.tone]}`}
-                style={s.color ? { background: s.color } : undefined}
-                aria-hidden="true"
+          <DragDropProvider
+            onDragEnd={(event) => {
+              handleOptionDragEnd(event);
+            }}
+          >
+            {slices.map((s, idx) => (
+              <SortableListItem
+                key={s.datum.id}
+                sliceId={s.datum.id}
+                slice={s}
+                displayAsPercentage={displayAsPercentage}
+                sortIndex={idx}
+                renderToggle={renderToggle}
+                renderLabel={renderLabel}
+                renderMenu={renderMenu}
               />
-              <div className={styles.optionControls}>
-                {renderDragHandle?.(s.datum)}
-                {renderLabel ? (
-                  renderLabel(s.datum)
-                ) : (
-                  <span className={styles.legendLabel}>{s.label}</span>
-                )}
-                {renderToggle?.(s.datum)}
-                {renderMenu?.(s.datum)}
-              </div>
-              <span className={styles.legendValue}>
-                {s.datum.value}
-                {displayAsPercentage && ` (${Math.round(s.pct).toString()}%)`}
-              </span>
-            </li>
-          ))}
+            ))}
+          </DragDropProvider>
         </ul>
       </div>
     </div>

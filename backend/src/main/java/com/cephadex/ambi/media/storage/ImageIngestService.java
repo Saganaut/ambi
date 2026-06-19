@@ -62,16 +62,31 @@ public class ImageIngestService {
     public AppImage ingest(byte[] bytes, String contentType, String originalFilename) {
         validate(bytes, contentType);
 
+        String prefix = "gallery/" + UUID.randomUUID();
+        String originalKey = ImageKeys.originalKey(prefix);
+        storage.put(originalKey, bytes, contentType);
+
+        // AVIF cannot be decoded by Scrimage; store the original as-is with no variants.
+        if ("image/avif".equalsIgnoreCase(contentType)) {
+            AppImage image = new AppImage();
+            image.setExternal(false);
+            image.setSrcKey(originalKey);
+            image.setVariants(new EnumMap<>(ImageSizeOptions.class));
+            if (StringUtils.hasText(originalFilename)) {
+                image.setAltText(originalFilename);
+            }
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("originalContentType", contentType);
+            image.setMetadata(metadata);
+            return image;
+        }
+
         ImmutableImage source;
         try {
             source = ImmutableImage.loader().fromBytes(bytes);
         } catch (IOException e) {
             throw new ValidationException("Uploaded file is not a readable image.");
         }
-
-        String prefix = "gallery/" + UUID.randomUUID();
-        String originalKey = ImageKeys.originalKey(prefix);
-        storage.put(originalKey, bytes, contentType);
 
         Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
         for (Map.Entry<ImageSizeOptions, Integer> tier : TIER_BOUNDS.entrySet()) {

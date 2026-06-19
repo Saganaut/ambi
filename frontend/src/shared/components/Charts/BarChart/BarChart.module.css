@@ -3,121 +3,124 @@
   flex-direction: column;
   gap: var(--gap-sm);
   width: 100%;
-}
 
-.caption {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
+  .bars {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
 
-.bars {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-}
+  .caption {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
 
-.row {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  min-width: 0;
-}
+  .row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-width: 0;
+  }
 
-.label {
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .label {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-/* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
-   Menu's popover (position: relative). Occupies the row's label cell. */
-.optionControls {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  min-width: 0;
-  overflow: visible;
-}
+  .optionControls {
+    border: 1px dashed red;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
+    min-width: 0;
+    overflow: visible;
+  }
 
-.track {
-  background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
+  .track {
+    background: var(--bg-subtle);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
 
-.fill {
-  background: var(--bar-color, var(--bg-brand));
-  border-radius: var(--radius-sm);
-  transition: width var(--duration-base) var(--ease-out),
-    height var(--duration-base) var(--ease-out);
-}
+  .fill {
+    background: var(--bar-color, var(--bg-brand));
+    border-radius: var(--radius-sm);
+    transition:
+      width var(--duration-base) var(--ease-out),
+      height var(--duration-base) var(--ease-out);
+  }
 
-.highlight .fill {
-  background: var(--bar-color, var(--role-green));
-}
+  .highlight .fill {
+    background: var(--bar-color, var(--role-green));
+  }
 
-.value {
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
+  .value {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
 
-.share {
-  color: var(--text-secondary);
-}
+  .share {
+    color: var(--text-secondary);
+  }
 
-/* ── Horizontal: rows stacked top→bottom, bars grow rightward ────────────── */
-.horizontal .bars {
-  flex-direction: column;
-  gap: var(--gap-sm);
-}
+  &.horizontal {
+    .bars {
+      flex-direction: column;
+      gap: var(--gap-sm);
+    }
 
-.horizontal .row {
-  display: grid;
-  grid-template-columns: minmax(0, 6rem) 1fr auto;
-}
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 6rem) 1fr auto;
+    }
 
-.horizontal .track {
-  height: var(--space-4);
-  width: 100%;
-}
+    .track {
+      height: var(--space-4);
+      width: 100%;
+    }
 
-.horizontal .fill {
-  height: 100%;
-  width: var(--size, 0);
-}
+    .fill {
+      height: 100%;
+      width: var(--size, 0);
+    }
+  }
 
-/* ── Vertical: columns side-by-side, bars grow upward ────────────────────── */
-.vertical .bars {
-  flex-direction: row;
-  align-items: flex-end;
-  gap: var(--gap-md);
-  min-height: 10rem;
-}
+  &.vertical {
+    .bars {
+      flex-direction: row;
+      align-items: flex-end;
+      gap: var(--gap-md);
+      min-height: 10rem;
+    }
 
-.vertical .row {
-  flex: 1;
-  flex-direction: column-reverse;
-  gap: var(--gap-xs);
-  height: 100%;
-  justify-content: flex-start;
-  text-align: center;
-}
+    .row {
+      flex: 1;
+      flex-direction: column-reverse;
+      gap: var(--gap-xs);
+      height: 100%;
+      justify-content: flex-start;
+      text-align: center;
+    }
 
-.vertical .track {
-  width: 100%;
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-}
+    .track {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+    }
 
-.vertical .fill {
-  width: 100%;
-  height: var(--size, 0);
+    .fill {
+      width: 100%;
+      height: var(--size, 0);
+    }
+  }
 }

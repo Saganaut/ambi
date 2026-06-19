@@ -54,7 +54,7 @@ public class MediaProperties {
 
     /** Content types accepted by the upload ingest. */
     private Set<String> allowedContentTypes = new LinkedHashSet<>(Set.of(
-            "image/png", "image/jpeg", "image/webp", "image/gif"));
+            "image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"));
 
     /**
      * Connect/read timeout for the SSRF-guarded remote-image fetch (the proxy

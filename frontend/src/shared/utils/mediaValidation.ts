@@ -18,8 +18,8 @@ export const MEDIA_TIERS = {
   IMAGE: {
     maxBytes: 5 * 1024 * 1024,
     maxBytesLabel: "5 MB",
-    acceptedMimes: ["image/jpeg", "image/png", "image/webp"],
-    acceptedLabel: "JPEG, PNG, or WebP",
+    acceptedMimes: ["image/jpeg", "image/png", "image/webp", "image/avif"],
+    acceptedLabel: "JPEG, PNG, WebP, or AVIF",
   },
   AUDIO: {
     maxBytes: 20 * 1024 * 1024,

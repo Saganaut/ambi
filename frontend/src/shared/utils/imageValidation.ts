@@ -13,26 +13,26 @@ export const IMAGE_TIERS = {
   avatar: {
     maxBytes: 1024 * 1024,
     maxBytesLabel: "1 MB",
-    acceptedMimes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-    acceptedLabel: "JPEG, PNG, WebP, or GIF",
+    acceptedMimes: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"],
+    acceptedLabel: "JPEG, PNG, WebP, GIF, or AVIF",
   },
   logo: {
     maxBytes: 2 * 1024 * 1024,
     maxBytesLabel: "2 MB",
-    acceptedMimes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-    acceptedLabel: "JPEG, PNG, WebP, or GIF",
+    acceptedMimes: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"],
+    acceptedLabel: "JPEG, PNG, WebP, GIF, or AVIF",
   },
   background: {
     maxBytes: 5 * 1024 * 1024,
     maxBytesLabel: "5 MB",
-    acceptedMimes: ["image/jpeg", "image/png", "image/webp"],
-    acceptedLabel: "JPEG, PNG, or WebP",
+    acceptedMimes: ["image/jpeg", "image/png", "image/webp", "image/avif"],
+    acceptedLabel: "JPEG, PNG, WebP, or AVIF",
   },
   gallery: {
     maxBytes: 5 * 1024 * 1024,
     maxBytesLabel: "5 MB",
-    acceptedMimes: ["image/jpeg", "image/png", "image/webp"],
-    acceptedLabel: "JPEG, PNG, or WebP",
+    acceptedMimes: ["image/jpeg", "image/png", "image/webp", "image/avif"],
+    acceptedLabel: "JPEG, PNG, WebP, or AVIF",
   },
 } as const satisfies Record<string, ImageTier>;
 

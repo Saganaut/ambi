@@ -30,58 +30,22 @@ const LineChart = ({
     return { x, y, datum: d, index: i };
   });
 
+  // W === 100, so viewBox x directly equals the CSS left percentage.
+  const xPct = (i: number) => PAD + (i / span) * (W - PAD * 2);
+
   const path = points.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
 
   return (
     <div className={styles.chart}>
       {caption && <div className={styles.caption}>{caption}</div>}
-      <svg
-        className={styles.svg}
-        viewBox={`0 0 ${W.toString()} ${H.toString()}`}
-        preserveAspectRatio='none'
-        role='img'
-        aria-label='Line chart'
-      >
-        <line
-          className={styles.axis}
-          x1={PAD}
-          y1={H - PAD}
-          x2={W - PAD}
-          y2={H - PAD}
-        />
-        {data.length > 1 && (
-          <polyline className={styles.line} points={path} />
-        )}
-        {points.map((p) => (
-          <circle
-            key={p.index}
-            className={`${styles.marker} ${
-              p.datum.highlight ? styles.highlight : ""
-            }`}
-            cx={p.x}
-            cy={p.y}
-            r={p.datum.highlight ? 2.4 : 1.8}
-            style={p.datum.color ? { fill: p.datum.color } : undefined}
-          />
-        ))}
-      </svg>
-      <ul className={styles.labels}>
+      <div className={styles.valueRow}>
         {data.map((d, i) => (
-          <li
+          <div
             // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
             key={i}
-            className={styles.label}
+            className={styles.valueItem}
+            style={{ left: `${xPct(i).toFixed(2)}%` }}
           >
-            <div className={styles.optionControls}>
-              {renderDragHandle?.(d)}
-              {renderLabel ? (
-                renderLabel(d)
-              ) : (
-                <span className={styles.labelText}>{d.text ?? ""}</span>
-              )}
-              {renderToggle?.(d)}
-              {renderMenu?.(d)}
-            </div>
             <span className={styles.labelValue}>
               {d.value}
               {displayAsPercentage && denominator > 0 && (
@@ -89,11 +53,52 @@ const LineChart = ({
                   {" "}
                   ({Math.round((d.value / denominator) * 100)}%)
                 </span>
-              )}
+              )}{" "}
+              {renderToggle?.(d)}
             </span>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
+      <svg
+        className={styles.svg}
+        viewBox={`0 0 ${W.toString()} ${H.toString()}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Line chart"
+      >
+        <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
+        {data.length > 1 && <polyline className={styles.line} points={path} />}
+        {points.map((p) => (
+          <circle
+            key={p.index}
+            className={`${styles.marker} ${p.datum.highlight ? styles.highlight : ""}`}
+            cx={p.x}
+            cy={p.y}
+            r={p.datum.highlight ? 2.4 : 1.8}
+            style={p.datum.color ? { fill: p.datum.color } : undefined}
+          />
+        ))}
+      </svg>
+      <div className={styles.controlsRow}>
+        {data.map((d, i) => (
+          <div
+            // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
+            key={i}
+            className={styles.controlsItem}
+            style={{ left: `${xPct(i).toFixed(2)}%` }}
+          >
+            <div className={styles.optionControls}>
+              {renderLabel ? (
+                <>
+                  {renderLabel(d)} {renderMenu?.(d)}
+                </>
+              ) : (
+                <span className={styles.labelText}>{d.text ?? ""}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

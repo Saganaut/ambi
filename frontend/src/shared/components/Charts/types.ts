@@ -1,4 +1,5 @@
 import { McqOption } from "@/shared/types/elements";
+import { DragEndEvent } from "@dnd-kit/dom";
 import type { ReactNode } from "react";
 
 // We want to make sure this is usable by liveSession results + deck editor results
@@ -32,7 +33,7 @@ export interface ChartProps {
   /** The option's menu (image/colour/remove). */
   renderMenu?: (datum: ChartDatum) => ReactNode;
   /** A drag handle that makes the option sortable for reorder. */
-  renderDragHandle?: (datum: ChartDatum) => ReactNode;
+  handleOptionDragEnd?: (event: DragEndEvent) => void;
 }
 
 export interface EditableChartProps extends ChartProps {
@@ -40,7 +41,7 @@ export interface EditableChartProps extends ChartProps {
   renderLabel: (datum: ChartDatum) => ReactNode;
   renderToggle: (datum: ChartDatum) => ReactNode;
   renderMenu: (datum: ChartDatum) => ReactNode;
-  renderDragHandle: (datum: ChartDatum) => ReactNode;
+  handleOptionDragEnd: (event: DragEndEvent) => void;
 }
 
 export interface ScorableChartProps extends ChartProps {

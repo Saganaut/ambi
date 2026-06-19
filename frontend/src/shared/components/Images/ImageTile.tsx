@@ -8,9 +8,10 @@ interface ImageTileProps {
   altText?: string;
   onPick?: () => void;
   onClear?: () => void;
+  onlyVisual?: boolean;
 }
 
-const ImageTile: React.FC<ImageTileProps> = ({ imgUrl, altText, onPick, onClear }) => {
+const ImageTile: React.FC<ImageTileProps> = ({ imgUrl, altText, onPick, onClear, onlyVisual }) => {
   return (
     <div className={styles.thumbWrap}>
       <button
@@ -27,7 +28,7 @@ const ImageTile: React.FC<ImageTileProps> = ({ imgUrl, altText, onPick, onClear 
           </div>
         )}
       </button>
-      {imgUrl && (
+      {imgUrl && !onlyVisual && (
         <IconBtn
           fill="ghost"
           size="xs"
