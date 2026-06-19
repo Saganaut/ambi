@@ -10,7 +10,7 @@ import { PANEL_TITLES } from "../data";
 import { DeckPanel } from "../DeckPanel/DeckPanel";
 import { DeckDiscussionPanel } from "../DiscussionPanel/DeckDiscussionPanel";
 import { EditSlidePanel } from "../EditSlidePanel/EditSlidePanel";
-import { InviteSettingsPanel } from "../InviteSettingsPanel";
+import { InviteSettingsPanel } from "../InvitePanel/InviteSettingsPanel";
 import { ParticipantsPanel } from "../ParticipantPanel/ParticipantsPanel";
 import { QuizPanel } from "../QuizPanel/QuizPanel";
 

@@ -39,10 +39,17 @@ const QuizPanel = ({
   // Re-seed when the active slide changes so edits never bleed across slides.
   const [form, setForm] = useState<PointSettings>(effective);
   const [syncedKey, setSyncedKey] = useState(isLoaded ? slideId : undefined);
+  // UI-only mirror of "is quiz mode showing". Derived from the persisted points,
+  // but it stands in for it so the section's collapse can be *deferred to blur*
+  // (blurPoints) — typing the Correct answer down to 0 mid-edit (e.g. clearing
+  // the input to retype) no longer unmounts the section out from under the
+  // cursor. Avoids adding a separate persisted flag.
+  const [showQuizMode, setShowQuizMode] = useState((effective.points ?? 0) > 0);
 
   if (isLoaded && syncedKey !== slideId) {
     setSyncedKey(slideId);
     setForm(effective);
+    setShowQuizMode((effective.points ?? 0) > 0);
   }
 
   if (!isLoaded) {
@@ -89,16 +96,21 @@ const QuizPanel = ({
 
 
   const toggleQuizMode = () => {
-    if (form.points == 0) {
-      handleChange({ ['points']: 10 }, { immediate: true })
-
+    if (showQuizMode) {
+      setShowQuizMode(false);
+      handleChange({ points: 0 }, { immediate: true });
+    } else {
+      setShowQuizMode(true);
+      handleChange({ points: 10 }, { immediate: true });
     }
-    else {
-      handleChange({ ['points']: 0 }, { immediate: true })
-    }
+  };
 
-
-  }
+  // Deferred collapse: only when the user commits the edit (blur) does a
+  // Correct answer of 0 actually hide the section, so it stays put while typing.
+  const blurPoints = () => {
+    flush();
+    if ((form.points ?? 0) <= 0) setShowQuizMode(false);
+  };
 
 
 
@@ -128,11 +140,11 @@ const QuizPanel = ({
           id={`${idPrefix}-quiz-mode`}
           label='Quiz mode'
           disabled={disabled}
-          checked={(form.points ?? 0) > 0}
+          checked={showQuizMode}
           onChange={toggleQuizMode}
         />
 
-        {(form.points ?? 0 > 0) &&
+        {showQuizMode &&
           <>
             <NumberInput
               id={`${idPrefix}-points`}
@@ -142,7 +154,7 @@ const QuizPanel = ({
               disabled={disabled}
               value={form.points ?? D.points}
               onChange={number("points")}
-              onBlur={flush}
+              onBlur={blurPoints}
             />
             <NumberInput
               id={`${idPrefix}-fastest-points`}

@@ -1,0 +1,27 @@
+/*  Need to setup common utility classes */
+
+:root {
+  /* Default "null" values */
+  --backdrop-blur: blur(0);
+  --backdrop-brightness: brightness(1);
+  --backdrop-contrast: contrast(1);
+  --backdrop-saturate: saturate(1);
+}
+
+.backdropEffect {
+  /* Compose them together */
+  backdrop-filter: var(--backdrop-blur) var(--backdrop-brightness) var(--backdrop-contrast)
+    var(--backdrop-saturate);
+}
+
+/* A blurry glass effect */
+.isGlass {
+  --backdrop-blur: blur(12px);
+  --backdrop-saturate: saturate(180%);
+}
+
+/* A dark/high-contrast overlay */
+.isDimmed {
+  --backdrop-brightness: brightness(0.6);
+  --backdrop-contrast: contrast(1.2);
+}

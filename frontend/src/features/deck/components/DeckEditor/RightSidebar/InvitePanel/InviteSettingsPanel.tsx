@@ -12,15 +12,14 @@
 // Writes are debounced (schedule): toggling several surfaces in quick
 // succession coalesces into one PUT of the final state, and any pending write
 // flushes when the drawer unmounts (useDebouncedCommit).
-import { useState } from "react";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
+import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import type { InviteSettings } from "@deck/store/deckApi.gen";
 import { DisplayLocation } from "@deck/store/deckEnums.gen";
-import { useDeckQuery } from "../../../hooks/useDeckQuery";
-import { useDeckSettingsMutate } from "../../../hooks/useDeckSettingsMutate";
-import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
-
+import { useState } from "react";
+import { useDeckQuery } from "../../../../hooks/useDeckQuery";
+import { useDeckSettingsMutate } from "../../../../hooks/useDeckSettingsMutate";
 
 type Location = (typeof DisplayLocation)[keyof typeof DisplayLocation];
 
@@ -58,8 +57,8 @@ const LocationChecklist = ({
         key={value}
         id={`${idPrefix}-${value}`}
         label={label}
-        labelPosition='labelBefore'
-        stretch
+        labelPosition="labelBefore"
+        stretch={true}
         checked={selected.includes(value)}
         onChange={(e) => {
           onToggle(value, e.currentTarget.checked);
@@ -115,19 +114,17 @@ const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
     on: boolean,
   ) => {
     const current = form[key];
-    const next = on
-      ? [...current, location]
-      : current.filter((l) => l !== location);
+    const next = on ? [...current, location] : current.filter((l) => l !== location);
     apply({ ...form, [key]: next });
   };
 
   return (
     <div className={styles.panel}>
       <section className={styles.section}>
-        <h4 className={styles.heading}>Join QR code</h4>
         <Toggle
-          id='invite-enable-qr'
-          label='Show join QR code'
+          labelPosition="labelBefore"
+          id="invite-enable-qr"
+          label="Show join QR code"
           checked={form.enableQr}
           onChange={(e) => {
             apply({ ...form, enableQr: e.currentTarget.checked });
@@ -135,7 +132,7 @@ const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
         />
         {form.enableQr && (
           <LocationChecklist
-            idPrefix='invite-qr'
+            idPrefix="invite-qr"
             selected={form.qrLocations}
             onToggle={(location, on) => {
               toggleLocation("qrLocations", location, on);
@@ -145,10 +142,10 @@ const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
       </section>
 
       <section className={styles.section}>
-        <h4 className={styles.heading}>Room code</h4>
         <Toggle
-          id='invite-show-room-code'
-          label='Show room code'
+          labelPosition="labelBefore"
+          id="invite-show-room-code"
+          label="Show room code"
           checked={form.showRoomCode}
           onChange={(e) => {
             apply({ ...form, showRoomCode: e.currentTarget.checked });
@@ -156,7 +153,7 @@ const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
         />
         {form.showRoomCode && (
           <LocationChecklist
-            idPrefix='invite-room-code'
+            idPrefix="invite-room-code"
             selected={form.roomCodeLocations}
             onToggle={(location, on) => {
               toggleLocation("roomCodeLocations", location, on);

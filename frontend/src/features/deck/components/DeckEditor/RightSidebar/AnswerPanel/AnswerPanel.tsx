@@ -88,10 +88,17 @@ const AnswerPanel = ({
   // Re-seed when the active slide changes so edits never bleed across slides.
   const [form, setForm] = useState<AnswerSettings>(effective);
   const [syncedKey, setSyncedKey] = useState(isLoaded ? slideId : undefined);
+  // UI-only mirror of "is the time-limit field showing". Derived from the
+  // persisted countdownTime, but it stands in for it so the field's collapse
+  // can be *deferred to blur* (toggleTimeLimitField) — typing the value down to
+  // 0 mid-edit (e.g. clearing the input to retype) no longer unmounts the field
+  // out from under the cursor. Avoids adding a separate persisted flag.
+  const [showTimeLimit, setShowTimeLimit] = useState((effective.countdownTime ?? 0) > 0);
 
   if (isLoaded && syncedKey !== slideId) {
     setSyncedKey(slideId);
     setForm(effective);
+    setShowTimeLimit((effective.countdownTime ?? 0) > 0);
   }
 
   if (!isLoaded) {
@@ -142,13 +149,21 @@ const AnswerPanel = ({
     };
 
   const toggleTimeLimit = () => {
-    if (form.countdownTime == 0) {
-      handleChange({ ['countdownTime']: 30 }, { immediate: true });
+    if (showTimeLimit) {
+      setShowTimeLimit(false);
+      handleChange({ countdownTime: 0 }, { immediate: true });
+    } else {
+      setShowTimeLimit(true);
+      handleChange({ countdownTime: 30 }, { immediate: true });
     }
-    else {
-      handleChange({ ['countdownTime']: 0 }, { immediate: true });
-    }
-  }
+  };
+
+  // Deferred collapse: only when the user commits the edit (blur) does a
+  // countdown of 0 actually hide the field, so it stays put while being typed.
+  const blurTimeLimit = () => {
+    flush();
+    if ((form.countdownTime ?? 0) <= 0) setShowTimeLimit(false);
+  };
   const toggleMultipleAnswers = () => {
     if (form.maxSelections == 1) {
       handleChange({ ['maxSelections']: 2 }, { immediate: true });
@@ -184,10 +199,10 @@ const AnswerPanel = ({
             id={`${idPrefix}-enable-time-limit`}
             label='Enable time limit'
             disabled={disabled}
-            checked={(form.countdownTime ?? 0) > 0}
+            checked={showTimeLimit}
             onChange={toggleTimeLimit}
           />
-          {(form.countdownTime ?? 0) > 0 &&
+          {showTimeLimit &&
             <NumberInput
               id={`${idPrefix}-countdown-time`}
               label='Countdown (seconds)'
@@ -197,7 +212,7 @@ const AnswerPanel = ({
               value={form.countdownTime ?? D.countdownTime}
               infoMessage='0 = No time limit'
               onChange={number("countdownTime")}
-              onBlur={flush}
+              onBlur={blurTimeLimit}
             />
           }
           <Toggle
