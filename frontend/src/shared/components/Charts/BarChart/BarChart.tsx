@@ -6,16 +6,14 @@
  * MCQ option) gets the emphasis fill. Orientation is a prop so the same
  * component serves BAR_HORIZONTAL and BAR_VERTICAL.
  */
-import type { ChartDatum } from "../types";
+import type { ChartProps } from "../types";
 import styles from "./BarChart.module.css";
 
-export interface BarChartProps {
-  data: ChartDatum[];
+export interface BarChartProps extends ChartProps {
   /** Bars grow left→right ("horizontal") or bottom→top ("vertical"). */
   orientation?: "horizontal" | "vertical";
   /** Denominator for the share %; defaults to the sum of values. */
   total?: number;
-  caption?: string;
 }
 
 const BarChart = ({
@@ -23,6 +21,8 @@ const BarChart = ({
   orientation = "horizontal",
   total,
   caption,
+  renderLabel,
+  displayAsPercentage = false,
 }: BarChartProps) => {
   const max = Math.max(1, ...data.map((d) => d.value));
   const denominator = total ?? data.reduce((sum, d) => sum + d.value, 0);
@@ -33,15 +33,14 @@ const BarChart = ({
       <ul className={styles.bars}>
         {data.map((d, i) => {
           const sizePct = (d.value / max) * 100;
-          const sharePct =
-            denominator > 0 ? Math.round((d.value / denominator) * 100) : 0;
+          const sharePct = denominator > 0 ? Math.round((d.value / denominator) * 100) : 0;
           return (
             <li
               // eslint-disable-next-line react-x/no-array-index-key -- bar position is the identity
               key={i}
               className={`${styles.row} ${d.highlight ? styles.highlight : ""}`}
             >
-              <span className={styles.label}>{d.label}</span>
+              {renderLabel ? renderLabel(d) : <span className={styles.label}>{d.label}</span>}
               <div className={styles.track}>
                 <div
                   className={styles.fill}
@@ -55,7 +54,7 @@ const BarChart = ({
               </div>
               <span className={styles.value}>
                 {d.value}
-                {denominator > 0 && (
+                {displayAsPercentage && denominator > 0 && (
                   <span className={styles.share}> ({sharePct}%)</span>
                 )}
               </span>

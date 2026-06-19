@@ -19,59 +19,6 @@
   }
 }
 
-.thumbWrap {
-  position: relative;
-  width: 100%;
-}
-
-.imageTile {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: var(--bg-subtle);
-  border: var(--border-size-sm) solid var(--edge-canvas);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  cursor: pointer;
-  padding: 0;
-  transition: border-color var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    border-color: var(--action-hover);
-  }
-
-  & img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-}
-
-.imageTileEmpty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: oklch(from var(--text-secondary) 95% c h);
-
-  & svg {
-    width: 18px;
-    height: 18px;
-  }
-}
-
-button.imageClear {
-  width: auto;
-  position: absolute;
-  top: var(--space-1);
-  right: var(--space-1);
-  background: var(--bg-surface-raised);
-  border-radius: var(--radius-full);
-}
-
 /* Hidden until the whole control is hovered, then it drops in. */
 .placementContainer {
   display: grid;

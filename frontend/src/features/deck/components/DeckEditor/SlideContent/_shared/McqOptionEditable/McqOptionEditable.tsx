@@ -47,19 +47,7 @@ import { EditOptionToolbar } from "./EditOptionToolbar";
 import { Container } from "@components/Containers/Container";
 import QuizPoints from "@assets/icons/content/quiz-points.svg?react";
 import Sad from "@assets/icons/content/sad.svg?react";
-
-// Six swatches spaced evenly around the colour wheel. These are starting
-// defaults for MCQ options, independent of the app/deck theme — authors can
-// override per-option via the colour swatch in the popover (`option.color`).
-// Constant lightness/chroma keeps them visually balanced.
-const OPTION_BASE_HUE = 290;
-const OPTION_HUE_OFFSETS = [0, 60, 120, 180, 240, 300] as const;
-const MAX_OPTION_COLORS = OPTION_HUE_OFFSETS.length;
-const buildOptionPalette = (): string[] =>
-  OPTION_HUE_OFFSETS.map(
-    (offset) =>
-      `oklch(0.65 0.18 ${((OPTION_BASE_HUE + offset) % 360).toString()})`,
-  );
+import { resolveOptionColor } from "./optionColor";
 
 interface McqOptionEditableProps {
   /** The freshest option from the parent's editor — fully controlled. */
@@ -229,11 +217,8 @@ const McqOptionEditable = ({
   const inputIdBase = `mcq-opt-${optionKey}`;
   const displayIndex = index >= 0 ? index + 1 : 0;
   // Default swatch; only applied when the author hasn't overridden via the
-  // popover swatch. Indexes past MAX_OPTION_COLORS wrap.
-  const palette = buildOptionPalette();
-  const paletteIndex = (index >= 0 ? index : 0) % MAX_OPTION_COLORS;
-  const paletteColor = palette[paletteIndex] ?? palette[0];
-  const color = option.color ?? paletteColor;
+  // popover swatch. Indexes past the palette length wrap.
+  const color = resolveOptionColor(option.color, index);
   // Clicking anywhere on the card toggles the popover EXCEPT inside the
   // "interactive zones" below (text input + correct toggle), which call
   // `e.stopPropagation()` so their own click never bubbles up here. The

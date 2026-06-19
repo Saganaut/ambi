@@ -272,6 +272,16 @@ const AnswerPanel = ({
               }
             }}
           />
+          {slide?.content.contentType === 'MCQ' && (
+            <Toggle
+              labelPosition="labelBefore"
+              id={`${idPrefix}-display-as-percentage`}
+              label='Show results as percentages'
+              disabled={disabled}
+              checked={form.displayResultsAsPercentage ?? D.displayResultsAsPercentage}
+              onChange={toggle("displayResultsAsPercentage")}
+            />
+          )}
         </>
         <Tooltip
           className={styles.applyTooltip}

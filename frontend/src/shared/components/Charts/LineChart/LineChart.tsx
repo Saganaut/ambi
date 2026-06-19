@@ -2,19 +2,16 @@
 // score-over-rounds, …). Values map to a polyline with a marker per point; the
 // y-axis is scaled to the largest value. A highlighted datum gets an emphasised
 // marker. Pure SVG so it scales with its container and animates via CSS.
-import type { ChartDatum } from "../types";
+import type { ChartProps } from "../types";
 import styles from "./LineChart.module.css";
 
-export interface LineChartProps {
-  data: ChartDatum[];
-  caption?: string;
-}
+export type LineChartProps = ChartProps;
 
 const W = 100;
 const H = 60;
 const PAD = 6;
 
-const LineChart = ({ data, caption }: LineChartProps) => {
+const LineChart = ({ data, caption, renderLabel }: LineChartProps) => {
   const max = Math.max(1, ...data.map((d) => d.value));
   const span = Math.max(1, data.length - 1);
 
@@ -66,7 +63,11 @@ const LineChart = ({ data, caption }: LineChartProps) => {
             key={i}
             className={styles.label}
           >
-            <span className={styles.labelText}>{d.label}</span>
+            {renderLabel ? (
+              renderLabel(d)
+            ) : (
+              <span className={styles.labelText}>{d.label}</span>
+            )}
             <span className={styles.labelValue}>{d.value}</span>
           </li>
         ))}

@@ -4,16 +4,12 @@
 // both chosen and positioned without leaving the canvas. This folds together
 // what ImagePicker + ImagePlacementPicker do in the right sidebar and will
 // eventually replace the EditSlidePanel ImagePicker — for now both coexist.
-import {
-  SlotMapping,
-  slotButtons,
-} from "@/features/deck/contexts/ImageSlot.types";
+import { SlotMapping, slotButtons } from "@/features/deck/contexts/ImageSlot.types";
 import { useImageSlot } from "@/features/deck/contexts/useImageSlot";
 import { placementsEqual, returnImagePositonIcon } from "@/features/deck/utils/imageSlotUtil";
-import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { isImageEmpty, resolveImageUrl } from "@utils/image";
+import { ImageTile } from "@/shared/components/Images/ImageTile";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { isImageEmpty, resolveImageUrl } from "@utils/image";
 import styles from "./CoverImagePicker.module.css";
 
 interface CoverImagePickerProps {
@@ -39,7 +35,9 @@ const CoverImagePicker = ({
 
   return (
     <div className={styles.coverImagePicker}>
-      <div className={styles.thumbWrap}>
+      <ImageTile onPick={onPick} onClear={onClear} imgUrl={thumbnailSrc ?? null} />
+
+      {/* <div className={styles.thumbWrap}>
         <button
           type="button"
           className={styles.imageTile}
@@ -64,17 +62,14 @@ const CoverImagePicker = ({
             onClick={onClear}
           />
         )}
-      </div>
+      </div> */}
 
       {/* Placement only matters once there's a cover image with a known slot. */}
       {hasImage && imageConfig != null && (
         // Clear the preview on leaving the whole grid, not each icon — moving
         // between icons stays inside the container so the preview hands off
         // straight from one slot to the next with no revert-to-saved flicker.
-        <div
-          className={styles.placementContainer}
-          onMouseLeave={() => setPreviewPlacement(null)}
-        >
+        <div className={styles.placementContainer} onMouseLeave={() => setPreviewPlacement(null)}>
           {slotButtons.map((button) => {
             const Icon = returnImagePositonIcon(button);
             const isActive = placementsEqual(imageConfig.slot.placement, button.placement);

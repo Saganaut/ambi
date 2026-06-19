@@ -6,14 +6,15 @@
 // tint. A datum's explicit `color` overrides the tone palette (e.g. MCQ option
 // colours); `highlight` rings the slice (the correct option).
 import { useEffect, useState } from "react";
-import type { ChartDatum } from "../types";
+import type { ChartDatum, ChartProps } from "../types";
 import styles from "./PieChart.module.css";
 
-export interface PieChartProps {
-  data: ChartDatum[];
+export interface PieChartProps extends ChartProps {
   variant?: "pie" | "donut";
-  caption?: string;
+  /** Pie/donut entrance animation. */
   animateOnMount?: boolean;
+  /** Show the legend value as a percentage of the total. */
+  displayAsPercentage?: boolean;
 }
 
 const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
@@ -26,10 +27,10 @@ const PieChart = ({
   data,
   variant = "pie",
   caption,
-  animateOnMount = false,
+  animateOnMount = true,
+  renderLabel,
 }: PieChartProps) => {
   const total = data.reduce((sum, d) => sum + d.value, 0);
-
   const [revealed, setRevealed] = useState(!animateOnMount);
   useEffect(() => {
     if (!animateOnMount) return;
@@ -52,6 +53,7 @@ const PieChart = ({
 
   const slices = data.reduce<
     {
+      datum: ChartDatum;
       label: string;
       pct: number;
       start: number;
@@ -62,9 +64,9 @@ const PieChart = ({
     }[]
   >((acc, d, i) => {
     const pct = (d.value / total) * 100;
-    const start =
-      acc.length === 0 ? 0 : acc[acc.length - 1].start + acc[acc.length - 1].pct;
+    const start = acc.length === 0 ? 0 : acc[acc.length - 1].start + acc[acc.length - 1].pct;
     acc.push({
+      datum: d,
       label: d.label,
       pct,
       start,
@@ -82,20 +84,20 @@ const PieChart = ({
       <div className={styles.body}>
         <svg
           className={styles.svg}
-          viewBox='0 0 100 100'
-          role='img'
+          viewBox="0 0 100 100"
+          role="img"
           aria-label={variant === "donut" ? "Donut chart" : "Pie chart"}
         >
-          <circle className={styles.backdrop} cx='50' cy='50' r='49' />
-          <g transform='rotate(-90 50 50)'>
+          <circle className={styles.backdrop} cx="50" cy="50" r="49" />
+          <g transform="rotate(-90 50 50)">
             {slices.map((s) => (
               <circle
                 key={s.index}
                 className={`${styles.slice} ${styles[s.tone]} ${
                   s.highlight ? styles.highlight : ""
                 }`}
-                cx='50'
-                cy='50'
+                cx="50"
+                cy="50"
                 r={RADII[variant]}
                 pathLength={100}
                 strokeWidth={STROKE[variant]}
@@ -111,16 +113,18 @@ const PieChart = ({
           {slices.map((s) => (
             <li
               key={s.index}
-              className={`${styles.legendItem} ${
-                s.highlight ? styles.highlight : ""
-              }`}
+              className={`${styles.legendItem} ${s.highlight ? styles.highlight : ""}`}
             >
               <span
                 className={`${styles.swatch} ${styles[s.tone]}`}
                 style={s.color ? { background: s.color } : undefined}
-                aria-hidden='true'
+                aria-hidden="true"
               />
-              <span className={styles.legendLabel}>{s.label}</span>
+              {renderLabel ? (
+                renderLabel(s.datum)
+              ) : (
+                <span className={styles.legendLabel}>{s.label}</span>
+              )}
               <span className={styles.legendValue}>{Math.round(s.pct)}%</span>
             </li>
           ))}

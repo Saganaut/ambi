@@ -32,6 +32,7 @@ export const mcqToChartData = (
 ): ChartDatum[] => {
   const correct = new Set(correctOptionIds);
   return options.map((option, index) => ({
+    id: option.id,
     label: optionLabel(option, index),
     value: distribution[option.id] ?? 0,
     highlight: correct.has(option.id),

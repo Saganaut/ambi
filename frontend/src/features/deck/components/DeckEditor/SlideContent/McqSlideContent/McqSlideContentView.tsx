@@ -23,15 +23,17 @@
  *     scoreable in that state.
  */
 import { useResultsPreview } from "@/features/deck/contexts/useResultsPreview";
-import { McqOption } from "@/features/deck/store/deckApi.gen";
 import { ResultsChart } from "@/shared/components/Charts/ResultsChart/ResultsChart";
-import { ChartDatum } from "@/shared/components/Charts/types";
+import { mcqResults } from "@/shared/components/Charts/registry";
 import { type OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
+import { useMcqOptionControls } from "@deck/hooks/useMcqOptionControls";
+import { Btn } from "@ui/Buttons/Btn";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useState } from "react";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
+import { EditableChartOptionLabel } from "../_shared/EditableChartOptionLabel/EditableChartOptionLabel";
 import styles from "./McqSlideContent.module.css";
 
 interface McqSlideContentViewProps {
@@ -40,20 +42,12 @@ interface McqSlideContentViewProps {
 }
 
 const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContentViewProps) => {
-  const {
-    question,
-    schedulePrompt,
-    flush,
-    canAddOption,
-    addOption,
-    handleOptionDragEnd,
-    canRemove,
-    isCorrect,
-    scheduleOption,
-    commitOption,
-    toggleCorrect,
-    removeOption,
-  } = UseMcqEditorResult;
+  const { question, schedulePrompt, flush, canAddOption, addOption, handleOptionDragEnd } =
+    UseMcqEditorResult;
+  // One binder over the single editor instance, shared by the option-card grid
+  // and the inline chart-label editors so every option write funnels through the
+  // same debounce buffer.
+  const { getOptionProps } = useMcqOptionControls(UseMcqEditorResult, openPicker);
   // Only the prompt needs a local mirror — typing should feel responsive and
   // the rich-text editor controls its own DOM. Options come down as props from
   // the single editor. `syncedFromId` resets the mirror when the active slide
@@ -69,6 +63,10 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
     setPrompt(question.prompt);
   }
 
+  const committed = question?.dataVisualization;
+  // The hover/focus preview wins over the persisted choice. Both are ChartType
+  // literals (MCQ's enum is a subset), so this is assignable to ResultsChart.
+  const effective = previewVisualization ?? committed;
   // Even-column grid: round up half the option count, never below 2.
   const optionCount = question?.options.length ?? 0;
   const columns = optionCount ? Math.max(Math.ceil(optionCount / 2), 2) : 2;
@@ -83,23 +81,22 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
 
   const options = question.options;
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
-  console.log("preview visualization", previewVisualization);
 
-  const convertMcqOptionsToChartDatum = (McqOptions: McqOption[]): ChartDatum[] => {
-    const DatumArray: ChartDatum[] = [];
+  // Deterministic sample data — there are no real responses at authoring time,
+  // and a stable distribution keeps chart values from jumping while the author
+  // edits option labels inline. The same adapter renders live results on the
+  // session board later.
+  const chartData = mcqResults.toChartData(
+    options,
+    question.correctOptionIds,
+    mcqResults.sampleDistribution(options, question.correctOptionIds),
+  );
 
-    McqOptions.forEach((option) => {
-      const randomInt = Math.floor(Math.random() * 11);
-      const newOption: ChartDatum = {
-        label: option.text ?? "",
-        color: option.color,
-        value: randomInt,
-        imageUrl: option?.image?.variants?.MD ?? undefined,
-      };
-      DatumArray.push(newOption);
-    });
-    return DatumArray;
-  };
+  // Pre-bind each option's editing surface, keyed by id, so the chart's
+  // renderLabel can map an edited label back to the right option.
+  const controlsById = new Map(
+    options.map((option, idx) => [option.id, getOptionProps(option, idx)]),
+  );
 
   return (
     <SlideContentWrapper
@@ -119,8 +116,8 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
         </p>
       }
     >
-      <div className={styles.optionsRow} style={{ "--cols": columns } as React.CSSProperties}>
-        {previewVisualization === "NONE" || previewVisualization == null ? (
+      {effective === "NONE" || effective == null ? (
+        <div className={styles.optionsRow} style={{ "--cols": columns } as React.CSSProperties}>
           <DragDropProvider
             onDragEnd={(event) => {
               handleOptionDragEnd(event);
@@ -129,38 +126,35 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
             {options.map((option, idx) => (
               <McqOptionEditable
                 key={option.id ?? `__no-id-${idx.toString()}`}
-                option={option}
                 sortIndex={idx}
-                index={idx}
-                isCorrect={isCorrect(option.id)}
-                canRemove={canRemove}
-                addOption={addOption}
-                canAddOption={canAddOption}
-                onScheduleText={(next) => {
-                  scheduleOption(option.id, next);
-                }}
-                onCommit={(next) => {
-                  commitOption(option.id, next);
-                }}
-                onToggleCorrect={() => {
-                  toggleCorrect(option.id);
-                }}
-                onRemove={() => {
-                  removeOption(option.id);
-                }}
-                flush={flush}
-                openPicker={openPicker}
+                {...getOptionProps(option, idx)}
               />
             ))}
           </DragDropProvider>
-        ) : (
+        </div>
+      ) : (
+        <div className={styles.chartEditor}>
+          {/* The chart replaces the option-card grid, but options stay fully
+              editable: each label is an inline EditableChartOptionLabel wired to
+              the same editor. */}
           <ResultsChart
-            viz={previewVisualization}
-            data={convertMcqOptionsToChartDatum(options)}
+            viz={effective}
+            data={chartData}
             caption="Sample data"
+            renderLabel={(d) => {
+              const props = d.id ? controlsById.get(d.id) : undefined;
+              return props ? <EditableChartOptionLabel {...props} /> : d.label;
+            }}
           />
-        )}
-      </div>
+          {canAddOption && (
+            <div className={styles.addOptionRow}>
+              <Btn fill="ghost" size="sm" onClick={addOption}>
+                Add option
+              </Btn>
+            </div>
+          )}
+        </div>
+      )}
     </SlideContentWrapper>
   );
 };

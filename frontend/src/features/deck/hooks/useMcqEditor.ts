@@ -13,13 +13,13 @@
 // All option identity is compared by `option.id.value`: an `McqOptionId` is a
 // `{ value? }` wrapper, while `content.correctOptionIds` holds the bare value
 // strings.
-import type { DragEndEvent } from "@dnd-kit/react";
-import { isSortable } from "@dnd-kit/react/sortable";
 import type { McqOption } from "@deck/store/deckApi.gen";
 import type { McqDataVisualization } from "@deck/store/deckEnums.gen";
+import type { DragEndEvent } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/react/sortable";
 
-import { useSlideEditor } from "./useSlideEditor";
 import { buildDefaultMcqOption } from "../utils/slideContent";
+import { useSlideEditor } from "./useSlideEditor";
 
 /** Author can't drop below 2 options (an MCQ needs a real choice) … */
 const MIN_MCQ_OPTIONS = 2;
@@ -181,5 +181,5 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
   };
 };
 
-export { useMcqEditor, MIN_MCQ_OPTIONS, MAX_MCQ_OPTIONS };
-export type { UseMcqEditorResult, McqQuestionView };
+export { MAX_MCQ_OPTIONS, MIN_MCQ_OPTIONS, useMcqEditor };
+export type { McqQuestionView, UseMcqEditorResult };

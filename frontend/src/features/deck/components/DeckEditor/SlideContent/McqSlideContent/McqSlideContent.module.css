@@ -36,3 +36,18 @@
   align-items: start;
   max-height: 80%;
 }
+
+/* Chart-as-editor: the results chart with its options still editable inline,
+   plus the add-option control below it (the option-card grid's add button is
+   per-card, so chart mode needs its own). */
+.chartEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.addOptionRow {
+  display: flex;
+  justify-content: center;
+}

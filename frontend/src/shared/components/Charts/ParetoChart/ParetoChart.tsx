@@ -4,19 +4,16 @@
 // option counts when the author wants to see how few options capture most of
 // the responses. Pure SVG (bars + polyline) with the category labels listed
 // below in the sorted order.
-import type { ChartDatum } from "../types";
+import type { ChartProps } from "../types";
 import styles from "./ParetoChart.module.css";
 
-export interface ParetoChartProps {
-  data: ChartDatum[];
-  caption?: string;
-}
+export type ParetoChartProps = ChartProps;
 
 const W = 100;
 const H = 60;
 const PAD = 6;
 
-const ParetoChart = ({ data, caption }: ParetoChartProps) => {
+const ParetoChart = ({ data, caption, renderLabel }: ParetoChartProps) => {
   const sorted = [...data].sort((a, b) => b.value - a.value);
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
   const max = Math.max(1, ...sorted.map((d) => d.value));
@@ -91,7 +88,11 @@ const ParetoChart = ({ data, caption }: ParetoChartProps) => {
       <ul className={styles.labels}>
         {items.map((it) => (
           <li key={it.index} className={styles.label}>
-            <span className={styles.labelText}>{it.datum.label}</span>
+            {renderLabel ? (
+              renderLabel(it.datum)
+            ) : (
+              <span className={styles.labelText}>{it.datum.label}</span>
+            )}
             <span className={styles.labelValue}>
               {Math.round(it.cumPct * 100)}%
             </span>

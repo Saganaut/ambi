@@ -1,0 +1,44 @@
+import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import React from "react";
+import { IconBtn } from "../UIElements/Buttons/IconBtn";
+import styles from "./ImageTile.module.css";
+
+interface ImageTileProps {
+  imgUrl: string | null;
+  altText?: string;
+  onPick?: () => void;
+  onClear?: () => void;
+}
+
+const ImageTile: React.FC<ImageTileProps> = ({ imgUrl, altText, onPick, onClear }) => {
+  return (
+    <div className={styles.thumbWrap}>
+      <button
+        type="button"
+        className={styles.imageTile}
+        onClick={onPick}
+        aria-label="Pick cover image"
+      >
+        {imgUrl ? (
+          <img src={imgUrl} alt={altText} />
+        ) : (
+          <div className={styles.imageTileEmpty}>
+            <PhotoIcon aria-hidden="true" />
+          </div>
+        )}
+      </button>
+      {imgUrl && (
+        <IconBtn
+          fill="ghost"
+          size="xs"
+          className={styles.imageClear}
+          icon={<XMarkIcon />}
+          aria-label="Clear cover image"
+          onClick={onClear}
+        />
+      )}
+    </div>
+  );
+};
+
+export { ImageTile };

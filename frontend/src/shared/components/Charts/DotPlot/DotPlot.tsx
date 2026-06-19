@@ -3,16 +3,14 @@
 // from the baseline — a lighter-weight alternative to bars that reads well for
 // MCQ option counts. A highlighted datum (correct option) gets the emphasis
 // colour. CSS-positioned (no SVG) so it inherits type tokens cleanly.
-import type { ChartDatum } from "../types";
+import type { ChartProps } from "../types";
 import styles from "./DotPlot.module.css";
 
-export interface DotPlotProps {
-  data: ChartDatum[];
+export interface DotPlotProps extends ChartProps {
   total?: number;
-  caption?: string;
 }
 
-const DotPlot = ({ data, total, caption }: DotPlotProps) => {
+const DotPlot = ({ data, total, caption, renderLabel }: DotPlotProps) => {
   const max = Math.max(1, ...data.map((d) => d.value));
   const denominator = total ?? data.reduce((sum, d) => sum + d.value, 0);
 
@@ -30,7 +28,11 @@ const DotPlot = ({ data, total, caption }: DotPlotProps) => {
               key={i}
               className={`${styles.row} ${d.highlight ? styles.highlight : ""}`}
             >
-              <span className={styles.label}>{d.label}</span>
+              {renderLabel ? (
+                renderLabel(d)
+              ) : (
+                <span className={styles.label}>{d.label}</span>
+              )}
               <div className={styles.track}>
                 <span
                   className={styles.stem}

@@ -15,20 +15,19 @@
 // didn't persist.
 import { getRouteApi } from "@tanstack/react-router";
 
-import { useSlide } from "@deck/hooks/useSlide";
-import { useResultsPreview } from "@deck/contexts/useResultsPreview";
-import { ResultsChart } from "@components/Charts/ResultsChart/ResultsChart";
 import { mcqResults } from "@components/Charts/registry";
 import type { ChartType } from "@components/Charts/types";
+import { useResultsPreview } from "@deck/contexts/useResultsPreview";
+import { useSlide } from "@deck/hooks/useSlide";
 
 import BarHorizontalIcon from "@assets/icons/charts/bar-horizontal.svg?react";
 import BarVerticalIcon from "@assets/icons/charts/bar-vertical.svg?react";
-import PieIcon from "@assets/icons/charts/pie.svg?react";
 import DonutIcon from "@assets/icons/charts/donut.svg?react";
-import LineIcon from "@assets/icons/charts/line.svg?react";
-import ParetoIcon from "@assets/icons/charts/pareto.svg?react";
 import DotIcon from "@assets/icons/charts/dot.svg?react";
+import LineIcon from "@assets/icons/charts/line.svg?react";
 import NoneIcon from "@assets/icons/charts/none.svg?react";
+import ParetoIcon from "@assets/icons/charts/pareto.svg?react";
+import PieIcon from "@assets/icons/charts/pie.svg?react";
 
 import panel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "./McqResultsSection.module.css";
@@ -52,22 +51,13 @@ const McqResultsSection = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
   const { getSlide, updateSlide } = useSlide(deckId);
-  const { previewVisualization, setPreviewVisualization } = useResultsPreview();
+  const { setPreviewVisualization } = useResultsPreview();
 
   const slide = slideId ? getSlide(slideId) : undefined;
   if (!slide || slide.content.contentType !== "MCQ") return null;
   const content = slide.content;
 
   const committed = content.dataVisualization;
-  // The hover/focus preview wins over the persisted choice. Both are ChartType
-  // literals (MCQ's enum is a subset), so this is assignable to ResultsChart.
-  const effective = previewVisualization ?? committed;
-
-  const chartData = mcqResults.toChartData(
-    content.options,
-    content.correctOptionIds,
-    mcqResults.sampleDistribution(content.options, content.correctOptionIds),
-  );
 
   // Discrete, immediate commit: overlay the new viz onto the freshest content
   // and PUT directly (updateSlide carries the full slide forward + optimistic
@@ -81,48 +71,45 @@ const McqResultsSection = () => {
     <section className={panel.section}>
       <h4 className={panel.heading}>Results display</h4>
 
-      <div
-        className={styles.grid}
-        role='radiogroup'
-        aria-label='Results visualisation'>
-        {mcqResults.supportedViz.map((viz) => {
-          const { label, Icon } = VIZ_META[viz];
-          const selected = committed === viz;
-          return (
-            <button
-              key={viz}
-              type='button'
-              role='radio'
-              aria-checked={selected}
-              className={`${styles.option} ${selected ? styles.selected : ""}`}
-              onClick={() => {
-                commit(viz);
-              }}
-              onMouseEnter={() => {
-                setPreviewVisualization(viz);
-              }}
-              onMouseLeave={() => {
-                setPreviewVisualization(null);
-              }}
-              onFocus={() => {
-                setPreviewVisualization(viz);
-              }}
-              onBlur={() => {
-                setPreviewVisualization(null);
-              }}>
-              <Icon className={styles.icon} aria-hidden='true' />
-              <span className={styles.label}>{label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className={styles.preview}>
-        {effective === "NONE" ? (
-          <p className={styles.noneHint}>Responses won&apos;t be charted.</p>
-        ) : (
-          <ResultsChart viz={effective} data={chartData} caption='Sample data' />
-        )}
+      {/* Mirrors CoverImagePicker: the preview is the always-visible tile and the
+          option grid drops in on hover. */}
+      <div className={styles.resultsPicker}>
+        <div
+          className={styles.optionsContainer}
+          role="radiogroup"
+          aria-label="Results visualisation"
+          onMouseLeave={() => setPreviewVisualization(null)}
+        >
+          {mcqResults.supportedViz.map((viz) => {
+            const { label, Icon } = VIZ_META[viz];
+            const selected = committed === viz;
+            return (
+              <button
+                key={viz}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={label}
+                title={label}
+                className={`${styles.iconWrapper} ${selected ? styles.isActive : ""}`}
+                onClick={() => {
+                  commit(viz);
+                }}
+                onMouseEnter={() => {
+                  setPreviewVisualization(viz);
+                }}
+                onFocus={() => {
+                  setPreviewVisualization(viz);
+                }}
+                onBlur={() => {
+                  setPreviewVisualization(null);
+                }}
+              >
+                <Icon aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
