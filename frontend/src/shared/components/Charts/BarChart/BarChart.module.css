@@ -33,6 +33,17 @@
   white-space: nowrap;
 }
 
+/* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
+   Menu's popover (position: relative). Occupies the row's label cell. */
+.optionControls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  min-width: 0;
+  overflow: visible;
+}
+
 .track {
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);

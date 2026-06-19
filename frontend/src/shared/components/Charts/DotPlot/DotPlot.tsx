@@ -3,14 +3,21 @@
 // from the baseline — a lighter-weight alternative to bars that reads well for
 // MCQ option counts. A highlighted datum (correct option) gets the emphasis
 // colour. CSS-positioned (no SVG) so it inherits type tokens cleanly.
-import type { ChartProps } from "../types";
+import type { GeneralChartProps } from "../types";
 import styles from "./DotPlot.module.css";
 
-export interface DotPlotProps extends ChartProps {
-  total?: number;
-}
+export type DotPlotProps = GeneralChartProps;
 
-const DotPlot = ({ data, total, caption, renderLabel }: DotPlotProps) => {
+const DotPlot = ({
+  data,
+  total,
+  caption,
+  renderLabel,
+  renderToggle,
+  renderMenu,
+  renderDragHandle,
+  displayAsPercentage = false,
+}: DotPlotProps) => {
   const max = Math.max(1, ...data.map((d) => d.value));
   const denominator = total ?? data.reduce((sum, d) => sum + d.value, 0);
 
@@ -28,11 +35,16 @@ const DotPlot = ({ data, total, caption, renderLabel }: DotPlotProps) => {
               key={i}
               className={`${styles.row} ${d.highlight ? styles.highlight : ""}`}
             >
-              {renderLabel ? (
-                renderLabel(d)
-              ) : (
-                <span className={styles.label}>{d.label}</span>
-              )}
+              <div className={styles.optionControls}>
+                {renderDragHandle?.(d)}
+                {renderLabel ? (
+                  renderLabel(d)
+                ) : (
+                  <span className={styles.label}>{d.text ?? ""}</span>
+                )}
+                {renderToggle?.(d)}
+                {renderMenu?.(d)}
+              </div>
               <div className={styles.track}>
                 <span
                   className={styles.stem}
@@ -51,7 +63,7 @@ const DotPlot = ({ data, total, caption, renderLabel }: DotPlotProps) => {
               </div>
               <span className={styles.value}>
                 {d.value}
-                {denominator > 0 && (
+                {displayAsPercentage && denominator > 0 && (
                   <span className={styles.share}> ({sharePct}%)</span>
                 )}
               </span>

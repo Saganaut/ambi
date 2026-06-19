@@ -4,16 +4,23 @@
 // option counts when the author wants to see how few options capture most of
 // the responses. Pure SVG (bars + polyline) with the category labels listed
 // below in the sorted order.
-import type { ChartProps } from "../types";
+import type { GeneralChartProps } from "../types";
 import styles from "./ParetoChart.module.css";
 
-export type ParetoChartProps = ChartProps;
+export type ParetoChartProps = GeneralChartProps;
 
 const W = 100;
 const H = 60;
 const PAD = 6;
 
-const ParetoChart = ({ data, caption, renderLabel }: ParetoChartProps) => {
+const ParetoChart = ({
+  data,
+  caption,
+  renderLabel,
+  renderToggle,
+  renderMenu,
+  renderDragHandle,
+}: ParetoChartProps) => {
   const sorted = [...data].sort((a, b) => b.value - a.value);
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
   const max = Math.max(1, ...sorted.map((d) => d.value));
@@ -88,11 +95,16 @@ const ParetoChart = ({ data, caption, renderLabel }: ParetoChartProps) => {
       <ul className={styles.labels}>
         {items.map((it) => (
           <li key={it.index} className={styles.label}>
-            {renderLabel ? (
-              renderLabel(it.datum)
-            ) : (
-              <span className={styles.labelText}>{it.datum.label}</span>
-            )}
+            <div className={styles.optionControls}>
+              {renderDragHandle?.(it.datum)}
+              {renderLabel ? (
+                renderLabel(it.datum)
+              ) : (
+                <span className={styles.labelText}>{it.datum.text ?? ""}</span>
+              )}
+              {renderToggle?.(it.datum)}
+              {renderMenu?.(it.datum)}
+            </div>
             <span className={styles.labelValue}>
               {Math.round(it.cumPct * 100)}%
             </span>

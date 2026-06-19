@@ -4,21 +4,15 @@
 // the live session board (with the real round-result tally) — same function,
 // same output, so the preview an author sees matches the live render.
 //
-// Input options are typed structurally (`McqOptionLike`) rather than against the
-// generated `McqOption`, so this shared module never imports from a feature.
+// Options are typed against the shared `McqOption` (re-exported through the
+// shared types barrel, not pulled directly from a feature), so spreading an
+// option carries its text, image, and colour straight onto the `ChartDatum`
+// every renderer consumes.
+import type { McqOption } from "@/shared/types/elements";
 import type { ChartDatum } from "../types";
 
-export interface McqOptionLike {
-  id: string;
-  text?: string;
-  color?: string;
-}
-
-/** A label that's never empty — falls back to positional "Option N". */
-const optionLabel = (option: McqOptionLike, index: number): string => {
-  const text = option.text?.trim();
-  return text && text.length > 0 ? text : `Option ${(index + 1).toString()}`;
-};
+/** The option fields a chart needs; structurally the editor's `McqOption`. */
+export type McqOptionLike = McqOption;
 
 /**
  * Normalise an MCQ's options + a response tally into chart data, in author
@@ -31,30 +25,28 @@ export const mcqToChartData = (
   distribution: Record<string, number>,
 ): ChartDatum[] => {
   const correct = new Set(correctOptionIds);
-  return options.map((option, index) => ({
-    id: option.id,
-    label: optionLabel(option, index),
+  return options.map((option) => ({
+    ...option,
     value: distribution[option.id] ?? 0,
     highlight: correct.has(option.id),
-    color: option.color,
+    isCorrect: correct.has(option.id),
   }));
 };
 
 /**
  * A deterministic, believable response distribution for editor previews (there
  * are no real responses at authoring time). Deterministic so the preview is
- * stable across renders; weighted to descend by position with a bump for the
- * correct option(s) so the highlight reads as intentional.
+ * stable across renders; weighted to descend by position only. Correctness is
+ * deliberately NOT a factor here — it drives `highlight` in {@link mcqToChartData},
+ * so folding it into the value too would make toggling an option correct resize
+ * its bar/segment, which is confusing while authoring.
  */
 export const mcqSampleDistribution = (
   options: McqOptionLike[],
-  correctOptionIds: string[],
 ): Record<string, number> => {
-  const correct = new Set(correctOptionIds);
   const out: Record<string, number> = {};
   options.forEach((option, index) => {
-    const base = Math.max(1, 12 - index * 3);
-    out[option.id] = base + (correct.has(option.id) ? 7 : 0);
+    out[option.id] = Math.max(1, 12 - index * 3);
   });
   return out;
 };

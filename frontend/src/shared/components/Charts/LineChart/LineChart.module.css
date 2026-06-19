@@ -53,6 +53,18 @@
   flex: 1;
 }
 
+/* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
+   Menu's popover (position: relative), letting buttons overflow rather than clip. */
+.optionControls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+}
+
 .labelText {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
@@ -66,4 +78,8 @@
   font-size: var(--font-size-sm);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.share {
+  color: var(--text-secondary);
 }

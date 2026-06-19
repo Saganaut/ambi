@@ -2,18 +2,27 @@
 // score-over-rounds, …). Values map to a polyline with a marker per point; the
 // y-axis is scaled to the largest value. A highlighted datum gets an emphasised
 // marker. Pure SVG so it scales with its container and animates via CSS.
-import type { ChartProps } from "../types";
+import type { GeneralChartProps } from "../types";
 import styles from "./LineChart.module.css";
 
-export type LineChartProps = ChartProps;
+export type LineChartProps = GeneralChartProps;
 
 const W = 100;
 const H = 60;
 const PAD = 6;
 
-const LineChart = ({ data, caption, renderLabel }: LineChartProps) => {
+const LineChart = ({
+  data,
+  caption,
+  renderLabel,
+  renderToggle,
+  renderMenu,
+  renderDragHandle,
+  displayAsPercentage = false,
+}: LineChartProps) => {
   const max = Math.max(1, ...data.map((d) => d.value));
   const span = Math.max(1, data.length - 1);
+  const denominator = data.reduce((sum, d) => sum + d.value, 0);
 
   const points = data.map((d, i) => {
     const x = PAD + (i / span) * (W - PAD * 2);
@@ -63,12 +72,25 @@ const LineChart = ({ data, caption, renderLabel }: LineChartProps) => {
             key={i}
             className={styles.label}
           >
-            {renderLabel ? (
-              renderLabel(d)
-            ) : (
-              <span className={styles.labelText}>{d.label}</span>
-            )}
-            <span className={styles.labelValue}>{d.value}</span>
+            <div className={styles.optionControls}>
+              {renderDragHandle?.(d)}
+              {renderLabel ? (
+                renderLabel(d)
+              ) : (
+                <span className={styles.labelText}>{d.text ?? ""}</span>
+              )}
+              {renderToggle?.(d)}
+              {renderMenu?.(d)}
+            </div>
+            <span className={styles.labelValue}>
+              {d.value}
+              {displayAsPercentage && denominator > 0 && (
+                <span className={styles.share}>
+                  {" "}
+                  ({Math.round((d.value / denominator) * 100)}%)
+                </span>
+              )}
+            </span>
           </li>
         ))}
       </ul>

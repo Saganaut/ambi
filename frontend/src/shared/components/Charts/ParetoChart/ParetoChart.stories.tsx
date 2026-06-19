@@ -7,6 +7,7 @@ const meta = {
   component: ParetoChart,
   tags: ["autodocs"],
   args: {
+    chartMode: "scorable",
     data: SAMPLE_DATA,
     caption: "Votes (cumulative)",
   },

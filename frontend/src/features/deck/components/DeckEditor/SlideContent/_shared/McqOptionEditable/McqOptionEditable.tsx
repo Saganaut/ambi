@@ -1,137 +1,78 @@
 /**
- * Full author surface for a single McqOption inside an MCQ slide.
+ * Full author surface for a single McqOption — the base (NONE) grid view of an
+ * option. Composed from the same shared pieces as every chart label
+ * ({@link Label} + {@link CorrectToggle} + {@link Menu}) under a per-option
+ * {@link OptionProvider}, so there's one way to edit an option everywhere; this
+ * file only adds the card chrome (frame, index pill, thumbnail, progress bar,
+ * drag, add button) and the card-specific interaction (clicking anywhere on the
+ * card opens the menu).
  *
- * Layout:
- *   - Card body (always visible): index pill + popover-trigger button at the
- *     top, the option-text input below, and the "Correct" Toggle at the
- *     bottom. Anything beyond text/correct lives in the popover.
- *   - Popover (opened by clicking the trigger; dismissed by clicking outside
- *     or pressing Escape): image controls (gallery picker + clear; the
- *     paste-URL field lives inside the picker modal), a color swatch, and the
- *     "remove option" button. Built on the shared
- *     `Popover` primitive so it stays visually consistent with the
- *     RichTextInput toolbar and any future inline-edit popovers.
- *
- * This is a controlled card: the freshest `option`, its `index`/`isCorrect`/
- * `canRemove`, and all write handlers come from the parent's single
- * `useMcqEditor` instance as props. The card keeps only a local mirror of the
- * text field (for responsive typing) and the popover open state; every persist
- * is delegated up via `onScheduleText` / `onCommit` / `onToggleCorrect` /
- * `onRemove`, so all option writes funnel through one debounce buffer and can't
- * stomp each other.
- *
- * Image field: every option carries a single `AppImage`. The gallery picker
- * (opened via the injected `openPicker` prop, square crop) returns a complete
- * image and we hand it straight up; pasted URLs are stored through the picker's
- * Upload tab. The backend strips derived URLs on write for internal images and
- * rehydrates them on read, so there's nothing to sanitize here.
+ * It takes just `{ optionId, sortIndex }` — every write handler, the freshest
+ * option, and its index come from the option context, so all writes funnel
+ * through the single `useMcqEditor` debounce buffer.
  */
-import { useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { type McqOption as McqOptionType } from "@deck/store/deckApi.gen";
-import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { useEffect, useRef, useState } from "react";
 
-import { useFitText } from "@hooks/useFitText";
-import { OpenGalleryPicker } from "@hooks/useGalleryPicker";
-import {
-  emptyImage,
-  isImageEmpty,
-  largestUrl,
-  resolveImageUrl,
-} from "@utils/image";
-import styles from "./McqOptionEditable.module.css";
-import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
-import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
-import { EditOptionToolbar } from "./EditOptionToolbar";
 import { Container } from "@components/Containers/Container";
-import QuizPoints from "@assets/icons/content/quiz-points.svg?react";
-import Sad from "@assets/icons/content/sad.svg?react";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
+import { resolveImageUrl } from "@utils/image";
+
+import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
+import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { McqOption } from "@/shared/types/elements";
+import { CorrectToggle } from "../OptionControls/CorrectToggle";
+import { Label } from "../OptionControls/Label";
+import { Menu } from "../OptionControls/Menu";
+import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
 
 interface McqOptionEditableProps {
-  /** The freshest option from the parent's editor — fully controlled. */
-  option: McqOptionType;
+  /** Identifies which option this card edits; resolved against the context. */
+  optionId: string;
   /** Position in the parent's option list. Forwarded to @dnd-kit's
    *  `useSortable` so the parent's DragDropProvider can reorder. */
   sortIndex: number;
-  /** Display position (0-based) for the index pill / colour palette. */
-  index: number;
-  /** Whether this option's id is in the slide's `correctOptionIds`. */
-  isCorrect: boolean;
-  /** Whether removing is allowed (above `MIN_MCQ_OPTIONS`). */
-  canRemove: boolean;
-  /** Whether adding is allowed (below `MAX_MCQ_OPTIONS`). */
-  canAddOption: boolean;
-  addOption: () => void;
-  /** Debounced field edit (text / colour). */
-  onScheduleText: (next: McqOptionType) => void;
-  /** Immediate field edit (e.g. clearing the image). */
-  onCommit: (next: McqOptionType) => void;
-  onToggleCorrect: () => void;
-  onRemove: () => void;
-  /** Flush any pending debounced edit immediately (bind to blur). */
-  flush: () => void;
+  UseMcqEditorResult: UseMcqEditorResult;
+  displayAsPercentage?: boolean;
   openPicker: OpenGalleryPicker;
 }
 
 const McqOptionEditable = ({
-  option,
   sortIndex,
-  index,
-  isCorrect,
-  canRemove,
-  canAddOption,
-  addOption,
-  onScheduleText,
-  onCommit,
-  onToggleCorrect,
-  onRemove,
-  flush,
+  optionId,
+  UseMcqEditorResult,
+  displayAsPercentage,
   openPicker,
 }: McqOptionEditableProps) => {
-  const optionId = option.id;
-  // `McqOptionId` is a `{ value? }` wrapper — use the bare value string for the
-  // dnd id, DOM ids, and image cache-bust seeds (stringifying the object would
-  // collide every card on "[object Object]").
-  const optionKey = optionId ?? "";
-
   // dnd-kit sortable: id must be stable per option so DragDropProvider can
-  // identify the source on drop. The parent (McqSlideContent) wraps the grid
-  // in a DragDropProvider and routes the drop to `handleOptionDragEnd`.
+  // identify the source on drop.
   const { ref: sortableRef, isDragging } = useSortable({
-    id: optionKey,
+    id: optionId,
     index: sortIndex,
   });
+  const {
+    question,
+    canAddOption,
+    addOption,
+    canRemove,
+    isCorrect,
+    flush,
+    scheduleOption,
+    commitOption,
+    toggleCorrect,
+    removeOption,
+  } = UseMcqEditorResult;
 
-  // --- local mirror for the debounced text field ------------------------
-  // Color uses a debounced commit while dragging; no separate local mirror
-  // is needed because the native <input type="color"> owns the swatch DOM.
-  // The paste-URL field now lives inside the gallery picker modal, so it
-  // owns its own state per-open and we don't mirror it here.
-  const [text, setText] = useState(option.text ?? "");
+  const option = question?.options.find((option) => option.id === optionId);
 
-  // Auto-shrink the option text so it fits inside the bounded card
-  // (the grid caps row height at `--mcq-option-max-h`). Below 11px the
-  // hook stops shrinking and the card clips — at that point the author
-  // has way too much text in an answer option anyway.
-  const fitRef = useFitText<HTMLTextAreaElement>(text, {
-    minPx: 11,
-    maxPx: 18,
-  });
-
-  // Popover open state. Dismissed on outside pointerdown / Escape so the
-  // popover behaves like the rest of the app's floating surfaces (Dropdown).
+  // The card owns the menu's open state + outside-click boundary: the whole
+  // card. Clicking anywhere on the card (outside the interactive zones, which
+  // stop propagation) toggles the menu; clicking outside the card closes it.
   const [popoverOpen, setPopoverOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Track which option id the local text mirror is synced to, so a slide
-  // switch or reorder resyncs it. Compared by `option.id` reference, stable
-  // between debounced commits.
-  const [syncedFromId, setSyncedFromId] = useState(option.id);
-
-  // Combine @dnd-kit's sortable ref with our local cardRef (used by the
-  // outside-click detector below). Same pattern as SlideThumbnail.
   const setCardRef = (node: HTMLDivElement | null) => {
     cardRef.current = node;
     if (typeof sortableRef === "function") sortableRef(node);
@@ -153,86 +94,20 @@ const McqOptionEditable = ({
     };
   }, [popoverOpen]);
 
-  // Resync local mirror when the active option id changes (slide switch
-  // or option re-order). React's "derive state during render" pattern.
-  if (syncedFromId !== option.id) {
-    setSyncedFromId(option.id);
-    setText(option.text ?? "");
-  }
-
-  // --- handlers --------------------------------------------------------
-
-  const handleTextChange = (next: string) => {
-    setText(next);
-    onScheduleText({ ...option, text: next });
-  };
-
-  /** Flush pending edits, retract the popover, then open the gallery picker
-   *  with a square crop. The popover closes first so its document-level
-   *  outside-click listener is gone before the modal renders; the card stays
-   *  mounted, so committing the pick afterwards is safe. */
-  const handlePickFromGallery = () => {
-    flush();
-    setPopoverOpen(false);
-    openPicker(
-      (image) => {
-        onCommit({ ...option, image });
-      },
-      {
-        title: "Option image",
-        initialUrl: option.image?.externalSrc,
-        cropWidth: 1,
-        cropHeight: 1,
-      },
-    );
-  };
-
-  const handleClearImage = () => {
-    flush();
-    onCommit({ ...option, image: emptyImage() });
-  };
-
-  const handleColorChange = (next: string) => {
-    // Color picker fires on every drag tick; debounce the writes.
-    onScheduleText({ ...option, color: next });
-  };
-
-  const handleRemove = () => {
-    setPopoverOpen(false);
-    onRemove();
-  };
-
-  // --- derived display state ------------------------------------------
-
-  const previewUrl = largestUrl(option.image, optionKey) ?? "";
-  const hasImage = !isImageEmpty(option.image);
-  const thumbnailSrc = resolveImageUrl(
-    option.image,
-    "SM",
-    optionKey,
-    200,
-    200,
-    false,
-  );
-  const inputIdBase = `mcq-opt-${optionKey}`;
-  const displayIndex = index >= 0 ? index + 1 : 0;
-  // Default swatch; only applied when the author hasn't overridden via the
-  // popover swatch. Indexes past the palette length wrap.
-  const color = resolveOptionColor(option.color, index);
-  // Clicking anywhere on the card toggles the popover EXCEPT inside the
-  // "interactive zones" below (text input + correct toggle), which call
-  // `e.stopPropagation()` so their own click never bubbles up here. The
-  // ellipsis trigger also stops propagation and toggles directly so it
-  // doesn't double-toggle via the card handler.
-  const handleCardClick = () => {
-    setPopoverOpen((o) => !o);
-  };
+  if (option == null) return <div> no option found</div>;
+  const thumbnailSrc = resolveImageUrl(option.image, "SM", optionId, 200, 200, false);
+  const color = resolveOptionColor(option.color, sortIndex);
+  const displayIndex = sortIndex >= 0 ? sortIndex + 1 : 0;
+  console.log("Display as percentage not implemented", displayAsPercentage);
 
   return (
-    <Container ref={setCardRef} name='McqOptionCard'>
+    <Container ref={setCardRef} name="McqOptionCard">
       <div
-        className={`${styles.card} ${isCorrect ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
-        onClick={handleCardClick}>
+        className={`${styles.card} ${isCorrect(optionId) ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
+        onClick={() => {
+          setPopoverOpen((o) => !o);
+        }}
+      >
         <div className={styles.topRow}>
           <div className={styles.textColumn}>
             <span className={styles.indexPill}>{displayIndex}</span>
@@ -240,99 +115,80 @@ const McqOptionEditable = ({
               className={styles.interactiveZone}
               onClick={(e) => {
                 e.stopPropagation();
-              }}>
-              <TextArea
-                isBordered={false}
-                id={`${inputIdBase}-text`}
-                fullWidth
-                autoGrow={false}
-                ref={fitRef}
-                rows={1}
-                value={text}
-                placeholder='Type the option…'
-                onChange={(e) => {
-                  handleTextChange(e.target.value);
+              }}
+            >
+              <Label
+                option={option}
+                flush={flush}
+                onScheduleText={(next: McqOption) => {
+                  scheduleOption(option.id, next);
                 }}
-                onBlur={flush}
+                fit
               />
             </div>
           </div>
           <div
             className={styles.imgThumbnail}
-            style={thumbnailSrc ? {} : { backgroundColor: color }}>
-            {thumbnailSrc && <img src={thumbnailSrc} alt='' />}
+            style={thumbnailSrc ? {} : { backgroundColor: color }}
+          >
+            {thumbnailSrc && <img src={thumbnailSrc} alt="" />}
           </div>
         </div>
 
         <ProgressBar value={100} color={color} />
         <div className={styles.footer}>
-          <IconBtn
-            fill='ghost'
-            className={[styles.interactiveZone, styles.correctBtn].join(" ")}
-            aria-label={isCorrect ? "Mark as wrong" : "Mark as correct"}
-            aria-pressed={isCorrect}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleCorrect();
+          <CorrectToggle
+            isCorrect={isCorrect(option.id)}
+            onToggleCorrect={() => {
+              toggleCorrect(option.id);
             }}
-            icon={isCorrect ? <QuizPoints /> : <Sad />}
           />
-
-          <IconBtn
-            fill='ghost'
-            size='xs'
-            icon={<EllipsisVerticalIcon />}
-            aria-label={`Edit option ${displayIndex.toString()}`}
-            aria-expanded={popoverOpen}
-            aria-haspopup='dialog'
-            onClick={(e) => {
-              e.stopPropagation();
-              setPopoverOpen((o) => !o);
+          <Menu
+            activeOption={option}
+            activeOptionId={option.id}
+            isOpen={popoverOpen}
+            index={sortIndex}
+            canRemove={canRemove}
+            onScheduleText={(next: McqOption) => {
+              scheduleOption(option.id, next);
             }}
+            onCommit={(next: McqOption) => {
+              commitOption(option.id, next);
+            }}
+            onRemove={() => {
+              removeOption(option.id);
+            }}
+            flush={flush}
+            openPicker={openPicker}
+            onOpenChange={setPopoverOpen}
           />
         </div>
-        {popoverOpen && (
-          <EditOptionToolbar
-            canRemove={canRemove}
-            handlePickFromGallery={handlePickFromGallery}
-            hasImage={hasImage}
-            handleRemove={handleRemove}
-            handleClearImage={handleClearImage}
-            handleColorChange={handleColorChange}
-            handleClose={() => {
-              setPopoverOpen(false);
-            }}
-            displayIndex={displayIndex}
-            previewUrl={previewUrl}
-            color={color}
-            flush={flush}
-          />
-        )}
         {canAddOption && (
           <div className={styles.canAddBtn}>
             <IconBtn
-              size='sm'
-              shape='round'
-              variant='info'
+              size="sm"
+              shape="round"
+              variant="info"
               onClick={addOption}
               disabled={!canAddOption}
               icon={
                 <svg
-                  width='100pt'
-                  height='100pt'
-                  version='1.1'
-                  viewBox='0 0 100 100'
-                  xmlns='http://www.w3.org/2000/svg'>
+                  width="100pt"
+                  height="100pt"
+                  version="1.1"
+                  viewBox="0 0 100 100"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <path
-                    d='m50 26.699c-1.3906 0-2.5195 1.1289-2.5195 2.5195v18.262h-18.262c-1.3906 0-2.5195 1.1289-2.5195 2.5195s1.1289 2.5195 2.5195 2.5195h18.262v18.262c0 1.3906 1.1289 2.5195 2.5195 2.5195s2.5195-1.1289 2.5195-2.5195v-18.262h18.262c1.3906 0 2.5195-1.1289 2.5195-2.5195s-1.1289-2.5195-2.5195-2.5195h-18.262v-18.262c0-1.3906-1.1289-2.5195-2.5195-2.5195z'
-                    fill='green'
+                    d="m50 26.699c-1.3906 0-2.5195 1.1289-2.5195 2.5195v18.262h-18.262c-1.3906 0-2.5195 1.1289-2.5195 2.5195s1.1289 2.5195 2.5195 2.5195h18.262v18.262c0 1.3906 1.1289 2.5195 2.5195 2.5195s2.5195-1.1289 2.5195-2.5195v-18.262h18.262c1.3906 0 2.5195-1.1289 2.5195-2.5195s-1.1289-2.5195-2.5195-2.5195h-18.262v-18.262c0-1.3906-1.1289-2.5195-2.5195-2.5195z"
+                    fill="green"
                   />
                 </svg>
               }
             />
           </div>
         )}
-      </div>{" "}
+      </div>
     </Container>
   );
 };

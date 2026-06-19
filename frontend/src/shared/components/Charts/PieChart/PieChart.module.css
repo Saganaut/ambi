@@ -88,6 +88,19 @@
   color: var(--text-primary);
 }
 
+/* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
+   Menu's popover (position: relative). Lets the buttons overflow the narrow
+   label cell rather than clipping. */
+.optionControls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: visible;
+}
+
 .swatch {
   width: var(--space-3);
   height: var(--space-3);

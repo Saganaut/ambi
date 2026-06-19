@@ -1,7 +1,7 @@
-/* Inline option editor placed in a chart's label slot. Anchors the
-   EditOptionToolbar popover (position: relative) and lets its controls overflow
-   the (often narrow) label cell rather than being clipped like the static
-   label span it replaces. See EditableChartOptionLabel.tsx. */
+/* Layout for the inline chart-label composition (Label + CorrectToggle + Menu).
+   Anchors the EditOptionToolbar popover (position: relative) and lets the
+   controls overflow the (often narrow) chart label cell rather than clipping.
+   See EditableChartOptionLabel.tsx. */
 
 .wrap {
   position: relative;

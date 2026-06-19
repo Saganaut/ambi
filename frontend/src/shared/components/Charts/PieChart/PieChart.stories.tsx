@@ -7,6 +7,7 @@ const meta = {
   component: PieChart,
   tags: ["autodocs"],
   args: {
+    chartMode: "scorable",
     data: SAMPLE_DATA,
     variant: "pie",
     animateOnMount: false,

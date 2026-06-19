@@ -22,39 +22,41 @@
  *   - Zero correct answers is allowed but flagged, because the slide isn't
  *     scoreable in that state.
  */
-import { useResultsPreview } from "@/features/deck/contexts/useResultsPreview";
 import { ResultsChart } from "@/shared/components/Charts/ResultsChart/ResultsChart";
 import { mcqResults } from "@/shared/components/Charts/registry";
-import { type OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { ChartType } from "@/shared/components/Charts/types";
+import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
-import { useMcqOptionControls } from "@deck/hooks/useMcqOptionControls";
-import { Btn } from "@ui/Buttons/Btn";
 import { DragDropProvider } from "@dnd-kit/react";
+import { PlusIcon } from "@heroicons/react/24/solid";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { useState } from "react";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
-import { EditableChartOptionLabel } from "../_shared/EditableChartOptionLabel/EditableChartOptionLabel";
 import styles from "./McqSlideContent.module.css";
 
 interface McqSlideContentViewProps {
   UseMcqEditorResult: UseMcqEditorResult;
+  /** Render chart values as a percentage of the total (slide answer setting). */
+  displayAsPercentage?: boolean;
+  previewVisualization: ChartType | null;
   openPicker: OpenGalleryPicker;
 }
 
-const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContentViewProps) => {
+const McqSlideContentView = ({
+  UseMcqEditorResult,
+  displayAsPercentage = false,
+  previewVisualization,
+  openPicker,
+}: McqSlideContentViewProps) => {
   const { question, schedulePrompt, flush, canAddOption, addOption, handleOptionDragEnd } =
     UseMcqEditorResult;
-  // One binder over the single editor instance, shared by the option-card grid
-  // and the inline chart-label editors so every option write funnels through the
-  // same debounce buffer.
-  const { getOptionProps } = useMcqOptionControls(UseMcqEditorResult, openPicker);
   // Only the prompt needs a local mirror — typing should feel responsive and
   // the rich-text editor controls its own DOM. Options come down as props from
   // the single editor. `syncedFromId` resets the mirror when the active slide
   // changes (this resync is purely local, hence the local state).
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
-  const { previewVisualization } = useResultsPreview();
 
   // Resync the local mirror when the active question changes. "Derive state
   // during render" pattern — safe when the new value differs.
@@ -82,20 +84,11 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
   const options = question.options;
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
-  // Deterministic sample data — there are no real responses at authoring time,
-  // and a stable distribution keeps chart values from jumping while the author
-  // edits option labels inline. The same adapter renders live results on the
-  // session board later.
+  // Deterministic sample data
   const chartData = mcqResults.toChartData(
     options,
     question.correctOptionIds,
-    mcqResults.sampleDistribution(options, question.correctOptionIds),
-  );
-
-  // Pre-bind each option's editing surface, keyed by id, so the chart's
-  // renderLabel can map an edited label back to the right option.
-  const controlsById = new Map(
-    options.map((option, idx) => [option.id, getOptionProps(option, idx)]),
+    mcqResults.sampleDistribution(options),
   );
 
   return (
@@ -126,31 +119,38 @@ const McqSlideContentView = ({ UseMcqEditorResult, openPicker }: McqSlideContent
             {options.map((option, idx) => (
               <McqOptionEditable
                 key={option.id ?? `__no-id-${idx.toString()}`}
+                optionId={option.id}
                 sortIndex={idx}
-                {...getOptionProps(option, idx)}
+                UseMcqEditorResult={UseMcqEditorResult}
+                openPicker={openPicker}
               />
             ))}
           </DragDropProvider>
         </div>
       ) : (
         <div className={styles.chartEditor}>
-          {/* The chart replaces the option-card grid, but options stay fully
-              editable: each label is an inline EditableChartOptionLabel wired to
-              the same editor. */}
-          <ResultsChart
-            viz={effective}
-            data={chartData}
-            caption="Sample data"
-            renderLabel={(d) => {
-              const props = d.id ? controlsById.get(d.id) : undefined;
-              return props ? <EditableChartOptionLabel {...props} /> : d.label;
+          <DragDropProvider
+            onDragEnd={(event) => {
+              handleOptionDragEnd(event);
             }}
-          />
+          >
+            <ResultsChart
+              viz={effective}
+              data={chartData}
+              caption="Sample data"
+              displayAsPercentage={displayAsPercentage}
+            />
+          </DragDropProvider>
           {canAddOption && (
             <div className={styles.addOptionRow}>
-              <Btn fill="ghost" size="sm" onClick={addOption}>
-                Add option
-              </Btn>
+              <IconBtn
+                size="sm"
+                shape="round"
+                variant="info"
+                onClick={addOption}
+                aria-label="Add option"
+                icon={<PlusIcon />}
+              />
             </div>
           )}
         </div>

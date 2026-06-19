@@ -7,6 +7,7 @@ const meta = {
   component: BarChart,
   tags: ["autodocs"],
   args: {
+    chartMode: "scorable",
     data: SAMPLE_DATA,
     orientation: "horizontal",
     caption: "Votes",

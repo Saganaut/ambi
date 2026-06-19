@@ -1,21 +1,6 @@
-// Share-of-total wheel for categorical distributions (MCQ, ranking, allocation).
-// Implemented with stacked SVG <circle> strokes rather than arc paths so each
-// slice animates cleanly via `stroke-dasharray` (transitionable in CSS — arc
-// `d` is not). `variant="pie"` sets the stroke width to the full radius (a solid
-// pie); `variant="donut"` leaves the hole. Legend below mirrors slice order and
-// tint. A datum's explicit `color` overrides the tone palette (e.g. MCQ option
-// colours); `highlight` rings the slice (the correct option).
 import { useEffect, useState } from "react";
-import type { ChartDatum, ChartProps } from "../types";
+import type { ChartDatum, GeneralChartProps } from "../types";
 import styles from "./PieChart.module.css";
-
-export interface PieChartProps extends ChartProps {
-  variant?: "pie" | "donut";
-  /** Pie/donut entrance animation. */
-  animateOnMount?: boolean;
-  /** Show the legend value as a percentage of the total. */
-  displayAsPercentage?: boolean;
-}
 
 const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
 
@@ -29,7 +14,11 @@ const PieChart = ({
   caption,
   animateOnMount = true,
   renderLabel,
-}: PieChartProps) => {
+  renderToggle,
+  renderMenu,
+  renderDragHandle,
+  displayAsPercentage = false,
+}: GeneralChartProps) => {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const [revealed, setRevealed] = useState(!animateOnMount);
   useEffect(() => {
@@ -67,7 +56,7 @@ const PieChart = ({
     const start = acc.length === 0 ? 0 : acc[acc.length - 1].start + acc[acc.length - 1].pct;
     acc.push({
       datum: d,
-      label: d.label,
+      label: d.text ?? "",
       pct,
       start,
       tone: TONES[i % TONES.length],
@@ -120,12 +109,20 @@ const PieChart = ({
                 style={s.color ? { background: s.color } : undefined}
                 aria-hidden="true"
               />
-              {renderLabel ? (
-                renderLabel(s.datum)
-              ) : (
-                <span className={styles.legendLabel}>{s.label}</span>
-              )}
-              <span className={styles.legendValue}>{Math.round(s.pct)}%</span>
+              <div className={styles.optionControls}>
+                {renderDragHandle?.(s.datum)}
+                {renderLabel ? (
+                  renderLabel(s.datum)
+                ) : (
+                  <span className={styles.legendLabel}>{s.label}</span>
+                )}
+                {renderToggle?.(s.datum)}
+                {renderMenu?.(s.datum)}
+              </div>
+              <span className={styles.legendValue}>
+                {s.datum.value}
+                {displayAsPercentage && ` (${Math.round(s.pct).toString()}%)`}
+              </span>
             </li>
           ))}
         </ul>

@@ -1,0 +1,26 @@
+/* Grip for drag-to-reorder. `touch-action: none` lets @dnd-kit's pointer
+   sensor own the gesture on touch instead of the browser scrolling. */
+.handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:hover {
+  color: var(--text-primary);
+}
+
+.handle.dragging {
+  cursor: grabbing;
+}
+
+.handle svg {
+  fill: currentColor;
+}

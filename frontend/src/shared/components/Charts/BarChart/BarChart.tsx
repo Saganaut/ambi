@@ -6,15 +6,10 @@
  * MCQ option) gets the emphasis fill. Orientation is a prop so the same
  * component serves BAR_HORIZONTAL and BAR_VERTICAL.
  */
-import type { ChartProps } from "../types";
+import type { GeneralChartProps } from "../types";
 import styles from "./BarChart.module.css";
 
-export interface BarChartProps extends ChartProps {
-  /** Bars grow left→right ("horizontal") or bottom→top ("vertical"). */
-  orientation?: "horizontal" | "vertical";
-  /** Denominator for the share %; defaults to the sum of values. */
-  total?: number;
-}
+export type BarChartProps = GeneralChartProps;
 
 const BarChart = ({
   data,
@@ -22,6 +17,9 @@ const BarChart = ({
   total,
   caption,
   renderLabel,
+  renderToggle,
+  renderMenu,
+  renderDragHandle,
   displayAsPercentage = false,
 }: BarChartProps) => {
   const max = Math.max(1, ...data.map((d) => d.value));
@@ -40,7 +38,16 @@ const BarChart = ({
               key={i}
               className={`${styles.row} ${d.highlight ? styles.highlight : ""}`}
             >
-              {renderLabel ? renderLabel(d) : <span className={styles.label}>{d.label}</span>}
+              <div className={styles.optionControls}>
+                {renderDragHandle?.(d)}
+                {renderLabel ? (
+                  renderLabel(d)
+                ) : (
+                  <span className={styles.label}>{d.text ?? ""}</span>
+                )}
+                {renderToggle?.(d)}
+                {renderMenu?.(d)}
+              </div>
               <div className={styles.track}>
                 <div
                   className={styles.fill}
