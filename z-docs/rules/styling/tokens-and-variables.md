@@ -1,6 +1,6 @@
 # Tokens & the Component Variable Manifest
 
-**Rule:** Every value comes from a token; every variantizable component reads its style from local CSS vars using the `var(--name, fallback)` pattern.
+**Rule:** Every value comes from a token; every variantizable component declares a manifest of local CSS vars and flips them via local `variant` / `size` classes nested in the base rule.
 
 ## Tokens
 
@@ -16,22 +16,23 @@ Every variantizable component exposes a manifest of local CSS vars and reads fro
 - **Typography slots:** `--font-size`, optionally `--font-weight` / `--line-height` (flipped by size).
 - **State slot:** `--opacity`.
 
-## The `var(--name, fallback)` rule (load-bearing)
+## How the manifest is flipped
 
-**Never declare a manifest var inside the component rule.** Read it with the fallback syntax:
+The base component rule **declares the manifest defaults**; **local variant/size classes override them**:
 
 ```css
-/* correct */
 .btn {
-  color: var(--color, var(--text-primary));
-  padding: var(--padding, var(--p-md));
-}
-
-/* wrong — this kills every modifier silently */
-.btn {
+  /* manifest default */
   --color: var(--text-primary);
   color: var(--color);
+
+  /* variant override — wins on specificity */
+  &.error {
+    --color: var(--text-error);
+  }
 }
 ```
 
-Why: `.btn` and `.btn.error` have equal specificity, and component CSS imports after `tokens.css`, so a local declaration always wins. The fallback pattern means the component never declares the var — variant classes set it; otherwise the fallback applies.
+Why it works: `.btn.error` (specificity `(0,2,0)`) out-specifies the base `.btn` (`(0,1,0)`), so the variant's `--color` wins. The colours referenced (`--text-error`, …) are shared semantic tokens, so every component's `error` resolves to the same theme-derived colour.
+
+> A global-modifier variant — `var(--name, fallback)` reads flipped from `[data-variant]` rules in `tokens.css` — is a possible future refactor, not current practice. See [STYLES.md §11](../../../frontend/STYLES.md).

@@ -1,6 +1,6 @@
 # Ambi Frontend — Styling Conventions
 
-This doc covers how component styles are organized in this codebase: the local CSS-variable manifest each component exposes, the portable `data-*` modifiers that compose against it, how theme classes layer in, and how it all fits together.
+This doc covers how component styles are organized in this codebase: the role-based theme palette, the local CSS-variable manifest each component exposes, the variant/size classes that flip it, and how it all fits together.
 
 If you're adding or refactoring a component, read this first.
 
@@ -8,31 +8,36 @@ If you're adding or refactoring a component, read this first.
 
 ## 1. The Big Picture
 
-There are **four layers** that decide what a pixel looks like, in order from broadest to narrowest:
+There are **four layers** that decide what a pixel looks like, from broadest to narrowest:
 
-| Layer            | Defined in                                       | What it sets                                              |
-| ---------------- | ------------------------------------------------ | --------------------------------------------------------- |
-| Semantic tokens  | `frontend/src/tokens.css` (`:root`)              | `--bg-canvas`, `--text-primary`, `--border-default`, etc. |
-| Theme overrides  | `frontend/src/tokens.css` (`:root.theme-*`)      | Same tokens, redefined for dark / custom modes            |
-| Modifiers        | `frontend/src/tokens.css` (`[data-variant=...]`) | Component vars (`--color`, `--padding`, etc.)             |
-| Component styles | `**/*.module.css`                                | Properties read **only** from component vars              |
+| Layer                         | Defined in                                                                                                           | What it sets                                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Theme roles                   | inline `--role-*` on `<html>` / a scope wrapper (written by `applyPalette`); brand-light defaults in `tokens.css` (`:root`) | The 16 raw colour inputs a theme provides (`--role-canvas`, `--role-primary`, `--role-red`, …)           |
+| Semantic tokens               | `frontend/src/tokens.css` (`:root, [data-appearance]`)                                                               | `--bg-canvas`, `--text-primary`, `--border-default`, … — each **derived from the roles** via `color-mix()` |
+| Component manifest + variants | `**/*.module.css`                                                                                                    | Each component declares local vars (`--color`, `--padding`, …) and flips them via its own variant/size **classes** |
+| Component styles              | `**/*.module.css`                                                                                                    | Properties read from the component's local vars                                                          |
 
-Components never reference semantic tokens directly inside property declarations. They consume **component-scoped CSS variables** with a fallback to the semantic token. Modifiers set those variables. Themes are invisible to components — they just redefine the semantic tokens that everything else cascades from.
+A theme provides **16 role colours**; `tokens.css` fans them out into ~50 semantic tokens with `color-mix()`/`oklch()`, so swapping the 16 roles recolours the whole UI. Components consume the semantic tokens through their own manifest vars (never hard-coded values) and express variants/sizes as CSS-module classes. Themes are invisible to components — they only change the roles the semantic tokens derive from.
 
 ---
 
-## 2. Theme Classes (still in force)
+## 2. Theming — roles + appearance (not classes)
 
-Theme classes live on `<html>` and are toggled by `useTheme`. They redefine semantic tokens (`--bg-canvas`, `--text-primary`, etc.) at the document root. **Don't touch these from component CSS.** The modifier rules and component rules below cascade through them automatically.
+A theme is a **palette of 16 role colours plus an intrinsic light/dark appearance** — there is no separate light/dark toggle and there are no `theme-*` classes. `tokens.css` `:root` ships the built-in **brand-light** palette as defaults; a theme overrides it by setting the 16 `--role-*` custom properties (and a `data-appearance` flag) on a target element, and every semantic token re-derives automatically.
 
-| Class                      | When applied                              | Effect                                                           |
-| -------------------------- | ----------------------------------------- | ---------------------------------------------------------------- |
-| (none)                     | Default: light mode, brand-color defaults | Light tokens from named brand palette                            |
-| `.theme-dark`              | Dark mode active                          | Dark tokens from named brand palette                             |
-| `.theme-custom`            | User has engaged hue picker               | Tokens are derived from `--hue-primary` / `--hue-accent` (light) |
-| `.theme-custom.theme-dark` | Custom hue + dark mode                    | Hue-derived dark tokens                                          |
+**How it's applied:**
 
-All four states are exercised today and must continue to work after any styling change. Components and modifiers reference semantic tokens (e.g. `--text-error`) — those tokens get redefined by these classes, so variants automatically render correctly in every theme.
+- **Global theme** — `useTheme` (mounted once near the app root) resolves the user's `ThemeSpec` (server `preferences.theme` for registered users, `localStorage` for guests) and calls `applyPalette(document.documentElement, spec)`, which writes the 16 inline `--role-*` vars and `data-appearance="light"|"dark"` onto `<html>`. A null spec clears them, reverting to the brand defaults. — `src/shared/hooks/useTheme.ts`, `src/shared/utils/applyPalette.ts`
+- **Per-deck scope** — `DeckThemeScope` wraps a subtree in a `display: contents` element carrying that deck's `--role-*` + `data-appearance`, so the subtree themes independently while the rest of the page keeps the global theme (the deck-editor canvas merges the same vars onto its canvas element). — `src/features/theme/components/DeckThemeScope.tsx`
+- **Authoring** — the `ThemeEditor` lets a user build a palette from the 16 role swatches. — `src/shared/components/Theme/ThemeModal/ThemeEditor.tsx`
+
+**The 16 roles** (written by `applyPalette`): `--role-canvas`, `--role-surface`, `--role-surface-raised`, `--role-subtle`, `--role-foreground`, `--role-muted-foreground`, `--role-primary`, `--role-on-primary`, `--role-accent`, `--role-accent-secondary`, `--role-border`, `--role-border-subtle`, `--role-red`, `--role-green`, `--role-yellow`, `--role-blue`.
+
+**Appearance overrides** — only the handful of tokens that can't auto-adapt from the role mixes are redefined under `[data-appearance="light"]` / `[data-appearance="dark"]` (the `--edge-tint` and `--shadow`). Both are written out so a light scope nested in a dark global (or vice-versa) resets correctly.
+
+> **The four status roles are a dual-purpose accent palette, not pure status.** `--role-red/green/yellow/blue` feed the status tokens (`--bg-error`, `--text-success`, …) **and** are used directly as chart series colours (`ParetoChart`, `DotPlot`, `LineChart`, `BarChart` read `var(--role-green)` etc.) **and** are shown to users as named "Red / Green / Yellow / Blue" swatches in the theme editor (`src/shared/utils/roleColors.ts`). They're kept colour-named deliberately — naming them `error/success/…` would misdescribe the chart and swatch uses.
+
+Curated palettes (e.g. Catppuccin/Dracula) are fully supported by this mechanism — a curated theme is just a preset set of 16 roles — but none ship in code yet.
 
 ---
 
@@ -40,138 +45,124 @@ All four states are exercised today and must continue to work after any styling 
 
 Every variantizable component declares a manifest of local vars at the top of its main rule, drawn from this canonical slot list:
 
-| Axis           | Var                  | Default fallback        | Flipped by       |
-| -------------- | -------------------- | ----------------------- | ---------------- |
-| **Color**      | `--color`            | `var(--text-primary)`   | `[data-variant]` |
-|                | `--background-color` | `var(--bg-surface)`     | `[data-variant]` |
-|                | `--border-color`     | `var(--border-default)` | `[data-variant]` |
-| **Layout**     | `--padding`          | `var(--p-md)`           | `[data-size]`    |
-|                | `--gap`              | `var(--space-3)`        | `[data-size]`    |
-|                | `--radius`           | `var(--radius-md)`      | `[data-size]`    |
-|                | `--height`           | (component-specific)    | `[data-size]`    |
-|                | `--width`            | (component-specific)    | `[data-size]`    |
-|                | `--border-width`     | `1px`                   | (rarely flipped) |
-| **Typography** | `--font-size`        | `var(--font-size-base)` | `[data-size]`    |
-|                | `--font-weight`      | `400`                   | (rarely flipped) |
-|                | `--line-height`      | `1.4`                   | (rarely flipped) |
-| **State**      | `--opacity`          | `1`                     | (rarely flipped) |
+| Axis           | Var                  | Default fallback        | Flipped by                 |
+| -------------- | -------------------- | ----------------------- | -------------------------- |
+| **Color**      | `--color`            | `var(--text-primary)`   | `&.{variant}` class        |
+|                | `--background-color` | `var(--bg-surface)`     | `&.{variant}` / `&.{fill}` |
+|                | `--border-color`     | `var(--border-default)` | `&.{variant}` / `&.{fill}` |
+| **Layout**     | `--padding`          | `var(--p-md)`           | `&.{size}` class           |
+|                | `--gap`              | `var(--space-3)`        | `&.{size}` class           |
+|                | `--radius`           | `var(--radius-md)`      | `&.{size}` class           |
+|                | `--height`           | (component-specific)    | `&.{size}` class           |
+|                | `--width`            | (component-specific)    | `&.{size}` class           |
+|                | `--border-width`     | `1px`                   | (rarely flipped)           |
+| **Typography** | `--font-size`        | `var(--font-size-base)` | `&.{size}` class           |
+|                | `--font-weight`      | `400`                   | (rarely flipped)           |
+|                | `--line-height`      | `1.4`                   | (rarely flipped)           |
+| **State**      | `--opacity`          | `1`                     | (rarely flipped)           |
 
-Components opt into a subset — they only use the slots they need.
+`{variant}` / `{size}` / `{fill}` are the prop values, applied as module classes (`styles[variant]`, …). Components opt into a subset — they only use the slots they need.
 
 ---
 
-## 4. The `var(--name, fallback)` Pattern (the load-bearing rule)
+## 4. How variants flip the manifest
 
-**Do not declare local vars inside the component rule.** Read them with the fallback syntax instead:
+The base component rule **declares the manifest defaults**, and **local variant/size classes override them**. Because a component class plus a modifier class (`.btn.error`, specificity `(0,2,0)`) out-specifies the base rule (`.btn`, `(0,1,0)`), the override wins:
 
 ```css
-/* ✅ Correct — component reads vars with fallbacks */
 .btn {
-  color: var(--color, var(--text-primary));
-  background-color: var(--background-color, var(--bg-surface));
-  padding: var(--padding, var(--p-md));
-  border-radius: var(--radius, var(--radius-md));
-}
+  /* manifest defaults */
+  --color: var(--text-primary);
+  --background-color: var(--bg-surface);
+  --padding: var(--p-md);
 
-/* ❌ Wrong — declaring the var inside the component rule */
-.btn {
-  --color: var(--text-primary); /* this declaration wins against modifiers */
+  /* properties read the manifest */
   color: var(--color);
+  background-color: var(--background-color);
+  padding: var(--padding);
+
+  /* variant flips a manifest slot — higher specificity, so it wins */
+  &.error {
+    --color: var(--text-error);
+    --background-color: var(--bg-error);
+  }
 }
 ```
 
-**Why:** CSS Modules scope class names, not custom properties. A component class (e.g. `.btn`) and an attribute selector (e.g. `[data-variant="error"]`) have equal specificity `(0,1,0)`. The cascade resolves equal-specificity rules by source order, and component CSS imports **after** `tokens.css` — so a `--color` declaration _inside_ `.btn` would override the one set by `[data-variant="error"]` and every variant would silently be a no-op.
+Every variant/size value a component supports therefore lives **once, in that component's module**, referencing the shared semantic tokens (`--text-error`, `--bg-error`, …). The semantic colours are centralised in `tokens.css`; what each component repeats is only the small mapping from its variant names to those tokens.
 
-The `var(--name, fallback)` pattern sidesteps the fight entirely: the component never _declares_ the var. If a modifier set it, that value is used; otherwise, the fallback (the default token) is used.
+> A different approach — declaring the manifest _with_ `var(--name, fallback)` and flipping it from **global** `[data-variant]` rules instead of local classes — is described in §11 as a future consideration. It is **not** how the code works today.
 
 ---
 
-## 5. Modifier Vocabulary (defined once in `tokens.css`)
+## 5. Variant vocabulary (CSS-module classes)
 
-Components consume their variant/size/mode by reading vars. Modifiers set those vars via `data-*` attributes on the element. Apply them with React props or directly in JSX.
+Components expose their look through **props mapped to module classes** — `className={[styles.base, styles[variant], styles[size], …]}` — not `data-*` attributes. The catalog is per-component (each module defines the classes it supports); the common axes are:
 
-### `data-variant` — color triplet
+### `variant` — colour slot
 
-Sets `--color`, `--background-color`, `--border-color`. Guaranteed-contrast because each variant uses the matched `--text-*` / `--bg-*` / `--border-*` triple from `tokens.css`.
+Sets the `--color` / `--background-color` / `--border-color` triple from the matched semantic tokens, so contrast holds in every theme. The widely-shared values:
 
-| `data-variant=` | Use for                       |
-| --------------- | ----------------------------- |
-| `default`       | Neutral / surface elements    |
-| `error`         | Destructive, failure states   |
-| `success`       | Confirmations, completion     |
-| `warning`       | Cautions, pending actions     |
-| `info`          | Informational, neutral accent |
-| `brand`         | Primary CTAs, brand emphasis  |
+| `variant` | Use for                       |
+| --------- | ----------------------------- |
+| `error`   | Destructive, failure states   |
+| `success` | Confirmations, completion     |
+| `warning` | Cautions, pending actions     |
+| `info`    | Informational, neutral accent |
+| `brand`   | Primary CTAs, brand emphasis  |
 
-### `data-size` — layout + typography
+Some components add their own: `Btn`/`IconBtn` also have `primary`, `secondary`, `disabled`; `Badge` defaults to `info`; etc. The variant set is a per-component catalog, not one global enum.
 
-Sets `--padding`, `--font-size`, `--radius`, `--gap`.
+### `size` — layout + typography
 
-| `data-size=` | Padding   | Font               | Radius        |
-| ------------ | --------- | ------------------ | ------------- |
-| `xs`         | `--p-xxs` | `--font-size-xs`   | `--radius-sm` |
-| `sm`         | `--p-sm`  | `--font-size-xs`   | `--radius-md` |
-| `md`         | `--p-md`  | `--font-size-base` | `--radius-md` |
-| `lg`         | `--p-lg`  | `--font-size-lg`   | `--radius-lg` |
+Sets `--padding`, `--font-size`, `--radius`, `--gap` (and component-specific `--height` / `--width` / `--min-height`). The shared ladder is `xs` / `sm` / `md` / `lg`.
 
-### `data-mode` — style modes
+### Component-specific axes
 
-Composes with whatever `data-variant` set.
+E.g. `Btn`/`IconBtn` `fill`: `default` (filled) / `bordered` (filled + matching border) / `ghost` (text-only) — composes with any `variant`.
 
-| `data-mode=` | Effect                                              |
-| ------------ | --------------------------------------------------- |
-| `outline`    | Transparent fill, border picks up current `--color` |
-| `ghost`      | Transparent fill and border                         |
+### Native state (no class needed)
 
-### Native state attributes (no modifier needed)
-
-Use the platform attributes — components style them directly via `:disabled`, `[aria-disabled="true"]`, `[aria-selected="true"]`, `[aria-pressed="true"]`, etc.
+Interactive states use the platform selectors directly — `:disabled`, `:hover`, `[aria-disabled="true"]`, `[aria-selected="true"]`, `[aria-pressed="true"]`, etc.
 
 ---
 
 ## 6. Compositional Payoff
 
-Because each modifier flips only its own subset, they stack without combinatoric blowup:
+Each axis is an independent class flipping only its own manifest slots, so they stack without enumerating combinations:
 
 ```tsx
-<Btn variant='error' size='sm' mode='outline'>
+<Btn variant='error' size='sm' fill='ghost'>
   Delete
 </Btn>
 ```
 
-Renders as: error-red text, small padding/font, transparent background, red border. No CSS rule had to enumerate that combination — `data-variant="error"` set the color triple, `data-size="sm"` set the layout triple, `data-mode="outline"` overrode background and pointed the border at `--color`.
+Renders as: error-red text, small padding/font, transparent background (ghost). No rule enumerates that specific combination — `error` set the colour triple, `sm` set the layout triple, `ghost` cleared the background.
 
 ---
 
-## 7. Example: Btn (after refactor)
+## 7. Example: Btn
 
 ### `BtnTypes.ts`
 
 ```ts
-export type BtnVariant =
-  | "default"
-  | "error"
-  | "success"
-  | "warning"
-  | "info"
-  | "brand";
 export type BtnSize = "xs" | "sm" | "md" | "lg";
-export type BtnMode = "outline" | "ghost";
-export type BtnShape = "default" | "round" | "pill";
+export type BtnVariant =
+  | "primary" | "secondary" | "brand" | "info"
+  | "error" | "success" | "warning" | "disabled";
+export type BtnFill = "default" | "bordered" | "ghost";
+export type BtnShape = "default" | "round" | "pill" | "avatar";
 ```
 
 ### `Btn.tsx` (excerpt)
 
 ```tsx
-const Btn = ({ variant = "default", size = "md", mode, ... }: BtnProps) => (
+const Btn = ({ variant = "primary", fill = "default", size = "md", shape = "default", ... }: BtnProps) => (
   <button
-    data-variant={variant}
-    data-size={size}
-    data-mode={mode}
-    className={[styles.btn, shape !== "default" && styles[shape]]
+    className={[styles.btn, styles[variant], styles[fill], styles[size],
+                shape !== "default" && styles[shape], className]
       .filter(Boolean)
-      .join(" ")}
-  >
+      .join(" ")}>
     {children}
   </button>
 );
@@ -181,23 +172,48 @@ const Btn = ({ variant = "default", size = "md", mode, ... }: BtnProps) => (
 
 ```css
 .btn {
-  color: var(--color, var(--text-primary));
-  background-color: oklch(
-    from var(--background-color, var(--bg-surface)) l c h / 20%
-  );
-  border-color: var(--border-color, currentcolor);
-  padding: var(--padding, var(--p-md));
-  border-radius: var(--radius, var(--radius-lg));
-  font-size: var(--font-size, var(--font-size-md));
+  /* manifest defaults */
+  --padding: var(--p-md);
+  --radius: var(--radius-lg);
+  --color: var(--text-primary);
+  --bg-fill: var(--bg-secondary);
+  --background-color: var(--bg-fill);
+  --border-color: transparent;
 
-  /* Component-specific shape — module class, not a global modifier. */
+  color: var(--color);
+  background-color: var(--background-color);
+  border: var(--border-size-sm) solid var(--border-color);
+  padding: var(--padding);
+  border-radius: var(--radius);
+
+  /* variant — colour slot */
+  &.error {
+    --color: var(--text-error);
+    --bg-fill: var(--bg-error);
+    --border-fill: var(--border-error);
+  }
+
+  /* fill — how the colour renders */
+  &.ghost {
+    --background-color: transparent;
+    --border-color: transparent;
+  }
+
+  /* size — layout + type */
+  &.sm {
+    --padding: var(--p-pill-xs);
+    --font-size: var(--font-size-xs);
+    --radius: var(--radius-md);
+  }
+
+  /* shape — component-local concept */
   &.pill {
     border-radius: var(--radius-full);
   }
 }
 ```
 
-Notice what the component **doesn't** have anymore: per-variant rule blocks (`&.error`, `&.success`, ...), per-size rule blocks (`&.sm`, `&.md`, ...). Those live in `tokens.css` once and apply to any element wearing the data attributes.
+The variant/size/fill rules are **local to this module**, keyed by the class the component emits. The colours they reference (`--text-error`, `--bg-error`, …) are the shared semantic tokens, so every component's `error` resolves to the same theme-derived colour.
 
 ---
 
@@ -205,51 +221,52 @@ Notice what the component **doesn't** have anymore: per-variant rule blocks (`&.
 
 When you reach for a styling change, ask:
 
-1. **Is it a color recoloring?** → use or add a `data-variant`.
-2. **Is it a sizing change?** → use or add a `data-size`.
-3. **Is it a style-mode like outline/ghost?** → use or add a `data-mode`.
-4. **Is it a native interactive state (disabled/hover/focus/checked)?** → use the platform attribute / pseudo-class (`:disabled`, `:hover`, `aria-pressed`).
+1. **Is it a colour recolouring?** → use or add a `variant` class (flips the `--color` triple from semantic tokens).
+2. **Is it a sizing change?** → use or add a `size` class (flips `--padding` / `--font-size` / `--radius` / `--gap`).
+3. **Is it a fill treatment like bordered/ghost?** → use or add the component's `fill` class.
+4. **Is it a native interactive state (disabled/hover/focus/checked)?** → use the platform selector (`:disabled`, `:hover`, `[aria-pressed]`).
 5. **Is it component-specific layout (shape, slot positioning)?** → a module class on the component, like `.pill` on `Btn`.
 
-If a change feels like it doesn't fit any of those, it might be reaching for a new global concept — open an issue / PR before inventing a one-off pattern.
+If a change recolours via raw values instead of semantic tokens, or invents a variant name off the component's catalog, it's outside the system — reconsider, or widen the catalog deliberately.
 
 ---
 
-## 9. Migration Status
+## 9. Consistency status
 
-| Component         | State       | Notes                                                                                                                                                                                                                       |
-| ----------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Btn`             | ✅ Migrated | Reference example                                                                                                                                                                                                           |
-| `IconBtn`         | ✅ Migrated | Shares `data-size` vocabulary but locally overrides height/width/padding to icon-appropriate dimensions (see `&[data-size="..."]` blocks in `Buttons.module.css`).                                                          |
-| `Card`            | ✅ Migrated | Card now accepts `variant` + `size` props that flow through data-attributes.                                                                                                                                                |
-| `Toast`           | ✅ Migrated | Per-component status blocks removed; `data-variant` on the toast element.                                                                                                                                                   |
-| `Modal`           | ✅ Migrated | Added missing `--color`; dialog accepts an optional `variant` prop.                                                                                                                                                         |
-| `NavBar`          | ✅ Migrated | Sextet hover-vars retained as a component-local extension; base triplet variantizable via global `[data-variant]`.                                                                                                          |
-| `DeckEditor`      | ✅ Migrated | Same sextet pattern as NavBar.                                                                                                                                                                                              |
-| `Badge`           | ✅ Migrated | Drops per-component status blocks; default variant stays `info`.                                                                                                                                                            |
-| `Input`           | ✅ Partial  | `<input>` border now respects `data-variant`; error message auto-sets `data-variant="error"`. Other form primitives (checkbox/radio/toggle/dropdown/file/huepicker) still hardcode tokens — fine, they don't need variants. |
-| `Forms`           | ➖ Skipped  | Layout container, not a variantizable primitive — left alone.                                                                                                                                                               |
-| Page-level / rest | ⏳ Pending  | Full sweep — low urgency                                                                                                                                                                                                    |
+The variant/size system is **class-based and consistent** across the component library: `Btn`, `IconBtn`, `Badge`, `Card`, `Toast`, `Modal`, and the form `Input` border all declare a manifest and flip it via local variant/size classes that reference the shared semantic tokens. A few components extend the pattern locally — `IconBtn` overrides `--height`/`--width` per size; `NavBar`/`DeckEditor` keep a component-local "sextet" of hover vars on top of the base triple; non-variant form primitives (checkbox/radio/toggle/dropdown/file) just consume tokens directly.
+
+The repeated-per-component mapping (each module restating `&.error { --color: var(--text-error); … }`) is the known cost of the class-based approach. Centralising it into a global attribute-modifier system is a deliberate future option — see §11.
 
 ---
 
 ## 10. Naming Conventions Summary
 
-- **CSS Module classes:** lowerCamelCase (`iconBtn`, `withBackground`). Stylelint enforces this.
-- **Local CSS vars:** generic, unprefixed (`--color`, `--padding`). Required for portable modifiers.
-- **`data-*` attribute values:** lowercase, no prefix (`data-variant="error"`, `data-size="sm"`).
-- **Theme classes:** kebab-case (`theme-dark`, `theme-custom`) — these are the exception, set by JS and require `/* stylelint-disable-next-line selector-class-pattern */` in `tokens.css`.
+- **CSS Module classes:** lowerCamelCase (`iconBtn`, `withBackground`). Stylelint enforces this. Variant/size/fill values are class names (`styles.error`, `styles.sm`).
+- **Local manifest vars:** generic, unprefixed (`--color`, `--padding`).
+- **Role vars:** `--role-*` — the 16 theme inputs, written by `applyPalette`.
+- **Semantic tokens:** intent-named (`--bg-canvas`, `--text-error`), derived from roles in `tokens.css`.
+- **`data-appearance`:** `"light"` / `"dark"`, set on the themed element to select the appearance overrides.
 
 ---
 
-## 11. Why Not Class-Based Variants?
+## 11. Future consideration — global `variant × size × mode` modifiers
 
-Earlier exploration considered `:global(.variantError)` utility classes instead of `[data-variant="error"]` attribute selectors. Both work; this codebase chose `data-*` because:
+Today variants are **CSS-module classes**, with each component restating its variant→token mapping locally (§4, §9). A candidate refactor would replace them with **global attribute modifiers**: `[data-variant]` / `[data-size]` / `[data-mode]` rules defined once in `tokens.css`, with components emitting `data-variant="error"` etc. and reading their manifest via `var(--name, fallback)`.
 
-- TypeScript polices the variant vocabulary via the React prop type — typos can't reach the DOM.
-- The DOM self-documents: `<button class="btn_abc" data-variant="error">` makes the structural class and semantic axis visually distinct.
-- Variants stack with native HTML state (`[data-variant="error"][aria-disabled="true"]`) without combinatoric class concatenation.
-- No need for `:global()` indirection in CSS Modules.
+**Why it's tempting**
+
+- Single source of truth — the variant/size triples defined once; every component identical, no drift.
+- Orthogonal composition — `data-variant` × `data-size` × `data-mode` stack from independent global rules.
+- HTML-native — variant state sits in the DOM beside the `[aria-*]` styling we already use.
+
+**Why it isn't done (the real costs)**
+
+- **Specificity discipline.** `[data-variant="error"]` is specificity `(0,1,0)` — identical to a component class `.btn`, and component CSS loads _after_ `tokens.css`, so any var **declared inside** the base rule beats the global modifier. Adopting this means rewriting every component to declare its manifest **only** via `var(--name, fallback)` and never inside the rule — the opposite of today's code (§4).
+- **Modest payoff.** The colours are _already_ centralised in semantic tokens; what's duplicated is only a few-line mapping per component.
+- **No shared catalog.** Components don't share one variant set (`Btn`'s `primary/secondary/disabled` + `fill`; `IconBtn`'s per-size sizing; the `NavBar` sextet), so a global schema still leaves component-local rules — a mixed model.
+- **Lost typed linkage.** `styles[variant]` ties the prop to a real module export; `data-variant={variant}` is a raw string.
+
+If taken on, do it as a proof-of-concept on `Btn` first, verified in Storybook, before any rollout.
 
 ---
 
