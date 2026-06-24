@@ -44,16 +44,28 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const isHidden = slide.hideBackground === true;
   const deckHasBackground = deck?.backgroundImage != null;
 
+  // Effective image mirrors what the canvas actually shows: own image wins,
+  // then inherited deck image, then nothing (hidden or no deck background).
+  const effectiveImage =
+    hasOwnImage ? slide.backgroundImage
+    : !isHidden && deckHasBackground ? deck?.backgroundImage
+    : undefined;
+
+  const handleClear = () => {
+    if (hasOwnImage) {
+      clearSlideImage(id, "background"); // own → inherit deck
+    } else {
+      hideSlideBackground(id); // inherited deck → hidden
+    }
+  };
+
   return (
     <section className={styles.section}>
       <ImagePicker
         label=""
-        image={slide.backgroundImage}
+        image={effectiveImage}
         seed={`${id}-background`}
-        placeholderText={isHidden ? "No background" : "Choose background"}
-        // Preview the inherited deck background in the empty tile — but not when
-        // the slide explicitly suppresses it, since then nothing is inherited.
-        placeholderBackgroundImageUrl={isHidden ? undefined : deck?.backgroundImage?.variants?.SM}
+        placeholderText="No background"
         onPick={() => {
           openPicker(
             (image) => {
@@ -66,9 +78,7 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
             },
           );
         }}
-        onClear={() => {
-          clearSlideImage(id, "background");
-        }}
+        onClear={handleClear}
       />
       {/* With no own image, choose between suppressing the deck background and
           inheriting it. Only meaningful when the deck actually has a background. */}
