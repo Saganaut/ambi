@@ -1,37 +1,64 @@
 /**
  *  Consolidates props and handles the switch depending on which visualization
- * to display.  
+ * to display.
  *  **/
 
+import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
+import { AnswerSettings } from "@/features/deck/store/deckApi.gen";
 import { BarChart } from "@/shared/components/Charts/BarChart/BarChart";
 import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
 import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
-import { EditableChartProps, type ChartType } from "@/shared/components/Charts/types";
+import { ChartDatum, type ChartType } from "@/shared/components/Charts/types";
+import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
+import { ReactNode } from "react";
 import { DefaultResultsDisplay } from "../McqSlideContent/DefaultResultsDisplay";
 
-export interface ResultsChartProps extends EditableChartProps {
+export interface ResultsDisplaySwitchProps {
   viz: ChartType;
+  caption: string;
+  animateOnMount?: boolean;
+  /** When on, values randomise (0–10) every 5s — a live-results preview. */
+  continuousAnimation?: boolean;
+  renderLabel: (datum: ChartDatum) => ReactNode;
+  renderToggle: (datum: ChartDatum) => ReactNode;
+  renderMenu: (datum: ChartDatum) => ReactNode;
+  chartMode: "editable" | "scorable";
+  editor: UseMcqEditorResult;
+  answerSettings?: AnswerSettings;
 }
 
 const ResultsDisplaySwitch = ({
   viz,
   caption,
-  animateOnMount,
+  animateOnMount = true,
+  continuousAnimation = false,
   renderLabel,
   renderToggle,
   renderMenu,
   chartMode,
   editor,
   answerSettings,
-}: ResultsChartProps) => {
+}: ResultsDisplaySwitchProps) => {
+  // Called before the early returns below to keep hook order stable; it handles
+  // an undefined question itself.
+  const { data, denominator, max } = useAnimatedChartData(editor.question, continuousAnimation);
+
   if (chartMode != "editable") throw Error("Expected editable chart in switch");
+
+  const { question } = editor;
+  if (question == null) return <p> no question</p>;
 
   const sharedProps = {
     chartMode: "editable" as const,
     caption,
     animateOnMount,
+    continuousAnimation,
+    data,
+    denominator,
+    max,
+    displayAsPercentage: answerSettings?.displayResultsAsPercentage ?? false,
     renderLabel,
     renderToggle,
     renderMenu,

@@ -1,4 +1,3 @@
-import { deriveChartStats } from "../adapters/mcq";
 import type { GeneralChartProps } from "../types";
 import styles from "./DotPlot.module.css";
 
@@ -9,23 +8,21 @@ const DotPlot = ({
   renderToggle,
   renderMenu,
   editor,
-  answerSettings,
+  data,
+  denominator,
+  max,
+  displayAsPercentage,
   chartMode,
 }: DotPlotProps) => {
   if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
-  const { denominator, max, chartData } = deriveChartStats({
-    options: question.options,
-    correctOptionIds: question.correctOptionIds,
-  });
-  if (chartMode !== "editable") return;
 
   console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
   return (
     <div className={styles.chart}>
       <ul className={styles.rows}>
-        {chartData.map((datum, i) => {
+        {data.map((datum, i) => {
           const posPct = (datum.value / max) * 100;
           const sharePct = denominator > 0 ? Math.round((datum.value / denominator) * 100) : 0;
           return (
@@ -61,7 +58,7 @@ const DotPlot = ({
               </div>
               <span className={styles.value}>
                 {datum.value}
-                {answerSettings?.displayResultsAsPercentage && denominator > 0 && (
+                {displayAsPercentage && denominator > 0 && (
                   <span className={styles.share}> ({sharePct}%)</span>
                 )}
               </span>

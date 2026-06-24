@@ -49,6 +49,23 @@ export const mcqSampleDistribution = (options: McqOptionLike[]): Record<string, 
   return out;
 };
 
+/**
+ * A random preview distribution — each option gets a fresh integer in [0, max].
+ * Used by {@link useAnimatedChartData} to drive the continuous-animation preview
+ * (new values every few seconds). Same shape as {@link mcqSampleDistribution},
+ * so it feeds straight into {@link mcqToChartData}.
+ */
+export const mcqRandomDistribution = (
+  options: McqOptionLike[],
+  max = 10,
+): Record<string, number> => {
+  const out: Record<string, number> = {};
+  options.forEach((option) => {
+    out[option.id] = Math.floor(Math.random() * (max + 1));
+  });
+  return out;
+};
+
 export function deriveChartStats(question: { options: McqOption[]; correctOptionIds: string[] }) {
   const chartData = mcqToChartData(
     question.options,

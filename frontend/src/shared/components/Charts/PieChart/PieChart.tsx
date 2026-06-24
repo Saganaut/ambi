@@ -1,7 +1,6 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { deriveChartStats } from "../adapters/mcq";
 import type { ChartDatum, GeneralChartProps } from "../types";
 import styles from "./PieChart.module.css";
 
@@ -85,7 +84,10 @@ const PieChart = ({
   renderToggle,
   renderMenu,
   editor,
-  answerSettings,
+  data,
+  denominator,
+  max,
+  displayAsPercentage,
   chartMode,
   animateOnMount = false,
 }: GeneralChartProps) => {
@@ -97,19 +99,13 @@ const PieChart = ({
     return () => {
       cancelAnimationFrame(id);
     };
-  }, []);
+  }, [animateOnMount]);
   const [revealed, setRevealed] = useState(!animateOnMount);
 
   if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
 
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
-
-  const { denominator, max, chartData } = deriveChartStats({
-    options: question.options,
-    correctOptionIds: question.correctOptionIds,
-  });
-  if (chartMode !== "editable") return;
 
   console.log(
     "To be implemented",
@@ -121,7 +117,7 @@ const PieChart = ({
     max,
   );
 
-  const total = chartData.reduce((sum, d) => sum + d.value, 0);
+  const total = data.reduce((sum, d) => sum + d.value, 0);
 
   if (total === 0) {
     return (
@@ -130,8 +126,7 @@ const PieChart = ({
       </div>
     );
   }
-  if (chartMode !== "editable") return;
-  const slices = chartData.reduce<
+  const slices = data.reduce<
     {
       datum: ChartDatum;
       label: string;
@@ -199,7 +194,7 @@ const PieChart = ({
                 key={s.datum.id}
                 sliceId={s.datum.id}
                 slice={s}
-                displayAsPercentage={answerSettings?.displayResultsAsPercentage ?? false}
+                displayAsPercentage={displayAsPercentage}
                 sortIndex={idx}
                 renderToggle={renderToggle}
                 renderLabel={renderLabel}

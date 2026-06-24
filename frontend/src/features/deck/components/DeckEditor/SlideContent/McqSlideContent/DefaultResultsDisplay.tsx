@@ -1,4 +1,3 @@
-import { deriveChartStats } from "@/shared/components/Charts/adapters/mcq";
 import { GeneralChartProps } from "@/shared/components/Charts/types";
 import { DragDropProvider } from "@dnd-kit/react";
 import React from "react";
@@ -13,7 +12,10 @@ const DefaultResultsDisplay = ({
   renderMenu,
   chartMode,
   editor,
-  answerSettings,
+  data,
+  denominator,
+  max,
+  displayAsPercentage,
 }: DefaultResultsProps) => {
   if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
 
@@ -21,11 +23,7 @@ const DefaultResultsDisplay = ({
 
   if (question == null) return <p> no question</p>;
 
-  const { denominator, max, chartData } = deriveChartStats({
-    options: question.options,
-    correctOptionIds: question.correctOptionIds,
-  });
-  const optionCount = chartData.length ?? 0;
+  const optionCount = data.length ?? 0;
   const columns = optionCount ? Math.max(Math.ceil(optionCount / 2), 2) : 2;
   return (
     <div className={styles.optionsRow} style={{ "--cols": columns } as React.CSSProperties}>
@@ -34,7 +32,7 @@ const DefaultResultsDisplay = ({
           handleOptionDragEnd(event);
         }}
       >
-        {chartData.map((option, idx) => (
+        {data.map((option, idx) => (
           <McqOptionEditable
             key={option.id}
             sortIndex={idx}
@@ -47,7 +45,7 @@ const DefaultResultsDisplay = ({
             renderLabel={renderLabel}
             isCorrect={isCorrect(option.id)}
             renderMenu={renderMenu}
-            displayAsPercentage={answerSettings?.displayResultsAsPercentage ?? false}
+            displayAsPercentage={displayAsPercentage}
           />
         ))}
       </DragDropProvider>

@@ -1,15 +1,7 @@
-/**
- * Bar chart for small categorical distributions (MCQ option counts, score
- * deltas, …). Each bar is sized as a percentage of the largest value so a
- * single dominant answer doesn't make the others invisible; the raw count and
- * share-of-total are printed alongside. A highlighted datum (e.g. the correct
- * MCQ option) gets the emphasis fill. Orientation is a prop so the same
- * component serves BAR_HORIZONTAL and BAR_VERTICAL.
- */
+
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { ReactNode, useRef } from "react";
-import { deriveChartStats } from "../adapters/mcq";
 import type { ChartDatum, GeneralChartProps } from "../types";
 import styles from "./BarChart.module.css";
 
@@ -91,7 +83,10 @@ const BarChart = ({
   renderToggle,
   renderMenu,
   editor,
-  answerSettings,
+  data,
+  denominator,
+  max,
+  displayAsPercentage,
   orientation = "horizontal",
   chartMode,
 }: BarChartProps) => {
@@ -99,12 +94,6 @@ const BarChart = ({
 
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
-
-  const { denominator, max, chartData } = deriveChartStats({
-    options: question.options,
-    correctOptionIds: question.correctOptionIds,
-  });
-  if (chartMode !== "editable") return;
 
   console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
   return (
@@ -115,14 +104,14 @@ const BarChart = ({
             handleOptionDragEnd(event);
           }}
         >
-          {chartData.map((datum, idx) => (
+          {data.map((datum, idx) => (
             <SortableListItem
               key={datum.id}
               max={max}
               denominator={denominator}
               sliceId={datum.id}
               datum={datum}
-              displayAsPercentage={answerSettings?.displayResultsAsPercentage ?? false}
+              displayAsPercentage={displayAsPercentage}
               sortIndex={idx}
               renderToggle={renderToggle}
               renderLabel={renderLabel}

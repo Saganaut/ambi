@@ -4,7 +4,6 @@
 // option counts when the author wants to see how few options capture most of
 // the responses. Pure SVG (bars + polyline) with the category labels listed
 // below in the sorted order.
-import { deriveChartStats } from "../adapters/mcq";
 import type { GeneralChartProps } from "../types";
 import styles from "./ParetoChart.module.css";
 
@@ -20,19 +19,15 @@ const ParetoChart = ({
   renderMenu,
   editor,
   answerSettings,
-
+  data,
+  denominator,
+  max,
   chartMode,
 }: ParetoChartProps) => {
   if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
 
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
-
-  const { denominator, max, chartData } = deriveChartStats({
-    options: question.options,
-    correctOptionIds: question.correctOptionIds,
-  });
-  if (chartMode !== "editable") return;
 
   console.log(
     "To be implemented",
@@ -44,7 +39,7 @@ const ParetoChart = ({
     denominator,
   );
 
-  const sorted = [...chartData].sort((a, b) => b.value - a.value);
+  const sorted = [...data].sort((a, b) => b.value - a.value);
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
   const plotW = W - PAD * 2;
   const plotH = H - PAD * 2;

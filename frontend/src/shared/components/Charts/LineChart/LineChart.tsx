@@ -1,4 +1,3 @@
-import { deriveChartStats } from "../adapters/mcq";
 import type { GeneralChartProps } from "../types";
 import styles from "./LineChart.module.css";
 
@@ -13,21 +12,19 @@ const LineChart = ({
   renderToggle,
   renderMenu,
   editor,
-  answerSettings,
+  data,
+  denominator,
+  max,
+  displayAsPercentage,
   chartMode,
 }: LineChartProps) => {
   if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
 
-  const { denominator, max, chartData } = deriveChartStats({
-    options: question.options,
-    correctOptionIds: question.correctOptionIds,
-  });
-  if (chartMode !== "editable") return;
-  const span = Math.max(1, chartData.length - 1);
+  const span = Math.max(1, data.length - 1);
 
-  const points = chartData.map((datum, i) => {
+  const points = data.map((datum, i) => {
     const x = PAD + (i / span) * (W - PAD * 2);
     const y = H - PAD - (datum.value / max) * (H - PAD * 2);
     return { x, y, datum: datum, index: i };
@@ -42,7 +39,7 @@ const LineChart = ({
   return (
     <div className={styles.chart}>
       <div className={styles.valueRow}>
-        {chartData.map((datum, i) => (
+        {data.map((datum, i) => (
           <div
             // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
             key={i}
@@ -51,7 +48,7 @@ const LineChart = ({
           >
             <span className={styles.labelValue}>
               {datum.value}
-              {answerSettings?.displayResultsAsPercentage && denominator > 0 && (
+              {displayAsPercentage && denominator > 0 && (
                 <span className={styles.share}>
                   {" "}
                   ({Math.round((datum.value / denominator) * 100)}%)
@@ -70,7 +67,7 @@ const LineChart = ({
         aria-label="Line chart"
       >
         <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
-        {chartData.length > 1 && <polyline className={styles.line} points={path} />}
+        {data.length > 1 && <polyline className={styles.line} points={path} />}
         {points.map((p) => (
           <circle
             key={p.index}
@@ -83,7 +80,7 @@ const LineChart = ({
         ))}
       </svg>
       <div className={styles.controlsRow}>
-        {chartData.map((datum, i) => (
+        {data.map((datum, i) => (
           <div
             // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
             key={i}

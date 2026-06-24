@@ -14,11 +14,25 @@ export interface ChartDatum extends McqOption {
 
 export interface ChartProps {
   chartMode: "editable" | "scorable";
-  // Data now comes from the editor which has access to the question and processed within the component
-  // data: ChartDatum[];
+  // Normalised chart data, computed once by the parent (editor preview or live
+  // session tally) and passed down. Charts are presentational and never reach
+  // into the editor for their data — that inversion is what lets the same
+  // component render an author preview and a live-results board.
+  data: ChartDatum[];
+  /** Sum of all values — the share-% denominator. */
+  denominator: number;
+  /** Largest value — the bar/line/dot scaling basis. */
+  max: number;
+  /** Print each value's share of the denominator as a percentage. */
+  displayAsPercentage: boolean;
   caption?: string;
-  displayAsPercentage?: boolean;
   animateOnMount?: boolean;
+  /**
+   * When on, the chart's values randomise to a fresh 0–10 each every 5s — a
+   * preview of how it animates as live results stream in. Driven centrally by
+   * `useAnimatedChartData` in `ResultsDisplaySwitch`; renderers just re-render
+   * off the new `data`.
+   */
   continuousAnimation?: boolean;
   /** Pie/Donut only — full-radius pie vs. ring. Defaults to "pie". */
   variant?: "pie" | "donut";
