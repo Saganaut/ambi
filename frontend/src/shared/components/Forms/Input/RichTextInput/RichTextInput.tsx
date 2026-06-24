@@ -29,6 +29,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useClickOutside } from "@/shared/hooks/useClickOutside";
 import styles from "./RichTextInput.module.css";
 import {
   Popover,
@@ -390,26 +391,18 @@ const RichTextInput = ({
     };
   }, [editor, value, minPx, maxPx]);
 
-  // Dismiss the toolbar on outside pointerdown / Escape — same shape as
-  // McqOptionEditable. Listeners only attach while open.
+  useClickOutside(wrapperRef, () => { setToolbarOpen(false); setLinkOpen(false); }, toolbarOpen);
+
   useEffect(() => {
     if (!toolbarOpen) return;
-    const handlePointerDown = (e: PointerEvent) => {
-      if (!wrapperRef.current?.contains(e.target as Node)) {
-        setToolbarOpen(false);
-        setLinkOpen(false);
-      }
-    };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setToolbarOpen(false);
         setLinkOpen(false);
       }
     };
-    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [toolbarOpen]);

@@ -22,6 +22,7 @@ import { FollowUpSlideContent } from "../SlideContent/FollowUpSlideContent/Follo
 import { GridSlideContent } from "../SlideContent/GridSlideContent/GridSlideContent";
 import { MatchingSlideContent } from "../SlideContent/MatchingSlideContent/MatchingSlideContent";
 import { McqSlideContent } from "../SlideContent/McqSlideContent/McqSlideContent";
+import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
 import { NumberSlideContent } from "../SlideContent/NumberSlideContent/NumberSlideContent";
 import { PlaceOnImageSlideContent } from "../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent";
 import { QAndASlideContent } from "../SlideContent/QAndASlideContent/QAndASlideContent";
@@ -82,7 +83,11 @@ const SlideDisplay = () => {
   const renderBody = () => {
     switch (slide.content.contentType) {
       case "MCQ":
-        return <McqSlideContent deckId={deckId} slideId={slide.id} />;
+        return (
+          <McqSlideProvider deckId={deckId} slideId={slideId}>
+            <McqSlideContent />
+          </McqSlideProvider>
+        );
       case "TEXT":
         return <TextSlideContent />;
       case "NUMBER":

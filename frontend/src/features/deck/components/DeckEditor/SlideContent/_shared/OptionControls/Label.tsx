@@ -21,7 +21,6 @@ interface LabelProps {
 
 const Label = ({ option, onScheduleText, flush, fit = false }: LabelProps) => {
   const optionKey = option.id ?? "";
-
   const [text, setText] = useState(option.text ?? "");
   const [syncedFromId, setSyncedFromId] = useState(option.id);
 

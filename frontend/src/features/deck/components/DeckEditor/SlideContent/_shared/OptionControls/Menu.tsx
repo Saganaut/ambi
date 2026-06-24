@@ -8,16 +8,16 @@ import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, isImageEmpty, largestUrl } from "@utils/image";
 
+import { useClickOutside } from "@/shared/hooks/useClickOutside";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/elements";
+import { useRef, useState } from "react";
 import { EditOptionToolbar } from "../McqOptionEditable/EditOptionToolbar";
 import { resolveOptionColor } from "../McqOptionEditable/optionColor";
 
 interface MenuProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
   activeOption: McqOption;
-  index: number;
+  index: string;
   canRemove: boolean;
   onScheduleText: (option: McqOption) => void;
   onCommit: (option: McqOption) => void;
@@ -28,9 +28,7 @@ interface MenuProps {
 }
 
 const Menu = ({
-  isOpen,
   activeOption,
-  onOpenChange,
   index,
   canRemove,
   onScheduleText,
@@ -39,13 +37,17 @@ const Menu = ({
   flush,
   openPicker,
 }: MenuProps) => {
+  //TODO: remove this magic number, we use to have an index
+  // but now that index is a string we need a number
+  const MAGIC_NUMBER = 2;
   const optionKey = activeOption.id ?? "";
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  useClickOutside(menuRef, () => setIsOpen(false), isOpen);
 
-  /** Flush + close before opening the picker so the popover's document-level
-   *  outside-click listener is gone before the modal renders. */
   const handlePickFromGallery = () => {
     flush();
-    onOpenChange(false);
+    setIsOpen(false);
     openPicker(
       (image) => {
         onCommit({ ...activeOption, image });
@@ -69,27 +71,25 @@ const Menu = ({
   };
 
   const handleRemove = () => {
-    onOpenChange(false);
+    setIsOpen(false);
     onRemove();
   };
-
-  const color = resolveOptionColor(activeOption.color, index);
+  const color = resolveOptionColor(activeOption.color, MAGIC_NUMBER);
   const hasImage = !isImageEmpty(activeOption.image);
   const previewUrl = largestUrl(activeOption.image, optionKey) ?? "";
-  const displayIndex = index >= 0 ? index + 1 : 0;
 
   return (
-    <>
+    <div ref={menuRef}>
       <IconBtn
         fill="ghost"
         size="xs"
         icon={<EllipsisVerticalIcon />}
-        aria-label={`Edit option ${displayIndex.toString()}`}
+        aria-label={`Edit option ${index.toString()}`}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         onClick={(e) => {
           e.stopPropagation();
-          onOpenChange(!isOpen);
+          setIsOpen(!isOpen);
         }}
       />
       {isOpen && (
@@ -101,15 +101,15 @@ const Menu = ({
           handleClearImage={handleClearImage}
           handleColorChange={handleColorChange}
           handleClose={() => {
-            onOpenChange(false);
+            setIsOpen(false);
           }}
-          displayIndex={displayIndex}
+          displayIndex={index}
           previewUrl={previewUrl}
           color={color}
           flush={flush}
         />
       )}
-    </>
+    </div>
   );
 };
 

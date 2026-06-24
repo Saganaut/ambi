@@ -41,12 +41,21 @@ export const mcqToChartData = (
  * so folding it into the value too would make toggling an option correct resize
  * its bar/segment, which is confusing while authoring.
  */
-export const mcqSampleDistribution = (
-  options: McqOptionLike[],
-): Record<string, number> => {
+export const mcqSampleDistribution = (options: McqOptionLike[]): Record<string, number> => {
   const out: Record<string, number> = {};
   options.forEach((option, index) => {
     out[option.id] = Math.max(1, 12 - index * 3);
   });
   return out;
 };
+
+export function deriveChartStats(question: { options: McqOption[]; correctOptionIds: string[] }) {
+  const chartData = mcqToChartData(
+    question.options,
+    question.correctOptionIds,
+    mcqSampleDistribution(question.options),
+  );
+  const denominator = chartData.reduce((sum, d) => sum + d.value, 0);
+  const max = Math.max(1, ...chartData.map((d) => d.value));
+  return { chartData, denominator, max };
+}

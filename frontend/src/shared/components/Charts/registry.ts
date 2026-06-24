@@ -3,12 +3,8 @@
 // editor's viz picker) alongside its adapter + sample-data generator. Adding a
 // new question type is a single entry here — the renderers and the ResultsChart
 // dispatcher don't change. MCQ is the only entry today.
+import { mcqSampleDistribution, mcqToChartData, type McqOptionLike } from "./adapters/mcq";
 import type { ChartType } from "./types";
-import {
-  mcqSampleDistribution,
-  mcqToChartData,
-  type McqOptionLike,
-} from "./adapters/mcq";
 
 export interface McqResultsConfig {
   supportedViz: ChartType[];
@@ -20,16 +16,7 @@ export interface McqResultsConfig {
 // `McqDataVisualization` enum is the full ChartType set), with NONE last as the
 // "no chart" choice.
 export const mcqResults: McqResultsConfig = {
-  supportedViz: [
-    "BAR_HORIZONTAL",
-    "BAR_VERTICAL",
-    "PIE",
-    "DONUT",
-    "LINE",
-    "PARETO",
-    "DOT",
-    "NONE",
-  ],
+  supportedViz: ["BAR_HORIZONTAL", "BAR_VERTICAL", "PIE", "DONUT", "LINE", "PARETO", "DOT", "NONE"],
   toChartData: mcqToChartData,
   sampleDistribution: mcqSampleDistribution,
 };
@@ -40,3 +27,4 @@ export const resultsRegistry = {
 } as const;
 
 export type { McqOptionLike };
+

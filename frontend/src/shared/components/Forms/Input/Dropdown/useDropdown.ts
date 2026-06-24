@@ -1,7 +1,9 @@
 // Behavior hook for Dropdown: open/close, single-vs-multi select toggling,
 // optional search-filter, click-outside dismiss, and chip-remove helpers.
 // The component file stays focused on JSX/wiring.
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+
+import { useClickOutside } from "@/shared/hooks/useClickOutside";
 
 interface DropdownOption {
   value: string;
@@ -31,19 +33,7 @@ const useDropdown = ({
     ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
     : options;
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) {
-        setIsOpen(false);
-        setQuery("");
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [isOpen]);
+  useClickOutside(containerRef, () => { setIsOpen(false); setQuery(""); }, isOpen);
 
   const toggle = (optValue: string) => {
     let next: string[];

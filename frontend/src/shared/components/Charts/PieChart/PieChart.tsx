@@ -1,6 +1,7 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { ReactNode, useEffect, useRef, useState } from "react";
+import { deriveChartStats } from "../adapters/mcq";
 import type { ChartDatum, GeneralChartProps } from "../types";
 import styles from "./PieChart.module.css";
 
@@ -14,9 +15,7 @@ interface SortableListItem {
   sortIndex: number;
   sliceId: string;
   renderLabel?: (datum: ChartDatum) => ReactNode;
-  /** The correct/incorrect toggle. */
   renderToggle?: (datum: ChartDatum) => ReactNode;
-  /** The option's menu (image/colour/remove). */
   renderMenu?: (datum: ChartDatum) => ReactNode;
   displayAsPercentage: boolean;
   slice: {
@@ -81,19 +80,15 @@ const SortableListItem = ({
 };
 
 const PieChart = ({
-  data,
   variant = "pie",
-  caption,
-  animateOnMount = true,
   renderLabel,
   renderToggle,
   renderMenu,
-  displayAsPercentage = false,
-  handleOptionDragEnd,
+  editor,
+  answerSettings,
   chartMode,
+  animateOnMount = false,
 }: GeneralChartProps) => {
-  const total = data.reduce((sum, d) => sum + d.value, 0);
-  const [revealed, setRevealed] = useState(!animateOnMount);
   useEffect(() => {
     if (!animateOnMount) return;
     const id = requestAnimationFrame(() => {
@@ -102,18 +97,41 @@ const PieChart = ({
     return () => {
       cancelAnimationFrame(id);
     };
-  }, [animateOnMount]);
+  }, []);
+  const [revealed, setRevealed] = useState(!animateOnMount);
+
+  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
+
+  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
+  if (question == null) return <p> no question</p>;
+
+  const { denominator, max, chartData } = deriveChartStats({
+    options: question.options,
+    correctOptionIds: question.correctOptionIds,
+  });
+  if (chartMode !== "editable") return;
+
+  console.log(
+    "To be implemented",
+    canAddOption,
+    addOption,
+    isCorrect,
+    handleOptionDragEnd,
+    denominator,
+    max,
+  );
+
+  const total = chartData.reduce((sum, d) => sum + d.value, 0);
 
   if (total === 0) {
     return (
       <div className={styles.chart}>
-        {caption && <div className={styles.caption}>{caption}</div>}
         <p className={styles.empty}>No responses yet.</p>
       </div>
     );
   }
   if (chartMode !== "editable") return;
-  const slices = data.reduce<
+  const slices = chartData.reduce<
     {
       datum: ChartDatum;
       label: string;
@@ -142,7 +160,6 @@ const PieChart = ({
 
   return (
     <div className={styles.chart}>
-      {caption && <div className={styles.caption}>{caption}</div>}
       <div className={styles.body}>
         <svg
           className={styles.svg}
@@ -182,7 +199,7 @@ const PieChart = ({
                 key={s.datum.id}
                 sliceId={s.datum.id}
                 slice={s}
-                displayAsPercentage={displayAsPercentage}
+                displayAsPercentage={answerSettings?.displayResultsAsPercentage ?? false}
                 sortIndex={idx}
                 renderToggle={renderToggle}
                 renderLabel={renderLabel}

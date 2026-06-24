@@ -1,69 +1,67 @@
-// Dot plot (lollipop) for small categorical distributions. Each category is a
-// row with a dot positioned along a shared track at value/max, plus a thin stem
-// from the baseline — a lighter-weight alternative to bars that reads well for
-// MCQ option counts. A highlighted datum (correct option) gets the emphasis
-// colour. CSS-positioned (no SVG) so it inherits type tokens cleanly.
+import { deriveChartStats } from "../adapters/mcq";
 import type { GeneralChartProps } from "../types";
 import styles from "./DotPlot.module.css";
 
 export type DotPlotProps = GeneralChartProps;
 
 const DotPlot = ({
-  data,
-  total,
-  caption,
   renderLabel,
   renderToggle,
   renderMenu,
-  renderDragHandle,
-  displayAsPercentage = false,
+  editor,
+  answerSettings,
+  chartMode,
 }: DotPlotProps) => {
-  const max = Math.max(1, ...data.map((d) => d.value));
-  const denominator = total ?? data.reduce((sum, d) => sum + d.value, 0);
+  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
+  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
+  if (question == null) return <p> no question</p>;
+  const { denominator, max, chartData } = deriveChartStats({
+    options: question.options,
+    correctOptionIds: question.correctOptionIds,
+  });
+  if (chartMode !== "editable") return;
 
+  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
   return (
     <div className={styles.chart}>
-      {caption && <div className={styles.caption}>{caption}</div>}
       <ul className={styles.rows}>
-        {data.map((d, i) => {
-          const posPct = (d.value / max) * 100;
-          const sharePct =
-            denominator > 0 ? Math.round((d.value / denominator) * 100) : 0;
+        {chartData.map((datum, i) => {
+          const posPct = (datum.value / max) * 100;
+          const sharePct = denominator > 0 ? Math.round((datum.value / denominator) * 100) : 0;
           return (
             <li
               // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
               key={i}
-              className={`${styles.row} ${d.highlight ? styles.highlight : ""}`}
+              className={`${styles.row} ${datum.highlight ? styles.highlight : ""}`}
             >
               <div className={styles.optionControls}>
-                {renderDragHandle?.(d)}
                 {renderLabel ? (
-                  renderLabel(d)
+                  renderLabel(datum)
                 ) : (
-                  <span className={styles.label}>{d.text ?? ""}</span>
+                  <span className={styles.label}>{datum.text ?? ""}</span>
                 )}
-                {renderToggle?.(d)}
-                {renderMenu?.(d)}
+                {renderToggle?.(datum)}
+                {renderMenu?.(datum)}
               </div>
               <div className={styles.track}>
                 <span
                   className={styles.stem}
                   style={{ width: `${posPct.toFixed(1)}%` }}
-                  aria-hidden='true'
+                  aria-hidden="true"
                 />
                 <span
                   className={styles.dot}
                   style={
                     {
                       left: `${posPct.toFixed(1)}%`,
-                      "--dot-color": d.color,
+                      "--dot-color": datum.color,
                     } as React.CSSProperties
                   }
                 />
               </div>
               <span className={styles.value}>
-                {d.value}
-                {displayAsPercentage && denominator > 0 && (
+                {datum.value}
+                {answerSettings?.displayResultsAsPercentage && denominator > 0 && (
                   <span className={styles.share}> ({sharePct}%)</span>
                 )}
               </span>

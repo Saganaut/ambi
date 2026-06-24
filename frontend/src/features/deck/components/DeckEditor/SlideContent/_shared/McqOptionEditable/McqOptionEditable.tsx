@@ -1,75 +1,57 @@
 /**
- * Full author surface for a single McqOption — the base (NONE) grid view of an
- * option. Composed from the same shared pieces as every chart label
- * ({@link Label} + {@link CorrectToggle} + {@link Menu}) under a per-option
- * {@link OptionProvider}, so there's one way to edit an option everywhere; this
- * file only adds the card chrome (frame, index pill, thumbnail, progress bar,
- * drag, add button) and the card-specific interaction (clicking anywhere on the
- * card opens the menu).
- *
- * It takes just `{ optionId, sortIndex }` — every write handler, the freshest
- * option, and its index come from the option context, so all writes funnel
- * through the single `useMcqEditor` debounce buffer.
+ * Full author surface for a single McqOption 
+
  */
 import { useSortable } from "@dnd-kit/react/sortable";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 import { Container } from "@components/Containers/Container";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { resolveImageUrl } from "@utils/image";
 
-import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
-import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { McqOption } from "@/shared/types/elements";
-import { CorrectToggle } from "../OptionControls/CorrectToggle";
-import { Label } from "../OptionControls/Label";
-import { Menu } from "../OptionControls/Menu";
+import { ChartDatum } from "@/shared/components/Charts/types";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
 
+//TODO: consolidate this interface with other oens for similar components (for
 interface McqOptionEditableProps {
-  /** Identifies which option this card edits; resolved against the context. */
-  optionId: string;
-  /** Position in the parent's option list. Forwarded to @dnd-kit's
-   *  `useSortable` so the parent's DragDropProvider can reorder. */
   sortIndex: number;
-  UseMcqEditorResult: UseMcqEditorResult;
   displayAsPercentage?: boolean;
-  openPicker: OpenGalleryPicker;
+  renderLabel?: (datum: ChartDatum) => ReactNode;
+  renderToggle?: (datum: ChartDatum) => ReactNode;
+  renderMenu?: (datum: ChartDatum) => ReactNode;
+  datum: ChartDatum;
+  max: number;
+  denominator: number;
+  addOption: () => void;
+  canAddOption: boolean;
+  isCorrect?: boolean;
 }
 
 const McqOptionEditable = ({
   sortIndex,
-  optionId,
-  UseMcqEditorResult,
   displayAsPercentage,
-  openPicker,
+  renderLabel,
+  renderToggle,
+  renderMenu,
+  datum,
+  max,
+  denominator,
+  isCorrect = false,
+  addOption,
+  canAddOption,
 }: McqOptionEditableProps) => {
-  // dnd-kit sortable: id must be stable per option so DragDropProvider can
-  // identify the source on drop.
   const { ref: sortableRef, isDragging } = useSortable({
-    id: optionId,
+    id: datum.id,
     index: sortIndex,
   });
-  const {
-    question,
-    canAddOption,
-    addOption,
-    canRemove,
-    isCorrect,
-    flush,
-    scheduleOption,
-    commitOption,
-    toggleCorrect,
-    removeOption,
-  } = UseMcqEditorResult;
 
-  const option = question?.options.find((option) => option.id === optionId);
+  //TODO: find ways to add this in here.
+  const _sizePct = (datum.value / max) * 100;
+  const _sharePct = denominator > 0 ? Math.round((datum.value / denominator) * 100) : 0;
+  const _displayAsPercentage = displayAsPercentage;
 
-  // The card owns the menu's open state + outside-click boundary: the whole
-  // card. Clicking anywhere on the card (outside the interactive zones, which
-  // stop propagation) toggles the menu; clicking outside the card closes it.
   const [popoverOpen, setPopoverOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -94,16 +76,15 @@ const McqOptionEditable = ({
     };
   }, [popoverOpen]);
 
-  if (option == null) return <div> no option found</div>;
-  const thumbnailSrc = resolveImageUrl(option.image, "SM", optionId, 200, 200, false);
-  const color = resolveOptionColor(option.color, sortIndex);
+  if (datum == null) return <div> no option found</div>;
+  const thumbnailSrc = resolveImageUrl(datum.image, "SM", datum.id, 200, 200, false);
+  const color = resolveOptionColor(datum.color, sortIndex);
   const displayIndex = sortIndex >= 0 ? sortIndex + 1 : 0;
-  console.log("Display as percentage not implemented", displayAsPercentage);
 
   return (
     <Container ref={setCardRef} name="McqOptionCard">
       <div
-        className={`${styles.card} ${isCorrect(optionId) ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
+        className={`${styles.card} ${isCorrect ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
         onClick={() => {
           setPopoverOpen((o) => !o);
         }}
@@ -117,14 +98,11 @@ const McqOptionEditable = ({
                 e.stopPropagation();
               }}
             >
-              <Label
-                option={option}
-                flush={flush}
-                onScheduleText={(next: McqOption) => {
-                  scheduleOption(option.id, next);
-                }}
-                fit
-              />
+              {renderLabel ? (
+                renderLabel(datum)
+              ) : (
+                <span className={styles.label}>{datum.text ?? ""}</span>
+              )}
             </div>
           </div>
           <div
@@ -137,31 +115,8 @@ const McqOptionEditable = ({
 
         <ProgressBar value={100} color={color} />
         <div className={styles.footer}>
-          <CorrectToggle
-            isCorrect={isCorrect(option.id)}
-            onToggleCorrect={() => {
-              toggleCorrect(option.id);
-            }}
-          />
-          <Menu
-            activeOption={option}
-            activeOptionId={option.id}
-            isOpen={popoverOpen}
-            index={sortIndex}
-            canRemove={canRemove}
-            onScheduleText={(next: McqOption) => {
-              scheduleOption(option.id, next);
-            }}
-            onCommit={(next: McqOption) => {
-              commitOption(option.id, next);
-            }}
-            onRemove={() => {
-              removeOption(option.id);
-            }}
-            flush={flush}
-            openPicker={openPicker}
-            onOpenChange={setPopoverOpen}
-          />
+          {renderToggle?.(datum)}
+          {renderMenu?.(datum)}
         </div>
         {canAddOption && (
           <div className={styles.canAddBtn}>

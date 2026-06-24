@@ -12,21 +12,17 @@
 // be hex (from the old native color input); the parent palette default is
 // oklch(0.65 0.18 H). We parse hue out of either format for the picker
 // and always write back oklch so storage normalizes over time.
-import { useEffect, useRef, useState } from "react";
 import { TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { useEffect, useRef, useState } from "react";
 
-import styles from "./McqOptionEditable.module.css";
-import { hueToHex, isHexColor, parseHue, toHexColor } from "@utils/color";
-import { Btn } from "@ui/Buttons/Btn";
-import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ColorSwatch } from "@components/Forms/Input/ColorPicker/ColorSwatch";
 import { ThemeColorSwatches } from "@components/Forms/Input/ColorPicker/ThemeColorSwatches";
-import {
-  Popover,
-  PopoverRow,
-  PopoverDivider,
-} from "@components/Forms/Input/Popover/Popover";
+import { Popover, PopoverDivider, PopoverRow } from "@components/Forms/Input/Popover/Popover";
+import { Btn } from "@ui/Buttons/Btn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import { hueToHex, isHexColor, parseHue, toHexColor } from "@utils/color";
+import styles from "./McqOptionEditable.module.css";
 
 interface EditOptionToolbarProps {
   canRemove: boolean;
@@ -36,7 +32,7 @@ interface EditOptionToolbarProps {
   handleColorChange: (str: string) => void;
   handleClearImage: () => void;
   handleClose: () => void;
-  displayIndex: number;
+  displayIndex: number | string;
   previewUrl: string;
   /** Resolved color string (option override or palette default). */
   color: string;
@@ -98,10 +94,11 @@ const EditOptionToolbar = ({
       className={styles.popoverWrap}
       onClick={(e) => {
         e.stopPropagation();
-      }}>
+      }}
+    >
       {colorOpen && (
         <div ref={colorPopoutRef} className={styles.colorPopout}>
-          <Popover role='dialog' ariaLabel='Choose option color'>
+          <Popover role="dialog" ariaLabel="Choose option color">
             <PopoverRow>
               <ColorSwatch color={resolvedHex} onChange={handleColorPick} />
             </PopoverRow>
@@ -114,13 +111,11 @@ const EditOptionToolbar = ({
           </Popover>
         </div>
       )}
-      <Popover
-        role='dialog'
-        ariaLabel={`Option ${displayIndex.toString()} settings`}>
+      <Popover role="dialog" ariaLabel={`Option ${displayIndex.toString()} settings`}>
         <PopoverRow className={styles.popoverHeader}>
           <IconBtn
-            fill='ghost'
-            size='xs'
+            fill="ghost"
+            size="xs"
             className={styles.imageThumbBtn}
             style={
               previewUrl
@@ -137,7 +132,7 @@ const EditOptionToolbar = ({
             icon={hasImage ? undefined : <PlusIcon />}
           />
           {hasImage && (
-            <Btn fill='ghost' size='xs' onClick={handleClearImage}>
+            <Btn fill="ghost" size="xs" onClick={handleClearImage}>
               Clear
             </Btn>
           )}
@@ -148,13 +143,13 @@ const EditOptionToolbar = ({
               recognize the trigger and let its own onClick toggle state. */}
           <div ref={colorTriggerRef} className={styles.colorThumbWrap}>
             <IconBtn
-              fill='ghost'
-              size='xs'
+              fill="ghost"
+              size="xs"
               className={styles.colorThumbBtn}
               style={{ backgroundColor: color }}
-              aria-label='Choose color'
+              aria-label="Choose color"
               aria-expanded={colorOpen}
-              aria-haspopup='dialog'
+              aria-haspopup="dialog"
               onClick={() => {
                 setColorOpen((o) => !o);
               }}
@@ -164,8 +159,8 @@ const EditOptionToolbar = ({
           <PopoverDivider />
 
           <IconBtn
-            fill='ghost'
-            size='xs'
+            fill="ghost"
+            size="xs"
             aria-label={`Remove option ${displayIndex.toString()}`}
             disabled={!canRemove}
             onClick={handleRemove}
@@ -174,10 +169,10 @@ const EditOptionToolbar = ({
           <PopoverDivider />
 
           <IconBtn
-            fill='ghost'
+            fill="ghost"
             icon={<XMarkIcon />}
-            size='xs'
-            aria-label='Close'
+            size="xs"
+            aria-label="Close"
             onClick={handleClose}
           />
         </PopoverRow>

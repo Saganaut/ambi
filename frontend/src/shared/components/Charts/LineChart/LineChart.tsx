@@ -1,7 +1,4 @@
-// Line chart over an ordered set of categories (MCQ options in author order,
-// score-over-rounds, …). Values map to a polyline with a marker per point; the
-// y-axis is scaled to the largest value. A highlighted datum gets an emphasised
-// marker. Pure SVG so it scales with its container and animates via CSS.
+import { deriveChartStats } from "../adapters/mcq";
 import type { GeneralChartProps } from "../types";
 import styles from "./LineChart.module.css";
 
@@ -12,34 +9,40 @@ const H = 60;
 const PAD = 6;
 
 const LineChart = ({
-  data,
-  caption,
   renderLabel,
   renderToggle,
   renderMenu,
-  renderDragHandle,
-  displayAsPercentage = false,
+  editor,
+  answerSettings,
+  chartMode,
 }: LineChartProps) => {
-  const max = Math.max(1, ...data.map((d) => d.value));
-  const span = Math.max(1, data.length - 1);
-  const denominator = data.reduce((sum, d) => sum + d.value, 0);
+  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
+  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
+  if (question == null) return <p> no question</p>;
 
-  const points = data.map((d, i) => {
+  const { denominator, max, chartData } = deriveChartStats({
+    options: question.options,
+    correctOptionIds: question.correctOptionIds,
+  });
+  if (chartMode !== "editable") return;
+  const span = Math.max(1, chartData.length - 1);
+
+  const points = chartData.map((datum, i) => {
     const x = PAD + (i / span) * (W - PAD * 2);
-    const y = H - PAD - (d.value / max) * (H - PAD * 2);
-    return { x, y, datum: d, index: i };
+    const y = H - PAD - (datum.value / max) * (H - PAD * 2);
+    return { x, y, datum: datum, index: i };
   });
 
   // W === 100, so viewBox x directly equals the CSS left percentage.
   const xPct = (i: number) => PAD + (i / span) * (W - PAD * 2);
 
   const path = points.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
 
   return (
     <div className={styles.chart}>
-      {caption && <div className={styles.caption}>{caption}</div>}
       <div className={styles.valueRow}>
-        {data.map((d, i) => (
+        {chartData.map((datum, i) => (
           <div
             // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
             key={i}
@@ -47,14 +50,14 @@ const LineChart = ({
             style={{ left: `${xPct(i).toFixed(2)}%` }}
           >
             <span className={styles.labelValue}>
-              {d.value}
-              {displayAsPercentage && denominator > 0 && (
+              {datum.value}
+              {answerSettings?.displayResultsAsPercentage && denominator > 0 && (
                 <span className={styles.share}>
                   {" "}
-                  ({Math.round((d.value / denominator) * 100)}%)
+                  ({Math.round((datum.value / denominator) * 100)}%)
                 </span>
               )}{" "}
-              {renderToggle?.(d)}
+              {renderToggle?.(datum)}
             </span>
           </div>
         ))}
@@ -67,7 +70,7 @@ const LineChart = ({
         aria-label="Line chart"
       >
         <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
-        {data.length > 1 && <polyline className={styles.line} points={path} />}
+        {chartData.length > 1 && <polyline className={styles.line} points={path} />}
         {points.map((p) => (
           <circle
             key={p.index}
@@ -80,7 +83,7 @@ const LineChart = ({
         ))}
       </svg>
       <div className={styles.controlsRow}>
-        {data.map((d, i) => (
+        {chartData.map((datum, i) => (
           <div
             // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
             key={i}
@@ -90,10 +93,10 @@ const LineChart = ({
             <div className={styles.optionControls}>
               {renderLabel ? (
                 <>
-                  {renderLabel(d)} {renderMenu?.(d)}
+                  {renderLabel(datum)} {renderMenu?.(datum)}
                 </>
               ) : (
-                <span className={styles.labelText}>{d.text ?? ""}</span>
+                <span className={styles.labelText}>{datum.text ?? ""}</span>
               )}
             </div>
           </div>

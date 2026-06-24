@@ -9,6 +9,7 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { ReactNode, useRef } from "react";
+import { deriveChartStats } from "../adapters/mcq";
 import type { ChartDatum, GeneralChartProps } from "../types";
 import styles from "./BarChart.module.css";
 
@@ -86,38 +87,42 @@ const SortableListItem = ({
 };
 
 const BarChart = ({
-  data,
-  orientation = "horizontal",
-  total,
-  caption,
   renderLabel,
   renderToggle,
   renderMenu,
-  displayAsPercentage = false,
-  handleOptionDragEnd,
+  editor,
+  answerSettings,
+  orientation = "horizontal",
   chartMode,
 }: BarChartProps) => {
-  const max = Math.max(1, ...data.map((d) => d.value));
-  const denominator = total ?? data.reduce((sum, d) => sum + d.value, 0);
+  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
+
+  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
+  if (question == null) return <p> no question</p>;
+
+  const { denominator, max, chartData } = deriveChartStats({
+    options: question.options,
+    correctOptionIds: question.correctOptionIds,
+  });
   if (chartMode !== "editable") return;
 
+  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
   return (
     <div className={`${styles.chart} ${styles[orientation]}`}>
-      {caption && <div className={styles.caption}>{caption}</div>}
       <ul className={styles.bars}>
         <DragDropProvider
           onDragEnd={(event) => {
             handleOptionDragEnd(event);
           }}
         >
-          {data.map((datum, idx) => (
+          {chartData.map((datum, idx) => (
             <SortableListItem
               key={datum.id}
               max={max}
               denominator={denominator}
               sliceId={datum.id}
               datum={datum}
-              displayAsPercentage={displayAsPercentage}
+              displayAsPercentage={answerSettings?.displayResultsAsPercentage ?? false}
               sortIndex={idx}
               renderToggle={renderToggle}
               renderLabel={renderLabel}
