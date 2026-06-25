@@ -37,7 +37,9 @@
 
 .slice {
   fill: none;
-  transition: stroke-dasharray var(--duration-base) var(--ease-out);
+  transition:
+    stroke-dasharray var(--duration-base) var(--ease-out),
+    stroke-dashoffset var(--duration-base) var(--ease-out);
 }
 
 .slice.highlight {

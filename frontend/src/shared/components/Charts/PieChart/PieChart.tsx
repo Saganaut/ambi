@@ -178,7 +178,7 @@ const PieChart = ({
                 stroke={s.color}
                 strokeDasharray={`${(revealed ? s.pct : 0).toFixed(3)} 100`}
                 strokeDashoffset={(-s.start).toFixed(3)}
-                style={{ transitionDelay: `${(s.index * 90).toString()}ms` }}
+                style={{ transitionDelay: !revealed ? `${(s.index * 90).toString()}ms` : undefined }}
               />
             ))}
           </g>
