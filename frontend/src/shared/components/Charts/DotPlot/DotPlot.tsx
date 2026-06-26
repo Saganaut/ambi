@@ -1,24 +1,18 @@
-import type { GeneralChartProps } from "../types";
+import type { ChartProps } from "../types";
 import styles from "./DotPlot.module.css";
 
-export type DotPlotProps = GeneralChartProps;
+export type DotPlotProps = ChartProps;
 
 const DotPlot = ({
   renderLabel,
   renderToggle,
   renderMenu,
-  editor,
   data,
   displayAsPercentage,
-  chartMode,
 }: DotPlotProps) => {
-  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
-  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
-  if (question == null) return <p> no question</p>;
-
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const max = Math.max(1, ...data.map((datum) => datum.value));
-  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
+  console.log("TODO: canAddOption, addOption, isCorrect per option");
   return (
     <div className={styles.chart}>
       <ul className={styles.rows}>

@@ -8,8 +8,6 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { Container } from "@components/Containers/Container";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
-import { resolveImageUrl } from "@utils/image";
-
 import { ChartDatum } from "@/shared/components/Charts/types";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
@@ -77,7 +75,7 @@ const McqOptionEditable = ({
   }, [popoverOpen]);
 
   if (datum == null) return <div> no option found</div>;
-  const thumbnailSrc = resolveImageUrl(datum.image, "SM", datum.id, 200, 200, false);
+  const thumbnailSrc = datum.imageUrl ?? null;
   const color = resolveOptionColor(datum.color, sortIndex);
   const displayIndex = sortIndex >= 0 ? sortIndex + 1 : 0;
 

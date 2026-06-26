@@ -1,26 +1,31 @@
-import { GeneralChartProps } from "@/shared/components/Charts/types";
+import type { ChartDatum } from "@/shared/components/Charts/types";
+import type { DragEndEvent } from "@dnd-kit/react";
 import { DragDropProvider } from "@dnd-kit/react";
-import React from "react";
+import React, { ReactNode } from "react";
 import { McqOptionEditable } from "../_shared/McqOptionEditable/McqOptionEditable";
 import styles from "./McqSlideContent.module.css";
 
-type DefaultResultsProps = GeneralChartProps;
+interface DefaultResultsDisplayProps {
+  data: ChartDatum[];
+  displayAsPercentage: boolean;
+  onReorder: (event: DragEndEvent) => void;
+  addOption: () => void;
+  canAddOption: boolean;
+  renderLabel?: (datum: ChartDatum) => ReactNode;
+  renderToggle?: (datum: ChartDatum) => ReactNode;
+  renderMenu?: (datum: ChartDatum) => ReactNode;
+}
 
 const DefaultResultsDisplay = ({
   renderLabel,
   renderToggle,
   renderMenu,
-  chartMode,
-  editor,
   data,
   displayAsPercentage,
-}: DefaultResultsProps) => {
-  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
-
-  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
-
-  if (question == null) return <p> no question</p>;
-
+  onReorder,
+  addOption,
+  canAddOption,
+}: DefaultResultsDisplayProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const max = Math.max(1, ...data.map((datum) => datum.value));
   const optionCount = data.length ?? 0;
@@ -29,7 +34,7 @@ const DefaultResultsDisplay = ({
     <div className={styles.optionsRow} style={{ "--cols": columns } as React.CSSProperties}>
       <DragDropProvider
         onDragEnd={(event) => {
-          handleOptionDragEnd(event);
+          onReorder(event);
         }}
       >
         {data.map((option, idx) => (
@@ -43,7 +48,7 @@ const DefaultResultsDisplay = ({
             max={max}
             renderToggle={renderToggle}
             renderLabel={renderLabel}
-            isCorrect={isCorrect(option.id)}
+            isCorrect={option.isCorrect ?? false}
             renderMenu={renderMenu}
             displayAsPercentage={displayAsPercentage}
           />

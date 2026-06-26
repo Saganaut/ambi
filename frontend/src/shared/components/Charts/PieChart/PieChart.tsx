@@ -1,7 +1,7 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import type { ChartDatum, GeneralChartProps } from "../types";
+import type { ChartDatum, ChartProps } from "../types";
 import styles from "./PieChart.module.css";
 
 const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
@@ -83,12 +83,11 @@ const PieChart = ({
   renderLabel,
   renderToggle,
   renderMenu,
-  editor,
+  onReorder,
   data,
   displayAsPercentage,
-  chartMode,
   animateOnMount = false,
-}: GeneralChartProps) => {
+}: ChartProps) => {
   useEffect(() => {
     if (!animateOnMount) return;
     const id = requestAnimationFrame(() => {
@@ -100,12 +99,7 @@ const PieChart = ({
   }, [animateOnMount]);
   const [revealed, setRevealed] = useState(!animateOnMount);
 
-  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
-
-  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
-  if (question == null) return <p> no question</p>;
-
-  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
+  console.log("TODO: canAddOption, addOption, isCorrect per option");
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
@@ -178,7 +172,7 @@ const PieChart = ({
         <ul className={styles.legend}>
           <DragDropProvider
             onDragEnd={(event) => {
-              handleOptionDragEnd(event);
+              onReorder?.(event);
             }}
           >
             {slices.map((s, idx) => (

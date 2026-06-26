@@ -1,7 +1,7 @@
-import type { GeneralChartProps } from "../types";
+import type { ChartProps } from "../types";
 import styles from "./LineChart.module.css";
 
-export type LineChartProps = GeneralChartProps;
+export type LineChartProps = ChartProps;
 
 const W = 100;
 const H = 60;
@@ -11,15 +11,9 @@ const LineChart = ({
   renderLabel,
   renderToggle,
   renderMenu,
-  editor,
   data,
   displayAsPercentage,
-  chartMode,
 }: LineChartProps) => {
-  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
-  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
-  if (question == null) return <p> no question</p>;
-
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const max = Math.max(1, ...data.map((datum) => datum.value));
   const span = Math.max(1, data.length - 1);
@@ -34,7 +28,7 @@ const LineChart = ({
   const xPct = (i: number) => PAD + (i / span) * (W - PAD * 2);
 
   const path = points.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
-  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
+  console.log("TODO: canAddOption, addOption, isCorrect per option");
 
   return (
     <div className={styles.chart}>

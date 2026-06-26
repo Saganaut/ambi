@@ -125,7 +125,6 @@ const McqSlideContentView = ({
           <ResultsDisplaySwitch
             viz={effective}
             caption="Sample data"
-            chartMode="editable"
             renderMenu={renderMenu}
             renderToggle={renderToggle}
             renderLabel={renderLabel}

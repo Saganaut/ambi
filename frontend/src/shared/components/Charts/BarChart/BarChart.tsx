@@ -1,10 +1,10 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { ReactNode, useRef } from "react";
-import type { ChartDatum, GeneralChartProps } from "../types";
+import type { ChartDatum, ChartProps } from "../types";
 import styles from "./BarChart.module.css";
 
-export type BarChartProps = GeneralChartProps;
+export type BarChartProps = ChartProps;
 
 interface SortableListItem {
   sortIndex: number;
@@ -82,26 +82,20 @@ const BarChart = ({
   renderLabel,
   renderToggle,
   renderMenu,
-  editor,
+  onReorder,
   data,
   displayAsPercentage,
   orientation = "horizontal",
-  chartMode,
 }: BarChartProps) => {
-  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
-
-  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
-  if (question == null) return <p> no question</p>;
-
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const max = Math.max(1, ...data.map((datum) => datum.value));
-  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
+  console.log("TODO: canAddOption, addOption, isCorrect per option");
   return (
     <div className={`${styles.chart} ${styles[orientation]}`}>
       <ul className={styles.bars}>
         <DragDropProvider
           onDragEnd={(event) => {
-            handleOptionDragEnd(event);
+            onReorder?.(event);
           }}
         >
           {data.map((datum, idx) => (

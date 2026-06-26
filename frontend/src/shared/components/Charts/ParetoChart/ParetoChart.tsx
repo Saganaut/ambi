@@ -4,10 +4,10 @@
 // option counts when the author wants to see how few options capture most of
 // the responses. Pure SVG (bars + polyline) with the category labels listed
 // below in the sorted order.
-import type { GeneralChartProps } from "../types";
+import type { ChartProps } from "../types";
 import styles from "./ParetoChart.module.css";
 
-export type ParetoChartProps = GeneralChartProps;
+export type ParetoChartProps = ChartProps;
 
 const W = 100;
 const H = 60;
@@ -17,25 +17,10 @@ const ParetoChart = ({
   renderLabel,
   renderToggle,
   renderMenu,
-  editor,
-  answerSettings,
   data,
-  chartMode,
 }: ParetoChartProps) => {
-  if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
-
-  const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
-  if (question == null) return <p> no question</p>;
-
   const max = Math.max(1, ...data.map((datum) => datum.value));
-  console.log(
-    "To be implemented",
-    canAddOption,
-    addOption,
-    isCorrect,
-    handleOptionDragEnd,
-    answerSettings,
-  );
+  console.log("TODO: canAddOption, addOption, isCorrect per option");
 
   const sorted = [...data].sort((a, b) => b.value - a.value);
   const total = sorted.reduce((sum, d) => sum + d.value, 0);

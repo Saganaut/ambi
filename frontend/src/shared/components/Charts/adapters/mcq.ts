@@ -3,21 +3,18 @@
 // Used by the deck editor (with a synthetic sample distribution) and, later, by
 // the live session board (with the real round-result tally) — same function,
 // same output, so the preview an author sees matches the live render.
-//
-// Options are typed against the shared `McqOption` (re-exported through the
-// shared types barrel, not pulled directly from a feature), so spreading an
-// option carries its text, image, and colour straight onto the `ChartDatum`
-// every renderer consumes.
 import type { McqOption } from "@/shared/types/elements";
+import { resolveImageUrl } from "@utils/image";
 import type { ChartDatum } from "../types";
 
-/** The option fields a chart needs; structurally the editor's `McqOption`. */
+/** The option fields the MCQ adapter needs from the domain model. */
 export type McqOptionLike = McqOption;
 
 /**
  * Normalise an MCQ's options + a response tally into chart data, in author
  * order. Correct options are flagged for emphasis; each option's colour carries
- * through so charts can match the editor's option cards.
+ * through so charts can match the editor's option cards. `AppImage` is resolved
+ * to a plain URL here so chart renderers never see domain-specific image types.
  */
 export const mcqToChartData = (
   options: McqOptionLike[],
@@ -26,7 +23,11 @@ export const mcqToChartData = (
 ): ChartDatum[] => {
   const correct = new Set(correctOptionIds);
   return options.map((option) => ({
-    ...option,
+    id: option.id,
+    text: option.text,
+    color: option.color,
+    imageUrl: resolveImageUrl(option.image, "SM", option.id, 200, 200, false) ?? undefined,
+    imageAlt: option.image?.altText ?? undefined,
     value: distribution[option.id] ?? 0,
     highlight: correct.has(option.id),
     isCorrect: correct.has(option.id),
