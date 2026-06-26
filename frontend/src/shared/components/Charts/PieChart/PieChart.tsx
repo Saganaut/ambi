@@ -12,34 +12,28 @@ const STROKE = { pie: 50, donut: 16 } as const;
 
 interface SortableListItem {
   sortIndex: number;
-  sliceId: string;
+  datum: ChartDatum;
+  denominator: number;
+  displayAsPercentage: boolean;
   renderLabel?: (datum: ChartDatum) => ReactNode;
   renderToggle?: (datum: ChartDatum) => ReactNode;
   renderMenu?: (datum: ChartDatum) => ReactNode;
-  displayAsPercentage: boolean;
-  slice: {
-    datum: ChartDatum;
-    label: string;
-    pct: number;
-    start: number;
-    tone: string;
-    color?: string;
-    highlight?: boolean;
-    index: number;
-  };
 }
 
 const SortableListItem = ({
   sortIndex,
-  sliceId,
+  datum,
+  denominator,
+  displayAsPercentage,
   renderLabel,
   renderToggle,
   renderMenu,
-  displayAsPercentage,
-  slice,
 }: SortableListItem) => {
+  const tone = TONES[sortIndex % TONES.length];
+  const pct = denominator > 0 ? (datum.value / denominator) * 100 : 0;
+
   const { ref: sortableRef } = useSortable({
-    id: sliceId,
+    id: datum.id,
     index: sortIndex,
   });
 
@@ -53,26 +47,25 @@ const SortableListItem = ({
   return (
     <li
       ref={setCardRef}
-      key={slice.datum.id}
-      className={`${styles.legendItem} ${slice.highlight ? styles.highlight : ""}`}
+      className={`${styles.legendItem} ${datum.highlight ? styles.highlight : ""}`}
     >
       <span
-        className={`${styles.swatch} ${styles[slice.tone]}`}
-        style={slice.color ? { background: slice.color } : undefined}
+        className={`${styles.swatch} ${styles[tone]}`}
+        style={datum.color ? { background: datum.color } : undefined}
         aria-hidden="true"
       />
       <div className={styles.optionControls}>
         {renderLabel ? (
-          renderLabel(slice.datum)
+          renderLabel(datum)
         ) : (
-          <span className={styles.legendLabel}>{slice.label}</span>
+          <span className={styles.legendLabel}>{datum.text ?? ""}</span>
         )}
-        {renderToggle?.(slice.datum)}
-        {renderMenu?.(slice.datum)}
+        {renderToggle?.(datum)}
+        {renderMenu?.(datum)}
       </div>
       <span className={styles.legendValue}>
-        {slice.datum.value}
-        {displayAsPercentage && ` (${Math.round(slice.pct).toString()}%)`}
+        {datum.value}
+        {displayAsPercentage && ` (${Math.round(pct).toString()}%)`}
       </span>
     </li>
   );
@@ -178,8 +171,8 @@ const PieChart = ({
             {slices.map((s, idx) => (
               <SortableListItem
                 key={s.datum.id}
-                sliceId={s.datum.id}
-                slice={s}
+                datum={s.datum}
+                denominator={total}
                 displayAsPercentage={displayAsPercentage}
                 sortIndex={idx}
                 renderToggle={renderToggle}
