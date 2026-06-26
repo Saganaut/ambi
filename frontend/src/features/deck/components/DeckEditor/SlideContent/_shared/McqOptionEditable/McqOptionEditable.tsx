@@ -11,7 +11,8 @@ import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
-export type DefaultNoChartSegmentProps = ChartSegmentRenderProps;
+
+type DefaultNoChartSegmentProps = ChartSegmentRenderProps;
 
 const McqOptionEditable = ({
   sortIndex,

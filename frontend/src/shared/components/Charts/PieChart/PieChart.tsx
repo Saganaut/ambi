@@ -1,6 +1,6 @@
-import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, useState } from "react";
+import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../types";
 import styles from "./PieChart.module.css";
 
@@ -10,9 +10,9 @@ const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
 const RADII = { pie: 25, donut: 38 } as const;
 const STROKE = { pie: 50, donut: 16 } as const;
 
-export type PieChartSegmentRenderProps = ChartSegmentRenderProps;
+type PieChartSegmentRenderProps = ChartSegmentRenderProps;
 
-const SortableListItem = ({
+const PieChartSegment = ({
   sortIndex,
   datum,
   denominator,
@@ -155,13 +155,9 @@ const PieChart = ({
           </g>
         </svg>
         <ul className={styles.legend}>
-          <DragDropProvider
-            onDragEnd={(event) => {
-              onReorder?.(event);
-            }}
-          >
+          <DragDropWrapper onReorder={onReorder}>
             {slices.map((s, idx) => (
-              <SortableListItem
+              <PieChartSegment
                 key={s.datum.id}
                 datum={s.datum}
                 denominator={total}
@@ -172,7 +168,7 @@ const PieChart = ({
                 renderMenu={renderMenu}
               />
             ))}
-          </DragDropProvider>
+          </DragDropWrapper>
         </ul>
       </div>
     </div>

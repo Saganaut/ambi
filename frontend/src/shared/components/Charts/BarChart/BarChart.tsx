@@ -1,6 +1,6 @@
-import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useRef } from "react";
+import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import type { ChartProps, ChartSegmentRenderProps } from "../types";
 import styles from "./BarChart.module.css";
 
@@ -86,11 +86,7 @@ const BarChart = ({
   return (
     <div className={`${styles.chart} ${styles[orientation]}`}>
       <ul className={styles.bars}>
-        <DragDropProvider
-          onDragEnd={(event) => {
-            onReorder?.(event);
-          }}
-        >
+        <DragDropWrapper onReorder={onReorder}>
           {data.map((datum, idx) => (
             <SortableListItem
               key={datum.id}
@@ -104,7 +100,7 @@ const BarChart = ({
               renderMenu={renderMenu}
             />
           ))}
-        </DragDropProvider>
+        </DragDropWrapper>
       </ul>
     </div>
   );
