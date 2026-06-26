@@ -8,7 +8,6 @@ const McqSlideContent = () => {
 
   return (
     <McqSlideContentView
-      UseMcqEditorResult={editor}
       previewVisualization={previewVisualization}
       openPicker={openPicker}
       answerSettings={answerSettings}

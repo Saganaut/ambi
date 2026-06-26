@@ -19,6 +19,7 @@
 
   .row {
     display: flex;
+    position: relative;
     flex-direction: column;
     align-items: center;
     gap: var(--gap-sm);
@@ -47,17 +48,17 @@
     background: var(--bg-subtle);
     border-radius: var(--radius-sm);
     overflow: hidden;
+
+    .fill {
+      background: var(--bar-color, var(--bg-brand));
+      border-radius: var(--radius-sm);
+      transition:
+        width var(--duration-base) var(--ease-out),
+        height var(--duration-base) var(--ease-out);
+    }
   }
 
-  .fill {
-    background: var(--bar-color, var(--bg-brand));
-    border-radius: var(--radius-sm);
-    transition:
-      width var(--duration-base) var(--ease-out),
-      height var(--duration-base) var(--ease-out);
-  }
-
-  .highlight .fill {
+  .fill .highlight {
     background: var(--bar-color, var(--role-green));
   }
 
