@@ -27,7 +27,7 @@ const DefaultResultsDisplay = ({
   canAddOption,
 }: DefaultResultsDisplayProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
-  const max = Math.max(1, ...data.map((datum) => datum.value));
+  const highestValue = Math.max(1, ...data.map((datum) => datum.value));
   const optionCount = data.length ?? 0;
   const columns = optionCount ? Math.max(Math.ceil(optionCount / 2), 2) : 2;
   return (
@@ -45,7 +45,7 @@ const DefaultResultsDisplay = ({
             canAddOption={canAddOption}
             datum={option}
             denominator={denominator}
-            max={max}
+            highestValue={highestValue}
             renderToggle={renderToggle}
             renderLabel={renderLabel}
             isCorrect={option.isCorrect ?? false}

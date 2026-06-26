@@ -49,3 +49,19 @@ export type ChartType =
   | "PARETO"
   | "DOT"
   | "NONE";
+
+export interface ChartSegmentRenderProps {
+  datum: ChartDatum;
+  sortIndex: number;
+  displayAsPercentage: boolean;
+  denominator: number;
+  highestValue?: number;
+
+  isCorrect?: boolean;
+  canAddOption?: boolean;
+  addOption?: () => void;
+  renderLabel?: (datum: ChartDatum) => ReactNode;
+  renderToggle?: (datum: ChartDatum) => ReactNode;
+  renderMenu?: (datum: ChartDatum) => ReactNode;
+  onReorder?: (event: DragEndEvent) => void;
+}

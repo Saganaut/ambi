@@ -3,29 +3,15 @@
 
  */
 import { useSortable } from "@dnd-kit/react/sortable";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { ChartSegmentRenderProps } from "@/shared/components/Charts/types";
 import { Container } from "@components/Containers/Container";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
-import { ChartDatum } from "@/shared/components/Charts/types";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
-
-//TODO: consolidate this interface with other oens for similar components (for
-interface McqOptionEditableProps {
-  sortIndex: number;
-  displayAsPercentage?: boolean;
-  renderLabel?: (datum: ChartDatum) => ReactNode;
-  renderToggle?: (datum: ChartDatum) => ReactNode;
-  renderMenu?: (datum: ChartDatum) => ReactNode;
-  datum: ChartDatum;
-  max: number;
-  denominator: number;
-  addOption: () => void;
-  canAddOption: boolean;
-  isCorrect?: boolean;
-}
+export type DefaultNoChartSegmentProps = ChartSegmentRenderProps;
 
 const McqOptionEditable = ({
   sortIndex,
@@ -34,18 +20,19 @@ const McqOptionEditable = ({
   renderToggle,
   renderMenu,
   datum,
-  max,
+  highestValue,
   denominator,
   isCorrect = false,
   addOption,
   canAddOption,
-}: McqOptionEditableProps) => {
+}: DefaultNoChartSegmentProps) => {
   const { ref: sortableRef, isDragging } = useSortable({
     id: datum.id,
     index: sortIndex,
   });
 
   //TODO: find ways to add this in here.
+  const max = highestValue ?? 10;
   const _sizePct = (datum.value / max) * 100;
   const _sharePct = denominator > 0 ? Math.round((datum.value / denominator) * 100) : 0;
   const _displayAsPercentage = displayAsPercentage;

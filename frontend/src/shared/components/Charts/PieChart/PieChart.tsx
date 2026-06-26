@@ -1,7 +1,7 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { ReactNode, useEffect, useRef, useState } from "react";
-import type { ChartDatum, ChartProps } from "../types";
+import { useEffect, useRef, useState } from "react";
+import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../types";
 import styles from "./PieChart.module.css";
 
 const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
@@ -10,15 +10,7 @@ const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
 const RADII = { pie: 25, donut: 38 } as const;
 const STROKE = { pie: 50, donut: 16 } as const;
 
-interface SortableListItem {
-  sortIndex: number;
-  datum: ChartDatum;
-  denominator: number;
-  displayAsPercentage: boolean;
-  renderLabel?: (datum: ChartDatum) => ReactNode;
-  renderToggle?: (datum: ChartDatum) => ReactNode;
-  renderMenu?: (datum: ChartDatum) => ReactNode;
-}
+export type PieChartSegmentRenderProps = ChartSegmentRenderProps;
 
 const SortableListItem = ({
   sortIndex,
@@ -28,7 +20,7 @@ const SortableListItem = ({
   renderLabel,
   renderToggle,
   renderMenu,
-}: SortableListItem) => {
+}: PieChartSegmentRenderProps) => {
   const tone = TONES[sortIndex % TONES.length];
   const pct = denominator > 0 ? (datum.value / denominator) * 100 : 0;
 

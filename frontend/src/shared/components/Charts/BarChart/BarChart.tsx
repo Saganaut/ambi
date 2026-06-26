@@ -1,38 +1,31 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { ReactNode, useRef } from "react";
-import type { ChartDatum, ChartProps } from "../types";
+import { useRef } from "react";
+import type { ChartProps, ChartSegmentRenderProps } from "../types";
 import styles from "./BarChart.module.css";
 
 export type BarChartProps = ChartProps;
 
-interface SortableListItem {
-  sortIndex: number;
-  sliceId: string;
-  renderLabel?: (datum: ChartDatum) => ReactNode;
-  renderToggle?: (datum: ChartDatum) => ReactNode;
-  renderMenu?: (datum: ChartDatum) => ReactNode;
-  displayAsPercentage: boolean;
-  datum: ChartDatum;
-  max: number;
-  denominator: number;
-}
+export type BarChartSegmentRenderProps = ChartSegmentRenderProps;
+
 const SortableListItem = ({
   sortIndex,
-  sliceId,
   renderLabel,
   renderToggle,
   renderMenu,
   displayAsPercentage,
   datum,
-  max,
+  highestValue,
   denominator,
-}: SortableListItem) => {
+}: BarChartSegmentRenderProps) => {
+  //TODO: Better fall back here or discriminated union for the type
+  const max = highestValue ?? 10;
+
   const sizePct = (datum.value / max) * 100;
   const sharePct = denominator > 0 ? Math.round((datum.value / denominator) * 100) : 0;
 
   const { ref: sortableRef } = useSortable({
-    id: sliceId,
+    id: datum.id,
     index: sortIndex,
   });
 
@@ -88,7 +81,7 @@ const BarChart = ({
   orientation = "horizontal",
 }: BarChartProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
-  const max = Math.max(1, ...data.map((datum) => datum.value));
+  const highestValue = Math.max(1, ...data.map((datum) => datum.value));
   console.log("TODO: canAddOption, addOption, isCorrect per option");
   return (
     <div className={`${styles.chart} ${styles[orientation]}`}>
@@ -101,9 +94,8 @@ const BarChart = ({
           {data.map((datum, idx) => (
             <SortableListItem
               key={datum.id}
-              max={max}
+              highestValue={highestValue}
               denominator={denominator}
-              sliceId={datum.id}
               datum={datum}
               displayAsPercentage={displayAsPercentage}
               sortIndex={idx}
