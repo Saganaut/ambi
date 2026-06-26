@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { deriveChartStats, mcqRandomDistribution, mcqToChartData } from "./adapters/mcq";
 import type { ChartDatum } from "./types";
 
-const RANDOM_INTERVAL_MS = 5000;
+const RANDOM_INTERVAL_MS = 3000;
 const RANDOM_VALUE_MAX = 10;
 
 interface ChartQuestion {
@@ -21,7 +21,7 @@ interface ChartQuestion {
 export function useAnimatedChartData(
   question: ChartQuestion | undefined,
   continuousAnimation: boolean,
-): { data: ChartDatum[]; denominator: number; max: number } {
+): { data: ChartDatum[] } {
   const [distribution, setDistribution] = useState<Record<string, number> | null>(null);
 
   // Keep the latest options without re-arming the interval on every editor edit
@@ -42,17 +42,15 @@ export function useAnimatedChartData(
     };
   }, [continuousAnimation]);
 
-  if (question == null) return { data: [], denominator: 0, max: 1 };
+  if (question == null) return { data: [] };
 
   // Off, or before the first tick fires: deterministic sample, no behaviour
   // change and no flash of empty data.
   if (!continuousAnimation || distribution == null) {
-    const { chartData, denominator, max } = deriveChartStats(question);
-    return { data: chartData, denominator, max };
+    const { chartData } = deriveChartStats(question);
+    return { data: chartData };
   }
 
   const data = mcqToChartData(question.options, question.correctOptionIds, distribution);
-  const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
-  const max = Math.max(1, ...data.map((datum) => datum.value));
-  return { data, denominator, max };
+  return { data };
 }

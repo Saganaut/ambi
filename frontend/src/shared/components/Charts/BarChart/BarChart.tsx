@@ -1,4 +1,3 @@
-
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { ReactNode, useRef } from "react";
@@ -65,9 +64,10 @@ const SortableListItem = ({
             } as React.CSSProperties
           }
         />{" "}
-        {renderMenu?.(datum)}
       </div>
       <span className={styles.value}>
+        {" "}
+        {renderMenu?.(datum)}
         {datum.value}
         {displayAsPercentage && denominator > 0 && (
           <span className={styles.share}> ({sharePct}%)</span>
@@ -84,8 +84,6 @@ const BarChart = ({
   renderMenu,
   editor,
   data,
-  denominator,
-  max,
   displayAsPercentage,
   orientation = "horizontal",
   chartMode,
@@ -95,6 +93,8 @@ const BarChart = ({
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
 
+  const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
+  const max = Math.max(1, ...data.map((datum) => datum.value));
   console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
   return (
     <div className={`${styles.chart} ${styles[orientation]}`}>

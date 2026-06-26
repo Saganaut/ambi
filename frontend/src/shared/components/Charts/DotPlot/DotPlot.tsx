@@ -9,8 +9,6 @@ const DotPlot = ({
   renderMenu,
   editor,
   data,
-  denominator,
-  max,
   displayAsPercentage,
   chartMode,
 }: DotPlotProps) => {
@@ -18,6 +16,8 @@ const DotPlot = ({
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
 
+  const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
+  const max = Math.max(1, ...data.map((datum) => datum.value));
   console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
   return (
     <div className={styles.chart}>

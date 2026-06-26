@@ -43,7 +43,7 @@ const ResultsDisplaySwitch = ({
 }: ResultsDisplaySwitchProps) => {
   // Called before the early returns below to keep hook order stable; it handles
   // an undefined question itself.
-  const { data, denominator, max } = useAnimatedChartData(editor.question, continuousAnimation);
+  const { data } = useAnimatedChartData(editor.question, continuousAnimation);
 
   if (chartMode != "editable") throw Error("Expected editable chart in switch");
 
@@ -56,8 +56,6 @@ const ResultsDisplaySwitch = ({
     animateOnMount,
     continuousAnimation,
     data,
-    denominator,
-    max,
     displayAsPercentage: answerSettings?.displayResultsAsPercentage ?? false,
     renderLabel,
     renderToggle,

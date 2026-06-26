@@ -13,8 +13,6 @@ const DefaultResultsDisplay = ({
   chartMode,
   editor,
   data,
-  denominator,
-  max,
   displayAsPercentage,
 }: DefaultResultsProps) => {
   if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
@@ -23,6 +21,8 @@ const DefaultResultsDisplay = ({
 
   if (question == null) return <p> no question</p>;
 
+  const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
+  const max = Math.max(1, ...data.map((datum) => datum.value));
   const optionCount = data.length ?? 0;
   const columns = optionCount ? Math.max(Math.ceil(optionCount / 2), 2) : 2;
   return (

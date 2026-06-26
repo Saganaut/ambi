@@ -20,8 +20,6 @@ const ParetoChart = ({
   editor,
   answerSettings,
   data,
-  denominator,
-  max,
   chartMode,
 }: ParetoChartProps) => {
   if (chartMode !== "editable") throw Error("Component not editable when it is expected to be so");
@@ -29,6 +27,7 @@ const ParetoChart = ({
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
 
+  const max = Math.max(1, ...data.map((datum) => datum.value));
   console.log(
     "To be implemented",
     canAddOption,
@@ -36,7 +35,6 @@ const ParetoChart = ({
     isCorrect,
     handleOptionDragEnd,
     answerSettings,
-    denominator,
   );
 
   const sorted = [...data].sort((a, b) => b.value - a.value);

@@ -85,8 +85,6 @@ const PieChart = ({
   renderMenu,
   editor,
   data,
-  denominator,
-  max,
   displayAsPercentage,
   chartMode,
   animateOnMount = false,
@@ -107,15 +105,7 @@ const PieChart = ({
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
 
-  console.log(
-    "To be implemented",
-    canAddOption,
-    addOption,
-    isCorrect,
-    handleOptionDragEnd,
-    denominator,
-    max,
-  );
+  console.log("To be implemented", canAddOption, addOption, isCorrect, handleOptionDragEnd);
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
 

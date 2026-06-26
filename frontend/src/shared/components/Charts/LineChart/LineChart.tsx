@@ -13,8 +13,6 @@ const LineChart = ({
   renderMenu,
   editor,
   data,
-  denominator,
-  max,
   displayAsPercentage,
   chartMode,
 }: LineChartProps) => {
@@ -22,6 +20,8 @@ const LineChart = ({
   const { question, canAddOption, addOption, isCorrect, handleOptionDragEnd } = editor;
   if (question == null) return <p> no question</p>;
 
+  const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
+  const max = Math.max(1, ...data.map((datum) => datum.value));
   const span = Math.max(1, data.length - 1);
 
   const points = data.map((datum, i) => {

@@ -19,11 +19,7 @@ export interface ChartProps {
   // into the editor for their data — that inversion is what lets the same
   // component render an author preview and a live-results board.
   data: ChartDatum[];
-  /** Sum of all values — the share-% denominator. */
-  denominator: number;
-  /** Largest value — the bar/line/dot scaling basis. */
-  max: number;
-  /** Print each value's share of the denominator as a percentage. */
+  /** Print each value's share of the total as a percentage. */
   displayAsPercentage: boolean;
   caption?: string;
   animateOnMount?: boolean;
