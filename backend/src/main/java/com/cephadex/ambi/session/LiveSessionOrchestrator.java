@@ -3,9 +3,12 @@ package com.cephadex.ambi.session;
 import java.time.Instant;
 
 import com.cephadex.ambi.presentation.deck.Deck;
+import com.cephadex.ambi.presentation.deck.Settings;
+import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.event.EventPublisher;
+import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
@@ -200,21 +203,16 @@ public class LiveSessionOrchestrator {
 
     /**
      * Opens {@code slideId} for submissions, clearing any prior round's tallies.
+     * The initial phase comes from the slide's {@link ResultsDisplayMode}:
+     * {@code IMMEDIATE} opens live ({@link RoundPhase#SUBMIT_LIVE}), everything else
+     * opens hidden ({@link RoundPhase#SUBMIT}). Publishes {@code RoundStarted}.
      *
-     * <p>TODO(Claude): add a state guard (open-decisions F4) — reject/no-op if a
-     * round is already open on a different slide — and publish the round-open
-     * event. Prefer reaching a round through {@link #advance}/{@link #goTo} so the
-     * slide is validated against the snapshot.
+     * <p>TODO(Claude): add a state guard (open-decisions F4) — reject if a round is
+     * already open on a different slide. Prefer reaching a round through
+     * {@link #advance}/{@link #goTo} so the slide is validated against the snapshot.
      */
     public void startRound(String sessionId, String slideId) {
-        locks.withLock(sessionId, () -> {
-            LiveRoundState current = stateStore.load(sessionId).orElseGet(LiveRoundState::idle);
-            tallyStore.clear(sessionId, slideId);
-            stateStore.save(sessionId, current.startedRound(slideId, Instant.now()));
-            // TODO(Claude): publish RoundOpened once the slide is resolvable from the
-            // deck snapshot (navigation, B3): publisher.publish(saved.publicId(),
-            // SessionEvents.roundOpened(saved, slide)). The SlideView needs the Slide.
-        });
+        openRound(sessionId, slideId, false);
     }
 
     /**
@@ -228,71 +226,141 @@ public class LiveSessionOrchestrator {
     public void submitAnswer(String sessionId, String slideId, String participantId, AnswerPayload payload) {
         // TODO(Claude): build Answer, answerStore.submit, derive option/choice key
         // via the shared helper, tallyStore.increment, publisher.publish(live tally).
-        // Reject if the round isn't in SUBMIT for this slide.
+        // Reject unless the current phase acceptsSubmissions() for this slide.
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
     /**
-     * Closes submissions on the current round: SUBMIT → REVEAL_RESPONSES, so the
-     * collected answers/tally can be shown before scoring.
+     * Closes submissions on the current round, <strong>preserving what's on
+     * display</strong>: a hidden round ({@code SUBMIT}) locks to {@code LOCKED}
+     * (submissions stopped, nothing revealed); a live round ({@code SUBMIT_LIVE})
+     * closes to {@code REVEAL_RESPONSES}. Idempotent — a no-op if already closed.
+     * Publishes {@code SubmissionsClosed}.
      *
      * <p>TODO(Claude): on close, flush the round's answers to Mongo (needs the real
-     * AnswerRepository — E1), score the round inline under the lock via
-     * {@code RoundScorer.score(...)} resolving points with
-     * {@code SlideSettings.resolvePoints(deckDefaults)} and gathering participants
-     * by roster id (E4), then hand persistence to {@code RoundResultProjector}
-     * (E2). Make scoring idempotent so a double-close doesn't double-award (F4/F2).
-     * Then publish the responses-revealed event.
+     * AnswerRepository — E1) and score the round via {@code RoundScorer.score(...)}
+     * (resolving points with {@code SlideSettings.resolvePoints}, gathering
+     * participants by roster id — E4), then hand persistence to
+     * {@code RoundResultProjector} (E2). The scored {@code ResultsRevealed} event is
+     * published later by {@link #revealResults}.
      */
     public void closeSubmissions(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> stateStore.load(sessionId).ifPresent(current -> {
-            LiveRoundState revealed = current.withPhase(RoundPhase.REVEAL_RESPONSES);
-            stateStore.save(sessionId, revealed);
-            if (revealed.publicId() != null) {
-                publisher.publish(revealed.publicId(), SessionEvents.responsesRevealed(
-                        slideId, RoundPhase.REVEAL_RESPONSES, tallyStore.tally(sessionId, slideId)));
+            if (current.phase().isClosed()) {
+                return; // already closed — idempotent
+            }
+            // Preserve display across the close: live → responses, hidden → locked.
+            RoundPhase closedPhase = current.phase().showsResponses()
+                    ? RoundPhase.REVEAL_RESPONSES
+                    : RoundPhase.LOCKED;
+            LiveRoundState closed = current.withPhase(closedPhase);
+            stateStore.save(sessionId, closed);
+            if (closed.publicId() != null) {
+                publisher.publish(closed.publicId(),
+                        SessionEvents.submissionsClosed(slideId, closedPhase, tallyStore.tally(sessionId, slideId)));
             }
         }));
-        // TODO(Claude): before the reveal — flush answers to Mongo, score the round, and
-        // hand persistence to RoundResultProjector (see method javadoc). The scored
-        // ResultsRevealed event is published later by revealResults.
     }
 
     /**
-     * Reveals the scored results: REVEAL_RESPONSES → REVEAL_RESULTS, then
-     * publishes.
-     *
-     * <p>If the open slide has a {@link Slide#getParentId()} this is a follow-up
-     * child round: the combined results aggregate the parent's and the child's
-     * {@code RoundResult}s (both resolvable from the deck snapshot + persisted
-     * results, no extra state carried). A slide that has a {@code childId} must not
-     * reach results directly — {@link #advance} routes its reveal into the child
-     * round first (open-decisions B3).
-     *
-     * <p>TODO(Claude): guard the parent→child rule, assemble combined results,
-     * publish; flag the terminal round so the client can show the final podium in
-     * place of a session-level results status.
+     * Shows the response distribution. While submissions are open this enables live
+     * results ({@code SUBMIT → SUBMIT_LIVE}); after a hidden lock it reveals them
+     * ({@code LOCKED → REVEAL_RESPONSES}). Idempotent — a no-op if responses are
+     * already showing. Publishes {@code ResponsesRevealed}. Never exposes the answer
+     * key (that is results, and requires {@link #revealResults}).
      */
-    public void revealResults(String sessionId, String slideId) {
-        // TODO(Claude): withLock → load, withPhase(REVEAL_RESULTS), save; assemble
-        // combined results for follow-ups; publisher.publish(...).
-        throw new UnsupportedOperationException("Not implemented yet");
+    public void revealResponses(String sessionId, String slideId) {
+        locks.withLock(sessionId, () -> stateStore.load(sessionId).ifPresent(current -> {
+            if (current.phase().showsResponses()) {
+                return; // already showing — idempotent
+            }
+            RoundPhase next = current.phase().acceptsSubmissions()
+                    ? RoundPhase.SUBMIT_LIVE
+                    : RoundPhase.REVEAL_RESPONSES;
+            LiveRoundState updated = current.withPhase(next);
+            stateStore.save(sessionId, updated);
+            if (updated.publicId() != null) {
+                publisher.publish(updated.publicId(),
+                        SessionEvents.responsesRevealed(slideId, next, tallyStore.tally(sessionId, slideId)));
+            }
+        }));
     }
 
-    /** Reopens {@code slideId} from scratch — fresh start time, tallies cleared. */
-    public void restartRound(String sessionId, String slideId) {
-        locks.withLock(sessionId, () -> {
-            LiveRoundState current = stateStore.load(sessionId).orElseGet(LiveRoundState::idle);
-            tallyStore.clear(sessionId, slideId);
-            LiveRoundState restarted = current.startedRound(slideId, Instant.now());
-            stateStore.save(sessionId, restarted);
-            if (restarted.publicId() != null) {
-                publisher.publish(restarted.publicId(),
-                        SessionEvents.roundRestarted(slideId, RoundPhase.SUBMIT, restarted.roundStartedAt()));
+    /**
+     * Reveals the scored results: → {@code REVEAL_RESULTS}.
+     *
+     * <p><strong>Guarded:</strong> submissions must be closed first — revealing
+     * scored results (which expose the correct answer) while a round is still open
+     * is rejected, so the answer key can't leak to players still answering.
+     *
+     * <p>For a follow-up child round ({@link Slide#getParentId()} present) the
+     * combined parent+child results are assembled from the deck snapshot + persisted
+     * results; a slide with a {@code childId} reveals into its child first via
+     * {@link #advance} (open-decisions B3).
+     *
+     * <p>TODO(Claude): score (flush answers, {@code RoundScorer}, persist via
+     * {@code RoundResultProjector}) and publish {@code ResultsRevealed} with the
+     * combined results + terminal flag. The phase transition and the
+     * results-require-closed guard are done here.
+     */
+    public void revealResults(String sessionId, String slideId) {
+        locks.withLock(sessionId, () -> stateStore.load(sessionId).ifPresent(current -> {
+            if (!current.phase().isClosed()) {
+                throw new IllegalStateException(
+                        "cannot reveal results while submissions are open (phase " + current.phase() + ")");
             }
-            // TODO(Claude): also clear the round's answers and make re-scoring
-            // idempotent (overwrite the RoundResult — F2).
+            stateStore.save(sessionId, current.withPhase(RoundPhase.REVEAL_RESULTS));
+            // TODO(Claude): score + persist + publish ResultsRevealed (see javadoc).
+        }));
+    }
+
+    /** Reopens {@code slideId} from scratch — fresh start time, answers and tallies cleared. */
+    public void restartRound(String sessionId, String slideId) {
+        openRound(sessionId, slideId, true);
+    }
+
+    /**
+     * Shared open/reopen path. Resolves the slide and its initial phase from the
+     * deck snapshot, clears the round's tally (and answers on a restart), saves the
+     * fresh {@link LiveRoundState}, and publishes {@code RoundStarted} (open) or
+     * {@code RoundRestarted} (restart).
+     */
+    private void openRound(String sessionId, String slideId, boolean restart) {
+        LiveSession session = repo.findById(sessionId)
+                .orElseThrow(() -> new IllegalStateException("session not found: " + sessionId));
+        Slide slide = session.getDeck().findSlide(slideId)
+                .orElseThrow(() -> new IllegalArgumentException("slide not in deck snapshot: " + slideId));
+        RoundPhase phase = initialPhaseFor(session, slide);
+        locks.withLock(sessionId, () -> {
+            LiveRoundState current = stateStore.load(sessionId)
+                    .orElseGet(() -> LiveRoundState.idle(session.getPublicId()));
+            tallyStore.clear(sessionId, slideId);
+            if (restart) {
+                answerStore.clear(sessionId, slideId);
+            }
+            LiveRoundState started = current.startedRound(slideId, Instant.now(), phase);
+            stateStore.save(sessionId, started);
+            SessionEvent event = restart
+                    ? SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt())
+                    : SessionEvents.roundStarted(started, slide);
+            publisher.publish(session.getPublicId(), event);
         });
+    }
+
+    /**
+     * The phase a round opens in, from the slide's resolved
+     * {@link ResultsDisplayMode}: {@code IMMEDIATE} → live, everything else hidden.
+     */
+    private RoundPhase initialPhaseFor(LiveSession session, Slide slide) {
+        Settings.AnswerSettings deckDefaults = session.getDeck().getSettings() == null
+                ? null
+                : session.getDeck().getSettings().answerSettings();
+        Settings.SlideSettings slideSettings = slide.getSettings();
+        Settings.AnswerSettings answer = slideSettings == null
+                ? deckDefaults
+                : slideSettings.resolveAnswer(deckDefaults);
+        ResultsDisplayMode mode = answer == null ? null : answer.displayResultsMode();
+        return mode == ResultsDisplayMode.IMMEDIATE ? RoundPhase.SUBMIT_LIVE : RoundPhase.SUBMIT;
     }
 
     // ── Navigation (server-owned) ────────────────────────────────────────────

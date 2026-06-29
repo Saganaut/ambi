@@ -60,12 +60,12 @@ class SessionEventsTest {
     }
 
     @Test
-    void roundOpenedEventCarriesNoAnswerKey() {
+    void roundStartedEventCarriesNoAnswerKey() {
         LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.now());
 
-        String json = codec.serialize(SessionEvents.roundOpened(state, mcqSlide()));
+        String json = codec.serialize(SessionEvents.roundStarted(state, mcqSlide()));
 
-        assertThat(json).contains("RoundOpened").contains("opt-a");
+        assertThat(json).contains("RoundStarted").contains("opt-a");
         assertThat(json).doesNotContain("correctOptionIds");
     }
 

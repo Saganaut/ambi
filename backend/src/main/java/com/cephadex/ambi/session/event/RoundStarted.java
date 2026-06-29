@@ -11,6 +11,6 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * {@link SlideView} (answer key stripped) and the start time used for response
  * timing.
  */
-public record RoundOpened(String slideId, SlideView slide, RoundPhase phase, Instant roundStartedAt)
+public record RoundStarted(String slideId, SlideView slide, RoundPhase phase, Instant roundStartedAt)
         implements SessionEvent {
 }

@@ -80,6 +80,13 @@ public final class Settings {
       }
       return deckDefaults;
     }
+
+    public AnswerSettings resolveAnswer(AnswerSettings deckDefaults) {
+      if (this.answerSettings != null) {
+        return this.answerSettings;
+      }
+      return deckDefaults;
+    }
   }
 
 }

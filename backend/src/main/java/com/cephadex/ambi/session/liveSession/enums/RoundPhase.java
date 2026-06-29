@@ -1,21 +1,57 @@
 package com.cephadex.ambi.session.liveSession.enums;
 
 /**
- * The phase of a single live round, authoritative in Redis ({@code LiveRoundState})
- * and mirrored onto the {@code LiveSession} document via {@code recordPhase}.
+ * The phase of a single live round. A round has two independent concerns —
+ * whether submissions are still accepted, and what participants are shown — but
+ * they are modelled as one enumerated enum (the valid combinations) rather than
+ * two fields. The {@code is*}/{@code shows*} predicates below are the single home
+ * for the two derived axes, so guards, the event mapper, and clients read intent
+ * instead of matching values.
  *
- * <p>A standalone slide runs {@code SUBMIT → REVEAL_RESPONSES → REVEAL_RESULTS}.
- * A linked parent/child slide pair runs the parent through
- * {@code SUBMIT → REVEAL_RESPONSES}, advances into the child round
- * ({@code SUBMIT → REVEAL_RESPONSES}), and only then shows the combined
- * {@code REVEAL_RESULTS} — a parent slide is never taken straight to results
- * (see {@code Slide.parentId/childId}).
+ * <table>
+ * <caption>submission × display</caption>
+ * <tr><th>value</th><th>submissions</th><th>display</th></tr>
+ * <tr><td>{@code SUBMIT}</td><td>open</td><td>hidden</td></tr>
+ * <tr><td>{@code SUBMIT_LIVE}</td><td>open</td><td>responses (live distribution)</td></tr>
+ * <tr><td>{@code LOCKED}</td><td>closed</td><td>hidden</td></tr>
+ * <tr><td>{@code REVEAL_RESPONSES}</td><td>closed</td><td>responses</td></tr>
+ * <tr><td>{@code REVEAL_RESULTS}</td><td>closed</td><td>scored results + answer key</td></tr>
+ * </table>
+ *
+ * <p>Invariant: scored results require closed submissions — there is no
+ * open+results value, and the orchestrator rejects revealing results while open,
+ * so the answer key can never leak to players who are still answering. Live mode
+ * ({@code SUBMIT_LIVE}) shows only the response distribution, never the key.
  */
 public enum RoundPhase {
-    /** The round is open and taking submissions. */
+    /** Open and taking submissions; nothing shown to participants. */
     SUBMIT,
-    /** Submissions are closed; participants' answers/tally are shown, not yet scored. */
+    /** Open and taking submissions while the live response distribution is shown (no answer key). */
+    SUBMIT_LIVE,
+    /** Submissions closed; nothing revealed yet (locked, awaiting a reveal). */
+    LOCKED,
+    /** Submissions closed; the final response distribution is shown, not yet scored. */
     REVEAL_RESPONSES,
-    /** The scored results are shown (combined parent+child results for a follow-up). */
-    REVEAL_RESULTS
+    /** Submissions closed; the scored results and correct answer are shown (combined parent+child for a follow-up). */
+    REVEAL_RESULTS;
+
+    /** Whether participants may still submit/vote in this phase. */
+    public boolean acceptsSubmissions() {
+        return this == SUBMIT || this == SUBMIT_LIVE;
+    }
+
+    /** Whether the response distribution is visible (live or final, including alongside results). */
+    public boolean showsResponses() {
+        return this == SUBMIT_LIVE || this == REVEAL_RESPONSES || this == REVEAL_RESULTS;
+    }
+
+    /** Whether the scored results / correct answer are visible. */
+    public boolean showsResults() {
+        return this == REVEAL_RESULTS;
+    }
+
+    /** Whether submissions are closed in this phase. */
+    public boolean isClosed() {
+        return !acceptsSubmissions();
+    }
 }

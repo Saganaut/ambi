@@ -21,19 +21,20 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = PlayStarted.class, name = "PlayStarted"),
+        @JsonSubTypes.Type(value = LiveSessionStarted.class, name = "LiveSessionStarted"),
         @JsonSubTypes.Type(value = ParticipantJoined.class, name = "ParticipantJoined"),
         @JsonSubTypes.Type(value = ParticipantLeft.class, name = "ParticipantLeft"),
         @JsonSubTypes.Type(value = PresenceChanged.class, name = "PresenceChanged"),
-        @JsonSubTypes.Type(value = RoundOpened.class, name = "RoundOpened"),
+        @JsonSubTypes.Type(value = RoundStarted.class, name = "RoundStarted"),
         @JsonSubTypes.Type(value = TallyUpdated.class, name = "TallyUpdated"),
+        @JsonSubTypes.Type(value = SubmissionsClosed.class, name = "SubmissionsClosed"),
         @JsonSubTypes.Type(value = ResponsesRevealed.class, name = "ResponsesRevealed"),
         @JsonSubTypes.Type(value = ResultsRevealed.class, name = "ResultsRevealed"),
         @JsonSubTypes.Type(value = RoundRestarted.class, name = "RoundRestarted"),
-        @JsonSubTypes.Type(value = SessionEnded.class, name = "SessionEnded"),
-        @JsonSubTypes.Type(value = SessionCancelled.class, name = "SessionCancelled")
+        @JsonSubTypes.Type(value = LiveSessionEnded.class, name = "LiveSessionEnded"),
+        @JsonSubTypes.Type(value = LiveSessionCancelled.class, name = "LiveSessionCancelled")
 })
 public sealed interface SessionEvent
-        permits PlayStarted, ParticipantJoined, ParticipantLeft, PresenceChanged, RoundOpened, TallyUpdated,
-        ResponsesRevealed, ResultsRevealed, RoundRestarted, SessionEnded, SessionCancelled {
+        permits LiveSessionStarted, ParticipantJoined, ParticipantLeft, PresenceChanged, RoundStarted, TallyUpdated,
+        SubmissionsClosed, ResponsesRevealed, ResultsRevealed, RoundRestarted, LiveSessionEnded, LiveSessionCancelled {
 }

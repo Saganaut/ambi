@@ -47,9 +47,13 @@ public record LiveRoundState(
         return new LiveRoundState(publicId, RoundPhase.SUBMIT, null, null);
     }
 
-    /** Returns a copy that has opened {@code slideId} at {@code startedAt} in the SUBMIT phase. */
-    public LiveRoundState startedRound(String slideId, Instant startedAt) {
-        return new LiveRoundState(publicId, RoundPhase.SUBMIT, slideId, startedAt);
+    /**
+     * Returns a copy that has opened {@code slideId} at {@code startedAt} in the
+     * given initial phase — {@link RoundPhase#SUBMIT} normally, or
+     * {@link RoundPhase#SUBMIT_LIVE} when the slide's display mode opens live.
+     */
+    public LiveRoundState startedRound(String slideId, Instant startedAt, RoundPhase phase) {
+        return new LiveRoundState(publicId, phase, slideId, startedAt);
     }
 
     /** Returns a copy switched to the given phase, leaving slide/timing intact. */

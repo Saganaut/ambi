@@ -32,8 +32,8 @@ public final class SessionEvents {
     private SessionEvents() {
     }
 
-    public static PlayStarted playStarted(LiveSession session) {
-        return new PlayStarted(session.getStatus(), session.getPhase());
+    public static LiveSessionStarted liveSessionStarted(LiveSession session) {
+        return new LiveSessionStarted(session.getStatus(), session.getPhase());
     }
 
     public static ParticipantJoined participantJoined(Participant participant, List<String> roster) {
@@ -49,13 +49,24 @@ public final class SessionEvents {
     }
 
     /** Round opened on {@code slide}; reads the slide id/phase/start time from the round state. */
-    public static RoundOpened roundOpened(LiveRoundState state, Slide slide) {
-        return new RoundOpened(state.currentSlideId(), com.cephadex.ambi.session.event.dto.SlideView.from(slide),
+    public static RoundStarted roundStarted(LiveRoundState state, Slide slide) {
+        return new RoundStarted(state.currentSlideId(), com.cephadex.ambi.session.event.dto.SlideView.from(slide),
                 state.phase(), state.roundStartedAt());
     }
 
     public static TallyUpdated tallyUpdated(String slideId, Map<String, Integer> optionCounts) {
         return new TallyUpdated(slideId, Map.copyOf(optionCounts));
+    }
+
+    /**
+     * Submissions closed. Includes the tally only when the resulting phase shows
+     * responses ({@code REVEAL_RESPONSES}); a hidden {@code LOCKED} close carries an
+     * empty map so the distribution isn't leaked while still concealed.
+     */
+    public static SubmissionsClosed submissionsClosed(String slideId, RoundPhase phase,
+            Map<String, Integer> optionCounts) {
+        Map<String, Integer> counts = phase.showsResponses() ? Map.copyOf(optionCounts) : Map.of();
+        return new SubmissionsClosed(slideId, phase, counts);
     }
 
     public static ResponsesRevealed responsesRevealed(String slideId, RoundPhase phase,
@@ -84,12 +95,12 @@ public final class SessionEvents {
         return new RoundRestarted(slideId, phase, roundStartedAt);
     }
 
-    public static SessionEnded sessionEnded(List<Participant> roster) {
-        return new SessionEnded(scoreboard(roster));
+    public static LiveSessionEnded liveSessionEnded(List<Participant> roster) {
+        return new LiveSessionEnded(scoreboard(roster));
     }
 
-    public static SessionCancelled sessionCancelled(String reason) {
-        return new SessionCancelled(reason);
+    public static LiveSessionCancelled liveSessionCancelled(String reason) {
+        return new LiveSessionCancelled(reason);
     }
 
     /** Sorts the roster by points (desc) and assigns 1-based ranks. */
