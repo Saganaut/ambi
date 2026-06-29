@@ -6,12 +6,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.session.RoomCode;
-import com.cephadex.ambi.session.liveSession.enums.DeckRunLifecycle;
+import com.cephadex.ambi.session.liveSession.enums.LiveSessionLifecycle;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 
 import lombok.Getter;
@@ -50,16 +51,20 @@ public class LiveSession {
     @Id
     private String id;
 
+    @Indexed(unique=true)
+    @Field("pubic_id")
     private String publicId;
 
+    @Indexed(unique=true)
     @Field("room_code")
     private String roomCode;
 
-    @Field("invite_token")
-    private String inviteToken;
+
+    // @Field("invite_token")
+    // private String inviteToken;
 
     @Field("status")
-    private DeckRunLifecycle status = DeckRunLifecycle.LOBBY;
+    private LiveSessionLifecycle status = LiveSessionLifecycle.LOBBY;
 
     @Field("phase")
     private RoundPhase phase = RoundPhase.SUBMIT;
@@ -80,7 +85,7 @@ public class LiveSession {
     }
 
     /**
-     * Opens a brand-new session in the {@link DeckRunLifecycle#LOBBY lobby}.
+     * Opens a brand-new session in the {@link LiveSessionLifecycle#LOBBY lobby}.
      *
      * <p>
      * Mints a fresh {@link #publicId}, a human-friendly {@link #roomCode} (see
@@ -103,8 +108,8 @@ public class LiveSession {
         LiveSession s = new LiveSession();
         s.publicId = UUID.randomUUID().toString();
         s.roomCode = RoomCode.generate().value();
-        s.inviteToken = UUID.randomUUID().toString();
-        s.status = DeckRunLifecycle.LOBBY;
+        // s.inviteToken = UUID.randomUUID().toString();
+        s.status = LiveSessionLifecycle.LOBBY;
         s.phase = RoundPhase.SUBMIT;
         s.hostParticipantId = hostParticipantId;
         s.deck = deck;
@@ -170,61 +175,43 @@ public class LiveSession {
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
-    // Transitions over DeckRunLifecycle. Each guards its precondition so an
+    // Transitions over LiveSessionLifecycle. Each guards its precondition so an
     // out-of-order call (a double-clicked start, a finish after cancel) fails
     // loudly rather than corrupting the run.
 
     /** Whether the session is still gathering players in the lobby. */
     public boolean isInLobby() {
-        return status == DeckRunLifecycle.LOBBY;
+        return status == LiveSessionLifecycle.LOBBY;
     }
 
-    /** Whether the session is actively running (in play or showing results). */
+    /**
+     * Whether the session is actively running. There is no distinct results
+     * status — the end-of-round/end-of-game results view is a {@code RoundPhase}
+     * concern while the session stays {@link LiveSessionLifecycle#IN_PROGRESS}.
+     */
     public boolean isLive() {
-        return status == DeckRunLifecycle.IN_PROGRESS || status == DeckRunLifecycle.RESULTS;
+        return status == LiveSessionLifecycle.IN_PROGRESS;
     }
 
     /** Whether the session has reached a terminal state (finished or cancelled). */
     public boolean isTerminal() {
-        return status == DeckRunLifecycle.FINISHED || status == DeckRunLifecycle.CANCELLED;
+        return status == LiveSessionLifecycle.FINISHED || status == LiveSessionLifecycle.CANCELLED;
     }
 
     /**
-     * Starts play: {@link DeckRunLifecycle#LOBBY} → {@link DeckRunLifecycle#IN_PROGRESS},
+     * Starts play: {@link LiveSessionLifecycle#LOBBY} → {@link LiveSessionLifecycle#IN_PROGRESS},
      * opening on the {@link RoundPhase#SUBMIT} phase.
      *
      * @throws IllegalStateException if the session is not in the lobby
      */
     public void start() {
-        requireStatus(DeckRunLifecycle.LOBBY, "start");
-        this.status = DeckRunLifecycle.IN_PROGRESS;
+        requireStatus(LiveSessionLifecycle.LOBBY, "start");
+        this.status = LiveSessionLifecycle.IN_PROGRESS;
         this.phase = RoundPhase.SUBMIT;
     }
 
     /**
-     * Moves a round into its results view:
-     * {@link DeckRunLifecycle#IN_PROGRESS} → {@link DeckRunLifecycle#RESULTS}.
-     *
-     * @throws IllegalStateException if the session is not in progress
-     */
-    public void showResults() {
-        requireStatus(DeckRunLifecycle.IN_PROGRESS, "show results");
-        this.status = DeckRunLifecycle.RESULTS;
-    }
-
-    /**
-     * Returns to play for the next round:
-     * {@link DeckRunLifecycle#RESULTS} → {@link DeckRunLifecycle#IN_PROGRESS}.
-     *
-     * @throws IllegalStateException if the session is not showing results
-     */
-    public void resume() {
-        requireStatus(DeckRunLifecycle.RESULTS, "resume");
-        this.status = DeckRunLifecycle.IN_PROGRESS;
-    }
-
-    /**
-     * Ends the session normally: → {@link DeckRunLifecycle#FINISHED}. Valid from
+     * Ends the session normally: → {@link LiveSessionLifecycle#FINISHED}. Valid from
      * any non-terminal state.
      *
      * @throws IllegalStateException if the session is already terminal
@@ -233,11 +220,11 @@ public class LiveSession {
         if (isTerminal()) {
             throw new IllegalStateException("cannot finish a session in status " + status);
         }
-        this.status = DeckRunLifecycle.FINISHED;
+        this.status = LiveSessionLifecycle.FINISHED;
     }
 
     /**
-     * Cancels the session: → {@link DeckRunLifecycle#CANCELLED}. Valid from any
+     * Cancels the session: → {@link LiveSessionLifecycle#CANCELLED}. Valid from any
      * non-terminal state. Use this rather than {@link #endLiveSession()} when the
      * run is being abandoned (host left, never started, error) instead of
      * completing.
@@ -248,7 +235,7 @@ public class LiveSession {
         if (isTerminal()) {
             throw new IllegalStateException("cannot cancel a session in status " + status);
         }
-        this.status = DeckRunLifecycle.CANCELLED;
+        this.status = LiveSessionLifecycle.CANCELLED;
     }
 
     /**
@@ -271,16 +258,16 @@ public class LiveSession {
     // ── Identity ─────────────────────────────────────────────────────────────
 
     /** Rotates the {@link #inviteToken}, invalidating any previously shared link. */
-    public void regenerateInviteToken() {
-        this.inviteToken = UUID.randomUUID().toString();
-    }
+    // public void regenerateInviteToken() {
+    //     this.inviteToken = UUID.randomUUID().toString();
+    // }
 
     /** Rotates the {@link #roomCode} (uniqueness-blind — see {@link RoomCode#generate()}). */
     public void regenerateRoomCode() {
         this.roomCode = RoomCode.generate().value();
     }
 
-    private void requireStatus(DeckRunLifecycle expected, String action) {
+    private void requireStatus(LiveSessionLifecycle expected, String action) {
         if (status != expected) {
             throw new IllegalStateException(
                     "cannot " + action + " a session in status " + status + " (expected " + expected + ")");

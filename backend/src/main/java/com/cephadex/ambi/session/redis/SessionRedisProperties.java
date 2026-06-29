@@ -22,6 +22,7 @@ public class SessionRedisProperties {
     private final Tally tally = new Tally();
     private final Answers answers = new Answers();
     private final Presence presence = new Presence();
+    private final Events events = new Events();
 
     @Data
     public static class Lock {
@@ -91,5 +92,19 @@ public class SessionRedisProperties {
          * the state TTL. Refreshed on every write.
          */
         private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class Events {
+        /**
+         * Redis pub/sub channel that carries session events across app instances. The
+         * orchestrator publishes here via {@code EventBroadcaster}; a
+         * {@code LiveSessionStompRelay} on every instance subscribes and re-broadcasts
+         * each event to its locally-connected STOMP subscribers. A single shared
+         * channel (not one per session) — the envelope carries the {@code publicId} the
+         * relay routes on, so every instance receives every event and forwards only to
+         * its own subscribers.
+         */
+        private String channel = "ambi:session:events";
     }
 }

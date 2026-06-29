@@ -58,7 +58,7 @@ class SessionStateStoreTest {
     @Test
     void saveThenLoadRoundTrips() {
         LiveRoundState state = new LiveRoundState(
-                RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-05-30T12:00:00Z"));
+                "public-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-05-30T12:00:00Z"));
 
         stateStore.save(SID, state);
 

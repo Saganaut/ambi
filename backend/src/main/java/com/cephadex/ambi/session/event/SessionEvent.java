@@ -1,0 +1,39 @@
+package com.cephadex.ambi.session.event;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+/**
+ * Anything broadcast to a live session's subscribers (host + players) over the
+ * per-session STOMP topic. A sealed hierarchy of immutable records, each already
+ * <strong>participant-safe</strong>: participants are referenced by
+ * {@code participantId} (never {@code userId}), and no payload carries an answer
+ * key, speaker notes, or other authoring secrets — that stripping happens in
+ * {@code SessionEvents} when the event is built.
+ *
+ * <p>Polymorphism uses <strong>Jackson 2</strong> ({@code com.fasterxml.jackson})
+ * with a {@code "type"} discriminator, matching {@code RedisJsonCodec} (the
+ * Jackson-2 mapper these events round-trip through on the Redis fan-out hop) and
+ * the configured STOMP message converter. The discriminator name is the simple
+ * class name, so a client switches on {@code event.type}. Frontend note: these
+ * payloads are not part of the OpenAPI schema, so the union is typed by hand on
+ * the client.
+ */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = PlayStarted.class, name = "PlayStarted"),
+        @JsonSubTypes.Type(value = ParticipantJoined.class, name = "ParticipantJoined"),
+        @JsonSubTypes.Type(value = ParticipantLeft.class, name = "ParticipantLeft"),
+        @JsonSubTypes.Type(value = PresenceChanged.class, name = "PresenceChanged"),
+        @JsonSubTypes.Type(value = RoundOpened.class, name = "RoundOpened"),
+        @JsonSubTypes.Type(value = TallyUpdated.class, name = "TallyUpdated"),
+        @JsonSubTypes.Type(value = ResponsesRevealed.class, name = "ResponsesRevealed"),
+        @JsonSubTypes.Type(value = ResultsRevealed.class, name = "ResultsRevealed"),
+        @JsonSubTypes.Type(value = RoundRestarted.class, name = "RoundRestarted"),
+        @JsonSubTypes.Type(value = SessionEnded.class, name = "SessionEnded"),
+        @JsonSubTypes.Type(value = SessionCancelled.class, name = "SessionCancelled")
+})
+public sealed interface SessionEvent
+        permits PlayStarted, ParticipantJoined, ParticipantLeft, PresenceChanged, RoundOpened, TallyUpdated,
+        ResponsesRevealed, ResultsRevealed, RoundRestarted, SessionEnded, SessionCancelled {
+}

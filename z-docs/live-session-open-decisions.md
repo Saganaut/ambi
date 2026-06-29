@@ -13,9 +13,59 @@ Each item below states the decision, why it matters, and a **Suggestion**. The
 suggestions are starting positions, not settled ADRs — promote the ones we adopt
 into `decisions/`.
 
-> Scope note: this is a learning project (MongoDB / Java / Spring Boot). Several
-> suggestions deliberately favour "ship the simplest correct thing for v1, leave
-> a clean seam" over full generality.
+---
+
+## Resolved (2026-06-29) — orchestrator target surface
+
+Decisions locked this session and reflected in code:
+
+- **Session open vs play are two methods.** `createSession(hostUserId, deck)`
+  opens the lobby; `beginPlay(sessionId)` starts play (LOBBY → IN_PROGRESS). The
+  old `startLiveSession` (seed idle Redis state) folds into `createSession`.
+- **Two reveal phases.** `RoundPhase` split `REVEAL` →
+  `REVEAL_RESPONSES` (answers/tally shown, unscored) and `REVEAL_RESULTS`
+  (scored). Enum updated.
+- **Follow-up rounds via parent/child slides.** A parent reveals its responses,
+  play advances into the linked child round, and the combined `REVEAL_RESULTS`
+  shows both. A parent slide is never taken straight to results. Resolved
+  **statelessly** from `Slide.parentId` on the open slide — nothing extra is
+  carried in `LiveRoundState` (B3 / F2).
+- **Renamed `DeckRunLifecycle` → `LiveSessionLifecycle`** and **dropped its
+  `RESULTS` value** (resolves B2). The end-of-game results view is the last slide
+  sitting in `RoundPhase.REVEAL_RESULTS` while the session stays `IN_PROGRESS`;
+  finishing is the explicit `endLiveSession()` host action.
+  `showResults()`/`resume()` deleted; `isLive()` is now `status == IN_PROGRESS`.
+  **Obligation:** `advance()` and the `SessionEvent` must signal the *terminal*
+  round so the client renders the final podium without a dedicated status.
+- **`EventPublisher` seam built now** (A1). `session/event/EventPublisher` +
+  `SessionEvent` (marker) exist; the orchestrator depends on the interface and
+  publishes after every successful transition. Concrete event records + the
+  multi-instance Redis bridge (A2) land with the transport layer.
+
+### Target method surface (`LiveSessionOrchestrator`)
+
+Stubbed (`UnsupportedOperationException`) with full contracts unless noted *wired*.
+
+| Method | Contract | Ref |
+| --- | --- | --- |
+| `createSession(hostUserId, deck) → LiveSession` | create aggregate + host participant, persist, seed idle Redis, publish | F1 |
+| `beginPlay(sessionId)` | `LiveSession.start()`, publish | — |
+| `endLiveSession(sessionId)` | → FINISHED, clear Redis, publish | E2 |
+| `cancelSession(sessionId)` | → CANCELLED, clear Redis, publish | F5 |
+| `join(roomCode, userId, displayName, avatar, colorTag) → Participant` | create participant, roster + presence, issue token, publish | C2, C4 |
+| `leave(sessionId, participantId)` | roster + presence removal, publish | C3 |
+| `reconnect(sessionId, participantId) → Participant` | re-identify (needs `findByParticipantId`), mark online | C2 |
+| `heartbeat(sessionId, participantId)` | refresh presence, debounced | F5 |
+| `startRound(sessionId, slideId)` | *wired* — open SUBMIT, clear tally; +state guard TODO | F4 |
+| `submitAnswer(sessionId, slideId, participantId, payload)` | `AnswerStore.submit` **and** `TallyStore.increment`, publish tally | D5 |
+| `closeSubmissions(sessionId, slideId)` | *wired (phase only)* — SUBMIT → REVEAL_RESPONSES; +flush/score/persist TODO (replaces `endRound`) | E1, E4 |
+| `revealResults(sessionId, slideId)` | REVEAL_RESPONSES → REVEAL_RESULTS; combined results for follow-ups; signal terminal | B2, B3 |
+| `restartRound(sessionId, slideId)` | *wired* — fresh start, tally cleared; +answer clear / idempotent re-score TODO | F2 |
+| `advance(sessionId) → Slide` | server-owned next slide (Lexorank + parent→child), open round, signal terminal | B3 |
+| `goTo(sessionId, slideId)` | validate slideId against snapshot, open round | B3 |
+
+Reserved (deferred): `submitVote` + `RoundPhase.VOTE` (D3); `pauseTimer`/
+`resumeTimer` + `DeadlineScheduler` (A3, decide pause field first).
 
 ---
 
@@ -25,6 +75,7 @@ There is **no controller, service, WebSocket, or event layer** under `session/`.
 Everything that exists is domain + storage. These are the most structural calls.
 
 ### A1. How do clients learn of state changes?
+
 `LiveSessionOrchestrator` mutates Redis but notifies no one. The README lists an
 `EventPublisher`; it doesn't exist. The `spring-websocket` dependency is present
 but (per AGENTS.md) no endpoints are implemented.
@@ -38,6 +89,7 @@ interface, not the transport. Avoid polling — round reveal/scoreboard updates 
 inherently push.
 
 ### A2. Multi-instance event fan-out
+
 The lock README explicitly assumes "two app instances." WebSocket connections are
 pinned to one instance, so a change on instance A must reach subscribers on B.
 
@@ -49,6 +101,7 @@ follow-up — but keep `EventPublisher` as the seam so adding the bridge is a
 one-class change.
 
 ### A3. Timers / `DeadlineScheduler`
+
 Stubbed in the orchestrator; `Round.pauseTimer/resumeTimer` are stubs.
 `LiveRoundState` has `roundStartedAt` but **no deadline, duration, or
 paused-accumulator**.
@@ -66,6 +119,7 @@ so decide pause support **now** even if the timer is deferred.
 ## B. State-model reconciliation (overlapping representations)
 
 ### B1. `Round.java` vs `LiveSessionOrchestrator`
+
 `Round` is a stub (`submitAnswer/submitVote/pauseTimer/restartRound/
 revealRoundResponses/revealRoundResults`), but the orchestrator already owns
 `startRound/endRound/restartRound` against Redis. They overlap.
@@ -78,6 +132,12 @@ orchestrator. Delete `Round.java` (or reduce it to a value/DTO if one is needed
 for the reveal payload).
 
 ### B2. `DeckRunLifecycle.RESULTS` vs `RoundPhase.REVEAL`
+
+> **RESOLVED (2026-06-29):** renamed `DeckRunLifecycle` → `LiveSessionLifecycle`
+> and dropped its `RESULTS` value; `REVEAL_RESULTS` + `FINISHED` cover it. See the
+> [Resolved](#resolved-2026-06-29--orchestrator-target-surface) section.
+
+
 `LiveSession.showResults()/resume()` toggle *status* IN_PROGRESS↔RESULTS, while
 `orchestrator.endRound` toggles *phase* SUBMIT→REVEAL in Redis. Two notions of
 "showing results," and nothing calls `showResults()`.
@@ -91,6 +151,7 @@ slide + FINISHED cover it. Either way, Redis `LiveRoundState` stays authoritativ
 and `LiveSession.recordPhase()` is only a write-back snapshot (see E2).
 
 ### B3. Slide navigation authority
+
 `orchestrator.startRound(sessionId, slideId)` takes an arbitrary slide id. But
 `Slide` has `sortOrder` (Lexorank) and `parentId/childId` with the rule *"if a
 slide has a child we should never go straight to results"* and *"must be
@@ -108,6 +169,7 @@ Lexorank rules as the deck editor.
 ## C. Participant identity (most under-specified)
 
 ### C1. Reuse vs per-session participant
+
 Explicit TODO in `Participant.java`. `findByUserId` + `resetParticipant()` imply
 **reuse**; the per-session model implies fresh instances.
 
@@ -117,6 +179,9 @@ forces `resetParticipant()` semantics. Drop `resetParticipant()` for v1. This
 makes per-session stats, bans, and scores immutable history.
 
 ### C2. The `userId`-stripping contradiction
+
+For this we we want to add a findByParticipantId method
+
 README says `userId` is *stripped while live*, yet `findByUserId` is the only
 lookup — so a reconnecting user can't be found mid-session, and there's no
 re-identification mechanism. Also a security concern (impersonation).
@@ -129,12 +194,14 @@ at join that carries `participantId`; reconnection presents the token. Never
 trust a client-supplied `participantId` without the token/user match.
 
 ### C3. Live source of truth for the roster + scores
+
 README says `Participant` "lives in Redis for the duration," but there is **no
 participant store in Redis** — only `PresenceStore`. Today: `roster` holds ids,
 presence holds connection state, scores live on the Mongo doc.
 
 **Suggestion:** Split cleanly by write pattern (same philosophy as the
 tally/state split already documented):
+
 - **`LiveSession.roster`** (Mongo) = authoritative membership (ids).
 - **`PresenceStore`** (Redis) = volatile connection/heartbeat state.
 - **Scores** = mutated on the `Participant` doc at round close (low frequency, at
@@ -144,6 +211,9 @@ So *don't* add a Redis participant blob; read profile/score from Mongo, liveness
 from presence. If lobby reads become hot, add a denormalised read-model later.
 
 ### C4. Guest vs registered join + room code vs invite token
+
+Yes we only need one code here really. The room code can be used in a URL
+
 `roomCode` (human-typed) and `inviteToken` (link) both exist with rotate methods;
 nothing consumes them.
 
@@ -158,6 +228,7 @@ default, with a deck/`AudienceSettings` flag to restrict to authenticated users.
 ## D. Scoring & game-type scope
 
 ### D1. The grading SEAM is stale — and unblocks scope
+
 `RoundEvaluator.isCorrect()` always returns `false`, with a comment that
 "SlideContent is not yet a field on `Slide`." **It is now** — `Slide.content`
 exists and `McqContent.correctOptionIds` is the answer key. MCQ grading is
@@ -168,6 +239,7 @@ implementable today.
 the stale comment. Treat this as a quick win (see punch list).
 
 ### D2. Which game types ship in v1?
+
 There are ~13 `AnswerPayload` types (Allocation, Drawing, Grid, Matching,
 Ranking, Scales, PlaceOnImage, …) but only MCQ is rendered in `describeChoice`.
 
@@ -179,6 +251,7 @@ subtype (pattern-match switch over the sealed payload hierarchy), not growing
 open-ended/creative types (Drawing, free text) until voting exists (D3).
 
 ### D3. Best-answer & deception are hard-coded off
+
 `AnswerEvaluation.bestAnswer=false`, `deceivedCount=0`; `Round.submitVote` is a
 stub; `RoundPhase` has only `SUBMIT`/`REVEAL` — **no VOTE phase**.
 
@@ -190,6 +263,7 @@ the enum addition consciously — adding a phase later touches the orchestrator 
 every phase switch.
 
 ### D4. `streakBonuses` shape mismatch
+
 Explicit TODO in `RoundScorer`: `PointSettings.streakBonuses` is
 `Map<Integer, StreakMilestone>` but `Participant.awardPoints` takes a `List` —
 so `null` is passed and **streak bonuses never apply**. `awardPoints` also does
@@ -201,6 +275,9 @@ streak length). Change `awardPoints` to take the map and do `map.get(streak)`
 edit. Quick win.
 
 ### D5. Tally double-bookkeeping
+
+This deserves more investigation before making a decision
+
 `TallyStore` is bumped per submission (lock-free `HINCRBY`), but
 `RoundResult.tallyOptions()` *recomputes* counts from outcomes at scoring time —
 two tallies that can disagree. And **nobody currently increments `TallyStore`**:
@@ -220,6 +297,7 @@ in-progress chart, **drop `TallyStore`** and reveal straight from the recomputed
 ## E. Persistence, projection & recovery
 
 ### E1. `AnswerRepository` won't compile as a repository
+
 It's an empty *class*, not an interface extending `MongoRepository` (explicit
 TODO). The Redis→Mongo flush path doesn't exist.
 
@@ -229,11 +307,13 @@ TODO). The Redis→Mongo flush path doesn't exist.
 Mongo at **round close**, inside the lock, before scoring. Quick win.
 
 ### E2. Projectors don't exist
+
 README names `RoundResultProjector` and `SessionLifecycleProjector`; neither is
 built. Nothing calls `recordPhase()`, `showResults()`, participant saves, or the
 Redis `clear()` methods.
 
 **Suggestion:** Implement two thin projectors driven by orchestrator events:
+
 - **`SessionLifecycleProjector`** — persists `LiveSession` status/phase snapshot
   on lifecycle transitions and on join (roster change).
 - **`RoundResultProjector`** — on round close, persists the `RoundResult` +
@@ -242,6 +322,7 @@ Redis `clear()` methods.
 Keep them idempotent (re-running a close shouldn't double-apply — see F2).
 
 ### E3. Recovery story
+
 README claims Redis-failure recovery from Mongo, but mid-round answers live
 **only** in Redis (flush is at round boundaries).
 
@@ -251,6 +332,7 @@ snapshot; in-flight (unsubmitted-to-Mongo) answers for the open round are lost a
 the round restarts. Don't over-engineer continuous answer flushing yet.
 
 ### E4. `endRound` scoring wiring
+
 Big TODO: `endRound` only flips the phase. Scoring needs answers (E1), the
 participants map (C3), resolved `PointSettings`, and the slide from the snapshot.
 
@@ -265,16 +347,15 @@ Mongo by `roster` ids. Revisit async scoring only if it measurably blocks.
 ## F. Operational / correctness
 
 ### F1. Uniqueness indexes missing
+
 `roomCode`/`inviteToken`/`publicId` have **no `@Indexed(unique=true)`** on
 `LiveSession` (Deck has them; LiveSession doesn't). `RoomCode.generate()` is
 "uniqueness-blind" and *requires* a DB index + collision-retry.
 
-**Suggestion:** Add `@Indexed(unique = true)` on `publicId` and `inviteToken`,
-and a **partial unique index on `roomCode` scoped to active (non-terminal)
-sessions** so codes can be recycled after a session ends. Add a retry loop in the
-create path that regenerates on `DuplicateKeyException`. Quick win.
+RESOLVED: removed the invite token for now and made room code and public id unique.
 
 ### F2. Re-run `RoundResult` id collision
+
 `RoundResultId = (sessionId, slideId)`, so `restartRound` **overwrites** the
 prior result; linked parent/child slides may also collide.
 
@@ -284,6 +365,7 @@ double-award participant points. If we later need restart history, add an
 `attempt` to the id. Document the overwrite explicitly.
 
 ### F3. Deck snapshot size
+
 The *entire* `Deck` is frozen into the `LiveSession` document (16MB Mongo limit).
 Images are S3 refs (`AppImage`), so likely fine.
 
@@ -293,6 +375,7 @@ and add a guard/log if a snapshot exceeds a safe threshold (e.g. 8MB). Revisit
 only if real decks approach the limit.
 
 ### F4. Idempotency of host actions
+
 Transitions are lock-guarded but not state-guarded — `startRound` while a round
 is live silently overwrites it.
 
@@ -302,6 +385,7 @@ different slide; `endRound` no-ops if already in REVEAL. Combined with F2's
 idempotent scoring, double-clicks become safe.
 
 ### F5. Capacity & abuse
+
 No max participants, no concurrent-session cap, no rate limits on submit/
 heartbeat, no host-disconnect policy. `AudienceSettings`/`ConnectionStatus` hint
 at this.

@@ -93,6 +93,11 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Live-session WebSocket handshake. Permitted (not hasRole USER)
+                        // because guests are players; the cookie filter still resolves the
+                        // principal on the upgrade request, and SubscribeAuthInterceptor
+                        // authorizes individual topic subscriptions.
+                        .requestMatchers("/ws/**").permitAll()
                         // register is the one route a preRegistration principal may POST (Inv 8).
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("PRE_REGISTRATION")
                         // Everything else requires a registered USER. Visitors (anonymous) →
