@@ -100,6 +100,11 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         // register is the one route a preRegistration principal may POST (Inv 8).
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("PRE_REGISTRATION")
+                        // Live-session player commands. hasRole("GUEST") is a minimum-level
+                        // check — AuthorityResolver grants a cumulative ROLE_<LEVEL>, so guests
+                        // and registered users both match while visitors/preRegistration don't.
+                        // The service still verifies roster membership.
+                        .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/answers").hasRole("GUEST")
                         // Everything else requires a registered USER. Visitors (anonymous) →
                         // 401 via the entry point; authenticated-but-insufficient (guest /
                         // preRegistration) → 403 via the access-denied handler (Inv 8).

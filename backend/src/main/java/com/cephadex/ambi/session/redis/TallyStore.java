@@ -54,6 +54,21 @@ public class TallyStore {
     }
 
     /**
+     * Atomically subtracts one from {@code optionId}'s count for the round and
+     * refreshes the tally's TTL — the inverse of {@link #increment}, used to back
+     * out a participant's prior selection when they change a multi-select answer.
+     * Only ever cancels a matching prior increment, so the count stays ≥ 0.
+     *
+     * @return the option's new running count
+     */
+    public long decrement(String sessionId, String slideId, String optionId) {
+        String key = keys.tallyKey(sessionId, slideId);
+        Long count = redis.<String, String>opsForHash().increment(key, optionId, -1L);
+        redis.expire(key, props.getTally().getTtl());
+        return count == null ? 0L : count;
+    }
+
+    /**
      * The round's current per-option counts, keyed by option id (empty if none
      * yet).
      */

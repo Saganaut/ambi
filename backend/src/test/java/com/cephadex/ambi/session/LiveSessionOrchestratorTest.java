@@ -14,22 +14,27 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.session.answer.Answer;
+import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.LiveResultsShown;
 import com.cephadex.ambi.session.event.ResponsesRevealed;
 import com.cephadex.ambi.session.event.RoundStarted;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SubmissionsLocked;
+import com.cephadex.ambi.session.event.TallyUpdated;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -212,5 +217,69 @@ class LiveSessionOrchestratorTest {
         when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
         when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+    }
+
+    // ── submitAnswer ─────────────────────────────────────────────────────────
+
+    @Test
+    void submitSingleSelectFirstAnswerTalliesAndPublishes() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answerOf(SID, SLIDE, "p-1")).thenReturn(Optional.empty());
+        when(tallyStore.tally(SID, SLIDE)).thenReturn(Map.of("opt-a", 1));
+
+        orchestrator.submitAnswer(SID, SLIDE, "p-1", new McqAnswer(Set.of("opt-a")), 1);
+
+        verify(answerStore).submit(eq(SID), eq(SLIDE), any(Answer.class));
+        verify(tallyStore).increment(SID, SLIDE, "opt-a");
+        verify(tallyStore, never()).decrement(any(), any(), any());
+        assertThat(publishedEvent()).isInstanceOf(TallyUpdated.class);
+    }
+
+    @Test
+    void submitSingleSelectRepeatIsIgnored() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answerOf(SID, SLIDE, "p-1"))
+                .thenReturn(Optional.of(answerWith(new McqAnswer(Set.of("opt-a")))));
+
+        orchestrator.submitAnswer(SID, SLIDE, "p-1", new McqAnswer(Set.of("opt-b")), 1);
+
+        verify(answerStore, never()).submit(any(), any(), any());
+        verify(tallyStore, never()).increment(any(), any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void submitMultiSelectChangeReconcilesTally() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answerOf(SID, SLIDE, "p-1"))
+                .thenReturn(Optional.of(answerWith(new McqAnswer(Set.of("opt-a")))));
+        when(tallyStore.tally(SID, SLIDE)).thenReturn(Map.of("opt-b", 1));
+
+        orchestrator.submitAnswer(SID, SLIDE, "p-1", new McqAnswer(Set.of("opt-b")), 0);
+
+        verify(answerStore).submit(eq(SID), eq(SLIDE), any(Answer.class));
+        verify(tallyStore).decrement(SID, SLIDE, "opt-a");
+        verify(tallyStore).increment(SID, SLIDE, "opt-b");
+        assertThat(publishedEvent()).isInstanceOf(TallyUpdated.class);
+    }
+
+    @Test
+    void submitToClosedRoundIsRejected() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES);
+
+        assertThatThrownBy(() -> orchestrator.submitAnswer(SID, SLIDE, "p-1", new McqAnswer(Set.of("opt-a")), 1))
+                .isInstanceOf(ConflictException.class);
+        verify(answerStore, never()).submit(any(), any(), any());
+        verify(tallyStore, never()).increment(any(), any(), any());
+    }
+
+    private static Answer answerWith(McqAnswer payload) {
+        Answer a = new Answer();
+        a.setParticipantId("p-1");
+        a.setSessionId(SID);
+        a.setSlideId(SLIDE);
+        a.setSubmittedAt(Instant.now());
+        a.setPayload(payload);
+        return a;
     }
 }

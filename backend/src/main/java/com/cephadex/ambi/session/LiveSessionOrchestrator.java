@@ -2,12 +2,18 @@ package com.cephadex.ambi.session;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
+import org.springframework.stereotype.Service;
+
+import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.AnswerTallyKeys;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
@@ -51,6 +57,7 @@ import com.cephadex.ambi.user.Avatar;
  * target. Methods already carrying a body are wired; the rest are stubs
  * ({@link UnsupportedOperationException}) with their intended contract documented.
  */
+@Service
 public class LiveSessionOrchestrator {
 
     private final LiveSessionRepository repo;
@@ -218,17 +225,51 @@ public class LiveSessionOrchestrator {
 
     /**
      * Records a participant's answer for the open round: writes it to
-     * {@link AnswerStore} and bumps the per-option {@link TallyStore} count, then
-     * publishes the updated live tally. Lock-free per submission by design (each is
-     * a single participant-keyed write) — the choice-key derivation that feeds the
-     * tally is shared with scoring so the live bar and the durable counts agree
-     * (open-decisions D5).
+     * {@link AnswerStore} and reconciles the per-option {@link TallyStore} counts,
+     * then publishes the updated live tally. Lock-free per submission by design
+     * (each is a single participant-keyed write) — the per-option keys that feed the
+     * tally come from {@link AnswerTallyKeys}, shared with scoring so the live bar
+     * and the durable counts agree (open-decisions D5).
+     *
+     * <p>{@code maxSelections} is the slide's resolved answer setting: {@code 1}
+     * (single-answer) makes the first submission final — a later one is ignored;
+     * otherwise the latest submission overwrites and the tally is reconciled (the
+     * prior selection is backed out before the new one is applied).
+     *
+     * @throws ConflictException if no round is open for {@code slideId}, or it is no
+     *                           longer accepting submissions
      */
-    public void submitAnswer(String sessionId, String slideId, String participantId, AnswerPayload payload) {
-        // TODO(Claude): build Answer, answerStore.submit, derive option/choice key
-        // via the shared helper, tallyStore.increment, publisher.publish(live tally).
-        // Reject unless the current phase acceptsSubmissions() for this slide.
-        throw new UnsupportedOperationException("Not implemented yet");
+    public void submitAnswer(String sessionId, String slideId, String participantId,
+            AnswerPayload payload, int maxSelections) {
+        LiveRoundState state = roundStateStore.load(sessionId).orElse(null);
+        if (state == null || !slideId.equals(state.currentSlideId()) || !state.phase().acceptsSubmissions()) {
+            throw new ConflictException("ROUND_NOT_OPEN", "this slide is not accepting submissions");
+        }
+
+        Optional<Answer> prior = answerStore.answerOf(sessionId, slideId, participantId);
+        if (maxSelections == 1 && prior.isPresent()) {
+            return; // single-answer slide: the first submission is final
+        }
+
+        Answer answer = new Answer();
+        answer.setParticipantId(participantId);
+        answer.setSessionId(sessionId);
+        answer.setSlideId(slideId);
+        answer.setSubmittedAt(Instant.now());
+        answer.setPayload(payload);
+        answerStore.submit(sessionId, slideId, answer);
+
+        // Reconcile the per-option tally: back out the prior selection (a multi-select
+        // change), then apply the new one, so each option's bar reflects current picks.
+        prior.ifPresent(p -> AnswerTallyKeys.optionKeys(p.getPayload())
+                .forEach(key -> tallyStore.decrement(sessionId, slideId, key)));
+        AnswerTallyKeys.optionKeys(payload)
+                .forEach(key -> tallyStore.increment(sessionId, slideId, key));
+
+        if (state.publicId() != null) {
+            publisher.publish(state.publicId(),
+                    SessionEvents.tallyUpdated(slideId, tallyStore.tally(sessionId, slideId)));
+        }
     }
 
     /**
@@ -365,13 +406,8 @@ public class LiveSessionOrchestrator {
      * {@link ResultsDisplayMode}: {@code IMMEDIATE} → live, everything else hidden.
      */
     private RoundPhase initialPhaseFor(LiveSession session, Slide slide) {
-        Settings.AnswerSettings deckDefaults = session.getDeck().getSettings() == null
-                ? null
-                : session.getDeck().getSettings().answerSettings();
-        Settings.SlideSettings slideSettings = slide.getSettings();
-        Settings.AnswerSettings answer = slideSettings == null
-                ? deckDefaults
-                : slideSettings.resolveAnswer(deckDefaults);
+        Settings.AnswerSettings answer = Settings.effectiveAnswerSettings(
+                session.getDeck().getSettings(), slide.getSettings());
         ResultsDisplayMode mode = answer == null ? null : answer.displayResultsMode();
         return mode == ResultsDisplayMode.IMMEDIATE ? RoundPhase.SUBMIT_LIVE : RoundPhase.SUBMIT;
     }

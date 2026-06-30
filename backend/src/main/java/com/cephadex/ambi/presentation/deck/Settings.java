@@ -86,4 +86,15 @@ public final class Settings {
     }
   }
 
+  /**
+   * The {@link AnswerSettings} in effect for a slide: its per-slide override if
+   * present, otherwise the deck defaults (either may be {@code null}). A null-safe
+   * wrapper over {@link SlideSettings#resolveAnswer} so callers — round opening and
+   * answer submission — don't each repeat the deck-default guard.
+   */
+  public static AnswerSettings effectiveAnswerSettings(DeckSettings deckSettings, SlideSettings slideSettings) {
+    AnswerSettings deckDefaults = deckSettings == null ? null : deckSettings.answerSettings();
+    return slideSettings == null ? deckDefaults : slideSettings.resolveAnswer(deckDefaults);
+  }
+
 }
