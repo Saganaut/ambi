@@ -20,7 +20,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * STOMP-over-WebSocket transport for live sessions. Clients connect to {@code /ws}
- * and subscribe to {@code /topic/session/<publicId>} to receive
+ * and subscribe to {@code /topic/liveSession/<publicId>} to receive
  * {@link com.cephadex.ambi.session.event.SessionEvent}s. There is no inbound
  * application destination: commands go over REST (open-decisions A1), so only
  * CONNECT/SUBSCRIBE traverse the inbound channel, where

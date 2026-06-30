@@ -22,7 +22,7 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  *
  * <p>{@code publicId} rides along so a round transition — which already
  * read-modify-writes this snapshot under the lock — has the session's public
- * handle on hand to address the event topic ({@code /topic/session/{publicId}})
+ * handle on hand to address the event topic ({@code /topic/liveSession/{publicId}})
  * without a separate Mongo read. It is {@code null} only for the publicId-less
  * {@link #idle()} fallback used when no seeded state exists yet.
  *

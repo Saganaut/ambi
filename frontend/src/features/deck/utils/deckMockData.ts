@@ -90,8 +90,8 @@ const pointSettings: PointSettings = {
   bestAnswerPoints: 500,
   fastestCorrectAnswerPoints: 250,
   streakBonuses: {
-    "3": { countRequired: 3, bonusPoints: 100 },
-    "5": { countRequired: 5, bonusPoints: 250 },
+    "3": 100,
+    "5": 250,
   },
   resetStreakOnStreakEnd: true,
 };

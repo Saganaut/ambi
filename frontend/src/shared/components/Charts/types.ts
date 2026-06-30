@@ -56,7 +56,6 @@ export interface ChartSegmentRenderProps {
   displayAsPercentage: boolean;
   denominator: number;
   highestValue?: number;
-
   isCorrect?: boolean;
   canAddOption?: boolean;
   addOption?: () => void;

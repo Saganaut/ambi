@@ -2,14 +2,12 @@ package com.cephadex.ambi.session.event;
 
 import java.util.Map;
 
-import com.cephadex.ambi.session.event.SessionEvent;
-import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
-
 /**
- * Submissions closed and the collected responses are shown (phase
- * {@code REVEAL_RESPONSES}) — the answers/tally are visible but the round is not
- * yet scored. Counts are keyed by option id.
+ * The round entered
+ * {@link com.cephadex.ambi.session.liveSession.enums.RoundPhase#REVEAL_RESPONSES
+ * REVEAL_RESPONSES}: submissions are closed and the response distribution is
+ * shown, not yet scored. Reached either by revealing after a hidden lock or by
+ * closing a live round. Counts are keyed by option id.
  */
-public record ResponsesRevealed(String slideId, RoundPhase phase, Map<String, Integer> optionCounts)
-        implements SessionEvent {
+public record ResponsesRevealed(String slideId, Map<String, Integer> optionCounts) implements SessionEvent {
 }

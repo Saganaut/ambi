@@ -80,11 +80,7 @@ public final class RoundScorer {
                             pointSettings.deceptionPoints(),
                             pointSettings.fastestCorrectAnswerPoints(),
                             pointSettings.resetStreakOnStreakEnd(),
-                            // TODO: reconcile streak bonuses — PointSettings holds a
-                            // Map<Integer, StreakMilestone> (keyed by streak count) while
-                            // awardPoints takes a List. Passing null (no streak bonus) until
-                            // that shape is settled.
-                            null);
+                            pointSettings.streakBonuses());
 
             outcomes.add(new ParticipantOutcome(
                     eval.participantId(), eval.choice(), eval.correct(), pointsAwarded, eval.responseTimeMs()));

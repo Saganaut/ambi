@@ -656,17 +656,13 @@ export type AppImage = {
   };
   placement?: Placement;
 };
-export type StreakMilestone = {
-  countRequired?: number;
-  bonusPoints?: number;
-};
 export type PointSettings = {
   points?: number;
   deceptionPoints?: number;
   bestAnswerPoints?: number;
   fastestCorrectAnswerPoints?: number;
   streakBonuses?: {
-    [key: string]: StreakMilestone;
+    [key: string]: number;
   };
   resetStreakOnStreakEnd?: boolean;
 };

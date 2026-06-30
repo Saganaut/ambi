@@ -17,13 +17,13 @@ import com.cephadex.ambi.session.redis.SessionRedisProperties;
  * before delivery, negligible here.
  */
 @Component
-public class EventBroadcaster implements EventPublisher {
+public class RedisEventPublisher implements EventPublisher {
 
     private final StringRedisTemplate redis;
     private final RedisJsonCodec codec;
     private final SessionRedisProperties props;
 
-    public EventBroadcaster(StringRedisTemplate redis, RedisJsonCodec codec, SessionRedisProperties props) {
+    public RedisEventPublisher(StringRedisTemplate redis, RedisJsonCodec codec, SessionRedisProperties props) {
         this.redis = redis;
         this.codec = codec;
         this.props = props;

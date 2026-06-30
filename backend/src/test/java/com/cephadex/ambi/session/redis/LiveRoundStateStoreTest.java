@@ -24,12 +24,12 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * template, using the real {@link RedisJsonCodec}, so the serialize/store/load
  * and clear paths are exercised together.
  */
-class SessionStateStoreTest {
+class LiveRoundStateStoreTest {
 
     private static final String SID = new String("session-1");
 
     private Map<String, String> store;
-    private SessionStateStore stateStore;
+    private LiveRoundStateStore roundStateStore;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -47,12 +47,12 @@ class SessionStateStoreTest {
         when(redis.delete(anyString())).thenAnswer(inv -> store.remove((String) inv.getArgument(0)) != null);
 
         SessionRedisProperties props = new SessionRedisProperties();
-        stateStore = new SessionStateStore(redis, new RedisJsonCodec(), new SessionKeys(props), props);
+        roundStateStore = new LiveRoundStateStore(redis, new RedisJsonCodec(), new SessionKeys(props), props);
     }
 
     @Test
     void loadReturnsEmptyWhenAbsent() {
-        assertThat(stateStore.load(SID)).isEmpty();
+        assertThat(roundStateStore.load(SID)).isEmpty();
     }
 
     @Test
@@ -60,15 +60,15 @@ class SessionStateStoreTest {
         LiveRoundState state = new LiveRoundState(
                 "public-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-05-30T12:00:00Z"));
 
-        stateStore.save(SID, state);
+        roundStateStore.save(SID, state);
 
-        assertThat(stateStore.load(SID)).contains(state);
+        assertThat(roundStateStore.load(SID)).contains(state);
     }
 
     @Test
     void clearRemovesState() {
-        stateStore.save(SID, LiveRoundState.idle());
-        stateStore.clear(SID);
-        assertThat(stateStore.load(SID)).isEqualTo(Optional.empty());
+        roundStateStore.save(SID, LiveRoundState.idle());
+        roundStateStore.clear(SID);
+        assertThat(roundStateStore.load(SID)).isEqualTo(Optional.empty());
     }
 }

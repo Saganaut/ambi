@@ -64,7 +64,7 @@ public class PresenceStore {
         HashOperations<String, String, String> ops = redis.opsForHash();
         Map<String, String> raw = ops.entries(keys.presenceKey(sessionId));
         Map<String, Presence> presence = new HashMap<>(raw.size());
-        raw.forEach((participantId, json) -> presence.put(new String(participantId),
+        raw.forEach((participantId, json) -> presence.put(participantId,
                 codec.deserialize(json, Presence.class)));
         return presence;
     }

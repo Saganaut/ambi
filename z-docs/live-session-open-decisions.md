@@ -81,7 +81,7 @@ Everything that exists is domain + storage. These are the most structural calls.
 but (per AGENTS.md) no endpoints are implemented.
 
 **Suggestion:** Use **STOMP-over-WebSocket** with a per-session topic
-(`/topic/session/{publicId}`) for host/participant broadcasts, plus a small REST
+(`/topic/liveSession/{publicId}`) for host/participant broadcasts, plus a small REST
 surface for commands (join, start, submit, reveal) so non-realtime actions stay
 debuggable in Swagger. Define an `EventPublisher` interface now with a single
 `publish(sessionId, SessionEvent)` method; the orchestrator depends on the

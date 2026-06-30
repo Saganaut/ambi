@@ -14,18 +14,13 @@ import org.springframework.stereotype.Component;
 import com.cephadex.ambi.common.exception.ConflictException;
 
 /**
- * Per-session mutual exclusion over Redis, so two operations on the same live
- * session (a double-clicked {@code startRound}, a late answer racing the host's
- * reveal, two app instances acting on the same room) can't interleave and
- * corrupt the in-flight state.
- *
+ * Per-session mutual exclusion over Redis
  * <p>
  * <strong>Protocol.</strong> Acquire is {@code SET key token NX PX lease} via
  * {@link org.springframework.data.redis.core.ValueOperations#setIfAbsent}: it
  * succeeds only if no one holds the key, and the value is a per-acquisition
  * random token. Release is a Lua compare-and-delete that removes the key only
- * when it still holds <em>our</em> token, so a holder whose lease already
- * expired
+ * when it still holds the token.
  * (and was re-acquired by someone else) can never delete the new owner's lock.
  * The {@code lease} TTL (see {@link SessionRedisProperties.Lock#getLease()}) is
  * the deadlock backstop: a crashed holder's lock self-expires.
@@ -70,8 +65,8 @@ public class SessionLocks {
      * handle that releases the lock when {@linkplain SessionLock#close() closed}
      * (use try-with-resources); on contention throws {@link ConflictException}.
      */
-    public SessionLock tryAcquire(String sid) {
-        String key = keys.lockKey(sid);
+    public SessionLock tryAcquire(String sessionId) {
+        String key = keys.lockKey(sessionId);
         String token = UUID.randomUUID().toString();
         Boolean acquired = redis.opsForValue().setIfAbsent(key, token, props.getLock().getLease());
         if (!Boolean.TRUE.equals(acquired)) {
@@ -86,16 +81,17 @@ public class SessionLocks {
      * {@code finally} (including when {@code work} throws). Throws
      * {@link ConflictException} if the lock can't be taken.
      */
-    @SuppressWarnings("try") // the lock is held for its close-on-exit side effect; the resource is intentionally unused in the body
-    public <T> T withLock(String sid, Supplier<T> work) {
-        try (SessionLock ignored = tryAcquire(sid)) {
+    @SuppressWarnings("try") 
+    public <T> T withLock(String sessionId, Supplier<T> work) {
+        try (@SuppressWarnings("unused")
+        SessionLock ignored = tryAcquire(sessionId)) {
             return work.get();
         }
     }
 
     /** {@link Runnable} overload of {@link #withLock(SessionId, Supplier)}. */
-    public void withLock(String sid, Runnable work) {
-        withLock(sid, () -> {
+    public void withLock(String sessionId, Runnable work) {
+        withLock(sessionId, () -> {
             work.run();
             return null;
         });
@@ -125,9 +121,6 @@ public class SessionLocks {
             released = true;
             Long deleted = redis.execute(RELEASE, List.of(key), token);
             if (!Long.valueOf(1L).equals(deleted)) {
-                // The lease expired (or was forcibly cleared) before we released:
-                // the work outran its lease window. Worth a warning — it means a
-                // concurrent op may have run against the same session.
                 log.warn("Session lock {} was no longer held at release — lease may be too short", key);
             }
         }

@@ -18,7 +18,7 @@ import lombok.Data;
 public class SessionRedisProperties {
 
     private final Lock lock = new Lock();
-    private final State state = new State();
+    private final RoundState roundState = new RoundState();
     private final Tally tally = new Tally();
     private final Answers answers = new Answers();
     private final Presence presence = new Presence();
@@ -37,12 +37,12 @@ public class SessionRedisProperties {
     }
 
     @Data
-    public static class State {
+    public static class RoundState {
         /** Redis key namespace for the in-flight round-state snapshot. */
-        private String namespace = "ambi:session:state";
+        private String namespace = "ambi:session:roundstate";
         /**
-         * TTL on the in-flight state record — a backstop so abandoned sessions
-         * don't linger in Redis forever. Refreshed on every save.
+         * TTL on the in-flight round-state record — a backstop so abandoned
+         * sessions don't linger in Redis forever. Refreshed on every save.
          */
         private Duration ttl = Duration.ofHours(6);
     }
@@ -98,7 +98,7 @@ public class SessionRedisProperties {
     public static class Events {
         /**
          * Redis pub/sub channel that carries session events across app instances. The
-         * orchestrator publishes here via {@code EventBroadcaster}; a
+         * orchestrator publishes here via {@code RedisEventPublisher}; a
          * {@code LiveSessionStompRelay} on every instance subscribes and re-broadcasts
          * each event to its locally-connected STOMP subscribers. A single shared
          * channel (not one per session) — the envelope carries the {@code publicId} the

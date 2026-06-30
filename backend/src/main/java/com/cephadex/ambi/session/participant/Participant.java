@@ -1,7 +1,7 @@
 package com.cephadex.ambi.session.participant;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -203,8 +203,8 @@ public class Participant {
      * here, which is the value {@code RoundResult} records. The components are:
      * </p>
      * <ul>
-     * <li>base points for a correct answer, plus any {@link Settings.StreakMilestone}
-     * bonus reached at the participant's current streak;</li>
+     * <li>base points for a correct answer, plus any streak bonus configured for
+     * the participant's current streak length;</li>
      * <li>a best-answer bonus;</li>
      * <li>deception points, multiplied by the number of players deceived;</li>
      * <li>a fastest-correct-answer bonus (only when correct).</li>
@@ -222,7 +222,7 @@ public class Participant {
      * @param deceptionPoints            points per deceived participant
      * @param fastestCorrectAnswerPoints bonus points for the fastest correct answer
      * @param resetStreakOnStreakEnd     whether an incorrect answer resets the streak
-     * @param streakBonuses              streak milestones indexed by streak length;
+     * @param streakBonuses              bonus points keyed by streak length;
      *                                   may be {@code null}
      * @return the total points awarded this round (the per-round delta)
      * @throws IllegalStateException if the participant is {@link #banned}
@@ -237,7 +237,7 @@ public class Participant {
             int deceptionPoints,
             int fastestCorrectAnswerPoints,
             boolean resetStreakOnStreakEnd,
-            List<Settings.StreakMilestone> streakBonuses) {
+            Map<Integer, Integer> streakBonuses) {
 
         if (banned) {
             throw new IllegalStateException("banned participant cannot be scored");
@@ -253,11 +253,11 @@ public class Participant {
             pointsAwarded += points;
             if (streakBonuses != null) {
                 int activeStreak = this.score.getCurrentStreak();
-                Settings.StreakMilestone milestone = streakBonuses.get(activeStreak);
+                Integer bonus = streakBonuses.get(activeStreak);
 
-                if (milestone != null) {
-                    this.score.awardStreakBonus(milestone.bonusPoints());
-                    pointsAwarded += milestone.bonusPoints();
+                if (bonus != null) {
+                    this.score.awardStreakBonus(bonus);
+                    pointsAwarded += bonus;
                 }
             }
         } else {

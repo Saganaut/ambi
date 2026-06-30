@@ -1,11 +1,10 @@
 package com.cephadex.ambi.session.transport;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import java.security.Principal;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
@@ -46,20 +45,20 @@ class SubscribeAuthInterceptorTest {
 
     @Test
     void guestMaySubscribeToSessionTopic() {
-        Message<byte[]> message = subscribe("/topic/session/pub-1", principal(IdentityState.GUEST));
+        Message<byte[]> message = subscribe("/topic/liveSession/pub-1", principal(IdentityState.GUEST));
         assertThat(interceptor.preSend(message, null)).isSameAs(message);
     }
 
     @Test
     void unauthenticatedSubscribeIsRejected() {
-        Message<byte[]> message = subscribe("/topic/session/pub-1", null);
+        Message<byte[]> message = subscribe("/topic/liveSession/pub-1", null);
         assertThatThrownBy(() -> interceptor.preSend(message, null))
                 .isInstanceOf(MessagingException.class);
     }
 
     @Test
     void visitorSubscribeIsRejected() {
-        Message<byte[]> message = subscribe("/topic/session/pub-1", principal(IdentityState.VISITOR));
+        Message<byte[]> message = subscribe("/topic/liveSession/pub-1", principal(IdentityState.VISITOR));
         assertThatThrownBy(() -> interceptor.preSend(message, null))
                 .isInstanceOf(MessagingException.class);
     }
@@ -73,7 +72,7 @@ class SubscribeAuthInterceptorTest {
     @Test
     void nonSubscribeFrameIsNotGated() {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
-        accessor.setDestination("/topic/session/pub-1");
+        accessor.setDestination("/topic/liveSession/pub-1");
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
         assertThat(interceptor.preSend(message, null)).isSameAs(message);
     }

@@ -24,10 +24,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = LiveSessionStarted.class, name = "LiveSessionStarted"),
         @JsonSubTypes.Type(value = ParticipantJoined.class, name = "ParticipantJoined"),
         @JsonSubTypes.Type(value = ParticipantLeft.class, name = "ParticipantLeft"),
+        @JsonSubTypes.Type(value = ParticipantReconnected.class, name = "ParticipantReconnected"),
+        @JsonSubTypes.Type(value = ParticipantRemoved.class, name = "ParticipantRemoved"),
         @JsonSubTypes.Type(value = PresenceChanged.class, name = "PresenceChanged"),
         @JsonSubTypes.Type(value = RoundStarted.class, name = "RoundStarted"),
+        @JsonSubTypes.Type(value = LiveResultsShown.class, name = "LiveResultsShown"),
         @JsonSubTypes.Type(value = TallyUpdated.class, name = "TallyUpdated"),
-        @JsonSubTypes.Type(value = SubmissionsClosed.class, name = "SubmissionsClosed"),
+        @JsonSubTypes.Type(value = SubmissionsLocked.class, name = "SubmissionsLocked"),
         @JsonSubTypes.Type(value = ResponsesRevealed.class, name = "ResponsesRevealed"),
         @JsonSubTypes.Type(value = ResultsRevealed.class, name = "ResultsRevealed"),
         @JsonSubTypes.Type(value = RoundRestarted.class, name = "RoundRestarted"),
@@ -35,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = LiveSessionCancelled.class, name = "LiveSessionCancelled")
 })
 public sealed interface SessionEvent
-        permits LiveSessionStarted, ParticipantJoined, ParticipantLeft, PresenceChanged, RoundStarted, TallyUpdated,
-        SubmissionsClosed, ResponsesRevealed, ResultsRevealed, RoundRestarted, LiveSessionEnded, LiveSessionCancelled {
+        permits LiveSessionStarted, ParticipantJoined, ParticipantLeft, ParticipantReconnected, ParticipantRemoved,
+        PresenceChanged, RoundStarted, LiveResultsShown, TallyUpdated, SubmissionsLocked, ResponsesRevealed,
+        ResultsRevealed, RoundRestarted, LiveSessionEnded, LiveSessionCancelled {
 }

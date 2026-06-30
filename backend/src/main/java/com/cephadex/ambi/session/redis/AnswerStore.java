@@ -57,8 +57,7 @@ public class AnswerStore {
      */
     public void submit(String sessionId, String slideId, Answer answer) {
         Objects.requireNonNull(answer, "answer required");
-        String participantId = new String(
-                Objects.requireNonNull(answer.getParticipantId(), "answer.participantId required"));
+        String participantId = Objects.requireNonNull(answer.getParticipantId(), "answer.participantId required");
         String key = keys.answersKey(sessionId, slideId);
         redis.<String, String>opsForHash().put(key, participantId, codec.serialize(answer));
         redis.expire(key, props.getAnswers().getTtl());

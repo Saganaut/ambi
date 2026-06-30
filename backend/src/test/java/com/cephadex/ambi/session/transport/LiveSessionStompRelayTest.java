@@ -1,15 +1,14 @@
 package com.cephadex.ambi.session.transport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.connection.DefaultMessage;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -35,7 +34,7 @@ class LiveSessionStompRelayTest {
         relay.onMessage(new DefaultMessage("ambi:session:events".getBytes(UTF_8), body), null);
 
         ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
-        verify(messaging).convertAndSend(eq("/topic/session/pub-1"), event.capture());
+        verify(messaging).convertAndSend(eq("/topic/liveSession/pub-1"), event.capture());
 
         assertThat(event.getValue()).isInstanceOf(TallyUpdated.class);
         assertThat(((TallyUpdated) event.getValue()).slideId()).isEqualTo("slide-1");

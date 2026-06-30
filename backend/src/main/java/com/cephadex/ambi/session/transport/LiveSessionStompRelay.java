@@ -14,14 +14,14 @@ import com.cephadex.ambi.session.event.EventEnvelope;
  * Bridges the Redis fan-out channel to this instance's local STOMP broker. Every
  * app instance runs one, subscribed (via {@code SessionPubSubConfig}) to the
  * shared events channel: on each message it decodes the {@link EventEnvelope} and
- * forwards the event to {@code /topic/session/<publicId>}, reaching exactly the
+ * forwards the event to {@code /topic/liveSession/<publicId>}, reaching exactly the
  * subscribers connected here. The instance that produced the event receives it
  * the same way, so there is a single, uniform delivery path.
  */
 @Component
 public class LiveSessionStompRelay implements MessageListener {
 
-    private static final String TOPIC_PREFIX = "/topic/session/";
+    private static final String TOPIC_PREFIX = "/topic/liveSession/";
 
     private final SimpMessagingTemplate messaging;
     private final RedisJsonCodec codec;

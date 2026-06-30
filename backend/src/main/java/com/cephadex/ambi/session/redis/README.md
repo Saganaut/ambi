@@ -2,7 +2,7 @@
 
 Redis infrastructure for **live sessions** — the in-flight game state a round
 reads and writes while it's running. Two concerns live here: per-session
-**locking** and the **state snapshot store**. JSON serialization is delegated to
+**locking** and the **round-state snapshot store**. JSON serialization is delegated to
 the cross-cutting [`common/redis/RedisJsonCodec`](../../common/redis/RedisJsonCodec.java).
 
 This mirrors the hand-rolled, dependency-light style of the auth session store
@@ -14,13 +14,13 @@ plain `StringRedisTemplate` ops, namespaced keys, no lock library.
 | File | Role |
 | --- | --- |
 | [`SessionLocks`](SessionLocks.java) | Per-session mutual exclusion (SET-NX + Lua compare-and-delete). |
-| [`SessionStateStore`](SessionStateStore.java) | Load / save / clear the `LiveRoundState` snapshot. |
+| [`LiveRoundStateStore`](LiveRoundStateStore.java) | Load / save / clear the `LiveRoundState` snapshot. |
 | [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile control state (phase, current slide, start time). |
 | [`TallyStore`](TallyStore.java) | Per-round option counts as a Redis Hash — lock-free `HINCRBY` per submission. |
 | [`AnswerStore`](AnswerStore.java) | Per-round in-flight answers as a Redis Hash (one field per participant; re-submit overwrites), flushed to Mongo at round close. |
 | [`PresenceStore`](PresenceStore.java) / [`Presence`](Presence.java) | Per-session live participant presence (connection status + last-seen) as a Redis Hash. |
 | [`SessionKeys`](SessionKeys.java) | Builds the namespaced keys from a `SessionId`. |
-| [`SessionRedisProperties`](SessionRedisProperties.java) | `ambi.session.*` config (namespaces, lock lease, state TTL). |
+| [`SessionRedisProperties`](SessionRedisProperties.java) | `ambi.session.*` config (namespaces, lock lease, round-state TTL). |
 | [`RedisJsonCodec`](../../common/redis/RedisJsonCodec.java) | Shared Jackson-2 codec (lives in `common/redis`, reusable). |
 
 ## Lock protocol
@@ -61,7 +61,7 @@ session").
 | Concern | Key | Config |
 | --- | --- | --- |
 | Lock | `ambi:session:lock:<sessionId>` | `ambi.session.lock.namespace` |
-| State | `ambi:session:state:<sessionId>` | `ambi.session.state.namespace` |
+| Round state | `ambi:session:roundstate:<sessionId>` | `ambi.session.round-state.namespace` |
 | Tally | `ambi:session:tally:<sessionId>:<slideId>` (Hash) | `ambi.session.tally.namespace` |
 | Answers | `ambi:session:answers:<sessionId>:<slideId>` (Hash) | `ambi.session.answers.namespace` |
 | Presence | `ambi:session:presence:<sessionId>` (Hash) | `ambi.session.presence.namespace` |

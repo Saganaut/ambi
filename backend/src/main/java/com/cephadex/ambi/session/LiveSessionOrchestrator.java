@@ -1,6 +1,7 @@
 package com.cephadex.ambi.session;
 
 import java.time.Instant;
+import java.util.Map;
 
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
@@ -17,9 +18,9 @@ import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
+import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.SessionLocks;
-import com.cephadex.ambi.session.redis.SessionStateStore;
 import com.cephadex.ambi.session.redis.TallyStore;
 import com.cephadex.ambi.user.Avatar;
 
@@ -27,7 +28,7 @@ import com.cephadex.ambi.user.Avatar;
  * Drives a live session end to end — session lifecycle, the participant roster,
  * the round lifecycle, and navigation. Every state transition runs inside the
  * session's lock ({@link SessionLocks#withLock}) and read-modify-writes the
- * {@link LiveRoundState} snapshot through {@link SessionStateStore}, so two
+ * {@link LiveRoundState} snapshot through {@link LiveRoundStateStore}, so two
  * concurrent operations on the same session (a double-clicked start, a host
  * reveal racing a late submission, two app instances) can't interleave. After a
  * successful transition the orchestrator publishes a {@code SessionEvent} via
@@ -55,7 +56,7 @@ public class LiveSessionOrchestrator {
     private final LiveSessionRepository repo;
     private final ParticipantRepository participants;
     private final SessionLocks locks;
-    private final SessionStateStore stateStore;
+    private final LiveRoundStateStore roundStateStore;
     private final AnswerStore answerStore;
     private final TallyStore tallyStore;
     private final PresenceStore presenceStore;
@@ -69,12 +70,12 @@ public class LiveSessionOrchestrator {
     //     is a LiveRoundState record change to decide before it lands.
 
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
-            SessionLocks locks, SessionStateStore stateStore, AnswerStore answerStore, TallyStore tallyStore,
+            SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
             PresenceStore presenceStore, EventPublisher publisher) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
-        this.stateStore = stateStore;
+        this.roundStateStore = roundStateStore;
         this.answerStore = answerStore;
         this.tallyStore = tallyStore;
         this.presenceStore = presenceStore;
@@ -99,7 +100,7 @@ public class LiveSessionOrchestrator {
      */
     public LiveSession createSession(String hostUserId, Deck deck) {
         // TODO(Claude): create host Participant + LiveSession.create, save both,
-        // seed stateStore.save(id, LiveRoundState.idle()), publisher.publish(...).
+        // seed roundStateStore.save(id, LiveRoundState.idle()), publisher.publish(...).
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
@@ -183,8 +184,8 @@ public class LiveSessionOrchestrator {
      */
     public Participant reconnect(String sessionId, String participantId) {
         // TODO(Claude): look up participant (needs findByParticipantId), verify it
-        // belongs to the session, participant.heartbeat(), presenceStore.save,
-        // publisher.publish(...).
+        // belongs to the session, participant.heartbeat(), presenceStore.save, then
+        // publisher.publish(publicId, SessionEvents.participantReconnected(participant)).
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
@@ -235,7 +236,8 @@ public class LiveSessionOrchestrator {
      * display</strong>: a hidden round ({@code SUBMIT}) locks to {@code LOCKED}
      * (submissions stopped, nothing revealed); a live round ({@code SUBMIT_LIVE})
      * closes to {@code REVEAL_RESPONSES}. Idempotent — a no-op if already closed.
-     * Publishes {@code SubmissionsClosed}.
+     * Publishes {@code SubmissionsLocked} (hidden) or {@code ResponsesRevealed}
+     * (live), matching the phase entered.
      *
      * <p>TODO(Claude): on close, flush the round's answers to Mongo (needs the real
      * AnswerRepository — E1) and score the round via {@code RoundScorer.score(...)}
@@ -245,43 +247,48 @@ public class LiveSessionOrchestrator {
      * published later by {@link #revealResults}.
      */
     public void closeSubmissions(String sessionId, String slideId) {
-        locks.withLock(sessionId, () -> stateStore.load(sessionId).ifPresent(current -> {
+        locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
             if (current.phase().isClosed()) {
                 return; // already closed — idempotent
             }
             // Preserve display across the close: live → responses, hidden → locked.
-            RoundPhase closedPhase = current.phase().showsResponses()
-                    ? RoundPhase.REVEAL_RESPONSES
-                    : RoundPhase.LOCKED;
+            boolean responsesShown = current.phase().showsResponses();
+            RoundPhase closedPhase = responsesShown ? RoundPhase.REVEAL_RESPONSES : RoundPhase.LOCKED;
             LiveRoundState closed = current.withPhase(closedPhase);
-            stateStore.save(sessionId, closed);
+            roundStateStore.save(sessionId, closed);
             if (closed.publicId() != null) {
-                publisher.publish(closed.publicId(),
-                        SessionEvents.submissionsClosed(slideId, closedPhase, tallyStore.tally(sessionId, slideId)));
+                SessionEvent event = responsesShown
+                        ? SessionEvents.responsesRevealed(slideId, tallyStore.tally(sessionId, slideId))
+                        : SessionEvents.submissionsLocked(slideId);
+                publisher.publish(closed.publicId(), event);
             }
         }));
     }
 
     /**
      * Shows the response distribution. While submissions are open this enables live
-     * results ({@code SUBMIT → SUBMIT_LIVE}); after a hidden lock it reveals them
-     * ({@code LOCKED → REVEAL_RESPONSES}). Idempotent — a no-op if responses are
-     * already showing. Publishes {@code ResponsesRevealed}. Never exposes the answer
-     * key (that is results, and requires {@link #revealResults}).
+     * results ({@code SUBMIT → SUBMIT_LIVE}, publishes {@code LiveResultsShown});
+     * after a hidden lock it reveals them ({@code LOCKED → REVEAL_RESPONSES},
+     * publishes {@code ResponsesRevealed}). Idempotent — a no-op if responses are
+     * already showing. Never exposes the answer key (that is results, and requires
+     * {@link #revealResults}).
      */
     public void revealResponses(String sessionId, String slideId) {
-        locks.withLock(sessionId, () -> stateStore.load(sessionId).ifPresent(current -> {
+        locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
             if (current.phase().showsResponses()) {
                 return; // already showing — idempotent
             }
-            RoundPhase next = current.phase().acceptsSubmissions()
-                    ? RoundPhase.SUBMIT_LIVE
-                    : RoundPhase.REVEAL_RESPONSES;
+            Map<String, Integer> counts = tallyStore.tally(sessionId, slideId);
+            boolean stillOpen = current.phase().acceptsSubmissions();
+            RoundPhase next = stillOpen ? RoundPhase.SUBMIT_LIVE : RoundPhase.REVEAL_RESPONSES;
             LiveRoundState updated = current.withPhase(next);
-            stateStore.save(sessionId, updated);
+            roundStateStore.save(sessionId, updated);
             if (updated.publicId() != null) {
-                publisher.publish(updated.publicId(),
-                        SessionEvents.responsesRevealed(slideId, next, tallyStore.tally(sessionId, slideId)));
+                // Going live mid-round carries no slide (the client has it from RoundStarted).
+                SessionEvent event = stillOpen
+                        ? SessionEvents.liveResultsShown(updated, counts)
+                        : SessionEvents.responsesRevealed(slideId, counts);
+                publisher.publish(updated.publicId(), event);
             }
         }));
     }
@@ -304,12 +311,12 @@ public class LiveSessionOrchestrator {
      * results-require-closed guard are done here.
      */
     public void revealResults(String sessionId, String slideId) {
-        locks.withLock(sessionId, () -> stateStore.load(sessionId).ifPresent(current -> {
+        locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
             if (!current.phase().isClosed()) {
                 throw new IllegalStateException(
                         "cannot reveal results while submissions are open (phase " + current.phase() + ")");
             }
-            stateStore.save(sessionId, current.withPhase(RoundPhase.REVEAL_RESULTS));
+            roundStateStore.save(sessionId, current.withPhase(RoundPhase.REVEAL_RESULTS));
             // TODO(Claude): score + persist + publish ResultsRevealed (see javadoc).
         }));
     }
@@ -322,8 +329,9 @@ public class LiveSessionOrchestrator {
     /**
      * Shared open/reopen path. Resolves the slide and its initial phase from the
      * deck snapshot, clears the round's tally (and answers on a restart), saves the
-     * fresh {@link LiveRoundState}, and publishes {@code RoundStarted} (open) or
-     * {@code RoundRestarted} (restart).
+     * fresh {@link LiveRoundState}, and publishes the event for the phase entered:
+     * {@code RoundRestarted} on a restart, else {@code LiveResultsShown} (opened
+     * live) or {@code RoundStarted} (opened hidden).
      */
     private void openRound(String sessionId, String slideId, boolean restart) {
         LiveSession session = repo.findById(sessionId)
@@ -332,17 +340,22 @@ public class LiveSessionOrchestrator {
                 .orElseThrow(() -> new IllegalArgumentException("slide not in deck snapshot: " + slideId));
         RoundPhase phase = initialPhaseFor(session, slide);
         locks.withLock(sessionId, () -> {
-            LiveRoundState current = stateStore.load(sessionId)
+            LiveRoundState current = roundStateStore.load(sessionId)
                     .orElseGet(() -> LiveRoundState.idle(session.getPublicId()));
             tallyStore.clear(sessionId, slideId);
             if (restart) {
                 answerStore.clear(sessionId, slideId);
             }
             LiveRoundState started = current.startedRound(slideId, Instant.now(), phase);
-            stateStore.save(sessionId, started);
-            SessionEvent event = restart
-                    ? SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt())
-                    : SessionEvents.roundStarted(started, slide);
+            roundStateStore.save(sessionId, started);
+            SessionEvent event;
+            if (restart) {
+                event = SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt());
+            } else if (phase == RoundPhase.SUBMIT_LIVE) {
+                event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId));
+            } else {
+                event = SessionEvents.roundStarted(started, slide);
+            }
             publisher.publish(session.getPublicId(), event);
         });
     }

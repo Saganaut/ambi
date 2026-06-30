@@ -17,13 +17,13 @@ import com.cephadex.ambi.session.redis.SessionRedisProperties;
  * Verifies the broadcaster serializes an {@link EventEnvelope} (publicId + typed
  * event) and publishes it to the configured Redis events channel.
  */
-class EventBroadcasterTest {
+class RedisEventPublisherTest {
 
     @Test
     void publishSerializesEnvelopeToConfiguredChannel() {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         SessionRedisProperties props = new SessionRedisProperties();
-        EventBroadcaster broadcaster = new EventBroadcaster(redis, new RedisJsonCodec(), props);
+        RedisEventPublisher broadcaster = new RedisEventPublisher(redis, new RedisJsonCodec(), props);
 
         broadcaster.publish("pub-1", new TallyUpdated("slide-1", Map.of("opt-a", 2)));
 

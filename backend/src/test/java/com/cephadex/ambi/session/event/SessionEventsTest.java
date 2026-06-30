@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,25 @@ class SessionEventsTest {
 
         assertThat(json).contains("RoundStarted").contains("opt-a");
         assertThat(json).doesNotContain("correctOptionIds");
+    }
+
+    @Test
+    void liveResultsShownCarriesSlideAndCountsButNoAnswerKey() {
+        LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.now());
+
+        String json = codec.serialize(SessionEvents.liveResultsShown(state, mcqSlide(), Map.of("opt-a", 3)));
+
+        assertThat(json).contains("LiveResultsShown").contains("opt-a");
+        assertThat(json).doesNotContain("correctOptionIds");
+    }
+
+    @Test
+    void submissionsLockedCarriesNoCounts() {
+        // A hidden lock must not ship the distribution: the record has no counts field.
+        String json = codec.serialize(SessionEvents.submissionsLocked("slide-1"));
+
+        assertThat(json).contains("SubmissionsLocked").contains("slide-1");
+        assertThat(json).doesNotContain("optionCounts");
     }
 
     @Test

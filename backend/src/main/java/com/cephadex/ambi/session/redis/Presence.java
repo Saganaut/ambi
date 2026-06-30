@@ -14,7 +14,7 @@ import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
  * transitions (heartbeat → {@link ConnectionStatus#ONLINE}, socket close →
  * {@link ConnectionStatus#DISCONNECTED}, idle decay) are decided by the caller —
  * the store only persists the resulting value, the same way {@code LiveRoundState}
- * transitions live in the orchestrator and not in {@code SessionStateStore}.
+ * transitions live in the orchestrator and not in {@code LiveRoundStateStore}.
  *
  * @param status     the participant's current connection status
  * @param lastSeenAt when the participant was last heard from (heartbeat or event)

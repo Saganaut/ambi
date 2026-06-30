@@ -24,8 +24,8 @@ public class SessionKeys {
     }
 
     /** Key for the in-flight round-state snapshot. */
-    public String stateKey(String sessionId) {
-        return props.getState().getNamespace() + ":" + sessionId;
+    public String roundStateKey(String sessionId) {
+        return props.getRoundState().getNamespace() + ":" + sessionId;
     }
 
     /**

@@ -28,7 +28,7 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 @Component
 public class SubscribeAuthInterceptor implements ChannelInterceptor {
 
-    private static final String SESSION_TOPIC_PREFIX = "/topic/session/";
+    private static final String SESSION_TOPIC_PREFIX = "/topic/liveSession/";
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {

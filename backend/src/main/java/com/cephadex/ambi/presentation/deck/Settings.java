@@ -8,18 +8,15 @@ import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 
 public final class Settings {
 
-  public record StreakMilestone(
-      int countRequired,
-      int bonusPoints) {
-  }
-
   public record PointSettings(
       // if 0 then they don't apply
       int points,
       int deceptionPoints,
       int bestAnswerPoints,
       int fastestCorrectAnswerPoints,
-      Map<Integer, StreakMilestone> streakBonuses,
+      // bonus points keyed by streak length (e.g. 3 -> 100 awards 100 bonus
+      // points when a participant reaches a 3-in-a-row streak)
+      Map<Integer, Integer> streakBonuses,
       boolean resetStreakOnStreakEnd) {
   }
 

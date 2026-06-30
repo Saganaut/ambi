@@ -25,18 +25,20 @@ import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.event.EventPublisher;
+import com.cephadex.ambi.session.event.LiveResultsShown;
+import com.cephadex.ambi.session.event.ResponsesRevealed;
 import com.cephadex.ambi.session.event.RoundStarted;
 import com.cephadex.ambi.session.event.SessionEvent;
-import com.cephadex.ambi.session.event.SubmissionsClosed;
+import com.cephadex.ambi.session.event.SubmissionsLocked;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
+import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.SessionLocks;
-import com.cephadex.ambi.session.redis.SessionStateStore;
 import com.cephadex.ambi.session.redis.TallyStore;
 
 /**
@@ -51,7 +53,7 @@ class LiveSessionOrchestratorTest {
     private static final String PUB = "pub-1";
 
     private LiveSessionRepository repo;
-    private SessionStateStore stateStore;
+    private LiveRoundStateStore roundStateStore;
     private TallyStore tallyStore;
     private AnswerStore answerStore;
     private EventPublisher publisher;
@@ -62,7 +64,7 @@ class LiveSessionOrchestratorTest {
         repo = mock(LiveSessionRepository.class);
         ParticipantRepository participants = mock(ParticipantRepository.class);
         SessionLocks locks = mock(SessionLocks.class);
-        stateStore = mock(SessionStateStore.class);
+        roundStateStore = mock(LiveRoundStateStore.class);
         answerStore = mock(AnswerStore.class);
         tallyStore = mock(TallyStore.class);
         PresenceStore presenceStore = mock(PresenceStore.class);
@@ -75,16 +77,16 @@ class LiveSessionOrchestratorTest {
         }).when(locks).withLock(anyString(), any(Runnable.class));
 
         orchestrator = new LiveSessionOrchestrator(
-                repo, participants, locks, stateStore, answerStore, tallyStore, presenceStore, publisher);
+                repo, participants, locks, roundStateStore, answerStore, tallyStore, presenceStore, publisher);
     }
 
     private void stubPhase(RoundPhase phase) {
-        when(stateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(PUB, phase, SLIDE, Instant.now())));
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(PUB, phase, SLIDE, Instant.now())));
     }
 
     private LiveRoundState savedState() {
         ArgumentCaptor<LiveRoundState> captor = ArgumentCaptor.forClass(LiveRoundState.class);
-        verify(stateStore).save(eq(SID), captor.capture());
+        verify(roundStateStore).save(eq(SID), captor.capture());
         return captor.getValue();
     }
 
@@ -99,14 +101,12 @@ class LiveSessionOrchestratorTest {
     @Test
     void closeFromHiddenLocksWithoutRevealing() {
         stubPhase(RoundPhase.SUBMIT);
-        when(tallyStore.tally(SID, SLIDE)).thenReturn(Map.of("opt-a", 2));
 
         orchestrator.closeSubmissions(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.LOCKED);
-        SubmissionsClosed event = (SubmissionsClosed) publishedEvent();
-        assertThat(event.phase()).isEqualTo(RoundPhase.LOCKED);
-        assertThat(event.optionCounts()).isEmpty(); // hidden lock leaks nothing
+        // Entered LOCKED -> SubmissionsLocked, which carries no counts (leaks nothing).
+        assertThat(publishedEvent()).isInstanceOf(SubmissionsLocked.class);
     }
 
     @Test
@@ -117,7 +117,7 @@ class LiveSessionOrchestratorTest {
         orchestrator.closeSubmissions(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESPONSES);
-        SubmissionsClosed event = (SubmissionsClosed) publishedEvent();
+        ResponsesRevealed event = (ResponsesRevealed) publishedEvent();
         assertThat(event.optionCounts()).containsEntry("opt-a", 2);
     }
 
@@ -127,7 +127,7 @@ class LiveSessionOrchestratorTest {
 
         orchestrator.closeSubmissions(SID, SLIDE);
 
-        verify(stateStore, never()).save(any(), any());
+        verify(roundStateStore, never()).save(any(), any());
         verify(publisher, never()).publish(any(), any());
     }
 
@@ -141,6 +141,9 @@ class LiveSessionOrchestratorTest {
         orchestrator.revealResponses(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.SUBMIT_LIVE);
+        // Going live mid-round carries no slide (client has it from RoundStarted).
+        LiveResultsShown event = (LiveResultsShown) publishedEvent();
+        assertThat(event.slide()).isNull();
     }
 
     @Test
@@ -151,6 +154,7 @@ class LiveSessionOrchestratorTest {
         orchestrator.revealResponses(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESPONSES);
+        assertThat(publishedEvent()).isInstanceOf(ResponsesRevealed.class);
     }
 
     // ── revealResults: requires closed ───────────────────────────────────────
@@ -170,7 +174,7 @@ class LiveSessionOrchestratorTest {
 
         assertThatThrownBy(() -> orchestrator.revealResults(SID, SLIDE))
                 .isInstanceOf(IllegalStateException.class);
-        verify(stateStore, never()).save(any(), any());
+        verify(roundStateStore, never()).save(any(), any());
     }
 
     // ── startRound: honour ResultsDisplayMode ────────────────────────────────
@@ -182,7 +186,7 @@ class LiveSessionOrchestratorTest {
         orchestrator.startRound(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.SUBMIT_LIVE);
-        assertThat(publishedEvent()).isInstanceOf(RoundStarted.class);
+        assertThat(publishedEvent()).isInstanceOf(LiveResultsShown.class);
     }
 
     @Test
@@ -192,6 +196,7 @@ class LiveSessionOrchestratorTest {
         orchestrator.startRound(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.SUBMIT);
+        assertThat(publishedEvent()).isInstanceOf(RoundStarted.class);
     }
 
     private void givenSlideWithMode(ResultsDisplayMode mode) {
@@ -206,6 +211,6 @@ class LiveSessionOrchestratorTest {
         when(session.getPublicId()).thenReturn(PUB);
         when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
-        when(stateStore.load(SID)).thenReturn(Optional.empty());
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
     }
 }
