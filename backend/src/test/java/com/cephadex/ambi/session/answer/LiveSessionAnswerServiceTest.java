@@ -1,6 +1,5 @@
 package com.cephadex.ambi.session.answer;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -12,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,18 +32,19 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqD
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
+import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
-import com.cephadex.ambi.session.participant.ParticipantRepository;
+import com.cephadex.ambi.session.participant.ParticipantResolver;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
- * Unit tests for the HTTP-facing answer service: session/participant resolution and
- * payload validation against the slide, with the orchestrator mocked so we assert
- * only what is delegated (resolved participantId + maxSelections).
+ * Unit tests for the HTTP-facing answer service: session lookup, anonymous-guard,
+ * and payload validation against the slide, with participant resolution and the
+ * orchestrator mocked so we assert only what is delegated.
  */
 class LiveSessionAnswerServiceTest {
 
@@ -53,7 +52,7 @@ class LiveSessionAnswerServiceTest {
     private static final String SLIDE = "slide-1";
 
     private LiveSessionRepository sessions;
-    private ParticipantRepository participants;
+    private ParticipantResolver participantResolver;
     private LiveSessionOrchestrator orchestrator;
     private LiveSessionAnswerService service;
 
@@ -63,9 +62,9 @@ class LiveSessionAnswerServiceTest {
     @BeforeEach
     void setUp() {
         sessions = mock(LiveSessionRepository.class);
-        participants = mock(ParticipantRepository.class);
+        participantResolver = mock(ParticipantResolver.class);
         orchestrator = mock(LiveSessionOrchestrator.class);
-        service = new LiveSessionAnswerService(sessions, participants, orchestrator);
+        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator);
 
         participant = Participant.join("user-1", "Player One", null, null);
         registered = principal(IdentityState.REGISTERED, "user-1", UserLevel.USER);
@@ -75,7 +74,7 @@ class LiveSessionAnswerServiceTest {
     void happyPathDelegatesWithResolvedParticipantAndMaxSelections() {
         givenLiveSession(answerSettings(true, 1), mcqContent("opt-a", "opt-b"));
 
-        service.submit(SID, request(new McqAnswer(Set.of("opt-a"))), registered);
+        service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-a"))), registered);
 
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(McqAnswer.class), eq(1));
@@ -85,7 +84,7 @@ class LiveSessionAnswerServiceTest {
     void missingSessionIsNotFound() {
         when(sessions.findById(SID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(Set.of("opt-a"))), registered))
+        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-a"))), registered))
                 .isInstanceOf(NotFoundException.class);
         verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
     }
@@ -96,16 +95,17 @@ class LiveSessionAnswerServiceTest {
         when(session.isLive()).thenReturn(false);
         when(sessions.findById(SID)).thenReturn(Optional.of(session));
 
-        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(Set.of("opt-a"))), registered))
+        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-a"))), registered))
                 .isInstanceOf(ConflictException.class);
     }
 
     @Test
-    void callerNotOnRosterIsForbidden() {
+    void participantResolutionRejectionPropagates() {
         givenLiveSession(answerSettings(true, 1), mcqContent("opt-a"));
-        AmbiPrincipal stranger = principal(IdentityState.REGISTERED, "user-2", UserLevel.USER);
+        when(participantResolver.resolve(any(), any()))
+                .thenThrow(new ForbiddenException("NOT_A_PARTICIPANT", "no"));
 
-        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(Set.of("opt-a"))), stranger))
+        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-a"))), registered))
                 .isInstanceOf(ForbiddenException.class);
         verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
     }
@@ -122,7 +122,8 @@ class LiveSessionAnswerServiceTest {
     void moreSelectionsThanAllowedIsRejected() {
         givenLiveSession(answerSettings(true, 1), mcqContent("opt-a", "opt-b"));
 
-        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(Set.of("opt-a", "opt-b"))), registered))
+        assertThatThrownBy(
+                () -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-a", "opt-b"))), registered))
                 .isInstanceOf(ValidationException.class);
     }
 
@@ -130,19 +131,16 @@ class LiveSessionAnswerServiceTest {
     void unknownOptionIsRejected() {
         givenLiveSession(answerSettings(true, 1), mcqContent("opt-a"));
 
-        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(Set.of("opt-x"))), registered))
+        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-x"))), registered))
                 .isInstanceOf(ValidationException.class);
     }
 
     @Test
     void guestBlockedWhenSlideForbidsAnonymous() {
         givenLiveSession(answerSettings(false, 1), mcqContent("opt-a"));
-        // The guest must still be on the roster to reach the anonymous check.
-        participant = Participant.join("guest-1", "Guest", null, null);
-        when(participants.findAllById(any())).thenReturn(List.of(participant));
-        AmbiPrincipal guest = principal(IdentityState.GUEST, "guest-1", UserLevel.GUEST);
+        AmbiPrincipal guest = principal(IdentityState.GUEST, "user-1", UserLevel.GUEST);
 
-        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(Set.of("opt-a"))), guest))
+        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-a"))), guest))
                 .isInstanceOf(ForbiddenException.class);
     }
 
@@ -161,13 +159,12 @@ class LiveSessionAnswerServiceTest {
         LiveSession session = mock(LiveSession.class);
         when(session.isLive()).thenReturn(true);
         when(session.getDeck()).thenReturn(deck);
-        when(session.getRoster()).thenReturn(List.of(participant.getParticipantId()));
 
         when(sessions.findById(SID)).thenReturn(Optional.of(session));
-        when(participants.findAllById(any())).thenReturn(List.of(participant));
+        when(participantResolver.resolve(any(), any())).thenReturn(participant);
     }
 
-    private static SubmitAnswerRequest request(com.cephadex.ambi.session.answer.payload.AnswerPayload payload) {
+    private static SubmitAnswerRequest request(AnswerPayload payload) {
         return new SubmitAnswerRequest(SLIDE, payload);
     }
 
@@ -179,7 +176,7 @@ class LiveSessionAnswerServiceTest {
         List<McqOption> options = java.util.Arrays.stream(optionIds)
                 .map(id -> new McqOption(id, null, id, null, null))
                 .toList();
-        return new McqContent(options, Set.of(optionIds[0]), McqDataVisualization.NONE);
+        return new McqContent(options, java.util.Set.of(optionIds[0]), McqDataVisualization.NONE);
     }
 
     private static AmbiPrincipal principal(IdentityState state, String userId, UserLevel level) {

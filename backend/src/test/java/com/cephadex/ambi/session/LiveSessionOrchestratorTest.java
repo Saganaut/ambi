@@ -8,10 +8,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -19,8 +21,10 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DuplicateKeyException;
 
 import com.cephadex.ambi.common.exception.ConflictException;
+import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
@@ -30,6 +34,11 @@ import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.LiveResultsShown;
+import com.cephadex.ambi.session.event.LiveSessionCancelled;
+import com.cephadex.ambi.session.event.LiveSessionEnded;
+import com.cephadex.ambi.session.event.LiveSessionStarted;
+import com.cephadex.ambi.session.event.ParticipantJoined;
+import com.cephadex.ambi.session.event.ParticipantLeft;
 import com.cephadex.ambi.session.event.ResponsesRevealed;
 import com.cephadex.ambi.session.event.RoundStarted;
 import com.cephadex.ambi.session.event.SessionEvent;
@@ -38,6 +47,7 @@ import com.cephadex.ambi.session.event.TallyUpdated;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
+import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
@@ -58,6 +68,8 @@ class LiveSessionOrchestratorTest {
     private static final String PUB = "pub-1";
 
     private LiveSessionRepository repo;
+    private ParticipantRepository participants;
+    private PresenceStore presenceStore;
     private LiveRoundStateStore roundStateStore;
     private TallyStore tallyStore;
     private AnswerStore answerStore;
@@ -67,12 +79,12 @@ class LiveSessionOrchestratorTest {
     @BeforeEach
     void setUp() {
         repo = mock(LiveSessionRepository.class);
-        ParticipantRepository participants = mock(ParticipantRepository.class);
+        participants = mock(ParticipantRepository.class);
         SessionLocks locks = mock(SessionLocks.class);
         roundStateStore = mock(LiveRoundStateStore.class);
         answerStore = mock(AnswerStore.class);
         tallyStore = mock(TallyStore.class);
-        PresenceStore presenceStore = mock(PresenceStore.class);
+        presenceStore = mock(PresenceStore.class);
         publisher = mock(EventPublisher.class);
 
         // Run the locked action inline.
@@ -281,5 +293,169 @@ class LiveSessionOrchestratorTest {
         a.setSubmittedAt(Instant.now());
         a.setPayload(payload);
         return a;
+    }
+
+    // ── Session lifecycle ────────────────────────────────────────────────────
+
+    @Test
+    void createSessionPersistsHostAndSeedsIdleState() {
+        Deck deck = mock(Deck.class);
+        when(repo.save(any(LiveSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        LiveSession session = orchestrator.createSession("user-1", "Host", null, deck);
+
+        verify(participants).save(any(Participant.class));
+        verify(repo).save(any(LiveSession.class));
+        ArgumentCaptor<LiveRoundState> captor = ArgumentCaptor.forClass(LiveRoundState.class);
+        verify(roundStateStore).save(any(), captor.capture());
+        assertThat(captor.getValue().publicId()).isEqualTo(session.getPublicId());
+    }
+
+    @Test
+    void createSessionRetriesOnRoomCodeCollision() {
+        Deck deck = mock(Deck.class);
+        when(repo.save(any(LiveSession.class)))
+                .thenThrow(new DuplicateKeyException("dup"))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        orchestrator.createSession("user-1", "Host", null, deck);
+
+        verify(repo, times(2)).save(any(LiveSession.class));
+    }
+
+    @Test
+    void beginPlayStartsLobbyAndPublishes() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isInLobby()).thenReturn(true);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        orchestrator.beginPlay(SID);
+
+        verify(session).start();
+        verify(repo).save(session);
+        assertThat(publishedEvent()).isInstanceOf(LiveSessionStarted.class);
+    }
+
+    @Test
+    void beginPlayRejectsWhenNotInLobby() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isInLobby()).thenReturn(false);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.beginPlay(SID)).isInstanceOf(ConflictException.class);
+        verify(session, never()).start();
+    }
+
+    @Test
+    void joinAddsParticipantSeedsPresenceAndPublishes() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(false);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(session.getRoster()).thenReturn(List.of("host", "p-new"));
+        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
+
+        LiveSessionOrchestrator.JoinResult result = orchestrator.join("ROOM", "user-9", "Niner", null, null);
+
+        verify(participants).save(any(Participant.class));
+        verify(session).addParticipant(result.participant().getParticipantId());
+        verify(presenceStore).save(eq(SID), eq(result.participant().getParticipantId()), any());
+        assertThat(publishedEvent()).isInstanceOf(ParticipantJoined.class);
+    }
+
+    @Test
+    void joinUnknownRoomCodeIsNotFound() {
+        when(repo.findByRoomCode("NOPE")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orchestrator.join("NOPE", "u", "n", null, null))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void joinTerminalSessionIsNotFound() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(true);
+        when(repo.findByRoomCode("DEAD")).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.join("DEAD", "u", "n", null, null))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void leaveRemovesParticipantAndPublishes() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isHost("p-2")).thenReturn(false);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(session.getRoster()).thenReturn(List.of("host"));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        orchestrator.leave(SID, "p-2");
+
+        verify(session).removeParticipant("p-2");
+        verify(presenceStore).remove(SID, "p-2");
+        assertThat(publishedEvent()).isInstanceOf(ParticipantLeft.class);
+    }
+
+    @Test
+    void hostCannotLeave() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isHost("host")).thenReturn(true);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.leave(SID, "host")).isInstanceOf(ConflictException.class);
+        verify(session, never()).removeParticipant(any());
+    }
+
+    @Test
+    void endClearsRedisAndPublishesEnded() {
+        Slide slide = new Slide();
+        slide.setId(SLIDE);
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of(slide));
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(false);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getRoster()).thenReturn(List.of("host"));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        when(participants.findAllById(any())).thenReturn(List.of());
+
+        orchestrator.endLiveSession(SID);
+
+        verify(session).endLiveSession();
+        verify(roundStateStore).clear(SID);
+        verify(presenceStore).clear(SID);
+        verify(answerStore).clear(SID, SLIDE);
+        verify(tallyStore).clear(SID, SLIDE);
+        assertThat(publishedEvent()).isInstanceOf(LiveSessionEnded.class);
+    }
+
+    @Test
+    void endRejectsTerminalSession() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(true);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.endLiveSession(SID)).isInstanceOf(ConflictException.class);
+        verify(session, never()).endLiveSession();
+    }
+
+    @Test
+    void cancelPublishesCancelled() {
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of());
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(false);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(session.getDeck()).thenReturn(deck);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        orchestrator.cancelSession(SID);
+
+        verify(session).cancel();
+        assertThat(publishedEvent()).isInstanceOf(LiveSessionCancelled.class);
     }
 }

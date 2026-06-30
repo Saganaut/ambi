@@ -1,6 +1,5 @@
 package com.cephadex.ambi.session.answer;
 
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,7 +23,7 @@ import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
-import com.cephadex.ambi.session.participant.ParticipantRepository;
+import com.cephadex.ambi.session.participant.ParticipantResolver;
 
 /**
  * Application service behind {@code POST /api/liveSessions/{id}/answers}: turns an
@@ -38,13 +37,13 @@ import com.cephadex.ambi.session.participant.ParticipantRepository;
 public class LiveSessionAnswerService {
 
     private final LiveSessionRepository sessions;
-    private final ParticipantRepository participants;
+    private final ParticipantResolver participantResolver;
     private final LiveSessionOrchestrator orchestrator;
 
-    public LiveSessionAnswerService(LiveSessionRepository sessions, ParticipantRepository participants,
+    public LiveSessionAnswerService(LiveSessionRepository sessions, ParticipantResolver participantResolver,
             LiveSessionOrchestrator orchestrator) {
         this.sessions = sessions;
-        this.participants = participants;
+        this.participantResolver = participantResolver;
         this.orchestrator = orchestrator;
     }
 
@@ -66,7 +65,7 @@ public class LiveSessionAnswerService {
             throw new ConflictException("SESSION_NOT_LIVE", "session is not in progress");
         }
 
-        Participant participant = resolveParticipant(session, principal);
+        Participant participant = participantResolver.resolve(session, principal);
 
         Slide slide = session.getDeck().findSlide(request.slideId())
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "slide not in deck snapshot"));
@@ -81,19 +80,6 @@ public class LiveSessionAnswerService {
 
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), maxSelections);
-    }
-
-    /** The caller's non-banned roster participant, or 403 if they aren't one. */
-    private Participant resolveParticipant(LiveSession session, AmbiPrincipal principal) {
-        String userId = principal == null ? null : principal.userId();
-        if (userId == null) {
-            throw new ForbiddenException("NOT_A_PARTICIPANT", "not a participant in this session");
-        }
-        List<Participant> roster = participants.findAllById(session.getRoster());
-        return roster.stream()
-                .filter(p -> !p.isBanned() && userId.equals(p.getUserId()))
-                .findFirst()
-                .orElseThrow(() -> new ForbiddenException("NOT_A_PARTICIPANT", "not a participant in this session"));
     }
 
     private void validatePayload(Slide slide, AnswerPayload payload, int maxSelections) {

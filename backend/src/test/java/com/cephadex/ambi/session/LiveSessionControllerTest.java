@@ -38,6 +38,9 @@ import com.cephadex.ambi.user.enums.UserLevel;
 class LiveSessionControllerTest {
 
     @Mock
+    private LiveSessionLobbyService lobbyService;
+
+    @Mock
     private LiveSessionAnswerService answerService;
 
     private MockMvc mockMvc;
@@ -50,7 +53,7 @@ class LiveSessionControllerTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 
-        LiveSessionController controller = new LiveSessionController(answerService);
+        LiveSessionController controller = new LiveSessionController(lobbyService, answerService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
@@ -79,5 +82,51 @@ class LiveSessionControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(answerService, never()).submit(any(), any(), any());
+    }
+
+    @Test
+    void createDelegatesAndReturns201() throws Exception {
+        mockMvc.perform(post("/api/liveSessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deckId\":\"deck-1\"}"))
+                .andExpect(status().isCreated());
+
+        verify(lobbyService).createSession(any(), any());
+    }
+
+    @Test
+    void createWithBlankDeckIdIsRejected() throws Exception {
+        mockMvc.perform(post("/api/liveSessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deckId\":\"\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(lobbyService, never()).createSession(any(), any());
+    }
+
+    @Test
+    void joinDelegatesAndReturns200() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/join")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"roomCode\":\"ABCDEFGH\",\"displayName\":\"Player\"}"))
+                .andExpect(status().isOk());
+
+        verify(lobbyService).join(any(), any());
+    }
+
+    @Test
+    void startDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/start"))
+                .andExpect(status().isAccepted());
+
+        verify(lobbyService).start(eq("sess-1"), any());
+    }
+
+    @Test
+    void leaveDelegatesAndReturns204() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/leave"))
+                .andExpect(status().isNoContent());
+
+        verify(lobbyService).leave(eq("sess-1"), any());
     }
 }

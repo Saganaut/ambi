@@ -1,12 +1,15 @@
 package com.cephadex.ambi.session;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.common.exception.ConflictException;
+import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
@@ -25,6 +28,7 @@ import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
+import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.TallyStore;
@@ -92,23 +96,29 @@ public class LiveSessionOrchestrator {
     // ── Session lifecycle ────────────────────────────────────────────────────
 
     /**
-     * Opens a brand-new session in the lobby: builds {@link LiveSession#create}
-     * (minting roomCode/publicId), persists it to Mongo, seeds the Redis
-     * {@link LiveRoundState#idle()} snapshot, and publishes the lobby-open event.
-     * Reconciles a roomCode/publicId duplicate-key collision by re-minting (the
-     * unique indexes are the authority — open-decisions F1).
+     * Opens a brand-new session in the lobby: creates the host {@link Participant},
+     * builds {@link LiveSession#create} (minting roomCode/publicId), persists both to
+     * Mongo, and seeds the Redis {@link LiveRoundState#idle()} snapshot. Reconciles a
+     * roomCode duplicate-key collision by re-minting (the unique index is the
+     * authority — open-decisions F1). No event is published: nobody is subscribed yet
+     * (the host receives the publicId in the response and subscribes after).
      *
      * <p>Distinct from {@link #beginPlay}: creating a session only opens the
      * lobby; play starts on a separate host action.
      *
-     * @param hostUserId the host's user id (becomes the host participant)
-     * @param deck       the deck snapshot to run
+     * @param hostUserId  the host's user id (becomes the host participant)
+     * @param displayName the host's display name (resolved from their profile)
+     * @param avatar      the host's avatar, may be {@code null}
+     * @param deck        the deck snapshot to run
      * @return the created session (carrying its roomCode/publicId)
      */
-    public LiveSession createSession(String hostUserId, Deck deck) {
-        // TODO(Claude): create host Participant + LiveSession.create, save both,
-        // seed roundStateStore.save(id, LiveRoundState.idle()), publisher.publish(...).
-        throw new UnsupportedOperationException("Not implemented yet");
+    public LiveSession createSession(String hostUserId, String displayName, Avatar avatar, Deck deck) {
+        Participant host = Participant.join(hostUserId, displayName, avatar, null);
+        participants.save(host);
+
+        LiveSession session = saveWithUniqueRoomCode(LiveSession.create(host.getParticipantId(), deck));
+        roundStateStore.save(session.getId(), LiveRoundState.idle(session.getPublicId()));
+        return session;
     }
 
     /**
@@ -117,9 +127,15 @@ public class LiveSessionOrchestrator {
      * {@link #advance}/{@link #goTo}.
      */
     public void beginPlay(String sessionId) {
-        // TODO(Claude): withLock → load session, session.start(), repo.save,
-        // recordPhase snapshot, publisher.publish(...).
-        throw new UnsupportedOperationException("Not implemented yet");
+        locks.withLock(sessionId, () -> {
+            LiveSession session = requireSession(sessionId);
+            if (!session.isInLobby()) {
+                throw new ConflictException("SESSION_NOT_IN_LOBBY", "play can only start from the lobby");
+            }
+            session.start();
+            repo.save(session);
+            publisher.publish(session.getPublicId(), SessionEvents.liveSessionStarted(session));
+        });
     }
 
     /**
@@ -129,9 +145,15 @@ public class LiveSessionOrchestrator {
      * participant scores; there is no separate results status.
      */
     public void endLiveSession(String sessionId) {
-        // TODO(Claude): withLock → session.endLiveSession(), repo.save, clear all
-        // Redis stores for the session, publisher.publish(...).
-        throw new UnsupportedOperationException("Not implemented yet");
+        locks.withLock(sessionId, () -> {
+            LiveSession session = requireSession(sessionId);
+            requireNotTerminal(session);
+            session.endLiveSession();
+            repo.save(session);
+            clearSessionRedis(session);
+            publisher.publish(session.getPublicId(),
+                    SessionEvents.liveSessionEnded(participants.findAllById(session.getRoster())));
+        });
     }
 
     /**
@@ -141,32 +163,45 @@ public class LiveSessionOrchestrator {
      * completing.
      */
     public void cancelSession(String sessionId) {
-        // TODO(Claude): withLock → session.cancel(), repo.save, clear Redis,
-        // publisher.publish(...).
-        throw new UnsupportedOperationException("Not implemented yet");
+        locks.withLock(sessionId, () -> {
+            LiveSession session = requireSession(sessionId);
+            requireNotTerminal(session);
+            session.cancel();
+            repo.save(session);
+            clearSessionRedis(session);
+            publisher.publish(session.getPublicId(), SessionEvents.liveSessionCancelled("Cancelled by host"));
+        });
     }
 
     // ── Participants & presence ──────────────────────────────────────────────
 
     /**
-     * Joins a participant via the room code (public join; guests allowed unless
-     * audience settings restrict it): resolves the session, creates the
-     * {@link Participant#join} record, adds it to the roster, seeds presence,
-     * persists, issues the participant token for reconnection (open-decisions C2),
-     * and publishes the roster change.
+     * Joins a participant via the room code (public join; guests allowed): resolves
+     * the live session, creates the {@link Participant#join} record, adds it to the
+     * roster, seeds presence, persists, and publishes the roster change. An unknown
+     * or terminal room code is masked as a 404 (the code is a guessable key).
      *
      * @param roomCode    the human-typed room code (also the link-join code)
      * @param userId      the joining user's id (a minted guest id for guests)
      * @param displayName required display name shown to other players
      * @param avatar      optional avatar
      * @param colorTag    optional color tag
-     * @return the created participant
+     * @return the joined session (for its publicId) and the new participant
      */
-    public Participant join(String roomCode, String userId, String displayName, Avatar avatar, String colorTag) {
-        // TODO(Claude): resolve session by roomCode, Participant.join(...),
-        // session.addParticipant, participants.save, presenceStore.save,
-        // repo.save, publisher.publish(...). Enforce max roster size (F5).
-        throw new UnsupportedOperationException("Not implemented yet");
+    public JoinResult join(String roomCode, String userId, String displayName, Avatar avatar, String colorTag) {
+        LiveSession session = repo.findByRoomCode(roomCode)
+                .filter(found -> !found.isTerminal())
+                .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
+
+        Participant participant = Participant.join(userId, displayName, avatar, colorTag);
+        participants.save(participant);
+
+        session.addParticipant(participant.getParticipantId());
+        repo.save(session);
+        presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
+
+        publisher.publish(session.getPublicId(), SessionEvents.participantJoined(participant, session.getRoster()));
+        return new JoinResult(session, participant);
     }
 
     /**
@@ -176,9 +211,18 @@ public class LiveSessionOrchestrator {
      * exit path.
      */
     public void leave(String sessionId, String participantId) {
-        // TODO(Claude): withLock → session.removeParticipant, presenceStore.remove,
-        // repo.save, publisher.publish(...).
-        throw new UnsupportedOperationException("Not implemented yet");
+        locks.withLock(sessionId, () -> {
+            LiveSession session = requireSession(sessionId);
+            if (session.isHost(participantId)) {
+                throw new ConflictException("HOST_CANNOT_LEAVE",
+                        "the host ends or cancels the session instead of leaving");
+            }
+            session.removeParticipant(participantId);
+            presenceStore.remove(sessionId, participantId);
+            repo.save(session);
+            publisher.publish(session.getPublicId(),
+                    SessionEvents.participantLeft(participantId, session.getRoster()));
+        });
     }
 
     /**
@@ -446,4 +490,44 @@ public class LiveSessionOrchestrator {
     // - submitVote(...) + RoundPhase.VOTE — best-answer/deception voting (D3).
     // - pauseTimer(...) / resumeTimer(...) + DeadlineScheduler — timed rounds (A3);
     //   decide the LiveRoundState pause accumulator field before adding.
+
+    // ── Lifecycle helpers ────────────────────────────────────────────────────
+
+    private LiveSession requireSession(String sessionId) {
+        return repo.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
+    }
+
+    private void requireNotTerminal(LiveSession session) {
+        if (session.isTerminal()) {
+            throw new ConflictException("SESSION_ALREADY_TERMINAL", "session is already finished or cancelled");
+        }
+    }
+
+    /** Persists a new session, re-minting the room code on a uniqueness collision (≤5 tries). */
+    private LiveSession saveWithUniqueRoomCode(LiveSession session) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            try {
+                return repo.save(session);
+            } catch (DuplicateKeyException collision) {
+                session.regenerateRoomCode();
+            }
+        }
+        throw new ConflictException("ROOM_CODE_UNAVAILABLE", "could not allocate a unique room code");
+    }
+
+    /** Drops every Redis key for a now-terminal session (state, presence, per-round answers/tallies). */
+    private void clearSessionRedis(LiveSession session) {
+        String sessionId = session.getId();
+        roundStateStore.clear(sessionId);
+        presenceStore.clear(sessionId);
+        for (Slide slide : session.getDeck().getSlides()) {
+            answerStore.clear(sessionId, slide.getId());
+            tallyStore.clear(sessionId, slide.getId());
+        }
+    }
+
+    /** The outcome of a successful {@link #join}: the session (for its publicId) and the new participant. */
+    public record JoinResult(LiveSession session, Participant participant) {
+    }
 }
