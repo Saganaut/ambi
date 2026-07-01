@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,6 +30,9 @@ import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.session.answer.LiveSessionAnswerService;
 import com.cephadex.ambi.session.dto.AdvanceResponse;
+import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
+import com.cephadex.ambi.session.liveSession.enums.LiveSessionLifecycle;
+import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -52,6 +56,9 @@ class LiveSessionControllerTest {
     @Mock
     private LiveSessionPresenceService presenceService;
 
+    @Mock
+    private LiveSessionSnapshotService snapshotService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -63,7 +70,7 @@ class LiveSessionControllerTest {
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 
         LiveSessionController controller =
-                new LiveSessionController(lobbyService, answerService, hostService, presenceService);
+                new LiveSessionController(lobbyService, answerService, hostService, presenceService, snapshotService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
@@ -92,6 +99,22 @@ class LiveSessionControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(answerService, never()).submit(any(), any(), any());
+    }
+
+    @Test
+    void snapshotDelegatesAndReturns200() throws Exception {
+        when(snapshotService.getSnapshot(eq("sess-1"), any()))
+                .thenReturn(new SessionSnapshotResponse("sess-1", "pub-1",
+                        LiveSessionLifecycle.LOBBY, RoundPhase.SUBMIT, null, null, null, null,
+                        List.of(), List.of(), "part-1", true));
+
+        mockMvc.perform(get("/api/liveSessions/sess-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value("sess-1"))
+                .andExpect(jsonPath("$.publicId").value("pub-1"))
+                .andExpect(jsonPath("$.viewerIsHost").value(true));
+
+        verify(snapshotService).getSnapshot(eq("sess-1"), any());
     }
 
     @Test

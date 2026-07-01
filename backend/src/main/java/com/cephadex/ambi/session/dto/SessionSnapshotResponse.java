@@ -1,0 +1,53 @@
+package com.cephadex.ambi.session.dto;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+import com.cephadex.ambi.session.event.dto.ParticipantView;
+import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
+import com.cephadex.ambi.session.event.dto.SlideView;
+import com.cephadex.ambi.session.liveSession.enums.LiveSessionLifecycle;
+import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
+
+/**
+ * A point-in-time snapshot of a live session, served by {@code GET
+ * /api/liveSessions/{id}} so a client that (re)connects can rehydrate its state
+ * in one read before it starts applying the delta {@code SessionEvent}s from the
+ * topic. The session broadcasts only deltas with no replay, so without this a
+ * refresh, reconnect, or late join would have no way to learn the current state.
+ *
+ * <p>Deliberately built from the <strong>same participant-safe DTOs the events
+ * carry</strong> ({@link ParticipantView}, {@link SlideView},
+ * {@link ScoreboardEntry}) so the snapshot and the deltas agree field-for-field:
+ * the client seeds its store from this shape and every subsequent event patches
+ * the same shape. No answer key, {@code userId}, or authoring secret travels here
+ * — that stripping is the DTO factories' job, reused as-is.
+ *
+ * @param sessionId             the session id (the {@code {id}} used for commands)
+ * @param publicId              the session's public handle — the STOMP topic key to subscribe with
+ * @param status                lifecycle status (lobby / in-progress / finished / cancelled)
+ * @param phase                 the current round phase, or the idle default between rounds
+ * @param currentSlideId        the open slide, or {@code null} between rounds
+ * @param currentSlide          the participant-safe view of the open slide, or {@code null} between rounds
+ * @param currentRoundStartedAt when the open round started, or {@code null} between rounds
+ * @param optionTally           the open round's live per-option counts, or {@code null} between rounds
+ * @param roster                every participant, in join order, with live connection status
+ * @param scoreboard            current standings, ranked by points
+ * @param viewerParticipantId   the calling participant's id (so the client can spot itself)
+ * @param viewerIsHost          whether the caller is the session host
+ */
+public record SessionSnapshotResponse(
+        String sessionId,
+        String publicId,
+        LiveSessionLifecycle status,
+        RoundPhase phase,
+        String currentSlideId,
+        SlideView currentSlide,
+        Instant currentRoundStartedAt,
+        Map<String, Integer> optionTally,
+        List<ParticipantView> roster,
+        List<ScoreboardEntry> scoreboard,
+        String viewerParticipantId,
+        boolean viewerIsHost) {
+}

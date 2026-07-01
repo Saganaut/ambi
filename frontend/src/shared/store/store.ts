@@ -1,4 +1,5 @@
 import panelReducer from "@/features/deck/store/panelSlice.ts";
+import { liveSessionReducer } from "@/features/liveSession/store/liveSessionSlice.ts";
 import { configureStore } from "@reduxjs/toolkit";
 import { authPromptReducer } from "../../features/auth/store/authPromptSlice.ts";
 import { emptySplitApi } from "./emptyApi";
@@ -11,6 +12,7 @@ export const store = configureStore({
     [emptySplitApi.reducerPath]: emptySplitApi.reducer,
     authPrompt: authPromptReducer,
     panel: panelReducer,
+    liveSession: liveSessionReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(emptySplitApi.middleware),
 });

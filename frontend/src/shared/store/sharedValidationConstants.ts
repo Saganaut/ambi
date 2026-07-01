@@ -10,6 +10,19 @@
 // names; values are the per-field facets present.
 
 export const sharedValidation = {
+  "CreateSessionRequest": {
+    "deckId": {
+      "minLength": 1
+    }
+  },
+  "JoinSessionRequest": {
+    "displayName": {
+      "maxLength": 60
+    },
+    "roomCode": {
+      "minLength": 1
+    }
+  },
   "Pageable": {
     "page": {
       "minimum": 0
@@ -25,6 +38,11 @@ export const sharedValidation = {
     "stars": {
       "minimum": 1,
       "maximum": 5
+    }
+  },
+  "SubmitAnswerRequest": {
+    "slideId": {
+      "minLength": 1
     }
   }
 } as const;

@@ -2,6 +2,7 @@ package com.cephadex.ambi.session;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,7 @@ import com.cephadex.ambi.session.dto.CreateSessionRequest;
 import com.cephadex.ambi.session.dto.CreateSessionResponse;
 import com.cephadex.ambi.session.dto.JoinSessionRequest;
 import com.cephadex.ambi.session.dto.JoinSessionResponse;
+import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 
 import jakarta.validation.Valid;
 
@@ -35,13 +37,28 @@ public class LiveSessionController {
     private final LiveSessionAnswerService answerService;
     private final LiveSessionHostService hostService;
     private final LiveSessionPresenceService presenceService;
+    private final LiveSessionSnapshotService snapshotService;
 
     public LiveSessionController(LiveSessionLobbyService lobbyService, LiveSessionAnswerService answerService,
-            LiveSessionHostService hostService, LiveSessionPresenceService presenceService) {
+            LiveSessionHostService hostService, LiveSessionPresenceService presenceService,
+            LiveSessionSnapshotService snapshotService) {
         this.lobbyService = lobbyService;
         this.answerService = answerService;
         this.hostService = hostService;
         this.presenceService = presenceService;
+        this.snapshotService = snapshotService;
+    }
+
+    /**
+     * A point-in-time snapshot of the session for the calling participant. Clients
+     * fetch this once on (re)connect to seed their state, then keep it current from
+     * the {@code SessionEvent} stream on the session's WebSocket topic — the
+     * broadcast carries only deltas with no replay.
+     */
+    @GetMapping("/{id}")
+    public SessionSnapshotResponse snapshot(
+            @PathVariable String id, @AuthenticationPrincipal AmbiPrincipal principal) {
+        return snapshotService.getSnapshot(id, principal);
     }
 
     /** Opens a new lobby running the given deck. Returns the room code + publicId to host with. */

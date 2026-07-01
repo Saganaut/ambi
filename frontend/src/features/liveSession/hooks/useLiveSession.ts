@@ -1,22 +1,43 @@
-/**
- * Hook for running a deck as a live presentation / interactive session.
- *
- * This is a placeholder: the real flow (create an InteractiveSession from the
- * deck, then navigate to the room) is not built yet. `present(deckId)` logs so
- * callers — deck cards, the editor — can wire the UI today and have it light up
- * for free once the implementation lands.
- */
+// Entry-point view-model for reaching a live session: it turns a deck (host) or a
+// room code (player) into a running session and navigates to its page. It owns
+// the UI concern the write boundary must not — navigation — composing
+// `useLiveSessionMutate` with the router.
+//
+// Deliberately minimal for now: the full in-session board view-model (composing
+// `useLiveSessionQuery` + the host/answer commands for SessionBoard) is a
+// follow-up. See z-docs/rules/frontend/hook-roles.md.
+import { useNavigate } from "@tanstack/react-router";
+
+import type { JoinApiArg } from "../store/liveSessionApi.gen";
+import { useLiveSessionMutate } from "./useLiveSessionMutate";
+
 interface UseLiveSessionResult {
-  /** Start presenting the given deck. Not yet implemented. */
-  present: (deckId: string) => void;
+  /** Host a deck as a live session, then open its session page. */
+  present: (deckId: string) => Promise<void>;
+  /** Join a session by room code, then open its session page. */
+  join: (request: JoinApiArg["joinSessionRequest"]) => Promise<void>;
 }
 
 const useLiveSession = (): UseLiveSessionResult => {
-  const present = (deckId: string): void => {
-    console.log("not yet implemented", deckId);
+  const navigate = useNavigate();
+  const { create, join: joinMutation } = useLiveSessionMutate();
+
+  const goToSession = (sessionId: string | undefined) => {
+    if (!sessionId) return;
+    void navigate({ to: "/sessions/$sessionId", params: { sessionId } });
   };
 
-  return { present };
+  const present = async (deckId: string) => {
+    const { sessionId } = await create(deckId);
+    goToSession(sessionId);
+  };
+
+  const join = async (request: JoinApiArg["joinSessionRequest"]) => {
+    const { sessionId } = await joinMutation(request);
+    goToSession(sessionId);
+  };
+
+  return { present, join };
 };
 
 export { useLiveSession };
