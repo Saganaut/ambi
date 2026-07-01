@@ -11,11 +11,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * key, speaker notes, or other authoring secrets — that stripping happens in
  * {@code SessionEvents} when the event is built.
  *
- * <p>Polymorphism uses <strong>Jackson 2</strong> ({@code com.fasterxml.jackson})
- * with a {@code "type"} discriminator, matching {@code RedisJsonCodec} (the
- * Jackson-2 mapper these events round-trip through on the Redis fan-out hop) and
- * the configured STOMP message converter. The discriminator name is the simple
- * class name, so a client switches on {@code event.type}. Frontend note: these
+ * <p>Polymorphism uses the shared {@code @JsonTypeInfo}/{@code @JsonSubTypes}
+ * annotations ({@code com.fasterxml.jackson.annotation}, common to both Jackson
+ * majors) with a {@code "type"} discriminator, resolved by Jackson 3 in both
+ * {@code RedisJsonCodec} (the mapper these events round-trip through on the Redis
+ * fan-out hop) and the configured STOMP message converter. The discriminator name
+ * is the simple class name, so a client switches on {@code event.type}. Frontend note: these
  * payloads are not part of the OpenAPI schema, so the union is typed by hand on
  * the client.
  */

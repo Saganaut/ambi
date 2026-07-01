@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -50,14 +50,12 @@ public class RedisTokenSessionService {
     private final AuthProperties props;
     private final SecretKey signingKey;
     /**
-     * Owns its own Jackson 2 mapper rather than injecting Spring's. Spring Boot 4
-     * ships both Jackson 2 ({@code com.fasterxml.jackson}) and Jackson 3
-     * ({@code tools.jackson}) on the classpath, and the auto-configured
-     * {@code ObjectMapper} bean is the Jackson 3 one — injecting a Jackson 2
-     * {@code ObjectMapper} would not resolve at runtime. {@link UserSession}
-     * uses only primitives, strings and enums, so no extra modules are needed.
+     * Owns its own Jackson 3 ({@code tools.jackson}) mapper rather than injecting
+     * Spring's web bean, keeping its config independent of the HTTP layer.
+     * {@link UserSession} uses only primitives, strings and enums, so the default
+     * build needs no extra modules.
      */
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper objectMapper = JsonMapper.builder().build();
 
     public RedisTokenSessionService(StringRedisTemplate redis, AuthProperties props) {
         this.redis = redis;

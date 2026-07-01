@@ -21,7 +21,7 @@ plain `StringRedisTemplate` ops, namespaced keys, no lock library.
 | [`PresenceStore`](PresenceStore.java) / [`Presence`](Presence.java) | Per-session live participant presence (connection status + last-seen) as a Redis Hash. |
 | [`SessionKeys`](SessionKeys.java) | Builds the namespaced keys from a `SessionId`. |
 | [`SessionRedisProperties`](SessionRedisProperties.java) | `ambi.session.*` config (namespaces, lock lease, round-state TTL). |
-| [`RedisJsonCodec`](../../common/redis/RedisJsonCodec.java) | Shared Jackson-2 codec (lives in `common/redis`, reusable). |
+| [`RedisJsonCodec`](../../common/redis/RedisJsonCodec.java) | Shared Jackson-3 codec (lives in `common/redis`, reusable). |
 
 ## Lock protocol
 
@@ -45,13 +45,15 @@ every round transition this way.
 
 ## Serialization
 
-`RedisJsonCodec` owns a **Jackson 2** mapper on purpose (Spring Boot 4 ships both
-Jackson 2 and Jackson 3; the auto-configured bean is Jackson 3, which wouldn't
-satisfy a Jackson-2 injection point, and the
-[`AnswerPayload`](../answer/payload/AnswerPayload.java) hierarchy is annotated
-with Jackson-2 `@JsonTypeInfo`/`@JsonSubTypes`). It registers `JavaTimeModule`
-so `Instant` round-trips as ISO-8601 text and tolerates unknown properties for
-forward compatibility. A value it can't write or read throws `RedisCodecException`
+`RedisJsonCodec` owns its own **Jackson 3** (`tools.jackson`) `JsonMapper` rather
+than injecting Spring's web bean, so its config is independent of the HTTP layer's
+(notably, it tolerates unknown properties for forward compatibility, which the web
+mapper should not). Jackson 3 auto-registers `java.time` support, so `Instant`
+round-trips as ISO-8601 text with no module to register. The
+[`AnswerPayload`](../answer/payload/AnswerPayload.java) hierarchy's
+`@JsonTypeInfo`/`@JsonSubTypes` come from the shared
+`com.fasterxml.jackson.annotation` package, which Jackson 3 resolves natively.
+A value it can't write or read throws `RedisCodecException`
 — in-flight state is authoritative, so a corrupt record is a real fault, not
 silently dropped (unlike the auth store, which treats a corrupt session as "no
 session").

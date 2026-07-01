@@ -58,8 +58,8 @@ public class UserSession {
 
     /**
      * Creation timestamp as epoch milliseconds. Stored as a plain {@code long}
-     * (not {@link java.time.Instant}) so the Jackson 2 ObjectMapper used by this
-     * package serialises it without needing the JSR-310 module on the classpath.
+     * (not {@link java.time.Instant}) so the primitives-only mapper used by this
+     * package serialises it without registering any extra module.
      */
     private long createdAtEpochMs;
 }

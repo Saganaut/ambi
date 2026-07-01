@@ -2,40 +2,38 @@ package com.cephadex.ambi.common.redis;
 
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Shared JSON codec for everything we keep in Redis as a string value
  * (live-session state, tallies, …). Centralises one correctly-configured Jackson
  * mapper so call sites don't each hand-roll one.
  *
- * <p>Deliberately owns a <strong>Jackson 2</strong> ({@code com.fasterxml.jackson})
- * mapper rather than injecting Spring's bean. Spring Boot 4 ships both Jackson 2
- * and Jackson 3 ({@code tools.jackson}) and the auto-configured {@code ObjectMapper}
- * is the Jackson 3 one, which would not satisfy a Jackson 2 injection point. The
- * domain types we serialize — notably the sealed
- * {@link com.cephadex.ambi.session.answer.payload.AnswerPayload} hierarchy — are
- * annotated with Jackson 2 {@code @JsonTypeInfo}/{@code @JsonSubTypes}, so the
- * mapper must be Jackson 2 for the polymorphic discriminator to resolve. This is
- * the same reasoning documented on
- * {@code RedisTokenSessionService}'s private mapper; that service keeps its own
- * (its {@code UserSession} is primitives-only and needs no modules), whereas this
- * codec adds {@link JavaTimeModule} so {@link java.time.Instant} and friends
- * round-trip as ISO-8601 text rather than numeric timestamps.
+ * <p>Owns its own <strong>Jackson 3</strong> ({@code tools.jackson}) mapper rather
+ * than injecting Spring's web bean, so its config is independent of the HTTP
+ * layer's: it tolerates unknown properties for forward compatibility (see below),
+ * which the strict web mapper should not. Jackson 3 auto-registers {@code java.time}
+ * support, so {@link java.time.Instant} and friends round-trip as ISO-8601 text
+ * with no module to register; we still set {@code WRITE_DATES_AS_TIMESTAMPS=false}
+ * explicitly to pin that behaviour. The sealed
+ * {@link com.cephadex.ambi.session.answer.payload.AnswerPayload} hierarchy carries
+ * {@code @JsonTypeInfo}/{@code @JsonSubTypes} from the shared
+ * {@code com.fasterxml.jackson.annotation} package, which Jackson 3 resolves
+ * natively.
  */
 @Component
 public class RedisJsonCodec {
 
-    private final ObjectMapper mapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    private final JsonMapper mapper = JsonMapper.builder()
+            // Pin ISO-8601 text for Instant & friends (also the Jackson 3 default).
+            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
             // Tolerate forward-compatible records: a newer writer may add fields
             // an older reader doesn't know yet.
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     /** Serializes {@code value} to a JSON string, or throws {@link RedisCodecException}. */
     public String serialize(Object value) {

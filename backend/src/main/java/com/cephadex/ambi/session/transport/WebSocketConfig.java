@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.converter.DefaultContentTypeResolver;
-import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.converter.JacksonJsonMessageConverter;
 import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -14,9 +14,9 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 import com.cephadex.ambi.auth.config.AuthProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * STOMP-over-WebSocket transport for live sessions. Clients connect to {@code /ws}
@@ -66,19 +66,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public boolean configureMessageConverters(List<MessageConverter> messageConverters) {
-        // Jackson 2 to honour the SessionEvent @JsonTypeInfo discriminator and ISO-8601
-        // Instants, matching RedisJsonCodec on the fan-out hop. Returning false means
-        // this is the only converter (no auto-added Jackson 3 converter that would
-        // ignore the Jackson 2 annotations).
+        // Our standard Jackson 3 mapper: it honours the SessionEvent @JsonTypeInfo
+        // discriminator and serializes Instants as ISO-8601 text (java.time support
+        // is auto-registered; WRITE_DATES_AS_TIMESTAMPS pins the ISO form), matching
+        // RedisJsonCodec on the fan-out hop. Returning false means this is the only
+        // converter, so its config is authoritative rather than merged with defaults.
         DefaultContentTypeResolver resolver = new DefaultContentTypeResolver();
         resolver.setDefaultMimeType(MimeTypeUtils.APPLICATION_JSON);
 
-        ObjectMapper mapper = new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        JsonMapper mapper = JsonMapper.builder()
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .build();
 
-        MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
-        converter.setObjectMapper(mapper);
+        JacksonJsonMessageConverter converter = new JacksonJsonMessageConverter(mapper);
         converter.setContentTypeResolver(resolver);
         messageConverters.add(converter);
         return false;

@@ -21,7 +21,7 @@ import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.user.enums.UserLevel;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Verifies the Redis-authoritative contract: a valid JWT signature is never
@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 class RedisTokenSessionServiceTest {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private StringRedisTemplate redis;
     private ValueOperations<String, String> valueOps;
