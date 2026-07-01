@@ -7,8 +7,6 @@
 // ResultsPreviewContext) and the styling/positioning of `CoverImagePicker`.
 //
 // Only renders for MCQ slides, whose content carries `dataVisualization`.
-import { getRouteApi } from "@tanstack/react-router";
-
 import { mcqResults } from "@components/Charts/registry";
 import type { ChartType } from "@components/Charts/types";
 import { VIZ_META } from "@components/Charts/vizMeta";
@@ -17,15 +15,16 @@ import { useSlide } from "@deck/hooks/useSlide";
 
 import styles from "./ChartTypePicker.module.css";
 
-const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+interface ChartTypePickerProps {
+  deckId: string;
+  slideId: string;
+}
 
-const ChartTypePicker = () => {
-  const { deckId } = routeApi.useParams();
-  const { slideId } = routeApi.useSearch();
+const ChartTypePicker = ({ deckId, slideId }: ChartTypePickerProps) => {
   const { getSlide, updateSlide } = useSlide(deckId);
   const { setPreviewVisualization } = useResultsPreview();
 
-  const slide = slideId ? getSlide(slideId) : undefined;
+  const slide = getSlide(slideId);
   if (!slide || slide.content.contentType !== "MCQ") return null;
   const content = slide.content;
 
@@ -90,3 +89,4 @@ const ChartTypePicker = () => {
 };
 
 export { ChartTypePicker };
+export type { ChartTypePickerProps };

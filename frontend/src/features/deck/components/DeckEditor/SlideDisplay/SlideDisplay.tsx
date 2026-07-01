@@ -150,7 +150,7 @@ const SlideDisplay = () => {
             clearSlideImage(slide.id, "cover");
           }}
         />
-        <ChartTypePicker />
+        <ChartTypePicker deckId={deckId} slideId={slideId} />
         <div></div>
       </SlideCanvas>{" "}
     </>
