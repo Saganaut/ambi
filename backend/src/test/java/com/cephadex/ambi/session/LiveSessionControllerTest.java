@@ -4,7 +4,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -26,6 +28,7 @@ import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.session.answer.LiveSessionAnswerService;
+import com.cephadex.ambi.session.dto.AdvanceResponse;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -43,6 +46,12 @@ class LiveSessionControllerTest {
     @Mock
     private LiveSessionAnswerService answerService;
 
+    @Mock
+    private LiveSessionHostService hostService;
+
+    @Mock
+    private LiveSessionPresenceService presenceService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -53,7 +62,8 @@ class LiveSessionControllerTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 
-        LiveSessionController controller = new LiveSessionController(lobbyService, answerService);
+        LiveSessionController controller =
+                new LiveSessionController(lobbyService, answerService, hostService, presenceService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
@@ -128,5 +138,67 @@ class LiveSessionControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(lobbyService).leave(eq("sess-1"), any());
+    }
+
+    // ── Host round & navigation control ──────────────────────────────────────
+
+    @Test
+    void advanceDelegatesAndReturnsOpenedSlide() throws Exception {
+        when(hostService.advance(eq("sess-1"), any())).thenReturn(AdvanceResponse.opened("slide-9"));
+
+        mockMvc.perform(post("/api/liveSessions/sess-1/advance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slideId").value("slide-9"))
+                .andExpect(jsonPath("$.terminal").value(false));
+    }
+
+    @Test
+    void goToRoundDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/rounds/slide-2"))
+                .andExpect(status().isAccepted());
+
+        verify(hostService).goTo(eq("sess-1"), eq("slide-2"), any());
+    }
+
+    @Test
+    void closeRoundDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/rounds/slide-2/close"))
+                .andExpect(status().isAccepted());
+
+        verify(hostService).closeSubmissions(eq("sess-1"), eq("slide-2"), any());
+    }
+
+    @Test
+    void revealResultsDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/rounds/slide-2/reveal-results"))
+                .andExpect(status().isAccepted());
+
+        verify(hostService).revealResults(eq("sess-1"), eq("slide-2"), any());
+    }
+
+    @Test
+    void restartRoundDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/rounds/slide-2/restart"))
+                .andExpect(status().isAccepted());
+
+        verify(hostService).restartRound(eq("sess-1"), eq("slide-2"), any());
+    }
+
+    // ── Presence ─────────────────────────────────────────────────────────────
+
+    @Test
+    void reconnectDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/reconnect"))
+                .andExpect(status().isAccepted());
+
+        verify(presenceService).reconnect(eq("sess-1"), any());
+    }
+
+    @Test
+    void heartbeatDelegatesAndReturns204() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/heartbeat"))
+                .andExpect(status().isNoContent());
+
+        verify(presenceService).heartbeat(eq("sess-1"), any());
     }
 }

@@ -104,11 +104,15 @@ public class SecurityConfig {
                         // is a minimum-level check — AuthorityResolver grants a cumulative
                         // ROLE_<LEVEL>, so guests and registered users both match while
                         // visitors/preRegistration don't. The service still verifies roster
-                        // membership. Host commands (create / start / end / cancel) fall through
-                        // to the USER catch-all below.
+                        // membership. Host commands (create / start / end / cancel, and the
+                        // round-control / navigation actions under /rounds and /advance) fall
+                        // through to the USER catch-all below.
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/join").hasRole("GUEST")
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/answers").hasRole("GUEST")
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/leave").hasRole("GUEST")
+                        // Presence is participant self-service, so guest players may call it too.
+                        .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/reconnect").hasRole("GUEST")
+                        .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/heartbeat").hasRole("GUEST")
                         // Everything else requires a registered USER. Visitors (anonymous) →
                         // 401 via the entry point; authenticated-but-insufficient (guest /
                         // preRegistration) → 403 via the access-denied handler (Inv 8).
