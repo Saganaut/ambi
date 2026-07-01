@@ -17,35 +17,14 @@ import { getRouteApi } from "@tanstack/react-router";
 
 import { mcqResults } from "@components/Charts/registry";
 import type { ChartType } from "@components/Charts/types";
+import { VIZ_META } from "@components/Charts/vizMeta";
 import { useResultsPreview } from "@deck/contexts/useResultsPreview";
 import { useSlide } from "@deck/hooks/useSlide";
-
-import BarHorizontalIcon from "@assets/icons/charts/bar-horizontal.svg?react";
-import BarVerticalIcon from "@assets/icons/charts/bar-vertical.svg?react";
-import DonutIcon from "@assets/icons/charts/donut.svg?react";
-import DotIcon from "@assets/icons/charts/dot.svg?react";
-import LineIcon from "@assets/icons/charts/line.svg?react";
-import NoneIcon from "@assets/icons/charts/none.svg?react";
-import ParetoIcon from "@assets/icons/charts/pareto.svg?react";
-import PieIcon from "@assets/icons/charts/pie.svg?react";
 
 import panel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "./McqResultsSection.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
-
-type VizIcon = typeof BarHorizontalIcon;
-
-const VIZ_META: Record<ChartType, { label: string; Icon: VizIcon }> = {
-  BAR_HORIZONTAL: { label: "Bars", Icon: BarHorizontalIcon },
-  BAR_VERTICAL: { label: "Columns", Icon: BarVerticalIcon },
-  PIE: { label: "Pie", Icon: PieIcon },
-  DONUT: { label: "Donut", Icon: DonutIcon },
-  LINE: { label: "Line", Icon: LineIcon },
-  PARETO: { label: "Pareto", Icon: ParetoIcon },
-  DOT: { label: "Dots", Icon: DotIcon },
-  NONE: { label: "None", Icon: NoneIcon },
-};
 
 const McqResultsSection = () => {
   const { deckId } = routeApi.useParams();

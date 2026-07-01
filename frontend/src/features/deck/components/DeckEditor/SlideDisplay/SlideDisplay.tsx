@@ -29,6 +29,7 @@ import { QAndASlideContent } from "../SlideContent/QAndASlideContent/QAndASlideC
 import { RankingSlideContent } from "../SlideContent/RankingSlideContent/RankingSlideContent";
 import { ScalesSlideContent } from "../SlideContent/ScalesSlideContent/ScalesSlideContent";
 import { TextSlideContent } from "../SlideContent/TextSlideContent/TextSlideContent";
+import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
 import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -149,6 +150,7 @@ const SlideDisplay = () => {
             clearSlideImage(slide.id, "cover");
           }}
         />
+        <ChartTypePicker />
         <div></div>
       </SlideCanvas>{" "}
     </>

@@ -1,0 +1,100 @@
+/* Compact results-chart control overlaid on the slide canvas, mirroring
+   CoverImagePicker. Sits quietly in the top-right — just to the left of the
+   cover-image picker — at low opacity; on hover it brightens and the chart-type
+   grid drops into view. See ChartTypePicker.tsx. */
+
+.chartTypePicker {
+  position: absolute;
+  top: var(--space-3);
+
+  /* Sit immediately left of CoverImagePicker (right: var(--space-20), width 88px)
+     with a gap, so the two overlays share the top-right corner without overlapping. */
+  right: calc(var(--space-20) + 88px + var(--space-3));
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 88px;
+  opacity: 0.45;
+  transition: opacity var(--duration-base) var(--ease-out);
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+/* Always-visible tile showing the currently committed chart type. */
+.currentTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--bg-subtle);
+  border: var(--border-size-sm) solid var(--edge-canvas);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  padding: var(--p-sm);
+  color: var(--text-secondary);
+
+  & svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Hidden until the whole control is hovered, then it drops in. */
+.optionsContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    max-height var(--duration-base) var(--ease-out);
+
+  .chartTypePicker:hover & {
+    opacity: 1;
+    max-height: 200px;
+    pointer-events: auto;
+  }
+
+  .iconWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    padding: var(--p-sm);
+    border: 2px solid var(--edge-surface);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      border-color var(--duration-base) ease-in-out,
+      color var(--duration-base) ease-in-out;
+
+    & svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    &:hover {
+      border-color: var(--edge-primary);
+      color: var(--text-primary);
+    }
+
+    &.isActive {
+      border-color: var(--edge-primary);
+      color: var(--text-primary);
+    }
+
+    &:focus-visible {
+      outline: var(--border-size-sm) solid var(--border-focus);
+      outline-offset: 2px;
+    }
+  }
+}
