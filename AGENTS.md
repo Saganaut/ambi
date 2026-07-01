@@ -3,12 +3,26 @@
 A full-stack web app for competitive brain games. Learning project focused on MongoDB, Java, and Spring Boot. Built as a paired-down version of Cephadex Games.
 
 > **DO NOT TAKE SHORTCUTS.** Always follow the established rules and conventions. Do not bypass testing, documentation, or code review processes for expediency. Quality and maintainability are paramount.
+>
+> **Never change a test to make it pass without addressing the underlying issue.** Always fix the code or the test to ensure correctness.
+
+---
+
+## Feature workflow (commit + review after every feature change)
+
+Every completed feature change follows the same three steps — do not skip the last two:
+
+1. **Implement** the change, following the rules in [`z-docs/rules/`](z-docs/rules/README.md).
+2. **Commit it** — invoke the `git-commit-author` agent to stage only the relevant files and write a convention-following message. Do not bypass the pre-commit hooks.
+3. **Review it** — invoke the `code-reviewer` agent to review the resulting commit (`HEAD`) against the task's intent, the project rules/style, and functional correctness. It issues a read-only findings report; act on any blocking findings (which restarts this loop) before moving on.
+
+A "feature change" is any self-contained unit of functional work. Trivial, non-functional edits (a typo fix, a comment) don't require the full loop — use judgement.
 
 ---
 
 ## Project Layout
 
-```
+```text
 ambi/
 ├── frontend/          # React 19 + TypeScript + Vite
 ├── backend/           # Java 26 + Spring Boot 4
@@ -23,20 +37,26 @@ Per-directory READMEs (`backend/README.MD`, `frontend/README.md`, `tools/README.
 
 ## Documentation
 
-All project documentation other than this file and the top-level `README.md` lives in **`z-docs/`**. Start at [`z-docs/README.md`](z-docs/README.md) for the full index.
+**All project documentation other than this file and the top-level `README.md` lives in [`z-docs/`](z-docs/README.md).** Start there for the full index. This guide stays deliberately short — it holds only the rules an agent always needs plus a quickstart; everything else is a link.
 
-| Where to look                                               | For                                                                         |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [`z-docs/rules/`](z-docs/rules/README.md)                   | Coding conventions per layer (general / backend / frontend / style / icons) |
-| [`z-docs/features/`](z-docs/features/README.md)             | Per-feature design docs (deck editor, membership, exception handling)       |
-| [`z-docs/infrastructure/`](z-docs/infrastructure/README.md) | Docker, MongoDB, Redis, Garage/S3, testing & CI                             |
-| [`z-docs/decisions/`](z-docs/decisions/README.md)           | Architecture Decision Records                                               |
-| [`z-docs/runbooks/`](z-docs/runbooks/README.md)             | Operational procedures (seeding, secret rotation, recovery)                 |
-| [`z-docs/glossary.md`](z-docs/glossary.md)                  | Domain terms (deck, element, interactive session, theme, MCQ, …)            |
+| Where to look                                               | For                                                                          |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [`z-docs/rules/`](z-docs/rules/README.md)                   | Coding conventions per layer (general / backend / frontend / style / icons)  |
+| [`z-docs/features/`](z-docs/features/README.md)             | Per-feature design docs (deck editor, membership, exception handling)        |
+| [`z-docs/infrastructure/`](z-docs/infrastructure/README.md) | Architecture overview, env vars, key entry points, gotchas, Docker, testing & CI |
+| [`z-docs/decisions/`](z-docs/decisions/README.md)           | Architecture Decision Records                                                |
+| [`z-docs/runbooks/`](z-docs/runbooks/README.md)             | Operational procedures (seeding, secret rotation, recovery)                  |
+| [`z-docs/glossary.md`](z-docs/glossary.md)                  | Domain terms (deck, element, interactive session, theme, MCQ, …)             |
 
-**Reachability is enforced.** `tools/doc-lint.js` walks the link graph from the root `README.md` and fails on any `.md` file that isn't reachable via standard markdown links. Always link new docs from the appropriate folder's `README.md`. Cross-references must use standard markdown links (e.g. `[backend-rules](backend-rules.md)`); the old `@FILENAME.md` convention has been retired.
+### Documentation rules
 
-New design / rule / architecture docs belong in `z-docs/<category>/`, **not** at the repo root. The root keeps only `README.md`, `AGENTS.md`, and `CLAUDE.md` as top-level docs.
+- **New docs belong in `z-docs/<category>/`, not at the repo root.** The root keeps only `README.md`, `AGENTS.md`, and `CLAUDE.md` as top-level docs.
+- **Reachability is enforced.** Always link a new doc from the appropriate folder's `README.md`. Cross-references use standard markdown links (e.g. `[backend-rules](backend-rules.md)`); the old `@FILENAME.md` convention has been retired.
+- **Two checks guard the docs**, both run by [`scripts/check-docs.sh`](scripts/check-docs.sh) (also part of the pre-commit hook):
+  - `tools/doc-lint.js` — walks the link graph from the root `README.md` and fails on any `.md` file not reachable via standard markdown links.
+  - `markdownlint-cli2` — markdown style/formatting (config in `.markdownlint-cli2.jsonc`).
+
+  Run `scripts/check-docs.sh` after changing any documentation.
 
 ---
 
@@ -59,26 +79,10 @@ cd frontend && npm install && npm run dev
 
 ```bash
 cd frontend
-npm run generate          # API client + validation constants + enums (runs all three below)
-
-# …or individually:
-npm run generate-api         # → per-feature RTK Query clients (src/features/<feature>/store/<api>Api.ts)
-npm run generate-validation  # → per-feature validation bounds (src/features/<feature>/store/<feature>ValidationConstants.ts + shared/store/sharedValidationConstants.ts)
-npm run generate-enums       # → per-feature enums (src/features/<feature>/store/<feature>Enums.gen.ts)
+npm run generate          # API client + validation constants + enums
 ```
 
-The `*ValidationConstants.ts` files are the frontend half of the validation single
-source of truth: bounds are authored once in the backend (`ValidationConstants`),
-surfaced into OpenAPI via Jakarta annotations, and lifted into TS by the generator.
-Each request DTO is routed to a feature by its controller tag (mirroring
-`openapi-config.cts`) and exported as `<feature>Validation`; DTOs shared by 2+
-features (e.g. `Pageable`) land in `sharedValidationConstants.ts` as `sharedValidation`.
-
-The `*Enums.gen.ts` files work the same way for enums: the backend emits each enum
-inline into OpenAPI, and `scripts/generate-enums.mjs` lifts the values into typed
-TS. Since inline enums carry no name, that script holds a small registry mapping
-each enum to its canonical name + feature folder — add a line there to generate a
-new enum.
+How the codegen single source of truth works — and the individual `generate-api` / `generate-validation` / `generate-enums` scripts — is documented in [generated-artifacts](z-docs/rules/frontend/generated-artifacts.md).
 
 **Seed sample data** (LOTR dataset; idempotent per collection per user, never destructive — stop any running backend first):
 
@@ -86,100 +90,17 @@ new enum.
 ./scripts/seed-sample-data.sh
 ```
 
----
+**Screenshot the running app** to verify UI work (infra + both servers up; one-time `npx playwright install chromium`). Uses the DEV-only `POST /api/dev/login` to reach behind-login pages; PNGs land in `frontend/.screenshots/`. See [Testing & CI](z-docs/infrastructure/testing-and-ci.md#screenshot-verification-dev-only):
 
-## Architecture at a glance
-
-### Frontend
-
-| Concern      | Tool                                                                        |
-| ------------ | --------------------------------------------------------------------------- |
-| Framework    | React 19 with React Compiler                                                |
-| Language     | TypeScript (strict)                                                         |
-| Build        | Vite                                                                        |
-| Routing      | TanStack Router (file-based, code-splitting)                                |
-| State / Data | Redux Toolkit + RTK Query (RTK Query is the primary cache)                  |
-| API client   | Auto-generated from OpenAPI schema                                          |
-| Styling      | CSS Modules + CSS custom properties (tokens.css)                            |
-| Rich text    | TipTap (see [Deck Editor](z-docs/features/deck-editor/README.md))           |
-| Icons        | SVG via `vite-plugin-svgr` (see [icons-rules](z-docs/rules/icons-rules.md)) |
-
-Conventions: see [frontend-rules](z-docs/rules/frontend-rules.md) and [styling-rules](z-docs/rules/styling-rules.md).
-
-### Backend
-
-| Concern         | Tool                               |
-| --------------- | ---------------------------------- |
-| Language        | Java 26                            |
-| Framework       | Spring Boot 4                      |
-| Build           | Maven (`./mvnw`)                   |
-| Database        | MongoDB (Spring Data)              |
-| Cache / Pub-Sub | Redis (also backs Spring Session)  |
-| Auth            | Spring Security + Google OAuth 2.0 |
-| API docs        | SpringDoc OpenAPI v2               |
-| Boilerplate     | Lombok                             |
-
-Package: `cephadex.ambi`. Layers: `controller/`, `service/`, `repository/`, `model/`, `dto/`, `config/`. Conventions: see [backend-rules](z-docs/rules/backend-rules.md).
-
-### REST API
-
-Endpoints are prefixed `/api` and documented live at **`http://localhost:8080/swagger-ui/`**. CORS allows only `http://localhost:5173` with credentials.
-
-> Per-feature backend docs (auth, games, data models) are being rewritten alongside the backend itself — the [Membership](z-docs/features/membership/README.md) frontend doc and the [Exception Handling](z-docs/features/exceptions.md) contract are what's currently checked in.
-
-### Authentication
-
-Google OAuth + guest sessions, cookie-based with Spring Session backed by Redis.
+```bash
+cd frontend && npm run screenshot
+```
 
 ---
 
-## Environment Variables
+## Where to go next
 
-Local dev secrets live in `dev.env` at the project root (copy from `example.env`; not committed). `scripts/ambi.sh` sources `dev.env` into the process environment (`set -a; source dev.env; set +a`) before launching the backend, so Spring resolves them as ordinary `${...}` placeholders — there is no dotenv loader in the app itself. Frontend accesses `VITE_`-prefixed vars.
-
-| Variable                                       | Used By                                        |
-| ---------------------------------------------- | ---------------------------------------------- |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`    | Backend (OAuth)                                |
-| `MONGO_URI`                                    | Backend                                        |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | Backend                                        |
-| `VITE_API_BASE_URL`                            | Frontend (defaults to `http://localhost:8080`) |
-
-Test-profile values live in `backend/src/test/resources/application-test.properties` with test-safe defaults — see [Testing & CI](z-docs/infrastructure/testing-and-ci.md).
-
----
-
-## Testing
-
-Stacks, CI workflow, and local pre-commit / pre-push hooks: see [Testing & CI](z-docs/infrastructure/testing-and-ci.md).
-
-**Never change a test to make it pass without addressing the underlying issue. Always fix the code or the test to ensure correctness.**
-
----
-
-## Key entry points
-
-| File                                       | Purpose                                                   |
-| ------------------------------------------ | --------------------------------------------------------- |
-| `frontend/src/features/<feature>/store/<api>Api.gen.ts` | Auto-generated per-feature RTK Query clients (inject into `shared/store/emptyApi.ts`) — **do not edit** |
-| `frontend/src/features/<feature>/store/<feature>ValidationConstants.ts` | Auto-generated per-feature validation bounds (+ `shared/store/sharedValidationConstants.ts`) — **do not edit** |
-| `backend/.../common/validation/ValidationConstants.java` | Source of truth for validation bounds (drives the above) |
-| `frontend/src/routes/__root.tsx`           | Root layout (TanStack Router + shared AuthBar)            |
-| `frontend/src/hooks/useCurrentUser.ts`     | Auth state machine (visitor/guest/registered)             |
-| `frontend/openapi-config.cts`              | API codegen config                                        |
-| `backend/.../config/SecurityConfig.java`   | Auth, CORS, public routes, OAuth2 success handler         |
-| `backend/.../config/SampleDataSeeder.java` | Manual sample-data seeder (`scripts/seed-sample-data.sh`) |
-| `compose.yaml`                             | Docker services (MongoDB, Redis, Garage S3)               |
-| `dev.env`                                  | Local dev secrets (copy from `example.env`)               |
-
-Feature-specific file maps live in each feature doc — e.g. [deck editor key files](z-docs/features/deck-editor/README.md#key-files).
-
----
-
-## Gotchas
-
-- The per-feature `*Api.gen.ts` clients are regenerated from `http://localhost:8080/v3/api-docs` — the backend must be running when you run codegen.
-- `spring.docker.compose.enabled=false` — Spring does **not** auto-start Docker; run `docker compose up -d` yourself.
-- **Seeding is manual.** A normal `./mvnw spring-boot:run` boot does nothing. `scripts/seed-sample-data.sh` runs the app with `--seed.run=true`, which is the only thing that activates `SampleDataSeeder`. The seeder is idempotent per collection per user and never deletes anything.
-- `dev.env` is only read by `scripts/ambi.sh` (which sources it); a bare `./mvnw spring-boot:run` ignores it and falls back to the `${VAR:default}` values baked into `application.properties`. Tests use `application-test.properties` and never read `dev.env` at all.
-- WebSocket support is a dependency but no WebSocket endpoints are implemented yet.
-- Deck-editor and MCQ-specific gotchas (multi-correct `correctOptionIds`, hand-edits to the codegen file, primitive defaults in element payloads, Lorem Picsum image placeholders) are documented in [features/deck-editor](z-docs/features/deck-editor/README.md#gotchas).
+- **Architecture, env vars, entry points, gotchas** → [`z-docs/infrastructure/`](z-docs/infrastructure/README.md)
+- **Auth** → Google OAuth + guest sessions, cookie-based with Spring Session backed by Redis; see [`SecurityConfig.java`](z-docs/infrastructure/key-entry-points.md).
+- **Testing & CI** → [Testing & CI](z-docs/infrastructure/testing-and-ci.md)
+- **Environment variables** → [Environment Variables](z-docs/infrastructure/environment-variables.md)
