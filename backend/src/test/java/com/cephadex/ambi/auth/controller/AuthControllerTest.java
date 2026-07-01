@@ -45,7 +45,9 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        AuthController controller = new AuthController(authService, new AuthProperties());
+        AuthProperties props = new AuthProperties();
+        AuthController controller =
+                new AuthController(authService, props, new SessionCookieFactory(props));
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 // @AuthenticationPrincipal is resolved by Spring Security; register the
                 // resolver explicitly since standalone setup doesn't pull in the security chain.

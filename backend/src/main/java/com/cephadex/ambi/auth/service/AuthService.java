@@ -28,6 +28,14 @@ import com.cephadex.ambi.user.UserService;
 @Service
 public class AuthService {
 
+    // Fixed identity of the DEV-only screenshot/verification account (see devLogin).
+    // INTERNAL + a stable non-blank subject makes find-or-create idempotent.
+    private static final AuthProvider DEV_PROVIDER = AuthProvider.INTERNAL;
+    private static final String DEV_SUBJECT = "dev-login";
+    private static final String DEV_EMAIL = "dev@ambi.local";
+    private static final String DEV_USERNAME = "devuser";
+    private static final String DEV_DISPLAY_NAME = "Dev User";
+
     private final UserService userService;
     private final RedisTokenSessionService tokenService;
 
@@ -53,6 +61,31 @@ public class AuthService {
         // Guests are never "stay logged in".
         RedisTokenSessionService.Tokens tokens = tokenService.rotate(currentSessionId, seed, false);
         return new AuthSession(tokens, meFromUser(IdentityState.GUEST, guest));
+    }
+
+    /**
+     * Mints a {@code REGISTERED} session for a fixed, self-seeding local dev
+     * account — the auth entry point for headless screenshot/verification tooling
+     * (see z-docs/infrastructure/testing-and-ci.md). Reachable <strong>only</strong>
+     * via the {@code DEV}-profile {@code DevAuthController}; the bean does not exist
+     * in production, so this never widens the real auth surface.
+     *
+     * <p>Idempotent: the dev user is identified by a fixed {@code (INTERNAL, sub)}
+     * pair and created on first call, so no Google credentials and no seed run are
+     * required. A registered {@code USER} principal satisfies the {@code hasRole("USER")}
+     * catch-all, unlocking the behind-login pages (decks, editor, present, sessions).
+     */
+    public AuthSession devLogin() {
+        User user = userService.findByProviderAndSubject(DEV_PROVIDER, DEV_SUBJECT)
+                .orElseGet(() -> userService.register(
+                        DEV_PROVIDER, DEV_SUBJECT, DEV_EMAIL, DEV_USERNAME, DEV_DISPLAY_NAME));
+        AmbiPrincipal seed = new AmbiPrincipal(
+                IdentityState.REGISTERED,
+                user.getId(), user.getPublicId(), user.getUserLevel(),
+                DEV_PROVIDER, DEV_SUBJECT, DEV_EMAIL, null);
+        // Persistent so the screenshot session survives the short access-token TTL.
+        RedisTokenSessionService.Tokens tokens = tokenService.rotate(null, seed, true);
+        return new AuthSession(tokens, meFromUser(IdentityState.REGISTERED, user));
     }
 
     /**

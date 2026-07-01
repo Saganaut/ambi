@@ -150,6 +150,45 @@ class AuthServiceTest {
         verify(tokenService).rotate(isNull(), any(), eq(false));
     }
 
+    // ── devLogin (DEV-only screenshot/verification account) ──────────────────
+
+    @Test
+    void devLoginReusesExistingDevUser() {
+        User existing = user("dev-1", UserLevel.USER, MembershipStatus.NONE, MembershipTier.FREE);
+        when(userService.findByProviderAndSubject(AuthProvider.INTERNAL, "dev-login"))
+                .thenReturn(Optional.of(existing));
+        // Persistent session (true) so the screenshot session outlives the access TTL.
+        when(tokenService.rotate(isNull(), any(), eq(true)))
+                .thenReturn(new RedisTokenSessionService.Tokens("at", "rt", "dev-sid", true));
+
+        AuthService.AuthSession session = authService.devLogin();
+
+        assertThat(session.me().state()).isEqualTo(IdentityState.REGISTERED);
+        assertThat(session.tokens().sessionId()).isEqualTo("dev-sid");
+        // Idempotent: an existing dev user is never re-registered.
+        verify(userService, never()).register(any(), any(), any(), any(), any());
+        verify(tokenService).rotate(isNull(), any(), eq(true));
+    }
+
+    @Test
+    void devLoginCreatesDevUserOnFirstCall() {
+        User created = user("dev-new", UserLevel.USER, MembershipStatus.NONE, MembershipTier.FREE);
+        when(userService.findByProviderAndSubject(AuthProvider.INTERNAL, "dev-login"))
+                .thenReturn(Optional.empty());
+        when(userService.register(AuthProvider.INTERNAL, "dev-login", "dev@ambi.local",
+                "devuser", "Dev User")).thenReturn(created);
+        when(tokenService.rotate(isNull(), any(), eq(true)))
+                .thenReturn(new RedisTokenSessionService.Tokens("at", "rt", "dev-sid", true));
+
+        AuthService.AuthSession session = authService.devLogin();
+
+        assertThat(session.me().state()).isEqualTo(IdentityState.REGISTERED);
+        // The fixed dev identity is created exactly once, with the constants above.
+        verify(userService).register(AuthProvider.INTERNAL, "dev-login", "dev@ambi.local",
+                "devuser", "Dev User");
+        verify(tokenService).rotate(isNull(), any(), eq(true));
+    }
+
     // ── register (Phase 2) ───────────────────────────────────────────────────
 
     @Test

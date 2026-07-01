@@ -1,9 +1,6 @@
 package com.cephadex.ambi.auth.controller;
 
-import java.time.Duration;
-
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -20,7 +17,6 @@ import com.cephadex.ambi.auth.dto.RegisterRequest;
 import com.cephadex.ambi.auth.dto.UsernameAvailabilityResponse;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.auth.service.AuthService;
-import com.cephadex.ambi.auth.service.RedisTokenSessionService;
 import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.common.validation.ValidationConstants;
 
@@ -46,10 +42,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthProperties props;
+    private final SessionCookieFactory cookies;
 
-    public AuthController(AuthService authService, AuthProperties props) {
+    public AuthController(AuthService authService, AuthProperties props, SessionCookieFactory cookies) {
         this.authService = authService;
         this.props = props;
+        this.cookies = cookies;
     }
 
     /**
@@ -92,8 +90,8 @@ public class AuthController {
         AuthService.AuthSession session = authService.createGuest(currentSessionId);
         boolean secure = request.isSecure();
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie(session.tokens(), secure).toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.access(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.refresh(session.tokens(), secure).toString())
                 .body(session.me());
     }
 
@@ -113,8 +111,8 @@ public class AuthController {
         AuthService.AuthSession session = authService.register(principal, body);
         boolean secure = request.isSecure();
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie(session.tokens(), secure).toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.access(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.refresh(session.tokens(), secure).toString())
                 .body(session.me());
     }
 
@@ -136,8 +134,8 @@ public class AuthController {
         AuthService.AuthSession session = authService.refresh(refreshToken);
         boolean secure = request.isSecure();
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie(session.tokens(), secure).toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.access(session.tokens(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.refresh(session.tokens(), secure).toString())
                 .body(session.me());
     }
 
@@ -153,8 +151,8 @@ public class AuthController {
         }
         boolean secure = request.isSecure();
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, clearCookie(props.getCookie().getAccessName(), secure).toString())
-                .header(HttpHeaders.SET_COOKIE, clearCookie(props.getCookie().getRefreshName(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.clear(props.getCookie().getAccessName(), secure).toString())
+                .header(HttpHeaders.SET_COOKIE, cookies.clear(props.getCookie().getRefreshName(), secure).toString())
                 .build();
     }
 
@@ -170,33 +168,5 @@ public class AuthController {
             }
         }
         return null;
-    }
-
-    // ── cookie helpers ─────────────────────────────────────────────────────────
-
-    private ResponseCookie accessCookie(RedisTokenSessionService.Tokens tokens, boolean secure) {
-        // Session cookie (no Max-Age): the access token is short-lived and re-minted.
-        return baseCookie(props.getCookie().getAccessName(), tokens.accessToken(), secure).build();
-    }
-
-    private ResponseCookie refreshCookie(RedisTokenSessionService.Tokens tokens, boolean secure) {
-        ResponseCookie.ResponseCookieBuilder b =
-                baseCookie(props.getCookie().getRefreshName(), tokens.refreshToken(), secure);
-        if (tokens.persistent()) {
-            b.maxAge(props.getToken().getRefreshPersistentTtl());
-        }
-        return b.build();
-    }
-
-    private ResponseCookie clearCookie(String name, boolean secure) {
-        return baseCookie(name, "", secure).maxAge(Duration.ZERO).build();
-    }
-
-    private ResponseCookie.ResponseCookieBuilder baseCookie(String name, String value, boolean secure) {
-        return ResponseCookie.from(name, value)
-                .httpOnly(true)        // JS can never read the auth cookies (XSS can't exfiltrate)
-                .secure(secure)        // derived from the request, never hard-coded
-                .sameSite(props.getCookie().getSameSite())
-                .path(props.getCookie().getPath());
     }
 }

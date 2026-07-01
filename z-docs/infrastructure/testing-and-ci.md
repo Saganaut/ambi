@@ -31,6 +31,26 @@ Run tests: `npm test` (watch mode) or `npm run test:run` (single pass).
 
 Co-locate test files with the component they test (e.g., `Btn.test.tsx` next to `Btn.tsx`). Test files must follow the same naming and comment conventions as source files.
 
+## Screenshot verification (dev only)
+
+A headless [Playwright](https://playwright.dev/) harness captures full-page screenshots of the running app so UI changes can be verified visually — including the behind-login pages (decks, editor, present, live sessions).
+
+The obstacle is auth: only a `REGISTERED` user reaches those pages, a guest cannot, and real Google OAuth is not headless-friendly. To bridge it, the backend exposes a **DEV-only** login shortcut:
+
+- `POST /api/dev/login` — mints a real registered session (sets `AMBI_AT`/`AMBI_RT`) for a fixed, self-seeding internal dev account (`devuser`, provider `INTERNAL`, subject `dev-login`). No Google credentials and no seed run are required; the account is created on first call and reused thereafter.
+- It is gated by `@Profile("DEV")` (`DevAuthController` + `DevSecurityConfig`), so the beans **do not exist under the `PROD` profile** — the endpoint is absent in production. Its dedicated `/api/dev/**` filter chain is CSRF-exempt so a plain `POST` works.
+
+Run it (infra + backend on the `DEV` profile + frontend dev server must all be up; one-time `npx playwright install chromium`):
+
+```bash
+cd frontend
+npm run screenshot                       # default routes (/, /decks)
+npm run screenshot -- /decks /account    # explicit routes
+npm run screenshot -- /decks/<id>/edit   # id-bearing routes need a real id
+```
+
+PNGs are written to `frontend/.screenshots/` (git-ignored). The script (`frontend/scripts/screenshot.mjs`) logs in via `/api/dev/login`, then screenshots each route as the logged-in dev user.
+
 ## CI (GitHub Actions)
 
 GitHub Actions runs both test suites on every push to `main` and every PR targeting `main`. Workflow: `.github/workflows/ci.yml`. Both jobs run in parallel; the push/merge is blocked if either fails.
