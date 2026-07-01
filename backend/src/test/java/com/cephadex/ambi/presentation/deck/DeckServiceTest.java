@@ -138,7 +138,7 @@ class DeckServiceTest {
 
         List<Slide> result = deckService.moveSlide("deck-1", "s3", 0, owner);
 
-        assertThat(result.stream().map(Slide::getId).toList())
+        assertThat(result.stream().map(s -> s.getId()).toList())
                 .containsExactly("s3", "s1", "s2");
         verify(deckRepository).save(deck);
     }
@@ -174,7 +174,7 @@ class DeckServiceTest {
         List<Slide> result = deckService.addFollowUpSlide(
                 "deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, "Most popular?", owner);
 
-        assertThat(result.stream().map(Slide::getId).toList()).containsExactly("s1", "f1", "s2");
+        assertThat(result.stream().map(s -> s.getId()).toList()).containsExactly("s1", "f1", "s2");
         Slide followUp = deck.findSlide("f1").orElseThrow();
         assertThat(followUp.getParentId()).isEqualTo("s1");
         assertThat(deck.findSlide("s1").orElseThrow().getChildId()).isEqualTo("f1");
@@ -299,7 +299,7 @@ class DeckServiceTest {
 
         List<Slide> result = deckService.moveSlide("deck-1", "p", 2, owner);
 
-        assertThat(result.stream().map(Slide::getId).toList()).containsExactly("s3", "p", "f");
+        assertThat(result.stream().map(s -> s.getId()).toList()).containsExactly("s3", "p", "f");
     }
 
     @Test
@@ -1017,7 +1017,7 @@ class DeckServiceTest {
     private static List<String> orderedIds(Deck deck) {
         return deck.getSlides().stream()
                 .sorted(SlideRankService.ordering())
-                .map(Slide::getId)
+                .map(s -> s.getId())
                 .toList();
     }
 }

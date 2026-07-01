@@ -156,7 +156,6 @@ public class OpenApiConfig {
      */
     @Bean
     @Order(2)
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public OpenApiCustomizer exposeMapKeyEnums() {
         return openApi -> {
             if (openApi.getComponents() == null) {

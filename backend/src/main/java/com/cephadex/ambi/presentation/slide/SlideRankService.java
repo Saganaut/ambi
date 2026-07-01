@@ -30,9 +30,9 @@ public class SlideRankService {
      */
     public static Comparator<Slide> ordering() {
         return Comparator
-                .comparing(Slide::getSortOrder,
+                .comparing((Slide s) -> s.getSortOrder(),
                         Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(Slide::getId,
+                .thenComparing(s -> s.getId(),
                         Comparator.nullsLast(Comparator.naturalOrder()));
     }
 

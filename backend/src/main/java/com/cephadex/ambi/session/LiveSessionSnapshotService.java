@@ -2,7 +2,6 @@ package com.cephadex.ambi.session;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -79,7 +78,7 @@ public class LiveSessionSnapshotService {
         // Load the roster once, then re-order it back into join order (findAllById
         // does not preserve it) and build participant-safe views with live presence.
         Map<String, Participant> byId = participants.findAllById(session.getRoster()).stream()
-                .collect(Collectors.toMap(Participant::getParticipantId, Function.identity()));
+                .collect(Collectors.toMap(p -> p.getParticipantId(), Function.identity()));
         List<Participant> roster = session.getRoster().stream()
                 .map(byId::get)
                 .filter(p -> p != null)

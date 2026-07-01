@@ -62,7 +62,7 @@ public class RoundResult {
         r.closedAt = closedAt;
         r.perParticipant = List.copyOf(outcomes);
         r.numberOfParticipants = outcomes.size();
-        r.numberOfCorrectAnswers = (int) outcomes.stream().filter(ParticipantOutcome::correct).count();
+        r.numberOfCorrectAnswers = (int) outcomes.stream().filter(o -> o.correct()).count();
         r.optionCounts = tallyOptions(outcomes);
         r.responseTimes = outcomes.stream().map(o -> (double) o.responseTimeMs()).toList();
         // correctOption is set by the grading owner via correctOption(...): the key
@@ -88,7 +88,7 @@ public class RoundResult {
         Map<String, Integer> counts = new HashMap<>();
         for (ParticipantOutcome o : outcomes) {
             if (o.choice() != null) {
-                counts.merge(o.choice(), 1, Integer::sum);
+                counts.merge(o.choice(), 1, (a, b) -> a + b);
             }
         }
         return counts;
@@ -124,7 +124,7 @@ public class RoundResult {
 
     public double averageResponseTime() {
         double totalTime = responseTimes.stream()
-                .mapToDouble(Double::doubleValue).average().orElse(0.0);
+                .mapToDouble(d -> d.doubleValue()).average().orElse(0.0);
         return totalTime;
     }
 }

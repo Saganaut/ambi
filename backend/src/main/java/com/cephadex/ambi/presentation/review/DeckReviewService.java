@@ -165,9 +165,9 @@ public class DeckReviewService {
      */
     private UnaryOperator<Author> freshAuthors(Collection<DeckReview> reviews) {
         Set<String> authorIds = reviews.stream()
-                .map(DeckReview::getAuthor)
+                .map(r -> r.getAuthor())
                 .filter(author -> author != null && author.userId() != null)
-                .map(Author::userId)
+                .map(a -> a.userId())
                 .collect(Collectors.toSet());
         Map<String, User> users = userService.findByPublicIds(authorIds);
         return author -> {

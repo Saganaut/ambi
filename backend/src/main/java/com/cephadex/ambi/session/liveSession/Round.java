@@ -3,6 +3,8 @@ package com.cephadex.ambi.session.liveSession;
 // TODO(Claude): entire class is a stub — every operation below throws UnsupportedOperationException; implement the round interactions.
 public class Round {
 
+    // TODO(Claude): read once the round interactions below are implemented.
+    @SuppressWarnings("unused")
     private final LiveSessionRepository repository;
 
     public Round(LiveSessionRepository repository) {

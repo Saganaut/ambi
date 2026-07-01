@@ -2,7 +2,6 @@ package com.cephadex.ambi.session.event;
 
 import java.util.List;
 
-import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 
 /**

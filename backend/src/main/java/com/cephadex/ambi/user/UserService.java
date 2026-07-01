@@ -179,7 +179,7 @@ public class UserService {
             return Map.of();
         }
         return userRepository.findByPublicIdIn(publicIds).stream()
-                .collect(Collectors.toMap(User::getPublicId, Function.identity()));
+                .collect(Collectors.toMap(u -> u.getPublicId(), Function.identity()));
     }
 
     /**

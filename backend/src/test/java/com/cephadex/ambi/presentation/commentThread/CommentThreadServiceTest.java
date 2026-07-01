@@ -223,7 +223,7 @@ class CommentThreadServiceTest {
 
         var page = service.listSlideThreads("deck-1", "slide-1", PageRequest.of(0, 10), author);
 
-        assertThat(page.getContent()).extracting(CommentThreadResponse::id).containsExactly("t1");
+        assertThat(page.getContent()).extracting(r -> r.id()).containsExactly("t1");
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.cephadex.ambi.session.event;
 
 import java.util.Map;
 
-import com.cephadex.ambi.session.event.SessionEvent;
 
 /**
  * The live per-option submission counts for the open round changed (one or more

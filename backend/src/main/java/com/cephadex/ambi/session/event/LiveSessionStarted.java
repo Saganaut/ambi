@@ -1,6 +1,5 @@
 package com.cephadex.ambi.session.event;
 
-import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.liveSession.enums.LiveSessionLifecycle;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 

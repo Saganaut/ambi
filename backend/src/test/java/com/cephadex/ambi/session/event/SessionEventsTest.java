@@ -110,8 +110,8 @@ class SessionEventsTest {
 
         List<ScoreboardEntry> board = SessionEvents.scoreboard(List.of(low, high));
 
-        assertThat(board).extracting(ScoreboardEntry::displayName).containsExactly("Frodo", "Sam");
-        assertThat(board).extracting(ScoreboardEntry::rank).containsExactly(1, 2);
+        assertThat(board).extracting(e -> e.displayName()).containsExactly("Frodo", "Sam");
+        assertThat(board).extracting(e -> e.rank()).containsExactly(1, 2);
         assertThat(board.get(0).points()).isEqualTo(50);
     }
 }

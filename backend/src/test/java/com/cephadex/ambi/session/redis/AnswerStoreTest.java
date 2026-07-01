@@ -43,7 +43,7 @@ class AnswerStoreTest {
 
         store = new HashMap<>();
         doAnswer(inv -> {
-            store.computeIfAbsent(inv.getArgument(0), k -> new HashMap<>())
+            store.computeIfAbsent(inv.getArgument(0), _ -> new HashMap<>())
                     .put(inv.getArgument(1), inv.getArgument(2));
             return null;
         }).when(hashOps).put(anyString(), anyString(), anyString());
@@ -93,7 +93,7 @@ class AnswerStoreTest {
         answerStore.submit(SID, SLIDE, answer("p-2", new McqAnswer(Set.of("opt-b"))));
 
         assertThat(answerStore.answers(SID, SLIDE))
-                .extracting(Answer::getParticipantId)
+                .extracting(a -> a.getParticipantId())
                 .containsExactlyInAnyOrder("p-1", "p-2");
     }
 

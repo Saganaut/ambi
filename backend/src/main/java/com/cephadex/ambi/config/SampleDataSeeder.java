@@ -204,7 +204,7 @@ public class SampleDataSeeder implements ApplicationRunner {
 
     private String userIdFor(String username) {
         return userRepository.findByUsername(username)
-                .map(User::getId)
+                .map(u -> u.getId())
                 .orElseThrow(() -> new IllegalStateException("Sample user missing: " + username));
     }
 

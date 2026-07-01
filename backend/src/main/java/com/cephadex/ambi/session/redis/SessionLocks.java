@@ -81,7 +81,6 @@ public class SessionLocks {
      * {@code finally} (including when {@code work} throws). Throws
      * {@link ConflictException} if the lock can't be taken.
      */
-    @SuppressWarnings("try") 
     public <T> T withLock(String sessionId, Supplier<T> work) {
         try (@SuppressWarnings("unused")
         SessionLock ignored = tryAcquire(sessionId)) {

@@ -48,11 +48,11 @@ class DeckReorderTest {
     void backfillIsNoOpWhenAllKeyed() {
         Deck deck = deckWithSlides("s1", "s2");
         deck.backfillRanks(ranks);
-        List<String> before = deck.getSlides().stream().map(Slide::getSortOrder).toList();
+        List<String> before = deck.getSlides().stream().map(s -> s.getSortOrder()).toList();
 
         deck.backfillRanks(ranks);
 
-        assertThat(deck.getSlides().stream().map(Slide::getSortOrder).toList())
+        assertThat(deck.getSlides().stream().map(s -> s.getSortOrder()).toList())
                 .isEqualTo(before);
     }
 
@@ -122,7 +122,7 @@ class DeckReorderTest {
         // index 2, i.e. between s2 and s3.
         assertThat(ids(deck)).containsExactly("s1", "s2", "s4", "s3");
         // Rebalance produced strictly ascending, distinct keys across the board.
-        List<String> keys = deck.getSlides().stream().map(Slide::getSortOrder).toList();
+        List<String> keys = deck.getSlides().stream().map(s -> s.getSortOrder()).toList();
         assertThat(keys).isSorted().doesNotHaveDuplicates();
     }
 
@@ -174,7 +174,7 @@ class DeckReorderTest {
         deck.addFollowUp(followUpSlide("f", null), deck.findSlide("s1").orElseThrow(), ranks);
 
         assertThat(ids(deck)).containsExactly("s1", "f", "s2");
-        List<String> keys = deck.getSlides().stream().map(Slide::getSortOrder).toList();
+        List<String> keys = deck.getSlides().stream().map(s -> s.getSortOrder()).toList();
         assertThat(keys).isSorted().doesNotHaveDuplicates();
     }
 
@@ -355,7 +355,7 @@ class DeckReorderTest {
     }
 
     private static List<String> ids(Deck deck) {
-        return deck.getSlides().stream().map(Slide::getId).toList();
+        return deck.getSlides().stream().map(s -> s.getId()).toList();
     }
 
     /** Sort keys of every slide except {@code excludedId}, in canonical order. */
@@ -363,7 +363,7 @@ class DeckReorderTest {
         return deck.getSlides().stream()
                 .sorted(SlideRankService.ordering())
                 .filter(s -> !excludedId.equals(s.getId()))
-                .map(Slide::getSortOrder)
+                .map(s -> s.getSortOrder())
                 .toList();
     }
 }

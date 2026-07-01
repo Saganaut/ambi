@@ -3,6 +3,8 @@ package com.cephadex.ambi.presentation.review;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Objects;
+
 import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,8 +58,9 @@ class DeckReviewRepositoryIT {
             }
         }
         assertThat(index).as("the deck_reviews unique index must be created at startup").isNotNull();
-        assertThat(index.getBoolean("unique", false)).isTrue();
-        assertThat(index.get("key", Document.class)).containsKeys("deck_id", "user_id");
+        Document presentIndex = Objects.requireNonNull(index);
+        assertThat(presentIndex.getBoolean("unique", false)).isTrue();
+        assertThat(presentIndex.get("key", Document.class)).containsKeys("deck_id", "user_id");
     }
 
     @Test

@@ -109,7 +109,7 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // Pre-OAuth identity, read straight from the cookie because the OAuth
         // login filter has already replaced SecurityContextHolder.
         Optional<UserSession> preSession = readPreOAuthSession(request);
-        String oldSessionId = preSession.map(UserSession::getSessionId).orElse(null);
+        String oldSessionId = preSession.map(s -> s.getSessionId()).orElse(null);
 
         AmbiPrincipal seed = branchToPrincipal(provider, externalProviderId, email, preSession);
 

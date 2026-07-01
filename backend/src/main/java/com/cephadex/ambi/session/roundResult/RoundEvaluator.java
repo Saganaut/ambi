@@ -25,14 +25,11 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Targ
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
-import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
-import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.PlaceOnImageAnswer;
-import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.RankingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
@@ -143,9 +140,9 @@ public final class RoundEvaluator {
             case AllocationAnswer a -> content instanceof AllocationContent c && gradeAllocation(c, a);
             case PlaceOnImageAnswer a -> content instanceof PlaceOnImageContent c && gradePlaceOnImage(c, a);
             // No static answer key: derived from parent submissions, drawn, or asked.
-            case com.cephadex.ambi.session.answer.payload.FollowUpAnswer a -> false;
-            case com.cephadex.ambi.session.answer.payload.DrawingAnswer a -> false;
-            case com.cephadex.ambi.session.answer.payload.QAndAAnswer a -> false;
+            case com.cephadex.ambi.session.answer.payload.FollowUpAnswer _ -> false;
+            case com.cephadex.ambi.session.answer.payload.DrawingAnswer _ -> false;
+            case com.cephadex.ambi.session.answer.payload.QAndAAnswer _ -> false;
         };
     }
 

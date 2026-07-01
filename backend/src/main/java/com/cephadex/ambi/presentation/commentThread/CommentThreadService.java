@@ -174,9 +174,9 @@ public class CommentThreadService {
     private UnaryOperator<Author> freshAuthors(Collection<CommentThread> threads) {
         Set<String> authorIds = threads.stream()
                 .flatMap(thread -> thread.getComments().stream())
-                .map(Comment::author)
+                .map(c -> c.author())
                 .filter(author -> author != null && author.userId() != null)
-                .map(Author::userId)
+                .map(a -> a.userId())
                 .collect(Collectors.toSet());
         Map<String, User> users = userService.findByPublicIds(authorIds);
         return author -> {

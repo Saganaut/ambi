@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.springframework.dao.DuplicateKeyException;
 
 import com.cephadex.ambi.common.exception.ConflictException;
@@ -102,7 +103,7 @@ class LiveSessionOrchestratorTest {
             ((Runnable) inv.getArgument(1)).run();
             return null;
         }).when(locks).withLock(anyString(), any(Runnable.class));
-        when(locks.withLock(anyString(), any(Supplier.class)))
+        when(locks.withLock(anyString(), ArgumentMatchers.<Supplier<Object>>any()))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,

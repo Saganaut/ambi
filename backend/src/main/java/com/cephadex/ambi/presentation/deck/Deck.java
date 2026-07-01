@@ -253,7 +253,7 @@ public class Deck extends Auditable {
      */
     public String maxSortOrder() {
         return slides.stream()
-                .map(Slide::getSortOrder)
+                .map(s -> s.getSortOrder())
                 .filter(Objects::nonNull)
                 .max(Comparator.naturalOrder())
                 .orElse(null);
@@ -264,7 +264,7 @@ public class Deck extends Auditable {
      */
     public String minSortOrder() {
         return slides.stream()
-                .map(Slide::getSortOrder)
+                .map(s -> s.getSortOrder())
                 .filter(Objects::nonNull)
                 .min(Comparator.naturalOrder())
                 .orElse(null);

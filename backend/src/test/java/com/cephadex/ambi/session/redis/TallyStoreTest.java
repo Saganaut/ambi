@@ -36,7 +36,7 @@ class TallyStoreTest {
 
         store = new HashMap<>();
         when(hashOps.increment(anyString(), anyString(), anyLong())).thenAnswer(inv -> {
-            Map<String, Long> counts = store.computeIfAbsent(inv.getArgument(0), k -> new HashMap<>());
+            Map<String, Long> counts = store.computeIfAbsent(inv.getArgument(0), _ -> new HashMap<>());
             long next = counts.getOrDefault(inv.getArgument(1), 0L) + (long) inv.getArgument(2);
             counts.put(inv.getArgument(1), next);
             return next;

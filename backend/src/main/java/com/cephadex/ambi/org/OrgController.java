@@ -41,7 +41,7 @@ public class OrgController {
             throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
         }
         List<OrgMembership> memberships = userService.findById(principal.userId())
-                .map(User::getOrgRoles)
+                .map(u -> u.getOrgRoles())
                 .orElse(Collections.emptyList());
         if (memberships == null) {
             return List.of();
