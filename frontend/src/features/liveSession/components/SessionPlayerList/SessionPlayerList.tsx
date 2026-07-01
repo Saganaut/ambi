@@ -1,14 +1,21 @@
-import { useSession } from "@/features/liveSession/hooks/useSession";
+import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import styles from "./SessionPlayerList.module.css";
 import { PlayerListItem } from "./PlayerListItem";
+
 const SessionPlayerList = () => {
-  const { interactiveSession } = useSession();
+  // `roster` is the ordered participant ids; the participant records live in the
+  // `participants` map. Rendering off the ordered ids keeps the list stable.
+  const { roster, participants } = useLiveSessionQuery();
 
   return (
     <div className={styles.sessionPlayerList}>
-      {interactiveSession.players.map((player: any) => (
-        <PlayerListItem key={player.playerId} player={player} />
-      ))}
+      {roster.map((participantId) => {
+        const participant = participants[participantId];
+        if (!participant) return null;
+        return (
+          <PlayerListItem key={participantId} participant={participant} />
+        );
+      })}
     </div>
   );
 };

@@ -1,37 +1,22 @@
 // Pure resolver that turns the live session state into the single "stage" the
 // SessionBoard should render. It exists so SessionBoard.tsx stays a thin switch
-// and the (fiddly) precedence rules — lobby vs slide vs question-moment vs final
-// results — live in one place that can be unit-tested without a DOM.
+// and the precedence rules — lobby vs slide vs question-moment vs final results —
+// live in one place that can be unit-tested without a DOM.
 //
-// Two orthogonal axes decide the board: WHAT content (currentElement.kind) and
-// WHICH moment (prompt / live results / revealed results / overall). This
-// collapses both into a discriminated `BoardStage` so the renderer never has to
-// re-derive any of it.
-import { DeckElement, AnswerPayload } from "@/shared/types/elements";
-import { resolveShowResponsesFor } from "@utils/showResponsesResolver";
-
-// TODO(migration): stubbed pending liveSession migration. Was imported from the
-// interactiveSessionSlice; kept as a local placeholder so the reveal-on-result
-// rule below still type-checks.
-interface RoundResultPayload {
-  round: number;
-  element: DeckElement;
-  playerResults: {
-    playerId: string;
-    userName: string;
-    payload?: AnswerPayload | null;
-    wasCorrect: boolean;
-    pointsAwarded: number;
-    totalScore: number;
-  }[];
-}
+// Two orthogonal axes decide the board: WHAT content (`currentSlide.contentType`)
+// and WHICH moment (the round `phase`). This collapses both into a discriminated
+// `BoardStage` so the renderer never has to re-derive any of it.
+import type { SlideView } from "../../store/liveSessionApi.gen";
+import type { RoundPhase } from "../../store/liveSessionEvents";
+import type { LiveSessionState } from "../../store/liveSessionSlice";
 
 /**
  * `mode` for the question stage:
- *   - prompt      — accepting answers; show the question (interactive on a
- *                   participant's own device, read-only when projected/host).
- *   - liveResults — PRESENTATION opt-in: the tally builds up while answering.
- *   - results     — phase revealed/ended: distribution + correct-answer highlight.
+ *   - prompt      — accepting answers (or locked but not yet revealed); show the
+ *                   question, interactive only on a participant's own device.
+ *   - liveResults — the response tally is visible while answering / responses
+ *                   revealed, but the correct answer is not yet disclosed.
+ *   - results     — results revealed: distribution + correct-answer highlight.
  */
 export type BoardQuestionMode = "prompt" | "liveResults" | "results";
 
@@ -39,17 +24,25 @@ export type BoardQuestionMode = "prompt" | "liveResults" | "results";
 // while participants answer on their own devices. While we wire up answering we
 // let the host answer on the same board too, so a single browser can drive a
 // whole round end-to-end. Flip back to `!viewerIsHost` once multi-device
-// testing is in place.
-// `as boolean` (not a literal) keeps this a real runtime toggle: the eventual
-// `!viewerIsHost` branch stays live code, not statically dead.
+// testing is in place. `as boolean` (not a literal) keeps this a real runtime
+// toggle so the eventual `!viewerIsHost` branch stays live code.
 const HOST_CAN_PARTICIPATE = true as boolean;
+
+// Content types that carry no answers or results — displayed identically for
+// everyone. Everything else is an answerable question (MCQ has a built surface;
+// the rest fall through to a placeholder).
+const DISPLAY_CONTENT_TYPES: SlideView["contentType"][] = ["TITLE", "MEDIA"];
+
+/** Whether a slide is display-only (no submit/close/reveal cycle). */
+export const isDisplaySlide = (slide: SlideView): boolean =>
+  DISPLAY_CONTENT_TYPES.includes(slide.contentType);
 
 export type BoardStage =
   | { type: "lobby" }
-  | { type: "slide"; slide: any }
+  | { type: "slide"; slide: SlideView }
   | {
       type: "question";
-      element: any;
+      slide: SlideView;
       mode: BoardQuestionMode;
       // True only on a participant's own device while the round still accepts
       // answers — the board doubles as the answer surface. Host/projected views
@@ -58,61 +51,51 @@ export type BoardStage =
     }
   | { type: "overall" };
 
+/** The board moment implied by the round phase. */
+const modeForPhase = (phase: RoundPhase | null): BoardQuestionMode => {
+  switch (phase) {
+    case "SUBMIT_LIVE":
+    case "REVEAL_RESPONSES":
+      return "liveResults";
+    case "REVEAL_RESULTS":
+      return "results";
+    default:
+      // SUBMIT / LOCKED / null: still on the prompt (locked is read-only but the
+      // distribution is not shown until responses/results are revealed).
+      return "prompt";
+  }
+};
+
+/** Whether the round is still open for this device to answer. */
+const acceptingAnswers = (phase: RoundPhase | null): boolean =>
+  phase === "SUBMIT" || phase === "SUBMIT_LIVE";
+
 /**
- * Resolve the board stage from the frozen session snapshot. `viewerIsHost` is
- * passed in (rather than recomputed) because the caller already knows it and a
- * projected host screen and a participant device differ only by this flag.
+ * Resolve the board stage from the live read model. `viewerIsHost` differentiates
+ * a projected host screen from a participant device — the only difference between
+ * the two views of the same board.
  */
-export const resolveBoardStage = (
-  session: any,
-  viewerIsHost: boolean,
-  // The live round result, once it lands for the current element. The backend
-  // never sets a REVEAL phase for a normal round — it signals the reveal by
-  // broadcasting /roundResult — so the presence of this is what flips the
-  // board from prompt to results (mirrors how Gen-1 PlayPage gated submit on
-  // `phase === "SUBMIT" && !roundResult`).
-  roundResult?: RoundResultPayload | null,
-): BoardStage => {
-  // Terminal / pre-game states ignore the current element entirely.
-  if (session.status === "LOBBY") return { type: "lobby" };
-  if (
-    session.status === "RESULTS" ||
-    session.status === "FINISHED" ||
-    session.status === "CANCELLED"
-  ) {
+export const resolveBoardStage = (state: LiveSessionState): BoardStage => {
+  const { status, phase, currentSlide, viewerIsHost } = state;
+
+  // Terminal / pre-game states ignore the current slide entirely.
+  if (status === "LOBBY" || status === null) return { type: "lobby" };
+  if (status === "FINISHED" || status === "CANCELLED") {
     return { type: "overall" };
   }
 
-  const element = session.deckSnapshot[session.currentRound];
-  if (!element) return { type: "lobby" };
+  if (!currentSlide) return { type: "lobby" };
 
   // Slides never carry answers or results — same display for everyone.
-  if (element.kind === "Slide") return { type: "slide", slide: element };
-
-  // A round is "revealed" once its result lands (the normal end-of-round path),
-  // the host manually reveals this element (ON_CLICK cascade), or — for forward
-  // compatibility — the session ever reports a REVEAL phase. Any of these flips
-  // the board to results.
-  const revealed =
-    (roundResult != null && roundResult.element.id === element.id) ||
-    session.revealedElementIds.includes(element.id ?? "") ||
-    session.phase === "REVEAL";
-  if (revealed) {
-    return { type: "question", element, mode: "results", interactive: false };
+  if (isDisplaySlide(currentSlide)) {
+    return { type: "slide", slide: currentSlide };
   }
-
-  // Still accepting answers. GAME holds on the prompt until the phase ends;
-  // PRESENTATION may stream the tally live, but only when the showResponses
-  // cascade explicitly lands on INSTANT (its default for PRESENTATION is
-  // ON_CLICK, i.e. wait for the host). Questions have no per-element override,
-  // so the cascade falls through to deck/session/format.
-  const resolved = resolveShowResponsesFor(session, undefined, undefined);
-  const live = session.format === "PRESENTATION" && resolved === "INSTANT";
 
   return {
     type: "question",
-    element,
-    mode: live ? "liveResults" : "prompt",
-    interactive: HOST_CAN_PARTICIPATE || !viewerIsHost,
+    slide: currentSlide,
+    mode: modeForPhase(phase),
+    interactive:
+      (HOST_CAN_PARTICIPATE || !viewerIsHost) && acceptingAnswers(phase),
   };
 };

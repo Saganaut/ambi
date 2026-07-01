@@ -1,4 +1,3 @@
-import { SessionThemeScope } from "@features/liveSession/components/SessionThemeScope";
 import { SessionConnectionProvider } from "@features/liveSession/views/SessionPage/SessionConnectionProvider";
 import { SessionPage } from "@features/liveSession/views/SessionPage/SessionPage";
 import { createFileRoute } from "@tanstack/react-router";
@@ -11,9 +10,7 @@ export const Route = createFileRoute("/_authenticated/sessions/$sessionId/")({
     const { sessionId } = Route.useParams();
     return (
       <SessionConnectionProvider sessionId={sessionId}>
-        <SessionThemeScope>
-          <SessionPage />
-        </SessionThemeScope>
+        <SessionPage />
       </SessionConnectionProvider>
     );
   },

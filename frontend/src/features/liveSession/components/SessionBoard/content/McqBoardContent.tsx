@@ -4,125 +4,70 @@
 //                   their own device), read-only when projected/host.
 //   - liveResults → cards with the response tally filling in; still answerable
 //                   for a participant who hasn't submitted yet.
-//   - results     → cards with the final distribution + the correct answer(s)
-//                   highlighted.
+//   - results     → cards with the final distribution + the correct answer
+//                   highlighted (disclosed only now, via the round result).
 //
-// Answering: a participant builds a draft selection then taps Submit, which
-// publishes an McqAnswer over the session connection and locks the inputs. The
-// host's "end submit phase" also flushes the current draft (useFlushOnClosing).
-// Results distribution comes from the round-result broadcast (per-option counts
-// derived from each player's submitted McqAnswer).
-import { useState } from "react";
-import type { AnswerPayload, McqQuestion } from "@types/elements";
-import type { BoardQuestionMode } from "../resolveBoardStage";
-import { useFlushOnClosing } from "./useFlushOnClosing";
-import { useSession } from "@/features/liveSession/hooks/useSession";
+// Answering: a participant taps an option then Submit, which posts an McqAnswer
+// over the session connection and locks the inputs. There is no auto-flush of an
+// unsent draft — the Gen-2 round has no pre-close grace window and a locked round
+// rejects submissions, so a participant must lock in before the host closes. The
+// distribution comes from the live `optionCounts` tally; the correct option is
+// disclosed only once the results are revealed (`results.correctOption`).
+//
+// The Gen-2 slide model carries no answer key or multi-select flag, so this is
+// single-select and never highlights a correct option until reveal.
+import { useEffect, useState } from "react";
+import type { SlideView } from "../../../store/liveSessionApi.gen";
+import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
+import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import styles from "./McqBoardContent.module.css";
 
-// TODO(migration): stubbed pending liveSession migration. Was imported from the
-// interactiveSessionSlice; kept as a local placeholder so deriveDistribution
-// still type-checks.
-interface RoundResultPayload {
-  round: number;
-  element: { id?: string };
-  playerResults: {
-    payload?: { kind?: string; optionIds?: string[] } | null;
-  }[];
-}
-
 interface McqBoardContentProps {
-  question: McqQuestion;
+  slide: SlideView;
   mode: BoardQuestionMode;
   interactive: boolean;
-  /** optionId → response count. Defaults to the live round-result tally. */
-  distribution?: Record<string, number>;
 }
 
-/** Per-option response counts from the round result for this element. */
-const deriveDistribution = (
-  roundResult: RoundResultPayload | null,
-  elementId: string,
-): Record<string, number> | undefined => {
-  if (roundResult?.element.id !== elementId) return undefined;
-  const counts: Record<string, number> = {};
-  for (const pr of roundResult.playerResults) {
-    if (pr.payload?.kind === "McqAnswer") {
-      for (const optionId of pr.payload.optionIds ?? []) {
-        counts[optionId] = (counts[optionId] ?? 0) + 1;
-      }
-    }
-  }
-  return counts;
-};
-
-const McqBoardContent = ({
-  question,
-  mode,
-  interactive,
-  distribution,
-}: McqBoardContentProps) => {
-  const options = question.options ?? [];
-  const correctIds = new Set(question.correctOptionIds ?? []);
-  const maxSelections =
-    question.allowMultipleSelect === true
-      ? (question.maxSelections ?? options.length)
-      : 1;
-  const elementId = question.id ?? "";
+const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => {
+  const options = slide.options ?? [];
+  const slideId = slide.id ?? "";
 
   const { sendAnswer } = useSessionConnection();
-  // Live fields come through the one merged session view, not a direct slice
-  // read. myAnswer is cleared at the top of every round, so a non-null value
-  // here means this participant has already locked in their answer.
-  const { roundResult, myAnswer } = useSession();
-  const submitted = myAnswer !== null;
+  // Live distribution + the disclosed answer key come from the read model. There
+  // is no server-tracked "my answer", so the locked-in state is local: cleared
+  // whenever the round (slide) changes.
+  const { optionCounts, results } = useLiveSessionQuery();
+  const revealedCorrect =
+    results?.slideId === slideId ? results.correctOption : null;
 
-  // Draft selection until the participant submits.
-  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [selected, setSelected] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  useEffect(() => {
+    setSelected(null);
+    setSubmitted(false);
+  }, [slideId]);
 
   const submit = () => {
-    if (!interactive || submitted || selected.size === 0) return;
-    const payload: AnswerPayload = {
-      kind: "McqAnswer",
-      optionIds: [...selected],
-    };
-    sendAnswer(elementId, payload);
-    // TODO(migration): stubbed pending liveSession migration. The
-    // answerSubmittedLocally dispatch that latched myAnswer lived on the
-    // interactiveSessionSlice; with the slice gone the locked-in state no longer
-    // reflects until the slice is rebuilt.
+    if (!interactive || submitted || selected === null) return;
+    sendAnswer(slideId, { answerType: "McqAnswer", optionIds: [selected] });
+    setSubmitted(true);
   };
-
-  // Host ended the submit phase → flush this device's draft before it freezes.
-  useFlushOnClosing(question.id, submit);
-
-  const resolvedDistribution =
-    distribution ?? deriveDistribution(roundResult, elementId);
 
   const showResults = mode === "results" || mode === "liveResults";
   const revealCorrect = mode === "results";
   const canSelect = interactive && !submitted && mode !== "results";
 
-  const totalResponses = Object.values(resolvedDistribution ?? {}).reduce(
+  const totalResponses = Object.values(optionCounts).reduce(
     (sum, n) => sum + n,
     0,
   );
 
   const toggle = (id: string) => {
     if (!canSelect) return;
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        return next;
-      }
-      // Single-select replaces; multi-select respects the cap.
-      if (maxSelections === 1) return new Set([id]);
-      if (next.size >= maxSelections) return prev;
-      next.add(id);
-      return next;
-    });
+    // Single-select: tapping the current selection clears it, otherwise replaces.
+    setSelected((prev) => (prev === id ? null : id));
   };
 
   // Even two-column grid, matching the editor's option layout.
@@ -137,9 +82,9 @@ const McqBoardContent = ({
         style={{ "--cols": columns } as React.CSSProperties}>
         {options.map((option) => {
           const id = option.id ?? "";
-          const isSelected = selected.has(id);
-          const isCorrect = revealCorrect && correctIds.has(id);
-          const count = resolvedDistribution?.[id] ?? 0;
+          const isSelected = selected === id;
+          const isCorrect = revealCorrect && revealedCorrect === id;
+          const count = optionCounts[id] ?? 0;
           const pct =
             totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
 
@@ -191,9 +136,9 @@ const McqBoardContent = ({
             <Btn
               size='sm'
               variant='brand'
-              disabled={selected.size === 0}
+              disabled={selected === null}
               onClick={submit}>
-              {maxSelections > 1 ? "Submit answer" : "Lock in answer"}
+              Lock in answer
             </Btn>
           )}
         </div>

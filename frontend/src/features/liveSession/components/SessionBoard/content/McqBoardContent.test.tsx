@@ -1,48 +1,42 @@
-// Tests for MCQ answering on the board: a participant drafts a selection and
-// submits (publishing an McqAnswer), the button is gated on having a selection,
-// and the surface is read-only when not interactive. The session connection and
-// useSession are mocked.
-//
-// TODO(migration): stubbed pending liveSession migration. The slice-backed
-// round-trip (dispatch → interactiveSessionSlice → useSession → locked-in
-// state, plus the submissionsClosing end-submit flush) is gone with the slice;
-// those assertions are dropped until the slice is rebuilt. useSession is mocked
-// to a static live view here.
+// Tests for MCQ answering on the board: a participant taps an option and submits
+// (posting an McqAnswer), the button is gated on having a selection, and the
+// surface is read-only when not interactive. The session connection and the live
+// read model are mocked to a static prompt-phase view.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { McqQuestion } from "@types/elements";
+import type { SlideView } from "../../../store/liveSessionApi.gen";
 
 const h = vi.hoisted(() => ({ sendAnswer: vi.fn() }));
 
-vi.mock("@/features/liveSession/views/SessionPage/SessionConnectionContext", () => ({
-  useSessionConnection: () => ({ sendAnswer: h.sendAnswer }),
-}));
-vi.mock("@/features/liveSession/views/SessionPage/useSession", () => ({
-  useSession: () => ({
-    roundResult: null,
-    myAnswer: null,
-    submissionsClosing: null,
+vi.mock(
+  "@/features/liveSession/views/SessionPage/SessionConnectionContext",
+  () => ({
+    useSessionConnection: () => ({ sendAnswer: h.sendAnswer }),
+  }),
+);
+vi.mock("@/features/liveSession/hooks/useLiveSessionQuery", () => ({
+  useLiveSessionQuery: () => ({
+    optionCounts: {},
+    results: null,
+    phase: "SUBMIT",
+    currentSlideId: "el-0",
   }),
 }));
 
 import { McqBoardContent } from "./McqBoardContent";
 
-const question = {
-  kind: "McqQuestion",
+const slide: SlideView = {
   id: "el-0",
+  contentType: "MCQ",
   options: [
     { id: "a", text: "Alpha" },
     { id: "b", text: "Bravo" },
   ],
-  correctOptionIds: ["a"],
-  allowMultipleSelect: false,
-} as unknown as McqQuestion;
+};
 
 const renderContent = (interactive = true) =>
-  render(
-    <McqBoardContent question={question} mode='prompt' interactive={interactive} />,
-  );
+  render(<McqBoardContent slide={slide} mode='prompt' interactive={interactive} />);
 
 describe("McqBoardContent answering", () => {
   beforeEach(() => {
@@ -58,7 +52,7 @@ describe("McqBoardContent answering", () => {
     );
 
     expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
-      kind: "McqAnswer",
+      answerType: "McqAnswer",
       optionIds: ["a"],
     });
   });

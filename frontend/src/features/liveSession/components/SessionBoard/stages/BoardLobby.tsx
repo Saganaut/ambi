@@ -5,23 +5,21 @@
 import styles from "./BoardLobby.module.css";
 
 interface BoardLobbyProps {
-  session: any;
+  /** The public room code participants join with. */
+  joinCode: string | null;
+  /** Number of participants currently in the room. */
+  playerCount: number;
 }
 
-const BoardLobby = ({ session }: BoardLobbyProps) => {
-  const joinCode = session.customRoomCode ?? session.roomCode;
-  const playerCount = session.players.length;
-
-  return (
-    <div className={styles.boardLobby}>
-      <p className={styles.eyebrow}>Join at the room code</p>
-      <p className={styles.code}>{joinCode}</p>
-      <p className={styles.count}>
-        {playerCount === 1 ? "1 player" : `${playerCount.toString()} players`}{" "}
-        in the room
-      </p>
-    </div>
-  );
-};
+const BoardLobby = ({ joinCode, playerCount }: BoardLobbyProps) => (
+  <div className={styles.boardLobby}>
+    <p className={styles.eyebrow}>Join at the room code</p>
+    <p className={styles.code}>{joinCode ?? ""}</p>
+    <p className={styles.count}>
+      {playerCount === 1 ? "1 player" : `${playerCount.toString()} players`} in
+      the room
+    </p>
+  </div>
+);
 
 export { BoardLobby };

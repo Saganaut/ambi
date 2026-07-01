@@ -5,14 +5,15 @@
 // (read via `useLiveSessionQuery`). It gates its children behind the snapshot so
 // consumers never see an empty store.
 //
-// It still supplies the legacy `SessionConnection` context (the send-actions
-// surface) as a no-op: those commands moved to REST (`useLiveSessionMutate`), but
-// the old board consumers still read `useSessionConnection`, so the context stays
-// until their migration. New code should not use it.
+// It also supplies the `SessionConnection` context — the board's command surface —
+// as a thin adapter over the REST command hook `useLiveSessionMutate`, keyed on
+// this session's id. Consumers (SessionControls, McqBoardContent) fire commands
+// through it; the effect returns to every client over the socket.
 import { useEffect, type ReactNode } from "react";
 
 import { useAppDispatch } from "@store/hooks";
 
+import { useLiveSessionMutate } from "../../hooks/useLiveSessionMutate";
 import { useSnapshotQuery } from "../../store/liveSessionApi.gen";
 import {
   connectionChanged,
@@ -31,30 +32,44 @@ interface SessionConnectionProviderProps {
   children: ReactNode;
 }
 
-const noopConnection: SessionConnection = {
-  sendStart: () => {},
-  sendAnswer: () => {},
-  sendVote: () => {},
-  sendNextRound: () => {},
-  sendLeave: () => {},
-  sendBoot: () => {},
-  sendEndInteractiveSession: () => {},
-  sendRevealNow: () => {},
-  sendFreezeResponses: () => {},
-  sendEndSubmitPhase: () => {},
-  sendRestart: () => {},
-  sendPauseTimer: () => {},
-  sendResumeTimer: () => {},
-  sendChat: () => {},
-  sendReaction: () => {},
-};
-
 const SessionConnectionProvider = ({
   sessionId,
   children,
 }: SessionConnectionProviderProps) => {
   const dispatch = useAppDispatch();
   const { data: snapshot, isLoading, error } = useSnapshotQuery({ id: sessionId });
+
+  // The command surface: each send maps to one REST mutation keyed on this
+  // session's id (the effect comes back over the socket). Built inline — the
+  // handlers are stable RTK dispatchers and the few consumers re-render from
+  // query state anyway.
+  const mutate = useLiveSessionMutate();
+  const connection: SessionConnection = {
+    sendStart: () => {
+      mutate.start(sessionId);
+    },
+    sendAnswer: (slideId, payload) => {
+      mutate.submitAnswer(sessionId, { slideId, payload });
+    },
+    sendRevealResponses: (slideId) => {
+      mutate.revealResponses(sessionId, slideId);
+    },
+    sendCloseRound: (slideId) => {
+      mutate.closeRound(sessionId, slideId);
+    },
+    sendRevealResults: (slideId) => {
+      mutate.revealResults(sessionId, slideId);
+    },
+    sendAdvance: () => {
+      void mutate.advance(sessionId);
+    },
+    sendRestartRound: (slideId) => {
+      mutate.restartRound(sessionId, slideId);
+    },
+    sendEnd: () => {
+      mutate.end(sessionId);
+    },
+  };
 
   // Seed (and re-seed on any refetch) the read model from the snapshot.
   useEffect(() => {
@@ -85,7 +100,7 @@ const SessionConnectionProvider = ({
   }
 
   return (
-    <SessionConnectionContext value={noopConnection}>
+    <SessionConnectionContext value={connection}>
       {children}
     </SessionConnectionContext>
   );

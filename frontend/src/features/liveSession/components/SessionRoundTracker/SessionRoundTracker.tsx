@@ -1,23 +1,9 @@
-import { useSession } from "@/features/liveSession/hooks/useSession";
+// Left-rail round tracker. The Gen-2 read model exposes only the current slide
+// (not the full deck's slide list), so the per-round thumbnail strip has no data
+// to render and is intentionally inert until a future chunk surfaces the round
+// list on the snapshot. Kept mounted so the page layout is unchanged.
 import styles from "./SessionRoundTracker.module.css";
-import { SessionRoundThumbnail } from "./SessionRoundThumbnail";
-const SessionRoundTracker = () => {
-  const { interactiveSession } = useSession();
-  console.log("interactiveSession", interactiveSession);
-  return (
-    <div className={styles.sessionRoundTracker}>
-      {interactiveSession.deckSnapshot.map((slide: any, index: any) => {
-        console.log("index", index);
-        return (
-          <SessionRoundThumbnail
-            isActive={index == interactiveSession.currentRound}
-            key={slide.id}
-            slide={slide}
-          />
-        );
-      })}
-    </div>
-  );
-};
+
+const SessionRoundTracker = () => <div className={styles.sessionRoundTracker} />;
 
 export { SessionRoundTracker };

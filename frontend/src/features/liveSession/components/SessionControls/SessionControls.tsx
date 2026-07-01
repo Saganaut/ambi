@@ -1,21 +1,21 @@
-// Host-only admin control bar for a live session. Lives below the SessionBoard
-// in the InnerDisplay and drives the round state machine over STOMP: end the
-// submit window (flushing players' drafts), reveal results, advance, pause /
-// resume the countdown, end the show, or restart from round 1. Non-hosts render
-// nothing — moderation/control is the host's surface only (the board itself is
-// the shared display + answer surface).
+// Host-only admin control bar for a live session. Lives below the SessionBoard in
+// the InnerDisplay and drives the round state machine: start the show, show the
+// live response distribution, close submissions (locks + scores), reveal the
+// results (correct answer + scores), advance to the next round, restart the
+// current round, or end the show. Non-hosts render nothing — control is the
+// host's surface only (the board itself is the shared display + answer surface).
 //
-// Everything the bar reads — status / phase / current element / settings, the
-// live overlays (paused, revealed), the round result, and whether the viewer is
-// the host — comes from useSession(), the one merged session view (the slice is
-// still the source the STOMP subscriptions feed; consumers just don't reach into
-// it directly). Host actions are sent through the session connection (one shared
-// STOMP client, provided by SessionConnectionProvider).
-import { useSession } from "@/features/liveSession/hooks/useSession";
+// The backend requires close-before-reveal (revealing results while submissions
+// are open is rejected), so those are two distinct steps here. Which actions are
+// live for the current phase is decided by `resolveHostActions`; state it reads
+// comes from the read model via `useLiveSessionQuery`; commands go through the
+// session connection (an adapter over the REST command hook).
+import { isDisplaySlide } from "@/features/liveSession/components/SessionBoard/resolveBoardStage";
+import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
-import { resolveShowResponsesFor } from "@utils/showResponsesResolver";
 import { Btn } from "@ui/Buttons/Btn";
+import { resolveHostActions } from "./resolveHostActions";
 import styles from "./SessionControls.module.css";
 
 interface SessionControlsProps {
@@ -23,32 +23,16 @@ interface SessionControlsProps {
 }
 
 const SessionControls = ({ className }: SessionControlsProps) => {
-  // The merged view carries the live overlays (timerPaused / revealedElementIds)
-  // too, so we read them from one place. roundResult is present once the round
-  // has completed and its result has been broadcast — the backend never flips to
-  // a REVEAL phase, so this is how we know we're in the between-rounds reveal
-  // window (and must stop offering submit-phase actions). Cleared next round.
-  const { interactiveSession, roundResult, viewerIsHost } = useSession();
-  const {
-    status,
-    phase,
-    currentRound,
-    deckSnapshot,
-    settings,
-    players,
-    timerPaused,
-    revealedElementIds,
-  } = interactiveSession;
-
+  const { status, phase, currentSlide, currentSlideId, roster, viewerIsHost } =
+    useLiveSessionQuery();
   const {
     sendStart,
-    sendEndSubmitPhase,
-    sendRevealNow,
-    sendNextRound,
-    sendPauseTimer,
-    sendResumeTimer,
-    sendEndInteractiveSession,
-    sendRestart,
+    sendRevealResponses,
+    sendCloseRound,
+    sendRevealResults,
+    sendAdvance,
+    sendRestartRound,
+    sendEnd,
   } = useSessionConnection();
   const confirm = useConfirm();
 
@@ -56,8 +40,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
   if (!viewerIsHost) return null;
 
   // Pre-game: the only host action is to start. Starting flips the session to
-  // IN_PROGRESS (via the /round broadcast), and the board re-derives its stage
-  // to the first question — no navigation, the lobby is just a board stage.
+  // IN_PROGRESS (via the socket), and the board re-derives its stage to the
+  // first slide — no navigation, the lobby is just a board stage.
   if (status === "LOBBY") {
     return (
       <div className={`${styles.sessionControls} ${className ?? ""}`}>
@@ -65,7 +49,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
           <Btn
             size='sm'
             variant='brand'
-            disabled={players.length < 1}
+            disabled={roster.length < 1}
             onClick={sendStart}>
             Start session
           </Btn>
@@ -74,48 +58,17 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     );
   }
 
-  // currentRound can point past the end on terminal states; treat as optional.
-  const element = deckSnapshot[currentRound] as
-    | (typeof deckSnapshot)[number]
-    | undefined;
-  const elementId = element?.id ?? "";
-  const isSlide = element?.kind === "Slide";
-  const inProgress = status === "IN_PROGRESS";
-  // The submit window is open only before the round result lands; once it does
-  // we're in the reveal window and submit-phase actions no longer apply.
-  const inSubmit = phase === "SUBMIT" && !roundResult;
-  const inReveal = inProgress && !!roundResult;
-  const isRevealed = revealedElementIds.includes(elementId);
+  // Terminal states have no round to control.
+  if (status !== "IN_PROGRESS") return null;
 
-  // Reveal-now only applies on a live ON_CLICK question that hasn't been
-  // revealed yet (mirrors PlayPage's HostRoundControls.canReveal). The
-  // per-element showResponses override is Slide-only and reveal never targets a
-  // slide, so the element arg is left undefined and the cascade falls through to
-  // deck / session / format.
-  const resolved = resolveShowResponsesFor(
-    interactiveSession,
-    undefined,
-    undefined,
+  const slideId = currentSlideId ?? "";
+  const hasSlide = slideId !== "";
+  const actions = resolveHostActions(
+    status,
+    phase,
+    currentSlide ? isDisplaySlide(currentSlide) : false,
+    hasSlide,
   );
-  const canReveal =
-    inProgress &&
-    inSubmit &&
-    !isSlide &&
-    resolved === "ON_CLICK" &&
-    !isRevealed;
-  const canEndSubmit = inProgress && inSubmit && !isSlide;
-  // Pause only matters when the round has a countdown. We key off the session's
-  // per-question time; per-element overrides are a rarer case and the button is
-  // hidden, not broken, when they're the only timer.
-  const hasTimer = (settings.timePerQuestion ?? 0) > 0;
-  const canPauseTimer = inProgress && inSubmit && !isSlide && hasTimer;
-  // Advance is offered once the round's result is showing, in any submission
-  // mode. The server's nextRound now works for SIMULTANEOUS too (it cancels the
-  // pending auto-advance), so the host can step forward immediately instead of
-  // waiting out the between-rounds delay.
-  const canNextRound = inReveal;
-  const canEnd = inProgress;
-  const canRestart = inProgress || status === "FINISHED";
 
   const handleEnd = async () => {
     const ok = await confirm({
@@ -124,59 +77,55 @@ const SessionControls = ({ className }: SessionControlsProps) => {
       confirmLabel: "End session",
       variant: "danger",
     });
-    if (ok) sendEndInteractiveSession();
+    if (ok) sendEnd();
   };
 
   const handleRestart = async () => {
     const ok = await confirm({
-      title: "Restart session",
-      message:
-        "Restart from round 1? All scores and answers will be cleared — players stay in the room.",
+      title: "Restart round",
+      message: "Restart the current round? Answers for it will be cleared.",
       confirmLabel: "Restart",
       variant: "danger",
     });
-    if (ok) sendRestart();
+    if (ok) sendRestartRound(slideId);
   };
 
   return (
     <div className={`${styles.sessionControls} ${className ?? ""}`}>
       <div className={styles.actions}>
-        {/* The generic reveal: ends the submit window (flushing drafts) and
-            reveals the round result + correct answer, in any showResponses
-            mode. */}
+        {/* Surface the live response distribution without ending the round. */}
         <Btn
           size='sm'
-          disabled={!canEndSubmit}
+          disabled={!actions.canShowResponses}
           onClick={() => {
-            sendEndSubmitPhase(elementId);
+            sendRevealResponses(slideId);
+          }}>
+          Show live results
+        </Btn>
+        {/* Close submissions — locks and scores the round. */}
+        <Btn
+          size='sm'
+          disabled={!actions.canClose}
+          onClick={() => {
+            sendCloseRound(slideId);
+          }}>
+          Close submissions
+        </Btn>
+        {/* Reveal the result + correct answer (requires a prior close). */}
+        <Btn
+          size='sm'
+          variant='brand'
+          disabled={!actions.canRevealResults}
+          onClick={() => {
+            sendRevealResults(slideId);
           }}>
           Reveal answers
         </Btn>
-        {/* ON_CLICK only: surface the live response distribution without ending
-            the round (the PRESENTATION "peek"). */}
-        <Btn
-          size='sm'
-          disabled={!canReveal}
-          onClick={() => {
-            sendRevealNow(elementId);
-          }}>
-          {isRevealed ? "Live results shown" : "Show live results"}
-        </Btn>
-        {canNextRound && (
-          <Btn size='sm' onClick={sendNextRound}>
+        {actions.canAdvance && (
+          <Btn size='sm' onClick={sendAdvance}>
             Next round
           </Btn>
         )}
-        <Btn
-          size='sm'
-          variant={timerPaused ? "warning" : undefined}
-          disabled={!canPauseTimer}
-          onClick={() => {
-            if (timerPaused) sendResumeTimer();
-            else sendPauseTimer();
-          }}>
-          {timerPaused ? "Resume timer" : "Pause timer"}
-        </Btn>
 
         <span className={styles.spacer} />
 
@@ -184,7 +133,6 @@ const SessionControls = ({ className }: SessionControlsProps) => {
           size='sm'
           variant='error'
           fill='ghost'
-          disabled={!canEnd}
           onClick={() => {
             void handleEnd();
           }}>
@@ -193,7 +141,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         <Btn
           size='sm'
           variant='error'
-          disabled={!canRestart}
+          disabled={!actions.canRestart}
           onClick={() => {
             void handleRestart();
           }}>

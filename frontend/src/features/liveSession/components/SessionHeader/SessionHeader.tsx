@@ -1,46 +1,33 @@
-import { CountdownTimer } from "@/features/liveSession/components/CountdownTimer/CountdownTimer";
+import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import styles from "./SessionHeader.module.css";
-import { useSession } from "@/features/liveSession/hooks/useSession";
-
-const SessionTimer = () => {
-  return (
-    <div className={styles.sessionTimer}>
-      <CountdownTimer size={"sm"} duration={30} />
-    </div>
-  );
-};
 
 const SessionRoundDisplay = () => {
-  const { interactiveSession, currentDeck } = useSession();
+  // The Gen-2 read model carries the current slide directly (no deck object /
+  // round index), so the header names the live slide rather than the deck.
+  const { currentSlide } = useLiveSessionQuery();
 
   return (
     <div className={styles.sessionRoundDisplay}>
-      <div>Deck Name:{currentDeck?.name ?? ""}</div>
-      <div>Round: {interactiveSession.currentRound}</div>
+      {currentSlide?.section && <div>{currentSlide.section}</div>}
+      <div>{currentSlide?.title ?? "Lobby"}</div>
     </div>
   );
 };
 
 const SessionInfoDisplay = () => {
-  const { interactiveSession } = useSession();
+  const { publicId } = useLiveSessionQuery();
 
   return (
     <div className={styles.sessionInfoDisplay}>
-      {/* TODO(migration): stubbed pending liveSession migration. Was
-          <DisplayJoinCode> from the removed @components/Games tree; plain code
-          for now. */}
-      <span>Join code: {interactiveSession.roomCode}</span>
+      <span>Join code: {publicId ?? ""}</span>
     </div>
   );
 };
 
 const SessionHeader = () => {
-  const { interactiveSession } = useSession();
-
   return (
     <div className={styles.sessionHeader}>
       <SessionRoundDisplay />
-      {interactiveSession.settings.timePerQuestion && <SessionTimer />}
       <SessionInfoDisplay />
     </div>
   );
