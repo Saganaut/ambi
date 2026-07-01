@@ -14,6 +14,7 @@ Reachability is enforced by `tools/doc-lint.js`: every `.md` file under the repo
 - [Rules](rules/README.md) — Coding conventions per layer (general, backend, frontend, style, icons).
 - [Infrastructure](infrastructure/README.md) — Docker, MongoDB, Redis, Garage/S3, per-directory READMEs.
 - [Features](features/README.md) — Per-feature design docs (deck editor, membership, exception handling).
+- [Diagrams](diagrams/README.md) — Feature-by-feature architecture diagrams (Mermaid): context, ERD, sequences, state machines.
 - [Notes](notes/README.md) — Working notes and reference snippets.
 - [Decisions](decisions/README.md) — Architecture decision records (ADRs).
 - [Runbooks](runbooks/README.md) — Operational procedures (seeding, secret rotation, recovery).
