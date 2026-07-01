@@ -7,11 +7,15 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.config.AuthProperties;
 import com.cephadex.ambi.auth.enums.AuthProvider;
+import com.cephadex.ambi.common.cache.CacheNames;
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 
@@ -32,6 +36,7 @@ public class UserService {
         this.authProperties = authProperties;
     }
 
+    @Cacheable(cacheNames = CacheNames.USERS, key = "#id")
     public Optional<User> findById(String id) {
         return userRepository.findById(id);
     }
@@ -52,6 +57,9 @@ public class UserService {
      * externalProviderId)} — the only identity key for an external account
      * (auth/README.md). Email is never the key.
      */
+    @Cacheable(cacheNames = CacheNames.USERS_BY_IDENTITY,
+            key = "#provider + ':' + #externalProviderId",
+            unless = "#result == null")
     public Optional<User> findByProviderAndSubject(AuthProvider provider, String externalProviderId) {
         if (provider == null || externalProviderId == null || externalProviderId.isBlank()) {
             return Optional.empty();
@@ -67,6 +75,10 @@ public class UserService {
      * was previously closed. The aggregate enforces that the {@link User} is a
      * guest ({@code IllegalStateException} otherwise).
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USERS_BY_IDENTITY, key = "#provider + ':' + #externalProviderId"),
+            @CacheEvict(cacheNames = CacheNames.USERS, key = "#guest.id")
+    })
     public User upgradeGuestToRegistered(User guest, AuthProvider provider,
             String externalProviderId, String email) {
         // The transition (identity, level, reaper-field clearing, reopen) is
@@ -93,6 +105,10 @@ public class UserService {
      * (Inv 9): a duplicate-key collision on {@code username} surfaces as
      * {@code USERNAME_TAKEN}.
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USERS_BY_IDENTITY, key = "#provider + ':' + #externalProviderId"),
+            @CacheEvict(cacheNames = CacheNames.USERS, key = "#result.id")
+    })
     public User register(AuthProvider provider, String externalProviderId, String email,
             String username, String displayName) {
         User user = User.newRegistered(provider, externalProviderId, email, username,
@@ -127,6 +143,11 @@ public class UserService {
      * caller's own document. A missing user means the session outlived its
      * document; that surfaces as {@code USER_NOT_FOUND}.
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USERS, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USERS_BY_IDENTITY,
+                    key = "#result.auth.authProvider + ':' + #result.auth.externalProviderId")
+    })
     public User updateProfile(String userId, String displayName, String timezone, Avatar avatar) {
         User user = requireUser(userId);
         user.applyProfileUpdate(displayName, timezone, avatar);
@@ -134,6 +155,11 @@ public class UserService {
     }
 
     /** Replaces the caller's preferences wholesale (PUT semantics). See {@link #updateProfile}. */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USERS, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USERS_BY_IDENTITY,
+                    key = "#result.auth.authProvider + ':' + #result.auth.externalProviderId")
+    })
     public User replacePreferences(String userId, UserPreferences preferences) {
         User user = requireUser(userId);
         user.replacePreferences(preferences);
@@ -161,6 +187,7 @@ public class UserService {
      * {@code USER_NOT_FOUND} when the document is gone (e.g. a guest reaped, or
      * an account closed and purged) while the session still references it.
      */
+    @Cacheable(cacheNames = CacheNames.USERS, key = "#userId")
     public User requireUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND",
@@ -168,6 +195,11 @@ public class UserService {
     }
 
     /** Reopens a previously-closed account; idempotent (no save when already open). */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USERS, key = "#user.id"),
+            @CacheEvict(cacheNames = CacheNames.USERS_BY_IDENTITY,
+                    key = "#user.auth.authProvider + ':' + #user.auth.externalProviderId")
+    })
     public User reopen(User user) {
         if (user.reopen(Instant.now())) {
             return userRepository.save(user);
