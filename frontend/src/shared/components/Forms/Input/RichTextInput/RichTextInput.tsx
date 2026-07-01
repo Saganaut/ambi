@@ -60,7 +60,9 @@ interface RichTextInputProps {
   id?: string;
   ref?: React.Ref<RichTextInputHandle>;
   isBordered?: boolean;
-  showGradient?: boolean;
+  /** Back the input with a frosted contrast plate so its text stays legible over
+   *  a background image. Driven by the slide canvas, not passed per-editor. */
+  showContrastPlate?: boolean;
   className?: string;
   /** Auto-shrink the editor's font-size so its content fits inside its
    *  bounded box — same algorithm as `useFitText` (the shared hook can't
@@ -310,7 +312,7 @@ const RichTextInput = ({
   id,
   ref,
   isBordered = true,
-  showGradient = false,
+  showContrastPlate = false,
   className,
   minPx,
   maxPx,
@@ -433,7 +435,7 @@ const RichTextInput = ({
         className={[
           styles.surface,
           !isBordered && styles.noBorders,
-          showGradient && styles.withGradient,
+          showContrastPlate && styles.contrastPlate,
         ]
           .filter(Boolean)
           .join(" ")}

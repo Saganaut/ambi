@@ -21,6 +21,8 @@ interface DeckCardProps {
   actions?: ReactNode;
   onClick?: () => void;
   onContextMenu?: (event: MouseEvent<HTMLDivElement>) => void;
+  onMouseEnter?: () => void;
+  onFocus?: () => void;
   className?: string;
   showFavoriteHeart?: boolean;
 }
@@ -50,11 +52,18 @@ const DeckCard = ({
   actions,
   onClick,
   onContextMenu,
+  onMouseEnter,
+  onFocus,
   className,
 }: DeckCardProps) => {
   const classes = [styles.card, className].filter(Boolean).join(" ");
   return (
-    <div className={classes} onClick={onClick} onContextMenu={onContextMenu}>
+    <div
+      className={classes}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      onMouseEnter={onMouseEnter}
+      onFocus={onFocus}>
       <div className={styles.coverWrap}>
         <img
           src={resolveDeckCover(deck.coverImage, deck.id)}

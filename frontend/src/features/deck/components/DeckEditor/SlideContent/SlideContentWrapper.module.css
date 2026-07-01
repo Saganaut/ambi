@@ -21,18 +21,36 @@
     border-bottom: var(--border-size-sm) solid var(--edge-surface);
   }
 
+  /* Over a background image the divider can't be trusted for contrast, so the
+     header rides a frosted contrast plate (same treatment as the prompt) that
+     backs the title/description with a known-dark blur and drops the divider. */
+  .header.overImage {
+    padding: var(--space-2);
+    border-bottom: none;
+    border-radius: var(--radius-md);
+    background: var(--contrast-plate-bg);
+    backdrop-filter: var(--contrast-plate-blur);
+  }
+
   .title {
     margin: 0;
     font-family: var(--font-heading);
     font-size: var(--font-size-md);
     font-weight: 700;
-    color: var(--text-primary);
+    /* Resolved over-background text color; defaults to --text-primary. */
+    color: var(--canvas-on-bg);
   }
 
   .description {
     margin: 0;
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+  }
+
+  /* On the plate the theme's --text-secondary can wash out, so pin the
+     description to a dimmed cut of the resolved light-on-dark text color. */
+  .header.overImage .description {
+    color: color-mix(in oklch, var(--canvas-on-bg) 78%, transparent);
   }
 
   .body {

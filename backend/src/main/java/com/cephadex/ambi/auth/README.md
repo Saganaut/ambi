@@ -135,7 +135,7 @@ Two independent axes; do not conflate them.
 **1. Account class — `UserLevel` (weight-based).** Access is a numeric `>=`
 comparison via `UserLevel.hasAccessTo`:
 
-```
+```text
 GUEST(10) < USER(20) < PREMIUM_USER(30) < ADMIN(100) < SUPER_ADMIN(200)
 ```
 

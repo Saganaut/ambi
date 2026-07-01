@@ -10,7 +10,10 @@ const swaggerJson = JSON.parse(rawJson);
 /**
  * Output paths are generated mainly based upon the tag (only one permitted per controller)
  * The tagToFeatureMap maps that.
- * Any exceptions should be put in the map below
+ *
+ * Use http://localhost:8080/swagger-ui/index.html in dev mode as reference (disabled in prod)
+ *
+ * Any exceptions should be put in the special cases map below
  *
  *  **/
 
@@ -24,6 +27,7 @@ const tagToFeatureMap: Record<string, string> = {
   "auth-controller": "auth",
   "theme-controller": "theme",
   "org-controller": "org",
+  "live-session-controller": "liveSession",
 };
 
 const specialCasesMap: Record<string, Record<string, string>> = {
@@ -45,6 +49,10 @@ const generateOutputFiles = () => {
           const rawTag = op.tags[0] as string;
           apiName = rawTag.split("-")[0];
           featureName = `${tagToFeatureMap[rawTag]}`;
+        }
+        // Handling special case of live session since there are 2 dashes in the name
+        if (apiName === "live") {
+          apiName = "liveSession";
         }
         const filePath = `./src/features/${featureName}/store/${apiName}Api.gen.ts`;
         if (!outputFiles[filePath]) {

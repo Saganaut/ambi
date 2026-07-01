@@ -137,7 +137,6 @@ for the reveal payload).
 > and dropped its `RESULTS` value; `REVEAL_RESULTS` + `FINISHED` cover it. See the
 > [Resolved](#resolved-2026-06-29--orchestrator-target-surface) section.
 
-
 `LiveSession.showResults()/resume()` toggle *status* IN_PROGRESS↔RESULTS, while
 `orchestrator.endRound` toggles *phase* SUBMIT→REVEAL in Redis. Two notions of
 "showing results," and nothing calls `showResults()`.

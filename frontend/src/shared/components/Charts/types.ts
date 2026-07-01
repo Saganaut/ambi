@@ -11,6 +11,7 @@ export interface ChartDatum {
   imageAlt?: string;
   highlight?: boolean;
   isCorrect?: boolean;
+  optionType: "TEXT" | "NUMBER" | "IMAGE";
 }
 
 export interface ChartProps {

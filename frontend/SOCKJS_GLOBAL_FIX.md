@@ -2,7 +2,7 @@
 
 ## The Error
 
-```
+```text
 sockjs-client.js Uncaught ReferenceError: global is not defined
 ```
 

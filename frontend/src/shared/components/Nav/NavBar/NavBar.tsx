@@ -2,9 +2,9 @@ import { Link } from "@tanstack/react-router";
 import styles from "./NavBar.module.css";
 import { UserMenu } from "./UserMenu";
 // import { NotificationBell } from "../NotificationBell/NotificationBell";
-import { CephadexLogo } from "../../Graphic/CephadexLogo";
 import { useFullScreen } from "@/shared/hooks/useFullScreen";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
+import { CephadexLogo } from "../../Graphic/CephadexLogo";
 
 const NavBar = () => {
   const userState = useCurrentUser();
@@ -14,23 +14,21 @@ const NavBar = () => {
   }
   return (
     <nav
-      aria-label='Primary'
+      aria-label="Primary"
       className={`${styles.navContainer} ${isFullScreen ? styles.isCollapsed : ""}`}
-      data-navbar>
+      data-navbar
+    >
       <div className={styles.homeMenuWrapper}>
-        <Link to='/' viewTransition aria-label='Ambi home'>
+        <Link to="/" viewTransition aria-label="Ambi home">
           <CephadexLogo />
         </Link>
       </div>
       <div className={styles.userMenuWrapper}>
-        <Link to='/design-system' viewTransition>
-          Design system
-        </Link>
-        <Link to='/pricing' viewTransition>
+        {/* <Link to='/pricing' viewTransition>
           Pricing
-        </Link>
+        </Link> */}
         {userState.state === "registered" && (
-          <Link to='/decks' viewTransition>
+          <Link to="/decks" viewTransition>
             My Decks
           </Link>
         )}

@@ -22,5 +22,15 @@ echo "▶ Backend Java Build Compiling..."
 
 echo "OK - Backend build passed."
 
+echo "▶ Backend null-analysis (Eclipse JDT)..."
+"$REPO_ROOT/scripts/check-backend-lint.sh"
+
+echo "OK - Backend null-analysis passed."
+
+echo "▶ Documentation checks (reachability + markdownlint)..."
+"$REPO_ROOT/scripts/check-docs.sh"
+
+echo "OK - Docs passed."
+
 
 echo "🐙🐙🐙 All pre-commit checks passed! 🐙🐙🐙"

@@ -66,5 +66,13 @@ ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
 ln -sf ../../scripts/pre-push   .git/hooks/pre-push
 ```
 
-- **pre-commit** — runs `lint:all` (ESLint + Stylelint) on every commit. The commit is blocked if any lint error is reported.
+- **pre-commit** — on every commit, runs the frontend typecheck, `lint:all` (oxlint + Stylelint), the backend `mvn compile`, the backend null-analysis check via [`scripts/check-backend-lint.sh`](../../scripts/check-backend-lint.sh), and the documentation checks via [`scripts/check-docs.sh`](../../scripts/check-docs.sh) (reachability + markdownlint). The commit is blocked if any step fails.
 - **pre-push** — runs both test suites only when pushing to `main`. Pushes to other branches are unaffected.
+
+The documentation checks can also be run on their own at any time: `./scripts/check-docs.sh`.
+
+## Backend null-analysis (Eclipse JDT)
+
+The IDE's Java "Problems" panel surfaces Eclipse JDT null-analysis warnings — unused imports, and "needs unchecked conversion via method descriptor" on method references under Spring's `@NonNull`/`@Nullable` defaults (see `backend/.settings/org.eclipse.jdt.core.prefs` and the `java.compile.nullAnalysis.mode` VS Code setting). `javac` (and therefore `mvn compile`) does **not** report these, so [`scripts/check-backend-lint.sh`](../../scripts/check-backend-lint.sh) reproduces them on the CLI: it runs the same JDT batch compiler the Red Hat Java extension bundles, with those prefs and Lombok wired in as a Java agent, and fails on any warning.
+
+Run it on demand: `./scripts/check-backend-lint.sh`. It requires the Red Hat Java extension (its batch compiler is auto-detected), or an `ECJ_JAR` pointing at a compatible `org.eclipse.jdt.core.compiler.batch_*.jar`. When neither is found the script **skips** (exit 0) rather than failing, so it never blocks a commit in a headless environment.

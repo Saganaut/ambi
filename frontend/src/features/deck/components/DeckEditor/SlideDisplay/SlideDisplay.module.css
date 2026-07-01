@@ -7,6 +7,19 @@
   --border-color: var(--edge-surface);
   --background-image: none;
 
+  /* Contrast strategy for text painted over an unknown background. The two
+     `--canvas-text-*` values are the light/dark ends; `--canvas-on-bg` is the
+     resolved one for the current slide — SlideCanvas overrides it inline
+     (luminance-picked for a solid color, forced light over an image) and it
+     defaults to the theme text color for a plain themed surface. The
+     `--contrast-plate-*` vars back text with a known-dark frosted blur so light
+     text stays legible over an arbitrary image (see `.contrastPlate` consumers). */
+  --canvas-text-light: var(--white-100);
+  --canvas-text-dark: var(--black-russian-900);
+  --canvas-on-bg: var(--text-primary);
+  --contrast-plate-bg: color-mix(in oklch, var(--black-russian-900) 42%, transparent);
+  --contrast-plate-blur: blur(8px) brightness(0.62);
+
   position: relative;
   display: flex;
   flex-direction: row;
@@ -60,5 +73,6 @@
     width: 100%;
     height: 40px;
     flex-shrink: 0;
+    color: var(--canvas-on-bg);
   }
 }

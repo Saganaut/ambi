@@ -77,7 +77,7 @@ Heavy or async work (content extraction, AI processing, image handling) will be 
 
 A Python worker process (`workers/dispatcher.py`) that bridges the queue and the Lambda handlers locally. On AWS this role is replaced by SQS event-source mappings that trigger Lambda directly.
 
-```
+```text
 Loop:
   XREADGROUP from Redis Stream (blocking)
   → read job_type from message
@@ -167,7 +167,7 @@ Two streams and one hash are added to the existing Redis instance — no new inf
 
 Updated dispatcher loop:
 
-```
+```text
 Loop:
   XREADGROUP from jobs:queue (blocking)
   → route to handler by job_type
@@ -273,7 +273,7 @@ flowchart TB
 
 ## Worker directory layout (planned)
 
-```
+```text
 ambi/
 └── workers/
     ├── dispatcher.py          # Local-only; polls Redis Streams, routes to handlers

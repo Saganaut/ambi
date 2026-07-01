@@ -2,7 +2,7 @@
 
 **Rule:** All code adheres to this four-layer structure. Routes match, pages orchestrate, features encapsulate domain logic, shared holds domain-agnostic base components.
 
-```
+```text
 src/
 ├── AppRouter.tsx          # Global routing setup & provider matching
 ├── index.css              # Global baseline styles

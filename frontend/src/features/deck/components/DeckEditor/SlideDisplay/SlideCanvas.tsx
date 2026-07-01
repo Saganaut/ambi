@@ -8,6 +8,7 @@
  * with its container (one CSS module per directory).
  */
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
+import { contrastToneFor } from "@/shared/utils/color";
 import { SlideCanvasProvider } from "@deck/contexts/SlideCanvasContext";
 import { type SlideType } from "@deck/store/deckEnums.gen";
 import type { CSSProperties, ReactNode } from "react";
@@ -42,6 +43,17 @@ const SlideCanvas = ({
   backgroundColor,
   children,
 }: SlideCanvasProps) => {
+  // Resolve the color for text painted directly over the canvas background.
+  // We can't know an arbitrary background up front, so we turn it into a known
+  // one: an image is always backed by a dark frosted plate (see the
+  // `contrastPlate` styles), so text goes light; a solid color is judged by its
+  // luminance; a plain themed surface keeps the theme's own text color.
+  const onBackground = backgroundUrl
+    ? "var(--canvas-text-light)"
+    : backgroundColor
+      ? `var(--canvas-text-${contrastToneFor(backgroundColor)})`
+      : undefined;
+
   return (
     <div
       className={styles.slideDisplay}
@@ -53,6 +65,9 @@ const SlideCanvas = ({
           // Only override the canvas default when a color actually resolves, so a
           // colorless slide keeps `--bg-surface`. The image draws on top of this.
           ...(backgroundColor ? { "--bg-color": backgroundColor } : {}),
+          // Only override when a background dictates a contrast color; otherwise
+          // the module default (`--text-primary`) keeps a themed slide untouched.
+          ...(onBackground ? { "--canvas-on-bg": onBackground } : {}),
         } as CSSProperties
       }
     >

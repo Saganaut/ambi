@@ -1,19 +1,19 @@
 // CLAUDE NEVER MODIFY THIS FILE!
 // THIS IS A PERFECT EXAMPLE OF HOW OUR PAGES SHOULD BE ORGANIZED
 
-import { CanvasBody } from "@components/Layout/CanvasBody";
-import { CanvasHeader } from "@components/Layout/CanvasHeader";
-import { InnerDisplay } from "@components/Layout/InnerDisplay";
-import { LeftSidebar } from "@components/Layout/LeftSidebar";
+import { CanvasBody } from "@/shared/components/Layout/CanvasBody";
+import { CanvasHeader } from "@/shared/components/Layout/CanvasHeader";
+import { InnerDisplay } from "@/shared/components/Layout/InnerDisplay";
+import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
+import { RightSidebar } from "@/shared/components/Layout/RightSidebar";
 import { MainBodyDashboard } from "@components/Layout/MainBodyDashboard";
-import { RightSidebar } from "@components/Layout/RightSidebar";
-import { SessionBoard } from "@/features/liveSession/components/SessionBoard/SessionBoard";
-import { SessionChat } from "@/features/liveSession/components/SessionChat/SessionChat";
-import { SessionControls } from "@/features/liveSession/components/SessionControls/SessionControls";
-import { SessionHeader } from "@/features/liveSession/components/SessionHeader/SessionHeader";
-import { SessionLeaderboard } from "@/features/liveSession/components/SessionLeaderboard/SessionLeaderboard";
-import { SessionPlayerList } from "@/features/liveSession/components/SessionPlayerList/SessionPlayerList";
-import { SessionRoundTracker } from "@/features/liveSession/components/SessionRoundTracker/SessionRoundTracker";
+import { SessionBoard } from "../../components/SessionBoard/SessionBoard";
+import { SessionChat } from "../../components/SessionChat/SessionChat";
+import { SessionControls } from "../../components/SessionControls/SessionControls";
+import { SessionHeader } from "../../components/SessionHeader/SessionHeader";
+import { SessionLeaderboard } from "../../components/SessionLeaderboard/SessionLeaderboard";
+import { SessionPlayerList } from "../../components/SessionPlayerList/SessionPlayerList";
+import { SessionRoundTracker } from "../../components/SessionRoundTracker/SessionRoundTracker";
 import styles from "./SessionPage.module.css";
 
 const SessionPage = () => {

@@ -105,7 +105,7 @@ Three capabilities, strictly nested (`MANAGE ⊃ EDIT ⊃ VIEW`):
 
 ### Resolution — `canBeManagedBy(userId, level, orgRole)`
 
-```
+```text
 platform ADMIN+                         → allow
 USER-owned   && userId == ownerId       → allow
 ORG-owned    && orgRole == OWNER        → allow
@@ -119,7 +119,7 @@ manage.
 
 ### Resolution — `canBeEditedBy(userId, level, orgRole)`
 
-```
+```text
 platform ADMIN+                         → allow
 USER-owned   && userId == ownerId       → allow
 ORG-owned    && orgRole ∈ {OWNER,ADMIN} → allow
@@ -132,7 +132,7 @@ This is the "members who have the appropriate role can edit" rule: in an org, `O
 
 ### Resolution — `canBeViewedBy(userId, level, orgRole)`
 
-```
+```text
 canBeEditedBy(...)                      → allow   (editors always view, incl. drafts)
 ACL role present (VIEWER or EDITOR)     → allow   (named share, even on a draft)
 publishStatus != PUBLISHED              → deny    (nobody else sees unpublished)

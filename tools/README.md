@@ -1,4 +1,27 @@
-# doc-lint
+# Documentation tooling
+
+The project guards documentation with **two checks**, both run by
+[`scripts/check-docs.sh`](../scripts/check-docs.sh) (which is also wired into the
+`scripts/pre-commit` git hook):
+
+1. **`doc-lint.js`** (this directory) — reachability / orphan check: every `.md` file must
+   be reachable from the root `README.md` through a chain of standard markdown links.
+2. **markdownlint** — markdown style/formatting, via `npx --yes markdownlint-cli2`, configured
+   by [`.markdownlint-cli2.jsonc`](../.markdownlint-cli2.jsonc) at the repo root.
+
+Run both at once from the repo root:
+
+```bash
+./scripts/check-docs.sh
+```
+
+The rest of this document covers `doc-lint.js`; markdownlint is documented in its
+[own project](https://github.com/DavidAnson/markdownlint-cli2), and the enabled/disabled
+rules are commented inline in `.markdownlint-cli2.jsonc`.
+
+---
+
+## doc-lint
 
 A zero-dependency markdown linter that checks cross-file documentation integrity. Runs as a VS Code task and reports problems directly to the Problems panel.
 
@@ -11,7 +34,7 @@ A zero-dependency markdown linter that checks cross-file documentation integrity
 
 Drop these three files into your project:
 
-```
+```text
 your-project/
 ├── doc-lint.js
 ├── .doc-lintrc.json
@@ -32,7 +55,7 @@ Errors appear in the **Problems panel** (`Cmd/Ctrl+Shift+M`). Clicking an entry 
 
 Every `.md` file must be **reachable from `README.md`** (configurable via `rootDoc`) through any chain of links. A file doesn't need to be linked directly from the root — it just needs a path back to it.
 
-```
+```text
 README.md → docs/setup.md → docs/api/auth.md   ✅  auth.md is reachable
 README.md                   docs/orphan.md      ❌  orphan.md has no path back
 ```
@@ -124,11 +147,11 @@ The script exits with code `1` on errors and `0` on success, so it works as a st
 
 Errors follow the standard `file:line:col: severity: message` pattern, which is what the VS Code problem matcher reads:
 
-```
+```text
 docs/setup.md:1:1: error: Not referenced in README.md — add a link or exclude this file
 ```
 
-## Place .vscode/tasks.json in your project with this content to set up the lint and watch tasks:
+## Place .vscode/tasks.json in your project with this content to set up the lint and watch tasks
 
 ```json
 {

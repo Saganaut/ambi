@@ -66,6 +66,7 @@ Slides can override a subset of deck-level defaults. The resolution order is:
 `AudienceSettings` and `InviteSettings` are deck-only — slides cannot override them.
 
 Resolution helpers live in `Settings.SlideSettings`:
+
 - `resolvePoints(deckDefaults)` — returns the slide's `pointSettings` if present, else the deck default.
 - `resolveAnswerSettings(deckDefaults)` — symmetric; returns the slide's `answerSettings` if present, else the deck default.
 

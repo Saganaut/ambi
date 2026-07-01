@@ -52,7 +52,7 @@ Because slides are embedded and the deck is the aggregate root, slide operations
 **methods on `DeckService`**, not a separate service — a slide operation *is* a deck
 operation: gate on the deck's VIEW/EDIT, mutate the embedded list, save the deck.
 
-```
+```text
 DeckService.listSlides / getSlide          → getViewable(deckId, …)   → VIEW
 DeckService.addSlide / updateSlide /        → getEditable(deckId, …)   → EDIT
             removeSlide

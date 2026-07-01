@@ -29,6 +29,7 @@ import { useFullScreen } from "@/shared/hooks/useFullScreen";
 import { Btn } from "@ui/Buttons/Btn";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
 import { SidePanelDrawer } from "../../components/DeckEditor/RightSidebar/SidePanelDrawer/SidePanelDrawer";
+import { EditorSkeleton } from "./EditorSkeleton";
 import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
 import { ResultsPreviewProvider } from "../../contexts/ResultsPreviewContext";
 import { useDeckEditor } from "../../hooks/useDeckEditor";
@@ -39,6 +40,7 @@ const DeckEditor = () => {
   const { toggleFullScreen } = useFullScreen();
   const { deckId } = routeApi.useParams();
   const {
+    isLoading,
     serverName,
     titleDraft,
     setTitleDraft,
@@ -50,6 +52,10 @@ const DeckEditor = () => {
     schedule,
     preview,
   } = useDeckEditor(deckId);
+
+  // First load only: show the matching three-column placeholder instead of an
+  // empty shell so the editor doesn't flash blank then paint everything at once.
+  if (isLoading) return <EditorSkeleton />;
 
   return (
     <MainBodyDashboard className={styles.deckEditor}>

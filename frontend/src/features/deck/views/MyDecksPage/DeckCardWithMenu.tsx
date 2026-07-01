@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 
 import { Link } from "@tanstack/react-router";
 import { useDeckActions } from "../../hooks/useDeckActions";
+import { usePrefetchDeckEditor } from "../../hooks/usePrefetchDeckEditor";
 
 const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
   const {
@@ -15,6 +16,7 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
     present,
     addToCollection,
   } = useDeckActions(deck.id);
+  const prefetchEditor = usePrefetchDeckEditor(deck.id);
 
   return (
     <DropdownMenu
@@ -25,6 +27,8 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
           deck={deck}
           variant='full'
           onClick={void openDeckInEditor}
+          onMouseEnter={prefetchEditor.onMouseEnter}
+          onFocus={prefetchEditor.onFocus}
           onContextMenu={(e) => {
             e.preventDefault();
             toggle(e);

@@ -33,10 +33,28 @@
   }
 }
 
-.surface.withGradient {
+/* Contrast plate: a frosted, dimmed backdrop behind the input so its text stays
+   legible over an arbitrary background image. `--contrast-plate-*` are supplied
+   by the slide canvas; the literals are self-contained fallbacks for use outside
+   it. The dark plate makes the backdrop known-dark, so text is pinned light. */
+.surface.contrastPlate {
   position: relative;
-  background: color-mix(in oklch, var(--role-primary) 10%, transparent);
-  box-shadow: 0px 0px 15px 10px color-mix(in oklch, var(--role-primary) 10%, transparent);
+  border-radius: var(--radius-md);
+  --text-primary: var(--canvas-text-light, var(--white-100));
+}
+
+/* The blur/dim lives on a pseudo-element, NOT on .surface itself: `backdrop-filter`
+   would make .surface the containing block for the floating toolbar (which is
+   `position: fixed`), yanking it on top of the input. The pseudo isn't an
+   ancestor of the toolbar, so its anchor positioning stays intact. */
+.surface.contrastPlate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--contrast-plate-bg, color-mix(in oklch, black 42%, transparent));
+  backdrop-filter: var(--contrast-plate-blur, blur(8px) brightness(0.62));
 }
 
 .surface:hover {

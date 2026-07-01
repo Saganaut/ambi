@@ -1,0 +1,37 @@
+{
+  // Markdown style linting for all project docs.
+  // Runs via `scripts/check-docs.sh` (and the pre-commit hook) as `npx --yes markdownlint-cli2`.
+  "globs": ["**/*.md", "**/*.MD"],
+  // Mirrors the exclusions in tools/.doc-lintrc.json so both checks cover the same files.
+  "ignores": [
+    "frontend/node_modules",
+    ".git",
+    "dist",
+    "archive",
+    "memory",
+    "backend/target",
+    ".claude",
+    ".design-sync",
+    "ds-bundle",
+    "CLAUDE.md",
+    "CHANGELOG.md",
+    "LICENSE.md",
+    "**/HELP.md"
+  ],
+  "config": {
+    "default": true,
+    // Long lines are common in tables and prose here; don't enforce a hard wrap.
+    "MD013": false,
+    // Inline HTML is needed for `<!-- doc-lint-ignore -->` markers and existing snippets.
+    "MD033": false,
+    // Duplicate headings are fine across sibling sections (e.g. "In this folder").
+    "MD024": { "siblings_only": true },
+    // Allow bare URLs where they read more clearly than a link.
+    "MD034": false,
+    // Tables are hand-aligned (padded) throughout the docs; don't police pipe alignment.
+    "MD060": false,
+    // Bold text is deliberately used as lightweight sub-labels (e.g. "**404 — not found**",
+    // "**Why:**") across many docs; don't force these into headings.
+    "MD036": false
+  }
+}

@@ -109,6 +109,7 @@ The load-bearing rule that closes this item: **`useGetDeckQuery` is imported in
 exactly one file, `useDeckQuery.ts`.** Everything else composes it.
 
 **Step plan:**
+
 1. ✅ **Done.** `useDeckQuery(deckId) → { deck, isLoading, error }` is the only
    `useGetDeckQuery` caller in the feature. (The cross-feature
    `liveSession/useSession.ts` still reaches into the generated query directly — its

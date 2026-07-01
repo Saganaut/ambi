@@ -13,22 +13,38 @@ import { resolveSlideBackground, resolveSlideBackgroundColor } from "@/shared/ut
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { slotMappingOptions, type SlotMapping } from "../../../contexts/ImageSlot.types";
 import { useSlide } from "../../../hooks/useSlide";
-import { AllocationSlideContent } from "../SlideContent/AllocationSlideContent/AllocationSlideContent";
-import { DrawingSlideContent } from "../SlideContent/DrawingSlideContent/DrawingSlideContent";
-import { FollowUpSlideContent } from "../SlideContent/FollowUpSlideContent/FollowUpSlideContent";
-import { GridSlideContent } from "../SlideContent/GridSlideContent/GridSlideContent";
-import { MatchingSlideContent } from "../SlideContent/MatchingSlideContent/MatchingSlideContent";
-import { McqSlideContent } from "../SlideContent/McqSlideContent/McqSlideContent";
+// The per-type authoring surfaces are lazy so only the active slide's editor is
+// in the editor chunk — the other 11 never download or parse. Each is a named
+// export, hence the `.then(...)` shim to React.lazy's default-export contract.
+// McqSlideProvider stays eager: it's a tiny context wrapper, not an editor body.
+const AllocationSlideContent = lazy(() =>
+  import("../SlideContent/AllocationSlideContent/AllocationSlideContent").then((m) => ({ default: m.AllocationSlideContent })));
+const DrawingSlideContent = lazy(() =>
+  import("../SlideContent/DrawingSlideContent/DrawingSlideContent").then((m) => ({ default: m.DrawingSlideContent })));
+const FollowUpSlideContent = lazy(() =>
+  import("../SlideContent/FollowUpSlideContent/FollowUpSlideContent").then((m) => ({ default: m.FollowUpSlideContent })));
+const GridSlideContent = lazy(() =>
+  import("../SlideContent/GridSlideContent/GridSlideContent").then((m) => ({ default: m.GridSlideContent })));
+const MatchingSlideContent = lazy(() =>
+  import("../SlideContent/MatchingSlideContent/MatchingSlideContent").then((m) => ({ default: m.MatchingSlideContent })));
+const McqSlideContent = lazy(() =>
+  import("../SlideContent/McqSlideContent/McqSlideContent").then((m) => ({ default: m.McqSlideContent })));
+const NumberSlideContent = lazy(() =>
+  import("../SlideContent/NumberSlideContent/NumberSlideContent").then((m) => ({ default: m.NumberSlideContent })));
+const PlaceOnImageSlideContent = lazy(() =>
+  import("../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent").then((m) => ({ default: m.PlaceOnImageSlideContent })));
+const QAndASlideContent = lazy(() =>
+  import("../SlideContent/QAndASlideContent/QAndASlideContent").then((m) => ({ default: m.QAndASlideContent })));
+const RankingSlideContent = lazy(() =>
+  import("../SlideContent/RankingSlideContent/RankingSlideContent").then((m) => ({ default: m.RankingSlideContent })));
+const ScalesSlideContent = lazy(() =>
+  import("../SlideContent/ScalesSlideContent/ScalesSlideContent").then((m) => ({ default: m.ScalesSlideContent })));
+const TextSlideContent = lazy(() =>
+  import("../SlideContent/TextSlideContent/TextSlideContent").then((m) => ({ default: m.TextSlideContent })));
 import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
-import { NumberSlideContent } from "../SlideContent/NumberSlideContent/NumberSlideContent";
-import { PlaceOnImageSlideContent } from "../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent";
-import { QAndASlideContent } from "../SlideContent/QAndASlideContent/QAndASlideContent";
-import { RankingSlideContent } from "../SlideContent/RankingSlideContent/RankingSlideContent";
-import { ScalesSlideContent } from "../SlideContent/ScalesSlideContent/ScalesSlideContent";
-import { TextSlideContent } from "../SlideContent/TextSlideContent/TextSlideContent";
 import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
 import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
 
@@ -130,7 +146,7 @@ const SlideDisplay = () => {
         backgroundColor={backgroundColor}
         slideContentImgUrl={slideContentImgUrl}
       >
-        {renderBody()}
+        <Suspense fallback={<Loader />}>{renderBody()}</Suspense>
         <CoverImagePicker
           image={slide.coverImage}
           updateSlidePlacement={updateSlidePlacement}

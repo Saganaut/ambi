@@ -14,8 +14,8 @@ File-naming conventions for the frontend, plus backend DTO/API class naming.
 
 ## Backend DTO / API class names
 
-8. **DTO suffixes** — Every class in `dto/` ends in exactly one of `Request`, `Response`, `Page`, or `Message`, is a `record`, and lives in its own file. — [details](naming/dto-naming.md)
+1. **DTO suffixes** — Every class in `dto/` ends in exactly one of `Request`, `Response`, `Page`, or `Message`, is a `record`, and lives in its own file. — [details](naming/dto-naming.md)
 
 ## Variable and identifier naming
 
-9. **No single-letter variables — ever.** Single-letter identifiers (`i`, `e`, `x`, `n`, `k`, `v`, …) are absolutely forbidden in all layers (TypeScript, Java, CSS). Every variable, parameter, loop counter, and destructured binding must have a descriptive name that communicates its purpose. There are no exceptions: not for loop indices, not for error parameters, not for short-lived temporaries.
+1. **No single-letter variables — ever.** Single-letter identifiers (`i`, `e`, `x`, `n`, `k`, `v`, …) are absolutely forbidden in all layers (TypeScript, Java, CSS). Every variable, parameter, loop counter, and destructured binding must have a descriptive name that communicates its purpose. There are no exceptions: not for loop indices, not for error parameters, not for short-lived temporaries.

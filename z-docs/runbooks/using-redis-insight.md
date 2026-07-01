@@ -46,7 +46,7 @@ Open the **Pub/Sub** tab and subscribe to a channel to watch messages in real ti
 
 Use the **CLI** tab (bottom of the UI) to run arbitrary Redis commands, e.g.:
 
-```
+```text
 KEYS spring:session:*
 TTL spring:session:sessions:<id>
 GET <key>

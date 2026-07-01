@@ -1,9 +1,9 @@
-### A deckRun is a one time session of the deck, this can be a
+# A deckRun is a one time session of the deck, this can be a
 
 - presentation
 - game
 
-### We are using DDD light for this feature, with the following notes:
+## We are using DDD light for this feature, with the following notes
 
 - LiveSession.java, Answer.java, Participant.java are both the domain class and the document
 - This is in order to avoid ambiguity and because their primary role is to enforce rules tied to the session
@@ -16,22 +16,22 @@
 - Round results round is computed from Answers which remain the source of truth
 - LiveSessionOrchestrator.java will manage it all
 
-### Redis is runtime store, mongodb projection to durable history
+## Redis is runtime store, mongodb projection to durable history
 
 - All reads should be on redis during session
 - Only writes to mongodb, but we do so continuously - can be used for recovery in case of redis failure
 - Writes to mongo db take place at the end of each round, when a player joins, and at the end of the game
 
-### Locks, all changes must be done with a lock on that redis session
+## Locks, all changes must be done with a lock on that redis session
 
-### Projectors
+## Projectors
 
 - RoundResultProjector - Projects to first then mongodb
 - SessionLifecycleProjector - Projects to mongodb for persistence
   - also projects participants joined
   -
 
-### Infrastructure
+## Infrastructure
 
 - EventPublisher
 - AnswerStore

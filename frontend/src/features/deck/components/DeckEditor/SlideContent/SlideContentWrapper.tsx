@@ -21,9 +21,9 @@ import styles from "./SlideContentWrapper.module.css";
 interface SlideContentWrapperProps {
   title?: string;
   description?: string;
-  /** Prompt-editor wiring. `showGradient` is owned by the wrapper (driven by the
-   *  canvas background), so editors don't pass it. */
-  prompt?: Omit<PromptFieldProps, "showGradient">;
+  /** Prompt-editor wiring. `showContrastPlate` is owned by the wrapper (driven by
+   *  the canvas background), so editors don't pass it. */
+  prompt?: Omit<PromptFieldProps, "showContrastPlate">;
   footer?: ReactNode;
   children: ReactNode;
 }
@@ -39,7 +39,11 @@ const SlideContentWrapper = ({
   return (
     <div className={styles.shell}>
       {(title ?? description) && (
-        <header className={styles.header}>
+        <header
+          className={[styles.header, hasBackgroundImage && styles.overImage]
+            .filter(Boolean)
+            .join(" ")}
+        >
           {title && <h3 className={styles.title}>{title}</h3>}
           {description && <p className={styles.description}>{description}</p>}
         </header>
@@ -54,7 +58,7 @@ const SlideContentWrapper = ({
           }}
         />
         <div className={styles.innerBody}>
-          {prompt && <PromptField {...prompt} showGradient={hasBackgroundImage} />}
+          {prompt && <PromptField {...prompt} showContrastPlate={hasBackgroundImage} />}
           {children}
         </div>
         <ImageSlot

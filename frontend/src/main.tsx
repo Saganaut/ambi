@@ -30,6 +30,12 @@ window.addEventListener("unhandledrejection", (event) => {
 const router = createRouter({
   routeTree,
   defaultViewTransition: true,
+  // Preload a route's code chunk (and run its intent) when the user hovers /
+  // focuses a <Link> — so the editor's JS is downloading before the click. RTK
+  // Query owns data caching, so keep the router's own preload cache disabled
+  // (staleTime 0) and warm the API cache separately (see usePrefetchDeckEditor).
+  defaultPreload: "intent",
+  defaultPreloadStaleTime: 0,
   context: {
     auth: { state: "loading" },
   },

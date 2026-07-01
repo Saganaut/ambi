@@ -1,0 +1,31 @@
+/* Loading placeholder for the deck editor. Matches DeckEditor's three-column   */
+
+/* footprint (rail | canvas | inspector) so nothing shifts when the real editor */
+
+/* replaces it. Column widths track the sidebars' resting sizes.                */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 12rem;
+  padding: var(--p-md);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-canvas);
+}
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 18rem;
+  padding: var(--p-md);
+  flex-shrink: 0;
+  overflow: hidden;
+}

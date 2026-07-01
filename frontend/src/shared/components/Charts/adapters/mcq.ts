@@ -31,6 +31,7 @@ export const mcqToChartData = (
     value: distribution[option.id] ?? 0,
     highlight: correct.has(option.id),
     isCorrect: correct.has(option.id),
+    optionType: option.optionType,
   }));
 };
 

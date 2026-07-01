@@ -113,10 +113,22 @@ const scrollThumbnailIntoView = (slideId: string) => {
 const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult => {
   const navigate = routeApi.useNavigate();
 
-  const { deck, isLoading, error } = useDeckQuery(deckId);
+  const { deck, isLoading: deckLoading, error } = useDeckQuery(deckId);
   const { rename } = useDeckMutate(deckId);
   const { present: livePresent } = useLiveSession();
-  const { slides, addSlide: appendSlide, addFollowUp: attachFollowUp, removeSlide, reorder } = useSlide(deckId);
+  const {
+    slides,
+    isLoading: slidesLoading,
+    addSlide: appendSlide,
+    addFollowUp: attachFollowUp,
+    removeSlide,
+    reorder,
+  } = useSlide(deckId);
+
+  // Initial load only (RTK `isLoading`, not `isFetching`) — true until the first
+  // deck + slides reads resolve, so the editor shows a skeleton instead of an
+  // empty shell. Background refetches keep the last data on screen.
+  const isLoading = deckLoading || slidesLoading;
 
   // ── Title draft ──────────────────────────────────────────────────────────
   // Mirror the server name into local state, re-syncing whenever the server
