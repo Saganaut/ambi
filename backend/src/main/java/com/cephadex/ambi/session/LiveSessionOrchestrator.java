@@ -1,6 +1,8 @@
 package com.cephadex.ambi.session;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -9,11 +11,13 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.common.exception.ConflictException;
+import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AnswerTallyKeys;
@@ -32,6 +36,9 @@ import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.TallyStore;
+import com.cephadex.ambi.session.roundResult.RoundResult;
+import com.cephadex.ambi.session.roundResult.RoundResultProjector;
+import com.cephadex.ambi.session.roundResult.RoundScorer;
 import com.cephadex.ambi.user.Avatar;
 
 /**
@@ -57,9 +64,11 @@ import com.cephadex.ambi.user.Avatar;
  * {@link Slide#getParentId()} on the open slide — nothing extra is carried in
  * {@link LiveRoundState}.
  *
- * <p><strong>Status:</strong> the method surface below is the implementation
- * target. Methods already carrying a body are wired; the rest are stubs
- * ({@link UnsupportedOperationException}) with their intended contract documented.
+ * <p><strong>Status:</strong> the full orchestrator surface is wired — session
+ * lifecycle, roster, presence/reconnect, the round lifecycle (open → close+score →
+ * reveal), and server-owned navigation. Deferred seams (best-answer/deception
+ * voting, timed rounds, combined follow-up reveal) are noted at their call sites
+ * and in the deferred block near the end.
  */
 @Service
 public class LiveSessionOrchestrator {
@@ -72,17 +81,25 @@ public class LiveSessionOrchestrator {
     private final TallyStore tallyStore;
     private final PresenceStore presenceStore;
     private final EventPublisher publisher;
-    // TODO(Claude): missing collaborators still to wire —
-    //   - AnswerRepository: must first become a real MongoRepository (open-decisions
-    //     E1); needed to flush a closed round's answers to Mongo before scoring.
-    //   - RoundResultProjector / SessionLifecycleProjector: persist RoundResult +
-    //     mutated participants and the LiveSession status/phase snapshot (E2).
-    //   - DeadlineScheduler: round/submission timers (A3) — deferred; pause support
-    //     is a LiveRoundState record change to decide before it lands.
+    private final RoundResultProjector roundResults;
+    // DeadlineScheduler (round/submission timers, A3) is still deferred; pause
+    // support is a LiveRoundState record change to decide before it lands.
+
+    /**
+     * Server-side debounce for {@link #heartbeat}: a beat landing within this window
+     * of the last-seen presence is a no-op, so a chatty client can't hammer Redis.
+     * Kept typed rather than a bare literal; move to {@code SessionRedisProperties}
+     * if it ever needs to be tuned per environment.
+     */
+    private static final Duration HEARTBEAT_DEBOUNCE = Duration.ofSeconds(1);
+
+    /** Zero-points fallback so an unconfigured slide still scores (0 points) instead of NPEing. */
+    private static final Settings.PointSettings NO_POINTS =
+            new Settings.PointSettings(0, 0, 0, 0, Map.of(), false);
 
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
-            PresenceStore presenceStore, EventPublisher publisher) {
+            PresenceStore presenceStore, EventPublisher publisher, RoundResultProjector roundResults) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
@@ -91,6 +108,7 @@ public class LiveSessionOrchestrator {
         this.tallyStore = tallyStore;
         this.presenceStore = presenceStore;
         this.publisher = publisher;
+        this.roundResults = roundResults;
     }
 
     // ── Session lifecycle ────────────────────────────────────────────────────
@@ -234,10 +252,20 @@ public class LiveSessionOrchestrator {
      * @return the re-identified participant
      */
     public Participant reconnect(String sessionId, String participantId) {
-        // TODO(Claude): look up participant (needs findByParticipantId), verify it
-        // belongs to the session, participant.heartbeat(), presenceStore.save, then
-        // publisher.publish(publicId, SessionEvents.participantReconnected(participant)).
-        throw new UnsupportedOperationException("Not implemented yet");
+        // participantId is already resolved from the authenticated user upstream
+        // (ParticipantResolver, as leave/submit do — there is no participant token);
+        // we re-verify roster membership defensively before touching presence.
+        Participant participant = participants.findById(participantId)
+                .orElseThrow(() -> new NotFoundException("PARTICIPANT_NOT_FOUND", "participant not found"));
+        LiveSession session = requireSession(sessionId);
+        if (!session.hasParticipant(participantId)) {
+            throw new ForbiddenException("NOT_A_PARTICIPANT", "participant is not on this session's roster");
+        }
+        participant.heartbeat(); // ONLINE + lastSeenAt
+        participants.save(participant);
+        presenceStore.save(sessionId, participantId, Presence.online(Instant.now()));
+        publisher.publish(session.getPublicId(), SessionEvents.participantReconnected(participant));
+        return participant;
     }
 
     /**
@@ -246,9 +274,17 @@ public class LiveSessionOrchestrator {
      * Does not publish (presence is read on demand for the lobby/scoreboard).
      */
     public void heartbeat(String sessionId, String participantId) {
-        // TODO(Claude): presenceStore.save(sessionId, participantId, online presence)
-        // with debounce; refresh participant.lastSeenAt at the next durable flush.
-        throw new UnsupportedOperationException("Not implemented yet");
+        Instant now = Instant.now();
+        // Debounce: ignore a beat that lands within HEARTBEAT_DEBOUNCE of the last
+        // recorded presence, so a chatty client can't hammer Redis. The participant
+        // document's lastSeenAt is refreshed at the next durable flush (reconnect /
+        // round close), not per beat.
+        Optional<Presence> current = presenceStore.find(sessionId, participantId);
+        if (current.isPresent() && current.get().lastSeenAt() != null
+                && Duration.between(current.get().lastSeenAt(), now).compareTo(HEARTBEAT_DEBOUNCE) < 0) {
+            return;
+        }
+        presenceStore.save(sessionId, participantId, Presence.online(now));
     }
 
     // ── Round control ────────────────────────────────────────────────────────
@@ -259,12 +295,18 @@ public class LiveSessionOrchestrator {
      * {@code IMMEDIATE} opens live ({@link RoundPhase#SUBMIT_LIVE}), everything else
      * opens hidden ({@link RoundPhase#SUBMIT}). Publishes {@code RoundStarted}.
      *
-     * <p>TODO(Claude): add a state guard (open-decisions F4) — reject if a round is
-     * already open on a different slide. Prefer reaching a round through
-     * {@link #advance}/{@link #goTo} so the slide is validated against the snapshot.
+     * <p>Guarded by {@link #requireRoundOpenable} (open-decisions F4): rejects
+     * opening a different slide while a round is still accepting submissions. Prefer
+     * reaching a round through {@link #advance}/{@link #goTo} so the slide is
+     * validated against the snapshot.
      */
     public void startRound(String sessionId, String slideId) {
-        openRound(sessionId, slideId, false);
+        LiveSession session = requireSession(sessionId);
+        Slide slide = requireSlide(session, slideId);
+        locks.withLock(sessionId, () -> {
+            requireRoundOpenable(sessionId, slideId);
+            openRoundUnlocked(session, slide, false);
+        });
     }
 
     /**
@@ -324,23 +366,28 @@ public class LiveSessionOrchestrator {
      * Publishes {@code SubmissionsLocked} (hidden) or {@code ResponsesRevealed}
      * (live), matching the phase entered.
      *
-     * <p>TODO(Claude): on close, flush the round's answers to Mongo (needs the real
-     * AnswerRepository — E1) and score the round via {@code RoundScorer.score(...)}
-     * (resolving points with {@code SlideSettings.resolvePoints}, gathering
-     * participants by roster id — E4), then hand persistence to
-     * {@code RoundResultProjector} (E2). The scored {@code ResultsRevealed} event is
-     * published later by {@link #revealResults}.
+     * <p>On close the round is <strong>scored exactly once</strong> (the idempotent
+     * guard makes a re-close a no-op): the in-flight answers are flushed to Mongo,
+     * graded and points awarded via {@link RoundScorer}, and the record + mutated
+     * participants persisted through {@link RoundResultProjector}. The scored
+     * {@code ResultsRevealed} event is published later by {@link #revealResults}.
      */
     public void closeSubmissions(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
             if (current.phase().isClosed()) {
-                return; // already closed — idempotent
+                return; // already closed — idempotent; scoring happens once, on the close transition
             }
             // Preserve display across the close: live → responses, hidden → locked.
             boolean responsesShown = current.phase().showsResponses();
             RoundPhase closedPhase = responsesShown ? RoundPhase.REVEAL_RESPONSES : RoundPhase.LOCKED;
             LiveRoundState closed = current.withPhase(closedPhase);
             roundStateStore.save(sessionId, closed);
+
+            // Freeze + score the round, then persist (durable-before-notify). Redis
+            // answers/tally are kept — the Mongo copy is the durable one, and the live
+            // data stays available for a restart; it clears on restart/session end.
+            scoreAndPersistRound(sessionId, slideId, current.roundStartedAt());
+
             if (closed.publicId() != null) {
                 SessionEvent event = responsesShown
                         ? SessionEvents.responsesRevealed(slideId, tallyStore.tally(sessionId, slideId))
@@ -348,6 +395,27 @@ public class LiveSessionOrchestrator {
                 publisher.publish(closed.publicId(), event);
             }
         }));
+    }
+
+    /**
+     * Flushes the round's in-flight answers, scores them (grading + point awards
+     * mutate the roster in memory), and persists the record + participants. Called
+     * inside the session lock on the close transition.
+     */
+    private void scoreAndPersistRound(String sessionId, String slideId, Instant roundStartedAt) {
+        LiveSession session = requireSession(sessionId);
+        Slide slide = requireSlide(session, slideId);
+        List<Answer> flushed = answerStore.answers(sessionId, slideId);
+        List<Participant> roster = participants.findAllById(session.getRoster());
+        Map<String, Participant> byId = new HashMap<>();
+        for (Participant participant : roster) {
+            byId.put(participant.getParticipantId(), participant);
+        }
+        Settings.PointSettings points = resolvePoints(session, slide);
+        RoundResult result = RoundScorer.score(
+                sessionId, slide, flushed, byId, points, roundStartedAt, Instant.now());
+        // byId values are the same objects as `roster`, so scoring mutated them.
+        roundResults.persist(result, roster, flushed);
     }
 
     /**
@@ -390,10 +458,13 @@ public class LiveSessionOrchestrator {
      * results; a slide with a {@code childId} reveals into its child first via
      * {@link #advance} (open-decisions B3).
      *
-     * <p>TODO(Claude): score (flush answers, {@code RoundScorer}, persist via
-     * {@code RoundResultProjector}) and publish {@code ResultsRevealed} with the
-     * combined results + terminal flag. The phase transition and the
-     * results-require-closed guard are done here.
+     * <p>Publishes the {@link RoundResult} already scored at close (this method never
+     * re-scores). {@code terminal} is set when this is the last round of the deck
+     * snapshot, the cue for the final podium.
+     *
+     * <p>Combined parent+child results for a follow-up round are a seam: the
+     * {@code resultsRevealed} factory takes a single record, so v1 publishes the
+     * child's own result (open-decisions B3).
      */
     public void revealResults(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
@@ -402,46 +473,88 @@ public class LiveSessionOrchestrator {
                         "cannot reveal results while submissions are open (phase " + current.phase() + ")");
             }
             roundStateStore.save(sessionId, current.withPhase(RoundPhase.REVEAL_RESULTS));
-            // TODO(Claude): score + persist + publish ResultsRevealed (see javadoc).
+
+            // Read the result scored at close; publish it. A slide that produced no
+            // scored record (nothing to reveal) still advances the phase but sends
+            // no reveal payload.
+            RoundResult result = roundResults.find(sessionId, slideId).orElse(null);
+            if (result == null || current.publicId() == null) {
+                return;
+            }
+            LiveSession session = requireSession(sessionId);
+            List<Participant> roster = participants.findAllById(session.getRoster());
+            boolean terminal = isLastRound(session, slideId);
+            publisher.publish(current.publicId(), SessionEvents.resultsRevealed(result, roster, terminal));
         }));
     }
 
-    /** Reopens {@code slideId} from scratch — fresh start time, answers and tallies cleared. */
+    /**
+     * Reopens {@code slideId} from scratch — fresh start time, answers and tallies
+     * cleared. Blocked once the round has been scored at close: reopening and
+     * re-closing would double-award its cumulative points, and there is no
+     * point-reversal path yet (open-decisions B2). Restart before close is allowed.
+     */
     public void restartRound(String sessionId, String slideId) {
-        openRound(sessionId, slideId, true);
+        LiveSession session = requireSession(sessionId);
+        Slide slide = requireSlide(session, slideId);
+        locks.withLock(sessionId, () -> {
+            if (roundResults.find(sessionId, slideId).isPresent()) {
+                throw new ConflictException("ROUND_ALREADY_SCORED",
+                        "cannot restart a round whose results were already scored");
+            }
+            openRoundUnlocked(session, slide, true);
+        });
     }
 
     /**
-     * Shared open/reopen path. Resolves the slide and its initial phase from the
-     * deck snapshot, clears the round's tally (and answers on a restart), saves the
-     * fresh {@link LiveRoundState}, and publishes the event for the phase entered:
-     * {@code RoundRestarted} on a restart, else {@code LiveResultsShown} (opened
-     * live) or {@code RoundStarted} (opened hidden).
+     * Shared open/reopen path, <strong>lock-free</strong>: the caller must already
+     * hold the session lock. Operates on an already-resolved session + slide so a
+     * navigation caller ({@link #advance}/{@link #goTo}) can resolve the next slide
+     * and open it under one lock — {@link SessionLocks} is not reentrant, so opening
+     * could not take its own lock. Clears the round's tally (and answers on a
+     * restart), saves the fresh {@link LiveRoundState}, and publishes the event for
+     * the phase entered: {@code RoundRestarted} on a restart, else
+     * {@code LiveResultsShown} (opened live) or {@code RoundStarted} (opened hidden).
+     *
+     * @return the slide the round opened on
      */
-    private void openRound(String sessionId, String slideId, boolean restart) {
-        LiveSession session = repo.findById(sessionId)
-                .orElseThrow(() -> new IllegalStateException("session not found: " + sessionId));
-        Slide slide = session.getDeck().findSlide(slideId)
-                .orElseThrow(() -> new IllegalArgumentException("slide not in deck snapshot: " + slideId));
+    private Slide openRoundUnlocked(LiveSession session, Slide slide, boolean restart) {
+        String sessionId = session.getId();
+        String slideId = slide.getId();
         RoundPhase phase = initialPhaseFor(session, slide);
-        locks.withLock(sessionId, () -> {
-            LiveRoundState current = roundStateStore.load(sessionId)
-                    .orElseGet(() -> LiveRoundState.idle(session.getPublicId()));
-            tallyStore.clear(sessionId, slideId);
-            if (restart) {
-                answerStore.clear(sessionId, slideId);
+        LiveRoundState current = roundStateStore.load(sessionId)
+                .orElseGet(() -> LiveRoundState.idle(session.getPublicId()));
+        tallyStore.clear(sessionId, slideId);
+        if (restart) {
+            answerStore.clear(sessionId, slideId);
+        }
+        LiveRoundState started = current.startedRound(slideId, Instant.now(), phase);
+        roundStateStore.save(sessionId, started);
+        SessionEvent event;
+        if (restart) {
+            event = SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt());
+        } else if (phase == RoundPhase.SUBMIT_LIVE) {
+            event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId));
+        } else {
+            event = SessionEvents.roundStarted(started, slide);
+        }
+        publisher.publish(session.getPublicId(), event);
+        return slide;
+    }
+
+    /**
+     * F4 guard: rejects opening a <em>different</em> slide while the current round is
+     * still accepting submissions. Same-slide re-open and opening after a round has
+     * closed both pass. Must be called under the session lock.
+     */
+    private void requireRoundOpenable(String sessionId, String slideId) {
+        roundStateStore.load(sessionId).ifPresent(current -> {
+            if (current.currentSlideId() != null
+                    && current.phase().acceptsSubmissions()
+                    && !slideId.equals(current.currentSlideId())) {
+                throw new ConflictException("ROUND_ALREADY_OPEN",
+                        "a round is already open on another slide");
             }
-            LiveRoundState started = current.startedRound(slideId, Instant.now(), phase);
-            roundStateStore.save(sessionId, started);
-            SessionEvent event;
-            if (restart) {
-                event = SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt());
-            } else if (phase == RoundPhase.SUBMIT_LIVE) {
-                event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId));
-            } else {
-                event = SessionEvents.roundStarted(started, slide);
-            }
-            publisher.publish(session.getPublicId(), event);
         });
     }
 
@@ -469,21 +582,71 @@ public class LiveSessionOrchestrator {
      * @return the slide the new round opened on
      */
     public Slide advance(String sessionId) {
-        // TODO(Claude): withLock → load snapshot, resolve next slide from sorted
-        // order honoring parent/child links, startRound on it, publish; signal
-        // terminal when none remain.
-        throw new UnsupportedOperationException("Not implemented yet");
+        return locks.withLock(sessionId, () -> {
+            LiveSession session = requireSession(sessionId);
+            LiveRoundState state = roundStateStore.load(sessionId).orElse(null);
+            String currentSlideId = state == null ? null : state.currentSlideId();
+            Slide next = resolveNextSlide(session, currentSlideId);
+            if (next == null) {
+                return null; // snapshot exhausted — terminal (the podium cue rides the last ResultsRevealed)
+            }
+            return openRoundUnlocked(session, next, false);
+        });
     }
 
     /**
      * Opens a specific slide by host request: validates {@code slideId} against the
-     * deck snapshot (rather than trusting the client) and the parent/child rule,
-     * then opens it as a round.
+     * deck snapshot (rather than trusting the client), rejects opening an attached
+     * follow-up child before its parent has been scored (open-decisions B3), applies
+     * the F4 guard, then opens it as a round.
      */
     public void goTo(String sessionId, String slideId) {
-        // TODO(Claude): withLock → verify slideId is in the snapshot and legal to
-        // open, startRound on it, publish.
-        throw new UnsupportedOperationException("Not implemented yet");
+        LiveSession session = requireSession(sessionId);
+        Slide slide = requireSlide(session, slideId);
+        locks.withLock(sessionId, () -> {
+            Deck deck = session.getDeck();
+            if (deck.isAttachedFollowUp(slide)
+                    && roundResults.find(sessionId, slide.getParentId()).isEmpty()) {
+                throw new ConflictException("PARENT_ROUND_NOT_SCORED",
+                        "a follow-up child cannot open before its parent round is scored");
+            }
+            requireRoundOpenable(sessionId, slideId);
+            openRoundUnlocked(session, slide, false);
+        });
+    }
+
+    /**
+     * The slide that follows {@code currentSlideId} in the deck snapshot's sorted
+     * order, or the first slide when no round has opened yet, or {@code null} when
+     * the snapshot is exhausted. Because {@code Deck.addFollowUp} places a child
+     * immediately after its parent, plain "next in sorted order" already yields the
+     * parent→child step and then the slide after the child (open-decisions B3).
+     */
+    private Slide resolveNextSlide(LiveSession session, String currentSlideId) {
+        List<Slide> ordered = session.getDeck().getSlides().stream()
+                .sorted(SlideRankService.ordering())
+                .toList();
+        if (ordered.isEmpty()) {
+            return null;
+        }
+        if (currentSlideId == null) {
+            return ordered.get(0);
+        }
+        for (int i = 0; i < ordered.size(); i++) {
+            if (currentSlideId.equals(ordered.get(i).getId())) {
+                return i + 1 < ordered.size() ? ordered.get(i + 1) : null;
+            }
+        }
+        // Current slide not found in the snapshot (shouldn't happen) — start over.
+        return ordered.get(0);
+    }
+
+    /** Whether {@code slideId} is the last slide of the deck snapshot's sorted order. */
+    private boolean isLastRound(LiveSession session, String slideId) {
+        List<Slide> ordered = session.getDeck().getSlides().stream()
+                .sorted(SlideRankService.ordering())
+                .toList();
+        return !ordered.isEmpty() && slideId.equals(ordered.get(ordered.size() - 1).getId());
     }
 
     // ── Deferred past v1 (seams reserved) ────────────────────────────────────
@@ -496,6 +659,26 @@ public class LiveSessionOrchestrator {
     private LiveSession requireSession(String sessionId) {
         return repo.findById(sessionId)
                 .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
+    }
+
+    /** Resolves a slide from the session's deck snapshot, never trusting a client id. */
+    private Slide requireSlide(LiveSession session, String slideId) {
+        return session.getDeck().findSlide(slideId)
+                .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "slide not in deck snapshot"));
+    }
+
+    /**
+     * The {@link Settings.PointSettings} in effect for a slide: its per-slide
+     * override if present, else the deck defaults, else {@link #NO_POINTS} (so an
+     * unconfigured slide still scores as zero rather than NPEing in the scorer).
+     */
+    private Settings.PointSettings resolvePoints(LiveSession session, Slide slide) {
+        Settings.DeckSettings deckSettings = session.getDeck().getSettings();
+        Settings.PointSettings deckDefaults = deckSettings == null ? null : deckSettings.pointSettings();
+        Settings.SlideSettings slideSettings = slide.getSettings();
+        Settings.PointSettings resolved =
+                slideSettings == null ? deckDefaults : slideSettings.resolvePoints(deckDefaults);
+        return resolved != null ? resolved : NO_POINTS;
     }
 
     private void requireNotTerminal(LiveSession session) {

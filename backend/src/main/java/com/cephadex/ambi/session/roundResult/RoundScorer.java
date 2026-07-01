@@ -86,6 +86,7 @@ public final class RoundScorer {
                     eval.participantId(), eval.choice(), eval.correct(), pointsAwarded, eval.responseTimeMs()));
         }
 
-        return RoundResult.compute(sessionId, slide, outcomes, closedAt);
+        return RoundResult.compute(sessionId, slide, outcomes, closedAt)
+                .correctOption(RoundEvaluator.correctKey(slide));
     }
 }

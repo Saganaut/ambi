@@ -65,10 +65,23 @@ public class RoundResult {
         r.numberOfCorrectAnswers = (int) outcomes.stream().filter(ParticipantOutcome::correct).count();
         r.optionCounts = tallyOptions(outcomes);
         r.responseTimes = outcomes.stream().map(o -> (double) o.responseTimeMs()).toList();
-        // correctOption — SEAM: needs the slide's answer key (see
-        // RoundEvaluator.isCorrect).
+        // correctOption is set by the grading owner via correctOption(...): the key
+        // is derived from the slide by RoundEvaluator (the single place that reads
+        // slide content), keeping this aggregation free of payload/grading logic.
 
         return r;
+    }
+
+    /**
+     * Sets the revealed answer key for this round, collated in the same rendering
+     * as {@link ParticipantOutcome#choice()} so it lines up with {@link #optionCounts}.
+     * Package-private and set by {@link RoundScorer} from
+     * {@link RoundEvaluator#correctKey(Slide)}; may be {@code null} for slides with no
+     * static key. Returns {@code this} for fluent use at the scorer's return.
+     */
+    RoundResult correctOption(String correctOption) {
+        this.correctOption = correctOption;
+        return this;
     }
 
     private static Map<String, Integer> tallyOptions(List<ParticipantOutcome> outcomes) {

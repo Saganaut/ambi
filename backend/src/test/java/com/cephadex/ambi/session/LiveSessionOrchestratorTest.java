@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DuplicateKeyException;
 
 import com.cephadex.ambi.common.exception.ConflictException;
+import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
@@ -39,7 +41,9 @@ import com.cephadex.ambi.session.event.LiveSessionEnded;
 import com.cephadex.ambi.session.event.LiveSessionStarted;
 import com.cephadex.ambi.session.event.ParticipantJoined;
 import com.cephadex.ambi.session.event.ParticipantLeft;
+import com.cephadex.ambi.session.event.ParticipantReconnected;
 import com.cephadex.ambi.session.event.ResponsesRevealed;
+import com.cephadex.ambi.session.event.ResultsRevealed;
 import com.cephadex.ambi.session.event.RoundStarted;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SubmissionsLocked;
@@ -49,12 +53,16 @@ import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
+import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
+import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.TallyStore;
+import com.cephadex.ambi.session.roundResult.RoundResult;
+import com.cephadex.ambi.session.roundResult.RoundResultProjector;
 
 /**
  * The round-lifecycle state machine: closing preserves what's displayed, results
@@ -74,6 +82,7 @@ class LiveSessionOrchestratorTest {
     private TallyStore tallyStore;
     private AnswerStore answerStore;
     private EventPublisher publisher;
+    private RoundResultProjector roundResults;
     private LiveSessionOrchestrator orchestrator;
 
     @BeforeEach
@@ -86,15 +95,18 @@ class LiveSessionOrchestratorTest {
         tallyStore = mock(TallyStore.class);
         presenceStore = mock(PresenceStore.class);
         publisher = mock(EventPublisher.class);
+        roundResults = mock(RoundResultProjector.class);
 
-        // Run the locked action inline.
+        // Run the locked action inline — both the Runnable and Supplier overloads.
         doAnswer(inv -> {
             ((Runnable) inv.getArgument(1)).run();
             return null;
         }).when(locks).withLock(anyString(), any(Runnable.class));
+        when(locks.withLock(anyString(), any(Supplier.class)))
+                .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
-        orchestrator = new LiveSessionOrchestrator(
-                repo, participants, locks, roundStateStore, answerStore, tallyStore, presenceStore, publisher);
+        orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
+                tallyStore, presenceStore, publisher, roundResults);
     }
 
     private void stubPhase(RoundPhase phase) {
@@ -118,17 +130,23 @@ class LiveSessionOrchestratorTest {
     @Test
     void closeFromHiddenLocksWithoutRevealing() {
         stubPhase(RoundPhase.SUBMIT);
+        stubScorableSession();
 
         orchestrator.closeSubmissions(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.LOCKED);
         // Entered LOCKED -> SubmissionsLocked, which carries no counts (leaks nothing).
         assertThat(publishedEvent()).isInstanceOf(SubmissionsLocked.class);
+        // Scored + persisted on close; Redis answers/tally are kept (not cleared).
+        verify(roundResults).persist(any(), any(), any());
+        verify(answerStore, never()).clear(any(), any());
+        verify(tallyStore, never()).clear(any(), any());
     }
 
     @Test
     void closeFromLiveKeepsResponsesShown() {
         stubPhase(RoundPhase.SUBMIT_LIVE);
+        stubScorableSession();
         when(tallyStore.tally(SID, SLIDE)).thenReturn(Map.of("opt-a", 2));
 
         orchestrator.closeSubmissions(SID, SLIDE);
@@ -136,6 +154,18 @@ class LiveSessionOrchestratorTest {
         assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESPONSES);
         ResponsesRevealed event = (ResponsesRevealed) publishedEvent();
         assertThat(event.optionCounts()).containsEntry("opt-a", 2);
+        verify(roundResults).persist(any(), any(), any());
+    }
+
+    /** Minimal session stub so the round-close scoring path resolves (empty roster/answers). */
+    private void stubScorableSession() {
+        Slide slide = new Slide();
+        slide.setId(SLIDE);
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
     }
 
     @Test
@@ -226,6 +256,7 @@ class LiveSessionOrchestratorTest {
         Deck deck = mock(Deck.class);
         when(session.getDeck()).thenReturn(deck);
         when(session.getPublicId()).thenReturn(PUB);
+        when(session.getId()).thenReturn(SID);
         when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
         when(roundStateStore.load(SID)).thenReturn(Optional.empty());
@@ -457,5 +488,145 @@ class LiveSessionOrchestratorTest {
 
         verify(session).cancel();
         assertThat(publishedEvent()).isInstanceOf(LiveSessionCancelled.class);
+    }
+
+    // ── revealResults: publish scored result ─────────────────────────────────
+
+    @Test
+    void revealResultsPublishesScoredResultWithTerminalFlag() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES);
+        Slide slide = new Slide();
+        slide.setId(SLIDE);
+        RoundResult result = RoundResult.compute(SID, slide, List.of(), Instant.now());
+        when(roundResults.find(SID, SLIDE)).thenReturn(Optional.of(result));
+
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of(slide)); // only slide → last → terminal
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getRoster()).thenReturn(List.of());
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        orchestrator.revealResults(SID, SLIDE);
+
+        assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESULTS);
+        ResultsRevealed event = (ResultsRevealed) publishedEvent();
+        assertThat(event.slideId()).isEqualTo(SLIDE);
+        assertThat(event.terminal()).isTrue();
+    }
+
+    // ── F4 guard: reject opening a second slide while one is open ─────────────
+
+    @Test
+    void startRoundRejectsWhenAnotherRoundStillOpen() {
+        when(roundStateStore.load(SID)).thenReturn(
+                Optional.of(new LiveRoundState(PUB, RoundPhase.SUBMIT, "other-slide", Instant.now())));
+        Slide slide = new Slide();
+        slide.setId(SLIDE);
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.startRound(SID, SLIDE))
+                .isInstanceOf(ConflictException.class);
+        verify(roundStateStore, never()).save(any(), any());
+    }
+
+    // ── Navigation ───────────────────────────────────────────────────────────
+
+    @Test
+    void advanceOpensFirstSlideWhenNoneOpen() {
+        Slide first = slideWithId("s1");
+        Slide second = slideWithId("s2");
+        LiveSession session = navigableSession(List.of(first, second));
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo("s1");
+        assertThat(publishedEvent()).isInstanceOf(RoundStarted.class);
+    }
+
+    @Test
+    void advanceReturnsNullWhenSnapshotExhausted() {
+        Slide only = slideWithId(SLIDE);
+        LiveSession session = navigableSession(List.of(only));
+        when(roundStateStore.load(SID)).thenReturn(
+                Optional.of(new LiveRoundState(PUB, RoundPhase.REVEAL_RESULTS, SLIDE, Instant.now())));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThat(orchestrator.advance(SID)).isNull();
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    private Slide slideWithId(String id) {
+        Slide slide = new Slide();
+        slide.setId(id);
+        return slide;
+    }
+
+    private LiveSession navigableSession(List<Slide> slides) {
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(slides);
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        return session;
+    }
+
+    // ── Presence & reconnect ─────────────────────────────────────────────────
+
+    @Test
+    void reconnectMarksOnlineSavesAndPublishes() {
+        Participant participant = Participant.join("user-7", "Seven", null, null);
+        participant.markDisconnected();
+        when(participants.findById(participant.getParticipantId())).thenReturn(Optional.of(participant));
+        LiveSession session = mock(LiveSession.class);
+        when(session.hasParticipant(participant.getParticipantId())).thenReturn(true);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        Participant result = orchestrator.reconnect(SID, participant.getParticipantId());
+
+        assertThat(result.getConnectionStatus()).isEqualTo(ConnectionStatus.ONLINE);
+        verify(participants).save(participant);
+        verify(presenceStore).save(eq(SID), eq(participant.getParticipantId()), any());
+        assertThat(publishedEvent()).isInstanceOf(ParticipantReconnected.class);
+    }
+
+    @Test
+    void reconnectRejectsNonMember() {
+        Participant participant = Participant.join("user-7", "Seven", null, null);
+        when(participants.findById(participant.getParticipantId())).thenReturn(Optional.of(participant));
+        LiveSession session = mock(LiveSession.class);
+        when(session.hasParticipant(any())).thenReturn(false);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.reconnect(SID, participant.getParticipantId()))
+                .isInstanceOf(ForbiddenException.class);
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void heartbeatDebouncesWithinWindow() {
+        when(presenceStore.find(SID, "p-1")).thenReturn(Optional.of(Presence.online(Instant.now())));
+
+        orchestrator.heartbeat(SID, "p-1");
+
+        verify(presenceStore, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void heartbeatSavesWhenPresenceIsStale() {
+        when(presenceStore.find(SID, "p-1")).thenReturn(
+                Optional.of(new Presence(ConnectionStatus.ONLINE, Instant.now().minusSeconds(5))));
+
+        orchestrator.heartbeat(SID, "p-1");
+
+        verify(presenceStore).save(eq(SID), eq("p-1"), any());
     }
 }
