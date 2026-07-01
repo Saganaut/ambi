@@ -26,7 +26,6 @@ mock the endpoints, rather than hitting a live backend.
 | Component        | File                                     | Reason                                                                                     |
 | ---------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------ |
 | AuthPromptBridge | `shared/components/Modal/LoginModal/AuthPromptBridge.tsx` | Pure side-effect bridge; renders `null`, only reacts to live 401 / auth-prompt slice state |
-| AuthReplayBridge | `shared/components/Modal/LoginModal/AuthReplayBridge.tsx` | Pure side-effect bridge; renders `null`, only fires on OAuth-return state transition       |
 
 No action needed unless these gain renderable UI.
 
