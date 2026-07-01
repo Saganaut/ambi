@@ -364,6 +364,11 @@ const RichTextInput = ({
   // small/clipped click target breaks the focus → floating-toolbar flow.
   useLayoutEffect(() => {
     if (minPx == null || maxPx == null) return;
+    // Same StrictMode race as the content-sync effect in useRichTextInput: a
+    // destroyed editor's `view` getter returns a Proxy that throws on any
+    // property access, so `editor.view.dom` below would crash. Bail explicitly
+    // rather than relying on layout-effect cleanup timing to shield us.
+    if (editor.isDestroyed) return;
     const el: HTMLElement = editor.view.dom;
     const stepPx = 0.5;
     const setStyle = (prop: string, value: string) => {
