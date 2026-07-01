@@ -54,6 +54,13 @@ const useRichTextEditor = ({
   // Keep editor content in sync if the parent's `value` changes from outside
   // (e.g. switching to a different slide while the editor is mounted).
   useEffect(() => {
+    // `useEditor` is typed as returning a live editor, but React StrictMode's
+    // mount → cleanup → remount cycle can leave this effect re-running against
+    // the destroyed intermediate instance. A destroyed editor has a null schema,
+    // so `getHTML()` would throw ("Cannot read properties of null (reading
+    // 'cached')"). The replacement instance is created with `content: value`, so
+    // skipping the sync here is a safe no-op.
+    if (editor.isDestroyed) return;
     const current = editor.getHTML();
     if (value !== current) {
       editor.commands.setContent(value, { emitUpdate: false });
