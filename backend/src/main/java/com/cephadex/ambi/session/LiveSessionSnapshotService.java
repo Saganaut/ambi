@@ -104,6 +104,7 @@ public class LiveSessionSnapshotService {
         return new SessionSnapshotResponse(
                 session.getId(),
                 session.getPublicId(),
+                session.getRoomCode(),
                 session.getStatus(),
                 phase,
                 currentSlideId,

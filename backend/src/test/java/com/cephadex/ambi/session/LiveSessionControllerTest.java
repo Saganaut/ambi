@@ -104,7 +104,7 @@ class LiveSessionControllerTest {
     @Test
     void snapshotDelegatesAndReturns200() throws Exception {
         when(snapshotService.getSnapshot(eq("sess-1"), any()))
-                .thenReturn(new SessionSnapshotResponse("sess-1", "pub-1",
+                .thenReturn(new SessionSnapshotResponse("sess-1", "pub-1", "ROOMCODE",
                         LiveSessionLifecycle.LOBBY, RoundPhase.SUBMIT, null, null, null, null,
                         List.of(), List.of(), "part-1", true));
 
@@ -112,6 +112,7 @@ class LiveSessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sessionId").value("sess-1"))
                 .andExpect(jsonPath("$.publicId").value("pub-1"))
+                .andExpect(jsonPath("$.roomCode").value("ROOMCODE"))
                 .andExpect(jsonPath("$.viewerIsHost").value(true));
 
         verify(snapshotService).getSnapshot(eq("sess-1"), any());

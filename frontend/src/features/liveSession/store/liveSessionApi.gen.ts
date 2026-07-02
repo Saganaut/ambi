@@ -378,6 +378,7 @@ export type ScoreboardEntry = {
 export type SessionSnapshotResponse = {
   sessionId?: string;
   publicId?: string;
+  roomCode?: string;
   status?: "LOBBY" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
   phase?:
     | "SUBMIT"

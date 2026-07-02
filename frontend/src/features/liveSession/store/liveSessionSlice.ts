@@ -46,6 +46,8 @@ export interface LiveSessionState {
   seeded: boolean;
   sessionId: string | null;
   publicId: string | null;
+  /** The short join code participants enter or scan (via QR) to join the room. */
+  roomCode: string | null;
   status: LiveSessionLifecycle | null;
   phase: RoundPhase | null;
   /** Participants keyed by id; the ordered ids live in `roster`. */
@@ -69,6 +71,7 @@ const initialState: LiveSessionState = {
   seeded: false,
   sessionId: null,
   publicId: null,
+  roomCode: null,
   status: null,
   phase: null,
   participants: {},
@@ -96,6 +99,7 @@ const liveSessionSlice = createSlice({
       state.seeded = true;
       state.sessionId = s.sessionId ?? null;
       state.publicId = s.publicId ?? null;
+      state.roomCode = s.roomCode ?? null;
       state.status = s.status ?? null;
       state.phase = s.phase ?? null;
       state.roster = (s.roster ?? [])

@@ -75,6 +75,7 @@ class LiveSessionSnapshotServiceTest {
         session = mock(LiveSession.class);
         when(session.getId()).thenReturn(SID);
         when(session.getPublicId()).thenReturn("pub-1");
+        when(session.getRoomCode()).thenReturn("ROOMCODE");
         when(session.getStatus()).thenReturn(LiveSessionLifecycle.IN_PROGRESS);
         when(session.getPhase()).thenReturn(RoundPhase.SUBMIT);
         when(session.getRoster()).thenReturn(List.of("host-1", "player-2"));
@@ -94,6 +95,7 @@ class LiveSessionSnapshotServiceTest {
 
         assertThat(snap.sessionId()).isEqualTo(SID);
         assertThat(snap.publicId()).isEqualTo("pub-1");
+        assertThat(snap.roomCode()).isEqualTo("ROOMCODE");
         assertThat(snap.currentSlideId()).isNull();
         assertThat(snap.currentSlide()).isNull();
         assertThat(snap.optionTally()).isNull();

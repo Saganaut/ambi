@@ -26,6 +26,7 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  *
  * @param sessionId             the session id (the {@code {id}} used for commands)
  * @param publicId              the session's public handle — the STOMP topic key to subscribe with
+ * @param roomCode              the short join code participants enter (or scan via QR) to join the room
  * @param status                lifecycle status (lobby / in-progress / finished / cancelled)
  * @param phase                 the current round phase, or the idle default between rounds
  * @param currentSlideId        the open slide, or {@code null} between rounds
@@ -40,6 +41,7 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 public record SessionSnapshotResponse(
         String sessionId,
         String publicId,
+        String roomCode,
         LiveSessionLifecycle status,
         RoundPhase phase,
         String currentSlideId,

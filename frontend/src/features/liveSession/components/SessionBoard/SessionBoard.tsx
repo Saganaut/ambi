@@ -30,7 +30,7 @@ const SessionBoard = ({ className }: SessionBoardProps) => {
       name={"SessionBoard"}
       className={`${styles.sessionBoard} ${className ?? ""}`}>
       {stage.type === "lobby" && (
-        <BoardLobby joinCode={state.publicId} playerCount={state.roster.length} />
+        <BoardLobby joinCode={state.roomCode} playerCount={state.roster.length} />
       )}
       {stage.type === "slide" && <BoardSlide slide={stage.slide} />}
       {stage.type === "question" && (

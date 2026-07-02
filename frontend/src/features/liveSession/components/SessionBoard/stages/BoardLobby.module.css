@@ -19,6 +19,15 @@
     color: var(--text-primary);
   }
 
+  .qr {
+    width: clamp(9rem, 22vh, 15rem);
+    height: auto;
+    border-radius: var(--radius-md);
+    /* A QR needs a light quiet zone to scan reliably, even in dark mode. */
+    background: #fff;
+    padding: var(--space-3);
+  }
+
   .count {
     font-size: var(--font-size-sm);
     color: var(--text-muted);

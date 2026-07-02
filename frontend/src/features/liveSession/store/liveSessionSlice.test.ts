@@ -25,6 +25,7 @@ const participant = (id: string, name: string): ParticipantView => ({
 const lobbySnapshot: SessionSnapshotResponse = {
   sessionId: "sess-1",
   publicId: "pub-1",
+  roomCode: "ROOMCODE",
   status: "LOBBY",
   phase: "SUBMIT",
   roster: [participant("host-1", "Hosty"), participant("player-2", "Player")],
@@ -47,6 +48,7 @@ describe("liveSessionSlice", () => {
     expect(state.seeded).toBe(true);
     expect(state.sessionId).toBe("sess-1");
     expect(state.publicId).toBe("pub-1");
+    expect(state.roomCode).toBe("ROOMCODE");
     expect(state.status).toBe("LOBBY");
     // Roster order preserved, and each participant indexed by id.
     expect(state.roster).toEqual(["host-1", "player-2"]);
