@@ -17,13 +17,14 @@ import TextGraphic from "@assets/images/slide-types/text.svg?react";
 
 import { SlideType } from "@deck/store/deckEnums.gen";
 
-//TODO: need images for TITLE, MEDIA, FOLLOW_UP.  Just using placeholders now.
+//TODO: need images for TITLE, CONTENT, MEDIA, INSTRUCTION, FOLLOW_UP.  Just using placeholders now.
 
 export const slideTypeGraphics: Record<
   SlideType,
   ComponentType<SVGProps<SVGSVGElement>>
 > = {
   TITLE: SlideGraphic,
+  CONTENT: TextGraphic,
   MCQ: McqGraphic,
   TEXT: TextGraphic,
   NUMBER: NumberGraphic,
@@ -36,5 +37,6 @@ export const slideTypeGraphics: Record<
   MATCHING: MatchingGraphic,
   DRAWING: DrawingGraphic,
   MEDIA: SlideGraphic,
+  INSTRUCTION: SlideGraphic,
   FOLLOW_UP: SlideGraphic,
 };

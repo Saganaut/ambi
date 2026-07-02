@@ -14,18 +14,19 @@
  */
 import { nanoid } from "nanoid";
 import { McqOption, SlideContent } from "../store/deckApi.gen";
-import { createSlideBlock } from "../components/DeckEditor/SlideContent/SlideContent/Block.types";
 type SlideType = NonNullable<SlideContent["contentType"]>;
 
 /**
  * Slide kinds that produce no score and take no player answer — mirrors the
- * backend `NonScorableContent` union (TITLE / MEDIA / Q_AND_A). Used to hide
- * answer/scoring UI (time limit, multiple answers, reveal-results, …) for these
- * kinds. Keep in sync with the backend split.
+ * backend `NonScorableContent` union (TITLE / CONTENT / MEDIA / INSTRUCTION /
+ * Q_AND_A). Used to hide answer/scoring UI (time limit, multiple answers,
+ * reveal-results, …) for these kinds. Keep in sync with the backend split.
  */
 export const NON_SCORABLE_SLIDE_TYPES: ReadonlySet<SlideType> = new Set<SlideType>([
   "TITLE",
+  "CONTENT",
   "MEDIA",
+  "INSTRUCTION",
   "Q_AND_A",
 ]);
 
@@ -47,16 +48,26 @@ const assertNever = (slideType: never): never => {
 export const buildDefaultContent = (slideType: SlideType): SlideContent => {
   switch (slideType) {
     case "TITLE":
-      // A content slide starts with a single heading block so the canvas isn't
-      // empty; the author adds/reorders more blocks from there.
-      return { contentType: "TITLE", blocks: [createSlideBlock("HeadingBlock")] };
+      // A title slide's headline is the slide title; the optional subtitle is
+      // left off until the author types one.
+      return { contentType: "TITLE" };
+    case "CONTENT":
+      // A content slide is a single rich-text body, empty until authored.
+      return { contentType: "CONTENT", body: "" };
     case "MEDIA":
+      // Defaults to an image slot; the author can switch it to an embedded
+      // YouTube video. autoplay/loop/muted are required primitives on the wire.
       return {
         contentType: "MEDIA",
+        mediaType: "IMAGE",
         autoplay: false,
         loop: false,
         muted: false,
       };
+    case "INSTRUCTION":
+      // Join URL + code are filled in at session time; heading/body are optional
+      // author overrides, left off by default.
+      return { contentType: "INSTRUCTION" };
     case "Q_AND_A":
       return { contentType: "Q_AND_A", moderated: false };
     case "MCQ":

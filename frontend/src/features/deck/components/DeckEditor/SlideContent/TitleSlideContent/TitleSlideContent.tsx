@@ -1,25 +1,37 @@
 /**
- * Author surface for a non-scorable "content" slide — PowerPoint-style display
- * content with no answer and no scoring. The body is an ordered stack of typed
- * blocks (heading / body text / bullet list / image / callout) the author adds
- * and reorders; each block renders through the shared {@link BlockCard}, which
- * dispatches to its per-kind editor. All block state funnels through the single
- * {@link useTitleEditor} draft + debounce buffer (see that hook).
+ * Author surface for a non-scorable "title" slide — a large centred title used
+ * to open a deck or a section. The headline is the slide's title (edited through
+ * the shared prompt slot); the one authorable content field is an optional
+ * subtitle rendered beneath it.
  */
-import { useTitleEditor } from "@deck/hooks/useTitleEditor";
+import { useState } from "react";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { Input } from "@components/Forms/Input/Input/Input";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import type { SlideContentProps } from "../slideContentProps";
-import { BlockAdder } from "../SlideContent/BlockAdder";
-import { BlockCard } from "../SlideContent/BlockCard";
-import styles from "../SlideContent/SlideContent.module.css";
 
 const TitleSlideContent = ({ deckId, slideId }: SlideContentProps) => {
-  const { blocks, ready, addBlock, removeBlock, moveBlock, updateBlock, flush } =
-    useTitleEditor(deckId, slideId);
+  const { slide, updateMetadata, updateSlideContent, flush } = useSlideEditor(
+    deckId,
+    slideId,
+    "TITLE",
+  );
 
-  if (!ready) {
+  // Local mirrors so typing stays responsive while commits debounce. Re-seed
+  // when the active slide changes ("derive state during render", as in
+  // FollowUpSlideContent).
+  const [title, setTitle] = useState(slide?.title ?? "");
+  const [subtitle, setSubtitle] = useState(slide?.content.subtitle ?? "");
+  const [syncedFromId, setSyncedFromId] = useState(slide?.id);
+  if (slide && syncedFromId !== slide.id) {
+    setSyncedFromId(slide.id);
+    setTitle(slide.title);
+    setSubtitle(slide.content.subtitle ?? "");
+  }
+
+  if (!slide) {
     return (
-      <SlideContentWrapper title='Content'>
+      <SlideContentWrapper title='Title'>
         <p>Select a slide to edit.</p>
       </SlideContentWrapper>
     );
@@ -27,32 +39,30 @@ const TitleSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   return (
     <SlideContentWrapper
-      title='Content slide'
-      description='Add and arrange blocks to build the slide — like a slide deck.'>
-      <div className={styles.blocksHeaderActions}>
-        <BlockAdder elementId={slideId} onAdd={addBlock} />
-      </div>
-
-      {blocks.length === 0 ? (
-        <p className={styles.emptyBlocks}>
-          No content yet — add a block to get started.
-        </p>
-      ) : (
-        <div className={styles.blockList}>
-          {blocks.map((block, index) => (
-            <BlockCard
-              key={block.id}
-              block={block}
-              index={index}
-              total={blocks.length}
-              onRemove={removeBlock}
-              onMove={moveBlock}
-              onUpdate={updateBlock}
-              onFlush={flush}
-            />
-          ))}
-        </div>
-      )}
+      prompt={{
+        idBase: `title-${slide.id}`,
+        value: title,
+        placeholder: "Slide title…",
+        onChange: (html) => {
+          setTitle(html);
+          updateMetadata({ title: html });
+        },
+        onBlur: flush,
+      }}>
+      <Input
+        label='Subtitle'
+        id={`title-subtitle-${slide.id}`}
+        type='text'
+        fullWidth
+        value={subtitle}
+        placeholder='Optional line shown under the title'
+        onChange={(e) => {
+          const next = e.target.value;
+          setSubtitle(next);
+          updateSlideContent({ subtitle: next });
+        }}
+        onBlur={flush}
+      />
     </SlideContentWrapper>
   );
 };

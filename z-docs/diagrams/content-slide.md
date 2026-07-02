@@ -1,23 +1,34 @@
-# Content Slide (non-scorable, block-based)
+# Non-scorable slide types
 
-The **Content slide** is the first non-scorable slide type — a PowerPoint-style
-display slide whose body is an ordered, polymorphic list of *blocks* (heading,
-body text, bullet list, image, callout). It reuses the exact discriminated-union
-pattern the MCQ content already uses, one level deeper: a slide's `content` is a
-`SlideContent` union keyed by `contentType`, and a content slide's body is a
-nested `SlideBlock` union keyed by `kind`.
+Ambi has four **non-scorable** display slide types — the "PowerPoint, but with
+less functionality" set. None takes a player answer or produces a score; each is
+a flat content record (0–2 fields) on the existing `SlideContent` discriminated
+union, keyed by `contentType`:
 
-It is surfaced in the editor as the **"Content"** tile (backed by the `TITLE`
-`SlideType`); `MEDIA` and `FOLLOW_UP` are hidden from the picker.
+| Type | `contentType` | Record | Body |
+|---|---|---|---|
+| Title | `TITLE` | `TitleContent` | optional `subtitle` (headline is the slide `title`) |
+| Content | `CONTENT` | `RichTextContent` | a single rich-text `body` (HTML) |
+| Media | `MEDIA` | `MediaContent` | an image **or** an embedded YouTube video + optional `caption` |
+| Instruction | `INSTRUCTION` | `InstructionContent` | optional `heading` / `body`; join URL + code filled in at session time |
+
+> An earlier iteration modelled the Content slide as an ordered polymorphic
+> `List<SlideBlock>` (heading/body/bullet/image/callout). That was pulled out in
+> favour of these four purpose-built flat types — there is no block union.
+
+Media video is **embedded YouTube only** — we do not host or serve video. A
+"video" media slide is `MediaContent` with `mediaType = EMBED` and a YouTube
+`url`.
 
 Prose/data companions: [deck-authoring](deck-authoring.md),
 [Domain Model](domain-model.md),
 [deck-editor](../features/deck-editor/README.md),
 [generated-artifacts](../rules/frontend/generated-artifacts.md).
 
-## Content & block model
+## Content model
 
-Two nested discriminated unions. Cross-cutting authoring knobs (points,
+Each type is a record on the `SlideContent` sealed union, reached through the
+`NonScorableContent` sub-interface. Cross-cutting authoring knobs (points,
 difficulty, shuffle) are **not** here — they live on `Slide` / `SlideSettings`.
 
 ```mermaid
@@ -31,155 +42,134 @@ classDiagram
     class ScorableContent { <<interface>> }
     class TitleContent {
         <<record>>
-        +List~SlideBlock~ blocks
+        +String subtitle
     }
-    class McqContent { <<record>> }
-    class SlideBlock {
-        <<sealed interface>>
-        +String id
-        +kind
-    }
-    class HeadingBlock {
+    class RichTextContent {
         <<record>>
-        +String text
-        +Integer level
+        +String body
     }
-    class BodyBlock {
+    class MediaContent {
         <<record>>
-        +String richBody
-    }
-    class BulletListBlock {
-        <<record>>
-        +List~String~ items
-    }
-    class ImageBlock {
-        <<record>>
+        +MediaType mediaType
         +AppImage image
+        +String url
         +String caption
     }
-    class CalloutBlock {
+    class InstructionContent {
         <<record>>
-        +CalloutTone tone
-        +String richBody
+        +String heading
+        +String body
     }
-    class CalloutTone {
-        <<enum>>
-        INFO
-        WARN
-        SUCCESS
-    }
+    class QAndAContent { <<record>> }
+    class McqContent { <<record>> }
 
     SlideContent <|-- NonScorableContent
     SlideContent <|-- ScorableContent
     NonScorableContent <|.. TitleContent
+    NonScorableContent <|.. RichTextContent
+    NonScorableContent <|.. MediaContent
+    NonScorableContent <|.. InstructionContent
+    NonScorableContent <|.. QAndAContent
     ScorableContent <|.. McqContent
-    TitleContent "1" o-- "0..*" SlideBlock : blocks
-    SlideBlock <|.. HeadingBlock
-    SlideBlock <|.. BodyBlock
-    SlideBlock <|.. BulletListBlock
-    SlideBlock <|.. ImageBlock
-    SlideBlock <|.. CalloutBlock
-    ImageBlock ..> AppImage
-    CalloutBlock ..> CalloutTone
+    MediaContent ..> AppImage
 ```
 
 ## End-to-end type flow (backend → generated client → editor)
 
-The block types are **backend-owned and generated**; the frontend never
-hand-writes them. `OpenApiConfig` is generic — the same customizers that flatten
-`SlideContent` also flatten the nested `SlideBlock` union with no extra code.
+The content records are **backend-owned and generated**; the frontend never
+hand-writes them. Adding a type is one `@JsonSubTypes.Type` + one `oneOf` + one
+`@DiscriminatorMapping` on `SlideContent`, plus a `permits` entry on
+`NonScorableContent`; `OpenApiConfig` flattens the union for the client.
 
 ```mermaid
 flowchart TB
     subgraph be["Backend (Java)"]
-        TC["TitleContent<br/>List&lt;SlideBlock&gt; blocks"]
-        SB["SlideBlock union<br/>content/parts/block/*"]
-        OAC["OpenApiConfig<br/>flattenPolymorphicUnions()<br/>markRecordComponentsRequired()<br/>(+block pkg in scan list)"]
-        TC --> SB
-        SB --> OAC
+        SC["SlideContent union<br/>+ TitleContent · RichTextContent<br/>MediaContent · InstructionContent"]
+        ST["SlideType enum<br/>+ CONTENT · INSTRUCTION"]
+        OAC["OpenApiConfig<br/>flattenPolymorphicUnions()<br/>markRecordComponentsRequired()"]
+        SC --> OAC
+        ST --> OAC
         OAC --> DOC["/v3/api-docs<br/>flat oneOf + discriminator"]
     end
-    subgraph gen["Codegen (npm run generate)"]
-        API["generate-api → deckApi.gen.ts<br/>SlideBlock union · TitleContent.blocks"]
-        ENUM["generate-enums → deckEnums.gen.ts<br/>SlideBlockKind · CalloutTone"]
+    subgraph gen["Codegen (generate-api / -enums)"]
+        API["deckApi.gen.ts<br/>the four content types"]
+        ENUM["deckEnums.gen.ts<br/>SlideType incl. CONTENT/INSTRUCTION"]
         DOC --> API
         DOC --> ENUM
     end
     subgraph fe["Frontend (TS)"]
-        BT["Block.types.ts<br/>re-exports generated types<br/>+ createSlideBlock / narrowSlideBlock"]
-        HOOK["useTitleEditor(deckId, slideId)<br/>on useSlideEditor&lt;'TITLE'&gt;"]
-        VIEW["TitleSlideContent<br/>BlockAdder + BlockCard[]"]
-        EDIT["*BlockEditor (per kind)"]
-        API --> BT
-        ENUM --> BT
-        BT --> HOOK
-        HOOK --> VIEW
-        VIEW --> EDIT
+        DISP["SlideDisplay.renderBody<br/>switch(contentType)"]
+        T["TitleSlideContent"]
+        C["ContentSlideContent"]
+        M["MediaSlideContent"]
+        I["InstructionSlideContent"]
+        API --> DISP
+        ENUM --> DISP
+        DISP --> T
+        DISP --> C
+        DISP --> M
+        DISP --> I
     end
 ```
 
 ## Authoring & persistence round-trip
 
-Every block edit funnels through one debounced draft and lands as a single
-whole-slide `PUT` — the same path MCQ uses. Structural ops (add/remove/move)
-flush immediately; field typing debounces.
+Every editor sits on the generic `useSlideEditor(deckId, slideId, KIND)` and
+commits through one debounced whole-slide `PUT` — the same path MCQ uses. The
+slide title flows through `updateMetadata`; the content fields through
+`updateSlideContent`.
 
 ```mermaid
 sequenceDiagram
     actor Author
-    participant Card as BlockCard / *BlockEditor
-    participant TE as useTitleEditor
+    participant Editor as *SlideContent editor
     participant SE as useSlideEditor (draft + debounce)
     participant S as useSlide
     participant API as PUT /api/decks/{id}/slides/{slideId}
     participant DS as DeckService.updateSlide
     participant DB as MongoDB (deck doc)
 
-    Author->>Card: add / edit / reorder block
-    Card->>TE: addBlock / updateBlock / moveBlock / removeBlock
-    TE->>SE: updateSlideContent((prev) => ({ blocks: … }))
-    Note over SE: functional patch merges onto freshest draft<br/>so concurrent edits compound
-    alt structural (add/remove/move) or blur
-        SE->>S: flush → updateSlide(patch)
-        S->>API: PUT whole slide (content + title)
-        API->>DS: replace slide.content
-        DS->>DB: save deck (@Version optimistic lock)
-    else typing a field
-        SE-->>SE: debounce, coalesce into one PUT
-    end
-    Note over DB: reload → GET returns TitleContent.blocks<br/>(null legacy body normalized to List.of())
+    Author->>Editor: edit title / subtitle / body / media / instructions
+    Editor->>SE: updateMetadata / updateSlideContent
+    Note over SE: patches merge onto the freshest draft;<br/>structural edits (image pick, mode switch) flush now
+    SE->>S: flush → updateSlide(patch)
+    S->>API: PUT whole slide (content + title)
+    API->>DS: replace slide.content
+    DS->>DB: save deck (@Version optimistic lock)
+    Note over DB: reload → GET returns the typed content arm
 ```
 
 ## Editor dispatch & non-scorable gating
 
-Adding a slide type touches two `switch`es and the picker; a content slide also
-suppresses the answer-settings form (it has no score/answer).
+Adding a type touches the `SlideDisplay.renderBody` switch, the `NewSlideModal`
+picker (label + graphic), `buildDefaultContent`, and the answer-panel gate; a
+non-scorable slide suppresses the answer-settings form (it has no score/answer).
 
 ```mermaid
 flowchart LR
-    NSM["NewSlideModal<br/>hides MEDIA + FOLLOW_UP<br/>TITLE labelled 'Content'"]
-    NSM -->|pick| BDC["buildDefaultContent('TITLE')<br/>seeds one HeadingBlock"]
+    NSM["NewSlideModal<br/>hides FOLLOW_UP<br/>labels: Title · Content · Media · Instructions"]
+    NSM -->|pick| BDC["buildDefaultContent(type)<br/>minimal placeholder content"]
 
     subgraph canvas["SlideDisplay.renderBody"]
         SW{"content.contentType"}
-        SW -->|TITLE| TSC["TitleSlideContent"]
-        SW -->|MCQ| MSC["McqSlideContent"]
+        SW -->|TITLE| T["TitleSlideContent"]
+        SW -->|CONTENT| C["ContentSlideContent"]
+        SW -->|MEDIA| M["MediaSlideContent"]
+        SW -->|INSTRUCTION| I["InstructionSlideContent"]
+        SW -->|MCQ …| Other["scorable editors"]
     end
 
     subgraph sidebar["AnswerPanel"]
         SC{"isScorableSlideType?"}
-        SC -->|no · TITLE/MEDIA/Q_AND_A| HIDE["hide answer-settings form<br/>(only per-kind section shows)"]
+        SC -->|no · TITLE/CONTENT/MEDIA/INSTRUCTION/Q_AND_A| HIDE["hide answer-settings form"]
         SC -->|yes| SHOW["time limit · multi-select · reveal-results"]
     end
 ```
 
-## Adding another block kind
+## Follow-ups
 
-Mirrors the `SlideContent` ritual, scoped to `SlideBlock`:
-
-1. New record implementing `SlideBlock` + a `@JsonSubTypes.Type` and a
-   `oneOf`/`@DiscriminatorMapping` entry on `SlideBlock` (`content/parts/block`).
-2. `npm run generate` — the generic flattener + codegen produce the new TS arm.
-3. Frontend: a `*BlockEditor`, a `BlockCard` dispatch arm, and a
-   `BLOCK_KIND_OPTIONS`/`BLOCK_KIND_LABEL`/`createSlideBlock` entry in
-   `Block.types.ts`.
+- **Live-session board rendering** of these four kinds — especially runtime join
+  URL/code substitution for the Instruction slide, which the editor only previews
+  with `{join link}` / `{code}` placeholders.
+- **A richer Content-slide editor** — v1 uses the shared `RichTextInput`.
+- **Media** autoplay/loop/muted controls (kept in the model, not yet surfaced).

@@ -126,14 +126,7 @@ export const mockDeckSettings: DeckSettings = {
 
 const titleContent: TitleContent = {
   contentType: "TITLE",
-  blocks: [
-    { kind: "HeadingBlock", id: "blk_title", text: "The Fellowship", level: 1 },
-    {
-      kind: "BodyBlock",
-      id: "blk_body",
-      richBody: "<p>A quiz on Tolkien's Middle-earth.</p>",
-    },
-  ],
+  subtitle: "A quiz on Tolkien's Middle-earth",
 };
 
 const mcqContent: McqContent = {

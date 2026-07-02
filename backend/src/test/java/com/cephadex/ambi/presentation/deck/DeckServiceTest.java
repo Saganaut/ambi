@@ -199,7 +199,7 @@ class DeckServiceTest {
     @Test
     void addFollowUpSlideRejectsNonScorableParent() {
         Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(new TitleContent(List.of()));
+        deck.findSlide("s1").orElseThrow().setContent(new TitleContent(null));
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
 
         assertThatThrownBy(() -> deckService.addFollowUpSlide(
@@ -320,7 +320,7 @@ class DeckServiceTest {
         Deck deck = deckWithAttachedPair("owner-1", "p", "f");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
         Slide changes = slide("f");
-        changes.setContent(new TitleContent(List.of()));
+        changes.setContent(new TitleContent(null));
 
         assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
                 .isInstanceOf(ValidationException.class)
@@ -370,7 +370,7 @@ class DeckServiceTest {
         Deck deck = deckWithAttachedPair("owner-1", "p", "f");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
         Slide changes = slide("p");
-        changes.setContent(new TitleContent(List.of()));
+        changes.setContent(new TitleContent(null));
 
         assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
                 .isInstanceOf(ValidationException.class)

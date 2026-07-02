@@ -41,10 +41,12 @@ import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.InstructionContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.MediaContent;
+import com.cephadex.ambi.presentation.slide.content.RichTextContent;
 import com.cephadex.ambi.presentation.slide.content.TitleContent;
-import com.cephadex.ambi.presentation.slide.content.parts.block.HeadingBlock;
-import com.cephadex.ambi.presentation.slide.content.parts.block.SlideBlock;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -576,28 +578,18 @@ class DeckControllerTest {
     }
 
     @Test
-    void addSlideRoundTripsTitleContentBlocksAsDiscriminatedUnion() throws Exception {
-        // A content (TITLE) slide's body is a polymorphic List<SlideBlock>. Echo
-        // the deserialized slide back so one request exercises both halves: inbound
-        // the `kind` discriminator on each block must resolve to its concrete type,
-        // outbound each block must re-serialize carrying `kind` so the client sees
-        // the block union arm.
+    void addSlideRoundTripsTitleContentAsDiscriminatedUnion() throws Exception {
+        // The non-scorable TITLE arm carries only an optional subtitle. Echo the
+        // slide back so one request exercises both halves of the polymorphic
+        // contract: inbound the `contentType` discriminator must resolve to
+        // TitleContent, outbound it must re-serialize carrying `contentType`.
         when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
                 .thenAnswer(invocation -> invocation.getArgument(1));
 
         String body = """
                 {
                   "id": "title-1",
-                  "content": {
-                    "contentType": "TITLE",
-                    "blocks": [
-                      {"kind": "HeadingBlock", "id": "b1", "text": "Welcome", "level": 1},
-                      {"kind": "BodyBlock", "id": "b2", "richBody": "<p>Hi</p>"},
-                      {"kind": "BulletListBlock", "id": "b3", "items": ["one", "two"]},
-                      {"kind": "ImageBlock", "id": "b4", "caption": "A map"},
-                      {"kind": "CalloutBlock", "id": "b5", "tone": "WARN", "richBody": "<p>Note</p>"}
-                    ]
-                  }
+                  "content": {"contentType": "TITLE", "subtitle": "A journey begins"}
                 }
                 """;
 
@@ -606,21 +598,112 @@ class DeckControllerTest {
                         .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.content.contentType").value("TITLE"))
-                .andExpect(jsonPath("$.content.blocks[0].kind").value("HeadingBlock"))
-                .andExpect(jsonPath("$.content.blocks[0].text").value("Welcome"))
-                .andExpect(jsonPath("$.content.blocks[2].kind").value("BulletListBlock"))
-                .andExpect(jsonPath("$.content.blocks[4].kind").value("CalloutBlock"))
-                .andExpect(jsonPath("$.content.blocks[4].tone").value("WARN"));
+                .andExpect(jsonPath("$.content.subtitle").value("A journey begins"));
 
         ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
         verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
         assertThat(sent.getValue().getContent()).isInstanceOf(TitleContent.class);
         TitleContent title = (TitleContent) sent.getValue().getContent();
         assertThat(title.contentType()).isEqualTo(SlideType.TITLE);
-        assertThat(title.blocks()).hasSize(5);
-        SlideBlock first = title.blocks().get(0);
-        assertThat(first).isInstanceOf(HeadingBlock.class);
-        assertThat(((HeadingBlock) first).text()).isEqualTo("Welcome");
+        assertThat(title.subtitle()).isEqualTo("A journey begins");
+    }
+
+    @Test
+    void addSlideRoundTripsRichTextContentAsDiscriminatedUnion() throws Exception {
+        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+
+        String body = """
+                {
+                  "id": "content-1",
+                  "content": {"contentType": "CONTENT", "body": "<p>Hello Middle-earth</p>"}
+                }
+                """;
+
+        mockMvc.perform(post("/api/decks/deck-1/slides")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.content.contentType").value("CONTENT"))
+                .andExpect(jsonPath("$.content.body").value("<p>Hello Middle-earth</p>"));
+
+        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
+        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
+        assertThat(sent.getValue().getContent()).isInstanceOf(RichTextContent.class);
+        RichTextContent content = (RichTextContent) sent.getValue().getContent();
+        assertThat(content.contentType()).isEqualTo(SlideType.CONTENT);
+        assertThat(content.body()).isEqualTo("<p>Hello Middle-earth</p>");
+    }
+
+    @Test
+    void addSlideRoundTripsMediaContentAsDiscriminatedUnion() throws Exception {
+        // A media slide is either an image or an embedded YouTube video; here the
+        // EMBED (YouTube) arm with an optional caption.
+        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+
+        String body = """
+                {
+                  "id": "media-1",
+                  "content": {
+                    "contentType": "MEDIA",
+                    "mediaType": "EMBED",
+                    "url": "https://www.youtube.com/watch?v=abc123",
+                    "caption": "The Shire",
+                    "autoplay": false,
+                    "loop": false,
+                    "muted": false
+                  }
+                }
+                """;
+
+        mockMvc.perform(post("/api/decks/deck-1/slides")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.content.contentType").value("MEDIA"))
+                .andExpect(jsonPath("$.content.mediaType").value("EMBED"))
+                .andExpect(jsonPath("$.content.caption").value("The Shire"));
+
+        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
+        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
+        assertThat(sent.getValue().getContent()).isInstanceOf(MediaContent.class);
+        MediaContent media = (MediaContent) sent.getValue().getContent();
+        assertThat(media.contentType()).isEqualTo(SlideType.MEDIA);
+        assertThat(media.mediaType()).isEqualTo(SlideContentTypes.MediaType.EMBED);
+        assertThat(media.url()).isEqualTo("https://www.youtube.com/watch?v=abc123");
+    }
+
+    @Test
+    void addSlideRoundTripsInstructionContentAsDiscriminatedUnion() throws Exception {
+        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+
+        String body = """
+                {
+                  "id": "instruction-1",
+                  "content": {
+                    "contentType": "INSTRUCTION",
+                    "heading": "Join the game!",
+                    "body": "Grab your phone"
+                  }
+                }
+                """;
+
+        mockMvc.perform(post("/api/decks/deck-1/slides")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.content.contentType").value("INSTRUCTION"))
+                .andExpect(jsonPath("$.content.heading").value("Join the game!"))
+                .andExpect(jsonPath("$.content.body").value("Grab your phone"));
+
+        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
+        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
+        assertThat(sent.getValue().getContent()).isInstanceOf(InstructionContent.class);
+        InstructionContent instruction = (InstructionContent) sent.getValue().getContent();
+        assertThat(instruction.contentType()).isEqualTo(SlideType.INSTRUCTION);
+        assertThat(instruction.heading()).isEqualTo("Join the game!");
     }
 
     @Test

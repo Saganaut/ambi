@@ -201,7 +201,6 @@ public class OpenApiConfig {
 
     private static final List<String> RECORD_SCAN_PACKAGES = List.of(
             "com.cephadex.ambi.presentation.slide.content",
-            "com.cephadex.ambi.presentation.slide.content.parts.block",
             "com.cephadex.ambi.presentation.deck",
             "com.cephadex.ambi.presentation.slide"
     );

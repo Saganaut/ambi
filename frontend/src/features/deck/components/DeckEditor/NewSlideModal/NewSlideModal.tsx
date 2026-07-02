@@ -17,7 +17,8 @@ interface NewSlideModalProps {
 }
 
 const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
-  TITLE: "Content",
+  TITLE: "Title",
+  CONTENT: "Content",
   MCQ: "Multiple Choice",
   TEXT: "Text Answer",
   NUMBER: "Number Answer",
@@ -30,6 +31,7 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   MATCHING: "Matching",
   DRAWING: "Drawing",
   MEDIA: "Media",
+  INSTRUCTION: "Instructions",
   FOLLOW_UP: "Follow Up",
 };
 
@@ -37,9 +39,7 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
 // Excluded from the picker:
 //   - FOLLOW_UP — never created standalone; attached to a parent slide via its
 //     "Add follow-up slide" action.
-//   - MEDIA — folded into the "Content" slide (an image is an image block), so
-//     there is no dedicated media slide to create.
-const HIDDEN_SLIDE_TYPES: ReadonlySet<SlideType> = new Set(["FOLLOW_UP", "MEDIA"]);
+const HIDDEN_SLIDE_TYPES: ReadonlySet<SlideType> = new Set(["FOLLOW_UP"]);
 const SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
   (slideType) => !HIDDEN_SLIDE_TYPES.has(slideType),
 );

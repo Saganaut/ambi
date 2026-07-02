@@ -114,12 +114,13 @@ frontend branches on one contract.
    `SlideRequest`/`SlideResponse`. On the wire it's a discriminated union keyed by
    `contentType` (the slide's `SlideType`); `SlideContent` exposes it to the OpenAPI spec
    via `@Schema(discriminatorProperty/oneOf/discriminatorMapping)` so the generated client
-   sees a real union. `MCQ` (scorable) and `TITLE` (non-scorable "content" slide, whose
-   body is a nested polymorphic `List<SlideBlock>` — heading/body/bullet/image/callout,
-   itself a discriminated union under `content/parts/block`) are fully wired end-to-end;
-   the remaining kinds carry records but are not yet surfaced in the editor. Adding a type
+   sees a real union. `MCQ` (scorable) plus the four non-scorable display kinds —
+   `TITLE` (title + optional subtitle), `CONTENT` (a rich-text body, backed by
+   `RichTextContent`), `MEDIA` (an image or an embedded YouTube video + optional
+   caption), and `INSTRUCTION` (how to join the live session) — are wired end-to-end in
+   the editor; the remaining kinds carry records but are not yet surfaced. Adding a type
    means: a `@JsonSubTypes.Type` entry on `SlideContent` and its `Scorable`/`NonScorable`
    sub-interface, plus a `oneOf` + `@DiscriminatorMapping` entry on the `SlideContent`
-   schema (a nested union like `SlideBlock` follows the same ritual and is flattened by the
-   generic `OpenApiConfig.flattenPolymorphicUnions`). Content payloads are not yet
-   `@Valid`-validated on the request side.
+   schema. Content payloads are not yet `@Valid`-validated on the request side. Live-session
+   board rendering of the non-scorable kinds (and runtime join-code substitution for
+   `INSTRUCTION`) is a follow-up.

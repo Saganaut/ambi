@@ -18,12 +18,14 @@ export const DeckVisibility = {
   UNLISTED: "UNLISTED",
 } as const satisfies Record<DeckVisibility, DeckVisibility>;
 
-export type SlideType = "ALLOCATION" | "DRAWING" | "FOLLOW_UP" | "GRID" | "MATCHING" | "MCQ" | "MEDIA" | "NUMBER" | "PLACE_ON_IMAGE" | "Q_AND_A" | "RANKING" | "SCALES" | "TEXT" | "TITLE";
+export type SlideType = "ALLOCATION" | "CONTENT" | "DRAWING" | "FOLLOW_UP" | "GRID" | "INSTRUCTION" | "MATCHING" | "MCQ" | "MEDIA" | "NUMBER" | "PLACE_ON_IMAGE" | "Q_AND_A" | "RANKING" | "SCALES" | "TEXT" | "TITLE";
 export const SlideType = {
   ALLOCATION: "ALLOCATION",
+  CONTENT: "CONTENT",
   DRAWING: "DRAWING",
   FOLLOW_UP: "FOLLOW_UP",
   GRID: "GRID",
+  INSTRUCTION: "INSTRUCTION",
   MATCHING: "MATCHING",
   MCQ: "MCQ",
   MEDIA: "MEDIA",
@@ -95,23 +97,3 @@ export const FollowUpMode = {
 } as const satisfies Record<FollowUpMode, FollowUpMode>;
 
 export const FOLLOW_UP_MODE_LIST = Object.values(FollowUpMode) as FollowUpMode[];
-
-export type SlideBlockKind = "BodyBlock" | "BulletListBlock" | "CalloutBlock" | "HeadingBlock" | "ImageBlock";
-export const SlideBlockKind = {
-  BodyBlock: "BodyBlock",
-  BulletListBlock: "BulletListBlock",
-  CalloutBlock: "CalloutBlock",
-  HeadingBlock: "HeadingBlock",
-  ImageBlock: "ImageBlock",
-} as const satisfies Record<SlideBlockKind, SlideBlockKind>;
-
-export const SLIDE_BLOCK_KIND_LIST = Object.values(SlideBlockKind) as SlideBlockKind[];
-
-export type CalloutTone = "INFO" | "SUCCESS" | "WARN";
-export const CalloutTone = {
-  INFO: "INFO",
-  SUCCESS: "SUCCESS",
-  WARN: "WARN",
-} as const satisfies Record<CalloutTone, CalloutTone>;
-
-export const CALLOUT_TONE_LIST = Object.values(CalloutTone) as CalloutTone[];

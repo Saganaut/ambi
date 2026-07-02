@@ -46,6 +46,12 @@ const TextSlideContent = lazy(() =>
   import("../SlideContent/TextSlideContent/TextSlideContent").then((m) => ({ default: m.TextSlideContent })));
 const TitleSlideContent = lazy(() =>
   import("../SlideContent/TitleSlideContent/TitleSlideContent").then((m) => ({ default: m.TitleSlideContent })));
+const ContentSlideContent = lazy(() =>
+  import("../SlideContent/ContentSlideContent/ContentSlideContent").then((m) => ({ default: m.ContentSlideContent })));
+const MediaSlideContent = lazy(() =>
+  import("../SlideContent/MediaSlideContent/MediaSlideContent").then((m) => ({ default: m.MediaSlideContent })));
+const InstructionSlideContent = lazy(() =>
+  import("../SlideContent/InstructionSlideContent/InstructionSlideContent").then((m) => ({ default: m.InstructionSlideContent })));
 import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
 import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
 import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
@@ -131,8 +137,12 @@ const SlideDisplay = () => {
         return <FollowUpSlideContent deckId={deckId} slideId={slide.id} />;
       case "TITLE":
         return <TitleSlideContent deckId={deckId} slideId={slideId} />;
+      case "CONTENT":
+        return <ContentSlideContent deckId={deckId} slideId={slideId} />;
       case "MEDIA":
-        return <p> Not implemented</p>;
+        return <MediaSlideContent deckId={deckId} slideId={slideId} />;
+      case "INSTRUCTION":
+        return <InstructionSlideContent deckId={deckId} slideId={slideId} />;
       default:
         return <div>No slide selected</div>;
     }

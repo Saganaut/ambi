@@ -1,0 +1,33 @@
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  text-align: center;
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border, rgb(0 0 0 / 0.2));
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken, rgb(0 0 0 / 0.04));
+}
+
+.previewHeading {
+  font-size: var(--font-size-lg, 1.25rem);
+  font-weight: 700;
+}
+
+.previewBody {
+  color: var(--color-text-muted, currentColor);
+}
+
+.previewLine {
+  font-size: var(--font-size-md, 1rem);
+}
+
+.token {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  background: var(--color-surface-raised, rgb(0 0 0 / 0.08));
+}

@@ -61,7 +61,9 @@ const PerKindSection = ({ contentType }: { contentType: SlideType }) => {
     case "FOLLOW_UP":
       return <FollowUpOptionsSection />;
     case "TITLE":
+    case "CONTENT":
     case "MEDIA":
+    case "INSTRUCTION":
       return <SlideOptionsSection />;
     default:
       return null;

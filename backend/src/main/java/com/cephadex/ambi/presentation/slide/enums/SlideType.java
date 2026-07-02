@@ -7,5 +7,5 @@ package com.cephadex.ambi.presentation.slide.enums;
 public enum SlideType {
     MCQ, DRAWING, GRID, MATCHING, NUMBER, PLACE_ON_IMAGE,
     Q_AND_A, RANKING, SCALES, TEXT, ALLOCATION,
-    TITLE, MEDIA, FOLLOW_UP
+    TITLE, CONTENT, MEDIA, INSTRUCTION, FOLLOW_UP
 }

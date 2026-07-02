@@ -36,7 +36,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
                 @JsonSubTypes.Type(value = DrawingContent.class,       name = "DRAWING"),
                 @JsonSubTypes.Type(value = FollowUpContent.class,      name = "FOLLOW_UP"),
                 @JsonSubTypes.Type(value = TitleContent.class,         name = "TITLE"),
+                @JsonSubTypes.Type(value = RichTextContent.class,      name = "CONTENT"),
                 @JsonSubTypes.Type(value = MediaContent.class,         name = "MEDIA"),
+                @JsonSubTypes.Type(value = InstructionContent.class,   name = "INSTRUCTION"),
                 @JsonSubTypes.Type(value = QAndAContent.class,         name = "Q_AND_A")
 })
 @Schema(
@@ -55,7 +57,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
                                 DrawingContent.class,
                                 FollowUpContent.class,
                                 TitleContent.class,
+                                RichTextContent.class,
                                 MediaContent.class,
+                                InstructionContent.class,
                                 QAndAContent.class
                 },
                 discriminatorMapping = {
@@ -71,7 +75,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
                                 @DiscriminatorMapping(value = "DRAWING",        schema = DrawingContent.class),
                                 @DiscriminatorMapping(value = "FOLLOW_UP",      schema = FollowUpContent.class),
                                 @DiscriminatorMapping(value = "TITLE",          schema = TitleContent.class),
+                                @DiscriminatorMapping(value = "CONTENT",        schema = RichTextContent.class),
                                 @DiscriminatorMapping(value = "MEDIA",          schema = MediaContent.class),
+                                @DiscriminatorMapping(value = "INSTRUCTION",    schema = InstructionContent.class),
                                 @DiscriminatorMapping(value = "Q_AND_A",        schema = QAndAContent.class)
                 })
 public sealed interface SlideContent
