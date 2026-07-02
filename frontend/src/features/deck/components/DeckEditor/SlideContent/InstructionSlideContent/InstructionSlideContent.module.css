@@ -5,29 +5,29 @@
   align-items: center;
   text-align: center;
   padding: var(--space-5);
-  border: 1px dashed var(--color-border, rgb(0 0 0 / 0.2));
+  border: var(--border-size-sm) dashed var(--border-default);
   border-radius: var(--radius-md);
-  background: var(--color-surface-sunken, rgb(0 0 0 / 0.04));
+  background: var(--bg-subtle);
 }
 
 .previewHeading {
-  font-size: var(--font-size-lg, 1.25rem);
+  font-size: var(--font-size-lg);
   font-weight: 700;
 }
 
 .previewBody {
-  color: var(--color-text-muted, currentColor);
+  color: var(--text-muted);
 }
 
 .previewLine {
-  font-size: var(--font-size-md, 1rem);
+  font-size: var(--font-size-md);
 }
 
 .token {
   display: inline-block;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-weight: 600;
-  background: var(--color-surface-raised, rgb(0 0 0 / 0.08));
+  background: var(--bg-surface-raised);
 }
