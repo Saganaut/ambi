@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
@@ -60,8 +61,8 @@ public final class SessionEvents {
     }
 
     /** Round opened hidden (entered SUBMIT); reads the slide id/start time from the round state. */
-    public static RoundStarted roundStarted(LiveRoundState state, Slide slide) {
-        return new RoundStarted(state.currentSlideId(), SlideView.from(slide), state.roundStartedAt());
+    public static RoundStarted roundStarted(LiveRoundState state, Slide slide, AnswerSettings effectiveAnswer) {
+        return new RoundStarted(state.currentSlideId(), SlideView.from(slide, effectiveAnswer), state.roundStartedAt());
     }
 
     /**
@@ -70,9 +71,9 @@ public final class SessionEvents {
      * may be the first event for this slide) and the current tally.
      */
     public static LiveResultsShown liveResultsShown(LiveRoundState state, Slide slide,
-            Map<String, Integer> optionCounts) {
-        return new LiveResultsShown(state.currentSlideId(), SlideView.from(slide), state.roundStartedAt(),
-                Map.copyOf(optionCounts));
+            Map<String, Integer> optionCounts, AnswerSettings effectiveAnswer) {
+        return new LiveResultsShown(state.currentSlideId(), SlideView.from(slide, effectiveAnswer),
+                state.roundStartedAt(), Map.copyOf(optionCounts));
     }
 
     /** The mid-round go-live toggle: no slide (the client already has it from {@code RoundStarted}). */

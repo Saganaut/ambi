@@ -2,6 +2,7 @@ package com.cephadex.ambi.session.event.dto;
 
 import java.util.List;
 
+import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
@@ -20,6 +21,10 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * rest of the presigned-image-over-STOMP work; only the plain background colour
  * travels for now. Content types beyond MCQ carry metadata only ({@code options}
  * is {@code null}) until their participant view is designed.
+ *
+ * <p>The participant-safe answer settings ({@link AnswerSettingsView}) travel too,
+ * so the client can drive the answer UI (e.g. whether multiple MCQ selections are
+ * allowed); {@code answerSettings} is {@code null} when no settings are in effect.
  */
 public record SlideView(
         String id,
@@ -29,10 +34,16 @@ public record SlideView(
         String backgroundColor,
         boolean hideBackground,
         SlideType contentType,
-        List<McqOptionView> options) {
+        List<McqOptionView> options,
+        AnswerSettingsView answerSettings) {
 
-    /** Builds the participant-safe view of {@code slide}, dropping every secret. */
-    public static SlideView from(Slide slide) {
+    /**
+     * Builds the participant-safe view of {@code slide}, dropping every secret.
+     * {@code effectiveAnswer} is the slide's resolved answer settings (deck default
+     * merged with any per-slide override, via
+     * {@link Settings#effectiveAnswerSettings}); may be {@code null}.
+     */
+    public static SlideView from(Slide slide, Settings.AnswerSettings effectiveAnswer) {
         SlideContent content = slide.getContent();
         List<McqOptionView> options = null;
         SlideType contentType = null;
@@ -50,6 +61,7 @@ public record SlideView(
                 slide.getBackgroundColor(),
                 slide.isHideBackground(),
                 contentType,
-                options);
+                options,
+                AnswerSettingsView.from(effectiveAnswer));
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
@@ -91,7 +92,10 @@ public class LiveSessionSnapshotService {
         SlideView currentSlide = null;
         Map<String, Integer> optionTally = null;
         if (currentSlideId != null) {
-            currentSlide = session.getDeck().findSlide(currentSlideId).map(SlideView::from).orElse(null);
+            currentSlide = session.getDeck().findSlide(currentSlideId)
+                    .map(slide -> SlideView.from(slide,
+                            Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings())))
+                    .orElse(null);
             optionTally = tallyStore.tally(sessionId, currentSlideId);
         }
 

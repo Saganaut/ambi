@@ -19,6 +19,9 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
+import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
+import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
+import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 import com.cephadex.ambi.session.liveSession.LiveSession;
@@ -105,6 +108,9 @@ class LiveSessionSnapshotServiceTest {
     void assemblesInRoundSnapshotWithSlideAndTally() {
         Slide slide = mock(Slide.class);
         when(slide.getId()).thenReturn("slide-1");
+        // A per-slide answer-settings override drives the participant-safe view.
+        when(slide.getSettings()).thenReturn(new SlideSettings(null,
+                new AnswerSettings(ResultsDisplayMode.MANUAL, false, false, false, 0, false, 2)));
         Deck deck = mock(Deck.class);
         when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
         when(session.getDeck()).thenReturn(deck);
@@ -120,6 +126,8 @@ class LiveSessionSnapshotServiceTest {
         assertThat(snap.currentSlideId()).isEqualTo("slide-1");
         assertThat(snap.currentSlide()).isNotNull();
         assertThat(snap.currentSlide().id()).isEqualTo("slide-1");
+        assertThat(snap.currentSlide().answerSettings()).isNotNull();
+        assertThat(snap.currentSlide().answerSettings().maxSelections()).isEqualTo(2);
         assertThat(snap.currentRoundStartedAt()).isEqualTo(startedAt);
         assertThat(snap.optionTally()).containsEntry("opt-a", 3).containsEntry("opt-b", 1);
     }

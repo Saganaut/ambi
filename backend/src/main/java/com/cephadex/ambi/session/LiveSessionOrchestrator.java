@@ -530,13 +530,15 @@ public class LiveSessionOrchestrator {
         }
         LiveRoundState started = current.startedRound(slideId, Instant.now(), phase);
         roundStateStore.save(sessionId, started);
+        Settings.AnswerSettings effectiveAnswer =
+                Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
         SessionEvent event;
         if (restart) {
             event = SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt());
         } else if (phase == RoundPhase.SUBMIT_LIVE) {
-            event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId));
+            event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId), effectiveAnswer);
         } else {
-            event = SessionEvents.roundStarted(started, slide);
+            event = SessionEvents.roundStarted(started, slide, effectiveAnswer);
         }
         publisher.publish(session.getPublicId(), event);
         return slide;

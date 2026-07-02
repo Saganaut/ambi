@@ -324,6 +324,11 @@ export type McqOptionView = {
   text?: string;
   color?: string;
 };
+export type AnswerSettingsView = {
+  maxSelections?: number;
+  displayResultsAsPercentage?: boolean;
+  countdownTime?: number;
+};
 export type SlideView = {
   id?: string;
   title?: string;
@@ -347,6 +352,7 @@ export type SlideView = {
     | "MEDIA"
     | "FOLLOW_UP";
   options?: McqOptionView[];
+  answerSettings?: AnswerSettingsView;
 };
 export type ScoreView = {
   points?: number;

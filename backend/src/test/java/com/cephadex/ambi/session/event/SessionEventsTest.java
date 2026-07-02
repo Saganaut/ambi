@@ -10,6 +10,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
+import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
+import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
@@ -47,11 +49,20 @@ class SessionEventsTest {
         return slide;
     }
 
+    // Participant-relevant fields set to distinctive values; host/scoring fields
+    // (shuffleOptions, anonymizeAnswers, allowAnonymous, displayResultsMode) set so
+    // the strip assertions are meaningful.
+    private static AnswerSettings answerSettings() {
+        return new AnswerSettings(ResultsDisplayMode.MANUAL, true, true, true, 30, true, 3);
+    }
+
     @Test
     void slideViewKeepsOptionsButDropsAnswerKeyAndNotes() {
-        SlideView view = SlideView.from(mcqSlide());
+        SlideView view = SlideView.from(mcqSlide(), null);
 
         assertThat(view.options()).extracting("id").containsExactly("opt-a", "opt-b");
+        // No settings in effect → no answer-settings view.
+        assertThat(view.answerSettings()).isNull();
 
         // The answer key, speaker notes, and explanation must not survive into the wire view.
         String json = codec.serialize(view);
@@ -61,12 +72,30 @@ class SessionEventsTest {
     }
 
     @Test
+    void slideViewCarriesParticipantSafeAnswerSettings() {
+        SlideView view = SlideView.from(mcqSlide(), answerSettings());
+
+        assertThat(view.answerSettings()).isNotNull();
+        assertThat(view.answerSettings().maxSelections()).isEqualTo(3);
+        assertThat(view.answerSettings().displayResultsAsPercentage()).isTrue();
+        assertThat(view.answerSettings().countdownTime()).isEqualTo(30);
+
+        // Host/scoring/server-enforced settings must never reach the participant view.
+        String json = codec.serialize(view);
+        assertThat(json).contains("maxSelections");
+        assertThat(json).doesNotContain("shuffleOptions");
+        assertThat(json).doesNotContain("anonymizeAnswers");
+        assertThat(json).doesNotContain("allowAnonymous");
+        assertThat(json).doesNotContain("displayResultsMode");
+    }
+
+    @Test
     void roundStartedEventCarriesNoAnswerKey() {
         LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.now());
 
-        String json = codec.serialize(SessionEvents.roundStarted(state, mcqSlide()));
+        String json = codec.serialize(SessionEvents.roundStarted(state, mcqSlide(), answerSettings()));
 
-        assertThat(json).contains("RoundStarted").contains("opt-a");
+        assertThat(json).contains("RoundStarted").contains("opt-a").contains("maxSelections");
         assertThat(json).doesNotContain("correctOptionIds");
     }
 
@@ -74,7 +103,8 @@ class SessionEventsTest {
     void liveResultsShownCarriesSlideAndCountsButNoAnswerKey() {
         LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.now());
 
-        String json = codec.serialize(SessionEvents.liveResultsShown(state, mcqSlide(), Map.of("opt-a", 3)));
+        String json = codec.serialize(
+                SessionEvents.liveResultsShown(state, mcqSlide(), Map.of("opt-a", 3), answerSettings()));
 
         assertThat(json).contains("LiveResultsShown").contains("opt-a");
         assertThat(json).doesNotContain("correctOptionIds");
