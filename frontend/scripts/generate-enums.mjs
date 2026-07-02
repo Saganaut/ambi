@@ -80,6 +80,18 @@ const ENUMS = [
     emitList: "FOLLOW_UP_MODE_LIST",
   },
   {
+    name: "SlideBlockKind",
+    feature: "deck",
+    discriminatorOf: "SlideBlock",
+    emitList: "SLIDE_BLOCK_KIND_LIST",
+  },
+  {
+    name: "CalloutTone",
+    feature: "deck",
+    prop: ["CalloutBlock", "tone"],
+    emitList: "CALLOUT_TONE_LIST",
+  },
+  {
     name: "ThemeAppearance",
     feature: "theme",
     prop: ["ThemeSpec", "appearance"],

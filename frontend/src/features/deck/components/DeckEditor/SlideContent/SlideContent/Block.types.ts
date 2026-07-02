@@ -1,96 +1,56 @@
-// Frontend-only block model for the SlideContent (non-interactive slide) editor.
+// Content-slide block model for the SlideContent (non-interactive "content"
+// slide) editor.
 //
-// IMPORTANT: none of the "block" concepts below exist on the backend. A slide's
-// persisted body is the polymorphic `content` (`SlideContent`, discriminated by
-// `content.contentType`) on `SlideResponse`/`SlideRequest` — there is no `blocks`
-// array and no `slideKind` field in `Slide.java`. These types model the editor's local
-// authoring/layout state only; they're a starting point for the slide-layout
-// migration and are expected to evolve.
-//
-// The ONE thing here that is backend-owned is the image payload: an `ImageBlock`
-// carries an `AppImage` from the generated client (the same shape the server
-// stores on `coverImage`/`backgroundImage`).
-//
-// TODO(migration): once the backend models slide layout, replace the bespoke
-// union/helpers below with generated/shared types and surface any enums via the
-// generated per-feature enums (`@deck/store/deckEnums.gen`; see
-// scripts/generate-enums.mjs) per the project convention.
-import type { AppImage } from "@deck/store/deckApi.gen";
+// The block types are now BACKEND-OWNED and generated: a content slide's body is
+// the polymorphic `TitleContent.blocks: SlideBlock[]` on `SlideResponse`/
+// `SlideRequest` (discriminated by `block.kind`). This module re-exports the
+// generated union under the names the editor already uses and adds only the
+// frontend-only authoring helpers (the update protocol, the picker option/label
+// maps, and the factory/narrow helpers) that have no backend equivalent.
+import type {
+  BodyBlock,
+  BulletListBlock,
+  CalloutBlock,
+  HeadingBlock,
+  ImageBlock,
+  SlideBlock,
+} from "@deck/store/deckApi.gen";
+import {
+  CalloutTone,
+  SlideBlockKind,
+  SLIDE_BLOCK_KIND_LIST,
+} from "@deck/store/deckEnums.gen";
 
-// ── Block kinds ────────────────────────────────────────────────────────────
+// ── Generated block types (re-exported under the editor's existing names) ────
 
-export type SlideBlockKind =
-  | "HeadingBlock"
-  | "BodyBlock"
-  | "BulletListBlock"
-  | "ImageBlock"
-  | "CalloutBlock";
+export type {
+  BodyBlock,
+  BulletListBlock,
+  CalloutBlock,
+  HeadingBlock,
+  ImageBlock,
+};
+export { CalloutTone, SlideBlockKind };
 
-export type CalloutTone = "INFO" | "WARN" | "SUCCESS";
-
-interface BaseBlock {
-  id: string;
-}
-
-export interface HeadingBlock extends BaseBlock {
-  kind: "HeadingBlock";
-  text?: string;
-  level?: number;
-}
-
-export interface BodyBlock extends BaseBlock {
-  kind: "BodyBlock";
-  richBody?: string;
-}
-
-export interface BulletListBlock extends BaseBlock {
-  kind: "BulletListBlock";
-  items?: string[];
-}
-
-export interface ImageBlock extends BaseBlock {
-  kind: "ImageBlock";
-  image?: AppImage;
-  caption?: string;
-}
-
-export interface CalloutBlock extends BaseBlock {
-  kind: "CalloutBlock";
-  tone?: CalloutTone;
-  richBody?: string;
-}
-
-export type SlideBlockUnion =
-  | HeadingBlock
-  | BodyBlock
-  | BulletListBlock
-  | ImageBlock
-  | CalloutBlock;
-
-const KNOWN_BLOCK_KINDS: SlideBlockKind[] = [
-  "HeadingBlock",
-  "BodyBlock",
-  "BulletListBlock",
-  "ImageBlock",
-  "CalloutBlock",
-];
+/** The discriminated union of every block kind (generated `SlideBlock`). */
+export type SlideBlockUnion = SlideBlock;
 
 /** Narrow a raw cached block to the typed union, or null if its `kind` is
- *  not one we recognise. TODO(migration): placeholder. */
+ *  not one we recognise (defends against legacy/corrupt cache entries). */
 export const narrowSlideBlock = (raw: unknown): SlideBlockUnion | null => {
   const block = raw as Partial<SlideBlockUnion> | null;
   if (
     block &&
     typeof block.id === "string" &&
     typeof block.kind === "string" &&
-    KNOWN_BLOCK_KINDS.includes(block.kind as SlideBlockKind)
+    (SLIDE_BLOCK_KIND_LIST as string[]).includes(block.kind)
   ) {
     return block as SlideBlockUnion;
   }
   return null;
 };
 
-/** Build a fresh block of the requested kind. TODO(migration): placeholder. */
+/** Build a fresh block of the requested kind with a client-minted id. */
 export const createSlideBlock = (kind: SlideBlockKind): SlideBlockUnion => {
   const id = crypto.randomUUID();
   switch (kind) {
@@ -107,14 +67,7 @@ export const createSlideBlock = (kind: SlideBlockKind): SlideBlockUnion => {
   }
 };
 
-// ── Slide layout role ────────────────────────────────────────────────────────
-//
-// Frontend-only presentation role for a slide, distinct from the backend's
-// `content.contentType` discriminator (MCQ, DRAWING, …). The lobby slide uses
-// "TITLE"; see RightSidebar `relevanceFor`.
-export type SlideKind = "TITLE" | "SECTION" | "CALLOUT" | "CONTENT" | "END";
-
-// ── Editor update protocol ───────────────────────────────────────────────────
+// ── Editor update protocol (frontend-only) ───────────────────────────────────
 
 export type BlockUpdateMode = "schedule" | "commit";
 
@@ -124,14 +77,6 @@ export type BlockUpdate = (
 ) => void;
 
 // ── Author-surface option/label maps ─────────────────────────────────────────
-
-export const SLIDE_KIND_OPTIONS: { value: SlideKind; label: string }[] = [
-  { value: "TITLE", label: "Title" },
-  { value: "SECTION", label: "Section" },
-  { value: "CALLOUT", label: "Callout" },
-  { value: "CONTENT", label: "Content" },
-  { value: "END", label: "End" },
-];
 
 export const BLOCK_KIND_OPTIONS: { value: SlideBlockKind; label: string }[] = [
   { value: "HeadingBlock", label: "Heading" },

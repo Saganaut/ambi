@@ -124,7 +124,17 @@ export const mockDeckSettings: DeckSettings = {
 
 // ─── SlideContent (one per content type) ─────────────────────────────────────
 
-const titleContent: TitleContent = { contentType: "TITLE" };
+const titleContent: TitleContent = {
+  contentType: "TITLE",
+  blocks: [
+    { kind: "HeadingBlock", id: "blk_title", text: "The Fellowship", level: 1 },
+    {
+      kind: "BodyBlock",
+      id: "blk_body",
+      richBody: "<p>A quiz on Tolkien's Middle-earth.</p>",
+    },
+  ],
+};
 
 const mcqContent: McqContent = {
   contentType: "MCQ",

@@ -42,6 +42,9 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.TitleContent;
+import com.cephadex.ambi.presentation.slide.content.parts.block.HeadingBlock;
+import com.cephadex.ambi.presentation.slide.content.parts.block.SlideBlock;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -570,6 +573,54 @@ class DeckControllerTest {
         McqContent mcq = (McqContent) sent.getValue().getContent();
         assertThat(mcq.contentType()).isEqualTo(SlideType.MCQ);
         assertThat(mcq.correctOptionIds()).containsExactly("o1");
+    }
+
+    @Test
+    void addSlideRoundTripsTitleContentBlocksAsDiscriminatedUnion() throws Exception {
+        // A content (TITLE) slide's body is a polymorphic List<SlideBlock>. Echo
+        // the deserialized slide back so one request exercises both halves: inbound
+        // the `kind` discriminator on each block must resolve to its concrete type,
+        // outbound each block must re-serialize carrying `kind` so the client sees
+        // the block union arm.
+        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+
+        String body = """
+                {
+                  "id": "title-1",
+                  "content": {
+                    "contentType": "TITLE",
+                    "blocks": [
+                      {"kind": "HeadingBlock", "id": "b1", "text": "Welcome", "level": 1},
+                      {"kind": "BodyBlock", "id": "b2", "richBody": "<p>Hi</p>"},
+                      {"kind": "BulletListBlock", "id": "b3", "items": ["one", "two"]},
+                      {"kind": "ImageBlock", "id": "b4", "caption": "A map"},
+                      {"kind": "CalloutBlock", "id": "b5", "tone": "WARN", "richBody": "<p>Note</p>"}
+                    ]
+                  }
+                }
+                """;
+
+        mockMvc.perform(post("/api/decks/deck-1/slides")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.content.contentType").value("TITLE"))
+                .andExpect(jsonPath("$.content.blocks[0].kind").value("HeadingBlock"))
+                .andExpect(jsonPath("$.content.blocks[0].text").value("Welcome"))
+                .andExpect(jsonPath("$.content.blocks[2].kind").value("BulletListBlock"))
+                .andExpect(jsonPath("$.content.blocks[4].kind").value("CalloutBlock"))
+                .andExpect(jsonPath("$.content.blocks[4].tone").value("WARN"));
+
+        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
+        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
+        assertThat(sent.getValue().getContent()).isInstanceOf(TitleContent.class);
+        TitleContent title = (TitleContent) sent.getValue().getContent();
+        assertThat(title.contentType()).isEqualTo(SlideType.TITLE);
+        assertThat(title.blocks()).hasSize(5);
+        SlideBlock first = title.blocks().get(0);
+        assertThat(first).isInstanceOf(HeadingBlock.class);
+        assertThat(((HeadingBlock) first).text()).isEqualTo("Welcome");
     }
 
     @Test

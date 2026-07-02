@@ -95,3 +95,23 @@ export const FollowUpMode = {
 } as const satisfies Record<FollowUpMode, FollowUpMode>;
 
 export const FOLLOW_UP_MODE_LIST = Object.values(FollowUpMode) as FollowUpMode[];
+
+export type SlideBlockKind = "BodyBlock" | "BulletListBlock" | "CalloutBlock" | "HeadingBlock" | "ImageBlock";
+export const SlideBlockKind = {
+  BodyBlock: "BodyBlock",
+  BulletListBlock: "BulletListBlock",
+  CalloutBlock: "CalloutBlock",
+  HeadingBlock: "HeadingBlock",
+  ImageBlock: "ImageBlock",
+} as const satisfies Record<SlideBlockKind, SlideBlockKind>;
+
+export const SLIDE_BLOCK_KIND_LIST = Object.values(SlideBlockKind) as SlideBlockKind[];
+
+export type CalloutTone = "INFO" | "SUCCESS" | "WARN";
+export const CalloutTone = {
+  INFO: "INFO",
+  SUCCESS: "SUCCESS",
+  WARN: "WARN",
+} as const satisfies Record<CalloutTone, CalloutTone>;
+
+export const CALLOUT_TONE_LIST = Object.values(CalloutTone) as CalloutTone[];

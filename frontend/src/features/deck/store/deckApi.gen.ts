@@ -933,7 +933,52 @@ export type FollowUpContent = {
   mode: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
   contentType: "FOLLOW_UP";
 };
+export type HeadingBlock = {
+  id: string;
+  text?: string;
+  level?: number;
+  kind: "HeadingBlock";
+};
+export type BodyBlock = {
+  id: string;
+  richBody?: string;
+  kind: "BodyBlock";
+};
+export type BulletListBlock = {
+  id: string;
+  items?: string[];
+  kind: "BulletListBlock";
+};
+export type ImageBlock = {
+  id: string;
+  image?: AppImage;
+  caption?: string;
+  kind: "ImageBlock";
+};
+export type CalloutBlock = {
+  id: string;
+  tone?: "INFO" | "WARN" | "SUCCESS";
+  richBody?: string;
+  kind: "CalloutBlock";
+};
+export type SlideBlock =
+  | ({
+      kind: "HeadingBlock";
+    } & HeadingBlock)
+  | ({
+      kind: "BodyBlock";
+    } & BodyBlock)
+  | ({
+      kind: "BulletListBlock";
+    } & BulletListBlock)
+  | ({
+      kind: "ImageBlock";
+    } & ImageBlock)
+  | ({
+      kind: "CalloutBlock";
+    } & CalloutBlock);
 export type TitleContent = {
+  blocks: SlideBlock[];
   contentType: "TITLE";
 };
 export type MediaContent = {

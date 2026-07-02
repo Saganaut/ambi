@@ -31,6 +31,7 @@ import { RankingOptionsSection } from "../EditSlideSections/RankingOptionsSectio
 import { SlideOptionsSection } from "../EditSlideSections/SlideOptionsSection";
 import { TextOptionsSection } from "../EditSlideSections/TextOptionsSection";
 import { useSlide } from "@/features/deck/hooks/useSlide";
+import { isScorableSlideType } from "@deck/utils/slideContent";
 import { Dropdown } from "@/shared/components/Forms/Input/Dropdown/Dropdown";
 import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
 import { Toggle } from "@/shared/components/Forms/Input/Toggle/Toggle";
@@ -85,6 +86,10 @@ const AnswerPanel = ({
   const slide = getSlide(slideId)
   const idPrefix = "slide-answer"
   const disabled = false
+  // Answer/scoring knobs (time limit, multiple answers, reveal results, …) are
+  // meaningless for non-scorable "content" kinds (TITLE / MEDIA / Q_AND_A), so
+  // the whole settings form is hidden for them; only the per-kind section shows.
+  const isScorable = slide != null && isScorableSlideType(slide.content.contentType)
 
   const deckDefault = deckSettings?.answerSettings;
   const hasOverride = answerSettings != null;
@@ -181,7 +186,7 @@ const AnswerPanel = ({
 
   return (
     <div className={slidePanel.panel}>
-      {hasOverride ? (
+      {isScorable && (hasOverride ? (
         <div className={styles.overrideHint}>
           <span>Overriding deck defaults</span>
           <Btn
@@ -196,8 +201,9 @@ const AnswerPanel = ({
         <p className={styles.inherited}>
           Using the deck default. Edits below apply to this slide only.
         </p>
-      )}
+      ))}
 
+      {isScorable && (
       <section className={slidePanel.section}>
         <>
           <Toggle
@@ -291,6 +297,7 @@ const AnswerPanel = ({
           </Btn>
         </Tooltip>
       </section>
+      )}
 
       <section className={slidePanel.section} >
         {slide &&

@@ -14,7 +14,24 @@
  */
 import { nanoid } from "nanoid";
 import { McqOption, SlideContent } from "../store/deckApi.gen";
+import { createSlideBlock } from "../components/DeckEditor/SlideContent/SlideContent/Block.types";
 type SlideType = NonNullable<SlideContent["contentType"]>;
+
+/**
+ * Slide kinds that produce no score and take no player answer — mirrors the
+ * backend `NonScorableContent` union (TITLE / MEDIA / Q_AND_A). Used to hide
+ * answer/scoring UI (time limit, multiple answers, reveal-results, …) for these
+ * kinds. Keep in sync with the backend split.
+ */
+export const NON_SCORABLE_SLIDE_TYPES: ReadonlySet<SlideType> = new Set<SlideType>([
+  "TITLE",
+  "MEDIA",
+  "Q_AND_A",
+]);
+
+/** True when a slide kind is scored / accepts player answers. */
+export const isScorableSlideType = (slideType: SlideType): boolean =>
+  !NON_SCORABLE_SLIDE_TYPES.has(slideType);
 
 const assertNever = (slideType: never): never => {
   throw new Error(`Unhandled slideType: ${String(slideType)}`);
@@ -30,7 +47,9 @@ const assertNever = (slideType: never): never => {
 export const buildDefaultContent = (slideType: SlideType): SlideContent => {
   switch (slideType) {
     case "TITLE":
-      return { contentType: "TITLE" };
+      // A content slide starts with a single heading block so the canvas isn't
+      // empty; the author adds/reorders more blocks from there.
+      return { contentType: "TITLE", blocks: [createSlideBlock("HeadingBlock")] };
     case "MEDIA":
       return {
         contentType: "MEDIA",

@@ -109,12 +109,17 @@ frontend branches on one contract.
    `@Version` already guards the whole structure, so a per-slide version is only useful if
    we later add *scoped merge-retry* (on a deck-level version clash, re-apply a
    single-slide edit to the fresh deck). Left in place for that future; unused today.
-2. **`content` is wired in — MCQ only so far.** `Slide` now carries a polymorphic
-   `SlideContent content` (Mongo persists it with a `_class` hint), and it round-trips
-   through `SlideRequest`/`SlideResponse`. On the wire it's a discriminated union keyed by
+2. **`content` is wired in.** `Slide` carries a polymorphic `SlideContent content`
+   (Mongo persists it with a `_class` hint), and it round-trips through
+   `SlideRequest`/`SlideResponse`. On the wire it's a discriminated union keyed by
    `contentType` (the slide's `SlideType`); `SlideContent` exposes it to the OpenAPI spec
    via `@Schema(discriminatorProperty/oneOf/discriminatorMapping)` so the generated client
-   sees a real union. Only `MCQ` is registered today — adding a type means: a
-   `@JsonSubTypes.Type` entry on `SlideContent` and its `Scorable`/`NonScorable`
+   sees a real union. `MCQ` (scorable) and `TITLE` (non-scorable "content" slide, whose
+   body is a nested polymorphic `List<SlideBlock>` — heading/body/bullet/image/callout,
+   itself a discriminated union under `content/parts/block`) are fully wired end-to-end;
+   the remaining kinds carry records but are not yet surfaced in the editor. Adding a type
+   means: a `@JsonSubTypes.Type` entry on `SlideContent` and its `Scorable`/`NonScorable`
    sub-interface, plus a `oneOf` + `@DiscriminatorMapping` entry on the `SlideContent`
-   schema. Content payloads are not yet `@Valid`-validated on the request side.
+   schema (a nested union like `SlideBlock` follows the same ritual and is flattened by the
+   generic `OpenApiConfig.flattenPolymorphicUnions`). Content payloads are not yet
+   `@Valid`-validated on the request side.

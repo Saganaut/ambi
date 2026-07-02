@@ -44,6 +44,8 @@ const ScalesSlideContent = lazy(() =>
   import("../SlideContent/ScalesSlideContent/ScalesSlideContent").then((m) => ({ default: m.ScalesSlideContent })));
 const TextSlideContent = lazy(() =>
   import("../SlideContent/TextSlideContent/TextSlideContent").then((m) => ({ default: m.TextSlideContent })));
+const TitleSlideContent = lazy(() =>
+  import("../SlideContent/TitleSlideContent/TitleSlideContent").then((m) => ({ default: m.TitleSlideContent })));
 import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
 import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
 import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
@@ -128,7 +130,7 @@ const SlideDisplay = () => {
       case "FOLLOW_UP":
         return <FollowUpSlideContent deckId={deckId} slideId={slide.id} />;
       case "TITLE":
-        return <p> Not implemented</p>;
+        return <TitleSlideContent deckId={deckId} slideId={slideId} />;
       case "MEDIA":
         return <p> Not implemented</p>;
       default:

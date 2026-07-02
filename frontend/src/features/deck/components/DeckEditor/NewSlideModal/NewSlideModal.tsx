@@ -17,7 +17,7 @@ interface NewSlideModalProps {
 }
 
 const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
-  TITLE: "Title",
+  TITLE: "Content",
   MCQ: "Multiple Choice",
   TEXT: "Text Answer",
   NUMBER: "Number Answer",
@@ -34,10 +34,14 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
 };
 
 // Preserve the order defined in the graphics map by reading its keys directly.
-// FOLLOW_UP is excluded: a follow-up is never created standalone — it's
-// attached to a parent slide via its "Add follow-up slide" action.
+// Excluded from the picker:
+//   - FOLLOW_UP — never created standalone; attached to a parent slide via its
+//     "Add follow-up slide" action.
+//   - MEDIA — folded into the "Content" slide (an image is an image block), so
+//     there is no dedicated media slide to create.
+const HIDDEN_SLIDE_TYPES: ReadonlySet<SlideType> = new Set(["FOLLOW_UP", "MEDIA"]);
 const SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
-  (slideType) => slideType !== "FOLLOW_UP",
+  (slideType) => !HIDDEN_SLIDE_TYPES.has(slideType),
 );
 
 const NewSlideModal = ({ onPick }: NewSlideModalProps) => {
