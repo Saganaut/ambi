@@ -7,21 +7,22 @@
 //   - results     → cards with the final distribution + the correct answer
 //                   highlighted (disclosed only now, via the round result).
 //
-// Answering: a participant taps an option then Submit, which posts an McqAnswer
-// over the session connection and locks the inputs. There is no auto-flush of an
-// unsent draft — the Gen-2 round has no pre-close grace window and a locked round
-// rejects submissions, so a participant must lock in before the host closes. The
+// Answering: a participant taps one or more options then Submit, which posts an
+// McqAnswer over the session connection and locks the inputs. How many options may
+// be picked comes from the slide's `answerSettings.maxSelections` (1 = single, 0 =
+// unlimited, >1 = capped) via the shared `useCappedSelection` primitive; absent
+// settings default to single-select. There is no auto-flush of an unsent draft —
+// the Gen-2 round has no pre-close grace window and a locked round rejects
+// submissions, so a participant must lock in before the host closes. The
 // distribution comes from the live `optionCounts` tally; the correct option is
 // disclosed only once the results are revealed (`results.correctOption`).
-//
-// The Gen-2 slide model carries no answer key or multi-select flag, so this is
-// single-select and never highlights a correct option until reveal.
 import { useEffect, useState } from "react";
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
+import { useCappedSelection } from "./useCappedSelection";
 import styles from "./McqBoardContent.module.css";
 
 interface McqBoardContentProps {
@@ -29,6 +30,10 @@ interface McqBoardContentProps {
   mode: BoardQuestionMode;
   interactive: boolean;
 }
+
+/** The pick-count guidance for a multi-select round (0 = unlimited, >1 = capped). */
+const selectionHint = (max: number): string =>
+  max === 0 ? "Select any number" : `Select up to ${max.toString()}`;
 
 const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => {
   const options = slide.options ?? [];
@@ -42,16 +47,20 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
   const revealedCorrect =
     results?.slideId === slideId ? results.correctOption : null;
 
-  const [selected, setSelected] = useState<string | null>(null);
+  // How many options may be chosen; absent settings → single-select.
+  const maxSelections = slide.answerSettings?.maxSelections ?? 1;
+  const { selected, toggle, isSelected, atCap } = useCappedSelection(
+    maxSelections,
+    slideId,
+  );
   const [submitted, setSubmitted] = useState(false);
   useEffect(() => {
-    setSelected(null);
     setSubmitted(false);
   }, [slideId]);
 
   const submit = () => {
-    if (!interactive || submitted || selected === null) return;
-    sendAnswer(slideId, { answerType: "McqAnswer", optionIds: [selected] });
+    if (!interactive || submitted || selected.length === 0) return;
+    sendAnswer(slideId, { answerType: "McqAnswer", optionIds: selected });
     setSubmitted(true);
   };
 
@@ -63,12 +72,6 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
     (sum, n) => sum + n,
     0,
   );
-
-  const toggle = (id: string) => {
-    if (!canSelect) return;
-    // Single-select: tapping the current selection clears it, otherwise replaces.
-    setSelected((prev) => (prev === id ? null : id));
-  };
 
   // Even two-column grid, matching the editor's option layout.
   const columns = options.length
@@ -82,17 +85,20 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
         style={{ "--cols": columns } as React.CSSProperties}>
         {options.map((option) => {
           const id = option.id ?? "";
-          const isSelected = selected === id;
+          const optionSelected = isSelected(id);
           const isCorrect = revealCorrect && revealedCorrect === id;
           const count = optionCounts[id] ?? 0;
           const pct =
             totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
+          // At a >1 cap, unselected options can't be added (but chosen ones can
+          // still be deselected).
+          const optionSelectable = canSelect && (optionSelected || !atCap);
 
           const classes = [
             styles.option,
-            isSelected ? styles.selected : "",
+            optionSelected ? styles.selected : "",
             isCorrect ? styles.correct : "",
-            canSelect ? styles.selectable : "",
+            optionSelectable ? styles.selectable : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -102,8 +108,8 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
               key={id}
               type='button'
               className={classes}
-              disabled={!canSelect}
-              aria-pressed={canSelect ? isSelected : undefined}
+              disabled={!optionSelectable}
+              aria-pressed={canSelect ? optionSelected : undefined}
               onClick={() => {
                 toggle(id);
               }}
@@ -133,13 +139,18 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
           {submitted ? (
             <p className={styles.submitted}>Answer locked in ✓</p>
           ) : (
-            <Btn
-              size='sm'
-              variant='brand'
-              disabled={selected === null}
-              onClick={submit}>
-              Lock in answer
-            </Btn>
+            <>
+              {maxSelections !== 1 && (
+                <span className={styles.hint}>{selectionHint(maxSelections)}</span>
+              )}
+              <Btn
+                size='sm'
+                variant='brand'
+                disabled={selected.length === 0}
+                onClick={submit}>
+                Lock in answer
+              </Btn>
+            </>
           )}
         </div>
       )}

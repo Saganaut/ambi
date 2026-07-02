@@ -32,11 +32,20 @@ const slide: SlideView = {
   options: [
     { id: "a", text: "Alpha" },
     { id: "b", text: "Bravo" },
+    { id: "c", text: "Charlie" },
   ],
 };
 
-const renderContent = (interactive = true) =>
-  render(<McqBoardContent slide={slide} mode='prompt' interactive={interactive} />);
+// A slide variant with a maxSelections cap, spread over the base slide.
+const cappedSlide = (max: number): SlideView => ({
+  ...slide,
+  answerSettings: { maxSelections: max },
+});
+
+const renderContent = (slideView: SlideView = slide, interactive = true) =>
+  render(
+    <McqBoardContent slide={slideView} mode='prompt' interactive={interactive} />,
+  );
 
 describe("McqBoardContent answering", () => {
   beforeEach(() => {
@@ -57,6 +66,57 @@ describe("McqBoardContent answering", () => {
     });
   });
 
+  it("single-select (default) replaces the prior pick", async () => {
+    renderContent();
+
+    await userEvent.click(screen.getByRole("button", { name: "Alpha" }));
+    await userEvent.click(screen.getByRole("button", { name: "Bravo" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Lock in answer" }),
+    );
+
+    expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
+      answerType: "McqAnswer",
+      optionIds: ["b"],
+    });
+  });
+
+  it("multi-select submits every chosen option", async () => {
+    renderContent(cappedSlide(0)); // 0 = unlimited
+
+    await userEvent.click(screen.getByRole("button", { name: "Alpha" }));
+    await userEvent.click(screen.getByRole("button", { name: "Charlie" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Lock in answer" }),
+    );
+
+    expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
+      answerType: "McqAnswer",
+      optionIds: ["a", "c"],
+    });
+  });
+
+  it("blocks selecting past the cap, but the chosen ones can be swapped", async () => {
+    renderContent(cappedSlide(2));
+
+    await userEvent.click(screen.getByRole("button", { name: "Alpha" }));
+    await userEvent.click(screen.getByRole("button", { name: "Bravo" }));
+    // At the cap of 2, the third option is disabled.
+    expect(screen.getByRole("button", { name: "Charlie" })).toBeDisabled();
+
+    // Deselecting Alpha frees a slot so Charlie becomes selectable again.
+    await userEvent.click(screen.getByRole("button", { name: "Alpha" }));
+    await userEvent.click(screen.getByRole("button", { name: "Charlie" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Lock in answer" }),
+    );
+
+    expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
+      answerType: "McqAnswer",
+      optionIds: ["b", "c"],
+    });
+  });
+
   it("does not submit with no selection (button disabled)", () => {
     renderContent();
     expect(
@@ -65,7 +125,7 @@ describe("McqBoardContent answering", () => {
   });
 
   it("is read-only when not interactive (projected / revealed view)", () => {
-    renderContent(false);
+    renderContent(slide, false);
     expect(
       screen.queryByRole("button", { name: "Lock in answer" }),
     ).not.toBeInTheDocument();
