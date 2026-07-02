@@ -26,10 +26,15 @@ describe("resolveHostActions", () => {
     }
   });
 
-  it("offers nothing when there is no current slide to target", () => {
-    expect(resolveHostActions("IN_PROGRESS", "SUBMIT", false, false)).toEqual(
-      none,
-    );
+  it("offers only advance when in progress with no round open yet", () => {
+    // beginPlay flips to IN_PROGRESS without opening a round, so the host needs an
+    // advance affordance to open the first round; the phase is irrelevant here.
+    for (const phase of [null, "SUBMIT"] as (RoundPhase | null)[]) {
+      expect(resolveHostActions("IN_PROGRESS", phase, false, false)).toEqual({
+        ...none,
+        canAdvance: true,
+      });
+    }
   });
 
   it("offers only advance for a display slide", () => {

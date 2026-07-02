@@ -12,8 +12,9 @@
 //   - revealResults   → disclose answer + scores; backend REQUIRES a prior close
 //                      (throws while submissions are open), so this is gated to
 //                      the closed-but-unrevealed phases only.
-//   - advance         → next round (offered once results are revealed, or
-//                      immediately for a display slide with no submit phase).
+//   - advance         → open the next round (offered when no round is open yet —
+//                      just started, so advance opens the first slide — once
+//                      results are revealed, or immediately for a display slide).
 //   - restart         → reopen; backend rejects a round already scored at close,
 //                      so this is gated to the still-open phases only.
 import type { LiveSessionLifecycle, RoundPhase } from "../../store/liveSessionEvents";
@@ -45,7 +46,13 @@ export const resolveHostActions = (
   isDisplaySlide: boolean,
   hasSlide: boolean,
 ): HostActions => {
-  if (status !== "IN_PROGRESS" || !hasSlide) return NONE;
+  if (status !== "IN_PROGRESS") return NONE;
+
+  // In progress but no round is open — beginPlay flips the session to IN_PROGRESS
+  // without opening a round (it says so explicitly), so the host must open the
+  // first round to get a slide on the board. Advance resolves the first/next
+  // slide server-side; every other action needs an open round to target.
+  if (!hasSlide) return { ...NONE, canAdvance: true };
 
   // Display slides have no submit/close/reveal cycle — just move on.
   if (isDisplaySlide) return { ...NONE, canAdvance: true };

@@ -40,8 +40,9 @@ const SessionControls = ({ className }: SessionControlsProps) => {
   if (!viewerIsHost) return null;
 
   // Pre-game: the only host action is to start. Starting flips the session to
-  // IN_PROGRESS (via the socket), and the board re-derives its stage to the
-  // first slide — no navigation, the lobby is just a board stage.
+  // IN_PROGRESS (via the socket) but opens no round — the board stays on the
+  // lobby stage until the host opens the first round via the "Start round"
+  // action below (advance resolves the first slide server-side).
   if (status === "LOBBY") {
     return (
       <div className={`${styles.sessionControls} ${className ?? ""}`}>
@@ -122,8 +123,11 @@ const SessionControls = ({ className }: SessionControlsProps) => {
           Reveal answers
         </Btn>
         {actions.canAdvance && (
-          <Btn size='sm' onClick={sendAdvance}>
-            Next round
+          <Btn
+            size='sm'
+            variant={hasSlide ? undefined : "brand"}
+            onClick={sendAdvance}>
+            {hasSlide ? "Next round" : "Start round"}
           </Btn>
         )}
 
