@@ -3,7 +3,7 @@
 // (renders as <button> for native keyboard + screen reader support). `as` is
 // used for non-clickable cards where a semantic wrapper element is needed.
 import { type ElementType, type ReactNode } from "react";
-import type { BtnVariant, BtnSize } from "../Buttons/BtnTypes";
+import type { BtnVariant, BtnSize } from "../Buttons/Btn.types";
 import styles from "./Cards.module.css";
 
 interface CardProps {

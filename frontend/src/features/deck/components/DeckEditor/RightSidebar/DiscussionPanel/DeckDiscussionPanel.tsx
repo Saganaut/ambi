@@ -11,7 +11,7 @@ import { Btn } from "@ui/Buttons/Btn";
 import { Pagination } from "@ui/Pagination/Pagination";
 import { CommentThread } from "./CommentThread";
 import styles from "./DeckDiscussionPanel.module.css";
-import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 
 type ThreadStatus = CommentThreadResponse["status"];
 

@@ -17,7 +17,7 @@
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { CacheSyncApi } from "@/shared/store/enhancements/types";
+import { CacheSyncApi } from "@/shared/store/enhancements/Enhancements.types";
 import {
   commentApi,
   type AddThreadCommentApiArg,

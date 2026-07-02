@@ -1,4 +1,4 @@
-import type { ToastItem, ToastVariant } from "./ToastTypes";
+import type { ToastItem, ToastVariant } from "./Toast.types";
 
 export const TOAST_VARIANTS: ToastVariant[] = [
   "success",

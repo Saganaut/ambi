@@ -10,7 +10,7 @@ import { emptyImage, isImageEmpty, largestUrl } from "@utils/image";
 
 import { useClickOutside } from "@/shared/hooks/useClickOutside";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { McqOption } from "@/shared/types/elements";
+import { McqOption } from "@/shared/types/Elements.types";
 import { useRef, useState } from "react";
 import { EditOptionToolbar } from "../McqOptionEditable/EditOptionToolbar";
 import { resolveOptionColor } from "../McqOptionEditable/optionColor";

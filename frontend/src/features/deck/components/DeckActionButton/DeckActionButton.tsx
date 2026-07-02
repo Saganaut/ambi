@@ -11,7 +11,7 @@
 import { ChevronDownIcon, PlayIcon } from "@heroicons/react/24/outline";
 
 import { Btn } from "@ui/Buttons/Btn";
-import type { BtnSize } from "@ui/Buttons/BtnTypes";
+import type { BtnSize } from "@ui/Buttons/Btn.types";
 
 import styles from "./DeckActionButton.module.css";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";

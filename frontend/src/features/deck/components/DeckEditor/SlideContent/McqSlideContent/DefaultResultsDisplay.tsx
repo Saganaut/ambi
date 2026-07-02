@@ -1,4 +1,4 @@
-import type { ChartDatum } from "@/shared/components/Charts/types";
+import type { ChartDatum } from "@/shared/components/Charts/Chart.types";
 import { DragDropWrapper } from "@/shared/components/Wrappers/DragDropWrapper";
 import type { DragEndEvent } from "@dnd-kit/react";
 import React, { ReactNode } from "react";

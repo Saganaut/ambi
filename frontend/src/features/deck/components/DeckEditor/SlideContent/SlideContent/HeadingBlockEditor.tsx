@@ -7,7 +7,7 @@ import {
   HEADING_LEVELS,
   type BlockUpdate,
   type HeadingBlock,
-} from "./types";
+} from "./Block.types";
 import styles from "./SlideContent.module.css";
 
 interface HeadingBlockEditorProps {

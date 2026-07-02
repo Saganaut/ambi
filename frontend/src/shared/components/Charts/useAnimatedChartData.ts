@@ -5,10 +5,10 @@
 // live results stream in. Centralised here (and called once in
 // `ResultsDisplaySwitch`) so the charts stay purely presentational — they just
 // re-render off the `data`/`denominator`/`max` triple this returns.
-import type { McqOption } from "@/shared/types/elements";
+import type { McqOption } from "@/shared/types/Elements.types";
 import { useEffect, useRef, useState } from "react";
 import { deriveChartStats, mcqRandomDistribution, mcqToChartData } from "./adapters/mcq";
-import type { ChartDatum } from "./types";
+import type { ChartDatum } from "./Chart.types";
 
 const RANDOM_INTERVAL_MS = 3000;
 const RANDOM_VALUE_MAX = 10;

@@ -8,7 +8,7 @@ import { type PublishStatus } from "@deck/store/deckEnums.gen";
 import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckMutate } from "@deck/hooks/useDeckMutate";
 import { Btn } from "@ui/Buttons/Btn";
-import { type BtnVariant } from "@ui/Buttons/BtnTypes";
+import { type BtnVariant } from "@ui/Buttons/Btn.types";
 import { Badge } from "@ui/Badge/Badge";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 import styles from "./PublishStatusControl.module.css";

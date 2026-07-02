@@ -11,7 +11,7 @@ import {
   BLOCK_KIND_LABEL,
   type BlockUpdate,
   type SlideBlockUnion,
-} from "./types";
+} from "./Block.types";
 import { HeadingBlockEditor } from "./HeadingBlockEditor";
 import { BodyBlockEditor } from "./BodyBlockEditor";
 import { BulletListBlockEditor } from "./BulletListBlockEditor";

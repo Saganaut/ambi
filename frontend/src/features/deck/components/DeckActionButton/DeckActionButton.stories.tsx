@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/rules-of-hooks, no-console */
 /* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { BtnSize } from "@ui/Buttons/BtnTypes";
+import type { BtnSize } from "@ui/Buttons/Btn.types";
 import { DeckActionButton } from "./DeckActionButton";
 
 // DeckActionButton is currently presentational — the start/customize handlers

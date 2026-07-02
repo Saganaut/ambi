@@ -10,7 +10,7 @@ import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useDeckQuery } from "../../../../hooks/useDeckQuery";
 import { useDeckSettingsMutate } from "../../../../hooks/useDeckSettingsMutate";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
-import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 
 const DEFAULTS = {
   maxParticipants: 8,

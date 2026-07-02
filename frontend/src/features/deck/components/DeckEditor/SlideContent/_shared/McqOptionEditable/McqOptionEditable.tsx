@@ -5,7 +5,7 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, useState } from "react";
 
-import { ChartSegmentRenderProps } from "@/shared/components/Charts/types";
+import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types";
 import { Container } from "@components/Containers/Container";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";

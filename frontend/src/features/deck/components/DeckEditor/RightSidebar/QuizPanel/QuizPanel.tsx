@@ -12,7 +12,7 @@ import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { resolvePointSettings } from "../shared/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "@deck/components/DeckEditor/RightSidebar/shared/SettingsPanel.module.css";
-import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
 import { Toggle } from "@/shared/components/Forms/Input/Toggle/Toggle";
 import { POINT_SETTINGS_DEFAULTS as D } from "../shared/settingsDefaults";

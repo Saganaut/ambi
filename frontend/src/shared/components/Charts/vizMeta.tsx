@@ -2,7 +2,7 @@
 // icon shown for each `ChartType` in the authoring pickers. Shared so every chart
 // picker (the sidebar `McqResultsSection` and the on-canvas `ChartTypePicker`)
 // renders the same option set from one source instead of each keeping its own copy.
-import type { ChartType } from "./types";
+import type { ChartType } from "./Chart.types";
 
 import BarHorizontalIcon from "@assets/icons/charts/bar-horizontal.svg?react";
 import BarVerticalIcon from "@assets/icons/charts/bar-vertical.svg?react";

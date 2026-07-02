@@ -4,9 +4,9 @@
  * Also passes in question prompt editing calls to the wrapper component
  */
 import { AnswerSettings } from "@/features/deck/store/deckApi.gen";
-import { ChartDatum, ChartType } from "@/shared/components/Charts/types";
+import { ChartDatum, ChartType } from "@/shared/components/Charts/Chart.types";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { McqOption } from "@/shared/types/elements";
+import { McqOption } from "@/shared/types/Elements.types";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import { useState } from "react";
 import { CorrectToggle } from "../_shared/OptionControls/CorrectToggle";

@@ -10,7 +10,7 @@ import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
 import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
-import { ChartDatum, type ChartType } from "@/shared/components/Charts/types";
+import { ChartDatum, type ChartType } from "@/shared/components/Charts/Chart.types";
 import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
 import { ReactNode } from "react";
 import { DefaultResultsDisplay } from "../McqSlideContent/DefaultResultsDisplay";

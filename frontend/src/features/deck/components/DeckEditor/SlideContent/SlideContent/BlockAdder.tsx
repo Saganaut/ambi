@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { Btn } from "@ui/Buttons/Btn";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import { BLOCK_KIND_OPTIONS, type SlideBlockKind } from "./types";
+import { BLOCK_KIND_OPTIONS, type SlideBlockKind } from "./Block.types";
 import styles from "./SlideContent.module.css";
 
 interface BlockAdderProps {

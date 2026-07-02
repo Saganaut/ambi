@@ -4,7 +4,7 @@
 // new question type is a single entry here — the renderers and the ResultsChart
 // dispatcher don't change. MCQ is the only entry today.
 import { mcqSampleDistribution, mcqToChartData, type McqOptionLike } from "./adapters/mcq";
-import type { ChartType } from "./types";
+import type { ChartType } from "./Chart.types";
 
 export interface McqResultsConfig {
   supportedViz: ChartType[];

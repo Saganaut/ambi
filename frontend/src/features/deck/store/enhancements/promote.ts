@@ -16,7 +16,7 @@
  * Imported for its side effect via the `../../../../shared/store/apiEnhancements`
  * barrel.
  */
-import { CacheSyncMutationApi } from "@/shared/store/enhancements/types";
+import { CacheSyncMutationApi } from "@/shared/store/enhancements/Enhancements.types";
 import {
   deckApi,
   type DeckResponse,

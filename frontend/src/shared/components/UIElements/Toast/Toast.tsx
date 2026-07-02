@@ -1,5 +1,5 @@
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import type { ToastItem } from "./ToastTypes";
+import type { ToastItem } from "./Toast.types";
 import styles from "./Toast.module.css";
 import { IconBtn } from "../Buttons/IconBtn";
 

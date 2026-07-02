@@ -9,7 +9,7 @@ import React from "react";
 import type { InputBaseProps } from "../InputBaseProps";
 import shared from "../Input.module.css";
 import styles from "./Input.module.css";
-import { BtnVariant } from "@ui/Buttons/BtnTypes";
+import { BtnVariant } from "@ui/Buttons/Btn.types";
 
 interface InputProps
   extends InputBaseProps, React.InputHTMLAttributes<HTMLInputElement> {

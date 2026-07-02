@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Btn } from "./Btn";
-import type { BtnVariant, BtnFill, BtnSize } from "./BtnTypes";
+import type { BtnVariant, BtnFill, BtnSize } from "./Btn.types";
 
 const VARIANTS: BtnVariant[] = [
   "primary",

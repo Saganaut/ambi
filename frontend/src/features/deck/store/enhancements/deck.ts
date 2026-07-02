@@ -22,7 +22,7 @@
 import {
   CacheSyncApi,
   CacheSyncMutationApi,
-} from "@/shared/store/enhancements/types";
+} from "@/shared/store/enhancements/Enhancements.types";
 import {
   deckApi,
   type ClearDeckBackgroundColorApiArg,

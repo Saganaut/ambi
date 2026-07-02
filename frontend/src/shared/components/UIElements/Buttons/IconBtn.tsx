@@ -3,10 +3,10 @@
 //   - `fill` picks default / bordered / ghost.
 // For a close (X) button, pass an XMarkIcon as the icon and use
 // fill="ghost". `shape="avatar"` gives the round photo treatment (zero
-// padding, thicker border, image clipping). See BtnTypes.ts and
+// padding, thicker border, image clipping). See Btn.types.ts and
 // styling-rules.md "Named button + icon-button variants".
 import React, { type ReactNode } from "react";
-import type { BtnShape, BtnSize, BtnVariant, BtnFill } from "./BtnTypes";
+import type { BtnShape, BtnSize, BtnVariant, BtnFill } from "./Btn.types";
 import styles from "./Buttons.module.css";
 
 interface IconBtnProps extends Omit<

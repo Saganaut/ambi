@@ -1,6 +1,6 @@
 import { createContext, Dispatch, SetStateAction, useState, type ReactNode } from "react";
 
-import type { ChartType } from "@components/Charts/types";
+import type { ChartType } from "@components/Charts/Chart.types";
 
 /**
  * Transient "preview before commit" state for the active slide's results

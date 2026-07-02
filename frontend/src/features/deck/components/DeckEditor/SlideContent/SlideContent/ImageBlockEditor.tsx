@@ -5,7 +5,7 @@
 // gallery (e.g. lecture content).
 import { Input } from "@components/Forms/Input/Input/Input";
 import { externalImage } from "@utils/image";
-import type { ImageBlock, BlockUpdate } from "./types";
+import type { ImageBlock, BlockUpdate } from "./Block.types";
 import styles from "./SlideContent.module.css";
 
 interface ImageBlockEditorProps {

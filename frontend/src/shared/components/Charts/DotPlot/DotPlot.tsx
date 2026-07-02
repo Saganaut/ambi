@@ -1,4 +1,4 @@
-import type { ChartProps } from "../types";
+import type { ChartProps } from "../Chart.types";
 import styles from "./DotPlot.module.css";
 
 export type DotPlotProps = ChartProps;

@@ -10,7 +10,7 @@ import { Toast, ToastContainer } from "@ui/Toast/Toast";
 import type {
   ToastConfig,
   ToastItem,
-} from "@ui/Toast/ToastTypes";
+} from "@ui/Toast/Toast.types";
 
 export interface ToastContextValue {
   addToast: (config: ToastConfig) => void;

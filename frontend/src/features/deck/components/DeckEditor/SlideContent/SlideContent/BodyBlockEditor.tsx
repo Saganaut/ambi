@@ -2,7 +2,7 @@
 // real authoring happens inside TipTap.
 
 import { RichTextInput } from "@components/Forms/Input/RichTextInput/RichTextInput";
-import type { BodyBlock, BlockUpdate } from "./types";
+import type { BodyBlock, BlockUpdate } from "./Block.types";
 
 interface BodyBlockEditorProps {
   block: BodyBlock;

@@ -8,7 +8,7 @@
 //
 // Only renders for MCQ slides, whose content carries `dataVisualization`.
 import { mcqResults } from "@components/Charts/registry";
-import type { ChartType } from "@components/Charts/types";
+import type { ChartType } from "@components/Charts/Chart.types";
 import { VIZ_META } from "@components/Charts/vizMeta";
 import { useResultsPreview } from "@deck/contexts/useResultsPreview";
 import { useSlide } from "@deck/hooks/useSlide";

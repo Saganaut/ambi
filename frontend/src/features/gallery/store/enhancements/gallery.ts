@@ -30,7 +30,7 @@ import type {
   CacheSyncApi,
   CacheSyncMutationApi,
   WithApiQueries,
-} from "../../../../shared/store/enhancements/types";
+} from "../../../../shared/store/enhancements/Enhancements.types";
 
 /** Args of every materialized `listImages` query whose gallery id matches. */
 const listImageArgsForGallery = (

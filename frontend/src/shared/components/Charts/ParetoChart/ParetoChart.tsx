@@ -4,7 +4,7 @@
 // option counts when the author wants to see how few options capture most of
 // the responses. Pure SVG (bars + polyline) with the category labels listed
 // below in the sorted order.
-import type { ChartProps } from "../types";
+import type { ChartProps } from "../Chart.types";
 import styles from "./ParetoChart.module.css";
 
 export type ParetoChartProps = ChartProps;

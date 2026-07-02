@@ -7,7 +7,7 @@ import {
   type BlockUpdate,
   type CalloutBlock,
   type CalloutTone,
-} from "./types";
+} from "./Block.types";
 import styles from "./SlideContent.module.css";
 
 interface CalloutBlockEditorProps {

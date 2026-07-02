@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, useState } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
-import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../types";
+import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.types";
 import styles from "./PieChart.module.css";
 
 const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;

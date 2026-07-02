@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useRef } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
-import type { ChartProps, ChartSegmentRenderProps } from "../types";
+import type { ChartProps, ChartSegmentRenderProps } from "../Chart.types";
 import styles from "./BarChart.module.css";
 
 export type BarChartProps = ChartProps;

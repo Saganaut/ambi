@@ -2,7 +2,7 @@
 /* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Badge } from "./Badge";
-import type { BtnVariant, BtnSize } from "../Buttons/BtnTypes";
+import type { BtnVariant, BtnSize } from "../Buttons/Btn.types";
 
 const VARIANTS: BtnVariant[] = [
   "primary",

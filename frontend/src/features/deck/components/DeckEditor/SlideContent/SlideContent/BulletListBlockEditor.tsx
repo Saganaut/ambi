@@ -5,7 +5,7 @@ import { MinusIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { Input } from "@components/Forms/Input/Input/Input";
-import type { BulletListBlock, BlockUpdate } from "./types";
+import type { BulletListBlock, BlockUpdate } from "./Block.types";
 import styles from "./SlideContent.module.css";
 
 const MIN_BULLET_ITEMS = 1;

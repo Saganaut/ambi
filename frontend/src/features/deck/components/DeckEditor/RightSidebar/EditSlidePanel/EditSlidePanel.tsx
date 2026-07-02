@@ -3,7 +3,7 @@
 // section, then the image section, session pacing, and provenance footer.
 // Per-kind sections each own their own useSlideEditor instance.
 import { SlotMapping, slotMappingOptions } from "@/features/deck/contexts/ImageSlot.types";
-import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { useDeckQuery } from "@/features/deck/hooks/useDeckQuery";
 import { useSlide } from "@deck/hooks/useSlide";
 import {

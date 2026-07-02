@@ -9,7 +9,7 @@ import { useState } from "react";
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import { useFitText } from "@hooks/useFitText";
 
-import { McqOption } from "@/shared/types/elements";
+import { McqOption } from "@/shared/types/Elements.types";
 
 interface LabelProps {
   /** Shrink text to fit a bounded slot (the option card). */

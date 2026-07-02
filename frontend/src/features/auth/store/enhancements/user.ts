@@ -27,7 +27,7 @@ import {
   accountApi,
   type UpdatePreferencesApiArg,
 } from "../../../account/store/accountApi.gen";
-import type { CacheSyncMutationApi } from "../../../../shared/store/enhancements/types";
+import type { CacheSyncMutationApi } from "../../../../shared/store/enhancements/Enhancements.types";
 
 /** Land the mutation's profile response as the new `getMe` cache truth. */
 const upsertGetMe = (

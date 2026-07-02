@@ -20,7 +20,7 @@ import { useDeckQuery } from "../../../../hooks/useDeckQuery";
 import { resolveAnswerSettings, RESULTS_DISPLAY_MODE_OPTIONS } from "../shared/settingsDefaults";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "../shared/SettingsPanel.module.css";
-import { deckAndSlideIdProps } from "@/features/deck/deck.types";
+import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { ResultsDisplayMode, SlideType } from "@/features/deck/store/deckEnums.gen";
 import { FollowUpOptionsSection } from "../EditSlideSections/FollowUpOptionsSection";
 import { McqOptionsSection } from "../EditSlideSections/McqOptionsSection";

@@ -24,7 +24,7 @@ import {
   type SlideResponse,
 } from "@deck/store/deckApi.gen";
 import { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
-import type { ImageRole } from "../deck.types";
+import type { ImageRole } from "../Deck.types";
 import { buildDefaultContent } from "../utils/slideContent";
 
 /**

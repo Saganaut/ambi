@@ -1,7 +1,7 @@
 // Small status pill. Variant and size map to className modifiers in
 // Badge.module.css.
 import styles from "./Badge.module.css";
-import type { BtnVariant, BtnSize } from "../Buttons/BtnTypes";
+import type { BtnVariant, BtnSize } from "../Buttons/Btn.types";
 
 interface BadgeProps {
   label: string;

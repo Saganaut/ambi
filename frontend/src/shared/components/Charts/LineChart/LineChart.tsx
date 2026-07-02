@@ -1,4 +1,4 @@
-import type { ChartProps } from "../types";
+import type { ChartProps } from "../Chart.types";
 import styles from "./LineChart.module.css";
 
 export type LineChartProps = ChartProps;

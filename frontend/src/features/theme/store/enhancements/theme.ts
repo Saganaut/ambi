@@ -21,7 +21,7 @@ import { themeApi } from "../themeApi.gen";
 import type {
   CacheSyncApi,
   CacheSyncMutationApi,
-} from "@shared/store/enhancements/types";
+} from "@shared/store/enhancements/Enhancements.types";
 import {
   ThemeResponse,
   UpdateThemeApiArg,

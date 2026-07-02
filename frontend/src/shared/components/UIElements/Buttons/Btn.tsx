@@ -4,9 +4,9 @@
 //   - `fill` picks how the color renders (default = filled, bordered =
 //     filled + border, ghost = text-only).
 // Both map to nested rules under .btn in Buttons.module.css; see
-// BtnTypes.ts and styling-rules.md "Named button + icon-button variants".
+// Btn.types.ts and styling-rules.md "Named button + icon-button variants".
 import type { ReactNode } from "react";
-import type { BtnVariant, BtnFill, BtnSize, BtnShape } from "./BtnTypes";
+import type { BtnVariant, BtnFill, BtnSize, BtnShape } from "./Btn.types";
 import styles from "./Buttons.module.css";
 
 interface BtnProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

@@ -17,7 +17,7 @@
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
-import { CacheSyncMutationApi } from "@/shared/store/enhancements/types";
+import { CacheSyncMutationApi } from "@/shared/store/enhancements/Enhancements.types";
 import { attachedFollowUpOf, groupIntoUnits } from "../../utils/followUp";
 import {
   deckApi,

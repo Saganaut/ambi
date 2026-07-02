@@ -12,7 +12,7 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import type { ReactNode } from "react";
 
 import { Btn } from "../Btn";
-import type { BtnFill, BtnShape, BtnSize, BtnVariant } from "../BtnTypes";
+import type { BtnFill, BtnShape, BtnSize, BtnVariant } from "../Btn.types";
 import { DropdownMenu } from "@components/Menus/DropdownMenu";
 import styles from "./SplitBtn.module.css";
 

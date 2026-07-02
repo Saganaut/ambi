@@ -3,9 +3,9 @@
 // Used by the deck editor (with a synthetic sample distribution) and, later, by
 // the live session board (with the real round-result tally) — same function,
 // same output, so the preview an author sees matches the live render.
-import type { McqOption } from "@/shared/types/elements";
+import type { McqOption } from "@/shared/types/Elements.types";
 import { resolveImageUrl } from "@utils/image";
-import type { ChartDatum } from "../types";
+import type { ChartDatum } from "../Chart.types";
 
 /** The option fields the MCQ adapter needs from the domain model. */
 export type McqOptionLike = McqOption;

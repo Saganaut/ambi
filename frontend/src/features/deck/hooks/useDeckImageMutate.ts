@@ -19,7 +19,7 @@ import {
   useSetDeckBackgroundImageMutation,
   useClearDeckBackgroundImageMutation,
 } from "@deck/store/deckApi.gen";
-import type { ImageRole } from "../deck.types";
+import type { ImageRole } from "../Deck.types";
 
 interface UseDeckImageMutateResult {
   /** Set the deck's cover or background image. */

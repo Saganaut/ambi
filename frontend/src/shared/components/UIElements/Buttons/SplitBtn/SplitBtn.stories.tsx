@@ -8,7 +8,7 @@ import {
   DropdownMenuDivider,
 } from "@components/Menus/DropdownMenu";
 import { SplitBtn } from "./SplitBtn";
-import type { BtnVariant, BtnFill, BtnSize, BtnShape } from "../BtnTypes";
+import type { BtnVariant, BtnFill, BtnSize, BtnShape } from "../Btn.types";
 
 const VARIANTS: BtnVariant[] = [
   "primary",

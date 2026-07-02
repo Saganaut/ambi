@@ -1,4 +1,4 @@
-import type { ChartDatum, ChartType } from "./types";
+import type { ChartDatum, ChartType } from "./Chart.types";
 
 // Shared fixtures for the chart stories. A small MCQ-style distribution with one
 // correct (highlighted) option and a couple of explicit option colours, plus the

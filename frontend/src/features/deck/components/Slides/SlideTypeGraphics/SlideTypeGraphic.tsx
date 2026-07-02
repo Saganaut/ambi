@@ -20,7 +20,7 @@ import type {
   BtnShape,
   BtnSize,
   BtnVariant,
-} from "@ui/Buttons/BtnTypes";
+} from "@ui/Buttons/Btn.types";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { slideTypeGraphics } from "./slideTypeGraphics";
 import styles from "./SlideTypeGraphic.module.css";
