@@ -1,5 +1,3 @@
-//TODO:  Is this deprecated?
-
 // Redux slice that brokers "this request came back 401, please sign in" between
 // the RTK Query base-query wrapper (`emptyApi.ts`) and the React tree
 // (`AuthPromptBridge`). The base query dispatches `authPromptRequested` from
