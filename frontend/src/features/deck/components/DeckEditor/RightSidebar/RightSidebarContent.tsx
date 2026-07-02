@@ -1,7 +1,6 @@
 import { PanelKey } from "@/features/deck/store/panelSlice.ts";
 import { useAppDispatch } from "@/shared/hooks/storeHooks.ts";
 import { RootState } from "@/shared/store/store.ts";
-import { RightSidebar } from "@components/Layout/RightSidebar";
 import { close, open } from "@deck/store/panelSlice.ts";
 import {
   ChatBubbleLeftRightIcon,
@@ -17,6 +16,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { useSelector } from "react-redux";
 
+import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
 import styles from "./RightSidebarContent.module.css";
 import { PANEL_TITLES } from "./data";
 
@@ -38,7 +38,7 @@ const RightSidebarContent = () => {
   };
 
   return (
-    <RightSidebar
+    <Dashboard.EndPanel
       className={`${styles.rightSidebarContent} ${isFullScreen ? styles.isCollapsed : ""}`}
     >
       <div className={styles.iconStrip} role="toolbar" aria-label="Deck panels">
@@ -133,7 +133,7 @@ const RightSidebarContent = () => {
           </>
         )}
       </div>
-    </RightSidebar>
+    </Dashboard.EndPanel>
   );
 };
 

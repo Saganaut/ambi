@@ -6,8 +6,13 @@
 // the literal types here must match those exact strings.
 
 //TODO: this needs to be completely re-worked when we finished updates on the backend, this should be unecessary
+import {
+  DrawingAnswer,
+  McqAnswer,
+  RankingAnswer,
+  ScalesAnswer,
+} from "@/features/liveSession/store/liveSessionApi.gen";
 import type { McqOption } from "@deck/store/deckApi.gen";
-import type { AllocationQuestion, DrawingAnswer, DrawingQuestion, GridQuestion, MatchingPair, MatchingQuestion, McqAnswer, McqQuestion, NumberQuestion, PlaceOnImageQuestion, QAndAQuestion, RankingAnswer, RankingItem, RankingQuestion, ScalesAnswer, ScalesQuestion, Slide, Stroke, TextQuestion, WordCloudAnswer, WordCloudQuestion } from "@store/AmbiApi";
 
 // Codegen names them `<Class>Base` for the abstract parent so reproduce the answer leaves.
 export interface TextAnswer {
@@ -39,21 +44,6 @@ export interface MatchingAnswer {
   leftIdToRightId?: Record<string, string>;
 }
 
-export type DeckElement =
-  | Slide
-  | McqQuestion
-  | TextQuestion
-  | NumberQuestion
-  | RankingQuestion
-  | ScalesQuestion
-  | QAndAQuestion
-  | GridQuestion
-  | PlaceOnImageQuestion
-  | WordCloudQuestion
-  | AllocationQuestion
-  | MatchingQuestion
-  | DrawingQuestion;
-
 export type AnswerPayload =
   | McqAnswer
   | TextAnswer
@@ -62,39 +52,9 @@ export type AnswerPayload =
   | ScalesAnswer
   | GridAnswer
   | PlaceOnImageAnswer
-  | WordCloudAnswer
   | AllocationAnswer
   | MatchingAnswer
   | DrawingAnswer
   | TimeoutAnswer;
 
-export type {
-  McqOption,
-  RankingItem,
-  MatchingPair,
-  Slide,
-  McqQuestion,
-  TextQuestion,
-  NumberQuestion,
-  RankingQuestion,
-  ScalesQuestion,
-  QAndAQuestion,
-  GridQuestion,
-  PlaceOnImageQuestion,
-  WordCloudQuestion,
-  AllocationQuestion,
-  MatchingQuestion,
-  DrawingQuestion,
-  Stroke,
-  McqAnswer,
-  RankingAnswer,
-  ScalesAnswer,
-  WordCloudAnswer,
-  DrawingAnswer,
-};
-
-/** True when an element is a non-interactive Slide. */
-export const isSlide = (e: DeckElement): e is Slide => e.kind === "Slide";
-
-/** True when an element is one of the scored question kinds. */
-export const isQuestion = (e: DeckElement): boolean => e.kind !== "Slide";
+export type { DrawingAnswer, McqAnswer, McqOption, RankingAnswer, ScalesAnswer };

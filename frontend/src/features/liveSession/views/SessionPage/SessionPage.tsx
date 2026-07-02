@@ -1,12 +1,7 @@
 // CLAUDE NEVER MODIFY THIS FILE!
 // THIS IS A PERFECT EXAMPLE OF HOW OUR PAGES SHOULD BE ORGANIZED
 
-import { CanvasBody } from "@/shared/components/Layout/CanvasBody";
-import { CanvasHeader } from "@/shared/components/Layout/CanvasHeader";
-import { InnerDisplay } from "@/shared/components/Layout/InnerDisplay";
-import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
-import { RightSidebar } from "@/shared/components/Layout/RightSidebar";
-import { MainBodyDashboard } from "@components/Layout/MainBodyDashboard";
+import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
 import { SessionBoard } from "../../components/SessionBoard/SessionBoard";
 import { SessionChat } from "../../components/SessionChat/SessionChat";
 import { SessionControls } from "../../components/SessionControls/SessionControls";
@@ -18,25 +13,25 @@ import styles from "./SessionPage.module.css";
 
 const SessionPage = () => {
   return (
-    <MainBodyDashboard className={styles.sessionDashboard}>
-      <CanvasHeader className={styles.header}>
+    <Dashboard className={styles.sessionDashboard}>
+      <Dashboard.Header className={styles.header}>
         <SessionHeader />
-      </CanvasHeader>
-      <CanvasBody className={styles.body}>
-        <LeftSidebar className={styles.leftSidebar}>
+      </Dashboard.Header>
+      <Dashboard.Body className={styles.body}>
+        <Dashboard.StartPanel className={styles.leftSidebar}>
           <SessionRoundTracker />
-        </LeftSidebar>
-        <InnerDisplay className={styles.innerDisplay}>
+        </Dashboard.StartPanel>
+        <Dashboard.Canvas className={styles.innerDisplay}>
           <SessionBoard className={styles.sessionBoard} />
           <SessionControls className={styles.sessionControls} />
-        </InnerDisplay>
-        <RightSidebar className={styles.rightSidebar}>
+        </Dashboard.Canvas>
+        <Dashboard.EndPanel className={styles.rightSidebar}>
           <SessionLeaderboard />
           <SessionPlayerList />
           <SessionChat />
-        </RightSidebar>
-      </CanvasBody>
-    </MainBodyDashboard>
+        </Dashboard.EndPanel>
+      </Dashboard.Body>
+    </Dashboard>
   );
 };
 

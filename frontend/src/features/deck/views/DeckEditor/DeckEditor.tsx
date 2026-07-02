@@ -19,20 +19,17 @@ import { ArrowsPointingOutIcon, PlayIcon, ShareIcon } from "@heroicons/react/24/
 
 import { deckValidation } from "@/features/deck/store/deckValidationConstants";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
-import { CanvasBody } from "@/shared/components/Layout/CanvasBody";
-import { CanvasHeader } from "@/shared/components/Layout/CanvasHeader";
-import { InnerDisplay } from "@/shared/components/Layout/InnerDisplay";
-import { MainBodyDashboard } from "@/shared/components/Layout/MainBodyDashboard";
+import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
 import { DropdownMenuItem } from "@/shared/components/Menus/DropdownMenu";
 import { useFullScreen } from "@/shared/hooks/useFullScreen";
 
 import { Btn } from "@ui/Buttons/Btn";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
 import { SidePanelDrawer } from "../../components/DeckEditor/RightSidebar/SidePanelDrawer/SidePanelDrawer";
-import { EditorSkeleton } from "./EditorSkeleton";
 import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
 import { ResultsPreviewProvider } from "../../contexts/ResultsPreviewContext";
 import { useDeckEditor } from "../../hooks/useDeckEditor";
+import { EditorSkeleton } from "./EditorSkeleton";
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const DeckEditor = () => {
@@ -58,8 +55,8 @@ const DeckEditor = () => {
   if (isLoading) return <EditorSkeleton />;
 
   return (
-    <MainBodyDashboard className={styles.deckEditor}>
-      <CanvasHeader>
+    <Dashboard className={styles.deckEditor}>
+      <Dashboard.Header>
         <div className={styles.navbar}>
           <div className={styles.leftControlButtons}>
             <Btn
@@ -136,23 +133,23 @@ const DeckEditor = () => {
             )}
           </div>
         </div>
-      </CanvasHeader>
+      </Dashboard.Header>
 
-      <CanvasBody>
+      <Dashboard.Body>
         <ImageSlotProvider>
           <ResultsPreviewProvider>
             <LeftSidebarContent />
-            <InnerDisplay className={styles.slideCanvasContainer}>
+            <Dashboard.Canvas className={styles.slideCanvasContainer}>
               <SlideDisplay />
               <SpeakerNotesDrawer />
-            </InnerDisplay>
+            </Dashboard.Canvas>
             <SidePanelDrawer />
 
             <RightSidebarContent />
           </ResultsPreviewProvider>
         </ImageSlotProvider>
-      </CanvasBody>
-    </MainBodyDashboard>
+      </Dashboard.Body>
+    </Dashboard>
   );
 };
 

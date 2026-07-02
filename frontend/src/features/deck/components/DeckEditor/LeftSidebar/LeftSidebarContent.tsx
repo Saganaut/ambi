@@ -10,17 +10,17 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@ui/Buttons/Btn";
-import { SlideThumbnail } from "./SlideThumbnail";
 import styles from "./LeftSidebarContent.module.css";
+import { SlideThumbnail } from "./SlideThumbnail";
 
-import { useFullScreen } from "@hooks/useFullScreen";
+import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
 import { useModal } from "@/shared/hooks/useModal";
-import { LeftSidebar } from "@/shared/components/Layout/LeftSidebar";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
-import { getRouteApi } from "@tanstack/react-router";
-import { canHaveFollowUp, groupIntoUnits } from "@deck/utils/followUp";
-import { NewSlideModal } from "../NewSlideModal/NewSlideModal";
 import { SlideType } from "@deck/store/deckEnums.gen";
+import { canHaveFollowUp, groupIntoUnits } from "@deck/utils/followUp";
+import { useFullScreen } from "@hooks/useFullScreen";
+import { getRouteApi } from "@tanstack/react-router";
+import { NewSlideModal } from "../NewSlideModal/NewSlideModal";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -48,24 +48,24 @@ const LeftSidebarContent = () => {
     });
   };
   return (
-    <LeftSidebar
-      className={`${styles.leftSidebarContent} ${isFullScreen ? styles.isCollapsed : ""} `}>
+    <Dashboard.StartPanel
+      className={`${styles.leftSidebarContent} ${isFullScreen ? styles.isCollapsed : ""} `}
+    >
       <div>
         <Btn onClick={handleNewSlideClick}>New Slide</Btn>
       </div>
       <div className={styles.slideContainer}>
         {slides.length === 0 ? (
           <button
-            type='button'
+            type="button"
             className={styles.emptySlide}
             onClick={handleNewSlideClick}
-            aria-label='Create your first slide'>
-            <span className={styles.emptySlideIcon} aria-hidden='true'>
+            aria-label="Create your first slide"
+          >
+            <span className={styles.emptySlideIcon} aria-hidden="true">
               <PlusIcon />
             </span>
-            <span className={styles.emptySlideTitle}>
-              Create your first slide
-            </span>
+            <span className={styles.emptySlideTitle}>Create your first slide</span>
             <span className={styles.emptySlideSubtitle}>
               Pick a question type to add to the deck.
             </span>
@@ -74,7 +74,8 @@ const LeftSidebarContent = () => {
           <DragDropProvider
             onDragEnd={(event) => {
               handleDragEnd(event);
-            }}>
+            }}
+          >
             {(() => {
               // The rail renders *units*: a parent and its attached follow-up
               // share one sortable wrapper so the pair drags as a block and the
@@ -102,7 +103,7 @@ const LeftSidebarContent = () => {
           </DragDropProvider>
         )}
       </div>
-    </LeftSidebar>
+    </Dashboard.StartPanel>
   );
 };
 
