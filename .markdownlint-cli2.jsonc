@@ -11,6 +11,7 @@
     "memory",
     "backend/target",
     ".claude",
+    "frontend/.claude",
     ".design-sync",
     "ds-bundle",
     "CLAUDE.md",
