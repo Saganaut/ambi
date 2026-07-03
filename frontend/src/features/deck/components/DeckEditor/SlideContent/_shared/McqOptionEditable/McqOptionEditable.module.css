@@ -146,19 +146,6 @@
   }
 }
 
-.indexPill {
-  display: flex;
-  width: fit-content;
-  align-items: start;
-  justify-content: start;
-  height: 1.5rem;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 /* ─── Floating popover ─────────────────────────────────────────────────── */
 
 .popoverWrap {

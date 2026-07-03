@@ -1,0 +1,33 @@
+/* Numeric position marker for slide-editor item lists. The shared declarations
+   (pill radius, small bold type) live on the base; each variant owns only what
+   makes its look distinct so both consumers render exactly as before:
+     - `.solid`  — filled circle avatar for ItemCard's compact rows.
+     - `.bare`   — no fill, left-aligned, for the roomier McqOptionEditable card
+                   where the surrounding card already carries the visual weight. */
+
+.indexPill {
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  background-color: var(--bg-surface-raised);
+  color: var(--text-secondary);
+}
+
+.bare {
+  display: flex;
+  align-items: start;
+  justify-content: start;
+  width: fit-content;
+  height: 1.5rem;
+  padding: 0 var(--space-2);
+  color: var(--text-primary);
+}

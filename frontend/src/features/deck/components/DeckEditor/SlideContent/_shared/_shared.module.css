@@ -137,20 +137,6 @@
   outline-color: var(--orange-400);
 }
 
-.indexPill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-}
-
 .itemBody {
   display: flex;
   flex: 1;

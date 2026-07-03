@@ -9,6 +9,7 @@ import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types"
 import { Container } from "@components/Containers/Container";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
+import { IndexPill } from "../IndexPill";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
 
@@ -77,7 +78,7 @@ const McqOptionEditable = ({
       >
         <div className={styles.topRow}>
           <div className={styles.textColumn}>
-            <span className={styles.indexPill}>{displayIndex}</span>
+            <IndexPill value={displayIndex} variant='bare' />
             <div
               className={styles.interactiveZone}
               onClick={(e) => {

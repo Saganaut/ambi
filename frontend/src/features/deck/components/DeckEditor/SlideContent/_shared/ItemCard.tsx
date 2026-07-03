@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 import { MinusIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
+import { IndexPill } from "./IndexPill";
 import styles from "./_shared.module.css";
 
 interface ItemCardProps {
@@ -36,7 +37,7 @@ const ItemCard = ({
       className={[styles.itemCard, active ? styles.itemCardActive : ""]
         .filter(Boolean)
         .join(" ")}>
-      <span className={styles.indexPill}>{index + 1}</span>
+      <IndexPill value={index + 1} />
       <div className={styles.itemBody}>{children}</div>
       <div className={styles.itemActions}>
         {actions}
