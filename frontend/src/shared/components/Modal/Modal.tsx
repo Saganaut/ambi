@@ -19,7 +19,12 @@ const Modal = ({ children, title, variant, onClose }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    dialogRef.current?.showModal();
+    // Guard against a second showModal() on an already-open dialog: React
+    // StrictMode double-invokes this effect in dev, and re-asserting the dialog
+    // into the top layer mid-view-transition (the router runs with
+    // defaultViewTransition) aborts it — the "open, shrink, reopen" flash.
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
   }, []);
 
   function handleCancel(e: React.SyntheticEvent) {

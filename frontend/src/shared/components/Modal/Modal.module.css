@@ -13,7 +13,12 @@
   color: var(--color);
   border-radius: var(--radius);
   padding: var(--space-4);
-  width: 90%;
+
+  /* Size to the content body (each modal sets its own width) and center via
+     margin:auto, rather than forcing a fixed 90% that leaves self-sized bodies
+     hugging the left with dead space on wide desktops. */
+  width: fit-content;
+  max-width: 90vw;
   max-height: 90vh;
   margin: auto;
   overflow: hidden;
