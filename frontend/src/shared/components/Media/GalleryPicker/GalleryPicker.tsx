@@ -73,6 +73,7 @@ const GalleryPicker = ({
   return (
     <div className={styles.picker}>
       <Tabs
+        className={styles.pickerTabs}
         items={items}
         value={tab}
         onChange={(id) => {

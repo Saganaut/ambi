@@ -87,6 +87,7 @@ const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
   return (
     <div className={styles.picker}>
       <Tabs
+        className={styles.pickerTabs}
         items={items}
         value={tab}
         onChange={(id) => {

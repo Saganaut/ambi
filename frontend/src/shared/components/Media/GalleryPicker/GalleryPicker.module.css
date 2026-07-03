@@ -3,7 +3,38 @@
   flex-direction: column;
   gap: var(--space-4);
   width: min(80vw, 880px);
-  max-height: 70vh;
+
+  /* Fixed height (not max-height) so the modal never resizes as async gallery
+     content loads or as tabs switch — the active tab fills this box and its
+     grid scrolls inside. 540px comfortably fits the Upload tab's 360px crop. */
+  height: min(70vh, 540px);
+}
+
+/* Scoped flex-plumbing for the picker's own Tabs instance (className passed to
+   <Tabs>): make the tabs wrapper and the active panel fill .picker's fixed
+   height so the grid's overflow scroll has a bounded ancestor. No change to the
+   shared Tabs component/CSS. */
+.pickerTabs {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* stylelint-disable-next-line selector-pseudo-class-no-unknown */
+.pickerTabs :global([role="tabpanel"]):not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Centers the spinner / empty-state within the reserved area so non-grid
+   states occupy the same box as the grid instead of collapsing to text height. */
+.stateFill {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toolbar {
@@ -66,6 +97,11 @@
   overflow-y: auto;
   padding: var(--space-1);
   flex: 1 1 auto;
+
+  /* Pack rows at the top at their natural height; with few images the spare
+     vertical space (the grid now fills a fixed-height picker) stays empty at the
+     bottom instead of stretching the tiles tall. */
+  align-content: start;
 }
 
 .tile {
@@ -184,7 +220,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1 1 auto;
   min-height: 0;
+}
+
+/* In this column the search must stay a fixed-height row so the grid/state
+   region below it absorbs the reserved height. (.searchInput carries
+   `flex: 1 1 240px` for its other, horizontal use inside UploadTab's toolbar
+   row — harmless there, but it would grow vertically here.) */
+.galleryTab > .searchInput {
+  flex: 0 0 auto;
 }
 
 /* ── Upload tab: crop editor ─────────────────────────────────────────────── */

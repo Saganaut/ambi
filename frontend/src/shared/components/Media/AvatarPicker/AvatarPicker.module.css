@@ -3,11 +3,31 @@
   flex-direction: column;
   gap: var(--space-4);
   width: min(80vw, 880px);
-  max-height: 70vh;
+
+  /* Fixed height (not max-height) so the modal never resizes as the Gallery
+     tab's async content loads or as tabs switch — the active tab fills this box
+     and scrolls inside. Matches GalleryPicker. */
+  height: min(70vh, 540px);
+}
+
+/* Scoped flex-plumbing for this picker's Tabs instance (see GalleryPicker) so
+   the active panel fills .picker's fixed height. No change to shared Tabs CSS. */
+.pickerTabs {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* stylelint-disable-next-line selector-pseudo-class-no-unknown */
+.pickerTabs :global([role="tabpanel"]):not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .tabPanel {
   overflow-y: auto;
+  flex: 1 1 auto;
   min-height: 0;
 }
 

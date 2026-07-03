@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
+import { Loader } from "@ui/Loader/Loader";
 import {
   useListImagesQuery,
   type AppImage,
@@ -26,6 +27,12 @@ const GalleryTab = ({ galleryId, onPick }: GalleryTabProps) => {
     { id: galleryId ?? "", pageable: PAGE },
     { skip: !galleryId },
   );
+
+  // The images query is skipped until the gallery singleton resolves an id, so
+  // `isLoading` is false during that first round-trip. Treat "no id yet" as
+  // loading too, otherwise the tab briefly flashes the empty state before the
+  // spinner. (`!galleryId` == "preparing gallery" — same semantic as UploadTab.)
+  const showLoading = !galleryId || isLoading;
 
   const images = useMemo(() => page?.content ?? [], [page]);
   const [search, setSearch] = useState("");
@@ -75,19 +82,25 @@ const GalleryTab = ({ galleryId, onPick }: GalleryTabProps) => {
         />
       </div>
 
-      {isLoading && <p>Loading…</p>}
-      {!isLoading && filtered.length === 0 && (
-        <EmptyState
-          className={styles.empty}
-          title='No images yet'
-          message={
-            images.length === 0
-              ? "Upload an image or add one from the web on the Upload tab."
-              : "No images match your search."
-          }
-        />
+      {showLoading && (
+        <div className={styles.stateFill}>
+          <Loader />
+        </div>
       )}
-      {!isLoading && filtered.length > 0 && (
+      {!showLoading && filtered.length === 0 && (
+        <div className={styles.stateFill}>
+          <EmptyState
+            className={styles.empty}
+            title='No images yet'
+            message={
+              images.length === 0
+                ? "Upload an image or add one from the web on the Upload tab."
+                : "No images match your search."
+            }
+          />
+        </div>
+      )}
+      {!showLoading && filtered.length > 0 && (
         <div className={styles.grid}>{filtered.map(renderTile)}</div>
       )}
     </div>
