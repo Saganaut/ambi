@@ -188,6 +188,23 @@
   padding-left: var(--space-5);
 }
 
+/* When the block is center/right aligned, keep list markers attached to their
+   text: shrink the list to its content and position the whole block on the
+   cross axis (align-self), while forcing the items themselves back to
+   left-aligned so each bullet/number sits beside its text. Paragraphs keep the
+   inherited text-align; only lists need this. */
+.surfaceBlock[data-halign="center"] .editor ul,
+.surfaceBlock[data-halign="center"] .editor ol {
+  align-self: center;
+  text-align: left;
+}
+
+.surfaceBlock[data-halign="right"] .editor ul,
+.surfaceBlock[data-halign="right"] .editor ol {
+  align-self: flex-end;
+  text-align: left;
+}
+
 /* StyledListItem writes the item's uniform text color/size onto the <li>; the
    marker inherits both (belt-and-suspenders — ::marker already inherits them). */
 .wrapper.block .editor li::marker {
