@@ -6,6 +6,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color, FontSize } from "@tiptap/extension-text-style";
 import { Placeholder } from "@tiptap/extensions";
 import { useEffect, useRef, useState } from "react";
+import { ColoredListItem } from "./extensions/ColoredListItem";
 
 interface UseRichTextEditorArgs {
   value: string;
@@ -31,7 +32,11 @@ const useRichTextEditor = ({
 }: UseRichTextEditorArgs) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      // Swap StarterKit's listItem for ColoredListItem so list markers can
+      // inherit the item's text color. Always-on (both variants) so the HTML
+      // round-trips identically no matter which instance renders it.
+      StarterKit.configure({ listItem: false }),
+      ColoredListItem,
       TextStyle,
       Color,
       FontSize,

@@ -113,6 +113,52 @@
   margin: 0;
 }
 
+/* ── Block variant ─────────────────────────────────────────────────────────
+   Opt-in (variant="block"): the editor fills the available vertical space and
+   scrolls internally, instead of the compact input's content-height sizing.
+   Every selector here is gated behind .block / .surfaceBlock so the prompt and
+   inline usages of this primitive are untouched. */
+
+.wrapper.block {
+  flex: 1;
+  min-height: 0; /* allow shrinking below content height so overflow works */
+  max-width: none; /* drop the 600px reading-measure cap */
+}
+
+.surface.surfaceBlock {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.wrapper.block .editor {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* List and heading rendering while editing — mirrors RichTextDisplay so the
+   author sees what the slide will show. */
+.wrapper.block .editor ul,
+.wrapper.block .editor ol {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.wrapper.block .editor h1,
+.wrapper.block .editor h2,
+.wrapper.block .editor h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ColoredListItem writes the item's uniform text color onto the <li>; the
+   marker inherits it (belt-and-suspenders — ::marker already inherits color). */
+.wrapper.block .editor li::marker {
+  color: inherit;
+}
+
 /* Placeholder is rendered by @tiptap/extensions/Placeholder, which tags the
    empty paragraph with the `is-editor-empty` class — kebab-case is TipTap's
    convention, not ours, so disable the camelCase + pseudo-class rules. */

@@ -63,6 +63,11 @@ interface RichTextInputProps {
   /** Back the input with a frosted contrast plate so its text stays legible over
    *  a background image. Driven by the slide canvas, not passed per-editor. */
   showContrastPlate?: boolean;
+  /** Layout/toolbar variant. "input" (default) is the compact input-styled
+   *  surface used by prompt and inline fields. "block" fills the available
+   *  vertical space and exposes the richer toolbar (lists + headings) — for
+   *  full-slide editing surfaces like the Content slide body. */
+  variant?: "input" | "block";
   className?: string;
   /** Auto-shrink the editor's font-size so its content fits inside its
    *  bounded box — same algorithm as `useFitText` (the shared hook can't
@@ -110,13 +115,25 @@ const SIZE_CHOICES: { label: string; value: string }[] = [
   { label: "XL", value: "1.75rem" },
 ];
 
+// Heading levels exposed by the block variant — matches the h1–h3 that
+// RichTextDisplay styles.
+const HEADING_LEVELS = [1, 2, 3] as const;
+
 interface ToolbarProps {
   editor: Editor;
   linkOpen: boolean;
   setLinkOpen: (v: boolean) => void;
+  /** Show the richer block controls (lists + headings). Off for the compact
+   *  input variant used by prompt/inline fields. */
+  showBlockControls: boolean;
 }
 
-const Toolbar = ({ editor, linkOpen, setLinkOpen }: ToolbarProps) => {
+const Toolbar = ({
+  editor,
+  linkOpen,
+  setLinkOpen,
+  showBlockControls,
+}: ToolbarProps) => {
   const {
     linkUrl,
     setLinkUrl,
@@ -211,6 +228,45 @@ const Toolbar = ({ editor, linkOpen, setLinkOpen }: ToolbarProps) => {
               {size.label}
             </PopoverButton>
           ))}
+
+          {showBlockControls && (
+            <>
+              <PopoverDivider />
+              <PopoverButton
+                ariaLabel='Bullet list'
+                isActive={editor.isActive("bulletList")}
+                preventFocusSteal
+                onClick={() =>
+                  editor.chain().focus().toggleBulletList().run()
+                }>
+                <span aria-hidden='true'>•</span>
+              </PopoverButton>
+              <PopoverButton
+                ariaLabel='Numbered list'
+                isActive={editor.isActive("orderedList")}
+                preventFocusSteal
+                onClick={() =>
+                  editor.chain().focus().toggleOrderedList().run()
+                }>
+                <span aria-hidden='true'>1.</span>
+              </PopoverButton>
+
+              <PopoverDivider />
+
+              {HEADING_LEVELS.map((level) => (
+                <PopoverButton
+                  key={level}
+                  ariaLabel={`Heading ${level.toString()}`}
+                  isActive={editor.isActive("heading", { level })}
+                  preventFocusSteal
+                  onClick={() =>
+                    editor.chain().focus().toggleHeading({ level }).run()
+                  }>
+                  {`H${level.toString()}`}
+                </PopoverButton>
+              ))}
+            </>
+          )}
         </PopoverRow>
       </Popover>
 
@@ -313,10 +369,12 @@ const RichTextInput = ({
   ref,
   isBordered = true,
   showContrastPlate = false,
+  variant = "input",
   className,
   minPx,
   maxPx,
 }: RichTextInputProps) => {
+  const isBlock = variant === "block";
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [toolbarOpen, setToolbarOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -424,7 +482,9 @@ const RichTextInput = ({
 
   return (
     <div
-      className={[styles.wrapper, className].filter(Boolean).join(" ")}
+      className={[styles.wrapper, isBlock && styles.block, className]
+        .filter(Boolean)
+        .join(" ")}
       ref={wrapperRef}>
       {label && (
         <label className={styles.label} htmlFor={id}>
@@ -434,6 +494,7 @@ const RichTextInput = ({
       <div
         className={[
           styles.surface,
+          isBlock && styles.surfaceBlock,
           !isBordered && styles.noBorders,
           showContrastPlate && styles.contrastPlate,
         ]
@@ -448,6 +509,7 @@ const RichTextInput = ({
               editor={editor}
               linkOpen={linkOpen}
               setLinkOpen={setLinkOpen}
+              showBlockControls={isBlock}
             />
           </div>
         )}

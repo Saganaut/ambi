@@ -1,8 +1,9 @@
 /**
  * Author surface for a non-scorable "content" slide — a single block of rich
  * text, the plain "PowerPoint body" slide. The slide title is edited through the
- * shared prompt slot; the body is a rich-text input persisted as HTML on
- * {@link RichTextContent}. A richer editing surface is a planned follow-up.
+ * shared prompt slot; the body uses the block variant of RichTextInput, which
+ * fills the slide vertically and exposes list and heading controls. The body is
+ * persisted as HTML on {@link RichTextContent}.
  */
 import { useState } from "react";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
@@ -48,6 +49,7 @@ const ContentSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}>
       <RichTextInput
         id={`content-body-${slide.id}`}
+        variant='block'
         value={body}
         placeholder='Write your slide content…'
         onChange={(html) => {
