@@ -96,4 +96,29 @@ describe("ColoredListItem", () => {
     // The second item was never colored, so its marker stays default.
     expect(html).toMatch(/<li><p>second<\/p><\/li>/);
   });
+
+  it("does not let a nested list's color affect its parent item", () => {
+    // Outer item text is red; the nested sub-item is blue. The outer <li> must
+    // track only its own text (red), independent of the sub-list.
+    editor = makeEditor(
+      "<ul><li><p>outer</p><ul><li><p>inner</p></li></ul></li></ul>",
+    );
+    editor
+      .chain()
+      .setTextSelection(rangeOf(editor, "outer"))
+      .setColor("#e53e3e")
+      .run();
+    editor
+      .chain()
+      .setTextSelection(rangeOf(editor, "inner"))
+      .setColor("#3182ce")
+      .run();
+
+    const html = editor.getHTML();
+    // "outer" precedes "inner" in document order, so the first <li> and first
+    // <span> are both the outer item's. Its marker must track the outer text
+    // color (not be blanked to null by the nested item's different color).
+    expect(liColor(html)).not.toBeNull();
+    expect(liColor(html)).toBe(firstSpanColor(html));
+  });
 });

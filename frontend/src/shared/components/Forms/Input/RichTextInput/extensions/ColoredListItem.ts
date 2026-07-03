@@ -38,6 +38,8 @@ const uniformItemColor = (
     if (mixed) return false;
     const name = node.type.name;
     // Don't descend into a nested list — its items are synced independently.
+    // A nested `listItem` only ever reaches here via its wrapping list, which
+    // already short-circuits above; it's listed too as a defensive guard.
     if (name === "bulletList" || name === "orderedList" || name === "listItem") {
       return false;
     }
