@@ -160,7 +160,7 @@ public class LiveSessionController {
         hostService.revealResponses(id, slideId, principal);
     }
 
-    /** Reveals the scored results for a round (host only); requires submissions closed. */
+    /** Reveals the scored results for a round (host only); closes + scores an open round first. */
     @PostMapping("/{id}/rounds/{slideId}/reveal-results")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void revealResults(

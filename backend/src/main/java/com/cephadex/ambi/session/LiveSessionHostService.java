@@ -50,7 +50,7 @@ public class LiveSessionHostService {
         orchestrator.revealResponses(sessionId, slideId);
     }
 
-    /** Reveals the scored results (requires submissions already closed). Host only. */
+    /** Reveals the scored results, closing + scoring an open round first. Host only. */
     public void revealResults(String sessionId, String slideId, AmbiPrincipal principal) {
         requireHost(sessionId, principal);
         orchestrator.revealResults(sessionId, slideId);

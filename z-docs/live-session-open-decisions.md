@@ -59,7 +59,7 @@ Stubbed (`UnsupportedOperationException`) with full contracts unless noted *wire
 | `startRound(sessionId, slideId)` | *wired* — open SUBMIT, clear tally; +state guard TODO | F4 |
 | `submitAnswer(sessionId, slideId, participantId, payload)` | `AnswerStore.submit` **and** `TallyStore.increment`, publish tally | D5 |
 | `closeSubmissions(sessionId, slideId)` | *wired (phase only)* — SUBMIT → REVEAL_RESPONSES; +flush/score/persist TODO (replaces `endRound`) | E1, E4 |
-| `revealResults(sessionId, slideId)` | REVEAL_RESPONSES → REVEAL_RESULTS; combined results for follow-ups; signal terminal | B2, B3 |
+| `revealResults(sessionId, slideId)` | (any non-results phase) → REVEAL_RESULTS, closing + scoring an open round first; combined results for follow-ups; signal terminal | B2, B3 |
 | `restartRound(sessionId, slideId)` | *wired* — fresh start, tally cleared; +answer clear / idempotent re-score TODO | F2 |
 | `advance(sessionId) → Slide` | server-owned next slide (Lexorank + parent→child), open round, signal terminal | B3 |
 | `goTo(sessionId, slideId)` | validate slideId against snapshot, open round | B3 |

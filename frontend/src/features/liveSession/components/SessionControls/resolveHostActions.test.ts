@@ -45,11 +45,15 @@ describe("resolveHostActions", () => {
   });
 
   // Phase → available actions for an in-progress MCQ round. Mirrors the backend:
-  // open (SUBMIT/SUBMIT_LIVE) can close & restart; results reveal needs a prior
-  // close; advance only after results are revealed.
+  // open (SUBMIT/SUBMIT_LIVE) can close & restart; revealing results is offered in
+  // every phase but REVEAL_RESULTS (the backend closes + scores an open round on
+  // reveal); advance only after results are revealed.
   const cases: [RoundPhase, Partial<HostActions>][] = [
-    ["SUBMIT", { canShowResponses: true, canClose: true, canRestart: true }],
-    ["SUBMIT_LIVE", { canClose: true, canRestart: true }],
+    [
+      "SUBMIT",
+      { canShowResponses: true, canClose: true, canRevealResults: true, canRestart: true },
+    ],
+    ["SUBMIT_LIVE", { canClose: true, canRevealResults: true, canRestart: true }],
     ["LOCKED", { canRevealResults: true }],
     ["REVEAL_RESPONSES", { canRevealResults: true }],
     ["REVEAL_RESULTS", { canAdvance: true }],
@@ -62,14 +66,24 @@ describe("resolveHostActions", () => {
     });
   });
 
-  it("never offers reveal-results while submissions are open", () => {
-    // The backend throws if results are revealed before a close — the gate must
-    // never enable it in an open phase.
-    for (const phase of ["SUBMIT", "SUBMIT_LIVE"] as RoundPhase[]) {
+  it("offers reveal-results in every round phase until results are shown", () => {
+    // The backend closes + scores an open round when results are revealed, so the
+    // gate offers it in the open phases too — only REVEAL_RESULTS (already shown)
+    // withholds it.
+    for (const phase of [
+      "SUBMIT",
+      "SUBMIT_LIVE",
+      "LOCKED",
+      "REVEAL_RESPONSES",
+    ] as RoundPhase[]) {
       expect(
         resolveHostActions("IN_PROGRESS", phase, false, true).canRevealResults,
-      ).toBe(false);
+      ).toBe(true);
     }
+    expect(
+      resolveHostActions("IN_PROGRESS", "REVEAL_RESULTS", false, true)
+        .canRevealResults,
+    ).toBe(false);
   });
 
   it("never offers restart once the round is closed (already scored)", () => {

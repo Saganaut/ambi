@@ -5,11 +5,11 @@
 // current round, or end the show. Non-hosts render nothing — control is the
 // host's surface only (the board itself is the shared display + answer surface).
 //
-// The backend requires close-before-reveal (revealing results while submissions
-// are open is rejected), so those are two distinct steps here. Which actions are
-// live for the current phase is decided by `resolveHostActions`; state it reads
-// comes from the read model via `useLiveSessionQuery`; commands go through the
-// session connection (an adapter over the REST command hook).
+// Close and reveal are separate controls, but the host may reveal results
+// straight from an open round — the backend closes + scores it in the same step.
+// Which actions are live for the current phase is decided by `resolveHostActions`;
+// state it reads comes from the read model via `useLiveSessionQuery`; commands go
+// through the session connection (an adapter over the REST command hook).
 import { isDisplaySlide } from "@/features/liveSession/components/SessionBoard/resolveBoardStage";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
@@ -47,11 +47,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     return (
       <div className={`${styles.sessionControls} ${className ?? ""}`}>
         <div className={styles.actions}>
-          <Btn
-            size='sm'
-            variant='brand'
-            disabled={roster.length < 1}
-            onClick={sendStart}>
+          <Btn size="sm" variant="brand" disabled={roster.length < 1} onClick={sendStart}>
             Start session
           </Btn>
         </div>
@@ -96,37 +92,37 @@ const SessionControls = ({ className }: SessionControlsProps) => {
       <div className={styles.actions}>
         {/* Surface the live response distribution without ending the round. */}
         <Btn
-          size='sm'
+          size="sm"
           disabled={!actions.canShowResponses}
           onClick={() => {
             sendRevealResponses(slideId);
-          }}>
+          }}
+        >
           Show live results
         </Btn>
         {/* Close submissions — locks and scores the round. */}
         <Btn
-          size='sm'
+          size="sm"
           disabled={!actions.canClose}
           onClick={() => {
             sendCloseRound(slideId);
-          }}>
+          }}
+        >
           Close submissions
         </Btn>
-        {/* Reveal the result + correct answer (requires a prior close). */}
+        {/* Reveal the result + correct answer (closes an open round first). */}
         <Btn
-          size='sm'
-          variant='brand'
+          size="sm"
+          variant="brand"
           disabled={!actions.canRevealResults}
           onClick={() => {
             sendRevealResults(slideId);
-          }}>
+          }}
+        >
           Reveal answers
         </Btn>
         {actions.canAdvance && (
-          <Btn
-            size='sm'
-            variant={hasSlide ? undefined : "brand"}
-            onClick={sendAdvance}>
+          <Btn size="sm" variant={hasSlide ? undefined : "brand"} onClick={sendAdvance}>
             {hasSlide ? "Next round" : "Start round"}
           </Btn>
         )}
@@ -134,21 +130,23 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         <span className={styles.spacer} />
 
         <Btn
-          size='sm'
-          variant='error'
-          fill='ghost'
+          size="sm"
+          variant="error"
+          fill="ghost"
           onClick={() => {
             void handleEnd();
-          }}>
+          }}
+        >
           End session
         </Btn>
         <Btn
-          size='sm'
-          variant='error'
+          size="sm"
+          variant="error"
           disabled={!actions.canRestart}
           onClick={() => {
             void handleRestart();
-          }}>
+          }}
+        >
           Restart
         </Btn>
       </div>

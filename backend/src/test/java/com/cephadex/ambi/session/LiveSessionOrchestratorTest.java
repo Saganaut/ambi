@@ -205,7 +205,7 @@ class LiveSessionOrchestratorTest {
         assertThat(publishedEvent()).isInstanceOf(ResponsesRevealed.class);
     }
 
-    // ── revealResults: requires closed ───────────────────────────────────────
+    // ── revealResults: reveal (closing an open round first) ──────────────────
 
     @Test
     void revealResultsFromClosedTransitions() {
@@ -214,15 +214,20 @@ class LiveSessionOrchestratorTest {
         orchestrator.revealResults(SID, SLIDE);
 
         assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESULTS);
+        // Already scored at its own close — not re-scored here (score-once).
+        verify(roundResults, never()).persist(any(), any(), any());
     }
 
     @Test
-    void revealResultsWhileOpenIsRejected() {
+    void revealResultsWhileOpenClosesAndScores() {
         stubPhase(RoundPhase.SUBMIT_LIVE);
+        stubScorableSession();
 
-        assertThatThrownBy(() -> orchestrator.revealResults(SID, SLIDE))
-                .isInstanceOf(IllegalStateException.class);
-        verify(roundStateStore, never()).save(any(), any());
+        orchestrator.revealResults(SID, SLIDE);
+
+        // Closes + scores the still-open round in the same step, then reveals.
+        assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESULTS);
+        verify(roundResults).persist(any(), any(), any());
     }
 
     // ── startRound: honour ResultsDisplayMode ────────────────────────────────

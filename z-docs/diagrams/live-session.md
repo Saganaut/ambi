@@ -47,6 +47,8 @@ stateDiagram-v2
     LOCKED --> REVEAL_RESPONSES : revealResponses
     REVEAL_RESPONSES --> REVEAL_RESULTS : revealResults (scored)
     LOCKED --> REVEAL_RESULTS : revealResults
+    SUBMIT --> REVEAL_RESULTS : revealResults (closes + scores)
+    SUBMIT_LIVE --> REVEAL_RESULTS : revealResults (closes + scores)
     REVEAL_RESULTS --> SUBMIT : restartRound
     REVEAL_RESULTS --> [*] : next slide / end
 

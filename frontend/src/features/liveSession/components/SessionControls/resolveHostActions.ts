@@ -9,9 +9,9 @@
 //   - showResponses  → go live (SUBMIT → SUBMIT_LIVE); backend rejects nothing
 //                      but it only makes sense before the round is live.
 //   - close          → lock + score (SUBMIT/SUBMIT_LIVE → LOCKED/REVEAL_RESPONSES).
-//   - revealResults   → disclose answer + scores; backend REQUIRES a prior close
-//                      (throws while submissions are open), so this is gated to
-//                      the closed-but-unrevealed phases only.
+//   - revealResults   → disclose answer + scores; the backend closes + scores an
+//                      open round in the same step, so this is offered in every
+//                      phase except once results are already revealed.
 //   - advance         → open the next round (offered when no round is open yet —
 //                      just started, so advance opens the first slide — once
 //                      results are revealed, or immediately for a display slide).
@@ -63,7 +63,9 @@ export const resolveHostActions = (
   return {
     canShowResponses: phase === "SUBMIT",
     canClose: accepting,
-    canRevealResults: closedUnrevealed,
+    // The backend closes + scores an open round when results are revealed, so this
+    // is offered while open too — every phase but REVEAL_RESULTS (already shown).
+    canRevealResults: accepting || closedUnrevealed,
     canAdvance: phase === "REVEAL_RESULTS",
     // Restart reopens the round; the backend rejects it once scored at close.
     canRestart: accepting,

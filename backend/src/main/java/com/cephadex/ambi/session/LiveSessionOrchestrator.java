@@ -449,9 +449,13 @@ public class LiveSessionOrchestrator {
     /**
      * Reveals the scored results: → {@code REVEAL_RESULTS}.
      *
-     * <p><strong>Guarded:</strong> submissions must be closed first — revealing
-     * scored results (which expose the correct answer) while a round is still open
-     * is rejected, so the answer key can't leak to players still answering.
+     * <p><strong>Closes and scores an open round in the same step.</strong> When
+     * submissions are still open the round is closed and scored here before the
+     * reveal, so the host no longer needs a separate close first. The answer key
+     * still can't leak to players who are answering — submissions are closed
+     * atomically under the session lock before {@code REVEAL_RESULTS} is
+     * published — and scoring still runs exactly once, on the open→closed
+     * transition, so a round already closed at its own close is not re-scored.
      *
      * <p>For a follow-up child round ({@link Slide#getParentId()} present) the
      * combined parent+child results are assembled from the deck snapshot + persisted
@@ -468,15 +472,19 @@ public class LiveSessionOrchestrator {
      */
     public void revealResults(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
-            if (!current.phase().isClosed()) {
-                throw new IllegalStateException(
-                        "cannot reveal results while submissions are open (phase " + current.phase() + ")");
-            }
+            // Revealing results also closes an open round: score it once here, on
+            // the open→closed transition. Saving REVEAL_RESULTS before scoring keeps
+            // the answer key from ever showing while submissions are still open. A
+            // round already closed at its own close is not re-scored (score-once).
+            boolean wasOpen = !current.phase().isClosed();
             roundStateStore.save(sessionId, current.withPhase(RoundPhase.REVEAL_RESULTS));
+            if (wasOpen) {
+                scoreAndPersistRound(sessionId, slideId, current.roundStartedAt());
+            }
 
-            // Read the result scored at close; publish it. A slide that produced no
-            // scored record (nothing to reveal) still advances the phase but sends
-            // no reveal payload.
+            // Read the result scored at close (or just now); publish it. A slide
+            // that produced no scored record (nothing to reveal) still advances the
+            // phase but sends no reveal payload.
             RoundResult result = roundResults.find(sessionId, slideId).orElse(null);
             if (result == null || current.publicId() == null) {
                 return;

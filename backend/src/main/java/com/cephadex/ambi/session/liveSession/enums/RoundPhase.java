@@ -19,9 +19,10 @@ package com.cephadex.ambi.session.liveSession.enums;
  * </table>
  *
  * <p>Invariant: scored results require closed submissions — there is no
- * open+results value, and the orchestrator rejects revealing results while open,
- * so the answer key can never leak to players who are still answering. Live mode
- * ({@code SUBMIT_LIVE}) shows only the response distribution, never the key.
+ * open+results value. Revealing results from an open round closes and scores it
+ * first (atomically under the session lock), so the answer key can never leak to
+ * players who are still answering. Live mode ({@code SUBMIT_LIVE}) shows only the
+ * response distribution, never the key.
  */
 public enum RoundPhase {
     /** Open and taking submissions; nothing shown to participants. */
