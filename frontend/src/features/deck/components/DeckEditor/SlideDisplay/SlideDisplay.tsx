@@ -120,7 +120,7 @@ const SlideDisplay = () => {
       case "RANKING":
         return <RankingSlideContent deckId={deckId} slideId={slideId} />;
       case "SCALES":
-        return <ScalesSlideContent />;
+        return <ScalesSlideContent deckId={deckId} slideId={slideId} />;
       case "Q_AND_A":
         return <QAndASlideContent />;
       case "GRID":

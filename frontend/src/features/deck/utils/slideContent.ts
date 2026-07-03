@@ -13,7 +13,7 @@
  * slide and its settings — so they are absent here entirely.
  */
 import { nanoid } from "nanoid";
-import { McqOption, RankItem, SlideContent } from "../store/deckApi.gen";
+import { McqOption, RankItem, ScaleItem, SlideContent } from "../store/deckApi.gen";
 type SlideType = NonNullable<SlideContent["contentType"]>;
 
 /**
@@ -107,16 +107,19 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
       };
     }
     case "SCALES":
+      // Default to a 1–5 Likert agreement scale with one blank statement. An
+      // empty `correctValues` marks the slide unscored (opinion / pulse) — the
+      // author opts into scoring per statement in the editor.
       return {
         contentType: "SCALES",
-        min: 0,
-        max: 10,
+        min: 1,
+        max: 5,
         step: 1,
-        leftLabel: "Low",
-        rightLabel: "High",
-        items: [],
+        leftLabel: "Disagree",
+        rightLabel: "Agree",
+        items: [buildDefaultScaleItem()],
         correctValues: {},
-        tolerance: 0.5,
+        tolerance: 0,
       };
     case "GRID":
       return {
@@ -190,6 +193,17 @@ export const buildDefaultMcqOption = (): McqOption => ({
  * correct order. The label is empty for the author to fill in.
  */
 export const buildDefaultRankItem = (): RankItem => ({
+  id: nanoid(8),
+  label: "",
+});
+
+/**
+ * Build a blank Scales statement with a fresh client-minted id. SCALES slides
+ * key each statement's rating (and, when scored, its target value) by id, so a
+ * stable id at creation time is what lets the author edit and the backend
+ * resolve per-statement answers. The label is empty for the author to fill in.
+ */
+export const buildDefaultScaleItem = (): ScaleItem => ({
   id: nanoid(8),
   label: "",
 });
