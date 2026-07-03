@@ -44,7 +44,7 @@ const GalleryPicker = ({
   cropWidth,
   cropHeight,
 }: GalleryPickerProps) => {
-  const { data: gallery } = useGetMyGalleryQuery();
+  const { data: gallery, isError: galleryError } = useGetMyGalleryQuery();
   const galleryId = gallery?.id;
   const aspect =
     cropWidth && cropHeight ? cropWidth / cropHeight : DEFAULT_CROP_ASPECT;
@@ -54,7 +54,13 @@ const GalleryPicker = ({
     {
       id: "gallery",
       label: "Gallery",
-      panel: <GalleryTab galleryId={galleryId} onPick={onPick} />,
+      panel: (
+        <GalleryTab
+          galleryId={galleryId}
+          galleryError={galleryError}
+          onPick={onPick}
+        />
+      ),
     },
     {
       id: "upload",

@@ -19,20 +19,30 @@ const PAGE = { page: 0, size: 100 };
 
 interface GalleryTabProps {
   galleryId?: string;
+  /** True when the parent's gallery-singleton fetch failed (so no id is coming). */
+  galleryError?: boolean;
   onPick: (image: AppImage) => void;
 }
 
-const GalleryTab = ({ galleryId, onPick }: GalleryTabProps) => {
-  const { data: page, isLoading } = useListImagesQuery(
+const GalleryTab = ({ galleryId, galleryError, onPick }: GalleryTabProps) => {
+  const {
+    data: page,
+    isError: imagesError,
+  } = useListImagesQuery(
     { id: galleryId ?? "", pageable: PAGE },
     { skip: !galleryId },
   );
 
+  // If the gallery singleton or the images fetch failed, show an error state —
+  // otherwise `!galleryId` (below) would spin forever, since a failed gallery
+  // fetch never yields an id.
+  const showError = galleryError === true || imagesError;
+
   // The images query is skipped until the gallery singleton resolves an id, so
-  // `isLoading` is false during that first round-trip. Treat "no id yet" as
-  // loading too, otherwise the tab briefly flashes the empty state before the
-  // spinner. (`!galleryId` == "preparing gallery" — same semantic as UploadTab.)
-  const showLoading = !galleryId || isLoading;
+  // it reports no data during that first round-trip. Treat "no id yet" or "id
+  // but images not resolved yet" as loading, so the tab goes spinner → grid
+  // without flashing the empty state between the two dependent requests.
+  const showLoading = !showError && (!galleryId || !page);
 
   const images = useMemo(() => page?.content ?? [], [page]);
   const [search, setSearch] = useState("");
@@ -82,12 +92,21 @@ const GalleryTab = ({ galleryId, onPick }: GalleryTabProps) => {
         />
       </div>
 
-      {showLoading && (
+      {showError && (
+        <div className={styles.stateFill}>
+          <EmptyState
+            className={styles.empty}
+            title='Unable to load images'
+            message='Something went wrong. Please try again.'
+          />
+        </div>
+      )}
+      {!showError && showLoading && (
         <div className={styles.stateFill}>
           <Loader />
         </div>
       )}
-      {!showLoading && filtered.length === 0 && (
+      {!showError && !showLoading && filtered.length === 0 && (
         <div className={styles.stateFill}>
           <EmptyState
             className={styles.empty}
@@ -100,7 +119,7 @@ const GalleryTab = ({ galleryId, onPick }: GalleryTabProps) => {
           />
         </div>
       )}
-      {!showLoading && filtered.length > 0 && (
+      {!showError && !showLoading && filtered.length > 0 && (
         <div className={styles.grid}>{filtered.map(renderTile)}</div>
       )}
     </div>

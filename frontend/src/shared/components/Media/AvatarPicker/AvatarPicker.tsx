@@ -37,7 +37,7 @@ interface AvatarPickerProps {
 type PickerTab = "builtin" | "gallery" | "upload";
 
 const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
-  const { data: gallery } = useGetMyGalleryQuery();
+  const { data: gallery, isError: galleryError } = useGetMyGalleryQuery();
   const galleryId = gallery?.id;
   const [tab, setTab] = useState<PickerTab>("builtin");
 
@@ -63,6 +63,7 @@ const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
       panel: (
         <GalleryTab
           galleryId={galleryId}
+          galleryError={galleryError}
           onPick={(image) => {
             onPick({ kind: "image", image });
           }}
