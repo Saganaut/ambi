@@ -1,0 +1,40 @@
+/* RankingSlideContent — author UI for Ranking slides. The row chrome (index
+   pill, body, remove) is the shared `ItemCard`; only the drag-to-reorder grip
+   and the dragging state are ranking-specific and live here. */
+
+/* Grip handle slotted into the card's `actions`. Restricting the drag
+   activator to this handle (via the sortable `handleRef`) keeps the label
+   input fully clickable/typeable. */
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+  transition:
+    color var(--duration-fast) ease-out,
+    background-color var(--duration-fast) ease-out;
+}
+
+.dragHandle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-raised);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.dragHandleIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The row being dragged: dim it so the drop target reads clearly. */
+.dragging {
+  opacity: 0.6;
+}

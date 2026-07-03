@@ -13,7 +13,7 @@
  * slide and its settings — so they are absent here entirely.
  */
 import { nanoid } from "nanoid";
-import { McqOption, SlideContent } from "../store/deckApi.gen";
+import { McqOption, RankItem, SlideContent } from "../store/deckApi.gen";
 type SlideType = NonNullable<SlideContent["contentType"]>;
 
 /**
@@ -95,13 +95,17 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         min: 0,
         max: 100,
       };
-    case "RANKING":
+    case "RANKING": {
+      // Seed two blank items (the minimum for a real ordering) with a matching
+      // correctOrder — the authoring order is the correct order.
+      const items = [buildDefaultRankItem(), buildDefaultRankItem()];
       return {
         contentType: "RANKING",
-        items: [],
-        correctOrder: [],
+        items,
+        correctOrder: items.map((item) => item.id).filter((id): id is string => id != null),
         scoreMode: "EXACT",
       };
+    }
     case "SCALES":
       return {
         contentType: "SCALES",
@@ -177,4 +181,15 @@ export const buildDefaultMcqOption = (): McqOption => ({
   id: nanoid(8),
   optionType: "TEXT",
   text: "Untitled Option",
+});
+
+/**
+ * Build a blank ranking item with a fresh client-minted id. Ranking items track
+ * their position by id (via the content's `correctOrder`), so a stable id at
+ * creation time is what lets the author reorder and the backend resolve the
+ * correct order. The label is empty for the author to fill in.
+ */
+export const buildDefaultRankItem = (): RankItem => ({
+  id: nanoid(8),
+  label: "",
 });
