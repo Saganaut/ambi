@@ -18,9 +18,11 @@ boolean canBeManagedBy(String userId, UserLevel level, OrgRole orgRole)
 
 ## 2. The service applies them: load → `require*` → return
 
-The service is the only thing that decides which capability an operation needs. Each public method **loads** the aggregate (`private X load(id)` → `*_NOT_FOUND`), runs a private **`requireView` / `requireEdit` / `requireManage`** gate that throws `ForbiddenException` (`*_FORBIDDEN`) on denial, then proceeds. Org role is resolved lazily — personal-resource checks never hit the user store. See `DeckService.load` / `requireView` / `requireEdit` / `requireManage` / `orgRoleFor` (two overloads).
+The service is the only thing that decides which capability an operation needs. Each public method **loads** the aggregate (`private X load(id)` → `*_NOT_FOUND`), runs a private **`requireView` / `requireEdit` / `requireManage`** gate that throws `ForbiddenException` (`*_FORBIDDEN`) on denial, then proceeds. See `DeckService.load` / `requireView` / `requireEdit` / `requireManage`.
 
-Principal plumbing is a fixed set of private helpers, mirrored verbatim across services: `private static String userId(AmbiPrincipal)`, `level(...)`, `requireUserId(...)` (→ `UnauthorizedException` when identity is missing). Don't reach into the principal inline; use the helpers.
+Org role is resolved through the shared [`OrgRoleResolver`](../../../backend/src/main/java/com/cephadex/ambi/org/OrgRoleResolver.java) bean, injected into each service — one implementation of the membership lookup rather than a copy per service. `roleFor(OwnableResource, principal)` resolves lazily: it short-circuits non-org-owned resources so a personal-resource check never hits the user store, and defers to `roleFor(orgId, userId)` for the membership lookup otherwise. The aggregates satisfy [`OwnableResource`](../../../backend/src/main/java/com/cephadex/ambi/common/OwnableResource.java) (`getOwnership` / `getOrganizationId` / `isOrgOwned`) so the resolver stays type-agnostic.
+
+Principal plumbing lives in the [`AmbiPrincipals`](../../../backend/src/main/java/com/cephadex/ambi/auth/security/AmbiPrincipals.java) utility, static-imported by each service: null-tolerant `userId(AmbiPrincipal)`, `level(...)`, `isPlatformAdmin(...)`, and `requireUserId(...)` (→ `UnauthorizedException` when identity is missing). Don't reach into the principal inline; use the helpers.
 
 ## 3. Capabilities ride back on the response
 
