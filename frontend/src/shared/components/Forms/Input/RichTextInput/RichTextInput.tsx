@@ -146,14 +146,14 @@ const V_ALIGNS: { value: VerticalAlign; label: string }[] = [
 // (index 0/1/2); vertical draws full-width lines grouped at top/middle/bottom.
 const ALIGN_LINE_WIDTHS = [10, 7, 9, 6];
 const AlignGlyph = ({ axis, index }: { axis: "h" | "v"; index: 0 | 1 | 2 }) => {
-  const lines = ALIGN_LINE_WIDTHS.map((w, i) => {
+  const lines = ALIGN_LINE_WIDTHS.map((width, lineIndex) => {
     if (axis === "h") {
-      const y = 3.5 + i * 3;
-      const x1 = index === 0 ? 3 : index === 2 ? 13 - w : 8 - w / 2;
-      return { x1, y, x2: x1 + w };
+      const y = 3.5 + lineIndex * 3;
+      const x1 = index === 0 ? 3 : index === 2 ? 13 - width : 8 - width / 2;
+      return { x1, y, x2: x1 + width };
     }
     const yOffset = index === 0 ? 0 : index === 2 ? 4.5 : 2.25;
-    const y = 3 + yOffset + i * 2;
+    const y = 3 + yOffset + lineIndex * 2;
     return { x1: 3, y, x2: 13 };
   });
   return (
@@ -166,8 +166,14 @@ const AlignGlyph = ({ axis, index }: { axis: "h" | "v"; index: 0 | 1 | 2 }) => {
       strokeWidth='1.4'
       strokeLinecap='round'
       aria-hidden='true'>
-      {lines.map((l) => (
-        <line key={`${l.y}-${l.x1}`} x1={l.x1} y1={l.y} x2={l.x2} y2={l.y} />
+      {lines.map((line) => (
+        <line
+          key={`${line.y}-${line.x1}`}
+          x1={line.x1}
+          y1={line.y}
+          x2={line.x2}
+          y2={line.y}
+        />
       ))}
     </svg>
   );
@@ -318,14 +324,14 @@ const Toolbar = ({
               {onHorizontalAlignChange && (
                 <>
                   <PopoverDivider />
-                  {H_ALIGNS.map(({ value, label }, i) => (
+                  {H_ALIGNS.map(({ value, label }, alignIndex) => (
                     <PopoverButton
                       key={value}
                       ariaLabel={label}
                       isActive={horizontalAlign === value}
                       preventFocusSteal
                       onClick={() => onHorizontalAlignChange(value)}>
-                      <AlignGlyph axis='h' index={i as 0 | 1 | 2} />
+                      <AlignGlyph axis='h' index={alignIndex as 0 | 1 | 2} />
                     </PopoverButton>
                   ))}
                 </>
@@ -334,14 +340,14 @@ const Toolbar = ({
               {onVerticalAlignChange && (
                 <>
                   <PopoverDivider />
-                  {V_ALIGNS.map(({ value, label }, i) => (
+                  {V_ALIGNS.map(({ value, label }, alignIndex) => (
                     <PopoverButton
                       key={value}
                       ariaLabel={label}
                       isActive={verticalAlign === value}
                       preventFocusSteal
                       onClick={() => onVerticalAlignChange(value)}>
-                      <AlignGlyph axis='v' index={i as 0 | 1 | 2} />
+                      <AlignGlyph axis='v' index={alignIndex as 0 | 1 | 2} />
                     </PopoverButton>
                   ))}
                 </>

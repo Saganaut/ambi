@@ -13,15 +13,16 @@ import {
   type HorizontalAlign,
   type VerticalAlign,
 } from "@components/Forms/Input/RichTextInput/RichTextInput";
+import type {
+  HorizontalAlign as StoredHAlign,
+  VerticalAlign as StoredVAlign,
+} from "@deck/store/deckEnums.gen";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import type { SlideContentProps } from "../slideContentProps";
 
 // The stored alignment is the backend enum (LEFT/CENTER/RIGHT, TOP/MIDDLE/…);
 // RichTextInput speaks the semantic lowercase form. Map between the two, with
 // the client default (left / top) for a slide that has never set alignment.
-type StoredHAlign = "LEFT" | "CENTER" | "RIGHT";
-type StoredVAlign = "TOP" | "MIDDLE" | "BOTTOM";
-
 const toHAlign = (v: StoredHAlign | undefined): HorizontalAlign =>
   v === "CENTER" ? "center" : v === "RIGHT" ? "right" : "left";
 const fromHAlign = (v: HorizontalAlign): StoredHAlign =>
