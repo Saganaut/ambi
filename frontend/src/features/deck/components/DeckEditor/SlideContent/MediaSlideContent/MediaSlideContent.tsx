@@ -105,7 +105,7 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               <iframe
                 src={embedUrl}
                 title='YouTube preview'
-                sandbox='allow-scripts allow-presentation allow-popups'
+                sandbox='allow-scripts allow-same-origin allow-presentation allow-popups'
                 allow='accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
                 allowFullScreen
               />
