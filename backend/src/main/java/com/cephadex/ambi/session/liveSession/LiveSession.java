@@ -52,7 +52,7 @@ public class LiveSession {
     private String id;
 
     @Indexed(unique=true)
-    @Field("pubic_id")
+    @Field("public_id")
     private String publicId;
 
     @Indexed(unique=true)

@@ -1,4 +1,5 @@
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
+import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import styles from "./SessionHeader.module.css";
 
 const SessionRoundDisplay = () => {
@@ -9,17 +10,19 @@ const SessionRoundDisplay = () => {
   return (
     <div className={styles.sessionRoundDisplay}>
       {currentSlide?.section && <div>{currentSlide.section}</div>}
-      <div>{currentSlide?.title ?? "Lobby"}</div>
+      <div>
+        <RichTextDisplay value={currentSlide?.title ?? "Lobby"} />
+      </div>
     </div>
   );
 };
 
 const SessionInfoDisplay = () => {
-  const { publicId } = useLiveSessionQuery();
+  const { roomCode } = useLiveSessionQuery();
 
   return (
     <div className={styles.sessionInfoDisplay}>
-      <span>Join code: {publicId ?? ""}</span>
+      <span>Join code: {roomCode ?? ""}</span>
     </div>
   );
 };
