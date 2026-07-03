@@ -49,18 +49,30 @@ const ScaleStatementEditable = ({
   onFlush,
   onRemove,
 }: ScaleStatementEditableProps) => {
-  const [label, setLabel] = useState(statement.label ?? "");
   // Fall back to the scale's midpoint so a freshly-scored statement lands on a
   // sensible in-range default rather than 0 / NaN.
-  const [target, setTarget] = useState(correctValue ?? Math.round((min + max) / 2));
+  const midpoint = Math.round((min + max) / 2);
+
+  const [label, setLabel] = useState(statement.label ?? "");
+  const [target, setTarget] = useState(correctValue ?? midpoint);
   const [syncedFromId, setSyncedFromId] = useState(statement.id);
+  const [syncedScored, setSyncedScored] = useState(scored);
 
   // Resync the local mirrors when this row is reused for a different statement
   // ("derive state during render" — safe when the value differs).
   if (syncedFromId !== statement.id) {
     setSyncedFromId(statement.id);
     setLabel(statement.label ?? "");
-    setTarget(correctValue ?? Math.round((min + max) / 2));
+    setTarget(correctValue ?? midpoint);
+  }
+
+  // When scoring is re-enabled, refresh the target from the persisted value so a
+  // stale number can't linger after `clearCorrectValues()` wiped the map while
+  // this row stayed mounted — the map is empty again, so this falls back to the
+  // midpoint rather than showing a target that is no longer saved.
+  if (syncedScored !== scored) {
+    setSyncedScored(scored);
+    if (scored) setTarget(correctValue ?? midpoint);
   }
 
   const displayIndex = sortIndex + 1;
@@ -90,6 +102,7 @@ const ScaleStatementEditable = ({
           <div className={styles.targetField}>
             <NumberInput
               label="Answer"
+              id={`scales-target-${statement.id ?? sortIndex.toString()}`}
               labelPosition="labelInFront"
               value={target}
               min={min}
