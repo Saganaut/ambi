@@ -1,22 +1,23 @@
-/* Slide-specific styles for the TextQuestion editor. Stretches the
-   variants input across the row and pulls case-sensitive + points into a
-   compact settings cluster. */
+/* Accepted-answers tag field. The label sits above a wrapping row of answer
+   pills, which in turn sits above the entry box — so a newly committed answer
+   pops in directly under the label, right where the eye already is. */
 
-.answersStack {
+.answersField {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-xs);
+  width: 100%;
 }
 
-.correctRow {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--space-3);
-  align-items: end;
+.answersLabel {
+  padding-left: var(--space-1);
 }
 
-@container (width <= 480px) {
-  .correctRow {
-    grid-template-columns: 1fr;
-  }
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
