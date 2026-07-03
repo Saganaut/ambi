@@ -66,17 +66,27 @@ export const Borderless: Story = {
   },
 };
 
-// The block variant fills its container vertically and exposes the list +
-// heading toolbar. The fixed-height flex parent stands in for the slide canvas
-// so the fill-height behaviour is visible in isolation; the seeded list shows
-// markers following their item's text color.
+// The block variant fills its container vertically and exposes the list, size,
+// and whole-box alignment toolbar. The fixed-height flex parent stands in for
+// the slide canvas so the fill-height and alignment behaviours are visible in
+// isolation; the seeded list shows markers following their item's color + size.
 export const Block: Story = {
   args: { value: blockHtml, variant: "block", label: "Slide content" },
   render: (args) => {
     const [value, setValue] = useState(args.value);
+    const [hAlign, setHAlign] = useState<"left" | "center" | "right">("left");
+    const [vAlign, setVAlign] = useState<"top" | "middle" | "bottom">("top");
     return (
       <div style={{ display: "flex", width: 640, height: 400 }}>
-        <RichTextInput {...args} value={value} onChange={setValue} />
+        <RichTextInput
+          {...args}
+          value={value}
+          onChange={setValue}
+          horizontalAlign={hAlign}
+          verticalAlign={vAlign}
+          onHorizontalAlignChange={setHAlign}
+          onVerticalAlignChange={setVAlign}
+        />
       </div>
     );
   },

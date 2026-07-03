@@ -1,34 +1,43 @@
 /**
- * A ListItem node that carries its own `color` so the bullet/number marker can
- * follow the text color.
+ * A ListItem node that carries its own `color` and `font-size` so the
+ * bullet/number marker can follow the item's text.
  *
- * TipTap's `Color` extension applies color as an inline `textStyle` mark — a
- * `<span style="color:…">` *inside* the `<li>`. CSS `::marker` inherits `color`
- * from the list-item element, never from a descendant span, and it can't read
- * one either. So the only way to tint a bullet is to put the color on the `<li>`
- * itself. This extension adds that `color` attribute (rendered as an inline
- * style, verbatim — so `var(--role-*)` theme refs survive round-trips) and a
- * ProseMirror plugin that keeps it in sync: whenever every piece of text in an
- * item shares one color the `<li>` takes that color; otherwise (empty, mixed,
- * or any uncolored text) it clears, and the marker falls back to the default.
+ * TipTap's `Color` / `FontSize` extensions apply these as inline `textStyle`
+ * marks — a `<span style="color:…;font-size:…">` *inside* the `<li>`. CSS
+ * `::marker` inherits `color` and `font-size` from the list-item element, never
+ * from a descendant span, and can't read one either. So the only way to make a
+ * marker match its text is to put the value on the `<li>` itself. This extension
+ * adds those attributes (rendered as an inline style, verbatim — so
+ * `var(--role-*)` theme refs and rem sizes survive round-trips) and a
+ * ProseMirror plugin that keeps them in sync: whenever every piece of text in an
+ * item shares one value the `<li>` takes it; otherwise (empty, mixed, or any
+ * unstyled text) it clears, and the marker falls back to the default.
  *
  * The sync runs as an appended transaction so it stays correct no matter how the
- * color changed — typing, the color swatches, unsetColor, or paste.
+ * value changed — typing, the toolbar swatches/sizes, unset, or paste.
  */
 import { ListItem } from "@tiptap/extension-list-item";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import type { MarkType, Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
 
-const syncKey = new PluginKey("coloredListItemSync");
+const syncKey = new PluginKey("styledListItemSync");
+
+/** The `textStyle` attributes mirrored onto the `<li>`, each with its CSS name. */
+const SYNCED_STYLES = [
+  { attr: "color", css: "color" },
+  { attr: "fontSize", css: "font-size" },
+] as const;
 
 /**
- * The single color shared by all of a list item's own text, or null when the
- * item is empty, has mixed colors, or contains any uncolored text. Nested lists
- * are skipped — each nested item owns its own marker.
+ * The single value of `textStyle` attribute `attrName` shared by all of a list
+ * item's own text, or null when the item is empty, has mixed values, or contains
+ * any text without it. Nested lists are skipped — each nested item owns its own
+ * marker.
  */
-const uniformItemColor = (
+const uniformItemValue = (
   li: ProseMirrorNode,
   textStyleType: MarkType | undefined,
+  attrName: string,
 ): string | null => {
   let seen: string | null | undefined; // undefined = not yet seen any text
   let sawText = false;
@@ -48,9 +57,9 @@ const uniformItemColor = (
     const mark = textStyleType
       ? node.marks.find((m) => m.type === textStyleType)
       : undefined;
-    const color = (mark?.attrs.color as string | undefined) ?? null;
-    if (seen === undefined) seen = color;
-    else if (seen !== color) mixed = true;
+    const value = (mark?.attrs[attrName] as string | undefined) ?? null;
+    if (seen === undefined) seen = value;
+    else if (seen !== value) mixed = true;
     return true;
   });
 
@@ -59,12 +68,12 @@ const uniformItemColor = (
 };
 
 /**
- * Rewrites each list item's `color` attribute to match its uniform text color.
+ * Rewrites each list item's synced attributes to match its uniform text.
  * Guarded against re-entrancy (its own transactions carry `syncKey` meta) and
  * only dispatches when an attribute actually changes; folded into the same undo
  * step as the edit that triggered it (`addToHistory: false`).
  */
-const coloredListItemSyncPlugin = (schema: Schema): Plugin => {
+const styledListItemSyncPlugin = (schema: Schema): Plugin => {
   const listItemType = schema.nodes.listItem;
   const textStyleType = schema.marks.textStyle as MarkType | undefined;
 
@@ -78,12 +87,20 @@ const coloredListItemSyncPlugin = (schema: Schema): Plugin => {
       let modified = false;
       newState.doc.descendants((node, pos) => {
         if (node.type !== listItemType) return true;
-        const target = uniformItemColor(node, textStyleType);
-        const current = (node.attrs.color as string | null) ?? null;
-        if (target !== current) {
+        let attrs = node.attrs;
+        let changed = false;
+        for (const { attr } of SYNCED_STYLES) {
+          const target = uniformItemValue(node, textStyleType, attr);
+          const current = (attrs[attr] as string | null) ?? null;
+          if (target !== current) {
+            attrs = { ...attrs, [attr]: target };
+            changed = true;
+          }
+        }
+        if (changed) {
           // Attr-only markup keeps the node size, so positions from the
           // pre-edit doc stay valid across multiple updates in this tr.
-          tr.setNodeMarkup(pos, undefined, { ...node.attrs, color: target });
+          tr.setNodeMarkup(pos, undefined, attrs);
           modified = true;
         }
         return true; // descend so nested items are synced too
@@ -102,7 +119,7 @@ const coloredListItemSyncPlugin = (schema: Schema): Plugin => {
  * (`StarterKit.configure({ listItem: false })`) so there's a single list-item
  * node in the schema.
  */
-export const ColoredListItem = ListItem.extend({
+export const StyledListItem = ListItem.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -114,11 +131,19 @@ export const ColoredListItem = ListItem.extend({
           return color ? { style: `color: ${color}` } : {};
         },
       },
+      fontSize: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.style.fontSize || null,
+        renderHTML: (attributes: Record<string, unknown>) => {
+          const fontSize = attributes.fontSize as string | null;
+          return fontSize ? { style: `font-size: ${fontSize}` } : {};
+        },
+      },
     };
   },
 
   addProseMirrorPlugins() {
     const parentPlugins = this.parent?.() ?? [];
-    return [...parentPlugins, coloredListItemSyncPlugin(this.editor.schema)];
+    return [...parentPlugins, styledListItemSyncPlugin(this.editor.schema)];
   },
 });

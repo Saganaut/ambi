@@ -57,6 +57,8 @@ const ENUMS = [
     prop: ["SlideResponse", "difficulty"],
   },
   { name: "ScoreMode", feature: "deck", prop: ["NumberContent", "scoreMode"] },
+  { name: "HorizontalAlign", feature: "deck", prop: ["RichTextContent", "horizontalAlign"] },
+  { name: "VerticalAlign", feature: "deck", prop: ["RichTextContent", "verticalAlign"] },
   {
     name: "McqDataVisualization",
     feature: "deck",

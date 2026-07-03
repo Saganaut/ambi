@@ -48,7 +48,9 @@ import com.cephadex.ambi.presentation.slide.content.RichTextContent;
 import com.cephadex.ambi.presentation.slide.content.TitleContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
+import com.cephadex.ambi.presentation.slide.enums.HorizontalAlign;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
+import com.cephadex.ambi.presentation.slide.enums.VerticalAlign;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -616,7 +618,12 @@ class DeckControllerTest {
         String body = """
                 {
                   "id": "content-1",
-                  "content": {"contentType": "CONTENT", "body": "<p>Hello Middle-earth</p>"}
+                  "content": {
+                    "contentType": "CONTENT",
+                    "body": "<p>Hello Middle-earth</p>",
+                    "horizontalAlign": "CENTER",
+                    "verticalAlign": "MIDDLE"
+                  }
                 }
                 """;
 
@@ -625,7 +632,9 @@ class DeckControllerTest {
                         .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.content.contentType").value("CONTENT"))
-                .andExpect(jsonPath("$.content.body").value("<p>Hello Middle-earth</p>"));
+                .andExpect(jsonPath("$.content.body").value("<p>Hello Middle-earth</p>"))
+                .andExpect(jsonPath("$.content.horizontalAlign").value("CENTER"))
+                .andExpect(jsonPath("$.content.verticalAlign").value("MIDDLE"));
 
         ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
         verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
@@ -633,6 +642,8 @@ class DeckControllerTest {
         RichTextContent content = (RichTextContent) sent.getValue().getContent();
         assertThat(content.contentType()).isEqualTo(SlideType.CONTENT);
         assertThat(content.body()).isEqualTo("<p>Hello Middle-earth</p>");
+        assertThat(content.horizontalAlign()).isEqualTo(HorizontalAlign.CENTER);
+        assertThat(content.verticalAlign()).isEqualTo(VerticalAlign.MIDDLE);
     }
 
     @Test

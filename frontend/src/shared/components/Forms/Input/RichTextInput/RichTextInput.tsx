@@ -65,9 +65,17 @@ interface RichTextInputProps {
   showContrastPlate?: boolean;
   /** Layout/toolbar variant. "input" (default) is the compact input-styled
    *  surface used by prompt and inline fields. "block" fills the available
-   *  vertical space and exposes the richer toolbar (lists + headings) — for
+   *  vertical space and exposes the richer toolbar (lists + alignment) — for
    *  full-slide editing surfaces like the Content slide body. */
   variant?: "input" | "block";
+  /** Whole-box alignment of the content within the (block) editor. Both are
+   *  controlled: pass the current value and a change handler to opt in — the
+   *  alignment controls appear in the toolbar only when the handler is given.
+   *  Meaningful only with `variant="block"`. */
+  horizontalAlign?: HorizontalAlign;
+  verticalAlign?: VerticalAlign;
+  onHorizontalAlignChange?: (value: HorizontalAlign) => void;
+  onVerticalAlignChange?: (value: VerticalAlign) => void;
   className?: string;
   /** Auto-shrink the editor's font-size so its content fits inside its
    *  bounded box — same algorithm as `useFitText` (the shared hook can't
@@ -108,24 +116,76 @@ const QUICK_COLOR_CHOICES: { label: string; value: string }[] = [
 const MORE_COLORS_SWATCH =
   "conic-gradient(from 90deg, #e53e3e, #dd6b20, #38a169, #3182ce, #805ad5, #e53e3e)";
 
+// Widely-spaced steps so the sizes read as clearly distinct (14 / 20 / 30 / 44
+// px). These are the only size controls — there are no heading levels.
 const SIZE_CHOICES: { label: string; value: string }[] = [
   { label: "S", value: "0.875rem" },
-  { label: "M", value: "1rem" },
-  { label: "L", value: "1.25rem" },
-  { label: "XL", value: "1.75rem" },
+  { label: "M", value: "1.25rem" },
+  { label: "L", value: "1.875rem" },
+  { label: "XL", value: "2.75rem" },
 ];
 
-// Heading levels exposed by the block variant — matches the h1–h3 that
-// RichTextDisplay styles.
-const HEADING_LEVELS = [1, 2, 3] as const;
+/** Whole-box alignment of the content within the editor. Semantic (not backend)
+ *  values — the consumer maps these to whatever it persists. */
+type HorizontalAlign = "left" | "center" | "right";
+type VerticalAlign = "top" | "middle" | "bottom";
+
+const H_ALIGNS: { value: HorizontalAlign; label: string }[] = [
+  { value: "left", label: "Align left" },
+  { value: "center", label: "Align center" },
+  { value: "right", label: "Align right" },
+];
+const V_ALIGNS: { value: VerticalAlign; label: string }[] = [
+  { value: "top", label: "Align top" },
+  { value: "middle", label: "Align middle" },
+  { value: "bottom", label: "Align bottom" },
+];
+
+// Inline align glyph — the toolbar is text/glyph based and Heroicons has no
+// alignment set. Horizontal draws ragged "text" lines anchored left/center/right
+// (index 0/1/2); vertical draws full-width lines grouped at top/middle/bottom.
+const ALIGN_LINE_WIDTHS = [10, 7, 9, 6];
+const AlignGlyph = ({ axis, index }: { axis: "h" | "v"; index: 0 | 1 | 2 }) => {
+  const lines = ALIGN_LINE_WIDTHS.map((w, i) => {
+    if (axis === "h") {
+      const y = 3.5 + i * 3;
+      const x1 = index === 0 ? 3 : index === 2 ? 13 - w : 8 - w / 2;
+      return { x1, y, x2: x1 + w };
+    }
+    const yOffset = index === 0 ? 0 : index === 2 ? 4.5 : 2.25;
+    const y = 3 + yOffset + i * 2;
+    return { x1: 3, y, x2: 13 };
+  });
+  return (
+    <svg
+      width='16'
+      height='16'
+      viewBox='0 0 16 16'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='1.4'
+      strokeLinecap='round'
+      aria-hidden='true'>
+      {lines.map((l) => (
+        <line key={`${l.y}-${l.x1}`} x1={l.x1} y1={l.y} x2={l.x2} y2={l.y} />
+      ))}
+    </svg>
+  );
+};
 
 interface ToolbarProps {
   editor: Editor;
   linkOpen: boolean;
   setLinkOpen: (v: boolean) => void;
-  /** Show the richer block controls (lists + headings). Off for the compact
-   *  input variant used by prompt/inline fields. */
+  /** Show the richer block controls (lists). Off for the compact input variant
+   *  used by prompt/inline fields. */
   showBlockControls: boolean;
+  /** Whole-box alignment state + setters. Present only when the consumer opts
+   *  into alignment (the block/content usage); absent hides the align controls. */
+  horizontalAlign?: HorizontalAlign;
+  verticalAlign?: VerticalAlign;
+  onHorizontalAlignChange?: (value: HorizontalAlign) => void;
+  onVerticalAlignChange?: (value: VerticalAlign) => void;
 }
 
 const Toolbar = ({
@@ -133,6 +193,10 @@ const Toolbar = ({
   linkOpen,
   setLinkOpen,
   showBlockControls,
+  horizontalAlign = "left",
+  verticalAlign = "top",
+  onHorizontalAlignChange,
+  onVerticalAlignChange,
 }: ToolbarProps) => {
   const {
     linkUrl,
@@ -251,20 +315,37 @@ const Toolbar = ({
                 <span aria-hidden='true'>1.</span>
               </PopoverButton>
 
-              <PopoverDivider />
+              {onHorizontalAlignChange && (
+                <>
+                  <PopoverDivider />
+                  {H_ALIGNS.map(({ value, label }, i) => (
+                    <PopoverButton
+                      key={value}
+                      ariaLabel={label}
+                      isActive={horizontalAlign === value}
+                      preventFocusSteal
+                      onClick={() => onHorizontalAlignChange(value)}>
+                      <AlignGlyph axis='h' index={i as 0 | 1 | 2} />
+                    </PopoverButton>
+                  ))}
+                </>
+              )}
 
-              {HEADING_LEVELS.map((level) => (
-                <PopoverButton
-                  key={level}
-                  ariaLabel={`Heading ${level.toString()}`}
-                  isActive={editor.isActive("heading", { level })}
-                  preventFocusSteal
-                  onClick={() =>
-                    editor.chain().focus().toggleHeading({ level }).run()
-                  }>
-                  {`H${level.toString()}`}
-                </PopoverButton>
-              ))}
+              {onVerticalAlignChange && (
+                <>
+                  <PopoverDivider />
+                  {V_ALIGNS.map(({ value, label }, i) => (
+                    <PopoverButton
+                      key={value}
+                      ariaLabel={label}
+                      isActive={verticalAlign === value}
+                      preventFocusSteal
+                      onClick={() => onVerticalAlignChange(value)}>
+                      <AlignGlyph axis='v' index={i as 0 | 1 | 2} />
+                    </PopoverButton>
+                  ))}
+                </>
+              )}
             </>
           )}
         </PopoverRow>
@@ -370,6 +451,10 @@ const RichTextInput = ({
   isBordered = true,
   showContrastPlate = false,
   variant = "input",
+  horizontalAlign = "left",
+  verticalAlign = "top",
+  onHorizontalAlignChange,
+  onVerticalAlignChange,
   className,
   minPx,
   maxPx,
@@ -500,16 +585,27 @@ const RichTextInput = ({
         ]
           .filter(Boolean)
           .join(" ")}
+        // Whole-box alignment is applied to the editor via these attributes
+        // (see the .surfaceBlock[data-halign|data-valign] rules) rather than
+        // living in the content HTML, which stays purely the rich text.
+        data-halign={isBlock ? horizontalAlign : undefined}
+        data-valign={isBlock ? verticalAlign : undefined}
         style={{ anchorName }}>
         {toolbarOpen && (
           <div
-            className={styles.floatingToolbar}
+            className={[styles.floatingToolbar, isBlock && styles.floatingToolbarBlock]
+              .filter(Boolean)
+              .join(" ")}
             style={{ positionAnchor: anchorName }}>
             <Toolbar
               editor={editor}
               linkOpen={linkOpen}
               setLinkOpen={setLinkOpen}
               showBlockControls={isBlock}
+              horizontalAlign={horizontalAlign}
+              verticalAlign={verticalAlign}
+              onHorizontalAlignChange={onHorizontalAlignChange}
+              onVerticalAlignChange={onVerticalAlignChange}
             />
           </div>
         )}
@@ -520,4 +616,4 @@ const RichTextInput = ({
 };
 
 export { RichTextInput };
-export type { RichTextInputHandle };
+export type { RichTextInputHandle, HorizontalAlign, VerticalAlign };

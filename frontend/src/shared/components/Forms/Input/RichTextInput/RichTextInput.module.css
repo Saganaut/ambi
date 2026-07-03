@@ -82,6 +82,12 @@
   z-index: var(--z-tooltip);
 }
 
+/* The block toolbar carries more controls (lists + 6 alignment buttons); cap its
+   width so the row wraps to a second line instead of running off-screen. */
+.floatingToolbarBlock {
+  max-width: min(90vw, 34rem);
+}
+
 /* Link editor — when open, hangs off the bottom-left of the toolbar so it
    visually sits "below" the format toolbar (overlapping the input area)
    without resizing the toolbar wrapper above it. */
@@ -106,6 +112,10 @@
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: var(--font-size-base);
+
+  /* Unitless so each line box scales with its own font-size — keeps large
+     inline sizes from overlapping the line above (visible when selecting). */
+  line-height: 1.5;
   outline: none;
 }
 
@@ -132,31 +142,57 @@
   min-height: 0;
 }
 
+/* A flex column so whole-box vertical alignment can position the content stack
+   via justify-content (see the data-valign rules below). */
 .wrapper.block .editor {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-/* List and heading rendering while editing — mirrors RichTextDisplay so the
-   author sees what the slide will show. */
+/* Whole-box alignment, driven by data-attributes on the surface (set from the
+   controlled align props). `safe` keeps content from clipping past the scroll
+   box's top when it overflows. Horizontal overrides the `.tiptap { text-align:
+   start }` reset via higher specificity. */
+.surfaceBlock[data-valign="top"] .editor {
+  justify-content: safe flex-start;
+}
+
+.surfaceBlock[data-valign="middle"] .editor {
+  justify-content: safe center;
+}
+
+.surfaceBlock[data-valign="bottom"] .editor {
+  justify-content: safe flex-end;
+}
+
+.surfaceBlock[data-halign="left"] .editor {
+  text-align: left;
+}
+
+.surfaceBlock[data-halign="center"] .editor {
+  text-align: center;
+}
+
+.surfaceBlock[data-halign="right"] .editor {
+  text-align: right;
+}
+
+/* List rendering while editing — mirrors RichTextDisplay so the author sees
+   what the slide will show. */
 .wrapper.block .editor ul,
 .wrapper.block .editor ol {
   margin: 0;
   padding-left: var(--space-5);
 }
 
-.wrapper.block .editor h1,
-.wrapper.block .editor h2,
-.wrapper.block .editor h3 {
-  margin: 0;
-  font-weight: 600;
-}
-
-/* ColoredListItem writes the item's uniform text color onto the <li>; the
-   marker inherits it (belt-and-suspenders — ::marker already inherits color). */
+/* StyledListItem writes the item's uniform text color/size onto the <li>; the
+   marker inherits both (belt-and-suspenders — ::marker already inherits them). */
 .wrapper.block .editor li::marker {
   color: inherit;
+  font-size: inherit;
 }
 
 /* Placeholder is rendered by @tiptap/extensions/Placeholder, which tags the

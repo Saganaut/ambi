@@ -59,6 +59,20 @@ export const ScoreMode = {
   RANGE: "RANGE",
 } as const satisfies Record<ScoreMode, ScoreMode>;
 
+export type HorizontalAlign = "CENTER" | "LEFT" | "RIGHT";
+export const HorizontalAlign = {
+  CENTER: "CENTER",
+  LEFT: "LEFT",
+  RIGHT: "RIGHT",
+} as const satisfies Record<HorizontalAlign, HorizontalAlign>;
+
+export type VerticalAlign = "BOTTOM" | "MIDDLE" | "TOP";
+export const VerticalAlign = {
+  BOTTOM: "BOTTOM",
+  MIDDLE: "MIDDLE",
+  TOP: "TOP",
+} as const satisfies Record<VerticalAlign, VerticalAlign>;
+
 export type McqDataVisualization = "BAR_HORIZONTAL" | "BAR_VERTICAL" | "DONUT" | "DOT" | "LINE" | "NONE" | "PARETO" | "PIE";
 export const McqDataVisualization = {
   BAR_HORIZONTAL: "BAR_HORIZONTAL",

@@ -115,8 +115,8 @@ frontend branches on one contract.
    `contentType` (the slide's `SlideType`); `SlideContent` exposes it to the OpenAPI spec
    via `@Schema(discriminatorProperty/oneOf/discriminatorMapping)` so the generated client
    sees a real union. `MCQ` (scorable) plus the four non-scorable display kinds —
-   `TITLE` (title + optional subtitle), `CONTENT` (a rich-text body, backed by
-   `RichTextContent`), `MEDIA` (an image or an embedded YouTube video + optional
+   `TITLE` (title + optional subtitle), `CONTENT` (a rich-text body with box
+   alignment, backed by `RichTextContent`), `MEDIA` (an image or an embedded YouTube video + optional
    caption), and `INSTRUCTION` (how to join the live session) — are wired end-to-end in
    the editor; the remaining kinds carry records but are not yet surfaced. Adding a type
    means: a `@JsonSubTypes.Type` entry on `SlideContent` and its `Scorable`/`NonScorable`

@@ -939,6 +939,8 @@ export type TitleContent = {
 };
 export type RichTextContent = {
   body?: string;
+  horizontalAlign?: "LEFT" | "CENTER" | "RIGHT";
+  verticalAlign?: "TOP" | "MIDDLE" | "BOTTOM";
   contentType: "CONTENT";
 };
 export type MediaContent = {
