@@ -28,6 +28,7 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
@@ -63,8 +64,8 @@ class DeckServiceTest {
     void setUp() {
         deckRepository = mock(DeckRepository.class);
         userService = mock(UserService.class);
-        deckService = new DeckService(deckRepository, userService, new SlideRankService(),
-                new DeckDefaultsProperties());
+        deckService = new DeckService(deckRepository, new OrgRoleResolver(userService),
+                new SlideRankService(), new DeckDefaultsProperties());
         owner = principal("owner-1");
         // Echo back whatever the service saves — tests inspect the in-flight deck.
         when(deckRepository.save(any(Deck.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -96,7 +97,7 @@ class DeckServiceTest {
         props.setLanguage("fr");
         props.getAnswer().setCountdownTime(45);
         props.getPoints().setPoints(500);
-        DeckService service = new DeckService(deckRepository, userService,
+        DeckService service = new DeckService(deckRepository, new OrgRoleResolver(userService),
                 new SlideRankService(), props);
 
         Deck created = service.create("deck-1", owner);

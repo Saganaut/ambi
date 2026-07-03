@@ -30,6 +30,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.org.OrgMembership;
+import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
@@ -56,7 +57,8 @@ class GalleryServiceTest {
         imageRepository = mock(GalleryImageRepository.class);
         userService = mock(UserService.class);
         storage = mock(S3StorageService.class);
-        galleryService = new GalleryService(galleryRepository, imageRepository, userService, storage);
+        galleryService = new GalleryService(galleryRepository, imageRepository,
+                new OrgRoleResolver(userService), storage);
         when(galleryRepository.save(any(Gallery.class))).thenAnswer(inv -> inv.getArgument(0));
         when(imageRepository.save(any(GalleryImage.class))).thenAnswer(inv -> inv.getArgument(0));
     }

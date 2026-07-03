@@ -12,6 +12,7 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.enums.OwnershipType;
+import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
@@ -29,7 +30,8 @@ class ThemeServiceTest {
 
     @BeforeEach
     void setUp() {
-        themeService = new ThemeService(mock(ThemeRepository.class), mock(UserService.class));
+        themeService = new ThemeService(mock(ThemeRepository.class),
+                new OrgRoleResolver(mock(UserService.class)));
         owner = principal("owner-1");
     }
 

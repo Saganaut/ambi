@@ -1,7 +1,11 @@
 package com.cephadex.ambi.theme;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.isPlatformAdmin;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.level;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.userId;
+
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -11,28 +15,26 @@ import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
-import com.cephadex.ambi.org.OrgMembership;
+import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
-import com.cephadex.ambi.user.User;
-import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
  * CRUD for {@link Theme}, gated by the permission rules the aggregate owns
  * ({@code canBeViewedBy} / {@code canBeManagedBy}). This service decides which
- * capability an operation needs, resolves the requester's org role, and turns a
- * denial into a typed {@code ApiException} — mirroring {@code DeckService}.
+ * capability an operation needs, resolves the requester's org role via
+ * {@link OrgRoleResolver}, and turns a denial into a typed {@code ApiException} —
+ * mirroring {@code DeckService}.
  */
 @Service
 public class ThemeService {
 
     private final ThemeRepository themeRepository;
-    private final UserService userService;
+    private final OrgRoleResolver orgRoles;
 
-    public ThemeService(ThemeRepository themeRepository, UserService userService) {
+    public ThemeService(ThemeRepository themeRepository, OrgRoleResolver orgRoles) {
         this.themeRepository = themeRepository;
-        this.userService = userService;
+        this.orgRoles = orgRoles;
     }
 
     // ── Create ──────────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ public class ThemeService {
     /** Load a theme the requester is allowed to VIEW, else 403/404. */
     public Theme getViewable(String id, AmbiPrincipal principal) {
         Theme theme = load(id);
-        if (!theme.canBeViewedBy(userId(principal), level(principal), orgRoleFor(theme, principal))) {
+        if (!theme.canBeViewedBy(userId(principal), level(principal), orgRoles.roleFor(theme, principal))) {
             throw new ForbiddenException("THEME_VIEW_FORBIDDEN",
                     "You do not have access to this theme");
         }
@@ -107,7 +109,7 @@ public class ThemeService {
 
     /** Themes owned by an org — requires the requester to be a member of it. */
     public List<Theme> listForOrg(String orgId, AmbiPrincipal principal) {
-        if (!isPlatformAdmin(principal) && orgRoleFor(orgId, userId(principal)) == null) {
+        if (!isPlatformAdmin(principal) && orgRoles.roleFor(orgId, userId(principal)) == null) {
             throw new ForbiddenException("THEME_VIEW_FORBIDDEN",
                     "You are not a member of this organization");
         }
@@ -129,7 +131,7 @@ public class ThemeService {
     public ViewerPermissions permissionsFor(Theme theme, AmbiPrincipal principal) {
         String userId = userId(principal);
         UserLevel level = level(principal);
-        OrgRole orgRole = orgRoleFor(theme, principal);
+        OrgRole orgRole = orgRoles.roleFor(theme, principal);
         boolean canManage = theme.canBeManagedBy(userId, level, orgRole);
         return new ViewerPermissions(
                 theme.canBeViewedBy(userId, level, orgRole),
@@ -145,7 +147,7 @@ public class ThemeService {
     }
 
     private void requireManage(Theme theme, AmbiPrincipal principal) {
-        if (!theme.canBeManagedBy(userId(principal), level(principal), orgRoleFor(theme, principal))) {
+        if (!theme.canBeManagedBy(userId(principal), level(principal), orgRoles.roleFor(theme, principal))) {
             throw new ForbiddenException("THEME_MANAGE_FORBIDDEN",
                     "You do not have permission to manage this theme");
         }
@@ -156,58 +158,10 @@ public class ThemeService {
         if (isPlatformAdmin(principal)) {
             return;
         }
-        OrgRole role = orgRoleFor(orgId, userId(principal));
+        OrgRole role = orgRoles.roleFor(orgId, userId(principal));
         if (role != OrgRole.OWNER && role != OrgRole.ADMIN) {
             throw new ForbiddenException("THEME_MANAGE_FORBIDDEN",
                     "You do not have permission to create themes for this organization");
         }
-    }
-
-    /**
-     * The requester's role in this theme's owning org, or null. Skips I/O for
-     * personal themes.
-     */
-    private OrgRole orgRoleFor(Theme theme, AmbiPrincipal principal) {
-        if (theme == null || !theme.isOrgOwned()) {
-            return null;
-        }
-        return orgRoleFor(theme.getOrganizationId(), userId(principal));
-    }
-
-    private OrgRole orgRoleFor(String orgId, String userId) {
-        if (orgId == null || userId == null) {
-            return null;
-        }
-        Optional<User> user = userService.findById(userId);
-        if (user.isEmpty() || user.get().getOrgRoles() == null) {
-            return null;
-        }
-        for (OrgMembership membership : user.get().getOrgRoles()) {
-            if (orgId.equals(membership.orgId())) {
-                return membership.orgRole();
-            }
-        }
-        return null;
-    }
-
-    private static String userId(AmbiPrincipal principal) {
-        return principal == null ? null : principal.userId();
-    }
-
-    private static UserLevel level(AmbiPrincipal principal) {
-        return principal == null ? null : principal.userLevel();
-    }
-
-    private static boolean isPlatformAdmin(AmbiPrincipal principal) {
-        UserLevel level = level(principal);
-        return level != null && level.hasAccessTo(UserLevel.ADMIN);
-    }
-
-    private static String requireUserId(AmbiPrincipal principal) {
-        String id = userId(principal);
-        if (id == null) {
-            throw new UnauthorizedException("AUTH_REQUIRED", "Sign in to continue");
-        }
-        return id;
     }
 }

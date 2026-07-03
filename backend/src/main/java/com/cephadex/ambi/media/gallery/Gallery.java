@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.common.OwnableResource;
 import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.org.enums.OrgRole;
@@ -43,7 +44,7 @@ import lombok.ToString;
 @Document(collection = "galleries")
 // One gallery per owner: a user (or org) can only ever have a single gallery.
 @CompoundIndex(name = "owner_unique", def = "{'ownership.type': 1, 'ownership.owner_id': 1}", unique = true)
-public class Gallery extends Auditable {
+public class Gallery extends Auditable implements OwnableResource {
 
     // id is inherited from BaseDocument (@Id String id). The id is server-minted
     // on get-or-create; clients reach a gallery via /mine or ?orgId, not by id.

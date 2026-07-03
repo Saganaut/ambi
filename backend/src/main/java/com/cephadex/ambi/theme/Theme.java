@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.common.OwnableResource;
 import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.org.enums.OrgRole;
@@ -35,7 +36,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @Document(collection = "themes")
-public class Theme extends Auditable {
+public class Theme extends Auditable implements OwnableResource {
 
     // id is inherited from BaseDocument (@Id String id). Clients may mint a UUID
     // so themes can be created optimistically, the same way decks are.

@@ -1,9 +1,13 @@
 package com.cephadex.ambi.presentation.deck;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.isPlatformAdmin;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.level;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.userId;
+
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -20,10 +24,9 @@ import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
-import com.cephadex.ambi.org.OrgMembership;
+import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
@@ -37,8 +40,6 @@ import com.cephadex.ambi.presentation.slide.content.ScorableContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
-import com.cephadex.ambi.user.User;
-import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -52,14 +53,14 @@ import com.cephadex.ambi.user.enums.UserLevel;
 public class DeckService {
 
     private final DeckRepository deckRepository;
-    private final UserService userService;
+    private final OrgRoleResolver orgRoles;
     private final SlideRankService rankService;
     private final DeckDefaultsProperties deckDefaults;
 
-    public DeckService(DeckRepository deckRepository, UserService userService,
+    public DeckService(DeckRepository deckRepository, OrgRoleResolver orgRoles,
             SlideRankService rankService, DeckDefaultsProperties deckDefaults) {
         this.deckRepository = deckRepository;
-        this.userService = userService;
+        this.orgRoles = orgRoles;
         this.rankService = rankService;
         this.deckDefaults = deckDefaults;
     }
@@ -742,7 +743,7 @@ public class DeckService {
 
     /** Decks owned by an org — requires the requester to be a member of it. */
     public List<Deck> listForOrg(String orgId, AmbiPrincipal principal) {
-        if (!isPlatformAdmin(principal) && orgRoleFor(orgId, userId(principal)) == null) {
+        if (!isPlatformAdmin(principal) && orgRoles.roleFor(orgId, userId(principal)) == null) {
             throw new ForbiddenException("DECK_VIEW_FORBIDDEN",
                     "You are not a member of this organization");
         }
@@ -765,7 +766,7 @@ public class DeckService {
     public ViewerPermissions permissionsFor(Deck deck, AmbiPrincipal principal) {
         String userId = userId(principal);
         UserLevel level = level(principal);
-        OrgRole orgRole = orgRoleFor(deck, principal);
+        OrgRole orgRole = orgRoles.roleFor(deck, principal);
         return new ViewerPermissions(
                 deck.canBeViewedBy(userId, level, orgRole),
                 deck.canBeEditedBy(userId, level, orgRole),
@@ -791,21 +792,21 @@ public class DeckService {
     }
 
     private void requireView(Deck deck, AmbiPrincipal principal) {
-        if (!deck.canBeViewedBy(userId(principal), level(principal), orgRoleFor(deck, principal))) {
+        if (!deck.canBeViewedBy(userId(principal), level(principal), orgRoles.roleFor(deck, principal))) {
             throw new ForbiddenException("DECK_VIEW_FORBIDDEN",
                     "You do not have access to this deck");
         }
     }
 
     private void requireEdit(Deck deck, AmbiPrincipal principal) {
-        if (!deck.canBeEditedBy(userId(principal), level(principal), orgRoleFor(deck, principal))) {
+        if (!deck.canBeEditedBy(userId(principal), level(principal), orgRoles.roleFor(deck, principal))) {
             throw new ForbiddenException("DECK_EDIT_FORBIDDEN",
                     "You do not have edit access to this deck");
         }
     }
 
     private void requireManage(Deck deck, AmbiPrincipal principal) {
-        if (!deck.canBeManagedBy(userId(principal), level(principal), orgRoleFor(deck, principal))) {
+        if (!deck.canBeManagedBy(userId(principal), level(principal), orgRoles.roleFor(deck, principal))) {
             throw new ForbiddenException("DECK_MANAGE_FORBIDDEN",
                     "You do not have permission to manage this deck");
         }
@@ -817,53 +818,5 @@ public class DeckService {
             deck.setPublishedAt(Instant.now());
         }
         deck.setPublishStatus(next);
-    }
-
-    /**
-     * The requester's role in this deck's owning org, or null. Skips I/O for
-     * personal decks.
-     */
-    private OrgRole orgRoleFor(Deck deck, AmbiPrincipal principal) {
-        if (deck == null || !deck.isOrgOwned()) {
-            return null;
-        }
-        return orgRoleFor(deck.getOrganizationId(), userId(principal));
-    }
-
-    private OrgRole orgRoleFor(String orgId, String userId) {
-        if (orgId == null || userId == null) {
-            return null;
-        }
-        Optional<User> user = userService.findById(userId);
-        if (user.isEmpty() || user.get().getOrgRoles() == null) {
-            return null;
-        }
-        for (OrgMembership membership : user.get().getOrgRoles()) {
-            if (orgId.equals(membership.orgId())) {
-                return membership.orgRole();
-            }
-        }
-        return null;
-    }
-
-    private static String userId(AmbiPrincipal principal) {
-        return principal == null ? null : principal.userId();
-    }
-
-    private static UserLevel level(AmbiPrincipal principal) {
-        return principal == null ? null : principal.userLevel();
-    }
-
-    private static boolean isPlatformAdmin(AmbiPrincipal principal) {
-        UserLevel level = level(principal);
-        return level != null && level.hasAccessTo(UserLevel.ADMIN);
-    }
-
-    private static String requireUserId(AmbiPrincipal principal) {
-        String id = userId(principal);
-        if (id == null) {
-            throw new UnauthorizedException("AUTH_REQUIRED", "Sign in to continue");
-        }
-        return id;
     }
 }

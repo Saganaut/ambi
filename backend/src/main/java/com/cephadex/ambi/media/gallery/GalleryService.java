@@ -1,5 +1,10 @@
 package com.cephadex.ambi.media.gallery;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.isPlatformAdmin;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.level;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.userId;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,14 +19,11 @@ import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.S3StorageService;
-import com.cephadex.ambi.org.OrgMembership;
+import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
-import com.cephadex.ambi.user.User;
-import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -41,15 +43,15 @@ public class GalleryService {
 
     private final GalleryRepository galleryRepository;
     private final GalleryImageRepository imageRepository;
-    private final UserService userService;
+    private final OrgRoleResolver orgRoles;
     private final S3StorageService storage;
 
     public GalleryService(GalleryRepository galleryRepository,
-            GalleryImageRepository imageRepository, UserService userService,
+            GalleryImageRepository imageRepository, OrgRoleResolver orgRoles,
             S3StorageService storage) {
         this.galleryRepository = galleryRepository;
         this.imageRepository = imageRepository;
-        this.userService = userService;
+        this.orgRoles = orgRoles;
         this.storage = storage;
     }
 
@@ -197,7 +199,7 @@ public class GalleryService {
     public ViewerPermissions permissionsFor(Gallery gallery, AmbiPrincipal principal) {
         String userId = userId(principal);
         UserLevel level = level(principal);
-        OrgRole orgRole = orgRoleFor(gallery, principal);
+        OrgRole orgRole = orgRoles.roleFor(gallery, principal);
         return new ViewerPermissions(
                 gallery.canBeViewedBy(userId, level, orgRole),
                 gallery.canBeEditedBy(userId, level, orgRole),
@@ -217,21 +219,21 @@ public class GalleryService {
     }
 
     private void requireView(Gallery gallery, AmbiPrincipal principal) {
-        if (!gallery.canBeViewedBy(userId(principal), level(principal), orgRoleFor(gallery, principal))) {
+        if (!gallery.canBeViewedBy(userId(principal), level(principal), orgRoles.roleFor(gallery, principal))) {
             throw new ForbiddenException("GALLERY_VIEW_FORBIDDEN",
                     "You do not have access to this gallery");
         }
     }
 
     private void requireEdit(Gallery gallery, AmbiPrincipal principal) {
-        if (!gallery.canBeEditedBy(userId(principal), level(principal), orgRoleFor(gallery, principal))) {
+        if (!gallery.canBeEditedBy(userId(principal), level(principal), orgRoles.roleFor(gallery, principal))) {
             throw new ForbiddenException("GALLERY_EDIT_FORBIDDEN",
                     "You do not have edit access to this gallery");
         }
     }
 
     private void requireManage(Gallery gallery, AmbiPrincipal principal) {
-        if (!gallery.canBeManagedBy(userId(principal), level(principal), orgRoleFor(gallery, principal))) {
+        if (!gallery.canBeManagedBy(userId(principal), level(principal), orgRoles.roleFor(gallery, principal))) {
             throw new ForbiddenException("GALLERY_MANAGE_FORBIDDEN",
                     "You do not have permission to manage this gallery");
         }
@@ -241,58 +243,10 @@ public class GalleryService {
         if (isPlatformAdmin(principal)) {
             return;
         }
-        OrgRole role = orgRoleFor(orgId, userId(principal));
+        OrgRole role = orgRoles.roleFor(orgId, userId(principal));
         if (role != OrgRole.OWNER && role != OrgRole.ADMIN) {
             throw new ForbiddenException("GALLERY_MANAGE_FORBIDDEN",
                     "You do not have permission to create a gallery for this organization");
         }
-    }
-
-    /**
-     * The requester's role in this gallery's owning org, or null. Skips I/O for
-     * personal galleries.
-     */
-    private OrgRole orgRoleFor(Gallery gallery, AmbiPrincipal principal) {
-        if (gallery == null || !gallery.isOrgOwned()) {
-            return null;
-        }
-        return orgRoleFor(gallery.getOrganizationId(), userId(principal));
-    }
-
-    private OrgRole orgRoleFor(String orgId, String userId) {
-        if (orgId == null || userId == null) {
-            return null;
-        }
-        Optional<User> user = userService.findById(userId);
-        if (user.isEmpty() || user.get().getOrgRoles() == null) {
-            return null;
-        }
-        for (OrgMembership membership : user.get().getOrgRoles()) {
-            if (orgId.equals(membership.orgId())) {
-                return membership.orgRole();
-            }
-        }
-        return null;
-    }
-
-    private static String userId(AmbiPrincipal principal) {
-        return principal == null ? null : principal.userId();
-    }
-
-    private static UserLevel level(AmbiPrincipal principal) {
-        return principal == null ? null : principal.userLevel();
-    }
-
-    private static boolean isPlatformAdmin(AmbiPrincipal principal) {
-        UserLevel level = level(principal);
-        return level != null && level.hasAccessTo(UserLevel.ADMIN);
-    }
-
-    private static String requireUserId(AmbiPrincipal principal) {
-        String id = userId(principal);
-        if (id == null) {
-            throw new UnauthorizedException("AUTH_REQUIRED", "Sign in to continue");
-        }
-        return id;
     }
 }

@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.cephadex.ambi.common.Auditable;
+import com.cephadex.ambi.common.OwnableResource;
 import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.enums.OwnershipType;
 import com.cephadex.ambi.media.AppImage;
@@ -37,7 +38,7 @@ import lombok.ToString;
 @ToString
 @Document(collection = "decks")
 // Adding this due to extending AUditable, see if we can remove later
-public class Deck extends Auditable {
+public class Deck extends Auditable implements OwnableResource {
 
     // id is inherited from BaseDocument (@Id String id) — do not redeclare.
     // The id is a UUID which allows us to optimistically create decks on the
