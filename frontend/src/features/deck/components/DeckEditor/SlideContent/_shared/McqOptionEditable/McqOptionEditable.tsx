@@ -9,7 +9,7 @@ import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types"
 import { Container } from "@components/Containers/Container";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
-import { IndexPill } from "../IndexPill";
+import { IndexPill } from "../IndexPill/IndexPill";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
 

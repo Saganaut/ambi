@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import { MinusIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { IndexPill } from "./IndexPill";
+import { IndexPill } from "./IndexPill/IndexPill";
 import styles from "./_shared.module.css";
 
 interface ItemCardProps {
