@@ -16,6 +16,11 @@ import { Btn } from "@ui/Buttons/Btn";
 import { Tabs, type TabsItem } from "@ui/Tabs/Tabs";
 import { AvatarSelector } from "@components/Forms/Input/AvatarSelector/AvatarSelector";
 import {
+  AVATAR_COLLECTIONS,
+  collectionIdForValue,
+} from "@components/Forms/Input/AvatarSelector/avatarOptions";
+import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
+import {
   useGetMyGalleryQuery,
   type AppImage,
 } from "@features/gallery/store/galleryApi.gen";
@@ -36,10 +41,23 @@ interface AvatarPickerProps {
 
 type PickerTab = "builtin" | "gallery" | "upload";
 
+const collectionOptions = AVATAR_COLLECTIONS.map((c) => ({
+  value: c.id,
+  label: c.label,
+}));
+
 const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
   const { data: gallery, isError: galleryError } = useGetMyGalleryQuery();
   const galleryId = gallery?.id;
   const [tab, setTab] = useState<PickerTab>("builtin");
+  // Show one collection at a time so only that collection's images load. Open
+  // on the collection holding the current selection, else the first collection.
+  const [collectionId, setCollectionId] = useState(
+    () => collectionIdForValue(builtinValue) ?? AVATAR_COLLECTIONS[0].id,
+  );
+  const activeOptions =
+    AVATAR_COLLECTIONS.find((c) => c.id === collectionId)?.options ??
+    AVATAR_COLLECTIONS[0].options;
 
   const items: TabsItem[] = [
     {
@@ -47,8 +65,17 @@ const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
       label: "Built-in",
       panel: (
         <div className={styles.tabPanel}>
+          <Dropdown
+            label='Collection'
+            options={collectionOptions}
+            value={[collectionId]}
+            onChange={(values) => {
+              if (values[0]) setCollectionId(values[0]);
+            }}
+          />
           <AvatarSelector
             legend='Pick a built-in avatar'
+            options={activeOptions}
             value={builtinValue ?? ""}
             onChange={(value) => {
               onPick({ kind: "builtin", internalAvatarId: value });

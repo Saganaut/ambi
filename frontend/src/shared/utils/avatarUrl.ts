@@ -21,7 +21,7 @@
 import {
   AvatarOption,
   AVATAR_OPTIONS,
-} from "@/shared/components/Forms/Input/AvatarSelector/AvatarSelector";
+} from "@/shared/components/Forms/Input/AvatarSelector/avatarOptions";
 import { Avatar } from "@auth/store/userApi.gen";
 import { resolveImageUrl } from "@utils/image";
 

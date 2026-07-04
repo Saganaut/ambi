@@ -26,6 +26,9 @@
 }
 
 .tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
