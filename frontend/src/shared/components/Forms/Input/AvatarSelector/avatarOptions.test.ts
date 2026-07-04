@@ -9,7 +9,7 @@ import {
   AVATAR_OPTIONS,
   collectionIdForValue,
 } from "./avatarOptions";
-import { resolveAvatarSrc, builtinAvatarUrl } from "@utils/avatarUrl";
+import { resolveAvatarSrcAsync, builtinAvatarUrl } from "@utils/avatarUrl";
 
 // Expected roster sizes, per the files committed under
 // src/shared/assets/images/mascots/. If assets are added/removed, update here.
@@ -41,10 +41,17 @@ describe("AVATAR_COLLECTIONS", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("gives every option a resolvable, non-empty asset src", () => {
+  it("gives every option a lazy loader (not an eagerly-resolved src)", () => {
     for (const o of AVATAR_OPTIONS) {
-      expect(o.src, `option ${o.value} has no src`).toBeTruthy();
+      expect(typeof o.loadSrc, `option ${o.value} has no loadSrc`).toBe(
+        "function",
+      );
     }
+  });
+
+  it("resolves a loader to a non-empty asset url", async () => {
+    const [first] = AVATAR_OPTIONS;
+    await expect(first.loadSrc()).resolves.toBeTruthy();
   });
 });
 
@@ -63,14 +70,14 @@ describe("collectionIdForValue", () => {
 });
 
 describe("built-in id resolution (regression guard for the glob-path fix)", () => {
-  it("resolves a themed built-in id to a real bundled asset, not the builtin: string", () => {
-    const resolved = resolveAvatarSrc(builtinAvatarUrl("dinosaur-01"));
+  it("resolves a themed built-in id to a real bundled asset, not the builtin: string", async () => {
+    const resolved = await resolveAvatarSrcAsync(builtinAvatarUrl("dinosaur-01"));
     expect(resolved).not.toBe(builtinAvatarUrl("dinosaur-01"));
     expect(resolved).toBeTruthy();
   });
 
-  it("passes an unknown built-in id through unchanged", () => {
+  it("passes an unknown built-in id through unchanged", async () => {
     const unknown = builtinAvatarUrl("nope-99");
-    expect(resolveAvatarSrc(unknown)).toBe(unknown);
+    await expect(resolveAvatarSrcAsync(unknown)).resolves.toBe(unknown);
   });
 });

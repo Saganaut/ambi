@@ -15,12 +15,41 @@
 // a chevron toggle below the grid expands the container into a taller
 // scrollable panel that lists every avatar. Tiles lazy-load their image so a
 // large, scrolled collection only fetches what comes into view.
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import shared from "../Input.module.css";
 import styles from "./AvatarSelector.module.css";
 import { AVATAR_OPTIONS, type AvatarOption } from "./avatarOptions";
 import { IconBtn } from "@ui/Buttons/IconBtn";
+
+// Resolves one tile's bundled asset URL lazily (avatarOptions' loaders are
+// non-eager), so only the tiles actually rendered — the collapsed slice of the
+// active collection — ever fetch an image. Renders nothing until the URL is
+// ready; the label tile keeps its shape from CSS in the meantime.
+const AvatarTileImage = ({ loadSrc }: Pick<AvatarOption, "loadSrc">) => {
+  const [src, setSrc] = useState<string>();
+
+  useEffect(() => {
+    let active = true;
+    void loadSrc().then((url) => {
+      if (active) setSrc(url);
+    });
+    return () => {
+      active = false;
+    };
+  }, [loadSrc]);
+
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt=''
+      className={styles.avatar}
+      loading='lazy'
+      decoding='async'
+    />
+  );
+};
 
 interface AvatarSelectorProps {
   name?: string;
@@ -70,7 +99,7 @@ const AvatarSelector = ({
         className={[styles.options, isExpanded ? styles.expanded : ""]
           .filter(Boolean)
           .join(" ")}>
-        {visibleOptions.map(({ value: optionValue, label, src }) => {
+        {visibleOptions.map(({ value: optionValue, label, loadSrc }) => {
           const inputId = `${groupName}-${optionValue}`;
           return (
             <div key={optionValue} className={styles.option}>
@@ -90,13 +119,7 @@ const AvatarSelector = ({
                 htmlFor={inputId}
                 className={styles.tile}
                 aria-label={label}>
-                <img
-                  src={src}
-                  alt=''
-                  className={styles.avatar}
-                  loading='lazy'
-                  decoding='async'
-                />
+                <AvatarTileImage loadSrc={loadSrc} />
               </label>
             </div>
           );
