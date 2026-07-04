@@ -84,8 +84,9 @@ const petPng = import.meta.glob<string>(
 );
 
 // The Classic collection keeps the three original named SVGs plus the numbered
-// PNG roster. These ids (`avatar-1..3`, `avatar-04..39`) are load-bearing —
-// users already reference them — so they must not change.
+// PNG roster. These ids (`avatar-1..3`, `avatar-04..39`) are persisted verbatim
+// as `internalAvatarId`, so they must stay stable — `avatar-1..3` predate this
+// change and may already be saved against users; keep the whole set fixed.
 const classicOptions: AvatarOption[] = [
   { value: "avatar-1", label: "Ember", src: playerAvatar1 },
   { value: "avatar-2", label: "Aqua", src: playerAvatar2 },

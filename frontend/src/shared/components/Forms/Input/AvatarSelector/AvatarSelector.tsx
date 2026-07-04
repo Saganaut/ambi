@@ -137,7 +137,3 @@ const AvatarSelector = ({
 };
 
 export { AvatarSelector };
-// Re-exported for back-compat: existing consumers (avatarUrl.ts, mocks) import
-// the roster from here. The canonical home is ./avatarOptions.
-export { AVATAR_OPTIONS };
-export type { AvatarOption };

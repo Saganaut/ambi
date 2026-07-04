@@ -1,6 +1,6 @@
 // Sample avatar roster for the AvatarSelector stories. Uses inline data-URI
 // SVGs so the stories don't depend on bundled image assets being resolvable.
-import type { AvatarOption } from "./AvatarSelector";
+import type { AvatarOption } from "./avatarOptions";
 
 const chip = (bg: string, label: string): string =>
   `data:image/svg+xml,${encodeURIComponent(
