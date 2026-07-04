@@ -10,6 +10,8 @@
  * optimistic step. In all cases the resolved response — the same fully
  * image-hydrated `DeckResponse` that `getDeck` returns, carrying server-owned
  * `version` / `acl` / `permissions` — is written straight back into the cache.
+ * The same response also patches the matching card in the `listMyDecks` cache
+ * so the My Decks grid isn't stale after an edit (see the reconcile below).
  * On reject the optimistic patch is undone. No deck mutation triggers a
  * `GET /api/decks/{id}` refetch.
  *
@@ -74,6 +76,19 @@ const reconcilingDeckMutation = <Arg extends { id: string }>(
       // the response dropped (which Object.assign would leave behind).
       dispatch(
         deckApi.util.updateQueryData("getDeck", { id: arg.id }, () => data),
+      );
+      // The My Decks grid renders from the separate `listMyDecks` cache, so a
+      // getDeck-only reconcile leaves its card stale (old cover/name/tags) until
+      // a refetch — patch the matching entry with the same response. Only
+      // `listMyDecks` is handled: `listDecksForOrg` / `listPublicDecks` have no
+      // frontend consumer yet, so they never materialize a cache entry. Extend
+      // this (or lift it into a shared helper alongside optimisticDeleteDeck)
+      // when they gain one. updateQueryData is a no-op if the list isn't cached.
+      dispatch(
+        deckApi.util.updateQueryData("listMyDecks", undefined, (draft) => {
+          const index = draft.findIndex((deck) => deck.id === arg.id);
+          if (index !== -1) draft[index] = data;
+        }),
       );
     } catch {
       patch?.undo();

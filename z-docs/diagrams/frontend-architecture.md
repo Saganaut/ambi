@@ -99,6 +99,40 @@ flowchart LR
     ENH --> RERENDER["subscribed components re-render"]
 ```
 
+## Deck mutation cache reconcile
+
+Deck-level edits (cover/background image, rename, tags, visibility, settings)
+don't invalidate a tag and refetch — the base API defines no `tagTypes`. Instead
+each mutation's `onQueryStarted` reconciles the caches by hand from the mutation's
+own `DeckResponse` (see `features/deck/store/enhancements/deck.ts`). Two caches
+hold the same deck and both must be reconciled, or a surface reading the
+untouched one goes stale until a refetch (the bug where a new cover only appeared
+on the My Decks grid after a manual browser refresh):
+
+- **`getDeck`** (`GET /api/decks/{id}`) — backs the editor. Optimistically patched
+  first so the edit previews instantly, then whole-object replaced from the response.
+- **`listMyDecks`** (`GET /api/decks/mine`) — backs the My Decks grid's cards.
+  The matching card is patched with the same response so the grid is fresh on
+  navigate-back. `updateQueryData` is a no-op if the grid was never visited.
+
+```mermaid
+flowchart TB
+    PICK["DeckPanel cover picker<br/>useDeckImageMutate → setDeckCoverImage"] --> MUT["RTK Query mutation<br/>PUT /api/decks/{id}/cover-image"]
+    MUT --> OPT["onQueryStarted:<br/>optimistic patch getDeck<br/>(instant editor preview)"]
+    MUT --> RESP["server DeckResponse<br/>(full, image-hydrated)"]
+    RESP --> RG["reconcile getDeck cache<br/>whole-object replace"]
+    RESP --> RL["reconcile listMyDecks cache<br/>patch matching card by id"]
+    RG --> ED["DeckEditor re-renders"]
+    RL --> GRID["MyDecks grid / DeckCard<br/>fresh cover on navigate-back"]
+    RESP -. "no consumer yet — not patched" .-> OTH["listDecksForOrg<br/>listPublicDecks"]
+```
+
+> `deleteDeck` is the mirror case: `optimisticDeleteDeck` splices the removed deck
+> out of the same list caches. It already walks `listDecksForOrg` / `listPublicDecks`
+> defensively, but those queries have no frontend consumer today, so only
+> `listMyDecks` ever materializes — which is why the reconcile above patches just
+> that one. Extend both paths (ideally via a shared helper) when a consumer appears.
+
 ## Generated artifacts pipeline
 
 ```mermaid
