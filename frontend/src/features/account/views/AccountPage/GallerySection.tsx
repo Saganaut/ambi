@@ -14,6 +14,7 @@ import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
 import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import { type GalleryImageResponse, useGetMyGalleryQuery, useListImagesQuery, useRemoveImageMutation } from "@features/gallery/store/galleryApi.gen";
+import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
 import { resolveImageUrl } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
 import accountStyles from "./AccountPage.module.css";
@@ -29,7 +30,9 @@ const GallerySection = () => {
 
   const { data: page, isLoading: isImagesLoading } = useListImagesQuery(
     { id: galleryId ?? "", pageable: PAGE },
-    { skip: !galleryId },
+    // Thumbnails render presigned image URLs; keep them fresh so a long-open
+    // account page never shows an expired URL. See imageRefreshPolicy.
+    { skip: !galleryId, ...IMAGE_QUERY_REFRESH },
   );
   const images = useMemo(() => page?.content ?? [], [page]);
 

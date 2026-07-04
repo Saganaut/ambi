@@ -10,6 +10,7 @@ import {
   type AppImage,
   type GalleryImageResponse,
 } from "@features/gallery/store/galleryApi.gen";
+import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
 import { resolveImageUrl } from "@utils/image";
 import styles from "./GalleryPicker.module.css";
 
@@ -30,7 +31,9 @@ const GalleryTab = ({ galleryId, galleryError, onPick }: GalleryTabProps) => {
     isError: imagesError,
   } = useListImagesQuery(
     { id: galleryId ?? "", pageable: PAGE },
-    { skip: !galleryId },
+    // Tiles render presigned image URLs; keep them fresh so reopening the picker
+    // after idle never shows an expired URL. See imageRefreshPolicy.
+    { skip: !galleryId, ...IMAGE_QUERY_REFRESH },
   );
 
   // If the gallery singleton or the images fetch failed, show an error state —

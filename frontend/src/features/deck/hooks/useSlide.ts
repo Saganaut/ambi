@@ -24,6 +24,7 @@ import {
   type SlideResponse,
 } from "@deck/store/deckApi.gen";
 import { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
+import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
 import type { ImageRole } from "../Deck.types";
 import { buildDefaultContent } from "../utils/slideContent";
 
@@ -109,7 +110,12 @@ interface UseSlideResult {
 }
 
 const useSlide = (deckId: string): UseSlideResult => {
-  const { data, isLoading, error } = useListDeckSlidesQuery({ id: deckId });
+  // Slides carry presigned cover/background/content image URLs; keep them fresh
+  // so a long-open editor never renders an expired URL. See imageRefreshPolicy.
+  const { data, isLoading, error } = useListDeckSlidesQuery(
+    { id: deckId },
+    IMAGE_QUERY_REFRESH,
+  );
   const slides = data ?? [];
 
   const [addSlideMutation] = useAddSlideMutation();
