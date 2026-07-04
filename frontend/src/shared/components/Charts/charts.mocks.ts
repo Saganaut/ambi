@@ -18,5 +18,20 @@ export const ALL_CHART_TYPES: ChartType[] = [
   "LINE",
   "PARETO",
   "DOT",
+  "HISTOGRAM",
+  "WORD_CLOUD",
+  "HEATMAP",
+  "DIVERGING_BAR",
+  "IMAGE_OVERLAY",
   "NONE",
+];
+
+// A binned distribution for the Histogram: each datum is a bin (`text` = bin
+// label, `value` = count), roughly bell-shaped with the modal bin highlighted.
+export const HISTOGRAM_SAMPLE: ChartDatum[] = [
+  { id: "b1", optionType: "NUMBER", text: "0–20", value: 2 },
+  { id: "b2", optionType: "NUMBER", text: "20–40", value: 6 },
+  { id: "b3", optionType: "NUMBER", text: "40–60", value: 13, highlight: true },
+  { id: "b4", optionType: "NUMBER", text: "60–80", value: 8 },
+  { id: "b5", optionType: "NUMBER", text: "80–100", value: 3 },
 ];

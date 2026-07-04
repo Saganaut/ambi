@@ -49,6 +49,13 @@ export type ChartType =
   | "LINE"
   | "PARETO"
   | "DOT"
+  | "HISTOGRAM"
+  // Mapped for other question types but not yet built — rendered by
+  // PlaceholderChart until implemented. See registry.ts / ResultsDisplaySwitch.
+  | "WORD_CLOUD"
+  | "HEATMAP"
+  | "DIVERGING_BAR"
+  | "IMAGE_OVERLAY"
   | "NONE";
 
 export interface ChartSegmentRenderProps {

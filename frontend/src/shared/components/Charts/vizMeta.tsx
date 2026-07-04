@@ -6,12 +6,17 @@ import type { ChartType } from "./Chart.types";
 
 import BarHorizontalIcon from "@assets/icons/charts/bar-horizontal.svg?react";
 import BarVerticalIcon from "@assets/icons/charts/bar-vertical.svg?react";
+import DivergingBarIcon from "@assets/icons/charts/diverging-bar.svg?react";
 import DonutIcon from "@assets/icons/charts/donut.svg?react";
 import DotIcon from "@assets/icons/charts/dot.svg?react";
+import HeatmapIcon from "@assets/icons/charts/heatmap.svg?react";
+import HistogramIcon from "@assets/icons/charts/histogram.svg?react";
+import ImageOverlayIcon from "@assets/icons/charts/image-overlay.svg?react";
 import LineIcon from "@assets/icons/charts/line.svg?react";
 import NoneIcon from "@assets/icons/charts/none.svg?react";
 import ParetoIcon from "@assets/icons/charts/pareto.svg?react";
 import PieIcon from "@assets/icons/charts/pie.svg?react";
+import WordCloudIcon from "@assets/icons/charts/word-cloud.svg?react";
 
 type VizIcon = typeof BarHorizontalIcon;
 
@@ -23,6 +28,11 @@ const VIZ_META: Record<ChartType, { label: string; Icon: VizIcon }> = {
   LINE: { label: "Line", Icon: LineIcon },
   PARETO: { label: "Pareto", Icon: ParetoIcon },
   DOT: { label: "Dots", Icon: DotIcon },
+  HISTOGRAM: { label: "Histogram", Icon: HistogramIcon },
+  WORD_CLOUD: { label: "Word cloud", Icon: WordCloudIcon },
+  HEATMAP: { label: "Heatmap", Icon: HeatmapIcon },
+  DIVERGING_BAR: { label: "Likert", Icon: DivergingBarIcon },
+  IMAGE_OVERLAY: { label: "Image", Icon: ImageOverlayIcon },
   NONE: { label: "None", Icon: NoneIcon },
 };
 

@@ -6,10 +6,15 @@
 import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
 import { AnswerSettings } from "@/features/deck/store/deckApi.gen";
 import { BarChart } from "@/shared/components/Charts/BarChart/BarChart";
+import { DivergingBar } from "@/shared/components/Charts/DivergingBar/DivergingBar";
 import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
+import { Heatmap } from "@/shared/components/Charts/Heatmap/Heatmap";
+import { Histogram } from "@/shared/components/Charts/Histogram/Histogram";
+import { ImageOverlay } from "@/shared/components/Charts/ImageOverlay/ImageOverlay";
 import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
+import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
 import { ChartDatum, type ChartType } from "@/shared/components/Charts/Chart.types";
 import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
 import { ReactNode } from "react";
@@ -81,6 +86,17 @@ const ResultsDisplaySwitch = ({
       return <ParetoChart {...sharedProps} />;
     case "DOT":
       return <DotPlot {...sharedProps} />;
+    case "HISTOGRAM":
+      return <Histogram {...sharedProps} />;
+    // Mapped but not yet built — render a "coming soon" placeholder.
+    case "WORD_CLOUD":
+      return <WordCloud {...sharedProps} />;
+    case "HEATMAP":
+      return <Heatmap {...sharedProps} />;
+    case "DIVERGING_BAR":
+      return <DivergingBar {...sharedProps} />;
+    case "IMAGE_OVERLAY":
+      return <ImageOverlay {...sharedProps} />;
     default: {
       const _exhaustive: never = viz;
       return _exhaustive;

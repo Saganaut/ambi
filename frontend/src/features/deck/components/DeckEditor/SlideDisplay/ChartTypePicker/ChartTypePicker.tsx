@@ -7,11 +7,11 @@
 // ResultsPreviewContext) and the styling/positioning of `CoverImagePicker`.
 //
 // Only renders for MCQ slides, whose content carries `dataVisualization`.
-import { mcqResults } from "@components/Charts/registry";
-import type { ChartType } from "@components/Charts/Chart.types";
 import { VIZ_META } from "@components/Charts/vizMeta";
 import { useResultsPreview } from "@deck/contexts/useResultsPreview";
 import { useSlide } from "@deck/hooks/useSlide";
+import type { McqDataVisualization } from "@deck/store/deckEnums.gen";
+import { mcqSupportedViz } from "@deck/utils/chartTypes";
 
 import styles from "./ChartTypePicker.module.css";
 
@@ -34,7 +34,7 @@ const ChartTypePicker = ({ deckId, slideId }: ChartTypePickerProps) => {
   // Discrete, immediate commit: overlay the new viz onto the freshest content
   // and PUT directly (updateSlide carries the full slide forward + optimistic
   // patches the cache), then drop the transient preview.
-  const commit = (viz: ChartType) => {
+  const commit = (viz: McqDataVisualization) => {
     updateSlide(slide.id, { content: { ...content, dataVisualization: viz } });
     setPreviewVisualization(null);
   };
@@ -54,7 +54,7 @@ const ChartTypePicker = ({ deckId, slideId }: ChartTypePickerProps) => {
         aria-label="Results visualisation"
         onMouseLeave={() => setPreviewVisualization(null)}
       >
-        {mcqResults.supportedViz.map((viz) => {
+        {mcqSupportedViz.map((viz) => {
           const { label, Icon } = VIZ_META[viz];
           const selected = committed === viz;
           return (

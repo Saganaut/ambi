@@ -15,11 +15,11 @@
 // didn't persist.
 import { getRouteApi } from "@tanstack/react-router";
 
-import { mcqResults } from "@components/Charts/registry";
-import type { ChartType } from "@components/Charts/Chart.types";
 import { VIZ_META } from "@components/Charts/vizMeta";
 import { useResultsPreview } from "@deck/contexts/useResultsPreview";
 import { useSlide } from "@deck/hooks/useSlide";
+import type { McqDataVisualization } from "@deck/store/deckEnums.gen";
+import { mcqSupportedViz } from "@deck/utils/chartTypes";
 
 import panel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import styles from "./McqResultsSection.module.css";
@@ -41,7 +41,7 @@ const McqResultsSection = () => {
   // Discrete, immediate commit: overlay the new viz onto the freshest content
   // and PUT directly (updateSlide carries the full slide forward + optimistic
   // patches the cache), then drop the transient preview.
-  const commit = (viz: ChartType) => {
+  const commit = (viz: McqDataVisualization) => {
     updateSlide(slide.id, { content: { ...content, dataVisualization: viz } });
     setPreviewVisualization(null);
   };
@@ -59,7 +59,7 @@ const McqResultsSection = () => {
           aria-label="Results visualisation"
           onMouseLeave={() => setPreviewVisualization(null)}
         >
-          {mcqResults.supportedViz.map((viz) => {
+          {mcqSupportedViz.map((viz) => {
             const { label, Icon } = VIZ_META[viz];
             const selected = committed === viz;
             return (

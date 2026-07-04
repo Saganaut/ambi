@@ -1,30 +1,64 @@
-// Per-question-type results config, keyed by the slide/content type string.
-// Each entry declares which visualisations that type supports (drives the
-// editor's viz picker) alongside its adapter + sample-data generator. Adding a
-// new question type is a single entry here — the renderers and the ResultsChart
-// dispatcher don't change. MCQ is the only entry today.
+// Per-question-type results config — the map from a slide's content type to the
+// visualisations that type supports (drives the editor's viz picker) plus, for
+// fully-wired types, its adapter + sample-data generator. Adding or extending a
+// question type is a single entry here; the renderers and the ResultsChart
+// dispatcher only need the corresponding `ChartType` handled.
+//
+// Keyed by content-type *string* (not the `SlideType` enum) on purpose: this
+// module lives in `shared/` and must not import from `features/deck`.
 import { mcqSampleDistribution, mcqToChartData, type McqOptionLike } from "./adapters/mcq";
 import type { ChartType } from "./Chart.types";
 
-export interface McqResultsConfig {
+export interface ResultsConfig {
+  /** Visualisations offered for this question type, in picker order. */
   supportedViz: ChartType[];
-  toChartData: typeof mcqToChartData;
-  sampleDistribution: typeof mcqSampleDistribution;
+  /**
+   * Whether this type's results are fully wired (real adapter + charts). When
+   * false, `supportedViz` may include placeholder charts that render a
+   * "coming soon" tile until implemented.
+   */
+  implemented: boolean;
+  /** Present only for fully-wired types (MCQ today). */
+  toChartData?: typeof mcqToChartData;
+  sampleDistribution?: typeof mcqSampleDistribution;
 }
 
-// MCQ supports every visualisation the dispatcher knows (its
-// `McqDataVisualization` enum is the full ChartType set), with NONE last as the
-// "no chart" choice.
-export const mcqResults: McqResultsConfig = {
+// MCQ supports every visualisation the dispatcher knows for categorical votes
+// (its `McqDataVisualization` enum is exactly this set), with NONE last as the
+// "no chart" choice. The only type wired end-to-end today.
+export const mcqResults: ResultsConfig = {
   supportedViz: ["BAR_HORIZONTAL", "BAR_VERTICAL", "PIE", "DONUT", "LINE", "PARETO", "DOT", "NONE"],
+  implemented: true,
   toChartData: mcqToChartData,
   sampleDistribution: mcqSampleDistribution,
 };
 
-// Lookup by content/slide type. Future types (NUMBER, RANKING, …) register here.
-export const resultsRegistry = {
+// The map. Keyed by `SlideContent.contentType`. Every response-producing type is
+// registered so `getSupportedViz` can answer "which charts fit this question?";
+// non-MCQ entries currently expose placeholder viz (HISTOGRAM excepted, which is
+// a real renderer) until their editor sections are wired. Display-only types
+// (TITLE, CONTENT, MEDIA, INSTRUCTION) and DRAWING have no results chart yet and
+// are intentionally absent — `getSupportedViz` returns [] for them.
+export const resultsRegistry: Record<string, ResultsConfig> = {
   MCQ: mcqResults,
-} as const;
+  NUMBER: { supportedViz: ["HISTOGRAM", "DOT", "NONE"], implemented: false },
+  TEXT: { supportedViz: ["WORD_CLOUD", "BAR_HORIZONTAL", "NONE"], implemented: false },
+  FOLLOW_UP: { supportedViz: ["WORD_CLOUD", "NONE"], implemented: false },
+  Q_AND_A: { supportedViz: ["WORD_CLOUD", "NONE"], implemented: false },
+  SCALES: { supportedViz: ["DIVERGING_BAR", "BAR_HORIZONTAL", "NONE"], implemented: false },
+  RANKING: { supportedViz: ["BAR_HORIZONTAL", "BAR_VERTICAL", "NONE"], implemented: false },
+  ALLOCATION: { supportedViz: ["BAR_HORIZONTAL", "BAR_VERTICAL", "NONE"], implemented: false },
+  GRID: { supportedViz: ["HEATMAP", "NONE"], implemented: false },
+  MATCHING: { supportedViz: ["HEATMAP", "NONE"], implemented: false },
+  PLACE_ON_IMAGE: { supportedViz: ["IMAGE_OVERLAY", "HEATMAP", "NONE"], implemented: false },
+};
+
+/**
+ * The valid chart types for a question type, in picker order. Returns [] for a
+ * content type with no results visualisation (display-only or not-yet-mapped).
+ * The entry point an editor's results section calls to build its viz picker.
+ */
+export const getSupportedViz = (contentType: string): ChartType[] =>
+  resultsRegistry[contentType]?.supportedViz ?? [];
 
 export type { McqOptionLike };
-
