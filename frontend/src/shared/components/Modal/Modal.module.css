@@ -26,6 +26,12 @@
   flex-direction: column;
   border: none;
 
+  /* Fade in on open and out on close. @starting-style supplies the pre-open
+     opacity (the dialog goes display:none → shown via showModal), and .closing
+     drives the fade-out — ModalProvider defers unmount until it completes. */
+  opacity: 1;
+  transition: opacity var(--duration-fast) var(--ease-out);
+
   /* ─── Variants ─────────────────────────────────────────────── */
   &.error {
     --color: var(--text-error);
@@ -60,6 +66,29 @@
   &::backdrop {
     background-color: var(--bg-overlay);
     backdrop-filter: blur(4px);
+    opacity: 1;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+}
+
+@starting-style {
+  .modal,
+  .modal::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Fade out and stop taking clicks (content buttons, backdrop) mid-close. */
+.modal.closing,
+.modal.closing::backdrop {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal,
+  .modal::backdrop {
+    transition: none;
   }
 }
 

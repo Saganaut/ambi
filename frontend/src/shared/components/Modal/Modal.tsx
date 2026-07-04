@@ -12,10 +12,23 @@ interface ModalProps {
   children: ReactNode;
   title?: string;
   variant?: ModalVariant;
+  // Request a close (X button, backdrop click, Escape). The provider responds
+  // by flipping `closing` rather than unmounting immediately.
   onClose: () => void;
+  // Provider-driven exit flag: while true the dialog plays its fade-out.
+  closing?: boolean;
+  // Fired once the fade-out finishes, telling the provider it's safe to unmount.
+  onClosed?: () => void;
 }
 
-const Modal = ({ children, title, variant, onClose }: ModalProps) => {
+const Modal = ({
+  children,
+  title,
+  variant,
+  onClose,
+  closing = false,
+  onClosed,
+}: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -27,6 +40,21 @@ const Modal = ({ children, title, variant, onClose }: ModalProps) => {
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
 
+  useEffect(() => {
+    if (!closing || !onClosed) return;
+    // Safety net: if transitionend never fires (reduced motion, an interrupted
+    // view transition), still unmount once the fade would have finished. Derive
+    // the delay from the dialog's own transition-duration so it tracks the CSS
+    // token (--duration-fast) instead of hard-coding it; small buffer for the
+    // event round-trip.
+    const dialog = dialogRef.current;
+    const durationMs = dialog
+      ? parseFloat(getComputedStyle(dialog).transitionDuration) * 1000
+      : 0;
+    const timer = setTimeout(onClosed, durationMs + 50);
+    return () => clearTimeout(timer);
+  }, [closing, onClosed]);
+
   function handleCancel(e: React.SyntheticEvent) {
     e.preventDefault();
     onClose();
@@ -36,14 +64,29 @@ const Modal = ({ children, title, variant, onClose }: ModalProps) => {
     if (e.target === dialogRef.current) onClose();
   }
 
+  function handleTransitionEnd(e: React.TransitionEvent<HTMLDialogElement>) {
+    // Ignore the backdrop's own opacity transition (fires with the same target)
+    // and any bubbled transitions from content inside the dialog.
+    if (
+      closing &&
+      onClosed &&
+      e.target === dialogRef.current &&
+      !e.pseudoElement &&
+      e.propertyName === "opacity"
+    ) {
+      onClosed();
+    }
+  }
+
   return (
     <dialog
       ref={dialogRef}
       onCancel={handleCancel}
       onClick={handleClick}
+      onTransitionEnd={handleTransitionEnd}
       aria-labelledby={title ? "modal-title" : undefined}
       aria-modal='true'
-      className={[style.modal, variant && style[variant]]
+      className={[style.modal, variant && style[variant], closing && style.closing]
         .filter(Boolean)
         .join(" ")}>
       <div className={style.header}>
