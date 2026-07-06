@@ -1,7 +1,9 @@
 package com.cephadex.ambi.media.storage;
 
 import java.net.URI;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -12,7 +14,6 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Ticker;
 
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -32,38 +33,51 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
  * renderable {@code externalSrc} and pass through.
  *
  * <p>A signed URL is <em>cached per key</em> and reused until it is within
- * {@code presignRefreshMargin} of expiry, then re-signed (Caffeine's
- * {@code expireAfterWrite} window is exactly {@code presignTtl - margin}). This
- * keeps repeated reads of the same image returning the identical string, so a
- * client never sees the {@code <img src>} / CSS background change — and thus never
- * reloads the image — when an unrelated edit re-serializes the same {@link AppImage}.
+ * {@code presignRefreshMargin} of expiry, then re-signed. This keeps repeated
+ * reads of the same image returning the identical string, so a client never
+ * sees the {@code <img src>} / CSS background change — and thus never reloads
+ * the image — when an unrelated edit re-serializes the same {@link AppImage}.
  * The security posture is unchanged: a URL still expires at its signed time; a
  * cached URL is reused but never extended, and is only handed out while at least
  * {@code margin} of its life remains.
+ *
+ * <p>Reuse is validated against the <em>wall clock</em> ({@link Clock}), not
+ * Caffeine's {@code expireAfterWrite}: Caffeine ticks on {@code System.nanoTime()}
+ * (Linux {@code CLOCK_MONOTONIC}), which pauses while the host is suspended.
+ * A URL's signed lifetime is wall-clock time, so after a suspend/resume a
+ * monotonic-expiry cache would keep handing out an already-dead URL — to every
+ * request, page refreshes included — until its paused window ran out.
  */
 @Component
 public class ImageUrlResolver {
 
+    /** A cached signature plus the wall-clock instant after which it must be re-signed. */
+    private record SignedUrl(String url, Instant refreshAt) {
+    }
+
     private final S3Presigner presigner;
     private final String bucket;
     private final Duration ttl;
-    /** key → signed URL, evicted {@code refreshMargin} before the URL expires. */
-    private final Cache<String, String> urlCache;
+    private final Clock clock;
+    /** How long a signed URL is reused: {@code presignTtl - presignRefreshMargin}. */
+    private final Duration reuseWindow;
+    /** key → signed URL, re-signed once {@code refreshAt} passes; size-bounded only. */
+    private final Cache<String, SignedUrl> urlCache;
 
     @Autowired
     public ImageUrlResolver(S3Presigner presigner, S3Properties s3Props, MediaProperties mediaProps) {
-        this(presigner, s3Props, mediaProps, Ticker.systemTicker());
+        this(presigner, s3Props, mediaProps, Clock.systemUTC());
     }
 
-    /** Package-private seam: lets a test drive cache expiry with a virtual {@link Ticker}. */
-    ImageUrlResolver(S3Presigner presigner, S3Properties s3Props, MediaProperties mediaProps, Ticker ticker) {
+    /** Package-private seam: lets a test drive URL expiry with a virtual {@link Clock}. */
+    ImageUrlResolver(S3Presigner presigner, S3Properties s3Props, MediaProperties mediaProps, Clock clock) {
         this.presigner = presigner;
         this.bucket = s3Props.getBucket();
         this.ttl = mediaProps.getPresignTtl();
+        this.clock = clock;
+        this.reuseWindow = ttl.minus(mediaProps.getPresignRefreshMargin());
         this.urlCache = Caffeine.newBuilder()
                 .maximumSize(mediaProps.getPresignCacheMaxSize())
-                .expireAfterWrite(ttl.minus(mediaProps.getPresignRefreshMargin()))
-                .ticker(ticker)
                 .build();
     }
 
@@ -72,7 +86,12 @@ public class ImageUrlResolver {
      * reused from cache while it stays comfortably clear of expiry.
      */
     public String url(String key) {
-        return urlCache.get(key, this::sign);
+        Instant now = clock.instant();
+        return urlCache.asMap()
+                .compute(key, (k, cached) -> cached != null && now.isBefore(cached.refreshAt())
+                        ? cached
+                        : new SignedUrl(sign(k), now.plus(reuseWindow)))
+                .url();
     }
 
     /** Mint a fresh presigned GET URL for {@code key}. */

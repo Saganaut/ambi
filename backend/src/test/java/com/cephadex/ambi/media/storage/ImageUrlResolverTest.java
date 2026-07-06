@@ -6,7 +6,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.Placement;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
-import com.github.benmanes.caffeine.cache.Ticker;
 
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -118,7 +121,7 @@ class ImageUrlResolverTest {
     @Test
     void urlReusesACachedSignatureWithinTheRefreshWindow() {
         AtomicInteger signings = new AtomicInteger();
-        ImageUrlResolver cached = resolverWith(countingPresigner(signings), new FakeTicker());
+        ImageUrlResolver cached = resolverWith(countingPresigner(signings), new FakeClock());
 
         String first = cached.url("gallery/x/sm.webp");
         String second = cached.url("gallery/x/sm.webp");
@@ -132,15 +135,33 @@ class ImageUrlResolverTest {
     @Test
     void urlReSignsAfterTheRefreshWindow() {
         AtomicInteger signings = new AtomicInteger();
-        FakeTicker ticker = new FakeTicker();
+        FakeClock clock = new FakeClock();
         // ttl 30m, default margin 15m → reuse window is 15m.
-        ImageUrlResolver cached = resolverWith(countingPresigner(signings), ticker);
+        ImageUrlResolver cached = resolverWith(countingPresigner(signings), clock);
 
         String first = cached.url("gallery/x/sm.webp");
-        ticker.advance(Duration.ofMinutes(16)); // past the 15m reuse window
+        clock.advance(Duration.ofMinutes(16)); // past the 15m reuse window
         String second = cached.url("gallery/x/sm.webp");
 
         // The cache entry expired, so the key was re-signed into a fresh URL.
+        assertThat(second).isNotEqualTo(first);
+        assertThat(signings.get()).isEqualTo(2);
+    }
+
+    @Test
+    void urlReSignsWhenTheWallClockJumpsPastTheRefreshWindow() {
+        AtomicInteger signings = new AtomicInteger();
+        FakeClock clock = new FakeClock();
+        ImageUrlResolver cached = resolverWith(countingPresigner(signings), clock);
+
+        String first = cached.url("gallery/x/sm.webp");
+        // A host suspend/resume: no runtime elapses, but wall time leaps far past
+        // the URL's signed lifetime in one step. The resolver must notice — the
+        // regression here was a monotonic-ticker cache that didn't tick through
+        // suspend and kept serving the dead URL to every request after resume.
+        clock.advance(Duration.ofHours(8));
+        String second = cached.url("gallery/x/sm.webp");
+
         assertThat(second).isNotEqualTo(first);
         assertThat(signings.get()).isEqualTo(2);
     }
@@ -160,25 +181,35 @@ class ImageUrlResolverTest {
         return presigner;
     }
 
-    private static ImageUrlResolver resolverWith(S3Presigner presigner, Ticker ticker) {
+    private static ImageUrlResolver resolverWith(S3Presigner presigner, Clock clock) {
         S3Properties s3 = new S3Properties();
         s3.setBucket(BUCKET);
         MediaProperties media = new MediaProperties();
         media.setPresignTtl(Duration.ofMinutes(30));
-        return new ImageUrlResolver(presigner, s3, media, ticker);
+        return new ImageUrlResolver(presigner, s3, media, clock);
     }
 
-    /** Virtual clock for Caffeine, so cache-expiry tests don't sleep. */
-    private static final class FakeTicker implements Ticker {
-        private long nanos = 0L;
+    /** Virtual wall clock, so URL-expiry tests don't sleep. */
+    private static final class FakeClock extends Clock {
+        private Instant now = Instant.EPOCH;
 
         @Override
-        public long read() {
-            return nanos;
+        public Instant instant() {
+            return now;
         }
 
         void advance(Duration delta) {
-            nanos += delta.toNanos();
+            now = now.plus(delta);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
         }
     }
 }
