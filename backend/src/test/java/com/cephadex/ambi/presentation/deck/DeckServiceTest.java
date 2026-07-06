@@ -32,7 +32,6 @@ import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
-import com.cephadex.ambi.presentation.deck.enums.DisplayLocation;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -861,7 +860,7 @@ class DeckServiceTest {
         assertThat(result.getSettings().answerSettings()).isSameAs(answers);
         assertThat(result.getSettings().pointSettings().points()).isEqualTo(50);
         assertThat(result.getSettings().audienceSettings().maxParticipants()).isEqualTo(8);
-        assertThat(result.getSettings().inviteSettings().enableQr()).isTrue();
+        assertThat(result.getSettings().inviteSettings().showRoomCodeInHeader()).isTrue();
         verify(deckRepository).updateDeckAnswerSettings("deck-1", answers);
         verify(deckRepository, never()).save(any(Deck.class));
     }
@@ -1010,9 +1009,8 @@ class DeckServiceTest {
         return new Settings.AudienceSettings(maxParticipants, false, false, false, false, false, false);
     }
 
-    private static Settings.InviteSettings inviteSettings(boolean enableQr) {
-        return new Settings.InviteSettings(
-                enableQr, Set.of(DisplayLocation.LOBBY), true, Set.of(DisplayLocation.HEADER));
+    private static Settings.InviteSettings inviteSettings(boolean showRoomCodeInHeader) {
+        return new Settings.InviteSettings(showRoomCodeInHeader, false);
     }
 
     private static List<String> orderedIds(Deck deck) {

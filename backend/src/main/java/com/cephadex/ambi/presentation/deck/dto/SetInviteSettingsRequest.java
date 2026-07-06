@@ -6,8 +6,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * The invite-display settings to attach to a deck — whether and where the join
- * QR / room code are surfaced during a presentation — set via the dedicated
+ * The invite-display settings to attach to a deck — whether the room code is
+ * additionally shown in the persistent header, and whether the join QR + room
+ * code are shown together on the results screen — set via the dedicated
  * {@code PUT .../invite-settings} route (EDIT capability).
  *
  * <p>Invite settings are deck-level only and, like the deck's point/answer/

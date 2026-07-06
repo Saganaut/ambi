@@ -1,9 +1,7 @@
 package com.cephadex.ambi.presentation.deck;
 
 import java.util.Map;
-import java.util.Set;
 
-import com.cephadex.ambi.presentation.deck.enums.DisplayLocation;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 
 public final class Settings {
@@ -48,14 +46,16 @@ public final class Settings {
   /**
    * Deck-level configuration for surfacing the join affordances during a
    * presentation. The actual room code / invite token are minted per run on the
-   * LiveSession; this only governs whether and WHERE they appear. The QR encodes
-   * the join URL; the room code is the human-typeable text code.
+   * LiveSession. The lobby always shows both the QR (encoding the join URL) and
+   * the human-typeable room code; these two flags control the two other surfaces
+   * where a code can additionally appear. The QR is never offered in the header —
+   * a persistent header strip is too small to render one legibly — so the header
+   * flag only ever shows the room code, while the results screen flag shows both
+   * codes together.
    */
   public record InviteSettings(
-      boolean enableQr,
-      Set<DisplayLocation> qrLocations,
-      boolean showRoomCode,
-      Set<DisplayLocation> roomCodeLocations) {
+      boolean showRoomCodeInHeader,
+      boolean showJoinInfoInResults) {
   }
 
   public record DeckSettings(

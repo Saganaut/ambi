@@ -1,13 +1,10 @@
 package com.cephadex.ambi.presentation.deck.config;
 
-import java.util.EnumSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import com.cephadex.ambi.presentation.deck.Settings;
-import com.cephadex.ambi.presentation.deck.enums.DisplayLocation;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 
 import lombok.Data;
@@ -84,17 +81,15 @@ public class DeckDefaultsProperties {
     }
 
     /**
-     * Mirrors {@link Settings.InviteSettings}. Defaults match what the lobby and
-     * session header already surface today: a QR in the lobby, and the room code
-     * in both the lobby and the persistent header.
+     * Mirrors {@link Settings.InviteSettings}. The lobby always shows both the QR
+     * and room code (not configurable); these defaults match what the persistent
+     * header already surfaces today (the room code) and leave the results screen
+     * off by default.
      */
     @Data
     public static class Invite {
-        private boolean enableQr = true;
-        private Set<DisplayLocation> qrLocations = EnumSet.of(DisplayLocation.LOBBY);
-        private boolean showRoomCode = true;
-        private Set<DisplayLocation> roomCodeLocations =
-                EnumSet.of(DisplayLocation.LOBBY, DisplayLocation.HEADER);
+        private boolean showRoomCodeInHeader = true;
+        private boolean showJoinInfoInResults = false;
     }
 
     // ── Factories: materialize the immutable domain records ──────────────────────
@@ -132,13 +127,7 @@ public class DeckDefaultsProperties {
     }
 
     public Settings.InviteSettings inviteSettings() {
-        // Copy the bound sets so the immutable record never aliases the mutable
-        // config bean's collections.
-        return new Settings.InviteSettings(
-                invite.enableQr,
-                Set.copyOf(invite.qrLocations),
-                invite.showRoomCode,
-                Set.copyOf(invite.roomCodeLocations));
+        return new Settings.InviteSettings(invite.showRoomCodeInHeader, invite.showJoinInfoInResults);
     }
 
     /** The full deck-level settings a new deck starts with. */
