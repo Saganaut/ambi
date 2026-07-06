@@ -85,15 +85,6 @@ export const McqDataVisualization = {
   PIE: "PIE",
 } as const satisfies Record<McqDataVisualization, McqDataVisualization>;
 
-export type DisplayLocation = "HEADER" | "LOBBY" | "RESULTS" | "SLIDES" | "TITLE";
-export const DisplayLocation = {
-  HEADER: "HEADER",
-  LOBBY: "LOBBY",
-  RESULTS: "RESULTS",
-  SLIDES: "SLIDES",
-  TITLE: "TITLE",
-} as const satisfies Record<DisplayLocation, DisplayLocation>;
-
 export type ResultsDisplayMode = "AFTER_FOLLOWUP" | "IMMEDIATE" | "MANUAL" | "NEVER" | "PRESENTATION_END" | "ROUND_END";
 export const ResultsDisplayMode = {
   AFTER_FOLLOWUP: "AFTER_FOLLOWUP",

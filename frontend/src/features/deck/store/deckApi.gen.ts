@@ -691,10 +691,8 @@ export type AudienceSettings = {
   allowGuests?: boolean;
 };
 export type InviteSettings = {
-  enableQr?: boolean;
-  qrLocations?: ("LOBBY" | "TITLE" | "HEADER" | "SLIDES" | "RESULTS")[];
-  showRoomCode?: boolean;
-  roomCodeLocations?: ("LOBBY" | "TITLE" | "HEADER" | "SLIDES" | "RESULTS")[];
+  showRoomCodeInHeader?: boolean;
+  showJoinInfoInResults?: boolean;
 };
 export type DeckSettings = {
   pointSettings?: PointSettings;

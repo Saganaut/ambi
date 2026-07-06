@@ -398,6 +398,8 @@ export type SessionSnapshotResponse = {
   scoreboard?: ScoreboardEntry[];
   viewerParticipantId?: string;
   viewerIsHost?: boolean;
+  showRoomCodeInHeader?: boolean;
+  showJoinInfoInResults?: boolean;
 };
 export const {
   useCreateMutation,

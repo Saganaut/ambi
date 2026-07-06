@@ -65,12 +65,6 @@ const ENUMS = [
     prop: ["McqContent", "dataVisualization"],
   },
   {
-    // Set<DisplayLocation> — the enum values live on the array's `items`.
-    name: "DisplayLocation",
-    feature: "deck",
-    prop: ["InviteSettings", "qrLocations"],
-  },
-  {
     name: "ResultsDisplayMode",
     feature: "deck",
     prop: ["AnswerSettings", "displayResultsMode"],
