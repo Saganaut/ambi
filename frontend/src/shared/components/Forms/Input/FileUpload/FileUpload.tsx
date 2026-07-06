@@ -1,5 +1,5 @@
 // File upload component with drag-and-drop support and multi-file selection
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import shared from "../Input.module.css";
 import styles from "./FileUpload.module.css";
 import { useFileUpload } from "./useFileUpload";
@@ -64,9 +64,13 @@ const FileUpload = ({
             addFiles(e.target.files);
           }}
         />
+        <PhotoIcon className={styles.dropZoneIcon} aria-hidden='true' />
         <span className={styles.dropZoneText}>
-          {isDragging ? "Drop files here" : "Click or drag files here"}
+          {isDragging ? "Drop files here" : "Drag & drop or click to upload"}
         </span>
+        {infoMessage != null && (
+          <span className={styles.dropZoneHint}>{infoMessage}</span>
+        )}
       </div>
       {files.length > 0 && (
         <ul className={styles.fileList}>
@@ -90,16 +94,12 @@ const FileUpload = ({
           ))}
         </ul>
       )}
-      {(rejection != null || errorMessage != null || infoMessage != null) && (
+      {(rejection != null || errorMessage != null) && (
         <span
-          className={[
-            shared.inputInfoMessage,
-            styles.message,
-            (rejection ?? errorMessage) && shared.errorMessage,
-          ]
+          className={[shared.inputInfoMessage, styles.message, shared.errorMessage]
             .filter(Boolean)
             .join(" ")}>
-          {rejection ?? errorMessage ?? infoMessage}
+          {rejection ?? errorMessage}
         </span>
       )}
     </div>

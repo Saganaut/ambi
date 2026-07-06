@@ -25,7 +25,6 @@ interface ColorSwatchProps {
 
 const ColorSwatch = ({ color, onChange, colorChoices }: ColorSwatchProps) => {
   const handleChange = (color: HexColor) => {
-    console.log("color", color);
     onChange(color);
   };
 

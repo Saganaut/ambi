@@ -1,0 +1,158 @@
+/* OptionMenu — the per-option dropdown opened from the kebab trigger.
+   Owns:
+     - the absolute anchor wrap below the trigger (plus the end-aligned
+       variant for anchors near the canvas' right edge)
+     - the menu column: color swatch strip, divider, action items
+   The floating chrome (surface, border, shadow) comes from the shared
+   Popover primitive; this file only lays out the menu-specific pieces. */
+
+.menuWrap {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: auto;
+  z-index: var(--z-dropdown);
+  opacity: 1;
+  transition: opacity var(--duration-base) ease-in-out;
+
+  /* End-aligned variant: opens leftward from the anchor's midline. Composers
+     whose anchor sits near the canvas' right edge (chart columns, absolutely
+     positioned chart labels) request this; the midline (rather than the right
+     edge) keeps the menu inside the canvas even when the anchor itself is
+     centred on the chart's last data point. */
+  &.alignEnd {
+    left: auto;
+    right: 50%;
+  }
+
+  /* Flipped variant: opens above the anchor when useFlipToFit measures that
+     the default downward position would clip (chart labels at the canvas
+     bottom, cards near the viewport edge). */
+  &.dropUp {
+    top: auto;
+    bottom: calc(100% + var(--space-2));
+  }
+}
+
+@starting-style {
+  .menuWrap {
+    opacity: 0;
+  }
+}
+
+.menu {
+  width: 252px;
+  gap: var(--space-1);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+
+  .sectionLabel {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--text-muted);
+    padding: var(--space-1) var(--space-1) var(--space-2);
+  }
+
+  .swatchStrip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-1) var(--space-1);
+  }
+
+  .chip {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+
+    /* The chip's own fill is the user's option color (set inline); the ring
+       marking the current pick is design chrome. */
+    &[aria-pressed="true"] {
+      box-shadow:
+        0 0 0 2px var(--bg-surface),
+        0 0 0 4px var(--bg-primary);
+    }
+  }
+
+  .chipPlus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: var(--border-size-sm) dashed var(--border-subtle);
+    color: var(--text-muted);
+
+    &:hover {
+      border-color: var(--bg-brand);
+      color: var(--bg-brand);
+    }
+  }
+
+  .chipPlusIcon {
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+
+  .menuDivider {
+    height: var(--border-size-sm);
+    background-color: var(--border-subtle);
+    margin: var(--space-1) 0;
+  }
+
+  .menuItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-2);
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--duration-fast) ease-out;
+
+    &:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    &:disabled {
+      color: var(--text-disabled);
+      background: transparent;
+      cursor: default;
+    }
+  }
+
+  .menuItemIcon {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+  }
+
+  .menuItemBrand {
+    color: var(--bg-brand);
+
+    &:hover {
+      background-color: var(--bg-secondary);
+    }
+  }
+
+  .menuItemDanger {
+    color: var(--text-error);
+
+    &:hover {
+      background-color: var(--bg-error);
+    }
+  }
+}

@@ -1,27 +1,38 @@
-/* Layout for the inline chart-label composition (Label + CorrectToggle + Menu).
-   Anchors the EditOptionToolbar popover (position: relative) and lets the
-   controls overflow the (often narrow) chart label cell rather than clipping.
-   See EditableChartOptionLabel.tsx. */
+/* OptionControls — the small per-option controls composed into option cards
+   and chart labels: the correct/incorrect toggle and the kebab menu trigger.
+   Both render on an IconBtn xs/ghost frame; these classes only add the
+   design's state colors on top. */
 
-.wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  min-width: 0;
-  width: 100%;
-
-  /* The chart's label cell is sized for static text; let the editor's buttons
-     spill instead of clipping. */
-  overflow: visible;
-}
-
-.input {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--font-size-sm);
-}
-
+/* Correct-answer status mark: brand check when correct, muted dash when not.
+   State rides on [aria-pressed] (set by CorrectToggle), not a custom class. */
 .correctBtn {
   flex-shrink: 0;
+  color: var(--text-muted);
+
+  svg {
+    stroke-width: 2.5;
+  }
+
+  &:hover {
+    color: var(--bg-brand);
+  }
+
+  &[aria-pressed="true"] {
+    color: var(--bg-brand);
+  }
+}
+
+/* Positioned anchor for the OptionMenu popover: keeps the menu opening off
+   the kebab itself rather than whatever ancestor happens to be positioned
+   (in charts that would be the full-height column). */
+.menuAnchor {
+  position: relative;
+}
+
+/* Kebab trigger: brand-tinted while its menu is open ([aria-expanded]). */
+.menuTrigger {
+  &[aria-expanded="true"] {
+    color: var(--bg-brand);
+    background-color: var(--bg-secondary);
+  }
 }

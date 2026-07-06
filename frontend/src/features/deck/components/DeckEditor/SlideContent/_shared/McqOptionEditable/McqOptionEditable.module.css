@@ -1,10 +1,8 @@
 /* McqOptionEditable — option card. Owns:
      - the card frame (border + correct-state highlight)
-     - the top row (index pill + popover-trigger button)
-     - the option-text input and "Correct" toggle (always visible)
-     - the floating popover with image / color / delete controls (built on
-       the shared Popover primitive; this file only carries the small
-       option-specific bits like the image-thumb button and the URL input)
+     - the top row (index pill + option text + image/color thumbnail)
+     - the footer slots for the correct toggle and the option menu trigger
+       (the menu itself lives in _shared/OptionMenu)
    McqSlideContent renders these inside a CSS grid and does not draw any
    per-option chrome itself. */
 
@@ -62,37 +60,6 @@
   }
 }
 
-/* Replaces the old Toggle: a chrome-less square button that shows a purple
-   check when the option is marked correct, an X otherwise. Click toggles. */
-
-/* .correctBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-muted);
-
-  &:hover {
-    color: var(--action-hover);
-  }
-} */
-
-.correctIcon {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.wrongIcon {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
 .topRow {
   display: flex;
   justify-content: space-between;
@@ -146,75 +113,3 @@
   }
 }
 
-/* ─── Floating popover ─────────────────────────────────────────────────── */
-
-.popoverWrap {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  right: auto;
-  z-index: var(--z-dropdown);
-  opacity: 1;
-  max-height: 9999px;
-  width: auto;
-  transition:
-    opacity var(--duration-base) ease-in-out,
-    max-height var(--duration-base) ease-in-out;
-}
-
-/* End-aligned variant: opens leftward from the anchor's midline. Composers
-   whose anchor sits near the canvas' right edge (chart columns, absolutely
-   positioned chart labels) request this via the Menu's `popoverAlign`; the
-   midline (rather than the right edge) keeps the popover inside the canvas
-   even when the anchor itself is centred on the chart's last data point. */
-.popoverWrap.alignEnd {
-  left: auto;
-  right: 50%;
-}
-
-@starting-style {
-  .popoverWrap {
-    opacity: 0;
-    max-height: 0;
-    overflow: clip;
-  }
-}
-
-/* Single-line popover row: image thumb, optional Clear, color thumb,
-   remove, close. PopoverRow already provides display:flex + align-items:
-   center; here we lock it to one line so the toolbar stays compact and
-   the color popout has a stable anchor to sit above. */
-.popoverHeader {
-  width: 100%;
-  flex-wrap: nowrap;
-}
-
-/* Image-thumbnail trigger inside the toolbar. Renders on top of an IconBtn
-   xs/ghost frame; this class only adds the hairline border so the empty +
-   filled states still read as a thumbnail well. The background-image is
-   set inline by the consumer when an image is present. */
-.imageThumbBtn {
-  border: var(--border-size-sm) solid var(--edge-surface);
-}
-
-/* Color-thumbnail trigger. Same footprint as the image thumb so the row
-   has a consistent rhythm; the background color is set inline by the
-   consumer to reflect the current option color. */
-.colorThumbWrap {
-  display: inline-flex;
-}
-
-.colorThumbBtn {
-  border: var(--border-size-sm) solid var(--edge-surface);
-}
-
-/* Color-swatch popout — sits above the toolbar so the picker doesn't
-   overlap the row's buttons. Stays inside `.popoverWrap` so the parent's
-   stopPropagation continues to shield it from the card-level click
-   handler that toggles the popover open/closed. */
-.colorPopout {
-  position: absolute;
-  bottom: calc(100% + var(--space-1));
-  left: 0;
-  z-index: calc(var(--z-dropdown) + 1);
-}

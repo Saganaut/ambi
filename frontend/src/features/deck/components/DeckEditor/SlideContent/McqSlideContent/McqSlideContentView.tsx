@@ -85,8 +85,8 @@ const McqSlideContentView = ({
   const renderMenu = (datum: ChartDatum, menuAlign?: MenuAlign) => (
     <Menu
       activeOption={datum}
-      activeOptionId={datum.id}
       index={datum.id}
+      paletteIndex={question.options.findIndex((option) => option.id === datum.id)}
       popoverAlign={menuAlign}
       canRemove={canRemove}
       onScheduleText={(next: McqOption) => {

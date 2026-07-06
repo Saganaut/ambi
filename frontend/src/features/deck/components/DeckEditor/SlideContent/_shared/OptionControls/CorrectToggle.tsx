@@ -1,9 +1,11 @@
 // The correct/incorrect toggle for an option, sourced from the per-option
-// context. `stopPropagation` so a click here never bubbles to a surrounding
-// card-click handler (which toggles the option menu); harmless where there's no
-// such handler (the chart label).
-import QuizPoints from "@assets/icons/content/quiz-points.svg?react";
-import Sad from "@assets/icons/content/sad.svg?react";
+// context. Reads as a status mark per the option-menu design: a brand-colored
+// check when the option is correct, a muted dash otherwise; [aria-pressed]
+// carries the state for both styling and assistive tech. `stopPropagation` so
+// a click here never bubbles to a surrounding card-click handler (which
+// toggles the option menu); harmless where there's no such handler (the chart
+// label).
+import { CheckIcon, MinusSmallIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 
 import styles from "./OptionControls.module.css";
@@ -25,7 +27,7 @@ const CorrectToggle = ({ isCorrect, onToggleCorrect }: CorrectToggleProps) => {
         e.stopPropagation();
         onToggleCorrect();
       }}
-      icon={isCorrect ? <QuizPoints /> : <Sad />}
+      icon={isCorrect ? <CheckIcon /> : <MinusSmallIcon />}
     />
   );
 };

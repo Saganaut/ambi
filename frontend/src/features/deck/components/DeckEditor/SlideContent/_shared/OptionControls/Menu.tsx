@@ -1,30 +1,35 @@
-// The option's dropdown menu: an ellipsis trigger + the shared
-// EditOptionToolbar popover (image pick/clear, colour, remove), sourced from the
-// per-option context. Controlled — the composer owns the open state and the
-// outside-click boundary (which differs: the whole card vs. just the chart-label
-// wrap), so this piece stays presentational and reusable. The popover anchors to
-// the nearest positioned ancestor, which both composers provide.
+// The option's dropdown menu: an ellipsis trigger + the OptionMenu popover
+// (palette colors, custom color, image upload/clear, delete), sourced from the
+// per-option context. The trigger owns the open state and the outside-click
+// boundary; the menu itself stays presentational. This wrapper is the menu's
+// positioned anchor, so the popover opens off the kebab itself in every
+// composer (option card, chart label) and flips to fit via useFlipToFit.
+// The custom-color path hands off to the shared modal.
 import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { emptyImage, isImageEmpty, largestUrl } from "@utils/image";
+import { emptyImage, isImageEmpty } from "@utils/image";
 
+import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
 import { useClickOutside } from "@/shared/hooks/useClickOutside";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { useModal } from "@hooks/useModal";
 import { McqOption } from "@/shared/types/Elements.types";
 import { useRef, useState } from "react";
-import { EditOptionToolbar } from "../McqOptionEditable/EditOptionToolbar";
+import { OptionMenu } from "../OptionMenu/OptionMenu";
 import { resolveOptionColor } from "../McqOptionEditable/optionColor";
+import styles from "./OptionControls.module.css";
 
 interface MenuProps {
   activeOption: McqOption;
   index: string;
+  /** The option's position in the list — resolves its palette-default color. */
+  paletteIndex: number;
   canRemove: boolean;
   onScheduleText: (option: McqOption) => void;
   onCommit: (option: McqOption) => void;
   onRemove: () => void;
   flush: () => void;
   openPicker: OpenGalleryPicker;
-  activeOptionId: string;
   /** Which edge of the anchor the popover aligns to (default "start"). */
   popoverAlign?: "start" | "end";
 }
@@ -32,6 +37,7 @@ interface MenuProps {
 const Menu = ({
   activeOption,
   index,
+  paletteIndex,
   canRemove,
   onScheduleText,
   onCommit,
@@ -40,15 +46,41 @@ const Menu = ({
   openPicker,
   popoverAlign,
 }: MenuProps) => {
-  //TODO: remove this magic number, we use to have an index
-  // but now that index is a string we need a number
-  const MAGIC_NUMBER = 2;
-  const optionKey = activeOption.id ?? "";
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   useClickOutside(menuRef, () => setIsOpen(false), isOpen);
+  const { openModal, closeModal } = useModal();
 
-  const handlePickFromGallery = () => {
+  const color = resolveOptionColor(activeOption.color, paletteIndex);
+  const hasImage = !isImageEmpty(activeOption.image);
+
+  const applyColor = (next: string) => {
+    onScheduleText({ ...activeOption, color: next });
+    flush();
+  };
+
+  const handlePickColor = (next: string) => {
+    applyColor(next);
+    setIsOpen(false);
+  };
+
+  const handleCustomColor = () => {
+    setIsOpen(false);
+    openModal({
+      title: "Custom color",
+      content: (
+        <CustomColorPicker
+          initialColor={color}
+          onApply={(hex) => {
+            applyColor(hex);
+            closeModal();
+          }}
+        />
+      ),
+    });
+  };
+
+  const handleUploadImage = () => {
     flush();
     setIsOpen(false);
     openPicker(
@@ -56,7 +88,7 @@ const Menu = ({
         onCommit({ ...activeOption, image });
       },
       {
-        title: "Option image",
+        title: "Upload an image",
         initialUrl: activeOption.image?.externalSrc,
         cropWidth: 1,
         cropHeight: 1,
@@ -66,26 +98,21 @@ const Menu = ({
 
   const handleClearImage = () => {
     flush();
+    setIsOpen(false);
     onCommit({ ...activeOption, image: emptyImage() });
-  };
-
-  const handleColorChange = (next: string) => {
-    onScheduleText({ ...activeOption, color: next });
   };
 
   const handleRemove = () => {
     setIsOpen(false);
     onRemove();
   };
-  const color = resolveOptionColor(activeOption.color, MAGIC_NUMBER);
-  const hasImage = !isImageEmpty(activeOption.image);
-  const previewUrl = largestUrl(activeOption.image, optionKey) ?? "";
 
   return (
-    <div ref={menuRef}>
+    <div ref={menuRef} className={styles.menuAnchor}>
       <IconBtn
         fill="ghost"
         size="xs"
+        className={styles.menuTrigger}
         icon={<EllipsisVerticalIcon />}
         aria-label={`Edit option ${index.toString()}`}
         aria-expanded={isOpen}
@@ -96,21 +123,17 @@ const Menu = ({
         }}
       />
       {isOpen && (
-        <EditOptionToolbar
-          align={popoverAlign}
-          canRemove={canRemove}
-          handlePickFromGallery={handlePickFromGallery}
-          hasImage={hasImage}
-          handleRemove={handleRemove}
-          handleClearImage={handleClearImage}
-          handleColorChange={handleColorChange}
-          handleClose={() => {
-            setIsOpen(false);
-          }}
+        <OptionMenu
           displayIndex={index}
-          previewUrl={previewUrl}
-          color={color}
-          flush={flush}
+          currentColor={color}
+          canRemove={canRemove}
+          hasImage={hasImage}
+          align={popoverAlign}
+          onPickColor={handlePickColor}
+          onCustomColor={handleCustomColor}
+          onUploadImage={handleUploadImage}
+          onClearImage={handleClearImage}
+          onRemove={handleRemove}
         />
       )}
     </div>

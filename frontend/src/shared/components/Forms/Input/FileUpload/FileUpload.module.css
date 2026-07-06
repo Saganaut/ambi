@@ -25,11 +25,15 @@
 .dropZone {
   width: 300px;
   min-height: 100px;
-  border: var(--border-size-sm) dashed var(--border-default);
+  border: var(--border-size-sm) dashed var(--border-subtle);
   border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
   cursor: pointer;
   transition:
     border-color 300ms ease-in-out,
@@ -41,22 +45,37 @@
 
   &:hover,
   &:focus {
-    border-color: var(--action-hover);
+    border-color: var(--bg-brand);
+    background-color: var(--bg-secondary);
     outline: none;
   }
 
   &.dragging {
     border-color: var(--border-focus);
-    background-color: var(--bg-subtle);
+    background-color: var(--bg-secondary);
   }
-}
 
-.dropZoneText {
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
-  pointer-events: none;
-  text-align: center;
-  padding: var(--space-4);
+  .dropZoneIcon {
+    width: 1.875rem;
+    height: 1.875rem;
+    color: var(--bg-brand);
+    pointer-events: none;
+  }
+
+  .dropZoneText {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--bg-brand);
+    pointer-events: none;
+    text-align: center;
+  }
+
+  .dropZoneHint {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    pointer-events: none;
+    text-align: center;
+  }
 }
 
 .fileList {
