@@ -38,7 +38,7 @@ const CustomColorPicker = ({ initialColor, onApply }: CustomColorPickerProps) =>
   );
   // The hex field mirrors the picker but tolerates in-progress typing; only
   // a well-formed 6-digit hex is folded back into the picker state.
-  const [hexField, setHexField] = useState(() => hsvaToHex(hexToHsva(toStartingHex(initialColor))));
+  const [hexField, setHexField] = useState(() => toStartingHex(initialColor));
 
   const updateColor = (next: HsvaColor) => {
     setHsva(next);

@@ -1,10 +1,10 @@
 // The correct/incorrect toggle for an option, sourced from the per-option
 // context. Reads as a status mark per the option-menu design: a brand-colored
 // check when the option is correct, a muted dash otherwise; [aria-pressed]
-// carries the state for both styling and assistive tech. `stopPropagation` so
-// a click here never bubbles to a surrounding card-click handler (which
-// toggles the option menu); harmless where there's no such handler (the chart
-// label).
+// carries the state for both styling and assistive tech. `stopPropagation` is
+// defensive isolation: today's composers (option card, chart label) attach no
+// click handling of their own, but a toggle click should never leak to one
+// that does.
 import { CheckIcon, MinusSmallIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 
