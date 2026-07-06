@@ -101,7 +101,7 @@
   color: var(--text-primary);
 }
 
-/* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
+/* Wraps the editable controls (Label + CorrectBadge + Menu) and anchors the
    Menu's popover (position: relative), letting buttons overflow rather than clip. */
 .optionControls {
   position: relative;

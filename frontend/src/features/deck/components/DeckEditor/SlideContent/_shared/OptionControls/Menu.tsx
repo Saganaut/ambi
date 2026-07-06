@@ -7,8 +7,8 @@
 // count as inside the boundary: the field is the menu's trigger, so moving
 // the caret around must not dismiss it (a still-focused field re-fires no
 // focus event, leaving no way to reopen). This wrapper is the menu's
-// positioned anchor, so the popover opens off the old controls slot in every
-// composer (option card footer, chart label) and flips to fit via
+// positioned anchor, so the popover opens off the controls slot in every
+// composer (option card footer, chart label row) and flips to fit via
 // useFlipToFit. The custom-color path hands off to the shared modal.
 import { emptyImage, isImageEmpty } from "@utils/image";
 

@@ -1,6 +1,7 @@
-/* OptionMenu — the per-option dropdown opened from the kebab trigger.
+/* OptionMenu — the per-option dropdown opened when the option's label field
+   takes focus (OptionControls/Menu is the controller).
    Owns:
-     - the absolute anchor wrap below the trigger (plus the end-aligned
+     - the absolute anchor wrap below the anchor (plus the end-aligned
        variant for anchors near the canvas' right edge)
      - the menu column: color swatch strip, divider, action items
    The floating chrome (surface, border, shadow) comes from the shared

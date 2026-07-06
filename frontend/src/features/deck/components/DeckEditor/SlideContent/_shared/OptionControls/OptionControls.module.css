@@ -3,8 +3,9 @@
    chrome left here is the popover's positioned anchor. */
 
 /* Positioned anchor for the OptionMenu popover: keeps the menu opening off
-   the old controls slot itself rather than whatever ancestor happens to be
-   positioned (in charts that would be the full-height column). */
+   the controls slot (card footer, chart label row) rather than whatever
+   ancestor happens to be positioned (in charts that would be the
+   full-height column). */
 .menuAnchor {
   position: relative;
 }
