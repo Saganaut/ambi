@@ -5,9 +5,9 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, useState } from "react";
 
+import { AddOptionButton } from "@/shared/components/Charts/AddOptionButton/AddOptionButton";
 import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types";
 import { Container } from "@components/Containers/Container";
-import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { IndexPill } from "../IndexPill/IndexPill";
 import styles from "./McqOptionEditable.module.css";
@@ -105,29 +105,9 @@ const McqOptionEditable = ({
           {renderToggle?.(datum)}
           {renderMenu?.(datum)}
         </div>
-        {canAddOption && (
+        {canAddOption && addOption && (
           <div className={styles.canAddBtn}>
-            <IconBtn
-              size="sm"
-              shape="round"
-              variant="info"
-              onClick={addOption}
-              disabled={!canAddOption}
-              icon={
-                <svg
-                  width="100pt"
-                  height="100pt"
-                  version="1.1"
-                  viewBox="0 0 100 100"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="m50 26.699c-1.3906 0-2.5195 1.1289-2.5195 2.5195v18.262h-18.262c-1.3906 0-2.5195 1.1289-2.5195 2.5195s1.1289 2.5195 2.5195 2.5195h18.262v18.262c0 1.3906 1.1289 2.5195 2.5195 2.5195s2.5195-1.1289 2.5195-2.5195v-18.262h18.262c1.3906 0 2.5195-1.1289 2.5195-2.5195s-1.1289-2.5195-2.5195-2.5195h-18.262v-18.262c0-1.3906-1.1289-2.5195-2.5195-2.5195z"
-                    fill="green"
-                  />
-                </svg>
-              }
-            />
+            <AddOptionButton onClick={addOption} />
           </div>
         )}
       </div>
