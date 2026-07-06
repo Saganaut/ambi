@@ -1,18 +1,12 @@
 import type { ChartProps } from "../Chart.types";
+import { resolveDatumColor } from "../optionPalette";
 import styles from "./DotPlot.module.css";
 
 export type DotPlotProps = ChartProps;
 
-const DotPlot = ({
-  renderLabel,
-  renderToggle,
-  renderMenu,
-  data,
-  displayAsPercentage,
-}: DotPlotProps) => {
+const DotPlot = ({ renderLabel, renderToggle, renderMenu, data, displayAsPercentage }: DotPlotProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const max = Math.max(1, ...data.map((datum) => datum.value));
-  console.log("TODO: canAddOption, addOption, isCorrect per option");
   return (
     <div className={styles.chart}>
       <ul className={styles.rows}>
@@ -24,6 +18,7 @@ const DotPlot = ({
               // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
               key={i}
               className={`${styles.row} ${datum.highlight ? styles.highlight : ""}`}
+              style={{ "--dot-color": resolveDatumColor(datum.color, i) } as React.CSSProperties}
             >
               <div className={styles.optionControls}>
                 {renderLabel ? (
@@ -31,8 +26,6 @@ const DotPlot = ({
                 ) : (
                   <span className={styles.label}>{datum.text ?? ""}</span>
                 )}
-                {renderToggle?.(datum)}
-                {renderMenu?.(datum)}
               </div>
               <div className={styles.track}>
                 <span
@@ -40,15 +33,7 @@ const DotPlot = ({
                   style={{ width: `${posPct.toFixed(1)}%` }}
                   aria-hidden="true"
                 />
-                <span
-                  className={styles.dot}
-                  style={
-                    {
-                      left: `${posPct.toFixed(1)}%`,
-                      "--dot-color": datum.color,
-                    } as React.CSSProperties
-                  }
-                />
+                <span className={styles.dot} style={{ left: `${posPct.toFixed(1)}%` }} />
               </div>
               <span className={styles.value}>
                 {datum.value}
@@ -56,6 +41,12 @@ const DotPlot = ({
                   <span className={styles.share}> ({sharePct}%)</span>
                 )}
               </span>
+              {(renderToggle ?? renderMenu) && (
+                <span className={styles.rowActions}>
+                  {renderToggle?.(datum)}
+                  {renderMenu?.(datum)}
+                </span>
+              )}
             </li>
           );
         })}

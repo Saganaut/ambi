@@ -3,6 +3,9 @@
   flex-direction: column;
   gap: var(--gap-sm);
   width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
 
   .bars {
     display: flex;
@@ -10,6 +13,8 @@
     margin: 0;
     padding: 0;
     width: 100%;
+    flex: 1;
+    min-height: 0;
   }
 
   .caption {
@@ -18,11 +23,7 @@
   }
 
   .row {
-    display: flex;
     position: relative;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--gap-sm);
     min-width: 0;
   }
 
@@ -34,14 +35,41 @@
     white-space: nowrap;
   }
 
+  .row.highlight .label {
+    font-weight: 600;
+  }
+
+  /* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
+     Menu's popover (position: relative). Lets the buttons overflow the narrow
+     label cell rather than clipping. */
   .optionControls {
-    border: 1px dashed red;
     position: relative;
     display: flex;
     align-items: center;
     gap: var(--gap-xs);
     min-width: 0;
     overflow: visible;
+
+    /* Chart labels are single-line and compact: match the static label's font
+       size, trim the field's padding, and stop the textarea from wrapping into
+       a half-clipped second row inside the narrow label cell. */
+    textarea {
+      min-height: 0;
+      font-size: var(--font-size-sm);
+      padding-block: var(--space-1);
+      white-space: pre;
+      overflow-x: hidden;
+    }
+  }
+
+  /* Correct-toggle + menu cluster. Deliberately NOT positioned: the Menu's
+     popover anchors to the positioned `.row`, giving it the row's full width
+     instead of clipping past the canvas edge. */
+  .rowActions {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
+    flex-shrink: 0;
   }
 
   .track {
@@ -58,10 +86,6 @@
     }
   }
 
-  .fill .highlight {
-    background: var(--bar-color, var(--role-green));
-  }
-
   .value {
     font-size: var(--font-size-sm);
     color: var(--text-primary);
@@ -76,12 +100,15 @@
   &.horizontal {
     .bars {
       flex-direction: column;
+      justify-content: space-evenly;
       gap: var(--gap-sm);
     }
 
     .row {
       display: grid;
-      grid-template-columns: minmax(0, 6rem) 1fr auto;
+      grid-template-columns: minmax(5rem, 10rem) minmax(0, 1fr) max-content max-content;
+      align-items: center;
+      gap: var(--gap-sm);
     }
 
     .track {
@@ -93,28 +120,41 @@
       height: 100%;
       width: var(--size, 0);
     }
+
+    .value {
+      min-width: 3ch;
+      text-align: right;
+    }
   }
 
   &.vertical {
     .bars {
       flex-direction: row;
-      align-items: flex-end;
+      align-items: stretch;
       gap: var(--gap-md);
-      min-height: 10rem;
     }
 
     .row {
       flex: 1;
-      flex-direction: column-reverse;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: var(--gap-xs);
-      height: 100%;
-      justify-content: flex-start;
+      min-height: 0;
+      min-width: 0;
       text-align: center;
+    }
+
+    /* Visual order top→bottom: value, bar, label, actions. */
+    .value {
+      order: -1;
     }
 
     .track {
       width: 100%;
+      max-width: 6rem;
       flex: 1;
+      min-height: 0;
       display: flex;
       align-items: flex-end;
     }
@@ -122,6 +162,20 @@
     .fill {
       width: 100%;
       height: var(--size, 0);
+    }
+
+    .optionControls {
+      order: 1;
+      max-width: 100%;
+      justify-content: center;
+
+      textarea {
+        text-align: center;
+      }
+    }
+
+    .rowActions {
+      order: 2;
     }
   }
 }

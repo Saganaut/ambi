@@ -2,9 +2,8 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, useState } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.types";
+import { resolveDatumColor } from "../optionPalette";
 import styles from "./PieChart.module.css";
-
-const TONES = ["tone0", "tone1", "tone2", "tone3", "tone4"] as const;
 
 // Pie: stroke covers the whole radius (r=25, width=50). Donut: a band.
 const RADII = { pie: 25, donut: 38 } as const;
@@ -21,7 +20,6 @@ const PieChartSegment = ({
   renderToggle,
   renderMenu,
 }: PieChartSegmentRenderProps) => {
-  const tone = TONES[sortIndex % TONES.length];
   const pct = denominator > 0 ? (datum.value / denominator) * 100 : 0;
 
   const { ref: sortableRef } = useSortable({
@@ -42,8 +40,8 @@ const PieChartSegment = ({
       className={`${styles.legendItem} ${datum.highlight ? styles.highlight : ""}`}
     >
       <span
-        className={`${styles.swatch} ${styles[tone]}`}
-        style={datum.color ? { background: datum.color } : undefined}
+        className={styles.swatch}
+        style={{ background: resolveDatumColor(datum.color, sortIndex) }}
         aria-hidden="true"
       />
       <div className={styles.optionControls}>
@@ -52,13 +50,17 @@ const PieChartSegment = ({
         ) : (
           <span className={styles.legendLabel}>{datum.text ?? ""}</span>
         )}
-        {renderToggle?.(datum)}
-        {renderMenu?.(datum)}
       </div>
       <span className={styles.legendValue}>
         {datum.value}
         {displayAsPercentage && ` (${Math.round(pct).toString()}%)`}
       </span>
+      {(renderToggle ?? renderMenu) && (
+        <span className={styles.legendActions}>
+          {renderToggle?.(datum)}
+          {renderMenu?.(datum)}
+        </span>
+      )}
     </li>
   );
 };
@@ -84,8 +86,6 @@ const PieChart = ({
   }, [animateOnMount]);
   const [revealed, setRevealed] = useState(!animateOnMount);
 
-  console.log("TODO: canAddOption, addOption, isCorrect per option");
-
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   if (total === 0) {
@@ -101,8 +101,7 @@ const PieChart = ({
       label: string;
       pct: number;
       start: number;
-      tone: string;
-      color?: string;
+      color: string;
       highlight?: boolean;
       index: number;
     }[]
@@ -114,8 +113,7 @@ const PieChart = ({
       label: d.text ?? "",
       pct,
       start,
-      tone: TONES[i % TONES.length],
-      color: d.color,
+      color: resolveDatumColor(d.color, i),
       highlight: d.highlight,
       index: i,
     });
@@ -125,35 +123,35 @@ const PieChart = ({
   return (
     <div className={styles.chart}>
       <div className={styles.body}>
-        <svg
-          className={styles.svg}
-          viewBox="0 0 100 100"
-          role="img"
-          aria-label={variant === "donut" ? "Donut chart" : "Pie chart"}
-        >
-          <circle className={styles.backdrop} cx="50" cy="50" r="49" />
-          <g transform="rotate(-90 50 50)">
-            {slices.map((s) => (
-              <circle
-                key={s.index}
-                className={`${styles.slice} ${styles[s.tone]} ${
-                  s.highlight ? styles.highlight : ""
-                }`}
-                cx="50"
-                cy="50"
-                r={RADII[variant]}
-                pathLength={100}
-                strokeWidth={STROKE[variant]}
-                stroke={s.color}
-                strokeDasharray={`${(revealed ? s.pct : 0).toFixed(3)} 100`}
-                strokeDashoffset={(-s.start).toFixed(3)}
-                style={{
-                  transitionDelay: !revealed ? `${(s.index * 90).toString()}ms` : undefined,
-                }}
-              />
-            ))}
-          </g>
-        </svg>
+        <div className={styles.plot}>
+          <svg
+            className={styles.svg}
+            viewBox="0 0 100 100"
+            role="img"
+            aria-label={variant === "donut" ? "Donut chart" : "Pie chart"}
+          >
+            <circle className={styles.backdrop} cx="50" cy="50" r="49" />
+            <g transform="rotate(-90 50 50)">
+              {slices.map((s) => (
+                <circle
+                  key={s.index}
+                  className={`${styles.slice} ${s.highlight ? styles.highlight : ""}`}
+                  cx="50"
+                  cy="50"
+                  r={RADII[variant]}
+                  pathLength={100}
+                  strokeWidth={STROKE[variant]}
+                  stroke={s.color}
+                  strokeDasharray={`${(revealed ? s.pct : 0).toFixed(3)} 100`}
+                  strokeDashoffset={(-s.start).toFixed(3)}
+                  style={{
+                    transitionDelay: !revealed ? `${(s.index * 90).toString()}ms` : undefined,
+                  }}
+                />
+              ))}
+            </g>
+          </svg>
+        </div>
         <ul className={styles.legend}>
           <DragDropWrapper onReorder={onReorder}>
             {slices.map((s, idx) => (

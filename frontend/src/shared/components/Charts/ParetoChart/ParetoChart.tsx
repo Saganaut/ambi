@@ -2,9 +2,10 @@
 // line overlaid (the classic "80/20" view). Bars are scaled to the largest
 // value; the cumulative line runs 0→100% on the same canvas. Useful for MCQ
 // option counts when the author wants to see how few options capture most of
-// the responses. Pure SVG (bars + polyline) with the category labels listed
-// below in the sorted order.
+// the responses. SVG bars + line (stretched to fill) with HTML dot markers and
+// the category labels listed below in the sorted order.
 import type { ChartProps } from "../Chart.types";
+import { resolveDatumColor } from "../optionPalette";
 import styles from "./ParetoChart.module.css";
 
 export type ParetoChartProps = ChartProps;
@@ -13,32 +14,30 @@ const W = 100;
 const H = 60;
 const PAD = 6;
 
-const ParetoChart = ({
-  renderLabel,
-  renderToggle,
-  renderMenu,
-  data,
-}: ParetoChartProps) => {
+const ParetoChart = ({ renderLabel, renderToggle, renderMenu, data }: ParetoChartProps) => {
   const max = Math.max(1, ...data.map((datum) => datum.value));
-  console.log("TODO: canAddOption, addOption, isCorrect per option");
 
-  const sorted = [...data].sort((a, b) => b.value - a.value);
-  const total = sorted.reduce((sum, d) => sum + d.value, 0);
+  // Keep the author-order index so each option keeps its colour when sorting.
+  const sorted = data
+    .map((datum, authorIndex) => ({ datum, authorIndex }))
+    .sort((a, b) => b.datum.value - a.datum.value);
+  const total = sorted.reduce((sum, entry) => sum + entry.datum.value, 0);
   const plotW = W - PAD * 2;
   const plotH = H - PAD * 2;
   const slot = plotW / Math.max(1, sorted.length);
   const barW = slot * 0.6;
 
   let running = 0;
-  const items = sorted.map((d, i) => {
-    running += d.value;
+  const items = sorted.map(({ datum, authorIndex }, i) => {
+    running += datum.value;
     const cumPct = total > 0 ? running / total : 0;
     const cx = PAD + slot * i + slot / 2;
     return {
-      datum: d,
+      datum,
       index: i,
+      color: resolveDatumColor(datum.color, authorIndex),
       barX: cx - barW / 2,
-      barH: (d.value / max) * plotH,
+      barH: (datum.value / max) * plotH,
       cumX: cx,
       cumY: H - PAD - cumPct * plotH,
       cumPct,
@@ -49,43 +48,66 @@ const ParetoChart = ({
 
   return (
     <div className={styles.chart}>
-      <svg
-        className={styles.svg}
-        viewBox={`0 0 ${W.toString()} ${H.toString()}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="Pareto chart"
-      >
-        <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
+      {/* The SVG stretches to fill (preserveAspectRatio="none"); strokes stay
+          uniform via non-scaling-stroke and the cumulative markers are HTML
+          dots overlaid by percentage so they can't be distorted. */}
+      <div className={styles.plot}>
+        <svg
+          className={styles.svg}
+          viewBox={`0 0 ${W.toString()} ${H.toString()}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="Pareto chart"
+        >
+          <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
+          {items.map((it) => (
+            <rect
+              key={it.index}
+              className={styles.bar}
+              x={it.barX}
+              y={H - PAD - it.barH}
+              width={barW}
+              height={it.barH}
+              style={{ fill: it.color }}
+            />
+          ))}
+          {items.length > 1 && <polyline className={styles.cumLine} points={linePath} />}
+        </svg>
         {items.map((it) => (
-          <rect
+          <span
             key={it.index}
-            className={`${styles.bar} ${it.datum.highlight ? styles.highlight : ""}`}
-            x={it.barX}
-            y={H - PAD - it.barH}
-            width={barW}
-            height={it.barH}
-            style={it.datum.color ? { fill: it.datum.color } : undefined}
+            className={styles.cumMarker}
+            style={{
+              left: `${it.cumX.toFixed(2)}%`,
+              top: `${((it.cumY / H) * 100).toFixed(2)}%`,
+            }}
+            aria-hidden="true"
           />
         ))}
-        {items.length > 1 && <polyline className={styles.cumLine} points={linePath} />}
-        {items.map((it) => (
-          <circle key={it.index} className={styles.cumMarker} cx={it.cumX} cy={it.cumY} r={1.4} />
-        ))}
-      </svg>
+      </div>
       <ul className={styles.labels}>
         {items.map((it) => (
-          <li key={it.index} className={styles.label}>
+          <li
+            key={it.index}
+            className={`${styles.label} ${it.datum.highlight ? styles.highlight : ""}`}
+          >
             <div className={styles.optionControls}>
               {renderLabel ? (
                 renderLabel(it.datum)
               ) : (
                 <span className={styles.labelText}>{it.datum.text ?? ""}</span>
               )}
-              {renderToggle?.(it.datum)}
-              {renderMenu?.(it.datum)}
             </div>
-            <span className={styles.labelValue}>{Math.round(it.cumPct * 100)}%</span>
+            <span className={styles.labelStats}>
+              <span className={styles.labelValue}>{it.datum.value}</span>
+              <span className={styles.labelShare}> · {Math.round(it.cumPct * 100)}%</span>
+            </span>
+            {(renderToggle ?? renderMenu) && (
+              <span className={styles.labelActions}>
+                {renderToggle?.(it.datum)}
+                {renderMenu?.(it.datum)}
+              </span>
+            )}
           </li>
         ))}
       </ul>

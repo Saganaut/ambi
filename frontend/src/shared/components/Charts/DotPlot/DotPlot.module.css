@@ -3,6 +3,9 @@
   flex-direction: column;
   gap: var(--gap-sm);
   width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .caption {
@@ -13,17 +16,22 @@
 .rows {
   display: flex;
   flex-direction: column;
+  justify-content: space-evenly;
   gap: var(--gap-md);
   list-style: none;
   margin: 0;
   padding: 0;
+  flex: 1;
+  min-height: 0;
 }
 
 .row {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 6rem) 1fr auto;
+  grid-template-columns: minmax(5rem, 10rem) minmax(0, 1fr) max-content max-content;
   align-items: center;
   gap: var(--gap-sm);
+  min-width: 0;
 }
 
 .label {
@@ -32,6 +40,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.row.highlight .label {
+  font-weight: 600;
 }
 
 /* Wraps the editable controls (Label + CorrectToggle + Menu) and anchors the
@@ -43,6 +55,27 @@
   gap: var(--gap-xs);
   min-width: 0;
   overflow: visible;
+
+  /* Chart labels are single-line and compact: match the static label's font
+     size, trim the field's padding, and stop the textarea from wrapping into
+     a half-clipped second row inside the narrow label cell. */
+  textarea {
+    min-height: 0;
+    font-size: var(--font-size-sm);
+    padding-block: var(--space-1);
+    white-space: pre;
+    overflow-x: hidden;
+  }
+}
+
+/* Correct-toggle + menu cluster. Deliberately NOT positioned: the Menu's
+   popover anchors to the positioned `.row`, giving it the row's full width
+   instead of clipping past the canvas edge. */
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  flex-shrink: 0;
 }
 
 .track {
@@ -64,9 +97,10 @@
   position: absolute;
   left: 0;
   height: var(--border-size-sm);
-  background: var(--bg-brand);
+  background: var(--dot-color, var(--bg-brand));
   border-radius: var(--radius-full);
   opacity: 0.4;
+  transition: width var(--duration-base) var(--ease-out);
 }
 
 .dot {
@@ -79,12 +113,8 @@
   transition: left var(--duration-base) var(--ease-out);
 }
 
-.highlight .dot {
-  background: var(--dot-color, var(--role-green));
-}
-
 .highlight .stem {
-  background: var(--role-green);
+  opacity: 0.7;
 }
 
 .value {
@@ -92,6 +122,8 @@
   color: var(--text-primary);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
 }
 
 .share {
