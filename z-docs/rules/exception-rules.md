@@ -14,7 +14,7 @@ How the backend produces errors. Full design and rationale: [features/exceptions
    | `UnauthorizedException(code, msg)` | 401                       |
    | `ValidationException(msg)`         | 400 (`VALIDATION_FAILED`) |
 
-3. **`code` is the contract, not `detail`** — Pick a `SCREAMING_SNAKE_CASE` code naming the specific condition, scoped by resource where it helps (`DECK_NOT_FOUND`, `DECK_EDIT_FORBIDDEN`). Frontend branches on `code` (and `status`); `detail` is human-facing and may be reworded anytime — never branch on it.
+3. **`code` is the contract, not `detail`** — Pick a `SCREAMING_SNAKE_CASE` code naming the specific condition, scoped by resource where it helps (`DECK_NOT_FOUND`, `DECK_EDIT_FORBIDDEN`). Frontend branches on `code` (and `status`); `detail` is human-facing and may be reworded anytime — never branch on it. The full registry of codes in use, and the naming shapes for new ones, lives in [error-codes.md](error-codes.md) — check it before minting a new code.
 
 4. **Disclosure: `4xx` specific, `5xx` silent** — `4xx` → `detail` is a safe, actionable user-facing message. `5xx` → `detail` is the fixed `"Something went wrong, please try again."`; never expose `ex.getMessage()`, a class name, or a stack frame — log the full exception at `ERROR` with the `traceId`. Never weaken the `spring.web.error.include-*=never` properties.
 
