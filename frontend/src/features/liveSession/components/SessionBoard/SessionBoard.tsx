@@ -43,6 +43,8 @@ const SessionBoard = ({ className }: SessionBoardProps) => {
       {stage.type === "overall" && (
         <BoardOverallResults
           standings={state.finalScoreboard ?? state.scoreboard}
+          joinCode={state.roomCode}
+          showJoinInfo={state.showJoinInfoInResults}
         />
       )}
     </Container>

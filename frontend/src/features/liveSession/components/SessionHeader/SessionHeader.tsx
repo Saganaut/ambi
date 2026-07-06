@@ -18,7 +18,9 @@ const SessionRoundDisplay = () => {
 };
 
 const SessionInfoDisplay = () => {
-  const { roomCode } = useLiveSessionQuery();
+  const { roomCode, showRoomCodeInHeader } = useLiveSessionQuery();
+
+  if (!showRoomCodeInHeader) return null;
 
   return (
     <div className={styles.sessionInfoDisplay}>

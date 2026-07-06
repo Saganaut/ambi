@@ -1,15 +1,24 @@
 // End-of-session board state (status FINISHED / CANCELLED). Closes the show on the
 // final standings — participants ranked by score. The scoreboard is authoritative
 // (the backend ranks it), so this renders it in order rather than re-sorting.
+import { JoinInfoDisplay } from "@liveSession/components/JoinInfoDisplay/JoinInfoDisplay";
 import type { ScoreboardEntry } from "../../../store/liveSessionApi.gen";
 import styles from "./BoardOverallResults.module.css";
 
 interface BoardOverallResultsProps {
   /** The final scoreboard, already ranked by the backend. */
   standings: ScoreboardEntry[];
+  /** The room code participants join with, or `null` before the snapshot seeds. */
+  joinCode: string | null;
+  /** Whether the deck's invite settings show join info on this screen. */
+  showJoinInfo: boolean;
 }
 
-const BoardOverallResults = ({ standings }: BoardOverallResultsProps) => {
+const BoardOverallResults = ({
+  standings,
+  joinCode,
+  showJoinInfo,
+}: BoardOverallResultsProps) => {
   // Prefer the server's rank; fall back to list order when absent.
   const ranked = [...standings].sort(
     (a, b) => (a.rank ?? 0) - (b.rank ?? 0),
@@ -29,6 +38,7 @@ const BoardOverallResults = ({ standings }: BoardOverallResultsProps) => {
           </li>
         ))}
       </ol>
+      {showJoinInfo && <JoinInfoDisplay joinCode={joinCode} />}
     </div>
   );
 };

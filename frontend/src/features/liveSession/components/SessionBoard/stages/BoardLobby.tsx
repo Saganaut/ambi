@@ -2,10 +2,10 @@
 // hasn't started yet. Kept on the board (rather than only the dedicated lobby
 // route) so a projected screen has something meaningful up while players trickle
 // in: the room code to join with, a QR that deep-links to the join page, and a
-// running headcount.
-import { QRCodeSVG } from "qrcode.react";
-
-import { buildJoinUrl } from "@liveSession/joinUrl";
+// running headcount. The lobby always shows both — this is the one screen
+// whose whole purpose is getting people to join, so it isn't gated by
+// InviteSettings the way the header/results surfaces are.
+import { JoinInfoDisplay } from "@liveSession/components/JoinInfoDisplay/JoinInfoDisplay";
 import styles from "./BoardLobby.module.css";
 
 interface BoardLobbyProps {
@@ -17,16 +17,7 @@ interface BoardLobbyProps {
 
 const BoardLobby = ({ joinCode, playerCount }: BoardLobbyProps) => (
   <div className={styles.boardLobby}>
-    <p className={styles.eyebrow}>Join at the room code</p>
-    <p className={styles.code}>{joinCode ?? ""}</p>
-    {joinCode != null && (
-      <QRCodeSVG
-        className={styles.qr}
-        value={buildJoinUrl(joinCode)}
-        title={"Scan to join the room"}
-        marginSize={2}
-      />
-    )}
+    <JoinInfoDisplay joinCode={joinCode} />
     <p className={styles.count}>
       {playerCount === 1 ? "1 player" : `${playerCount.toString()} players`} in
       the room

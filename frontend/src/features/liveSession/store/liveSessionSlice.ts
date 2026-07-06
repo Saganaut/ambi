@@ -65,6 +65,10 @@ export interface LiveSessionState {
   viewerParticipantId: string | null;
   viewerIsHost: boolean;
   connection: ConnectionState;
+  /** Whether the deck's invite settings show the room code in the header. */
+  showRoomCodeInHeader: boolean;
+  /** Whether the deck's invite settings show join info on the results screen. */
+  showJoinInfoInResults: boolean;
 }
 
 const initialState: LiveSessionState = {
@@ -87,6 +91,8 @@ const initialState: LiveSessionState = {
   viewerParticipantId: null,
   viewerIsHost: false,
   connection: "idle",
+  showRoomCodeInHeader: false,
+  showJoinInfoInResults: false,
 };
 
 const liveSessionSlice = createSlice({
@@ -115,6 +121,8 @@ const liveSessionSlice = createSlice({
       state.optionCounts = s.optionTally ?? {};
       state.scoreboard = s.scoreboard ?? [];
       state.viewerParticipantId = s.viewerParticipantId ?? null;
+      state.showRoomCodeInHeader = s.showRoomCodeInHeader ?? false;
+      state.showJoinInfoInResults = s.showJoinInfoInResults ?? false;
       state.viewerIsHost = s.viewerIsHost ?? false;
       // A fresh snapshot supersedes any prior round-local / terminal state.
       state.results = null;
