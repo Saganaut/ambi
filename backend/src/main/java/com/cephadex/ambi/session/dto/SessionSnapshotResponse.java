@@ -37,6 +37,8 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * @param scoreboard            current standings, ranked by points
  * @param viewerParticipantId   the calling participant's id (so the client can spot itself)
  * @param viewerIsHost          whether the caller is the session host
+ * @param showRoomCodeInHeader  whether the deck's invite settings show the room code in the persistent header
+ * @param showJoinInfoInResults whether the deck's invite settings show the QR + room code on the results screen
  */
 public record SessionSnapshotResponse(
         String sessionId,
@@ -51,5 +53,7 @@ public record SessionSnapshotResponse(
         List<ParticipantView> roster,
         List<ScoreboardEntry> scoreboard,
         String viewerParticipantId,
-        boolean viewerIsHost) {
+        boolean viewerIsHost,
+        boolean showRoomCodeInHeader,
+        boolean showJoinInfoInResults) {
 }

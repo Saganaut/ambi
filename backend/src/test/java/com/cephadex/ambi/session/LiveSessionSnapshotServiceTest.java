@@ -20,6 +20,8 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
+import com.cephadex.ambi.presentation.deck.Settings.DeckSettings;
+import com.cephadex.ambi.presentation.deck.Settings.InviteSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -85,6 +87,9 @@ class LiveSessionSnapshotServiceTest {
         when(participants.findAllById(List.of("host-1", "player-2"))).thenReturn(List.of(host, player));
         when(participantResolver.resolve(session, caller)).thenReturn(host);
         when(presenceStore.all(SID)).thenReturn(Map.of());
+        // Deck present with no settings by default; tests that care about invite
+        // flags stub their own deck + settings.
+        when(session.getDeck()).thenReturn(mock(Deck.class));
     }
 
     @Test
@@ -104,6 +109,22 @@ class LiveSessionSnapshotServiceTest {
         assertThat(snap.viewerParticipantId()).isEqualTo("host-1");
         assertThat(snap.viewerIsHost()).isTrue();
         assertThat(snap.scoreboard()).hasSize(2);
+        // No deck settings stubbed in this test — invite flags default to false.
+        assertThat(snap.showRoomCodeInHeader()).isFalse();
+        assertThat(snap.showJoinInfoInResults()).isFalse();
+    }
+
+    @Test
+    void snapshotExposesInviteSettingsFromDeck() {
+        Deck deck = mock(Deck.class);
+        when(deck.getSettings()).thenReturn(new DeckSettings(null, null, null, new InviteSettings(true, true)));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.showRoomCodeInHeader()).isTrue();
+        assertThat(snap.showJoinInfoInResults()).isTrue();
     }
 
     @Test

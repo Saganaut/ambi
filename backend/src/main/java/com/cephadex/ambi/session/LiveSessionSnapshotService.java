@@ -63,6 +63,11 @@ public class LiveSessionSnapshotService {
     /**
      * The current snapshot of session {@code sessionId} for the calling participant.
      *
+     * <p>Also carries the deck's static invite-display flags ({@code
+     * showRoomCodeInHeader}, {@code showJoinInfoInResults}). These are fixed at
+     * deck-authoring time and never change during a run, so they are seeded here
+     * only — no {@code SessionEvent} delta ever patches them.
+     *
      * @throws NotFoundException  if no session has that id
      * @throws com.cephadex.ambi.common.exception.ForbiddenException if the caller is
      *                            not a (non-banned) participant on the roster
@@ -101,6 +106,11 @@ public class LiveSessionSnapshotService {
 
         RoundPhase phase = roundState.phase() != null ? roundState.phase() : session.getPhase();
 
+        Settings.InviteSettings invite = session.getDeck().getSettings() == null ? null
+                : session.getDeck().getSettings().inviteSettings();
+        boolean showRoomCodeInHeader = invite != null && invite.showRoomCodeInHeader();
+        boolean showJoinInfoInResults = invite != null && invite.showJoinInfoInResults();
+
         return new SessionSnapshotResponse(
                 session.getId(),
                 session.getPublicId(),
@@ -114,7 +124,9 @@ public class LiveSessionSnapshotService {
                 rosterViews,
                 SessionEvents.scoreboard(roster),
                 viewer.getParticipantId(),
-                session.isHost(viewer.getParticipantId()));
+                session.isHost(viewer.getParticipantId()),
+                showRoomCodeInHeader,
+                showJoinInfoInResults);
     }
 
     /**
