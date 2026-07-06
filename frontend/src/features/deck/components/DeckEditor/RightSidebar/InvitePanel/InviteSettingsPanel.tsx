@@ -3,70 +3,30 @@
 // deck.settings.inviteSettings (read from useDeckQuery, written through
 // useDeckSettingsMutate).
 //
-// The actual room code / invite token are minted per run on the LiveSession;
-// these knobs only decide WHETHER and WHERE the join QR and room code are shown
-// during a presentation. Every edit sends the COMPLETE InviteSettings object
-// (not a field patch): the location lists are arrays, so we always send the
-// fully-resolved form to avoid any ambiguity about partial array merges.
+// The actual room code / invite token are minted per run on the LiveSession.
+// The lobby always shows both the QR and room code (not configurable here —
+// hiding join info from the one screen whose purpose is getting people to join
+// makes no sense). These two independent toggles cover the other two surfaces:
+// the persistent header (room code only — a QR needs real pixel size to be
+// scannable, which a thin header strip can't offer) and the results screen
+// (QR + room code shown together, since it's a full-screen surface like the
+// lobby).
 //
-// Writes are debounced (schedule): toggling several surfaces in quick
-// succession coalesces into one PUT of the final state, and any pending write
-// flushes when the drawer unmounts (useDebouncedCommit).
-import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
+// Writes are debounced (schedule): toggling both in quick succession coalesces
+// into one PUT of the final state, and any pending write flushes when the
+// drawer unmounts (useDebouncedCommit).
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import type { InviteSettings } from "@deck/store/deckApi.gen";
-import { DisplayLocation } from "@deck/store/deckEnums.gen";
 import { useState } from "react";
 import { useDeckQuery } from "../../../../hooks/useDeckQuery";
 import { useDeckSettingsMutate } from "../../../../hooks/useDeckSettingsMutate";
 
-type Location = (typeof DisplayLocation)[keyof typeof DisplayLocation];
-
-// Ordered, human-labelled surfaces — matches the backend DisplayLocation enum.
-const LOCATIONS: { value: Location; label: string }[] = [
-  { value: DisplayLocation.LOBBY, label: "Lobby" },
-  { value: DisplayLocation.TITLE, label: "Title slides" },
-  { value: DisplayLocation.HEADER, label: "Header (all slides)" },
-  { value: DisplayLocation.SLIDES, label: "Content slides" },
-  { value: DisplayLocation.RESULTS, label: "Results screen" },
-];
-
 // Defaults mirror the backend's DeckDefaultsProperties.Invite.
 const DEFAULTS: Required<InviteSettings> = {
-  enableQr: true,
-  qrLocations: [DisplayLocation.LOBBY],
-  showRoomCode: true,
-  roomCodeLocations: [DisplayLocation.LOBBY, DisplayLocation.HEADER],
+  showRoomCodeInHeader: true,
+  showJoinInfoInResults: false,
 };
-
-// Each surface is a slim full-width row: location name on the left, checkbox
-// pinned to the right edge (Checkbox `labelBefore` + `stretch`).
-const LocationChecklist = ({
-  idPrefix,
-  selected,
-  onToggle,
-}: {
-  idPrefix: string;
-  selected: Location[];
-  onToggle: (location: Location, on: boolean) => void;
-}) => (
-  <div className={styles.locationList}>
-    {LOCATIONS.map(({ value, label }) => (
-      <Checkbox
-        key={value}
-        id={`${idPrefix}-${value}`}
-        label={label}
-        labelPosition="labelBefore"
-        stretch={true}
-        checked={selected.includes(value)}
-        onChange={(e) => {
-          onToggle(value, e.currentTarget.checked);
-        }}
-      />
-    ))}
-  </div>
-);
 
 const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
   const { deck } = useDeckQuery(deckId);
@@ -76,10 +36,10 @@ const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
   const invite = settings?.inviteSettings;
 
   const seed = (): Required<InviteSettings> => ({
-    enableQr: invite?.enableQr ?? DEFAULTS.enableQr,
-    qrLocations: invite?.qrLocations ?? DEFAULTS.qrLocations,
-    showRoomCode: invite?.showRoomCode ?? DEFAULTS.showRoomCode,
-    roomCodeLocations: invite?.roomCodeLocations ?? DEFAULTS.roomCodeLocations,
+    showRoomCodeInHeader:
+      invite?.showRoomCodeInHeader ?? DEFAULTS.showRoomCodeInHeader,
+    showJoinInfoInResults:
+      invite?.showJoinInfoInResults ?? DEFAULTS.showJoinInfoInResults,
   });
 
   // Local mirror so the UI reflects instantly; re-seed when the deck changes.
@@ -101,65 +61,39 @@ const InviteSettingsPanel = ({ deckId }: { deckId: string }) => {
     );
   }
 
-  // Always PUT the entire InviteSettings object — see the file header. The local
-  // form updates instantly; the server write is debounced.
+  // Always PUT the entire InviteSettings object. The local form updates
+  // instantly; the server write is debounced.
   const apply = (next: Required<InviteSettings>) => {
     setForm(next);
     schedule({ inviteSettings: next });
   };
 
-  const toggleLocation = (
-    key: "qrLocations" | "roomCodeLocations",
-    location: Location,
-    on: boolean,
-  ) => {
-    const current = form[key];
-    const next = on ? [...current, location] : current.filter((l) => l !== location);
-    apply({ ...form, [key]: next });
-  };
-
   return (
     <div className={styles.panel}>
+      <p className={styles.behaviorHint}>
+        The lobby always shows the join QR code and room code.
+      </p>
       <section className={styles.section}>
-        <Toggle
-          labelPosition="labelBefore"
-          id="invite-enable-qr"
-          label="Show join QR code"
-          checked={form.enableQr}
-          onChange={(e) => {
-            apply({ ...form, enableQr: e.currentTarget.checked });
-          }}
-        />
-        {form.enableQr && (
-          <LocationChecklist
-            idPrefix="invite-qr"
-            selected={form.qrLocations}
-            onToggle={(location, on) => {
-              toggleLocation("qrLocations", location, on);
+        <div className={styles.rows}>
+          <Toggle
+            labelPosition="labelBefore"
+            id="invite-show-room-code-in-header"
+            label="Show room code in header"
+            checked={form.showRoomCodeInHeader}
+            onChange={(e) => {
+              apply({ ...form, showRoomCodeInHeader: e.currentTarget.checked });
             }}
           />
-        )}
-      </section>
-
-      <section className={styles.section}>
-        <Toggle
-          labelPosition="labelBefore"
-          id="invite-show-room-code"
-          label="Show room code"
-          checked={form.showRoomCode}
-          onChange={(e) => {
-            apply({ ...form, showRoomCode: e.currentTarget.checked });
-          }}
-        />
-        {form.showRoomCode && (
-          <LocationChecklist
-            idPrefix="invite-room-code"
-            selected={form.roomCodeLocations}
-            onToggle={(location, on) => {
-              toggleLocation("roomCodeLocations", location, on);
+          <Toggle
+            labelPosition="labelBefore"
+            id="invite-show-join-info-in-results"
+            label="Show join info on results screen"
+            checked={form.showJoinInfoInResults}
+            onChange={(e) => {
+              apply({ ...form, showJoinInfoInResults: e.currentTarget.checked });
             }}
           />
-        )}
+        </div>
       </section>
     </div>
   );
