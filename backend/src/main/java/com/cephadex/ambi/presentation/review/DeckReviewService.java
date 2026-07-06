@@ -1,5 +1,6 @@
 package com.cephadex.ambi.presentation.review;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.publicId;
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.requirePublicId;
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
 
@@ -66,7 +67,7 @@ public class DeckReviewService {
     public Page<DeckReviewResponse> listReviews(String deckId, Pageable pageable,
             AmbiPrincipal principal) {
         deckService.getViewable(deckId, principal); // VIEW + deck exists
-        String callerPublicId = principal == null ? null : principal.publicId();
+        String callerPublicId = publicId(principal);
         Page<DeckReview> reviews = repository.findByDeckIdOrderByCreatedAtDesc(deckId, pageable);
         UnaryOperator<Author> resolveAuthor = freshAuthors(reviews.getContent());
         return reviews.map(review -> DeckReviewResponse.from(review, resolveAuthor, callerPublicId));
