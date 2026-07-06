@@ -141,3 +141,20 @@
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
+
+/* Ghost legend entry holding the add-option "+": revealed while the chart is
+   hovered (or the button holds focus), like the option cards' affordance. */
+.addSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-base) ease-in-out;
+}
+
+.chart:hover .addSlot,
+.addSlot:focus-within {
+  opacity: 1;
+  visibility: visible;
+}

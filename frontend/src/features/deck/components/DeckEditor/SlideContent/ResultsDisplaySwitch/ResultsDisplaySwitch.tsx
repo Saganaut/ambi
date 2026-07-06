@@ -61,17 +61,13 @@ const ResultsDisplaySwitch = ({
     renderToggle,
     renderMenu,
     onReorder: editor.handleOptionDragEnd,
+    addOption: editor.addOption,
+    canAddOption: editor.canAddOption,
   };
 
   switch (viz) {
     case "NONE":
-      return (
-        <DefaultResultsDisplay
-          {...sharedProps}
-          addOption={editor.addOption}
-          canAddOption={editor.canAddOption}
-        />
-      );
+      return <DefaultResultsDisplay {...sharedProps} />;
     case "PIE":
       return <PieChart variant="pie" {...sharedProps} />;
     case "DONUT":

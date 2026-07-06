@@ -1,10 +1,19 @@
+import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./DotPlot.module.css";
 
 export type DotPlotProps = ChartProps;
 
-const DotPlot = ({ renderLabel, renderToggle, renderMenu, data, displayAsPercentage }: DotPlotProps) => {
+const DotPlot = ({
+  renderLabel,
+  renderToggle,
+  renderMenu,
+  data,
+  displayAsPercentage,
+  addOption,
+  canAddOption,
+}: DotPlotProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const max = Math.max(1, ...data.map((datum) => datum.value));
   return (
@@ -50,6 +59,11 @@ const DotPlot = ({ renderLabel, renderToggle, renderMenu, data, displayAsPercent
             </li>
           );
         })}
+        {addOption && canAddOption && (
+          <li className={styles.addSlot}>
+            <AddOptionButton onClick={addOption} />
+          </li>
+        )}
       </ul>
     </div>
   );

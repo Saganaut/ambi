@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useRef } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
+import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps, ChartSegmentRenderProps } from "../Chart.types";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./BarChart.module.css";
@@ -72,6 +73,8 @@ const BarChart = ({
   data,
   displayAsPercentage,
   orientation = "horizontal",
+  addOption,
+  canAddOption,
 }: BarChartProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const highestValue = Math.max(1, ...data.map((datum) => datum.value));
@@ -93,6 +96,11 @@ const BarChart = ({
             />
           ))}
         </DragDropWrapper>
+        {addOption && canAddOption && (
+          <li className={styles.addSlot}>
+            <AddOptionButton onClick={addOption} />
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, useState } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
+import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.types";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./PieChart.module.css";
@@ -74,6 +75,8 @@ const PieChart = ({
   data,
   displayAsPercentage,
   animateOnMount = false,
+  addOption,
+  canAddOption,
 }: ChartProps) => {
   useEffect(() => {
     if (!animateOnMount) return;
@@ -167,6 +170,11 @@ const PieChart = ({
               />
             ))}
           </DragDropWrapper>
+          {addOption && canAddOption && (
+            <li className={styles.addSlot}>
+              <AddOptionButton onClick={addOption} />
+            </li>
+          )}
         </ul>
       </div>
     </div>

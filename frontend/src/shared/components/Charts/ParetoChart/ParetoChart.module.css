@@ -53,6 +53,24 @@
   transform: translate(-50%, -50%);
 }
 
+/* Add-option "+" floating in the plot's top-right corner: revealed while the
+   chart is hovered (or the button holds focus), like the option cards'
+   affordance. */
+.addSlot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-base) ease-in-out;
+}
+
+.chart:hover .addSlot,
+.addSlot:focus-within {
+  opacity: 1;
+  visibility: visible;
+}
+
 .labels {
   display: flex;
   list-style: none;

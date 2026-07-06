@@ -4,6 +4,7 @@
 // option counts when the author wants to see how few options capture most of
 // the responses. SVG bars + line (stretched to fill) with HTML dot markers and
 // the category labels listed below in the sorted order.
+import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./ParetoChart.module.css";
@@ -14,7 +15,14 @@ const W = 100;
 const H = 60;
 const PAD = 6;
 
-const ParetoChart = ({ renderLabel, renderToggle, renderMenu, data }: ParetoChartProps) => {
+const ParetoChart = ({
+  renderLabel,
+  renderToggle,
+  renderMenu,
+  data,
+  addOption,
+  canAddOption,
+}: ParetoChartProps) => {
   const max = Math.max(1, ...data.map((datum) => datum.value));
 
   // Keep the author-order index so each option keeps its colour when sorting.
@@ -84,6 +92,11 @@ const ParetoChart = ({ renderLabel, renderToggle, renderMenu, data }: ParetoChar
             aria-hidden="true"
           />
         ))}
+        {addOption && canAddOption && (
+          <span className={styles.addSlot}>
+            <AddOptionButton onClick={addOption} />
+          </span>
+        )}
       </div>
       <ul className={styles.labels}>
         {items.map((it) => (

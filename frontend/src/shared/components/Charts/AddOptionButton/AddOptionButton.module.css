@@ -1,0 +1,12 @@
+/* The "+" itself. Hover-reveal and placement belong to the host chart —
+   charts wrap this in their own hover-scoped container. */
+
+.addOptionBtn {
+  flex-shrink: 0;
+}
+
+.icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--text-success);
+}

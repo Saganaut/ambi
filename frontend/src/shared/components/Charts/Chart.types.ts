@@ -31,6 +31,10 @@ export interface ChartProps {
   variant?: "pie" | "donut";
   /** Bar only — bar growth direction. Defaults to "horizontal". */
   orientation?: "horizontal" | "vertical";
+  /** Append a new option — drives the hover-revealed "+" affordance. */
+  addOption?: () => void;
+  /** True while another option may be added (under the option cap). */
+  canAddOption?: boolean;
   /** The option's editable text field. */
   renderLabel?: (datum: ChartDatum) => ReactNode;
   /** The correct/incorrect toggle. */

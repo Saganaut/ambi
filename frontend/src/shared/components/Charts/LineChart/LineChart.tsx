@@ -1,3 +1,4 @@
+import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./LineChart.module.css";
@@ -14,6 +15,8 @@ const LineChart = ({
   renderMenu,
   data,
   displayAsPercentage,
+  addOption,
+  canAddOption,
 }: LineChartProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const max = Math.max(1, ...data.map((datum) => datum.value));
@@ -81,6 +84,11 @@ const LineChart = ({
             aria-hidden="true"
           />
         ))}
+        {addOption && canAddOption && (
+          <span className={styles.addSlot}>
+            <AddOptionButton onClick={addOption} />
+          </span>
+        )}
       </div>
       <div className={styles.controlsRow}>
         {data.map((datum, i) => (
