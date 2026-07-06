@@ -1,5 +1,6 @@
 package com.cephadex.ambi.presentation.review;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requirePublicId;
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
 
 import java.util.Collection;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.ForbiddenException;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.presentation.commentThread.Author;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.DeckService;
@@ -179,13 +179,5 @@ public class DeckReviewService {
             }
             return new Author(author.userId(), user.getDisplayName(), user.getAvatar());
         };
-    }
-
-    /** The caller's public id, guarded — keys the caller's review row. */
-    private static String requirePublicId(AmbiPrincipal principal) {
-        if (principal == null || principal.publicId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        return principal.publicId();
     }
 }

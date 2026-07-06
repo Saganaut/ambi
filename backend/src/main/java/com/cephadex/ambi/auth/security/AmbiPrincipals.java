@@ -38,4 +38,18 @@ public final class AmbiPrincipals {
         }
         return id;
     }
+
+    /** The principal's public id, or null for an anonymous/visitor principal. */
+    public static String publicId(AmbiPrincipal principal) {
+        return principal == null ? null : principal.publicId();
+    }
+
+    /** The principal's public id, or a 401 if the caller is not signed in. */
+    public static String requirePublicId(AmbiPrincipal principal) {
+        String id = publicId(principal);
+        if (id == null) {
+            throw new UnauthorizedException("AUTH_REQUIRED", "Sign in to continue");
+        }
+        return id;
+    }
 }

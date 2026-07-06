@@ -1,5 +1,6 @@
 package com.cephadex.ambi.presentation.commentThread;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requirePublicId;
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
 
 import java.util.ArrayList;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Service;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.presentation.commentThread.dto.CommentBodyRequest;
 import com.cephadex.ambi.presentation.commentThread.dto.CommentThreadResponse;
@@ -214,14 +214,6 @@ public class CommentThreadService {
             throw new ForbiddenException("COMMENT_FORBIDDEN",
                     "You can only modify your own comments.");
         }
-    }
-
-    /** The caller's public id, guarded — used to match comment authorship. */
-    private static String requirePublicId(AmbiPrincipal principal) {
-        if (principal == null || principal.publicId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        return principal.publicId();
     }
 
     private static NotFoundException threadNotFound() {
