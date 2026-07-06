@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.deck;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+
 import java.util.List;
 
 import org.springframework.dao.DuplicateKeyException;
@@ -20,7 +22,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.presentation.deck.dto.AnswerSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.dto.AddFollowUpRequest;
@@ -599,18 +600,6 @@ public class DeckController {
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return new PagedModel<>(
                 deckService.listPublic(pageable).map(deck -> toResponse(deck, principal)));
-    }
-
-    /**
-     * Defence-in-depth: the filter chain already guarantees a registered principal
-     * on {@code /mine}, but a backed principal always carries a {@code userId}, so
-     * a null is a contract violation rather than an expected anonymous case.
-     */
-    private String requireUserId(AmbiPrincipal principal) {
-        if (principal == null || principal.userId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        return principal.userId();
     }
 
     /** Map a deck to its response, stamped with the caller's computed permissions. */

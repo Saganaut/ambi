@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.commentThread;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -212,14 +214,6 @@ public class CommentThreadService {
             throw new ForbiddenException("COMMENT_FORBIDDEN",
                     "You can only modify your own comments.");
         }
-    }
-
-    /** The caller's Mongo user id, guarded — comment writes require sign-in. */
-    private static String requireUserId(AmbiPrincipal principal) {
-        if (principal == null || principal.userId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        return principal.userId();
     }
 
     /** The caller's public id, guarded — used to match comment authorship. */

@@ -1,5 +1,7 @@
 package com.cephadex.ambi.theme;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+
 import java.util.List;
 
 import org.springframework.dao.DuplicateKeyException;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.theme.dto.CreateThemeRequest;
 import com.cephadex.ambi.theme.dto.ThemeResponse;
 import com.cephadex.ambi.theme.dto.UpdateThemeRequest;
@@ -119,18 +120,6 @@ public class ThemeController {
         return themeService.listForOrg(orgId, principal).stream()
                 .map(theme -> toResponse(theme, principal))
                 .toList();
-    }
-
-    /**
-     * Defence-in-depth: the filter chain already guarantees a registered principal
-     * on {@code /mine}, but a backed principal always carries a {@code userId}, so
-     * a null is a contract violation rather than an expected anonymous case.
-     */
-    private String requireUserId(AmbiPrincipal principal) {
-        if (principal == null || principal.userId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        return principal.userId();
     }
 
     /** Map a theme to its response, stamped with the caller's computed permissions. */

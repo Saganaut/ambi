@@ -1,5 +1,7 @@
 package com.cephadex.ambi.user;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -9,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.user.dto.UpdatePreferencesRequest;
 import com.cephadex.ambi.user.dto.UpdateProfileRequest;
 import com.cephadex.ambi.user.dto.UserProfileResponse;
@@ -73,17 +74,5 @@ public class UserController {
         User updated = userService.replacePreferences(
                 requireUserId(principal), body.toPreferences());
         return UserProfileResponse.from(updated);
-    }
-
-    /**
-     * Defence-in-depth: the filter chain already guarantees a registered
-     * principal here, but a backed principal always carries a {@code userId},
-     * so a null is a contract violation rather than an expected anonymous case.
-     */
-    private String requireUserId(AmbiPrincipal principal) {
-        if (principal == null || principal.userId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        return principal.userId();
     }
 }

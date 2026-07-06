@@ -1,5 +1,7 @@
 package com.cephadex.ambi.presentation.review;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -177,14 +179,6 @@ public class DeckReviewService {
             }
             return new Author(author.userId(), user.getDisplayName(), user.getAvatar());
         };
-    }
-
-    /** The caller's Mongo user id, guarded — review writes require sign-in. */
-    private static String requireUserId(AmbiPrincipal principal) {
-        if (principal == null || principal.userId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        return principal.userId();
     }
 
     /** The caller's public id, guarded — keys the caller's review row. */

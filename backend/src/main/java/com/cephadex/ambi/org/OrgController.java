@@ -1,5 +1,7 @@
 package com.cephadex.ambi.org;
 
+import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -9,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
-import com.cephadex.ambi.common.exception.UnauthorizedException;
 import com.cephadex.ambi.org.dto.MyOrgMembershipResponse;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserService;
@@ -37,10 +38,8 @@ public class OrgController {
     @GetMapping("/mine")
     public List<MyOrgMembershipResponse> listMyOrgs(
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        if (principal == null || principal.userId() == null) {
-            throw new UnauthorizedException("NOT_AUTHENTICATED", "Sign-in is required.");
-        }
-        List<OrgMembership> memberships = userService.findById(principal.userId())
+        String userId = requireUserId(principal);
+        List<OrgMembership> memberships = userService.findById(userId)
                 .map(u -> u.getOrgRoles())
                 .orElse(Collections.emptyList());
         if (memberships == null) {
