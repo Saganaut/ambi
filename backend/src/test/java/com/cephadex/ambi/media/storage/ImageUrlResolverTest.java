@@ -1,6 +1,7 @@
 package com.cephadex.ambi.media.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -179,6 +180,21 @@ class ImageUrlResolverTest {
             return presigned;
         });
         return presigner;
+    }
+
+    @Test
+    void rejectsARefreshMarginLongerThanTheTtl() {
+        S3Properties s3 = new S3Properties();
+        s3.setBucket(BUCKET);
+        MediaProperties media = new MediaProperties();
+        media.setPresignTtl(Duration.ofMinutes(10));
+        media.setPresignRefreshMargin(Duration.ofMinutes(11));
+
+        // A margin past the TTL is a config error; it must fail at startup, not
+        // silently degrade into re-signing on every read.
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ImageUrlResolver(mock(S3Presigner.class), s3, media))
+                .withMessageContaining("presign-refresh-margin");
     }
 
     private static ImageUrlResolver resolverWith(S3Presigner presigner, Clock clock) {

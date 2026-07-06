@@ -76,6 +76,14 @@ public class ImageUrlResolver {
         this.ttl = mediaProps.getPresignTtl();
         this.clock = clock;
         this.reuseWindow = ttl.minus(mediaProps.getPresignRefreshMargin());
+        // Fail fast on a misconfigured margin, as Caffeine's expireAfterWrite
+        // (which used to receive this duration) did. A negative window would not
+        // serve stale URLs — it would just silently re-sign on every read.
+        if (reuseWindow.isNegative()) {
+            throw new IllegalArgumentException(
+                    "ambi.media.presign-refresh-margin (" + mediaProps.getPresignRefreshMargin()
+                            + ") must not exceed presign-ttl (" + ttl + ")");
+        }
         this.urlCache = Caffeine.newBuilder()
                 .maximumSize(mediaProps.getPresignCacheMaxSize())
                 .build();
