@@ -35,6 +35,12 @@ export const LabelInFront: Story = {
   args: { labelPosition: "labelInFront" },
 };
 
+// compact pairs with labelInFront for label-left settings rows: the field hugs
+// the right edge at a fixed narrow width (short values like a unit label).
+export const Compact: Story = {
+  args: { labelPosition: "labelInFront", compact: true, placeholder: "km" },
+};
+
 export const FullWidth: Story = {
   args: { fullWidth: true },
   render: (args) => (

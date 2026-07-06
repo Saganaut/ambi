@@ -38,23 +38,25 @@ const FollowUpOptionsSection = () => {
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Follow-up</h4>
-      <Dropdown
-        labelPosition="labelInFront"
-        compact
-        id={`follow-up-mode-${slide.id}`}
-        label='Mode'
-        options={validModes.map((mode) => ({
-          value: mode,
-          label: FOLLOW_UP_MODE_LABELS[mode],
-        }))}
-        value={[slide.content.mode]}
-        onChange={(values) => {
-          const next = values[0] as FollowUpMode | undefined;
-          if (!next || next === slide.content.mode) return;
-          updateSlideContent({ mode: next });
-          flush();
-        }}
-      />
+      <div className={styles.rows}>
+        <Dropdown
+          labelPosition="labelInFront"
+          compact
+          id={`follow-up-mode-${slide.id}`}
+          label='Mode'
+          options={validModes.map((mode) => ({
+            value: mode,
+            label: FOLLOW_UP_MODE_LABELS[mode],
+          }))}
+          value={[slide.content.mode]}
+          onChange={(values) => {
+            const next = values[0] as FollowUpMode | undefined;
+            if (!next || next === slide.content.mode) return;
+            updateSlideContent({ mode: next });
+            flush();
+          }}
+        />
+      </div>
       {parent && (
         <Btn
           onClick={() => {

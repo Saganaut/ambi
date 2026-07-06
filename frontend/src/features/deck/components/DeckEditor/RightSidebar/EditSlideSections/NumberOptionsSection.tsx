@@ -82,7 +82,6 @@ const NumberOptionsSection = () => {
         <Input
           labelPosition="labelInFront"
           compact
-          withPadding={false}
           id={`number-unit-${slideId}`}
           label='Unit (e.g. km, °C)'
           type='text'

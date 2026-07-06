@@ -69,6 +69,18 @@
   width: max-content;
   flex-shrink: 0;
 
+  /* In a settings row the trigger reads as a bordered field like the sibling
+     inputs, not as the Btn's filled pill. Restate the hover tint because this
+     override out-specifies the base trigger's :hover rule. */
+  .dropdownTrigger {
+    background-color: transparent;
+    border-color: var(--border-default);
+
+    &:hover {
+      border-color: var(--action-hover);
+    }
+  }
+
   .dropdownPanel {
     width: max-content;
     min-width: 100%;

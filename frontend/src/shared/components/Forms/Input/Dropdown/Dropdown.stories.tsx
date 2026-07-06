@@ -64,6 +64,16 @@ export const Searchable: Story = {
   },
 };
 
+// compact pairs with labelInFront for label-left settings rows: the trigger
+// hugs its content as a bordered field and the panel right-aligns under it.
+export const Compact: Story = {
+  args: {
+    labelPosition: "labelInFront",
+    compact: true,
+    value: ["gondor"],
+  },
+};
+
 export const WithInfoMessage: Story = {
   args: { infoMessage: "Where the trivia is set." },
 };

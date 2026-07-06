@@ -56,6 +56,12 @@ export const WithError: Story = {
   args: { errorMessage: "Must be at least 5 seconds." },
 };
 
+// compact pairs with labelInFront for label-left settings rows: the field hugs
+// the right edge at a fixed narrow width with centred, tabular numerals.
+export const Compact: Story = {
+  args: { labelPosition: "labelInFront", compact: true },
+};
+
 export const FullWidth: Story = {
   args: { fullWidth: true },
   render: (args) => {
