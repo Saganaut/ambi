@@ -57,10 +57,6 @@
     stroke-dashoffset var(--duration-base) var(--ease-out);
 }
 
-.slice.highlight {
-  filter: drop-shadow(0 0 1.5px var(--text-primary));
-}
-
 .legend {
   display: flex;
   flex-direction: column;

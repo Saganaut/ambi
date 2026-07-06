@@ -101,11 +101,9 @@ const PieChart = ({
   const slices = data.reduce<
     {
       datum: ChartDatum;
-      label: string;
       pct: number;
       start: number;
       color: string;
-      highlight?: boolean;
       index: number;
     }[]
   >((acc, datum, index) => {
@@ -113,15 +111,20 @@ const PieChart = ({
     const start = acc.length === 0 ? 0 : acc[acc.length - 1].start + acc[acc.length - 1].pct;
     acc.push({
       datum,
-      label: datum.text ?? "",
       pct,
       start,
       color: resolveDatumColor(datum.color, index),
-      highlight: datum.highlight,
       index,
     });
     return acc;
   }, []);
+
+  // pathLength's scaling shortfall accumulates at the circle's closure, so the
+  // slices leave a background-colored sliver at the 12 o'clock seam. The guard
+  // is a copy of the last slice extended 1 unit past the path end — dashes
+  // wrap on closed paths, so it fills the seam from beneath (it is painted
+  // first; the real slices cover everything else).
+  const lastSlice = slices[slices.length - 1];
 
   return (
     <div className={styles.chart}>
@@ -135,10 +138,24 @@ const PieChart = ({
           >
             <circle className={styles.backdrop} cx="50" cy="50" r="49" />
             <g transform="rotate(-90 50 50)">
+              <circle
+                className={styles.slice}
+                cx="50"
+                cy="50"
+                r={RADII[variant]}
+                pathLength={100}
+                strokeWidth={STROKE[variant]}
+                stroke={lastSlice.color}
+                strokeDasharray={`${(revealed ? lastSlice.pct + 1 : 0).toFixed(3)} 100`}
+                strokeDashoffset={(-lastSlice.start).toFixed(3)}
+                style={{
+                  transitionDelay: !revealed ? `${(lastSlice.index * 90).toString()}ms` : undefined,
+                }}
+              />
               {slices.map((slice) => (
                 <circle
                   key={slice.index}
-                  className={`${styles.slice} ${slice.highlight ? styles.highlight : ""}`}
+                  className={styles.slice}
                   cx="50"
                   cy="50"
                   r={RADII[variant]}
