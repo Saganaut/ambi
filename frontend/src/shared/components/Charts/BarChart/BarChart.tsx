@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps, ChartSegmentRenderProps, MenuAlign } from "../Chart.types";
+import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./BarChart.module.css";
@@ -19,7 +20,6 @@ export type BarChartSegmentRenderProps = ChartSegmentRenderProps & {
 const SortableListItem = ({
   sortIndex,
   renderLabel,
-  renderToggle,
   renderMenu,
   displayAsPercentage,
   datum,
@@ -68,10 +68,10 @@ const SortableListItem = ({
         {datum.value}
         {displayAsPercentage && denominator > 0 && <span className={styles.share}> ({sharePct}%)</span>}
       </span>
-      {(renderToggle ?? renderMenu) && (
+      {renderMenu && (
         <span className={styles.rowActions}>
-          {renderToggle?.(datum)}
-          {renderMenu?.(datum, menuAlign)}
+          <CorrectBadge isCorrect={datum.isCorrect} />
+          {renderMenu(datum, menuAlign)}
         </span>
       )}
     </li>
@@ -80,7 +80,6 @@ const SortableListItem = ({
 
 const BarChart = ({
   renderLabel,
-  renderToggle,
   renderMenu,
   onReorder,
   data,
@@ -113,7 +112,6 @@ const BarChart = ({
               datum={datum}
               displayAsPercentage={displayAsPercentage}
               sortIndex={index}
-              renderToggle={renderToggle}
               renderLabel={renderLabel}
               renderMenu={renderMenu}
               menuAlign={menuAlignFor(index)}

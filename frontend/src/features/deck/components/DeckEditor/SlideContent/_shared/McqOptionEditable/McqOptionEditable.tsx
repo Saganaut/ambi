@@ -6,6 +6,7 @@ import { useSortable } from "@dnd-kit/react/sortable";
 
 import { AddOptionButton } from "@/shared/components/Charts/AddOptionButton/AddOptionButton";
 import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types";
+import { CorrectBadge } from "@/shared/components/Charts/CorrectBadge/CorrectBadge";
 import { Container } from "@components/Containers/Container";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { IndexPill } from "../IndexPill/IndexPill";
@@ -18,7 +19,6 @@ const McqOptionEditable = ({
   sortIndex,
   displayAsPercentage,
   renderLabel,
-  renderToggle,
   renderMenu,
   datum,
   highestValue,
@@ -74,7 +74,7 @@ const McqOptionEditable = ({
 
         <ProgressBar value={100} color={color} />
         <div className={styles.footer}>
-          {renderToggle?.(datum)}
+          <CorrectBadge isCorrect={isCorrect} />
           {renderMenu?.(datum)}
         </div>
         {canAddOption && addOption && (

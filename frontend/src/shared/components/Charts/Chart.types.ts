@@ -37,10 +37,8 @@ export interface ChartProps {
   canAddOption?: boolean;
   /** The option's editable text field. */
   renderLabel?: (datum: ChartDatum) => ReactNode;
-  /** The correct/incorrect toggle. */
-  renderToggle?: (datum: ChartDatum) => ReactNode;
   /**
-   * The option's menu (image/colour/remove). Charts whose menu anchor sits
+   * The option's menu (correct-toggle/image/colour/remove). Charts whose menu anchor sits
    * near the canvas' right edge (a narrow column, an absolutely-positioned
    * label) pass `menuAlign: "end"` so the popover opens leftward instead of
    * clipping past the edge.
@@ -80,7 +78,6 @@ export interface ChartSegmentRenderProps {
   canAddOption?: boolean;
   addOption?: () => void;
   renderLabel?: (datum: ChartDatum) => ReactNode;
-  renderToggle?: (datum: ChartDatum) => ReactNode;
   renderMenu?: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
   onReorder?: (event: DragEndEvent) => void;
 }

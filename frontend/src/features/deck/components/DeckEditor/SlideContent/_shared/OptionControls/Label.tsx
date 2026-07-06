@@ -1,6 +1,8 @@
 // The option's text field, sourced from the per-option context. A local mirror
 // keeps typing responsive and resyncs when the bound option changes; edits are
-// delegated up so all writes share the one debounce buffer. `fit` opts into
+// delegated up so all writes share the one debounce buffer. The field doubles
+// as the option menu's trigger: focusing it opens the menu (`onFocus`), and
+// `menuOpen` is reflected as aria-expanded for assistive tech. `fit` opts into
 // `useFitText` for bounded slots (the option card shrinks text to fit); the
 // chart label leaves it off and stays single-line. Layout (wrapper, click
 // shielding) is the composer's job — this renders only the field.
@@ -10,6 +12,7 @@ import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import { useFitText } from "@hooks/useFitText";
 
 import { McqOption } from "@/shared/types/Elements.types";
+import { optionLabelFieldId } from "./optionLabelFieldId";
 
 interface LabelProps {
   /** Shrink text to fit a bounded slot (the option card). */
@@ -17,10 +20,13 @@ interface LabelProps {
   option: McqOption;
   onScheduleText: (option: McqOption) => void;
   flush: () => void;
+  /** Focusing the field opens the option menu — the field is its trigger. */
+  onFocus?: () => void;
+  /** The option menu's open state, reflected on the field for assistive tech. */
+  menuOpen?: boolean;
 }
 
-const Label = ({ option, onScheduleText, flush, fit = false }: LabelProps) => {
-  const optionKey = option.id ?? "";
+const Label = ({ option, onScheduleText, flush, onFocus, menuOpen, fit = false }: LabelProps) => {
   const [text, setText] = useState(option.text ?? "");
   const [syncedFromId, setSyncedFromId] = useState(option.id);
 
@@ -42,7 +48,7 @@ const Label = ({ option, onScheduleText, flush, fit = false }: LabelProps) => {
   return (
     <TextArea
       isBordered={false}
-      id={`mcq-opt-${optionKey}-text`}
+      id={optionLabelFieldId(option.id)}
       fullWidth
       autoGrow={false}
       ref={fit ? fitRef : undefined}
@@ -52,7 +58,10 @@ const Label = ({ option, onScheduleText, flush, fit = false }: LabelProps) => {
       onChange={(e) => {
         handleTextChange(e.target.value);
       }}
+      onFocus={onFocus}
       onBlur={flush}
+      aria-haspopup={onFocus ? "dialog" : undefined}
+      aria-expanded={onFocus ? (menuOpen ?? false) : undefined}
     />
   );
 };

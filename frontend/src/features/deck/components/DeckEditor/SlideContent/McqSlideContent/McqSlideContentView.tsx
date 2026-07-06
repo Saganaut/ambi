@@ -9,7 +9,6 @@ import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import { useState } from "react";
-import { CorrectToggle } from "../_shared/OptionControls/CorrectToggle";
 import { Label } from "../_shared/OptionControls/Label";
 import { Menu } from "../_shared/OptionControls/Menu";
 import { ResultsDisplaySwitch } from "../ResultsDisplaySwitch/ResultsDisplaySwitch";
@@ -44,6 +43,9 @@ const McqSlideContentView = ({
   const noCorrectAnswerWarning = "Not setting a correct answer means this slide is not scoreable.";
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
+  // Which option's menu is open — at most one per slide. Focusing an option's
+  // label opens its menu (and thereby closes any other); Menu owns dismissal.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const effective = previewVisualization ?? question?.dataVisualization;
 
   // Resync the local mirror when the active question changes. "Derive state
@@ -70,15 +72,10 @@ const McqSlideContentView = ({
       onScheduleText={(next: McqOption) => {
         scheduleOption(datum.id, next);
       }}
-    />
-  );
-
-  const renderToggle = (datum: ChartDatum) => (
-    <CorrectToggle
-      isCorrect={isCorrect(datum.id)}
-      onToggleCorrect={() => {
-        toggleCorrect(datum.id);
+      onFocus={() => {
+        setOpenMenuId(datum.id);
       }}
+      menuOpen={openMenuId === datum.id}
     />
   );
 
@@ -89,6 +86,14 @@ const McqSlideContentView = ({
       paletteIndex={question.options.findIndex((option) => option.id === datum.id)}
       popoverAlign={menuAlign}
       canRemove={canRemove}
+      isCorrect={isCorrect(datum.id)}
+      open={openMenuId === datum.id}
+      onOpenChange={(open) => {
+        setOpenMenuId(open ? datum.id : null);
+      }}
+      onToggleCorrect={() => {
+        toggleCorrect(datum.id);
+      }}
       onScheduleText={(next: McqOption) => {
         scheduleOption(datum.id, next);
       }}
@@ -127,7 +132,6 @@ const McqSlideContentView = ({
             viz={effective}
             caption="Sample data"
             renderMenu={renderMenu}
-            renderToggle={renderToggle}
             renderLabel={renderLabel}
             editor={editor}
             answerSettings={answerSettings}

@@ -132,6 +132,12 @@
       background: transparent;
       cursor: default;
     }
+
+    /* The correct-answer toggle row: brand-tinted while the option is marked
+       correct. State rides on [aria-pressed], like the color chips. */
+    &[aria-pressed="true"] {
+      color: var(--bg-brand);
+    }
   }
 
   .menuItemIcon {

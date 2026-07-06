@@ -1,38 +1,10 @@
-/* OptionControls — the small per-option controls composed into option cards
-   and chart labels: the correct/incorrect toggle and the kebab menu trigger.
-   Both render on an IconBtn xs/ghost frame; these classes only add the
-   design's state colors on top. */
-
-/* Correct-answer status mark: brand check when correct, muted dash when not.
-   State rides on [aria-pressed] (set by CorrectToggle), not a custom class. */
-.correctBtn {
-  flex-shrink: 0;
-  color: var(--text-muted);
-
-  svg {
-    stroke-width: 2.5;
-  }
-
-  &:hover {
-    color: var(--bg-brand);
-  }
-
-  &[aria-pressed="true"] {
-    color: var(--bg-brand);
-  }
-}
+/* OptionControls — the per-option menu controller composed into option cards
+   and chart labels. The menu opens off the label field's focus, so the only
+   chrome left here is the popover's positioned anchor. */
 
 /* Positioned anchor for the OptionMenu popover: keeps the menu opening off
-   the kebab itself rather than whatever ancestor happens to be positioned
-   (in charts that would be the full-height column). */
+   the old controls slot itself rather than whatever ancestor happens to be
+   positioned (in charts that would be the full-height column). */
 .menuAnchor {
   position: relative;
-}
-
-/* Kebab trigger: brand-tinted while its menu is open ([aria-expanded]). */
-.menuTrigger {
-  &[aria-expanded="true"] {
-    color: var(--bg-brand);
-    background-color: var(--bg-secondary);
-  }
 }

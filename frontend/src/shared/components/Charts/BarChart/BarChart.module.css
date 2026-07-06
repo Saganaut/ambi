@@ -77,7 +77,6 @@
      value makes the fill shorter than the image. */
   .track {
     position: relative;
-    background: var(--bg-subtle);
     border-radius: var(--radius-sm);
     overflow: hidden;
 
@@ -155,7 +154,7 @@
     .bars {
       flex-direction: row;
       align-items: stretch;
-      gap: var(--gap-md);
+      gap: var(--gap-sm);
     }
 
     .row {
@@ -176,7 +175,7 @@
 
     .track {
       width: 100%;
-      max-width: 6rem;
+      max-width: 10rem;
       flex: 1;
       min-height: 0;
       display: flex;

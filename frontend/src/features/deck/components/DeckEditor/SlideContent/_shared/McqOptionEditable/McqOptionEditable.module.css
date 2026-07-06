@@ -1,8 +1,9 @@
 /* McqOptionEditable — option card. Owns:
      - the card frame (border + correct-state highlight)
      - the top row (index pill + option text + image/color thumbnail)
-     - the footer slots for the correct toggle and the option menu trigger
-       (the menu itself lives in _shared/OptionMenu)
+     - the footer slots for the correct-answer badge and the option menu's
+       anchor (the menu itself lives in _shared/OptionMenu and opens when the
+       option's label field takes focus)
    McqSlideContent renders these inside a CSS grid and does not draw any
    per-option chrome itself. */
 
@@ -82,9 +83,8 @@
     /* The interactiveZone that wraps the TextArea takes the remaining
        vertical space inside the column so the textarea (which sets
        `height: 100%` via its `noAutoGrow` mode) has a bounded slot to
-       fill. The same class is also used on the correct/wrong button in
-       the footer — that one is sized intrinsically, so scope this
-       rule to the text-column descendant only. */
+       fill. Scoped to the text-column descendant so any other use of the
+       class stays intrinsically sized. */
     .interactiveZone {
       flex: 1;
       min-height: 0;

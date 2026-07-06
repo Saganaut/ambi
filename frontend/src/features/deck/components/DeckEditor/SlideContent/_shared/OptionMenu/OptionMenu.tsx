@@ -1,11 +1,12 @@
-// The per-option dropdown menu (opened from the kebab trigger in
-// OptionControls/Menu). Purely presentational — the trigger owns the open
-// state and outside-click boundary. Contents follow the option-menu design:
-// a "Color" section with the shared option palette plus a dashed "+" chip
-// that hands off to the custom color picker, then upload / clear-image /
-// delete actions. Anchors to the trigger wrapper (the positioned ancestor)
-// and flips up / end-aligns as needed to stay inside the clipping container.
-import { PhotoIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
+// The per-option dropdown menu (opened by OptionControls/Menu when the
+// option's label field takes focus). Purely presentational — the controller
+// owns the open state and outside-click boundary. Contents follow the
+// option-menu design: the correct-answer toggle, then a "Color" section with
+// the shared option palette plus a dashed "+" chip that hands off to the
+// custom color picker, then upload / clear-image / delete actions. Anchors to
+// the controller's wrapper (the positioned ancestor) and flips up /
+// end-aligns as needed to stay inside the clipping container.
+import { CheckIcon, PhotoIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
 import { useRef } from "react";
@@ -23,8 +24,10 @@ interface OptionMenuProps {
   currentColor: string;
   canRemove: boolean;
   hasImage: boolean;
+  isCorrect: boolean;
   /** Which edge of the anchor the menu aligns to (default "start"). */
   align?: MenuAlign;
+  onToggleCorrect: () => void;
   onPickColor: (color: string) => void;
   onCustomColor: () => void;
   onUploadImage: () => void;
@@ -37,7 +40,9 @@ const OptionMenu = ({
   currentColor,
   canRemove,
   hasImage,
+  isCorrect,
   align = "start",
+  onToggleCorrect,
   onPickColor,
   onCustomColor,
   onUploadImage,
@@ -65,6 +70,17 @@ const OptionMenu = ({
         role='dialog'
         ariaLabel={`Option ${displayIndex} menu`}
         className={styles.menu}>
+        <button
+          type='button'
+          className={styles.menuItem}
+          aria-pressed={isCorrect}
+          onClick={onToggleCorrect}>
+          <CheckIcon className={styles.menuItemIcon} aria-hidden='true' />
+          {isCorrect ? "Mark as wrong" : "Mark as correct"}
+        </button>
+
+        <div className={styles.menuDivider} aria-hidden='true' />
+
         <span className={styles.sectionLabel}>Color</span>
         <div className={styles.swatchStrip} role='group' aria-label='Option color'>
           {palette.map((paletteColor, paletteIndex) => (

@@ -1,5 +1,6 @@
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
+import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./DotPlot.module.css";
@@ -8,7 +9,6 @@ export type DotPlotProps = ChartProps;
 
 const DotPlot = ({
   renderLabel,
-  renderToggle,
   renderMenu,
   data,
   displayAsPercentage,
@@ -54,10 +54,10 @@ const DotPlot = ({
                   <span className={styles.share}> ({sharePct}%)</span>
                 )}
               </span>
-              {(renderToggle ?? renderMenu) && (
+              {renderMenu && (
                 <span className={styles.rowActions}>
-                  {renderToggle?.(datum)}
-                  {renderMenu?.(datum)}
+                  <CorrectBadge isCorrect={datum.isCorrect} />
+                  {renderMenu(datum)}
                 </span>
               )}
             </li>

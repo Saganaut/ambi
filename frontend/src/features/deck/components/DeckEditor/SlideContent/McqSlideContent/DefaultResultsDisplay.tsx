@@ -12,13 +12,11 @@ interface DefaultResultsDisplayProps {
   addOption: () => void;
   canAddOption: boolean;
   renderLabel?: (datum: ChartDatum) => ReactNode;
-  renderToggle?: (datum: ChartDatum) => ReactNode;
   renderMenu?: (datum: ChartDatum) => ReactNode;
 }
 
 const DefaultResultsDisplay = ({
   renderLabel,
-  renderToggle,
   renderMenu,
   data,
   displayAsPercentage,
@@ -42,7 +40,6 @@ const DefaultResultsDisplay = ({
             datum={option}
             denominator={denominator}
             highestValue={highestValue}
-            renderToggle={renderToggle}
             renderLabel={renderLabel}
             isCorrect={option.isCorrect ?? false}
             renderMenu={renderMenu}

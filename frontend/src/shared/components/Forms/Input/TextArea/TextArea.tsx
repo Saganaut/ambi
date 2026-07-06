@@ -24,7 +24,10 @@ const TextArea = ({
   value,
   ref,
   onChange,
+  onFocus,
   onBlur,
+  "aria-haspopup": ariaHasPopup,
+  "aria-expanded": ariaExpanded,
   maxLength,
   id,
   rows = 4,
@@ -57,7 +60,10 @@ const TextArea = ({
           ref={ref}
           value={value}
           onChange={onChange}
+          onFocus={onFocus}
           onBlur={onBlur}
+          aria-haspopup={ariaHasPopup}
+          aria-expanded={ariaExpanded}
           maxLength={maxLength}
           rows={rows}
           placeholder={placeholder}

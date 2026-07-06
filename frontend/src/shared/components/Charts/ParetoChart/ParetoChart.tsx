@@ -6,6 +6,7 @@
 // the category labels listed below in the sorted order.
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
+import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./ParetoChart.module.css";
@@ -18,7 +19,6 @@ const PAD = 6;
 
 const ParetoChart = ({
   renderLabel,
-  renderToggle,
   renderMenu,
   data,
   addOption,
@@ -122,10 +122,10 @@ const ParetoChart = ({
               <span className={styles.labelValue}>{it.datum.value}</span>
               <span className={styles.labelShare}> · {Math.round(it.cumPct * 100)}%</span>
             </span>
-            {(renderToggle ?? renderMenu) && (
+            {renderMenu && (
               <span className={styles.labelActions}>
-                {renderToggle?.(it.datum)}
-                {renderMenu?.(it.datum, menuAlignFor(it.index))}
+                <CorrectBadge isCorrect={it.datum.isCorrect} />
+                {renderMenu(it.datum, menuAlignFor(it.index))}
               </span>
             )}
           </li>

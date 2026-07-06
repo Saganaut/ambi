@@ -27,7 +27,6 @@ export interface ResultsDisplaySwitchProps {
   /** When on, values randomise (0–10) every 3s — a live-results preview. */
   continuousAnimation?: boolean;
   renderLabel: (datum: ChartDatum) => ReactNode;
-  renderToggle: (datum: ChartDatum) => ReactNode;
   renderMenu: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
   editor: UseMcqEditorResult;
   answerSettings?: AnswerSettings;
@@ -39,7 +38,6 @@ const ResultsDisplaySwitch = ({
   animateOnMount = true,
   continuousAnimation = false,
   renderLabel,
-  renderToggle,
   renderMenu,
   editor,
   answerSettings,
@@ -58,7 +56,6 @@ const ResultsDisplaySwitch = ({
     data,
     displayAsPercentage: answerSettings?.displayResultsAsPercentage ?? false,
     renderLabel,
-    renderToggle,
     renderMenu,
     onReorder: editor.handleOptionDragEnd,
     addOption: editor.addOption,

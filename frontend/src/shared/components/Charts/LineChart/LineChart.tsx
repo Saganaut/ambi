@@ -1,5 +1,6 @@
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
+import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./LineChart.module.css";
@@ -12,7 +13,6 @@ const PAD = 6;
 
 const LineChart = ({
   renderLabel,
-  renderToggle,
   renderMenu,
   data,
   displayAsPercentage,
@@ -58,7 +58,7 @@ const LineChart = ({
                   ({Math.round((datum.value / denominator) * 100)}%)
                 </span>
               )}{" "}
-              {renderToggle?.(datum)}
+              {renderMenu && <CorrectBadge isCorrect={datum.isCorrect} />}
             </span>
           </div>
         ))}

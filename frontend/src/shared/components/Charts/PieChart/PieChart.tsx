@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.types";
+import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./PieChart.module.css";
@@ -19,7 +20,6 @@ const PieChartSegment = ({
   denominator,
   displayAsPercentage,
   renderLabel,
-  renderToggle,
   renderMenu,
 }: PieChartSegmentRenderProps) => {
   const pct = denominator > 0 ? (datum.value / denominator) * 100 : 0;
@@ -58,10 +58,10 @@ const PieChartSegment = ({
         {datum.value}
         {displayAsPercentage && ` (${Math.round(pct).toString()}%)`}
       </span>
-      {(renderToggle ?? renderMenu) && (
+      {renderMenu && (
         <span className={styles.legendActions}>
-          {renderToggle?.(datum)}
-          {renderMenu?.(datum)}
+          <CorrectBadge isCorrect={datum.isCorrect} />
+          {renderMenu(datum)}
         </span>
       )}
     </li>
@@ -71,7 +71,6 @@ const PieChartSegment = ({
 const PieChart = ({
   variant = "pie",
   renderLabel,
-  renderToggle,
   renderMenu,
   onReorder,
   data,
@@ -183,7 +182,6 @@ const PieChart = ({
                 denominator={total}
                 displayAsPercentage={displayAsPercentage}
                 sortIndex={index}
-                renderToggle={renderToggle}
                 renderLabel={renderLabel}
                 renderMenu={renderMenu}
               />
