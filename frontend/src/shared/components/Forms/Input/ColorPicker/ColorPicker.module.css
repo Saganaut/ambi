@@ -44,12 +44,17 @@
 
 /* CustomColorPicker — the free-range saturation/hue picker that lives in the
    shared modal. The square and slider size themselves inline (@uiw props);
-   this block owns the column rhythm and the preview/hex/Apply footer. */
+   this block owns the column rhythm and the preview/hex/Apply footer.
+   The width must be definite (not a percentage): the modal dialog is
+   width: fit-content, and a percentage is indefinite during its intrinsic
+   sizing pass, so the dialog would size itself to the footer row's natural
+   width and leave dead space beside the picker. */
 .customPicker {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  width: min(316px, 100%);
+  width: 316px;
+  max-width: 100%;
 
   .customPickerFooter {
     display: flex;

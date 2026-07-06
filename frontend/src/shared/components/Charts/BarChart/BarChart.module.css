@@ -72,7 +72,11 @@
     flex-shrink: 0;
   }
 
+  /* position: relative anchors the in-bar OptionImage, which sits at the
+     track's axis end (left / bottom) so it stays visible even when a low
+     value makes the fill shorter than the image. */
   .track {
+    position: relative;
     background: var(--bg-subtle);
     border-radius: var(--radius-sm);
     overflow: hidden;
@@ -82,7 +86,8 @@
       border-radius: var(--radius-sm);
       transition:
         width var(--duration-base) var(--ease-out),
-        height var(--duration-base) var(--ease-out);
+        height var(--duration-base) var(--ease-out),
+        background-color var(--duration-base) var(--ease-out);
     }
   }
 
@@ -201,5 +206,11 @@
     .addSlot {
       flex: 0 0 auto;
     }
+  }
+
+  /* Room for a legible in-bar thumbnail (see hasImages in BarChart.tsx).
+     Horizontal only — vertical columns already give the image their width. */
+  &.horizontal.withImages .track {
+    height: var(--space-10);
   }
 }

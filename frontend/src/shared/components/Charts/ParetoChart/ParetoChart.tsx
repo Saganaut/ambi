@@ -6,6 +6,7 @@
 // the category labels listed below in the sorted order.
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
+import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./ParetoChart.module.css";
 
@@ -110,6 +111,7 @@ const ParetoChart = ({
             className={`${styles.label} ${it.datum.highlight ? styles.highlight : ""}`}
           >
             <div className={styles.optionControls}>
+              <OptionImage src={it.datum.imageUrl} alt={it.datum.imageAlt} />
               {renderLabel ? (
                 renderLabel(it.datum)
               ) : (

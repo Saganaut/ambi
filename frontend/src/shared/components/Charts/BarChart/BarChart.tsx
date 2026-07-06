@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps, ChartSegmentRenderProps, MenuAlign } from "../Chart.types";
+import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./BarChart.module.css";
 
@@ -11,6 +12,8 @@ export type BarChartProps = ChartProps;
 export type BarChartSegmentRenderProps = ChartSegmentRenderProps & {
   /** Popover side for this row's menu — "end" for right-half vertical columns. */
   menuAlign?: MenuAlign;
+  /** Bar growth direction — picks the in-bar image anchor (left vs. base). */
+  orientation?: "horizontal" | "vertical";
 };
 
 const SortableListItem = ({
@@ -23,6 +26,7 @@ const SortableListItem = ({
   highestValue,
   denominator,
   menuAlign,
+  orientation = "horizontal",
 }: BarChartSegmentRenderProps) => {
   const max = Math.max(1, highestValue ?? 1);
 
@@ -53,6 +57,11 @@ const SortableListItem = ({
               "--bar-color": resolveDatumColor(datum.color, sortIndex),
             } as React.CSSProperties
           }
+        />
+        <OptionImage
+          src={datum.imageUrl}
+          alt={datum.imageAlt}
+          variant={orientation === "vertical" ? "barVertical" : "barHorizontal"}
         />
       </div>
       <span className={styles.value}>
@@ -87,8 +96,13 @@ const BarChart = ({
   // the full width, so the default alignment is fine.
   const menuAlignFor = (index: number): MenuAlign | undefined =>
     orientation === "vertical" && index > (data.length - 1) / 2 ? "end" : undefined;
+  // Horizontal bars thicken when any option carries an image so the in-bar
+  // thumbnail is legible; all bars grow together to stay aligned.
+  const hasImages = data.some((datum) => datum.imageUrl != null);
   return (
-    <div className={`${styles.chart} ${styles[orientation]}`}>
+    <div
+      className={`${styles.chart} ${styles[orientation]} ${hasImages ? styles.withImages : ""}`}
+    >
       <ul className={styles.bars}>
         <DragDropWrapper onReorder={onReorder}>
           {data.map((datum, index) => (
@@ -103,6 +117,7 @@ const BarChart = ({
               renderLabel={renderLabel}
               renderMenu={renderMenu}
               menuAlign={menuAlignFor(index)}
+              orientation={orientation}
             />
           ))}
         </DragDropWrapper>

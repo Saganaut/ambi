@@ -54,7 +54,8 @@
   fill: none;
   transition:
     stroke-dasharray var(--duration-base) var(--ease-out),
-    stroke-dashoffset var(--duration-base) var(--ease-out);
+    stroke-dashoffset var(--duration-base) var(--ease-out),
+    stroke var(--duration-base) var(--ease-out);
 }
 
 .legend {
@@ -120,6 +121,7 @@
   height: var(--space-3);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
+  transition: background-color var(--duration-base) var(--ease-out);
 }
 
 .legendLabel {

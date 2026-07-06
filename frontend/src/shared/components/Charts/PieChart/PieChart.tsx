@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.types";
+import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./PieChart.module.css";
 
@@ -45,6 +46,7 @@ const PieChartSegment = ({
         style={{ background: resolveDatumColor(datum.color, sortIndex) }}
         aria-hidden="true"
       />
+      <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
       <div className={styles.optionControls}>
         {renderLabel ? (
           renderLabel(datum)

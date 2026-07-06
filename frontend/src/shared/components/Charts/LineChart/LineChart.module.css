@@ -52,7 +52,8 @@
   transform: translate(-50%, -50%);
   transition:
     left var(--duration-base) var(--ease-out),
-    top var(--duration-base) var(--ease-out);
+    top var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out);
 }
 
 .marker.highlight {

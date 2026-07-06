@@ -95,6 +95,7 @@
   .imgThumbnail {
     display: flex;
     align-items: end;
+    transition: background-color var(--duration-base) var(--ease-out);
 
     img {
       border-radius: var(--radius-md);

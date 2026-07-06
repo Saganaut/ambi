@@ -34,6 +34,10 @@
   vector-effect: non-scaling-stroke;
 }
 
+.bar {
+  transition: fill var(--duration-base) var(--ease-out);
+}
+
 .cumLine {
   fill: none;
   stroke: var(--role-accent-secondary);

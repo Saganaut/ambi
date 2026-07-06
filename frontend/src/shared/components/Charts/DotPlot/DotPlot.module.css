@@ -102,7 +102,9 @@
   background: var(--dot-color, var(--bg-brand));
   border-radius: var(--radius-full);
   opacity: 0.4;
-  transition: width var(--duration-base) var(--ease-out);
+  transition:
+    width var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out);
 }
 
 .dot {
@@ -112,7 +114,9 @@
   border-radius: var(--radius-full);
   background: var(--dot-color, var(--bg-brand));
   transform: translateX(-50%);
-  transition: left var(--duration-base) var(--ease-out);
+  transition:
+    left var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out);
 }
 
 .highlight .stem {

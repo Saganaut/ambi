@@ -1,0 +1,39 @@
+/* OptionImage — an option's uploaded thumbnail inside chart renderers. All
+   variants preserve the image's intrinsic aspect ratio (max-* box or
+   object-fit: contain) and simply fit what they can within their slot. */
+
+.image {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Beside the option label (legend rows, axis labels). */
+.thumb {
+  max-width: var(--space-8);
+  max-height: var(--space-6);
+  border-radius: var(--radius-sm);
+}
+
+/* Inside a horizontal bar, flush with the left (axis) end of the track. The
+   track's overflow: hidden clips the rounded corners for us. */
+.barHorizontal {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left;
+}
+
+/* Inside a vertical column, resting on the axis at the base of the track. */
+.barVertical {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+}

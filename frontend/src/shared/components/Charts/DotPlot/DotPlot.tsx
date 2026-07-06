@@ -1,5 +1,6 @@
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps } from "../Chart.types";
+import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./DotPlot.module.css";
 
@@ -32,6 +33,7 @@ const DotPlot = ({
               }
             >
               <div className={styles.optionControls}>
+                <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
                 {renderLabel ? (
                   renderLabel(datum)
                 ) : (
