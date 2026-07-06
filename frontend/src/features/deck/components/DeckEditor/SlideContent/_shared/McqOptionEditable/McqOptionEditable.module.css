@@ -162,6 +162,16 @@
     max-height var(--duration-base) ease-in-out;
 }
 
+/* End-aligned variant: opens leftward from the anchor's midline. Composers
+   whose anchor sits near the canvas' right edge (chart columns, absolutely
+   positioned chart labels) request this via the Menu's `popoverAlign`; the
+   midline (rather than the right edge) keeps the popover inside the canvas
+   even when the anchor itself is centred on the chart's last data point. */
+.popoverWrap.alignEnd {
+  left: auto;
+  right: 50%;
+}
+
 @starting-style {
   .popoverWrap {
     opacity: 0;

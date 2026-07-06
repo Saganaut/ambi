@@ -89,7 +89,7 @@ const PieChart = ({
   }, [animateOnMount]);
   const [revealed, setRevealed] = useState(!animateOnMount);
 
-  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const total = data.reduce((sum, datum) => sum + datum.value, 0);
 
   if (total === 0) {
     return (
@@ -108,17 +108,17 @@ const PieChart = ({
       highlight?: boolean;
       index: number;
     }[]
-  >((acc, d, i) => {
-    const pct = (d.value / total) * 100;
+  >((acc, datum, index) => {
+    const pct = (datum.value / total) * 100;
     const start = acc.length === 0 ? 0 : acc[acc.length - 1].start + acc[acc.length - 1].pct;
     acc.push({
-      datum: d,
-      label: d.text ?? "",
+      datum,
+      label: datum.text ?? "",
       pct,
       start,
-      color: resolveDatumColor(d.color, i),
-      highlight: d.highlight,
-      index: i,
+      color: resolveDatumColor(datum.color, index),
+      highlight: datum.highlight,
+      index,
     });
     return acc;
   }, []);
@@ -135,20 +135,20 @@ const PieChart = ({
           >
             <circle className={styles.backdrop} cx="50" cy="50" r="49" />
             <g transform="rotate(-90 50 50)">
-              {slices.map((s) => (
+              {slices.map((slice) => (
                 <circle
-                  key={s.index}
-                  className={`${styles.slice} ${s.highlight ? styles.highlight : ""}`}
+                  key={slice.index}
+                  className={`${styles.slice} ${slice.highlight ? styles.highlight : ""}`}
                   cx="50"
                   cy="50"
                   r={RADII[variant]}
                   pathLength={100}
                   strokeWidth={STROKE[variant]}
-                  stroke={s.color}
-                  strokeDasharray={`${(revealed ? s.pct : 0).toFixed(3)} 100`}
-                  strokeDashoffset={(-s.start).toFixed(3)}
+                  stroke={slice.color}
+                  strokeDasharray={`${(revealed ? slice.pct : 0).toFixed(3)} 100`}
+                  strokeDashoffset={(-slice.start).toFixed(3)}
                   style={{
-                    transitionDelay: !revealed ? `${(s.index * 90).toString()}ms` : undefined,
+                    transitionDelay: !revealed ? `${(slice.index * 90).toString()}ms` : undefined,
                   }}
                 />
               ))}
@@ -157,13 +157,13 @@ const PieChart = ({
         </div>
         <ul className={styles.legend}>
           <DragDropWrapper onReorder={onReorder}>
-            {slices.map((s, idx) => (
+            {slices.map((slice, index) => (
               <PieChartSegment
-                key={s.datum.id}
-                datum={s.datum}
+                key={slice.datum.id}
+                datum={slice.datum}
                 denominator={total}
                 displayAsPercentage={displayAsPercentage}
-                sortIndex={idx}
+                sortIndex={index}
                 renderToggle={renderToggle}
                 renderLabel={renderLabel}
                 renderMenu={renderMenu}

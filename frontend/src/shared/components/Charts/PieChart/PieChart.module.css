@@ -94,17 +94,19 @@
   min-width: 0;
   flex: 1 1 auto;
   overflow: visible;
+}
 
-  /* Chart labels are single-line and compact: match the legend's font size,
-     trim the field's padding, and stop the textarea from wrapping into a
-     half-clipped second row inside the legend row. */
-  textarea {
-    min-height: 0;
-    font-size: var(--font-size-sm);
-    padding-block: var(--space-1);
-    white-space: pre;
-    overflow-x: hidden;
-  }
+/* Chart labels are single-line and compact: match the legend's font size,
+   trim the field's padding, and stop the textarea from wrapping into a
+   half-clipped second row inside the legend row. Scoped under `.chart` so
+   the override outranks TextArea's own base rules by specificity instead of
+   relying on bundle order. */
+.chart .optionControls textarea {
+  min-height: 0;
+  font-size: var(--font-size-sm);
+  padding-block: var(--space-1);
+  white-space: pre;
+  overflow-x: hidden;
 }
 
 /* Correct-toggle + menu cluster. Deliberately NOT positioned: the Menu's
@@ -143,18 +145,20 @@
 }
 
 /* Ghost legend entry holding the add-option "+": revealed while the chart is
-   hovered (or the button holds focus), like the option cards' affordance. */
+   hovered (or the button holds focus), like the option cards' affordance.
+   Hidden via opacity + pointer-events (NOT visibility) so the button stays in
+   the tab order and the :focus-within reveal works for keyboard users. */
 .addSlot {
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  visibility: hidden;
+  pointer-events: none;
   transition: opacity var(--duration-base) ease-in-out;
 }
 
 .chart:hover .addSlot,
 .addSlot:focus-within {
   opacity: 1;
-  visibility: visible;
+  pointer-events: auto;
 }

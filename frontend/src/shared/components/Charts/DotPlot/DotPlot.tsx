@@ -19,15 +19,17 @@ const DotPlot = ({
   return (
     <div className={styles.chart}>
       <ul className={styles.rows}>
-        {data.map((datum, i) => {
+        {data.map((datum, index) => {
           const posPct = (datum.value / max) * 100;
           const sharePct = denominator > 0 ? Math.round((datum.value / denominator) * 100) : 0;
           return (
             <li
               // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
-              key={i}
+              key={index}
               className={`${styles.row} ${datum.highlight ? styles.highlight : ""}`}
-              style={{ "--dot-color": resolveDatumColor(datum.color, i) } as React.CSSProperties}
+              style={
+                { "--dot-color": resolveDatumColor(datum.color, index) } as React.CSSProperties
+              }
             >
               <div className={styles.optionControls}>
                 {renderLabel ? (

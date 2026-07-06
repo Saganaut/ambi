@@ -25,6 +25,8 @@ interface MenuProps {
   flush: () => void;
   openPicker: OpenGalleryPicker;
   activeOptionId: string;
+  /** Which edge of the anchor the popover aligns to (default "start"). */
+  popoverAlign?: "start" | "end";
 }
 
 const Menu = ({
@@ -36,6 +38,7 @@ const Menu = ({
   onRemove,
   flush,
   openPicker,
+  popoverAlign,
 }: MenuProps) => {
   //TODO: remove this magic number, we use to have an index
   // but now that index is a string we need a number
@@ -94,6 +97,7 @@ const Menu = ({
       />
       {isOpen && (
         <EditOptionToolbar
+          align={popoverAlign}
           canRemove={canRemove}
           handlePickFromGallery={handlePickFromGallery}
           hasImage={hasImage}

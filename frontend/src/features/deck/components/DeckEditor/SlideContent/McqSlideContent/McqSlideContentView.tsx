@@ -4,7 +4,7 @@
  * Also passes in question prompt editing calls to the wrapper component
  */
 import { AnswerSettings } from "@/features/deck/store/deckApi.gen";
-import { ChartDatum, ChartType } from "@/shared/components/Charts/Chart.types";
+import { ChartDatum, ChartType, MenuAlign } from "@/shared/components/Charts/Chart.types";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
@@ -82,11 +82,12 @@ const McqSlideContentView = ({
     />
   );
 
-  const renderMenu = (datum: ChartDatum) => (
+  const renderMenu = (datum: ChartDatum, menuAlign?: MenuAlign) => (
     <Menu
       activeOption={datum}
       activeOptionId={datum.id}
       index={datum.id}
+      popoverAlign={menuAlign}
       canRemove={canRemove}
       onScheduleText={(next: McqOption) => {
         scheduleOption(datum.id, next);

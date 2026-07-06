@@ -39,11 +39,19 @@ export interface ChartProps {
   renderLabel?: (datum: ChartDatum) => ReactNode;
   /** The correct/incorrect toggle. */
   renderToggle?: (datum: ChartDatum) => ReactNode;
-  /** The option's menu (image/colour/remove). */
-  renderMenu?: (datum: ChartDatum) => ReactNode;
+  /**
+   * The option's menu (image/colour/remove). Charts whose menu anchor sits
+   * near the canvas' right edge (a narrow column, an absolutely-positioned
+   * label) pass `menuAlign: "end"` so the popover opens leftward instead of
+   * clipping past the edge.
+   */
+  renderMenu?: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
   /** Called when the user drags an option to a new position. */
   onReorder?: (event: DragEndEvent) => void;
 }
+
+/** Which edge of its anchor the option-menu popover aligns to. */
+export type MenuAlign = "start" | "end";
 
 export type ChartType =
   | "PIE"
@@ -73,6 +81,6 @@ export interface ChartSegmentRenderProps {
   addOption?: () => void;
   renderLabel?: (datum: ChartDatum) => ReactNode;
   renderToggle?: (datum: ChartDatum) => ReactNode;
-  renderMenu?: (datum: ChartDatum) => ReactNode;
+  renderMenu?: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
   onReorder?: (event: DragEndEvent) => void;
 }

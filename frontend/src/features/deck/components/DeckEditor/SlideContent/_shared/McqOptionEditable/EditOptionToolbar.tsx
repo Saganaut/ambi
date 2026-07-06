@@ -37,6 +37,8 @@ interface EditOptionToolbarProps {
   /** Resolved color string (option override or palette default). */
   color: string;
   flush: () => void;
+  /** Which edge of the anchor the popover aligns to (default "start"). */
+  align?: "start" | "end";
 }
 
 const EditOptionToolbar = ({
@@ -51,6 +53,7 @@ const EditOptionToolbar = ({
   previewUrl,
   color,
   flush,
+  align = "start",
 }: EditOptionToolbarProps) => {
   const [colorOpen, setColorOpen] = useState(false);
   const colorPopoutRef = useRef<HTMLDivElement>(null);
@@ -91,7 +94,7 @@ const EditOptionToolbar = ({
 
   return (
     <div
-      className={styles.popoverWrap}
+      className={`${styles.popoverWrap} ${align === "end" ? styles.alignEnd : ""}`}
       onClick={(e) => {
         e.stopPropagation();
       }}

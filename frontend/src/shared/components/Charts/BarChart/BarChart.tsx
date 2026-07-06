@@ -2,13 +2,16 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { useRef } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
-import type { ChartProps, ChartSegmentRenderProps } from "../Chart.types";
+import type { ChartProps, ChartSegmentRenderProps, MenuAlign } from "../Chart.types";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./BarChart.module.css";
 
 export type BarChartProps = ChartProps;
 
-export type BarChartSegmentRenderProps = ChartSegmentRenderProps;
+export type BarChartSegmentRenderProps = ChartSegmentRenderProps & {
+  /** Popover side for this row's menu — "end" for right-half vertical columns. */
+  menuAlign?: MenuAlign;
+};
 
 const SortableListItem = ({
   sortIndex,
@@ -19,6 +22,7 @@ const SortableListItem = ({
   datum,
   highestValue,
   denominator,
+  menuAlign,
 }: BarChartSegmentRenderProps) => {
   const max = Math.max(1, highestValue ?? 1);
 
@@ -58,7 +62,7 @@ const SortableListItem = ({
       {(renderToggle ?? renderMenu) && (
         <span className={styles.rowActions}>
           {renderToggle?.(datum)}
-          {renderMenu?.(datum)}
+          {renderMenu?.(datum, menuAlign)}
         </span>
       )}
     </li>
@@ -78,21 +82,27 @@ const BarChart = ({
 }: BarChartProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const highestValue = Math.max(1, ...data.map((datum) => datum.value));
+  // Vertical columns are narrow popover anchors: right-half columns open
+  // their menu leftward so it stays inside the canvas. Horizontal rows span
+  // the full width, so the default alignment is fine.
+  const menuAlignFor = (index: number): MenuAlign | undefined =>
+    orientation === "vertical" && index > (data.length - 1) / 2 ? "end" : undefined;
   return (
     <div className={`${styles.chart} ${styles[orientation]}`}>
       <ul className={styles.bars}>
         <DragDropWrapper onReorder={onReorder}>
-          {data.map((datum, idx) => (
+          {data.map((datum, index) => (
             <SortableListItem
               key={datum.id}
               highestValue={highestValue}
               denominator={denominator}
               datum={datum}
               displayAsPercentage={displayAsPercentage}
-              sortIndex={idx}
+              sortIndex={index}
               renderToggle={renderToggle}
               renderLabel={renderLabel}
               renderMenu={renderMenu}
+              menuAlign={menuAlignFor(index)}
             />
           ))}
         </DragDropWrapper>

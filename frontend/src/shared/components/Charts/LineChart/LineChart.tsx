@@ -22,28 +22,32 @@ const LineChart = ({
   const max = Math.max(1, ...data.map((datum) => datum.value));
   const span = Math.max(1, data.length - 1);
 
-  const points = data.map((datum, i) => {
-    const x = PAD + (i / span) * (W - PAD * 2);
+  const points = data.map((datum, index) => {
+    const x = PAD + (index / span) * (W - PAD * 2);
     const y = H - PAD - (datum.value / max) * (H - PAD * 2);
-    return { x, y, datum, index: i };
+    return { x, y, datum, index };
   });
 
   // W === 100, so viewBox x directly equals the CSS left percentage; y maps to
   // the top percentage via H.
-  const xPct = (i: number) => PAD + (i / span) * (W - PAD * 2);
+  const xPct = (index: number) => PAD + (index / span) * (W - PAD * 2);
   const yPct = (y: number) => (y / H) * 100;
 
-  const path = points.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+  // Anchors in the right half open their menu popover leftward so it stays
+  // inside the canvas.
+  const menuAlignFor = (index: number) => (index > (data.length - 1) / 2 ? "end" : "start");
+
+  const path = points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
 
   return (
     <div className={styles.chart} style={{ "--n": data.length } as React.CSSProperties}>
       <div className={styles.valueRow}>
-        {data.map((datum, i) => (
+        {data.map((datum, index) => (
           <div
             // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
-            key={i}
+            key={index}
             className={styles.valueItem}
-            style={{ left: `${xPct(i).toFixed(2)}%` }}
+            style={{ left: `${xPct(index).toFixed(2)}%` }}
           >
             <span className={styles.labelValue}>
               {datum.value}
@@ -72,14 +76,14 @@ const LineChart = ({
           <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
           {data.length > 1 && <polyline className={styles.line} points={path} />}
         </svg>
-        {points.map((p) => (
+        {points.map((point) => (
           <span
-            key={p.index}
-            className={`${styles.marker} ${p.datum.highlight ? styles.highlight : ""}`}
+            key={point.index}
+            className={`${styles.marker} ${point.datum.highlight ? styles.highlight : ""}`}
             style={{
-              left: `${p.x.toFixed(2)}%`,
-              top: `${yPct(p.y).toFixed(2)}%`,
-              background: resolveDatumColor(p.datum.color, p.index),
+              left: `${point.x.toFixed(2)}%`,
+              top: `${yPct(point.y).toFixed(2)}%`,
+              background: resolveDatumColor(point.datum.color, point.index),
             }}
             aria-hidden="true"
           />
@@ -91,17 +95,17 @@ const LineChart = ({
         )}
       </div>
       <div className={styles.controlsRow}>
-        {data.map((datum, i) => (
+        {data.map((datum, index) => (
           <div
             // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
-            key={i}
+            key={index}
             className={styles.controlsItem}
-            style={{ left: `${xPct(i).toFixed(2)}%` }}
+            style={{ left: `${xPct(index).toFixed(2)}%` }}
           >
             <div className={styles.optionControls}>
               {renderLabel ? (
                 <>
-                  {renderLabel(datum)} {renderMenu?.(datum)}
+                  {renderLabel(datum)} {renderMenu?.(datum, menuAlignFor(index))}
                 </>
               ) : (
                 <span className={styles.labelText}>{datum.text ?? ""}</span>

@@ -28,7 +28,7 @@ const ParetoChart = ({
   // Keep the author-order index so each option keeps its colour when sorting.
   const sorted = data
     .map((datum, authorIndex) => ({ datum, authorIndex }))
-    .sort((a, b) => b.datum.value - a.datum.value);
+    .sort((first, second) => second.datum.value - first.datum.value);
   const total = sorted.reduce((sum, entry) => sum + entry.datum.value, 0);
   const plotW = W - PAD * 2;
   const plotH = H - PAD * 2;
@@ -36,13 +36,13 @@ const ParetoChart = ({
   const barW = slot * 0.6;
 
   let running = 0;
-  const items = sorted.map(({ datum, authorIndex }, i) => {
+  const items = sorted.map(({ datum, authorIndex }, sortedIndex) => {
     running += datum.value;
     const cumPct = total > 0 ? running / total : 0;
-    const cx = PAD + slot * i + slot / 2;
+    const cx = PAD + slot * sortedIndex + slot / 2;
     return {
       datum,
-      index: i,
+      index: sortedIndex,
       color: resolveDatumColor(datum.color, authorIndex),
       barX: cx - barW / 2,
       barH: (datum.value / max) * plotH,
@@ -51,6 +51,11 @@ const ParetoChart = ({
       cumPct,
     };
   });
+
+  // Anchors in the right half open their menu popover leftward so it stays
+  // inside the canvas.
+  const menuAlignFor = (sortedIndex: number) =>
+    sortedIndex > (items.length - 1) / 2 ? "end" : "start";
 
   const linePath = items.map((it) => `${it.cumX.toFixed(2)},${it.cumY.toFixed(2)}`).join(" ");
 
@@ -118,7 +123,7 @@ const ParetoChart = ({
             {(renderToggle ?? renderMenu) && (
               <span className={styles.labelActions}>
                 {renderToggle?.(it.datum)}
-                {renderMenu?.(it.datum)}
+                {renderMenu?.(it.datum, menuAlignFor(it.index))}
               </span>
             )}
           </li>

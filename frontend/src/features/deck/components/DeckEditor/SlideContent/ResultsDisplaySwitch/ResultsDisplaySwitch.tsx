@@ -15,7 +15,7 @@ import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
 import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
-import { ChartDatum, type ChartType } from "@/shared/components/Charts/Chart.types";
+import { ChartDatum, type ChartType, type MenuAlign } from "@/shared/components/Charts/Chart.types";
 import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
 import { ReactNode } from "react";
 import { DefaultResultsDisplay } from "../McqSlideContent/DefaultResultsDisplay";
@@ -28,7 +28,7 @@ export interface ResultsDisplaySwitchProps {
   continuousAnimation?: boolean;
   renderLabel: (datum: ChartDatum) => ReactNode;
   renderToggle: (datum: ChartDatum) => ReactNode;
-  renderMenu: (datum: ChartDatum) => ReactNode;
+  renderMenu: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
   editor: UseMcqEditorResult;
   answerSettings?: AnswerSettings;
 }

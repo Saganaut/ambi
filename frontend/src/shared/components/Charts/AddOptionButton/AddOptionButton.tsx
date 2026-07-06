@@ -17,7 +17,7 @@ const AddOptionButton = ({ onClick, className }: AddOptionButtonProps) => (
   <IconBtn
     size="sm"
     shape="round"
-    variant="info"
+    variant="success"
     aria-label="Add option"
     title="Add option"
     className={[styles.addOptionBtn, className].filter(Boolean).join(" ")}
