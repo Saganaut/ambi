@@ -7,8 +7,6 @@
 - How do we know if a slide is actually scorable?
 - We need to use more apply to all:
 
-- QR code in header doesn't make sense, only join code there.
-
 - Content image should be added directly in the slide.  On hover a box should appear that allows for an upload.. or on mobile a menu or placeholder.
 
 - We have anonymize answers, allow anonynmous responses, and anonymous mode.  We need to make sense of it all.  
