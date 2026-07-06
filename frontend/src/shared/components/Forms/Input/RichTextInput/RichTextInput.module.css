@@ -142,6 +142,18 @@
   min-height: 0;
 }
 
+/* @tiptap/react's EditorContent renders an (otherwise unstyled) wrapper <div>
+   around the .tiptap editor. It sits between .surfaceBlock and .editor, so
+   unless it is itself a height-filling flex column it collapses to content
+   height — leaving the .editor's vertical justify-content (top/middle/bottom)
+   no free space to distribute. Stretch it so the alignment actually lands. */
+.wrapper.block .editorHost {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 /* A flex column so whole-box vertical alignment can position the content stack
    via justify-content (see the data-valign rules below). */
 .wrapper.block .editor {

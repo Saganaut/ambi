@@ -13,8 +13,8 @@
  * is acceptable here for the same reason it's safe in the editor's own
  * rendered output.
  */
-import { useMemo } from "react";
 import { truncateText } from "@utils/utils";
+import { useMemo } from "react";
 import styles from "./RichTextDisplay.module.css";
 
 interface RichTextDisplayProps {
@@ -112,13 +112,8 @@ const truncateHtml = (html: string, maxLength: number): string => {
   const truncated = copy(doc.body, root);
   return truncated ? `${root.innerHTML}...` : root.innerHTML;
 };
-
-const RichTextDisplay = ({
-  value,
-  styled = true,
-  maxLength,
-  className,
-}: RichTextDisplayProps) => {
+//TODO: Need to make sure this is secure
+const RichTextDisplay = ({ value, styled = true, maxLength, className }: RichTextDisplayProps) => {
   const plainText = useMemo(() => {
     if (styled) return "";
     const text = htmlToPlainText(value);
@@ -131,11 +126,7 @@ const RichTextDisplay = ({
   }, [styled, value, maxLength]);
 
   if (!styled) {
-    return (
-      <div className={`${styles.plain} ${className ?? ""}`.trim()}>
-        {plainText}
-      </div>
-    );
+    return <div className={`${styles.plain} ${className ?? ""}`.trim()}>{plainText}</div>;
   }
 
   return (

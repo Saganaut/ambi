@@ -16,45 +16,93 @@ import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
 import React, { Suspense, lazy } from "react";
 import { slotMappingOptions, type SlotMapping } from "../../../contexts/ImageSlot.types";
 import { useSlide } from "../../../hooks/useSlide";
+import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
+import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
+import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
 // The per-type authoring surfaces are lazy so only the active slide's editor is
 // in the editor chunk — the other 11 never download or parse. Each is a named
 // export, hence the `.then(...)` shim to React.lazy's default-export contract.
 // McqSlideProvider stays eager: it's a tiny context wrapper, not an editor body.
 const AllocationSlideContent = lazy(() =>
-  import("../SlideContent/AllocationSlideContent/AllocationSlideContent").then((m) => ({ default: m.AllocationSlideContent })));
+  import("../SlideContent/AllocationSlideContent/AllocationSlideContent").then((m) => ({
+    default: m.AllocationSlideContent,
+  })),
+);
 const DrawingSlideContent = lazy(() =>
-  import("../SlideContent/DrawingSlideContent/DrawingSlideContent").then((m) => ({ default: m.DrawingSlideContent })));
+  import("../SlideContent/DrawingSlideContent/DrawingSlideContent").then((m) => ({
+    default: m.DrawingSlideContent,
+  })),
+);
 const FollowUpSlideContent = lazy(() =>
-  import("../SlideContent/FollowUpSlideContent/FollowUpSlideContent").then((m) => ({ default: m.FollowUpSlideContent })));
+  import("../SlideContent/FollowUpSlideContent/FollowUpSlideContent").then((m) => ({
+    default: m.FollowUpSlideContent,
+  })),
+);
 const GridSlideContent = lazy(() =>
-  import("../SlideContent/GridSlideContent/GridSlideContent").then((m) => ({ default: m.GridSlideContent })));
+  import("../SlideContent/GridSlideContent/GridSlideContent").then((m) => ({
+    default: m.GridSlideContent,
+  })),
+);
 const MatchingSlideContent = lazy(() =>
-  import("../SlideContent/MatchingSlideContent/MatchingSlideContent").then((m) => ({ default: m.MatchingSlideContent })));
+  import("../SlideContent/MatchingSlideContent/MatchingSlideContent").then((m) => ({
+    default: m.MatchingSlideContent,
+  })),
+);
 const McqSlideContent = lazy(() =>
-  import("../SlideContent/McqSlideContent/McqSlideContent").then((m) => ({ default: m.McqSlideContent })));
+  import("../SlideContent/McqSlideContent/McqSlideContent").then((m) => ({
+    default: m.McqSlideContent,
+  })),
+);
 const NumberSlideContent = lazy(() =>
-  import("../SlideContent/NumberSlideContent/NumberSlideContent").then((m) => ({ default: m.NumberSlideContent })));
+  import("../SlideContent/NumberSlideContent/NumberSlideContent").then((m) => ({
+    default: m.NumberSlideContent,
+  })),
+);
 const PlaceOnImageSlideContent = lazy(() =>
-  import("../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent").then((m) => ({ default: m.PlaceOnImageSlideContent })));
+  import("../SlideContent/PlaceOnImageSlideContent/PlaceOnImageSlideContent").then((m) => ({
+    default: m.PlaceOnImageSlideContent,
+  })),
+);
 const QAndASlideContent = lazy(() =>
-  import("../SlideContent/QAndASlideContent/QAndASlideContent").then((m) => ({ default: m.QAndASlideContent })));
+  import("../SlideContent/QAndASlideContent/QAndASlideContent").then((m) => ({
+    default: m.QAndASlideContent,
+  })),
+);
 const RankingSlideContent = lazy(() =>
-  import("../SlideContent/RankingSlideContent/RankingSlideContent").then((m) => ({ default: m.RankingSlideContent })));
+  import("../SlideContent/RankingSlideContent/RankingSlideContent").then((m) => ({
+    default: m.RankingSlideContent,
+  })),
+);
 const ScalesSlideContent = lazy(() =>
-  import("../SlideContent/ScalesSlideContent/ScalesSlideContent").then((m) => ({ default: m.ScalesSlideContent })));
+  import("../SlideContent/ScalesSlideContent/ScalesSlideContent").then((m) => ({
+    default: m.ScalesSlideContent,
+  })),
+);
 const TextSlideContent = lazy(() =>
-  import("../SlideContent/TextSlideContent/TextSlideContent").then((m) => ({ default: m.TextSlideContent })));
+  import("../SlideContent/TextSlideContent/TextSlideContent").then((m) => ({
+    default: m.TextSlideContent,
+  })),
+);
 const TitleSlideContent = lazy(() =>
-  import("../SlideContent/TitleSlideContent/TitleSlideContent").then((m) => ({ default: m.TitleSlideContent })));
+  import("../SlideContent/TitleSlideContent/TitleSlideContent").then((m) => ({
+    default: m.TitleSlideContent,
+  })),
+);
 const ContentSlideContent = lazy(() =>
-  import("../SlideContent/ContentSlideContent/ContentSlideContent").then((m) => ({ default: m.ContentSlideContent })));
+  import("../SlideContent/ContentSlideContent/ContentSlideContent").then((m) => ({
+    default: m.ContentSlideContent,
+  })),
+);
 const MediaSlideContent = lazy(() =>
-  import("../SlideContent/MediaSlideContent/MediaSlideContent").then((m) => ({ default: m.MediaSlideContent })));
+  import("../SlideContent/MediaSlideContent/MediaSlideContent").then((m) => ({
+    default: m.MediaSlideContent,
+  })),
+);
 const InstructionSlideContent = lazy(() =>
-  import("../SlideContent/InstructionSlideContent/InstructionSlideContent").then((m) => ({ default: m.InstructionSlideContent })));
-import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
-import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
-import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
+  import("../SlideContent/InstructionSlideContent/InstructionSlideContent").then((m) => ({
+    default: m.InstructionSlideContent,
+  })),
+);
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -114,9 +162,9 @@ const SlideDisplay = () => {
           </McqSlideProvider>
         );
       case "TEXT":
-        return <TextSlideContent />;
+        return <TextSlideContent deckId={deckId} slideId={slideId} />;
       case "NUMBER":
-        return <NumberSlideContent />;
+        return <NumberSlideContent deckId={deckId} slideId={slideId} />;
       case "RANKING":
         return <RankingSlideContent deckId={deckId} slideId={slideId} />;
       case "SCALES":

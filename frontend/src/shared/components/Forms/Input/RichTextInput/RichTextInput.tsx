@@ -615,7 +615,10 @@ const RichTextInput = ({
             />
           </div>
         )}
-        <EditorContent editor={editor} />
+        <EditorContent
+          editor={editor}
+          className={isBlock ? styles.editorHost : undefined}
+        />
       </div>
     </div>
   );

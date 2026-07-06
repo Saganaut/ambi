@@ -86,9 +86,11 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         trimWhitespace: true,
       };
     case "NUMBER":
+      // `answer` is left off so a new slide starts unscored (collect-only),
+      // mirroring TEXT's empty acceptedAnswers; the author opts into scoring by
+      // setting an exact value or a range.
       return {
         contentType: "NUMBER",
-        answer: 0,
         scoreMode: "EXACT",
         tolerance: 0,
         unit: "",

@@ -28,8 +28,8 @@
       .slideThumbnail {
         border-radius: var(--radius-md);
         background-color: var(--bg-canvas);
-        width: 200px;
-        height: 160px;
+        width: 150px;
+        height: 100px;
         transition:
           opacity 300ms ease-in-out,
           outline 300ms ease-in-out;
@@ -80,8 +80,8 @@
         }
 
         .followUpThumbnail {
-          width: 180px;
-          height: 144px;
+          width: 100px;
+          height: 66px;
         }
 
         .slideIndex {

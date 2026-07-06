@@ -15,7 +15,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * <p>
  * Runtime answer: {@code BigDecimal} per player.
  *
- * @param answer    the correct target value
+ * @param answer    the correct target value, or {@code null} for an unscored
+ *                  slide that only collects players' numbers (the parallel of a
+ *                  {@code TextContent} with no accepted answers). A {@code null}
+ *                  answer grades as never-correct regardless of {@code scoreMode}
+ *                  (see {@code RoundEvaluator#gradeNumber}).
  * @param scoreMode {@code EXACT}, {@code RANGE} (within ± {@code tolerance}),
  *                  or
  *                  {@code CLOSEST} (player nearest the answer wins)
@@ -28,7 +32,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                  unbounded
  */
 public record NumberContent(
-        @Schema(requiredMode = REQUIRED) BigDecimal answer,
+        @Schema(nullable = true) BigDecimal answer,
         @Schema(requiredMode = REQUIRED) ScoreMode scoreMode,
         @Schema(requiredMode = REQUIRED) BigDecimal tolerance,
         @Schema(requiredMode = REQUIRED) String unit,

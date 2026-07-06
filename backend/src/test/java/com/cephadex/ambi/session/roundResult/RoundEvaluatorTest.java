@@ -56,7 +56,7 @@ class RoundEvaluatorTest {
     }
 
     @Test
-    void gradesNumberExactAndRange() {
+    void gradesNumberExactAndRangeAndRejectsUnscored() {
         Slide exact = slideWith(new NumberContent(new BigDecimal("42"), ScoreMode.EXACT, null, null, null, null));
         assertThat(gradeOne(exact, new NumberAnswer(42))).isTrue();
         assertThat(gradeOne(exact, new NumberAnswer(41))).isFalse();
@@ -65,6 +65,10 @@ class RoundEvaluatorTest {
                 new NumberContent(new BigDecimal("42"), ScoreMode.RANGE, new BigDecimal("2"), null, null, null));
         assertThat(gradeOne(range, new NumberAnswer(43))).isTrue();
         assertThat(gradeOne(range, new NumberAnswer(45))).isFalse();
+
+        // A null answer marks an unscored collect-only slide: nothing grades correct.
+        Slide unscored = slideWith(new NumberContent(null, ScoreMode.EXACT, null, null, null, null));
+        assertThat(gradeOne(unscored, new NumberAnswer(42))).isFalse();
     }
 
     @Test

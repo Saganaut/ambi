@@ -792,7 +792,7 @@ export type McqContent = {
   contentType: "MCQ";
 };
 export type NumberContent = {
-  answer: number;
+  answer?: number | null;
   scoreMode:
     | "EXACT"
     | "PARTIAL"

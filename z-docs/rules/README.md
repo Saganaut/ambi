@@ -5,6 +5,7 @@ A **signpost** only. Each category file below states its rules tersely; a rule w
 | Concern                                          | File                                     |
 | ------------------------------------------------ | ---------------------------------------- |
 | Cross-cutting project conventions                | [general-rules.md](general-rules.md)     |
+| In-code comments + file header docs              | [documentation-rules.md](documentation-rules.md) |
 | Git commit messages                              | [commit-rules.md](commit-rules.md)       |
 | File naming + DTO/API class naming               | [naming-rules.md](naming-rules.md)       |
 | Java / Spring Boot backend                       | [backend-rules.md](backend-rules.md)     |

@@ -7,7 +7,8 @@
 /* 16:9 responsive frame for the YouTube preview. */
 .embed {
   position: relative;
-  width: 100%;
+  margin: auto;
+  width: 60%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);
   overflow: hidden;

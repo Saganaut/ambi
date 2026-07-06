@@ -14,6 +14,7 @@ import { type SlideType } from "@deck/store/deckEnums.gen";
 import type { CSSProperties, ReactNode } from "react";
 import { ImageSlot } from "../../ImageSlot";
 import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
+import { SlideCanvasFooter } from "./SlideCanvasFooter";
 import styles from "./SlideDisplay.module.css";
 
 interface SlideCanvasProps {
@@ -113,7 +114,7 @@ const SlideCanvas = ({
           bottom: 4,
         }}
       />
-      <div className={styles.slideFooter}>Footer goes here</div>
+      <SlideCanvasFooter />
     </div>
   );
 };

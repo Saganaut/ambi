@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: var(--gap-sm);
   width: 100%;
+  border: 2px dashed red;
 }
 
 .caption {

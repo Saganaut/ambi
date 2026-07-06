@@ -349,7 +349,9 @@ export type SlideView = {
     | "TEXT"
     | "ALLOCATION"
     | "TITLE"
+    | "CONTENT"
     | "MEDIA"
+    | "INSTRUCTION"
     | "FOLLOW_UP";
   options?: McqOptionView[];
   answerSettings?: AnswerSettingsView;
