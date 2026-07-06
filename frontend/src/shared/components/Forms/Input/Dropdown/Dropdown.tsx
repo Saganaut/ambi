@@ -13,6 +13,7 @@ interface DropdownProps {
   searchable?: boolean;
   label?: string;
   labelPosition?: "labelAbove" | "labelInFront";
+  compact?: boolean;
   placeholder?: string;
   errorMessage?: string;
   infoMessage?: string;
@@ -27,6 +28,7 @@ const Dropdown = ({
   searchable = false,
   label,
   labelPosition = "labelAbove",
+  compact = false,
   placeholder = "Select...",
   errorMessage,
   infoMessage,
@@ -79,9 +81,16 @@ const Dropdown = ({
     );
 
   return (
-    <div className={[shared.inputContainer, shared[labelPosition]].join(" ")}>
+    <div
+      className={[shared.inputContainer, shared[labelPosition]]
+        .filter(Boolean)
+        .join(" ")}>
       {label && <label htmlFor={id}>{label}</label>}
-      <div className={styles.dropdown} ref={containerRef}>
+      <div
+        className={[styles.dropdown, compact ? styles.compact : ""]
+          .filter(Boolean)
+          .join(" ")}
+        ref={containerRef}>
         <Btn
           type='button'
           id={id}

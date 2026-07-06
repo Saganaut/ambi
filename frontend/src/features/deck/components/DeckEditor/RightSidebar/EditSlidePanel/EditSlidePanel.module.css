@@ -23,7 +23,43 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  text-align: start;
   margin: 0;
+}
+
+/* Hairline-separated settings rows: label left, control right. Children are
+   the shared inputs in their row-friendly positions — Toggle `labelBefore`,
+   NumberInput/Dropdown `labelInFront` (+ `compact`) — so each direct child
+   reads as one row; this block only owns the shared rhythm, separators, and
+   row-title typography. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+
+  > * {
+    padding-block: var(--space-3);
+
+    /* The inputs' default label↔control gap is sized for wide forms; in a
+       narrow rail it steals room from the label and wraps it early. */
+    gap: var(--space-3);
+  }
+
+  > * + * {
+    border-top: var(--border-size-sm) solid var(--edge-subtle);
+  }
+
+  /* Rows carry no helper messages, so drop the space the inputs reserve for
+     them, and promote the labels from helper-grey to row titles. The
+     `span:last-child` reaches Toggle's label text, which carries its own
+     colour/size. */
+  label,
+  label > span:last-child {
+    padding-bottom: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
 }
 
 .empty {

@@ -36,18 +36,20 @@ const McqOptionsSection = () => {
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Multiple choice</h4>
-      <Toggle
-        labelPosition="labelBefore"
-        id={`mcq-shuffle-${slide.id}`}
-        label='Shuffle option order'
-        checked={shuffle}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setShuffle(next);
-          scheduleAnswerSettings({ shuffleOptions: next });
-          flush();
-        }}
-      />
+      <div className={styles.rows}>
+        <Toggle
+          labelPosition="labelBefore"
+          id={`mcq-shuffle-${slide.id}`}
+          label='Shuffle option order'
+          checked={shuffle}
+          onChange={(e) => {
+            const next = e.currentTarget.checked;
+            setShuffle(next);
+            scheduleAnswerSettings({ shuffleOptions: next });
+            flush();
+          }}
+        />
+      </div>
     </section>
   );
 };

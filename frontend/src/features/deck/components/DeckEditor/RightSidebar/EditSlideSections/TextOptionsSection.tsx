@@ -44,40 +44,46 @@ const TextOptionsSection = () => {
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Text answer</h4>
-      <NumberInput
-        id={`text-max-length-${slideId}`}
-        label='Max length'
-        min={1}
-        max={500}
-        value={maxLength}
-        onChange={(next) => {
-          setMaxLength(next);
-          updateSlideContent({ maxLength: next });
-        }}
-        onBlur={flush}
-      />
-      <Toggle
-        id={`text-trim-${slideId}`}
-        label='Trim whitespace before scoring'
-        checked={trimWhitespace}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setTrimWhitespace(next);
-          updateSlideContent({ trimWhitespace: next });
-          flush();
-        }}
-      />
-      <Toggle
-        id={`text-case-${slideId}`}
-        label='Case-sensitive matching'
-        checked={caseSensitive}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setCaseSensitive(next);
-          updateSlideContent({ caseSensitive: next });
-          flush();
-        }}
-      />
+      <div className={styles.rows}>
+        <NumberInput
+          labelPosition="labelInFront"
+          compact
+          id={`text-max-length-${slideId}`}
+          label='Max length'
+          min={1}
+          max={500}
+          value={maxLength}
+          onChange={(next) => {
+            setMaxLength(next);
+            updateSlideContent({ maxLength: next });
+          }}
+          onBlur={flush}
+        />
+        <Toggle
+          labelPosition="labelBefore"
+          id={`text-trim-${slideId}`}
+          label='Trim whitespace before scoring'
+          checked={trimWhitespace}
+          onChange={(e) => {
+            const next = e.currentTarget.checked;
+            setTrimWhitespace(next);
+            updateSlideContent({ trimWhitespace: next });
+            flush();
+          }}
+        />
+        <Toggle
+          labelPosition="labelBefore"
+          id={`text-case-${slideId}`}
+          label='Case-sensitive matching'
+          checked={caseSensitive}
+          onChange={(e) => {
+            const next = e.currentTarget.checked;
+            setCaseSensitive(next);
+            updateSlideContent({ caseSensitive: next });
+            flush();
+          }}
+        />
+      </div>
     </section>
   );
 };

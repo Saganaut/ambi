@@ -39,6 +39,8 @@ const FollowUpOptionsSection = () => {
     <section className={styles.section}>
       <h4 className={styles.heading}>Follow-up</h4>
       <Dropdown
+        labelPosition="labelInFront"
+        compact
         id={`follow-up-mode-${slide.id}`}
         label='Mode'
         options={validModes.map((mode) => ({

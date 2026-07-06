@@ -16,6 +16,7 @@ interface InputProps
   variant?: BtnVariant;
   labelPosition?: "labelAbove" | "labelInFront";
   fullWidth?: boolean;
+  compact?: boolean;
   withPadding?: boolean;
   ref?: React.RefObject<HTMLInputElement | null>;
 }
@@ -29,6 +30,7 @@ const Input = ({
   errorMessage,
   checked = false,
   fullWidth = false,
+  compact = false,
   isBordered = true,
   className,
   ariaLabel,
@@ -52,7 +54,11 @@ const Input = ({
         .join(" ")}>
       {label && <label htmlFor={id}>{label}</label>}
       <div
-        className={[styles.input, fullWidth && styles.fullWidth]
+        className={[
+          styles.input,
+          fullWidth && styles.fullWidth,
+          compact && styles.compact,
+        ]
           .filter(Boolean)
           .join(" ")}>
         <input

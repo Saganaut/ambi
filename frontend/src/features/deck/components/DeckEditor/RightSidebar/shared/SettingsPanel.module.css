@@ -16,7 +16,19 @@
 .inherited {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
+  text-align: start;
   margin: 0;
+
+  b {
+    font-weight: 600;
+  }
+}
+
+/* Hairline between the panel's zones (inheritance note → settings rows →
+   per-kind section); the panel's flex gap spaces the zones themselves. */
+.sectionDivider {
+  border-top: var(--border-size-sm) solid var(--edge-subtle);
+  padding-top: var(--space-3);
 }
 
 .footer {

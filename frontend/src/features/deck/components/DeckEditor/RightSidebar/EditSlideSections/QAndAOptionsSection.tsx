@@ -48,40 +48,46 @@ const QAndAOptionsSection = () => {
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Q&amp;A moderation</h4>
-      <Toggle
-        id={`qa-anon-${slideId2}`}
-        label='Allow anonymous submissions'
-        checked={allowAnonymous}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setAllowAnonymous(next);
-          scheduleAnswerSettings({ allowAnonymous: next });
-          flushSettings();
-        }}
-      />
-      <Toggle
-        id={`qa-moderated-${slideId2}`}
-        label='Moderate submissions before showing'
-        checked={moderated}
-        onChange={(e) => {
-          const next = e.currentTarget.checked;
-          setModerated(next);
-          updateSlideContent({ moderated: next });
-          flush();
-        }}
-      />
-      <NumberInput
-        id={`qa-max-responses-${slideId2}`}
-        label='Max responses (0 = unlimited)'
-        min={0}
-        max={1000}
-        value={maxResponses}
-        onChange={(next) => {
-          setMaxResponses(next);
-          updateSlideContent({ maxResponses: next === 0 ? undefined : next });
-        }}
-        onBlur={flush}
-      />
+      <div className={styles.rows}>
+        <Toggle
+          labelPosition="labelBefore"
+          id={`qa-anon-${slideId2}`}
+          label='Allow anonymous submissions'
+          checked={allowAnonymous}
+          onChange={(e) => {
+            const next = e.currentTarget.checked;
+            setAllowAnonymous(next);
+            scheduleAnswerSettings({ allowAnonymous: next });
+            flushSettings();
+          }}
+        />
+        <Toggle
+          labelPosition="labelBefore"
+          id={`qa-moderated-${slideId2}`}
+          label='Moderate submissions before showing'
+          checked={moderated}
+          onChange={(e) => {
+            const next = e.currentTarget.checked;
+            setModerated(next);
+            updateSlideContent({ moderated: next });
+            flush();
+          }}
+        />
+        <NumberInput
+          labelPosition="labelInFront"
+          compact
+          id={`qa-max-responses-${slideId2}`}
+          label='Max responses (0 = unlimited)'
+          min={0}
+          max={1000}
+          value={maxResponses}
+          onChange={(next) => {
+            setMaxResponses(next);
+            updateSlideContent({ maxResponses: next === 0 ? undefined : next });
+          }}
+          onBlur={flush}
+        />
+      </div>
     </section>
   );
 };

@@ -18,6 +18,7 @@ interface NumberInputProps
   onChange: (value: number) => void;
   labelPosition?: "labelAbove" | "labelInFront";
   fullWidth?: boolean;
+  compact?: boolean;
 }
 
 const NumberInput = ({
@@ -31,6 +32,7 @@ const NumberInput = ({
   infoMessage,
   errorMessage,
   fullWidth = false,
+  compact = false,
   disabled,
   min,
   max,
@@ -48,7 +50,11 @@ const NumberInput = ({
         .join(" ")}>
       {label && <label htmlFor={id}>{label}</label>}
       <div
-        className={[styles.input, fullWidth ? styles.fullWidth : ""]
+        className={[
+          styles.input,
+          fullWidth ? styles.fullWidth : "",
+          compact ? styles.compact : "",
+        ]
           .filter(Boolean)
           .join(" ")}>
         <input

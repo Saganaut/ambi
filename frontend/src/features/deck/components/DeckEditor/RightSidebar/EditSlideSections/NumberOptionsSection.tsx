@@ -41,50 +41,61 @@ const NumberOptionsSection = () => {
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Numeric answer</h4>
-      <NumberInput
-        id={`number-min-${slideId}`}
-        label='Minimum'
-        value={minValue}
-        onChange={(next) => {
-          setMinValue(next);
-          updateSlideContent({ min: next });
-        }}
-        onBlur={flush}
-      />
-      <NumberInput
-        id={`number-max-${slideId}`}
-        label='Maximum'
-        value={maxValue}
-        onChange={(next) => {
-          setMaxValue(next);
-          updateSlideContent({ max: next });
-        }}
-        onBlur={flush}
-      />
-      <NumberInput
-        id={`number-tolerance-${slideId}`}
-        label='Tolerance (accepted deviation)'
-        min={0}
-        value={tolerance}
-        onChange={(next) => {
-          setTolerance(next);
-          updateSlideContent({ tolerance: next });
-        }}
-        onBlur={flush}
-      />
-      <Input
-        id={`number-unit-${slideId}`}
-        label='Unit (e.g. km, °C)'
-        type='text'
-        value={unit}
-        placeholder='Optional unit label…'
-        onChange={(e) => {
-          const next = e.target.value;
-          setUnit(next);
-          updateSlideContent({ unit: next });
-        }}
-        onBlur={flush}
-      />
+      <div className={styles.rows}>
+        <NumberInput
+          labelPosition="labelInFront"
+          compact
+          id={`number-min-${slideId}`}
+          label='Minimum'
+          value={minValue}
+          onChange={(next) => {
+            setMinValue(next);
+            updateSlideContent({ min: next });
+          }}
+          onBlur={flush}
+        />
+        <NumberInput
+          labelPosition="labelInFront"
+          compact
+          id={`number-max-${slideId}`}
+          label='Maximum'
+          value={maxValue}
+          onChange={(next) => {
+            setMaxValue(next);
+            updateSlideContent({ max: next });
+          }}
+          onBlur={flush}
+        />
+        <NumberInput
+          labelPosition="labelInFront"
+          compact
+          id={`number-tolerance-${slideId}`}
+          label='Tolerance (accepted deviation)'
+          min={0}
+          value={tolerance}
+          onChange={(next) => {
+            setTolerance(next);
+            updateSlideContent({ tolerance: next });
+          }}
+          onBlur={flush}
+        />
+        <Input
+          labelPosition="labelInFront"
+          compact
+          withPadding={false}
+          id={`number-unit-${slideId}`}
+          label='Unit (e.g. km, °C)'
+          type='text'
+          value={unit}
+          placeholder='Unit…'
+          onChange={(e) => {
+            const next = e.target.value;
+            setUnit(next);
+            updateSlideContent({ unit: next });
+          }}
+          onBlur={flush}
+        />
+      </div>
     </section>
   );
 };

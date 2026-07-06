@@ -201,13 +201,13 @@ const AnswerPanel = ({
         </div>
       ) : (
         <p className={styles.inherited}>
-          Using the deck default. Edits below apply to this slide only.
+          <b>Using the deck default.</b> Edits below apply to this slide only.
         </p>
       ))}
 
       {isScorable && (
-      <section className={slidePanel.section}>
-        <>
+      <section className={`${slidePanel.section} ${styles.sectionDivider}`}>
+        <div className={slidePanel.rows}>
           <Toggle
             labelPosition="labelBefore"
             id={`${idPrefix}-enable-time-limit`}
@@ -218,13 +218,14 @@ const AnswerPanel = ({
           />
           {showTimeLimit &&
             <NumberInput
+              labelPosition="labelInFront"
+              compact
               id={`${idPrefix}-countdown-time`}
               label='Countdown (seconds)'
               min={0}
               max={3600}
               disabled={disabled}
               value={form.countdownTime ?? D.countdownTime}
-              infoMessage='0 = No time limit'
               onChange={number("countdownTime")}
               onBlur={blurTimeLimit}
             />
@@ -239,6 +240,8 @@ const AnswerPanel = ({
           />
           {(form.maxSelections ?? 1) > 1 &&
             <NumberInput
+              labelPosition="labelInFront"
+              compact
               id={`${idPrefix}-max-selections`}
               label='Answers per participant'
               min={1}
@@ -257,7 +260,6 @@ const AnswerPanel = ({
             checked={form.shuffleOptions ?? D.shuffleOptions}
             onChange={toggle("shuffleOptions")}
           />
-
           <Toggle
             labelPosition="labelBefore"
             id={`${idPrefix}-anonymize-answers`}
@@ -267,6 +269,8 @@ const AnswerPanel = ({
             onChange={toggle("anonymizeAnswers")}
           />
           <Dropdown
+            labelPosition="labelInFront"
+            compact
             id={`${idPrefix}-display-results-mode`}
             label='Reveal results'
             options={RESULTS_DISPLAY_MODE_OPTIONS}
@@ -290,18 +294,21 @@ const AnswerPanel = ({
               onChange={toggle("displayResultsAsPercentage")}
             />
           )}
-        </>
+        </div>
         <Tooltip
           className={styles.applyTooltip}
           label='Sets these as the deck default and removes all per-slide answer-settings overrides, so every slide inherits this value.'>
-          <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
+          <Btn onClick={applyToDeck}>
             Apply to all slides
           </Btn>
         </Tooltip>
       </section>
       )}
 
-      <section className={slidePanel.section} >
+      <section
+        className={[slidePanel.section, isScorable ? styles.sectionDivider : ""]
+          .filter(Boolean)
+          .join(" ")}>
         {slide &&
           <PerKindSection contentType={slide.content.contentType} />
         }
