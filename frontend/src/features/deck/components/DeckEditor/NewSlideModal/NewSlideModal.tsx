@@ -26,6 +26,7 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   SCALES: "Scales",
   Q_AND_A: "Q & A",
   GRID: "Grid",
+  AXIS: "Axis",
   PLACE_ON_IMAGE: "Place on Image",
   ALLOCATION: "Allocation",
   MATCHING: "Matching",

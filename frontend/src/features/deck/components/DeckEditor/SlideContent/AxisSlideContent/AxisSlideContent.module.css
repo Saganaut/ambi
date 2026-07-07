@@ -1,0 +1,260 @@
+/* AxisSlideContent — author UI for Axis (free-form 2D placement) slides. The
+   item row chrome is the shared `ItemCard`; axis-specific styles are the
+   plane with its endpoint-label frame, the placed chips + tolerance circles,
+   the unplaced-item bank, and the drag grip (mirroring Grid). */
+
+/* ── Plane + bank layout ────────────────────────────────────────────────── */
+
+.planeEditor {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.planeFrame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.planeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* Endpoint-label inputs: compact so the plane keeps the room. */
+.planeXLabel {
+  flex: 0 0 7rem;
+  min-width: 0;
+}
+
+.planeYLabel {
+  width: 12rem;
+  max-width: 100%;
+}
+
+/* ── The plane itself ───────────────────────────────────────────────────── */
+
+.plane {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+
+  /* Near-square, capped so the plane never overflows the slide canvas. */
+  max-width: 19rem;
+  aspect-ratio: 1;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+
+  /* Tolerance circles overhang near the edges; the plane stays the viewport. */
+  overflow: hidden;
+}
+
+.planeArmed {
+  cursor: crosshair;
+  border-color: var(--text-accent);
+}
+
+/* Faint centre lines quarter the plane so authors can eyeball coordinates. */
+.planeAxisLineX,
+.planeAxisLineY {
+  position: absolute;
+  background-color: var(--border-default);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.planeAxisLineX {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+}
+
+.planeAxisLineY {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+}
+
+/* ── Placed targets ─────────────────────────────────────────────────────── */
+
+.toleranceCircle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 1px dashed var(--text-accent);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+
+  /* A faint accent wash inside the accepted region. On the pseudo-element so
+     the low opacity never fades the dashed outline. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--text-accent);
+    opacity: 0.12;
+  }
+}
+
+.placedChip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 9rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: grab;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+}
+
+.placedChip:active {
+  cursor: grabbing;
+}
+
+.placedChip[aria-pressed="true"] {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+/* ── Unplaced-item bank ─────────────────────────────────────────────────── */
+
+.bank {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  flex: 0 0 10rem;
+  min-width: 0;
+}
+
+.bankTitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.bankChip {
+  max-width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bankChip[aria-pressed="true"] {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.bankEmpty,
+.bankHint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* ── Tolerance slider ───────────────────────────────────────────────────── */
+
+.toleranceRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+
+  & input[type="range"] {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ── Item rows ──────────────────────────────────────────────────────────── */
+
+.itemFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.targetFields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.setTarget {
+  align-self: flex-start;
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+
+  &:hover {
+    background-color: var(--bg-surface-raised);
+  }
+}
+
+/* Grip handle slotted into the card's `actions` (see GridSlideContent). */
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+  transition:
+    color var(--duration-fast) ease-out,
+    background-color var(--duration-fast) ease-out;
+}
+
+.dragHandle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-raised);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.dragHandleIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The row being dragged: dim it so the drop target reads clearly. */
+.dragging {
+  opacity: 0.6;
+}

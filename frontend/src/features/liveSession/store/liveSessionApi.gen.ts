@@ -392,6 +392,7 @@ export type SlideView = {
     | "SCALES"
     | "TEXT"
     | "ALLOCATION"
+    | "AXIS"
     | "TITLE"
     | "CONTENT"
     | "MEDIA"

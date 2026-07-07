@@ -62,6 +62,11 @@
     width: 100%;
     min-width: 0;
     min-height: 0;
+
+    /* The body owns the scroll (the gutter above is already reserved for it),
+       so a tall editor scrolls behind the pinned footer instead of being
+       clipped by the canvas's overflow: hidden. */
+    overflow-y: auto;
     scrollbar-gutter: stable;
     height: 100%;
 

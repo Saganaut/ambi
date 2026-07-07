@@ -18,9 +18,10 @@ export const DeckVisibility = {
   UNLISTED: "UNLISTED",
 } as const satisfies Record<DeckVisibility, DeckVisibility>;
 
-export type SlideType = "ALLOCATION" | "CONTENT" | "DRAWING" | "FOLLOW_UP" | "GRID" | "INSTRUCTION" | "MATCHING" | "MCQ" | "MEDIA" | "NUMBER" | "PLACE_ON_IMAGE" | "Q_AND_A" | "RANKING" | "SCALES" | "TEXT" | "TITLE";
+export type SlideType = "ALLOCATION" | "AXIS" | "CONTENT" | "DRAWING" | "FOLLOW_UP" | "GRID" | "INSTRUCTION" | "MATCHING" | "MCQ" | "MEDIA" | "NUMBER" | "PLACE_ON_IMAGE" | "Q_AND_A" | "RANKING" | "SCALES" | "TEXT" | "TITLE";
 export const SlideType = {
   ALLOCATION: "ALLOCATION",
+  AXIS: "AXIS",
   CONTENT: "CONTENT",
   DRAWING: "DRAWING",
   FOLLOW_UP: "FOLLOW_UP",

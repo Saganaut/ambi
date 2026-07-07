@@ -13,7 +13,14 @@
  * slide and its settings — so they are absent here entirely.
  */
 import { nanoid } from "nanoid";
-import { GridItem, McqOption, RankItem, ScaleItem, SlideContent } from "../store/deckApi.gen";
+import {
+  AxisItem,
+  GridItem,
+  McqOption,
+  RankItem,
+  ScaleItem,
+  SlideContent,
+} from "../store/deckApi.gen";
 type SlideType = NonNullable<SlideContent["contentType"]>;
 
 /**
@@ -134,6 +141,23 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         correctCells: {},
         scoreMode: "EXACT",
       };
+    case "AXIS":
+      // Empty endpoint labels fall back to placeholders in the editor; two
+      // seeded items mirror GRID's seed. An empty `correctPositions` marks the
+      // slide unscored (opinion plane) — the author opts into scoring by
+      // placing targets. Grading is INSIDE_RADIUS only, so `scoreMode` has no
+      // authoring knob and is fixed here.
+      return {
+        contentType: "AXIS",
+        xLowLabel: "",
+        xHighLabel: "",
+        yLowLabel: "",
+        yHighLabel: "",
+        items: [buildDefaultAxisItem(), buildDefaultAxisItem()],
+        correctPositions: {},
+        tolerance: 0.1,
+        scoreMode: "INSIDE_RADIUS",
+      };
     case "MATCHING":
       return {
         contentType: "MATCHING",
@@ -208,6 +232,17 @@ export const buildDefaultRankItem = (): RankItem => ({
  * placements. The label is empty for the author to fill in.
  */
 export const buildDefaultGridItem = (): GridItem => ({
+  id: nanoid(8),
+  label: "",
+});
+
+/**
+ * Build a blank axis item with a fresh client-minted id. AXIS slides key each
+ * item's target point by id (via the content's `correctPositions`), so a stable
+ * id at creation time is what lets the author place targets and the backend
+ * grade placements. The label is empty for the author to fill in.
+ */
+export const buildDefaultAxisItem = (): AxisItem => ({
   id: nanoid(8),
   label: "",
 });

@@ -870,6 +870,34 @@ export type GridContent = {
     | "DISTANCE";
   contentType: "GRID";
 };
+export type AxisItem = {
+  id?: string;
+  label?: string;
+};
+export type AxisPoint = {
+  x: number;
+  y: number;
+};
+export type AxisContent = {
+  xLowLabel: string;
+  xHighLabel: string;
+  yLowLabel: string;
+  yHighLabel: string;
+  items: AxisItem[];
+  correctPositions: {
+    [key: string]: AxisPoint;
+  };
+  tolerance: number;
+  scoreMode:
+    | "EXACT"
+    | "PARTIAL"
+    | "RANGE"
+    | "CLOSEST"
+    | "INSIDE_RADIUS"
+    | "NEAREST"
+    | "DISTANCE";
+  contentType: "AXIS";
+};
 export type Target = {
   id?: string;
   x?: number;
@@ -980,6 +1008,9 @@ export type SlideContent =
   | ({
       contentType: "GRID";
     } & GridContent)
+  | ({
+      contentType: "AXIS";
+    } & AxisContent)
   | ({
       contentType: "PLACE_ON_IMAGE";
     } & PlaceOnImageContent)

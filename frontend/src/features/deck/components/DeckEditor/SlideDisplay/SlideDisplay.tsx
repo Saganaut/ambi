@@ -43,6 +43,11 @@ const GridSlideContent = lazy(() =>
     default: m.GridSlideContent,
   })),
 );
+const AxisSlideContent = lazy(() =>
+  import("../SlideContent/AxisSlideContent/AxisSlideContent").then((m) => ({
+    default: m.AxisSlideContent,
+  })),
+);
 const MatchingSlideContent = lazy(() =>
   import("../SlideContent/MatchingSlideContent/MatchingSlideContent").then((m) => ({
     default: m.MatchingSlideContent,
@@ -173,6 +178,8 @@ const SlideDisplay = () => {
         return <QAndASlideContent deckId={deckId} slideId={slideId} />;
       case "GRID":
         return <GridSlideContent deckId={deckId} slideId={slideId} />;
+      case "AXIS":
+        return <AxisSlideContent deckId={deckId} slideId={slideId} />;
       case "PLACE_ON_IMAGE":
         return <PlaceOnImageSlideContent />;
       case "ALLOCATION":

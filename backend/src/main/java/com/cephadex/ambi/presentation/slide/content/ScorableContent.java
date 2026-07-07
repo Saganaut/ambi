@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 @JsonSubTypes.Type(value = RankingContent.class),
                 @JsonSubTypes.Type(value = ScalesContent.class),
                 @JsonSubTypes.Type(value = GridContent.class),
+                @JsonSubTypes.Type(value = AxisContent.class),
                 @JsonSubTypes.Type(value = PlaceOnImageContent.class),
                 @JsonSubTypes.Type(value = MatchingContent.class),
                 @JsonSubTypes.Type(value = FollowUpContent.class),
@@ -30,7 +31,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public sealed interface ScorableContent extends SlideContent
                 permits McqContent, NumberContent, TextContent,
-                RankingContent, ScalesContent, GridContent, PlaceOnImageContent, MatchingContent, FollowUpContent,
-                AllocationContent, DrawingContent {
+                RankingContent, ScalesContent, GridContent, AxisContent, PlaceOnImageContent, MatchingContent,
+                FollowUpContent, AllocationContent, DrawingContent {
 
 }

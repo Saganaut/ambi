@@ -70,6 +70,18 @@ public class SlideContentTypes {
     public record GridItem(String id, String label, AppImage image) {
     }
 
+    // --------------- Axis -------------------------------------------------
+
+    /** A point on the axis plane, normalized to [0, 1] on both axes. */
+    public record AxisPoint(
+            @Schema(requiredMode = REQUIRED) double x,
+            @Schema(requiredMode = REQUIRED) double y) {
+    }
+
+    /** An item players place on the axis plane. */
+    public record AxisItem(String id, String label) {
+    }
+
     // --------------- PlaceOnImage ----------------------------------------
 
     /**

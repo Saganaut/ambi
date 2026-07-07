@@ -3,6 +3,7 @@
 // underlying .svg files live in src/assets/images/slide-types/.
 import type { ComponentType, SVGProps } from "react";
 import AllocationGraphic from "@assets/images/slide-types/allocation.svg?react";
+import AxisGraphic from "@assets/images/slide-types/axis.svg?react";
 import DrawingGraphic from "@assets/images/slide-types/drawing.svg?react";
 import GridGraphic from "@assets/images/slide-types/grid.svg?react";
 import MatchingGraphic from "@assets/images/slide-types/matching.svg?react";
@@ -32,6 +33,7 @@ export const slideTypeGraphics: Record<
   SCALES: ScalesGraphic,
   Q_AND_A: QAndAGraphic,
   GRID: GridGraphic,
+  AXIS: AxisGraphic,
   PLACE_ON_IMAGE: PlaceOnImageGraphic,
   ALLOCATION: AllocationGraphic,
   MATCHING: MatchingGraphic,

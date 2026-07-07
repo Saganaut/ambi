@@ -26,6 +26,7 @@ import type {
   AllocationContent,
   AnswerSettings,
   AppImage,
+  AxisContent,
   AudienceSettings,
   DeckAccessGrant,
   DeckResponse,
@@ -209,6 +210,26 @@ const gridContent: GridContent = {
   scoreMode: "PARTIAL",
 };
 
+const axisContent: AxisContent = {
+  contentType: "AXIS",
+  xLowLabel: "Cautious",
+  xHighLabel: "Reckless",
+  yLowLabel: "Humble",
+  yHighLabel: "Proud",
+  items: [
+    { id: "axis_sam", label: "Samwise" },
+    { id: "axis_pippin", label: "Pippin" },
+    { id: "axis_boromir", label: "Boromir" },
+  ],
+  correctPositions: {
+    axis_sam: { x: 0.2, y: 0.15 },
+    axis_pippin: { x: 0.85, y: 0.3 },
+    axis_boromir: { x: 0.6, y: 0.8 },
+  },
+  tolerance: 0.12,
+  scoreMode: "INSIDE_RADIUS",
+};
+
 const placeOnImageContent: PlaceOnImageContent = {
   contentType: "PLACE_ON_IMAGE",
   image: externalImage("https://picsum.photos/seed/middle-earth-map/1600/1200"),
@@ -337,6 +358,11 @@ export const mockGridSlide = slide("slide_grid", "Who Goes Where", gridContent, 
   difficulty: "MEDIUM",
 });
 
+export const mockAxisSlide = slide("slide_axis", "Fellowship Temperaments", axisContent, {
+  sortOrder: "a65",
+  difficulty: "MEDIUM",
+});
+
 export const mockPlaceOnImageSlide = slide(
   "slide_place",
   "Find Minas Tirith",
@@ -388,6 +414,7 @@ export const mockAllSlides: SlideResponse[] = [
   mockRankingSlide,
   mockScalesSlide,
   mockGridSlide,
+  mockAxisSlide,
   mockPlaceOnImageSlide,
   mockMatchingSlide,
   mockAllocationSlide,
