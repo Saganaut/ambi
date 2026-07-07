@@ -345,7 +345,7 @@ class LiveSessionOrchestratorTest {
     void submitQuestionAppendsToPriorAggregateAndPublishes() {
         stubPhase(RoundPhase.SUBMIT);
         QAndAQuestions prior = new QAndAQuestions(
-                List.of(new QAndAQuestions.Entry("q-1", "First?", Instant.now())));
+                List.of(new QAndAQuestions.QuestionEntry("q-1", "First?", Instant.now())));
         Answer priorAnswer = answerWith(prior);
         when(answerStore.answerOf(SID, SLIDE, "p-1")).thenReturn(Optional.of(priorAnswer));
         when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(priorAnswer));
@@ -369,8 +369,8 @@ class LiveSessionOrchestratorTest {
     void submitQuestionEnforcesPerParticipantCap() {
         stubPhase(RoundPhase.SUBMIT);
         QAndAQuestions prior = new QAndAQuestions(List.of(
-                new QAndAQuestions.Entry("q-1", "One?", Instant.now()),
-                new QAndAQuestions.Entry("q-2", "Two?", Instant.now())));
+                new QAndAQuestions.QuestionEntry("q-1", "One?", Instant.now()),
+                new QAndAQuestions.QuestionEntry("q-2", "Two?", Instant.now())));
         when(answerStore.answerOf(SID, SLIDE, "p-1")).thenReturn(Optional.of(answerWith(prior)));
 
         assertThatThrownBy(() -> orchestrator.submitQuestion(SID, SLIDE, "p-1", new QAndAAnswer("Three?"), 2, false))
@@ -393,7 +393,7 @@ class LiveSessionOrchestratorTest {
         stubPhase(RoundPhase.SUBMIT);
         when(answerStore.answerOf(SID, SLIDE, "p-1")).thenReturn(Optional.empty());
         when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(answerWith(new QAndAQuestions(
-                List.of(new QAndAQuestions.Entry("q-1", "Who asked?", Instant.now()))))));
+                List.of(new QAndAQuestions.QuestionEntry("q-1", "Who asked?", Instant.now()))))));
         when(qandaHostAnswers.all(SID, SLIDE)).thenReturn(Map.of());
 
         orchestrator.submitQuestion(SID, SLIDE, "p-1", new QAndAAnswer("Who asked?"), null, true);
@@ -407,7 +407,7 @@ class LiveSessionOrchestratorTest {
     void answerQuestionStoresHostAnswerAndPublishes() {
         givenSlideWithMode(ResultsDisplayMode.MANUAL);
         Answer asked = answerWith(new QAndAQuestions(
-                List.of(new QAndAQuestions.Entry("q-1", "Why?", Instant.now()))));
+                List.of(new QAndAQuestions.QuestionEntry("q-1", "Why?", Instant.now()))));
         when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(asked));
         when(qandaHostAnswers.all(SID, SLIDE)).thenReturn(Map.of("q-1", "Because."));
 
@@ -423,7 +423,7 @@ class LiveSessionOrchestratorTest {
     void answerQuestionWithBlankTextClearsIt() {
         givenSlideWithMode(ResultsDisplayMode.MANUAL);
         Answer asked = answerWith(new QAndAQuestions(
-                List.of(new QAndAQuestions.Entry("q-1", "Why?", Instant.now()))));
+                List.of(new QAndAQuestions.QuestionEntry("q-1", "Why?", Instant.now()))));
         when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(asked));
         when(qandaHostAnswers.all(SID, SLIDE)).thenReturn(Map.of());
 

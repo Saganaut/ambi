@@ -23,6 +23,7 @@ import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
+import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
@@ -184,7 +185,7 @@ class LiveSessionAnswerServiceTest {
     @Test
     void qandaOverlongQuestionIsRejected() {
         givenLiveSession(answerSettings(true, 1), new QAndAContent(null, false));
-        String tooLong = "x".repeat(QAndAAnswer.MAX_QUESTION_LENGTH + 1);
+        String tooLong = "x".repeat(ValidationConstants.QANDA_QUESTION_MAX + 1);
 
         assertThatThrownBy(() -> service.submit(SID, request(new QAndAAnswer(tooLong)), registered))
                 .isInstanceOf(ValidationException.class);

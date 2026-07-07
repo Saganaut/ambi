@@ -2,10 +2,12 @@ package com.cephadex.ambi.session;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -391,7 +393,7 @@ public class LiveSessionOrchestrator {
             throw new ConflictException("ROUND_NOT_OPEN", "this slide is not accepting submissions");
         }
 
-        List<QAndAQuestions.Entry> entries = new java.util.ArrayList<>(
+        List<QAndAQuestions.QuestionEntry> entries = new ArrayList<>(
                 answerStore.answerOf(sessionId, slideId, participantId)
                         .map(prior -> prior.getPayload())
                         .filter(QAndAQuestions.class::isInstance)
@@ -401,8 +403,8 @@ public class LiveSessionOrchestrator {
             throw new ConflictException("QUESTION_LIMIT_REACHED",
                     "you have reached this round's question limit");
         }
-        entries.add(new QAndAQuestions.Entry(
-                java.util.UUID.randomUUID().toString(), payload.question().strip(), Instant.now()));
+        entries.add(new QAndAQuestions.QuestionEntry(
+                UUID.randomUUID().toString(), payload.question().strip(), Instant.now()));
 
         Answer answer = new Answer();
         answer.setParticipantId(participantId);

@@ -100,7 +100,7 @@ class RoundEvaluatorTest {
 
         AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
                 List.of(answer("p", new QAndAQuestions(
-                        List.of(new QAndAQuestions.Entry("q-1", "Why?", START))), 10)),
+                        List.of(new QAndAQuestions.QuestionEntry("q-1", "Why?", START))), 10)),
                 START).get(0);
 
         assertThat(eval.correct()).isFalse();

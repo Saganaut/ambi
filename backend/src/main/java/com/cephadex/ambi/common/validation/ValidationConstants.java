@@ -62,6 +62,12 @@ public final class ValidationConstants {
     /** Body length cap for a deck-discussion comment (top-level or reply). */
     public static final int COMMENT_BODY_MAX = 4000;
 
+    // ── Live sessions ────────────────────────────────────────────────────────
+    /** Length cap on a participant's submitted Q&amp;A question. */
+    public static final int QANDA_QUESTION_MAX = 500;
+    /** Length cap on the answer the host types next to a Q&amp;A question. */
+    public static final int QANDA_HOST_ANSWER_MAX = 1000;
+
     // ── Reviews ──────────────────────────────────────────────────────────────
     /** Lowest valid star score on a deck review. */
     public static final int REVIEW_STARS_MIN = 1;

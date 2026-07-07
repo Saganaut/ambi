@@ -69,6 +69,7 @@ Role/relationship violation:
 | `COMMENT_NOT_FOUND` | Comment id doesn't resolve |
 | `COMMENT_THREAD_NOT_FOUND` | Comment thread id doesn't resolve |
 | `USER_NOT_FOUND` | User id doesn't resolve |
+| `QUESTION_NOT_FOUND` | Q&A question id doesn't resolve within the round |
 
 ### 409 — `ConflictException`
 
@@ -79,6 +80,7 @@ Role/relationship violation:
 | `SESSION_NOT_IN_LOBBY` | Action requires the session to be in the lobby stage |
 | `HOST_CANNOT_LEAVE` | Host attempted to leave their own session |
 | `ROUND_NOT_OPEN` | Action requires an open round |
+| `QUESTION_LIMIT_REACHED` | Participant hit the Q&A round's per-player question cap |
 | `ROUND_ALREADY_SCORED` | Round has already been scored |
 | `ROUND_ALREADY_OPEN` | Round is already open |
 | `PARENT_ROUND_NOT_SCORED` | A follow-up round's parent round isn't scored yet |

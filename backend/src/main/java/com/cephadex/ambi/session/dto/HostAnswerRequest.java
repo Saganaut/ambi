@@ -1,5 +1,7 @@
 package com.cephadex.ambi.session.dto;
 
+import com.cephadex.ambi.common.validation.ValidationConstants;
+
 import jakarta.validation.constraints.Size;
 
 /**
@@ -8,5 +10,5 @@ import jakarta.validation.constraints.Size;
  * clears a previously typed answer, so there is no {@code @NotBlank} here.
  */
 public record HostAnswerRequest(
-        @Size(max = 1000) String answer) {
+        @Size(max = ValidationConstants.QANDA_HOST_ANSWER_MAX) String answer) {
 }

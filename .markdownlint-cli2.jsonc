@@ -12,6 +12,7 @@
     "backend/target",
     ".claude",
     "frontend/.claude",
+    "backend/.claude",
     ".design-sync",
     "ds-bundle",
     "CLAUDE.md",

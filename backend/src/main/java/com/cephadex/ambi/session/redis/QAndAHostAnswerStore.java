@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * The host's typed answers for a Q&amp;A round, kept in Redis as a Hash with one
  * field per question id (the server-assigned id on
- * {@code QAndAQuestions.Entry}). Session-scoped runtime state like
+ * {@code QAndAQuestions.QuestionEntry}). Session-scoped runtime state like
  * {@link TallyStore}: it exists so the answer the host types next to a question
  * survives a client refresh (the snapshot re-reads it) and fans out to every
  * subscriber, but it is never flushed to Mongo — a Q&amp;A round's durable record

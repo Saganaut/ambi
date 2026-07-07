@@ -287,7 +287,7 @@ export type QAndAAnswer = {
 } & AnswerPayloadBase & {
     question?: string;
   };
-export type Entry = {
+export type QuestionEntry = {
   id?: string;
   text?: string;
   askedAt?: string;
@@ -295,7 +295,7 @@ export type Entry = {
 export type QAndAQuestions = {
   answerType: "QAndAQuestions";
 } & AnswerPayloadBase & {
-    questions?: Entry[];
+    questions?: QuestionEntry[];
   };
 export type RankingAnswer = {
   answerType: "RankingAnswer";

@@ -39,6 +39,7 @@ const TAG_TO_FEATURE = {
   "auth-controller": "auth",
   "theme-controller": "theme",
   "org-controller": "org",
+  "live-session-controller": "liveSession",
 };
 // Operation-id overrides. Keep in sync with `openapi-config.cts` (specialCasesMap).
 const SPECIAL_CASES = {
@@ -61,6 +62,21 @@ const SHARED_FILE = {
   typeName: "SharedValidation",
   label: "shared",
 };
+
+/**
+ * A schema's own properties, including those declared by inline `allOf` members —
+ * the shape SpringDoc emits for polymorphic subtypes (e.g. the `AnswerPayload`
+ * union members), whose fields live under `allOf: [{$ref: parent}, {properties}]`.
+ */
+function ownProperties(schema) {
+  const props = { ...(schema.properties ?? {}) };
+  if (Array.isArray(schema.allOf)) {
+    for (const member of schema.allOf) {
+      if (member && !member.$ref && member.properties) Object.assign(props, member.properties);
+    }
+  }
+  return props;
+}
 
 /** Validation facets we care about, in a stable order. */
 const STRING_NUMBER_FACETS = [
@@ -190,9 +206,9 @@ async function main() {
   // 1. Every component schema that carries at least one validation facet.
   const faceted = {};
   for (const [schemaName, schema] of Object.entries(schemas)) {
-    if (!schema || !schema.properties) continue;
+    if (!schema) continue;
     const fields = {};
-    for (const [propName, prop] of Object.entries(schema.properties)) {
+    for (const [propName, prop] of Object.entries(ownProperties(schema))) {
       const facets = pickFacets(prop);
       if (facets) fields[propName] = facets;
     }

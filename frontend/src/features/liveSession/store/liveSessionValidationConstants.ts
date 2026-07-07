@@ -9,24 +9,35 @@
 // used by 2+ features live in sharedValidationConstants.ts. Keys are OpenAPI schema
 // names; values are the per-field facets present.
 
-export const sharedValidation = {
-  "Pageable": {
-    "page": {
-      "minimum": 0
-    },
-    "size": {
-      "minimum": 1
+export const liveSessionValidation = {
+  "CreateSessionRequest": {
+    "deckId": {
+      "minLength": 1
     }
   },
-  "RateDeckRequest": {
-    "body": {
-      "maxLength": 2000
+  "HostAnswerRequest": {
+    "answer": {
+      "maxLength": 1000
+    }
+  },
+  "JoinSessionRequest": {
+    "displayName": {
+      "maxLength": 60
     },
-    "stars": {
-      "minimum": 1,
-      "maximum": 5
+    "roomCode": {
+      "minLength": 1
+    }
+  },
+  "QAndAAnswer": {
+    "question": {
+      "maxLength": 500
+    }
+  },
+  "SubmitAnswerRequest": {
+    "slideId": {
+      "minLength": 1
     }
   }
 } as const;
 
-export type SharedValidation = typeof sharedValidation;
+export type LiveSessionValidation = typeof liveSessionValidation;

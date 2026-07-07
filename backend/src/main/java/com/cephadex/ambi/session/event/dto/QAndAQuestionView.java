@@ -39,7 +39,7 @@ public record QAndAQuestionView(
                 continue;
             }
             String participantId = anonymize ? null : answer.getParticipantId();
-            for (QAndAQuestions.Entry entry : questions.questions()) {
+            for (QAndAQuestions.QuestionEntry entry : questions.questions()) {
                 views.add(new QAndAQuestionView(
                         entry.id(), participantId, entry.text(), entry.askedAt(),
                         hostAnswers.get(entry.id())));

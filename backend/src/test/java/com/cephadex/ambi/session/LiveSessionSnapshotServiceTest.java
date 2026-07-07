@@ -25,6 +25,9 @@ import com.cephadex.ambi.presentation.deck.Settings.InviteSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.session.answer.Answer;
+import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
@@ -159,6 +162,55 @@ class LiveSessionSnapshotServiceTest {
         assertThat(snap.currentSlide().answerSettings().maxSelections()).isEqualTo(2);
         assertThat(snap.currentRoundStartedAt()).isEqualTo(startedAt);
         assertThat(snap.optionTally()).containsEntry("opt-a", 3).containsEntry("opt-b", 1);
+    }
+
+    @Test
+    void qandaRoundSnapshotCarriesQuestionsAndConfig() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(new QAndAContent(3, false));
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.parse("2026-07-01T10:00:00Z"))));
+
+        Answer asked = new Answer();
+        asked.setParticipantId("player-2");
+        asked.setSessionId(SID);
+        asked.setSlideId("slide-1");
+        asked.setSubmittedAt(Instant.parse("2026-07-01T10:01:00Z"));
+        asked.setPayload(new QAndAQuestions(List.of(
+                new QAndAQuestions.QuestionEntry("q-1", "Why?", Instant.parse("2026-07-01T10:01:00Z")))));
+        when(answerStore.answers(SID, "slide-1")).thenReturn(List.of(asked));
+        when(qandaHostAnswers.all(SID, "slide-1")).thenReturn(Map.of("q-1", "Because."));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.currentSlide()).isNotNull();
+        assertThat(snap.currentSlide().qAndA()).isNotNull();
+        assertThat(snap.currentSlide().qAndA().maxResponses()).isEqualTo(3);
+        assertThat(snap.qAndAQuestions()).singleElement().satisfies(q -> {
+            assertThat(q.id()).isEqualTo("q-1");
+            assertThat(q.participantId()).isEqualTo("player-2");
+            assertThat(q.text()).isEqualTo("Why?");
+            assertThat(q.hostAnswer()).isEqualTo("Because.");
+        });
+    }
+
+    @Test
+    void nonQandaRoundSnapshotCarriesNoQuestionList() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"))));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.qAndAQuestions()).isNull();
     }
 
     @Test

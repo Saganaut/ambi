@@ -11,6 +11,7 @@ import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
+import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -121,7 +122,7 @@ public class LiveSessionAnswerService {
         if (question.question() == null || question.question().isBlank()) {
             throw new ValidationException("a question must not be empty");
         }
-        if (question.question().length() > QAndAAnswer.MAX_QUESTION_LENGTH) {
+        if (question.question().length() > ValidationConstants.QANDA_QUESTION_MAX) {
             throw new ValidationException("question is too long");
         }
     }

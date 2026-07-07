@@ -58,8 +58,8 @@ class QAndAQuestionViewTest {
         assertThat(QAndAQuestionView.from(List.of(mcq), Map.of(), false)).isEmpty();
     }
 
-    private static QAndAQuestions.Entry entry(String id, String text, long msAfterT0) {
-        return new QAndAQuestions.Entry(id, text, T0.plusMillis(msAfterT0));
+    private static QAndAQuestions.QuestionEntry entry(String id, String text, long msAfterT0) {
+        return new QAndAQuestions.QuestionEntry(id, text, T0.plusMillis(msAfterT0));
     }
 
     private static Answer answerOf(String participantId, AnswerPayload payload) {
