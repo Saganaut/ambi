@@ -9,12 +9,12 @@
 // each statement's label and target — funnels through a single draft + debounce
 // buffer.
 //
-// Scoring is opt-in and needs no extra field: SCALES content stores
-// `correctValues` (statementId → target value), and the backend grades a slide
-// as unscored the moment that map is empty (mirroring how empty
-// `acceptedAnswers` marks a TEXT slide as a word cloud). So "make this scored"
-// is just "start filling in per-statement targets", and "make this unscored" is
-// "clear the map".
+// Scoring is opt-in per statement and needs no extra field: SCALES content
+// stores `correctValues` (statementId → target value), and the backend grades a
+// slide as unscored the moment that map is empty (mirroring how empty
+// `acceptedAnswers` marks a TEXT slide as a word cloud). So "score this
+// statement" is just "set its target", and "make it unscored" is "drop its
+// key from the map".
 import type { ScaleItem } from "@deck/store/deckApi.gen";
 
 import { buildDefaultScaleItem } from "../utils/slideContent";
@@ -76,8 +76,10 @@ interface UseScalesEditorResult {
   /** ── Scoring ─────────────────────────────────────────────────────────── */
   /** Debounced per-statement target edit → `correctValues[id]`. */
   scheduleCorrectValue: (statementId: string | undefined, value: number) => void;
-  /** Drop every target, turning the slide unscored. */
-  clearCorrectValues: () => void;
+  /** Immediate per-statement target set (a tap on the statement's scale). */
+  commitCorrectValue: (statementId: string | undefined, value: number) => void;
+  /** Drop one statement's target, leaving that statement unscored. */
+  clearCorrectValue: (statementId: string | undefined) => void;
 }
 
 const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult => {
@@ -159,8 +161,18 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     }));
   };
 
-  const clearCorrectValues = () => {
-    editor.updateSlideContent({ correctValues: {} });
+  const commitCorrectValue = (id: string | undefined, value: number) => {
+    if (!id) return;
+    scheduleCorrectValue(id, value);
+    editor.flush();
+  };
+
+  const clearCorrectValue = (id: string | undefined) => {
+    if (!id) return;
+    editor.updateSlideContent((prev) => {
+      const { [id]: _removed, ...rest } = prev.correctValues;
+      return { correctValues: rest };
+    });
     editor.flush();
   };
 
@@ -180,7 +192,8 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     scheduleStatement,
     removeStatement,
     scheduleCorrectValue,
-    clearCorrectValues,
+    commitCorrectValue,
+    clearCorrectValue,
   };
 };
 

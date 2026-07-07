@@ -133,6 +133,12 @@
   background-color: var(--bg-surface-raised);
 }
 
+/* Success tone (e.g. a scored statement). Declared before the active rule so
+   the drag/active highlight still wins while both apply. */
+.itemCard.itemCardSuccess {
+  outline-color: var(--border-success);
+}
+
 .itemCard.itemCardActive {
   outline-color: var(--orange-400);
 }

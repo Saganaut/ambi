@@ -1,21 +1,24 @@
 /**
  * Author surface for a Scales / Likert slide.
  *
- * Prompt on top, then a "Scale" settings card (a live `ScalePreview` over the
- * min / max / step + anchor labels, plus an opt-in "Scored" toggle), then a
- * list of statements the player rates on that scale. Each statement is a
- * controlled `ScaleStatementEditable` row.
+ * Prompt on top, then the "Scale" settings card — two endpoint cards (anchor
+ * label + boundary value stepper) joined by a live track preview, with step
+ * and tolerance tucked behind an "Advanced" disclosure — then the statements
+ * the player rates on that scale.
+ *
+ * Scoring is per statement: each row repeats the scale as tappable points and
+ * the author taps one to set that statement's correct answer (tap it again to
+ * clear). There is no global "scored" switch — the slide is graded the moment
+ * any statement has a target, and unscored when none do.
  *
  * There is exactly one `useScalesEditor` here; the scale-level fields are
  * mirrored locally so the debounced inputs stay responsive, and each row
  * receives its slice of the editor surface as props, so all writes funnel
- * through a single draft + debounce buffer. "Scored" is local UI intent —
- * persistence is simply whether any statement has a target in `correctValues`.
+ * through a single draft + debounce buffer.
  */
 import { useState } from "react";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
-import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
-import { Input } from "@components/Forms/Input/Input/Input";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import {
   MAX_SCALE_STATEMENTS,
@@ -23,8 +26,10 @@ import {
 } from "@deck/hooks/useScalesEditor";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { EmptySelect, ItemList, SectionHeader, SettingsCard, SettingsRow } from "../_shared";
+import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
 import { ScaleStatementEditable } from "./ScaleStatementEditable";
+import styles from "./ScalesSlideContent.module.css";
 
 interface ScalesSlideContentProps {
   deckId: string;
@@ -48,7 +53,8 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     scheduleStatement,
     removeStatement,
     scheduleCorrectValue,
-    clearCorrectValues,
+    commitCorrectValue,
+    clearCorrectValue,
   } = useScalesEditor(deckId, slideId);
 
   // Local mirrors keep the debounced inputs responsive: `updateSlideContent`
@@ -61,7 +67,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
   const [leftLabel, setLeftLabel] = useState(question?.leftLabel ?? "");
   const [rightLabel, setRightLabel] = useState(question?.rightLabel ?? "");
   const [tolerance, setTolerance] = useState(question?.tolerance ?? 0);
-  const [scored, setScored] = useState(question?.scored ?? false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
 
   // Resync every mirror when the active slide changes ("derive state during
@@ -75,20 +81,11 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     setLeftLabel(question.leftLabel);
     setRightLabel(question.rightLabel);
     setTolerance(question.tolerance);
-    setScored(question.scored);
   }
 
   if (!question) return <EmptySelect title="Scales" />;
 
   const idBase = question.id;
-
-  const handleScoredToggle = (next: boolean) => {
-    setScored(next);
-    // Turning scoring off clears every target so the slide grades as unscored;
-    // turning it on just reveals the per-statement inputs (targets persist as
-    // the author fills them in).
-    if (!next) clearCorrectValues();
-  };
 
   return (
     <SlideContentWrapper
@@ -104,87 +101,85 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
       }}
       footer={
         <p>
-          {scored
+          {question.scored
             ? "Players are scored when their rating lands within the tolerance of a statement's answer."
             : "Unscored — collect and show how players rated each statement."}
         </p>
       }
     >
       <SettingsCard title="Scale">
-        <ScalePreview min={min} max={max} minLabel={leftLabel} maxLabel={rightLabel} />
-        <SettingsRow>
-          <NumberInput
-            label="Min"
-            id={`scales-min-${idBase}`}
+        <div className={styles.scaleGrid}>
+          <ScaleEndpointCard
+            side="left"
+            idBase={idBase}
             value={min}
-            onChange={(next) => {
+            incrementDisabled={min + 1 >= max}
+            onCommitValue={(next) => {
               setMin(next);
               scheduleMin(next);
+              flush();
             }}
-            onBlur={flush}
-          />
-          <NumberInput
-            label="Max"
-            id={`scales-max-${idBase}`}
-            value={max}
-            onChange={(next) => {
-              setMax(next);
-              scheduleMax(next);
-            }}
-            onBlur={flush}
-          />
-          <NumberInput
-            label="Step"
-            id={`scales-step-${idBase}`}
-            value={step}
-            min={0}
-            onChange={(next) => {
-              setStep(next);
-              scheduleStep(next);
-            }}
-            onBlur={flush}
-          />
-        </SettingsRow>
-        <SettingsRow>
-          <Input
-            label="Left label"
-            id={`scales-leftlabel-${idBase}`}
-            type="text"
-            value={leftLabel}
-            placeholder="e.g. Strongly disagree"
-            onChange={(e) => {
-              const next = e.target.value;
+            label={leftLabel}
+            labelPlaceholder="e.g. Strongly disagree"
+            onScheduleLabel={(next) => {
               setLeftLabel(next);
               scheduleLeftLabel(next);
             }}
-            onBlur={flush}
+            onFlush={flush}
           />
-          <Input
-            label="Right label"
-            id={`scales-rightlabel-${idBase}`}
-            type="text"
-            value={rightLabel}
-            placeholder="e.g. Strongly agree"
-            onChange={(e) => {
-              const next = e.target.value;
+          <ScalePreview min={min} max={max} step={step} />
+          <ScaleEndpointCard
+            side="right"
+            idBase={idBase}
+            value={max}
+            decrementDisabled={max - 1 <= min}
+            onCommitValue={(next) => {
+              setMax(next);
+              scheduleMax(next);
+              flush();
+            }}
+            label={rightLabel}
+            labelPlaceholder="e.g. Strongly agree"
+            onScheduleLabel={(next) => {
               setRightLabel(next);
               scheduleRightLabel(next);
             }}
-            onBlur={flush}
+            onFlush={flush}
           />
-        </SettingsRow>
-        <SettingsRow>
-          <Checkbox
-            label="Scored — grade each statement against a target"
-            id={`scales-scored-${idBase}`}
-            checked={scored}
-            onChange={(e) => {
-              handleScoredToggle(e.target.checked);
-            }}
+        </div>
+        <button
+          type="button"
+          className={styles.advancedToggle}
+          aria-expanded={advancedOpen}
+          onClick={() => {
+            setAdvancedOpen((open) => !open);
+          }}
+        >
+          <ChevronRightIcon
+            aria-hidden="true"
+            className={[
+              styles.advancedChevron,
+              advancedOpen ? styles.advancedChevronOpen : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           />
-        </SettingsRow>
-        {scored && (
+          Advanced · step {step}
+          {tolerance > 0 && <> · ±{tolerance}</>}
+        </button>
+        {advancedOpen && (
           <SettingsRow>
+            <NumberInput
+              label="Step"
+              id={`scales-step-${idBase}`}
+              value={step}
+              min={0}
+              onChange={(next) => {
+                setStep(next);
+                scheduleStep(next);
+              }}
+              onBlur={flush}
+            />
             <NumberInput
               label="Tolerance (±)"
               id={`scales-tolerance-${idBase}`}
@@ -201,7 +196,10 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
         )}
       </SettingsCard>
 
-      <SectionHeader label="Statements" />
+      <SectionHeader
+        label="Statements"
+        hint="tap a point on a statement's scale to set its correct answer"
+      />
       <ItemList
         addLabel={
           canAddStatement
@@ -217,16 +215,23 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
             statement={statement}
             sortIndex={idx}
             canRemove={canRemove}
-            scored={scored}
             correctValue={statement.id ? question.correctValues[statement.id] : undefined}
             min={min}
             max={max}
             step={step}
+            leftLabel={leftLabel}
+            rightLabel={rightLabel}
             onScheduleLabel={(next) => {
               scheduleStatement(statement.id, next);
             }}
+            onCommitCorrectValue={(value) => {
+              commitCorrectValue(statement.id, value);
+            }}
             onScheduleCorrectValue={(value) => {
               scheduleCorrectValue(statement.id, value);
+            }}
+            onClearCorrectValue={() => {
+              clearCorrectValue(statement.id);
             }}
             onFlush={flush}
             onRemove={() => {

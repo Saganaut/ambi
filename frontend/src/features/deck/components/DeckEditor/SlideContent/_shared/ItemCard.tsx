@@ -13,6 +13,8 @@ import styles from "./_shared.module.css";
 interface ItemCardProps {
   index: number;
   active?: boolean;
+  /** Success-tinted outline — e.g. a statement whose correct answer is set. */
+  tone?: "success";
   /** The editable body (typically one or more inputs). */
   children: ReactNode;
   /** Extra action buttons rendered to the right of the body, before remove. */
@@ -26,6 +28,7 @@ interface ItemCardProps {
 const ItemCard = ({
   index,
   active = false,
+  tone,
   children,
   actions,
   removeLabel,
@@ -34,7 +37,11 @@ const ItemCard = ({
 }: ItemCardProps) => {
   return (
     <div
-      className={[styles.itemCard, active ? styles.itemCardActive : ""]
+      className={[
+        styles.itemCard,
+        tone === "success" ? styles.itemCardSuccess : "",
+        active ? styles.itemCardActive : "",
+      ]
         .filter(Boolean)
         .join(" ")}>
       <IndexPill value={index + 1} />

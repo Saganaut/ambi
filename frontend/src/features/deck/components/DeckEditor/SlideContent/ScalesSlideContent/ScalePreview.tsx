@@ -1,44 +1,42 @@
-// Visual "what the player sees" preview for the Scales editor. Renders the
-// configured tick range with the anchor labels at each end so the author can
-// sanity-check min/max and label wording before saving. Stays purely
-// presentational — no inputs, no state.
+// Live "what the player sees" preview for the Scale settings card: the tick
+// track that joins the two endpoint cards, plus a compact "min → max · step"
+// caption. Purely presentational — the dots are decorative (the caption
+// carries the numbers), so the track itself is hidden from assistive tech.
+import { scaleTicks } from "./scaleTicks";
 import styles from "./ScalesSlideContent.module.css";
 
 interface ScalePreviewProps {
   min: number;
   max: number;
-  minLabel?: string;
-  maxLabel?: string;
+  step: number;
 }
 
-const ScalePreview = ({ min, max, minLabel, maxLabel }: ScalePreviewProps) => {
-  const safeMin = Math.min(min, max);
-  const safeMax = Math.max(min, max);
-  const span = safeMax - safeMin;
-  // Cap tick rendering so weird inputs (say, 1–200) don't explode the DOM.
-  const tickCount = span >= 0 && span <= 20 ? span + 1 : 0;
-  const ticks = Array.from({ length: tickCount }, (_, i) => safeMin + i);
+/** Dots drawn when the range is too dense or degenerate to show one per tick. */
+const FALLBACK_DOT_COUNT = 5;
+
+const ScalePreview = ({ min, max, step }: ScalePreviewProps) => {
+  const ticks = scaleTicks(min, max, step);
+  const dotCount = ticks.length > 0 ? ticks.length : FALLBACK_DOT_COUNT;
 
   return (
-    <div className={styles.scalePreview}>
-      <span className={styles.scaleLabel}>
-        {minLabel && minLabel.length > 0 ? minLabel : safeMin.toString()}
-      </span>
-      <div className={styles.scaleTrack}>
-        {ticks.length > 0 ? (
-          ticks.map((tick) => (
-            <span key={tick} className={styles.scaleTick}>
-              {tick}
-            </span>
-          ))
-        ) : (
-          <span className={styles.scaleRangeFallback}>
-            {safeMin} – {safeMax}
-          </span>
-        )}
+    <div className={styles.trackPreview}>
+      <div className={styles.trackDots} aria-hidden='true'>
+        <div className={styles.trackLine} />
+        {Array.from({ length: dotCount }, (_, i) => (
+          <span
+            key={i}
+            className={[
+              styles.trackDot,
+              i === 0 ? styles.trackDotStart : "",
+              i === dotCount - 1 ? styles.trackDotEnd : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          />
+        ))}
       </div>
-      <span className={styles.scaleLabel}>
-        {maxLabel && maxLabel.length > 0 ? maxLabel : safeMax.toString()}
+      <span className={styles.trackCaption}>
+        {min} → {max} · step {step}
       </span>
     </div>
   );

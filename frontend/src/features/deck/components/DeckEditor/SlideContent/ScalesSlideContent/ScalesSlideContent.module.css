@@ -1,73 +1,284 @@
-/* Slide-specific styles for the Scales editor. The scale preview gives
-   authors a literal picture of what the player will rate, so min/max +
-   anchor labels make sense at a glance. */
+/* Slide-specific styles for the Scales editor.
 
-.scalePreview {
-  display: flex;
+   Scale settings: two endpoint cards (anchor label + boundary value stepper)
+   flank a live track preview, so the author sees the player's scale exactly
+   as it runs left → right. Each statement row then repeats the scale as
+   tappable points — the tapped point is that statement's correct answer. */
+
+/* ─── Scale settings card ─────────────────────────────────────────────── */
+
+.scaleGrid {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1.1fr) 1fr;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+}
+
+@container (width <= 560px) {
+  .scaleGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.endpointCard {
+  /* manifest default — flipped by the side classes below */
+  --endpoint-accent: var(--border-default);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-size-sm) solid var(--endpoint-accent);
   border-radius: var(--radius-md);
-  background-color: var(--bg-surface-raised);
+
+  &.endpointLeft {
+    --endpoint-accent: var(--bg-primary);
+
+    background-color: var(--bg-secondary);
+  }
+
+  &.endpointRight {
+    --endpoint-accent: var(--border-brand);
+
+    background-color: var(--bg-surface-raised);
+  }
 }
 
-.scaleLabel {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  max-width: 8rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.scaleTrack {
-  flex: 1;
+.endpointHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-1);
-  min-width: 0;
+  gap: var(--space-2);
+}
+
+.endpointSide {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.endpointStepper {
+  display: inline-flex;
+  align-items: center;
+  border: var(--border-size-sm) solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
   overflow: hidden;
 }
 
-.scaleTick {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5rem;
-  height: 1.5rem;
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-full);
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: var(--font-size-xs);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-}
-
-.scaleRangeFallback {
-  font-family: var(--font-mono);
+.stepperBtn {
+  width: 1.5rem;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  color: var(--text-muted);
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 
-/* Statement row body: the label input takes the row, and — when the slide is
-   scored — a compact target-value field sits alongside it without stretching. */
-.statementBody {
+.stepperBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.stepperBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+
+.stepperValue {
+  min-width: 1.75rem;
+  padding: 0 var(--space-1);
+  border-inline: var(--border-size-sm) solid var(--border-subtle);
+  color: var(--endpoint-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ─── Track preview (between the endpoint cards) ──────────────────────── */
+
+.trackPreview {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
+  padding: 0 var(--space-1);
+}
+
+.trackDots {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: var(--space-3);
+}
+
+.trackLine {
+  position: absolute;
+  inset-inline: var(--space-1);
+  height: var(--border-size-sm);
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--bg-primary), var(--border-brand));
+}
+
+.trackDot {
+  position: relative;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--border-default);
+  opacity: 0.4;
+}
+
+.trackDotStart,
+.trackDotEnd {
+  width: var(--space-3);
+  height: var(--space-3);
+  opacity: 1;
+}
+
+.trackDotStart {
+  background-color: var(--bg-primary);
+}
+
+.trackDotEnd {
+  background-color: var(--border-brand);
+}
+
+.trackCaption {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+/* ─── Advanced disclosure ─────────────────────────────────────────────── */
+
+.advancedToggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.advancedToggle:hover {
+  color: var(--text-primary);
+}
+
+.advancedChevron {
+  width: var(--space-3);
+  height: var(--space-3);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.advancedChevronOpen {
+  transform: rotate(90deg);
+}
+
+/* ─── Statement rows ──────────────────────────────────────────────────── */
+
+/* Label input + the statement's scale share the row and wrap as a pair on
+   narrow containers (the input keeps a readable minimum before wrapping). */
+.statementBody {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
   width: 100%;
   min-width: 0;
 }
 
 .statementBody > :first-child {
-  flex: 1;
+  flex: 1 1 12rem;
   min-width: 0;
 }
 
+.statementScale {
+  display: flex;
+  flex: 1 1 14rem;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.anchorCaption {
+  max-width: 6rem;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.targetTrack {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 7rem;
+  height: 1.5rem;
+}
+
+.targetLine {
+  position: absolute;
+  top: 50%;
+  inset-inline: var(--space-2);
+  height: var(--border-size-sm);
+  border-radius: var(--radius-full);
+  background-color: var(--border-subtle);
+  transform: translateY(-50%);
+}
+
+.targetDot {
+  position: relative;
+  width: var(--space-4);
+  height: var(--space-4);
+  padding: 0;
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  cursor: pointer;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.targetDot:hover {
+  transform: scale(1.15);
+}
+
+.targetDotSelected {
+  border-color: var(--border-success);
+  background-color: var(--border-success);
+  outline: var(--border-size-md) solid var(--bg-success);
+}
+
+/* Fallback when the range can't render as points: a compact numeric target
+   field with its clear button, kept from stretching. */
 .targetField {
+  display: flex;
   flex: none;
+  align-items: center;
+  gap: var(--space-1);
   white-space: nowrap;
 }
