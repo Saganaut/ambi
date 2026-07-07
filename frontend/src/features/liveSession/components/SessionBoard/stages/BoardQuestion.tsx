@@ -7,8 +7,8 @@
 //   - results     → revealed: distribution + correct-answer highlight.
 //
 // The header (title + instructions) is shared; the body switches on the slide's
-// `contentType` and delegates to a per-kind component. Only MCQ is built so far;
-// everything else falls back to a placeholder.
+// `contentType` and delegates to a per-kind component. MCQ and Q&A are built so
+// far; everything else falls back to a placeholder.
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { McqBoardContent } from "../content/McqBoardContent";
