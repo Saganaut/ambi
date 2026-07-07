@@ -78,8 +78,8 @@ public class SlideContentTypes {
             @Schema(requiredMode = REQUIRED) double y) {
     }
 
-    /** An item players place on the axis plane. */
-    public record AxisItem(String id, String label) {
+    /** An item players place on the axis plane. {@code image} and {@code color} are optional. */
+    public record AxisItem(String id, String label, AppImage image, String color) {
     }
 
     // --------------- PlaceOnImage ----------------------------------------

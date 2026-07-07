@@ -11,9 +11,10 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Axis
  *
  * <p><strong>Never carries {@code correctPositions} or {@code tolerance}</strong>
  * — the positions are the answer key, and the tolerance is grading-only
- * knowledge pre-reveal. Item images don't exist on {@code AxisItem} yet (a
- * named follow-up, same presigned-URL story as grid item images), so an item
- * travels as id + label only.
+ * knowledge pre-reveal. {@code AxisItem} carries an optional image and color
+ * for authoring, but neither reaches players yet (a named follow-up, same
+ * presigned-URL story as grid item images), so an item travels as id + label
+ * only.
  */
 public record AxisConfigView(
         String xLowLabel,

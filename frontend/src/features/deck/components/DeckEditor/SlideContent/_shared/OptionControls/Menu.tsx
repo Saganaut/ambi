@@ -10,6 +10,7 @@
 // positioned anchor, so the popover opens off the controls slot in every
 // composer (option card footer, chart label row) and flips to fit via
 // useFlipToFit. The custom-color path hands off to the shared modal.
+import { CheckIcon } from "@heroicons/react/24/outline";
 import { emptyImage, isImageEmpty } from "@utils/image";
 
 import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
@@ -151,9 +152,13 @@ const Menu = ({
           currentColor={color}
           canRemove={canRemove}
           hasImage={hasImage}
-          isCorrect={isCorrect}
+          primaryAction={{
+            label: isCorrect ? "Mark as wrong" : "Mark as correct",
+            icon: CheckIcon,
+            pressed: isCorrect,
+            onSelect: handleToggleCorrect,
+          }}
           align={popoverAlign}
-          onToggleCorrect={handleToggleCorrect}
           onPickColor={handlePickColor}
           onCustomColor={handleCustomColor}
           onUploadImage={handleUploadImage}

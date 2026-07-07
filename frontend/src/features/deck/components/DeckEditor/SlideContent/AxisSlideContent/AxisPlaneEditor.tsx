@@ -1,7 +1,8 @@
 /**
- * The Axis editor's plane: a near-square X × Y surface framed by the four
- * endpoint-label inputs, styled as centered pills above/below/beside the
- * plane (empty labels fall back to placeholders, grid's "Row 1" pattern).
+ * The Axis editor's plane: a near-square X × Y surface with the four
+ * endpoint-label inputs overlaid as pills inside its edges (top/bottom for
+ * the Y axis, left/right for the X axis — empty labels fall back to
+ * placeholders, grid's "Row 1" pattern) so the plane claims all the room.
  *
  * Placement is select-then-drag: the composer holds the selected item (rows
  * and markers both select), and while an item is selected any press on the
@@ -27,7 +28,7 @@ import {
   type AxisQuestionView,
 } from "@deck/hooks/useAxisEditor";
 import type { AxisPoint } from "@deck/store/deckApi.gen";
-import { axisItemColor } from "./axisItemColor";
+import { resolveAxisItemColor } from "./axisItemColor";
 import styles from "./AxisSlideContent.module.css";
 
 /** Pointer travel (px) below which a marker press counts as a tap, not a drag. */
@@ -35,7 +36,7 @@ const DRAG_THRESHOLD_PX = 4;
 
 /** Display name for an item label, falling back to its 1-based position. */
 const labelOr = (label: string | undefined, index: number): string =>
-  label?.trim() ?? "" ? (label as string).trim() : `Item ${(index + 1).toString()}`;
+  (label?.trim() ?? "") ? (label as string).trim() : `Item ${(index + 1).toString()}`;
 
 interface AxisPlaneEditorProps {
   question: AxisQuestionView;
@@ -136,8 +137,7 @@ const AxisPlaneEditor = ({
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
     if (
       !press.moved &&
-      Math.hypot(event.clientX - press.startX, event.clientY - press.startY) <
-        DRAG_THRESHOLD_PX
+      Math.hypot(event.clientX - press.startX, event.clientY - press.startY) < DRAG_THRESHOLD_PX
     ) {
       return;
     }
@@ -163,24 +163,34 @@ const AxisPlaneEditor = ({
     end: AxisEnd,
     key: keyof typeof labels,
     placeholder: string,
+    edgeClass: string,
   ) => (
-    <Input
-      type='text'
-      withPadding={false}
-      isBordered={false}
-      fullWidth
-      className={styles.endpointPill}
-      maxLength={AXIS_LABEL_MAX}
-      ariaLabel={`${axis === "x" ? "X" : "Y"} axis ${end} label`}
-      value={labels[key]}
-      placeholder={placeholder}
-      onChange={(event) => {
-        const next = event.target.value;
-        setLabels((prev) => ({ ...prev, [key]: next }));
-        onScheduleAxisLabel(axis, end, next);
+    // The pills float inside the plane, so a press on one must not fall
+    // through and start a placement drag underneath.
+    <div
+      className={[styles.endpointOverlay, edgeClass].join(" ")}
+      onPointerDown={(event) => {
+        event.stopPropagation();
       }}
-      onBlur={onFlush}
-    />
+    >
+      <Input
+        type="text"
+        withPadding={false}
+        isBordered={false}
+        fullWidth
+        className={styles.endpointPill}
+        maxLength={AXIS_LABEL_MAX}
+        ariaLabel={`${axis === "x" ? "X" : "Y"} axis ${end} label`}
+        value={labels[key]}
+        placeholder={placeholder}
+        onChange={(event) => {
+          const next = event.target.value;
+          setLabels((prev) => ({ ...prev, [key]: next }));
+          onScheduleAxisLabel(axis, end, next);
+        }}
+        onBlur={onFlush}
+      />
+    </div>
   );
 
   /** The marker's rendered position: the live drag point while dragging, else its target. */
@@ -188,73 +198,68 @@ const AxisPlaneEditor = ({
     drag?.itemId === itemId ? drag.point : question.correctPositions[itemId];
 
   return (
-    <div className={styles.planeFrame}>
-      <div className={styles.endpointY}>{endpointInput("y", "high", "yHigh", "Y high")}</div>
-      <div className={styles.planeRow}>
-        <div className={styles.endpointX}>{endpointInput("x", "low", "xLow", "X low")}</div>
-        {/* Pointer placement surface; the accessible path is the item rows' numeric inputs. */}
-        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-        <div
-          ref={planeRef}
-          className={[styles.plane, selectedItemId ? styles.planeArmed : ""]
-            .filter(Boolean)
-            .join(" ")}
-          onPointerDown={handlePlanePointerDown}
-          onPointerMove={handlePlanePointerMove}
-          onPointerUp={handlePlanePointerUp}>
-          <span className={styles.planeAxisLineX} aria-hidden='true' />
-          <span className={styles.planeAxisLineY} aria-hidden='true' />
-          {question.items.map((item, index) => {
-            const itemId = item.id;
-            if (!itemId) return null;
-            const point = renderedPoint(itemId);
-            if (!point) return null;
-            const color = axisItemColor(index);
-            // Both are positioned directly on the plane so their percentage
-            // coordinates/sizes resolve against the plane's box.
-            const position = {
-              left: `${(point.x * 100).toString()}%`,
-              top: `${((1 - point.y) * 100).toString()}%`,
-            };
-            return (
-              <span
-                key={itemId}
-                className={styles.markerGroup}
-                style={{ "--item-color": color } as React.CSSProperties}>
-                <span
-                  className={styles.toleranceCircle}
-                  style={{
-                    ...position,
-                    width: `${(question.tolerance * 2 * 100).toString()}%`,
-                    height: `${(question.tolerance * 2 * 100).toString()}%`,
-                  }}
-                  aria-hidden='true'
-                />
-                <button
-                  type='button'
-                  className={styles.marker}
-                  style={position}
-                  aria-pressed={selectedItemId === itemId}
-                  onPointerDown={handleMarkerPointerDown(itemId)}
-                  onPointerMove={handleMarkerPointerMove}
-                  onPointerUp={handleMarkerPointerUp}
-                  onClick={(event) => {
-                    // Selection is handled on pointerup; keep the click from
-                    // falling through to the plane underneath.
-                    event.stopPropagation();
-                  }}>
-                  <span className={styles.markerDot} aria-hidden='true' />
-                  <span className={styles.markerLabel}>{labelOr(item.label, index)}</span>
-                </button>
-              </span>
-            );
-          })}
-        </div>
-        <div className={styles.endpointX}>
-          {endpointInput("x", "high", "xHigh", "X high")}
-        </div>
-      </div>
-      <div className={styles.endpointY}>{endpointInput("y", "low", "yLow", "Y low")}</div>
+    // Pointer placement surface; the accessible path is the item rows' numeric inputs.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div
+      ref={planeRef}
+      className={[styles.plane, selectedItemId ? styles.planeArmed : ""].filter(Boolean).join(" ")}
+      onPointerDown={handlePlanePointerDown}
+      onPointerMove={handlePlanePointerMove}
+      onPointerUp={handlePlanePointerUp}
+    >
+      <span className={styles.planeAxisLineX} aria-hidden="true" />
+      <span className={styles.planeAxisLineY} aria-hidden="true" />
+      {endpointInput("y", "high", "yHigh", "Y high", styles.endpointTop)}
+      {endpointInput("y", "low", "yLow", "Y low", styles.endpointBottom)}
+      {endpointInput("x", "low", "xLow", "X low", styles.endpointLeft)}
+      {endpointInput("x", "high", "xHigh", "X high", styles.endpointRight)}
+      {question.items.map((item, index) => {
+        const itemId = item.id;
+        if (!itemId) return null;
+        const point = renderedPoint(itemId);
+        if (!point) return null;
+        const color = resolveAxisItemColor(item.color, index);
+        // Both are positioned directly on the plane so their percentage
+        // coordinates/sizes resolve against the plane's box.
+        const position = {
+          left: `${(point.x * 100).toString()}%`,
+          top: `${((1 - point.y) * 100).toString()}%`,
+        };
+        return (
+          <span
+            key={itemId}
+            className={styles.markerGroup}
+            style={{ "--item-color": color } as React.CSSProperties}
+          >
+            <span
+              className={styles.toleranceCircle}
+              style={{
+                ...position,
+                width: `${(question.tolerance * 2 * 100).toString()}%`,
+                height: `${(question.tolerance * 2 * 100).toString()}%`,
+              }}
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              className={styles.marker}
+              style={position}
+              aria-pressed={selectedItemId === itemId}
+              onPointerDown={handleMarkerPointerDown(itemId)}
+              onPointerMove={handleMarkerPointerMove}
+              onPointerUp={handleMarkerPointerUp}
+              onClick={(event) => {
+                // Selection is handled on pointerup; keep the click from
+                // falling through to the plane underneath.
+                event.stopPropagation();
+              }}
+            >
+              <span className={styles.markerDot} aria-hidden="true" />
+              <span className={styles.markerLabel}>{labelOr(item.label, index)}</span>
+            </button>
+          </span>
+        );
+      })}
     </div>
   );
 };

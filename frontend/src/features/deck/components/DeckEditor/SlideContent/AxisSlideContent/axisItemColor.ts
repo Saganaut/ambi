@@ -5,10 +5,7 @@
 // cycle re-derives each hue at a darker lightness (CSS relative color, the
 // same `oklch(from …)` syntax tokens.css builds its scales with) so every row
 // keeps a distinguishable marker.
-import {
-  buildOptionPalette,
-  MAX_OPTION_COLORS,
-} from "@/shared/components/Charts/optionPalette";
+import { buildOptionPalette, MAX_OPTION_COLORS } from "@/shared/components/Charts/optionPalette";
 
 /** Lightness for the palette's second cycle (first cycle is 0.65). */
 const SECOND_CYCLE_LIGHTNESS = 0.42;
@@ -20,4 +17,8 @@ const axisItemColor = (index: number): string => {
   return `oklch(from ${base} ${SECOND_CYCLE_LIGHTNESS.toString()} c h)`;
 };
 
-export { axisItemColor };
+/** The item's authored color override when set, else its palette default. */
+const resolveAxisItemColor = (color: string | undefined, index: number): string =>
+  color ?? axisItemColor(index);
+
+export { axisItemColor, resolveAxisItemColor };

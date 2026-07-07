@@ -56,13 +56,10 @@ const axisSlide: SlideResponse = {
 let lastPutBody: SlideRequest | undefined;
 const server = setupServer(
   http.get(`${apiBaseUrl}/api/decks/${DECK_ID}/slides`, () => HttpResponse.json([axisSlide])),
-  http.put(
-    `${apiBaseUrl}/api/decks/${DECK_ID}/slides/${SLIDE_ID}`,
-    async ({ request }) => {
-      lastPutBody = (await request.json()) as SlideRequest;
-      return HttpResponse.json({ ...axisSlide, ...lastPutBody });
-    },
-  ),
+  http.put(`${apiBaseUrl}/api/decks/${DECK_ID}/slides/${SLIDE_ID}`, async ({ request }) => {
+    lastPutBody = (await request.json()) as SlideRequest;
+    return HttpResponse.json({ ...axisSlide, ...lastPutBody });
+  }),
 );
 
 beforeAll(() => {
@@ -79,8 +76,7 @@ afterAll(() => {
 const makeStore = () =>
   configureStore({
     reducer: { [emptySplitApi.reducerPath]: emptySplitApi.reducer },
-    middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(emptySplitApi.middleware),
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(emptySplitApi.middleware),
   });
 
 const renderUseAxisEditor = async () => {
@@ -164,7 +160,33 @@ describe("useAxisEditor structural ops", () => {
     expect(content?.correctPositions).toEqual(axisContent.correctPositions);
   });
 
-  it("setTolerance clamps to the slider bounds", async () => {
+  it("setItemColor and setItemImage patch only the addressed item", async () => {
+    const result = await renderUseAxisEditor();
+
+    act(() => {
+      result.current.setItemColor("item_a", "#ff8800");
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+    let content = axisContentOf(lastPutBody);
+    expect(content?.items.find((item) => item.id === "item_a")?.color).toBe("#ff8800");
+    expect(content?.items.find((item) => item.id === "item_b")?.color).toBeUndefined();
+
+    const image = { external: true, externalSrc: "https://example.test/pippin.png" };
+    act(() => {
+      result.current.setItemImage("item_b", image);
+    });
+    await vi.waitFor(() =>
+      expect(axisContentOf(lastPutBody)?.items.find((item) => item.id === "item_b")?.image).toEqual(
+        image,
+      ),
+    );
+    content = axisContentOf(lastPutBody);
+    expect(content?.items.find((item) => item.id === "item_a")?.image).toBeUndefined();
+    // Structural menu edits never disturb the answer key.
+    expect(content?.correctPositions).toEqual(axisContent.correctPositions);
+  });
+
+  it("setTolerance clamps to the tolerance bounds", async () => {
     const result = await renderUseAxisEditor();
 
     act(() => {

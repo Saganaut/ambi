@@ -347,7 +347,7 @@ class LiveSessionAnswerServiceTest {
     private static AxisContent axisContent() {
         return new AxisContent(
                 "Low X", "High X", "Low Y", "High Y",
-                List.of(new AxisItem("it-1", "One"), new AxisItem("it-2", "Two")),
+                List.of(new AxisItem("it-1", "One", null, null), new AxisItem("it-2", "Two", null, null)),
                 java.util.Map.of(),
                 0.1,
                 ScoreMode.INSIDE_RADIUS);

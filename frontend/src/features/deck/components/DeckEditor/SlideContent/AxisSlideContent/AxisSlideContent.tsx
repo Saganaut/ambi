@@ -5,28 +5,33 @@
  *
  * Layout:
  *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
- *   - "Plane" card: the near-square plane framed by the four endpoint-label
- *     pills, an "N of M placed" counter, and the per-slide tolerance slider
- *     (2–50 %) — every placed target's circle resizes live.
- *   - "Items" card: the item rows, each in its palette color (mirrored by its
- *     marker on the plane) with the accessible numeric X/Y fallback —
- *     `correctPositions` maps item id → normalized point.
+ *   - "Plane" and "Items" cards sit side by side (wrapping on narrow
+ *     containers) so the plane and the bank read as one workspace.
+ *   - "Plane" card: the near-square plane with the four endpoint-label pills
+ *     overlaid inside its edges; the header holds the "N of M placed" counter
+ *     and the tolerance percent input (2–50 %) — every placed target's circle
+ *     resizes live.
+ *   - "Items" card: the item rows, each in its resolved color (override or
+ *     palette default, mirrored by its marker on the plane) with the
+ *     accessible numeric X/Y fallback — `correctPositions` maps item id →
+ *     normalized point.
  *
  * Interaction: selecting a row (click, or focusing its label) arms the plane —
  * pressing/dragging on the plane places that item's target. Focusing a row's
- * label also opens its popover menu (clear target / delete), the same
- * focus-opened menu pattern as MCQ options; this composer owns which menu is
- * open (at most one) and which row is selected.
+ * label also opens its popover menu (set/clear target, color, image, delete),
+ * the same focus-opened menu pattern as MCQ options; this composer owns which
+ * menu is open (at most one) and which row is selected.
  *
  * Grading is INSIDE_RADIUS (every keyed item must land within tolerance), so
  * the footer nudges until every item has a target — but only nudges: an empty
  * answer key is a legitimate collect-only opinion plane, so nothing blocks.
- * `scoreMode` has no authoring knob. Per-item images are deferred with the
- * same presigned-image work as grid item images.
+ * `scoreMode` has no authoring knob.
  */
 import { useState } from "react";
 
+import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import {
   AXIS_TOLERANCE_MAX,
   AXIS_TOLERANCE_MIN,
@@ -36,7 +41,7 @@ import {
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { EmptySelect, ItemList, ScoringFooter, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
-import { axisItemColor } from "./axisItemColor";
+import { resolveAxisItemColor } from "./axisItemColor";
 import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
 import styles from "./AxisSlideContent.module.css";
@@ -44,6 +49,7 @@ import styles from "./AxisSlideContent.module.css";
 const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useAxisEditor(deckId, slideId);
   const { question } = editor;
+  const openPicker = useGalleryPicker();
 
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
   // The row armed for placement on the plane, if any.
@@ -61,7 +67,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setOpenMenuId(null);
   }
 
-  if (!question) return <EmptySelect title='Axis' />;
+  if (!question) return <EmptySelect title="Axis" />;
 
   const { items, correctPositions, tolerance } = question;
   const placedCount = items.filter((item) => item.id && correctPositions[item.id]).length;
@@ -95,90 +101,106 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         ) : (
           <ScoringFooter
             visible
-            message='Set a target position for every item to make this slide scoreable.'
+            message="Set a target position for every item to make this slide scoreable."
           />
         )
-      }>
-      <SettingsCard
-        title='Plane'
-        action={
-          <span className={styles.placedCount}>
-            {placedCount} of {items.length} placed
-          </span>
-        }>
-        <AxisPlaneEditor
-          question={question}
-          selectedItemId={selectedItemId}
-          onToggleSelect={(itemId) => {
-            setSelectedItemId((held) => (held === itemId ? null : itemId));
-          }}
-          onScheduleAxisLabel={editor.scheduleAxisLabel}
-          onSetTargetPosition={editor.setTargetPosition}
-          onFlush={editor.flush}
-        />
-        <div className={styles.toleranceRow}>
-          <label htmlFor={`axis-tolerance-${question.id}`}>Tolerance</label>
-          <input
-            id={`axis-tolerance-${question.id}`}
-            type='range'
-            min={Math.round(AXIS_TOLERANCE_MIN * 100)}
-            max={Math.round(AXIS_TOLERANCE_MAX * 100)}
-            step={1}
-            value={tolerancePercent}
-            onChange={(event) => {
-              editor.setTolerance(Number(event.target.value) / 100);
-            }}
-          />
-          <span className={styles.toleranceValue}>±{tolerancePercent}%</span>
+      }
+    >
+      <div className={styles.editorRow}>
+        <div className={styles.planeColumn}>
+          <SettingsCard
+            title="Plane"
+            action={
+              <span className={styles.planeMeta}>
+                <span className={styles.placedCount}>
+                  {placedCount} of {items.length} placed
+                </span>
+                <NumberInput
+                  compact
+                  id={`axis-tolerance-${question.id}`}
+                  label="Tolerance ±%"
+                  labelPosition="labelInFront"
+                  min={Math.round(AXIS_TOLERANCE_MIN * 100)}
+                  max={Math.round(AXIS_TOLERANCE_MAX * 100)}
+                  value={tolerancePercent}
+                  onChange={(next) => {
+                    editor.setTolerance(next / 100);
+                  }}
+                />
+              </span>
+            }
+          >
+            <AxisPlaneEditor
+              question={question}
+              selectedItemId={selectedItemId}
+              onToggleSelect={(itemId) => {
+                setSelectedItemId((held) => (held === itemId ? null : itemId));
+              }}
+              onScheduleAxisLabel={editor.scheduleAxisLabel}
+              onSetTargetPosition={editor.setTargetPosition}
+              onFlush={editor.flush}
+            />
+          </SettingsCard>
         </div>
-      </SettingsCard>
 
-      <SettingsCard
-        title='Items'
-        action={
-          <span className={styles.itemsHint}>
-            Select a row, then drag on the plane to place its target.
-          </span>
-        }>
-        <ItemList
-          addLabel={
-            editor.canAddItem ? "Add item" : `Maximum ${MAX_AXIS_ITEMS.toString()} items`
-          }
-          canAdd={editor.canAddItem}
-          onAdd={editor.addItem}>
-          <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-            {items.map((item, index) => (
-              <AxisItemEditable
-                key={item.id ?? index}
-                item={item}
-                sortIndex={index}
-                targetPosition={item.id ? (correctPositions[item.id] ?? null) : null}
-                color={axisItemColor(index)}
-                selected={item.id != null && selectedItemId === item.id}
-                menuOpen={item.id != null && openMenuId === item.id}
-                canRemove={editor.canRemoveItem}
-                onSelect={() => {
-                  selectItem(item.id);
-                }}
-                onMenuOpenChange={(open) => {
-                  setOpenMenuId(open ? (item.id ?? null) : null);
-                  if (open) selectItem(item.id);
-                }}
-                onScheduleLabel={(label) => {
-                  editor.scheduleItemLabel(item.id, label);
-                }}
-                onFlush={editor.flush}
-                onSetTarget={(point) => {
-                  editor.setTargetPosition(item.id, point);
-                }}
-                onRemove={() => {
-                  removeItem(item.id);
-                }}
-              />
-            ))}
-          </DragDropWrapper>
-        </ItemList>
-      </SettingsCard>
+        <div className={styles.itemsColumn}>
+          <SettingsCard
+            title="Items"
+            action={
+              <span className={styles.itemsHint}>
+                Select a row, then drag on the plane to place its target.
+              </span>
+            }
+          >
+            <ItemList
+              addLabel={
+                editor.canAddItem ? "Add item" : `Maximum ${MAX_AXIS_ITEMS.toString()} items`
+              }
+              canAdd={editor.canAddItem}
+              onAdd={editor.addItem}
+            >
+              <DragDropWrapper onReorder={editor.handleItemDragEnd}>
+                {items.map((item, index) => (
+                  <AxisItemEditable
+                    key={item.id ?? index}
+                    item={item}
+                    sortIndex={index}
+                    targetPosition={item.id ? (correctPositions[item.id] ?? null) : null}
+                    color={resolveAxisItemColor(item.color, index)}
+                    selected={item.id != null && selectedItemId === item.id}
+                    menuOpen={item.id != null && openMenuId === item.id}
+                    canRemove={editor.canRemoveItem}
+                    onSelect={() => {
+                      selectItem(item.id);
+                    }}
+                    onMenuOpenChange={(open) => {
+                      setOpenMenuId(open ? (item.id ?? null) : null);
+                      if (open) selectItem(item.id);
+                    }}
+                    onScheduleLabel={(label) => {
+                      editor.scheduleItemLabel(item.id, label);
+                    }}
+                    onFlush={editor.flush}
+                    onSetTarget={(point) => {
+                      editor.setTargetPosition(item.id, point);
+                    }}
+                    onSetColor={(color) => {
+                      editor.setItemColor(item.id, color);
+                    }}
+                    onSetImage={(image) => {
+                      editor.setItemImage(item.id, image);
+                    }}
+                    onRemove={() => {
+                      removeItem(item.id);
+                    }}
+                    openPicker={openPicker}
+                  />
+                ))}
+              </DragDropWrapper>
+            </ItemList>
+          </SettingsCard>
+        </div>
+      </div>
     </SlideContentWrapper>
   );
 };

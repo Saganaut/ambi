@@ -18,7 +18,7 @@
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 
-import type { AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
+import type { AppImage, AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 
 import { buildDefaultAxisItem } from "../utils/slideContent";
 import { useSlideEditor } from "./useSlideEditor";
@@ -79,13 +79,17 @@ interface UseAxisEditorResult {
   removeItem: (itemId: string | undefined) => void;
   /** Debounced item label edit. */
   scheduleItemLabel: (itemId: string | undefined, label: string) => void;
+  /** Override the item's palette color (menu swatch / custom picker). Immediate. */
+  setItemColor: (itemId: string | undefined, color: string) => void;
+  /** Set or clear (empty AppImage) the item's image. Immediate. */
+  setItemImage: (itemId: string | undefined, image: AppImage) => void;
   /** @dnd-kit drop handler for the item list (bank display order only). */
   handleItemDragEnd: (event: DragEndEvent) => void;
   /** Assign (normalized point) or clear (null) the item's target. Immediate. */
   setTargetPosition: (itemId: string | undefined, point: AxisPoint | null) => void;
 
   /** ── Scoring ─────────────────────────────────────────────────────────── */
-  /** Set the per-slide tolerance radius (clamped to the slider bounds). Immediate. */
+  /** Set the per-slide tolerance radius (clamped to the 2–50 % bounds). Immediate. */
   setTolerance: (value: number) => void;
 }
 
@@ -153,6 +157,23 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
     }));
   };
 
+  /** Merge a patch into one item and persist immediately (menu-driven edits). */
+  const commitItemPatch = (itemId: string | undefined, patch: Partial<AxisItem>) => {
+    if (!itemId) return;
+    editor.updateSlideContent((prev) => ({
+      items: prev.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+    }));
+    editor.flush();
+  };
+
+  const setItemColor = (itemId: string | undefined, color: string) => {
+    commitItemPatch(itemId, { color });
+  };
+
+  const setItemImage = (itemId: string | undefined, image: AppImage) => {
+    commitItemPatch(itemId, { image });
+  };
+
   const handleItemDragEnd = (event: DragEndEvent) => {
     if (event.canceled) return;
     const { source } = event.operation;
@@ -201,6 +222,8 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
     addItem,
     removeItem,
     scheduleItemLabel,
+    setItemColor,
+    setItemImage,
     handleItemDragEnd,
     setTargetPosition,
     setTolerance,

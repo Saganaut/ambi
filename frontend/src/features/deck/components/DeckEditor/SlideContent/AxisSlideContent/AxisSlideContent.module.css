@@ -1,43 +1,75 @@
 /* AxisSlideContent — author UI for Axis (free-form 2D placement) slides. The
    item row chrome is the shared `ItemCard`; axis-specific styles are the
-   plane framed by its endpoint-label pills, the placed markers + tolerance
-   circles (each in its item's palette color, carried on --item-color), the
-   tolerance slider row, and the drag grip (mirroring Grid). */
+   side-by-side plane/items columns, the plane with its endpoint-label pills
+   overlaid inside its edges, the placed markers + tolerance circles (each in
+   its item's resolved color, carried on --item-color), and the drag grip
+   (mirroring Grid). */
 
-/* ── Plane layout ───────────────────────────────────────────────────────── */
+/* ── Editor layout: plane and item bank side by side ────────────────────── */
 
-.planeFrame {
+.editorRow {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
 }
 
-.planeRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
-}
-
-/* Endpoint-label inputs: compact so the plane keeps the room. */
-.endpointX {
-  flex: 0 1 7rem;
+.planeColumn {
+  flex: 1 1 18rem;
   min-width: 0;
 }
 
-.endpointY {
-  width: 11rem;
-  max-width: 100%;
+.itemsColumn {
+  flex: 1 1 16rem;
+  min-width: 0;
 }
 
-/* The endpoint inputs read as centered label pills framing the plane. */
+.planeColumn > section,
+.itemsColumn > section {
+  width: 100%;
+}
+
+/* ── Endpoint labels, overlaid inside the plane's edges ─────────────────── */
+
+.endpointOverlay {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+}
+
+.endpointTop {
+  top: var(--space-2);
+  left: 50%;
+  width: 55%;
+  transform: translateX(-50%);
+}
+
+.endpointBottom {
+  bottom: var(--space-2);
+  left: 50%;
+  width: 55%;
+  transform: translateX(-50%);
+}
+
+.endpointLeft {
+  top: 50%;
+  left: var(--space-2);
+  width: 34%;
+  transform: translateY(-50%);
+}
+
+.endpointRight {
+  top: 50%;
+  right: var(--space-2);
+  width: 34%;
+  transform: translateY(-50%);
+}
+
+/* The endpoint inputs read as centered label pills floating on the plane. */
 .endpointPill input {
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   text-align: center;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-primary);
   background-color: var(--bg-secondary);
@@ -53,11 +85,11 @@
 
 .plane {
   position: relative;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
+  margin-inline: auto;
 
-  /* Near-square, capped so the plane never overflows the slide canvas. */
-  max-width: 19rem;
+  /* Near-square, capped so the editor row fits the slide canvas unscrolled. */
+  max-width: 16rem;
   aspect-ratio: 1;
   border: var(--border-size-sm) solid var(--edge-primary);
   border-radius: var(--radius-md);
@@ -73,8 +105,7 @@
 /* A row is selected: any press on the plane places (and drags) its target. */
 .planeArmed {
   cursor: crosshair;
-  outline: var(--border-size-sm) solid
-    color-mix(in oklab, var(--edge-primary) 30%, transparent);
+  outline: var(--border-size-sm) solid color-mix(in oklab, var(--edge-primary) 30%, transparent);
   outline-offset: var(--space-half);
 }
 
@@ -157,8 +188,7 @@
 }
 
 .marker[aria-pressed="true"] {
-  box-shadow: 0 0 0 var(--space-half)
-    color-mix(in oklab, var(--item-color) 35%, transparent);
+  box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--item-color) 35%, transparent);
 }
 
 /* Ring with a filled centre, sitting exactly on the target point. */
@@ -187,6 +217,14 @@
 
 /* ── Card-header accessories ────────────────────────────────────────────── */
 
+/* Counter + tolerance input cluster in the Plane card's header. */
+.planeMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
 /* "N of M placed" counter in the Plane card's header. */
 .placedCount {
   flex: none;
@@ -201,29 +239,6 @@
   text-align: right;
 }
 
-/* ── Tolerance slider ───────────────────────────────────────────────────── */
-
-.toleranceRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-
-  & input[type="range"] {
-    flex: 1;
-    min-width: 0;
-    accent-color: var(--bg-primary);
-  }
-}
-
-.toleranceValue {
-  min-width: 3rem;
-  text-align: right;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 /* ── Item rows ──────────────────────────────────────────────────────────── */
 
 .itemFields {
@@ -235,10 +250,11 @@
 }
 
 /* The label field rides on the raised surface so it reads as the row's one
-   editable field against the card. */
+   editable field against the card. The min-width keeps it usable when the
+   thumbnail and X/Y fields crowd the row. */
 .labelField {
   flex: 1;
-  min-width: 0;
+  min-width: 5rem;
 
   & input {
     background-color: var(--bg-surface-raised);
@@ -255,21 +271,21 @@
   align-items: center;
   gap: var(--space-2);
   flex: none;
+
+  /* Whole percents only (0–100): keep the X/Y fields narrow so the label
+     field keeps the row's slack. */
+  & input[type="number"] {
+    width: 3.5rem;
+  }
 }
 
-.setTarget {
+/* Thumbnail of the item's authored image (set via the row's menu). */
+.itemThumbnail {
   flex: none;
-  padding: var(--space-1) var(--space-2);
-  border: none;
+  width: 2rem;
+  height: 2rem;
   border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text-accent);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-
-  &:hover {
-    background-color: var(--bg-surface-raised);
-  }
+  object-fit: cover;
 }
 
 /* Grip handle slotted into the card's `actions` (see GridSlideContent). */

@@ -239,7 +239,7 @@ class LiveSessionSnapshotServiceTest {
         when(slide.getId()).thenReturn("slide-1");
         when(slide.getContent()).thenReturn(new AxisContent(
                 "Weak", "Strong", "Slow", "Fast",
-                List.of(new AxisItem("it-1", "One")),
+                List.of(new AxisItem("it-1", "One", null, null)),
                 Map.of("it-1", new AxisPoint(0.3, 0.7)),
                 0.1,
                 ScoreMode.INSIDE_RADIUS));

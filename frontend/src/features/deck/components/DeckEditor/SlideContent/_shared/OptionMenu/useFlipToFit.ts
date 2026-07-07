@@ -15,12 +15,8 @@ interface FlipToFit {
 
 /** The box the menu must stay inside: the nearest overflow-clipping
  *  ancestor's rect, capped at the viewport; the viewport if nothing clips. */
-const clipBoundsFor = (element: HTMLElement): { bottom: number; right: number } => {
-  for (
-    let ancestor = element.parentElement;
-    ancestor;
-    ancestor = ancestor.parentElement
-  ) {
+const clipBoundsFor = (element: HTMLElement): { top: number; bottom: number; right: number } => {
+  for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
     const ancestorStyle = getComputedStyle(ancestor);
     if (
       CLIPPING_OVERFLOWS.has(ancestorStyle.overflowY) ||
@@ -28,12 +24,13 @@ const clipBoundsFor = (element: HTMLElement): { bottom: number; right: number } 
     ) {
       const rect = ancestor.getBoundingClientRect();
       return {
+        top: Math.max(0, rect.top),
         bottom: Math.min(window.innerHeight, rect.bottom),
         right: Math.min(window.innerWidth, rect.right),
       };
     }
   }
-  return { bottom: window.innerHeight, right: window.innerWidth };
+  return { top: 0, bottom: window.innerHeight, right: window.innerWidth };
 };
 
 const useFlipToFit = (wrapRef: RefObject<HTMLElement | null>): FlipToFit => {
@@ -45,7 +42,12 @@ const useFlipToFit = (wrapRef: RefObject<HTMLElement | null>): FlipToFit => {
     if (!wrap || !(menu instanceof HTMLElement)) return;
     const bounds = clipBoundsFor(wrap);
     const rect = menu.getBoundingClientRect();
-    const flipUp = rect.bottom > bounds.bottom;
+    // Flipping above the anchor moves the menu top to roughly the anchor's
+    // top minus the menu height (the wrap sits just below the anchor). Only
+    // flip when that position clears the container's top — a menu clipped
+    // below at least scrolls into view; one clipped above never can.
+    const flippedTop = (wrap.parentElement?.getBoundingClientRect().top ?? 0) - rect.height;
+    const flipUp = rect.bottom > bounds.bottom && flippedTop >= bounds.top;
     const flipEnd = rect.right > bounds.right;
     if (flipUp || flipEnd) setFlip({ flipUp, flipEnd });
   }, [wrapRef]);

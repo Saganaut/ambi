@@ -28,8 +28,8 @@ New shared records in `SlideContentTypes.java`:
 /** A point on the axis plane, normalized to [0, 1] on both axes. */
 public record AxisPoint(double x, double y) { }
 
-/** An item players place on the axis plane. */
-public record AxisItem(String id, String label) { }
+/** An item players place on the axis plane. {@code image} and {@code color} are optional. */
+public record AxisItem(String id, String label, AppImage image, String color) { }
 ```
 
 The content record (`presentation/slide/content/AxisContent.java`):
@@ -53,8 +53,11 @@ Shape decisions (each follows an existing precedent):
   endpoints as flat `leftLabel`/`rightLabel` strings.
 - **New `AxisItem`**, not a reused `GridItem` — the codebase mints one item
   record per kind (`RankItem`, `ScaleItem`, `GridItem`, `MatchItem`).
-  Label-only in v1; item images are a named follow-up (GridConfigView drops
-  images today for the same presigned-URL reasons).
+  `AxisItem` carries optional `image` and `color` (mirroring `McqOption`'s
+  optional image + color), so the editor's item menu can offer a palette/
+  custom color override and an image thumbnail. `AxisConfigView` (the
+  participant-safe view) still sends only `id`/`label` — plumbing
+  image/color through to the live board is a named follow-up.
 - **Structured `AxisPoint`, not a `"x,y"` string** — grid's `"r,c"` string
   earns its keep as an *identity* (map value, tally-key suffix, and DOM key
   for small integers at once). Continuous floats have no identity role, and
@@ -86,7 +89,9 @@ public record AxisConfigView(
 ```
 
 It never carries `correctPositions` **or `tolerance`** — tolerance is
-grading-only knowledge pre-reveal.
+grading-only knowledge pre-reveal. It also drops `AxisItem`'s optional
+`image`/`color` for now — those exist on the authoring model but aren't yet
+plumbed through to players (see [follow-ups](#follow-ups-named-out-of-v1)).
 
 ### Answer payload
 
@@ -230,6 +235,8 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
 - Item ops: `addItem` / `removeItem` (removal drops the item's
   `correctPositions` entry — invariant 1), `scheduleItemLabel`,
   `handleItemDragEnd` for row display order.
+- `setItemColor(itemId, color)` and `setItemImage(itemId, image)` —
+  immediate commits, each patching one item (menu-driven edits).
 - `setTargetPosition(itemId, point | null)` and `setTolerance(value)` —
   immediate + flush (structural, like grid's cell assignment).
 - Constants: `MIN_AXIS_ITEMS = 1`, `MAX_AXIS_ITEMS = 12` (grid parity),
@@ -243,26 +250,46 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   as an advisory nudge ("Set a target position for every item to make this
   slide scoreable") — non-blocking, because collect-only is legitimate
   (invariant 4). Also owns which row is selected (armed for placement) and
-  which row's popover menu is open, plus an "N of M placed" counter in the
-  Plane card header.
-- `AxisPlaneEditor.tsx` — the plane framed by the four endpoint labels styled
-  as centered pills (empty labels fall back to placeholders, grid's `"Row 1"`
-  pattern). **Select a row, then press/drag on the plane** →
+  which row's popover menu is open. The Plane and Items `SettingsCard`s sit
+  side by side (wrapping on narrow containers) so the plane and the item
+  bank read as one workspace; the Plane card header holds the "N of M
+  placed" counter next to a compact tolerance `NumberInput` ("Tolerance
+  ±%", 2–50, wired to `setTolerance`).
+- `AxisPlaneEditor.tsx` — the four endpoint-label pills overlaid *inside* the
+  plane's edges (top/bottom = Y high/low, left/right = X low/high; empty
+  labels fall back to placeholders, grid's `"Row 1"` pattern) so the plane
+  claims all the room. **Select a row, then press/drag on the plane** →
   `getBoundingClientRect` → normalized point → `setTargetPosition` (committed
-  on release). Placed markers — a dot + label pill in the item's palette
-  color, dot centered on the target — can be dragged directly (pointer
-  capture) or tapped to toggle their row's selection. Every placed marker
-  renders its tolerance circle in the same color so the accepted region is
-  visible while tuning. Accessible fallback: per-item numeric X/Y inputs
-  (0–100 %) in the item rows.
+  on release). Placed markers — a dot + label pill in the item's resolved
+  color (`resolveAxisItemColor(item.color, index)`: the authored override,
+  or a palette default that re-derives the base hue at a darker lightness
+  past the shared 6-color palette so items 7–12 stay distinguishable), dot
+  centered on the target — can be dragged directly (pointer capture) or
+  tapped to toggle their row's selection. Every placed marker renders its
+  tolerance circle in the same color so the accepted region is visible while
+  tuning. Accessible fallback: per-item numeric X/Y inputs (0–100 %) in the
+  item rows.
 - `AxisItemEditable.tsx` — item row (`GridItemEditable` pattern): the
-  palette-colored index badge, label field, X/Y inputs, and a clear-target
-  reset button. Clicking the row selects it; focusing the label also opens
-  `AxisItemMenu.tsx`, the focus-opened popover (clear target / delete) that
-  follows MCQ's option-menu pattern and reuses the shared `OptionMenu`
-  chrome.
-- Tolerance: one per-slide slider (2 % – 50 %, default 10 %) with a live
-  `±N %` readout; circles resize live.
+  palette-colored index badge, label field, an image thumbnail when one is
+  set, and the accessible X/Y inputs. Clicking the row selects it; focusing
+  the label opens `AxisItemMenu.tsx`.
+- `AxisItemMenu.tsx` — a controller over the shared `OptionMenu` (the same
+  menu MCQ options use), following MCQ's focus-opened popover pattern. The
+  kind-specific primary action toggles "Set target" (seeds `{x: 0.5, y:
+  0.5}`, the plane's center) / "Clear target"; below it, the shared color
+  palette + custom-color modal, upload/remove image via the gallery picker,
+  and delete. The row's old inline "Set target" button and clear-target icon
+  are gone — those actions live in the menu now.
+
+**Shared dependency:** `_shared/OptionMenu/OptionMenu.tsx` generalized its
+formerly hardcoded "Mark as correct" toggle into a `primaryAction` prop
+(`{ label, icon, pressed?, onSelect }`), so each kind supplies its own
+leading action — MCQ's controller (`OptionControls/Menu.tsx`) passes the
+mark-correct action, `AxisItemMenu.tsx` passes set/clear-target.
+`_shared/OptionMenu/useFlipToFit.ts` also picked up an asymmetric flip-up
+gate: it only flips the menu above its anchor when the flipped position
+would clear the clipping container's top edge — a menu clipped below can
+still scroll into view, one clipped above never can.
 
 ### Registration
 
@@ -329,7 +356,7 @@ runtime safety is answer-path validation:
 | Constant | Value | Where enforced |
 | --- | --- | --- |
 | `MIN_AXIS_ITEMS` / `MAX_AXIS_ITEMS` | 1 / 12 | `useAxisEditor.ts` |
-| `AXIS_TOLERANCE_MIN` / `MAX` / `DEFAULT` | 0.02 / 0.5 / 0.1 | `useAxisEditor.ts` (slider bounds) |
+| `AXIS_TOLERANCE_MIN` / `MAX` / `DEFAULT` | 0.02 / 0.5 / 0.1 | `useAxisEditor.ts` (tolerance `NumberInput` bounds) |
 | Endpoint & item label length | 80 | editor input `maxLength` |
 | Placement bounds (`[0,1]`, finite) | — | `LiveSessionAnswerService.validateAxis` |
 | `AXIS_TALLY_BUCKETS` | 10 | `AnswerTallyKeys` (backend) + mirrored frontend constant |
@@ -376,7 +403,10 @@ then review).
 - **F2 — raw-placement scatter.** True scatter of all placements needs raw
   payloads on an event or a host-side read of round results.
 - **Per-item tolerance override** (`Map<String, Double>`, additive).
-- **Item images** on `AxisItem` (blocked on the same presigned-URL story as
-  grid item images).
+- **Item image/color reaching players.** `AxisItem` gained optional `image`
+  and `color` in the authoring surface, but `AxisConfigView` (and so
+  `AxisBoardContent`) still only sees `id`/`label` — wiring the
+  participant-safe view and the live board to render them is the remaining
+  step.
 - **Partial credit** (`ScoreMode.PARTIAL`/`DISTANCE`) — needs new scoring
   machinery; today `RoundEvaluator` is boolean-only.

@@ -873,6 +873,8 @@ export type GridContent = {
 export type AxisItem = {
   id?: string;
   label?: string;
+  image?: AppImage;
+  color?: string;
 };
 export type AxisPoint = {
   x: number;
