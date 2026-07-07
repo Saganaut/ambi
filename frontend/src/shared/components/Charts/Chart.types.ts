@@ -60,9 +60,9 @@ export type ChartType =
   | "PARETO"
   | "DOT"
   | "HISTOGRAM"
+  | "WORD_CLOUD"
   // Mapped for other question types but not yet built — rendered by
   // PlaceholderChart until implemented. See registry.ts / ResultsDisplaySwitch.
-  | "WORD_CLOUD"
   | "HEATMAP"
   | "DIVERGING_BAR"
   | "IMAGE_OVERLAY"

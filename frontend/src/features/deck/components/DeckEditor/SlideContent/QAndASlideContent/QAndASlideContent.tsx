@@ -29,8 +29,8 @@ const summarize = (
     : "Questions appear on screen as they arrive.";
   const cap =
     maxResponses != null && maxResponses > 0
-      ? `Up to ${maxResponses} question${maxResponses === 1 ? "" : "s"} will be accepted.`
-      : "There is no cap on submissions.";
+      ? `Each player can send up to ${maxResponses} question${maxResponses === 1 ? "" : "s"}.`
+      : "Players can send as many questions as they like.";
   const anonymity = allowAnonymous ? "Anonymous submissions are allowed." : null;
   return [moderation, cap, anonymity].filter(Boolean).join(" ");
 };

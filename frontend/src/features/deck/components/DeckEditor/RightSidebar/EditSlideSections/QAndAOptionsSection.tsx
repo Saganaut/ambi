@@ -77,7 +77,7 @@ const QAndAOptionsSection = () => {
           labelPosition="labelInFront"
           compact
           id={`qa-max-responses-${slideId2}`}
-          label='Max responses (0 = unlimited)'
+          label='Max questions per player (0 = unlimited)'
           min={0}
           max={1000}
           value={maxResponses}

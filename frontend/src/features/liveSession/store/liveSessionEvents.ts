@@ -14,6 +14,7 @@
 // switch on `event.type`.
 import type {
   ParticipantView,
+  QAndAQuestionView,
   ScoreboardEntry,
   SessionSnapshotResponse,
   SlideView,
@@ -45,7 +46,7 @@ export interface ParticipantOutcome {
   responseTimeMs: number;
 }
 
-// ── The 15 event members ────────────────────────────────────────────────────
+// ── The 16 event members ────────────────────────────────────────────────────
 
 export interface LiveSessionStarted {
   type: "LiveSessionStarted";
@@ -107,6 +108,17 @@ export interface TallyUpdated {
   optionCounts: OptionCounts;
 }
 
+/**
+ * The open Q&A round's question list changed (a question arrived or the host
+ * typed/cleared an answer). Carries the full current list — applying it is
+ * idempotent, like `TallyUpdated`.
+ */
+export interface QAndAUpdated {
+  type: "QAndAUpdated";
+  slideId: string;
+  questions: QAndAQuestionView[];
+}
+
 export interface SubmissionsLocked {
   type: "SubmissionsLocked";
   slideId: string;
@@ -158,6 +170,7 @@ export type SessionEvent =
   | RoundStarted
   | LiveResultsShown
   | TallyUpdated
+  | QAndAUpdated
   | SubmissionsLocked
   | ResponsesRevealed
   | ResultsRevealed

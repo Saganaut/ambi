@@ -34,6 +34,8 @@ export interface SessionConnection {
   sendAdvance: () => void;
   /** Host: restart the current round from the top. */
   sendRestartRound: (slideId: string) => void;
+  /** Host: type (or clear, with blank text) the answer next to a Q&A question. */
+  sendHostAnswer: (slideId: string, questionId: string, answer: string) => void;
   /** Host: end the session now; scores so far are final. */
   sendEnd: () => void;
 }

@@ -11,6 +11,7 @@
 // `*ApiArg` types so a schema change breaks compilation.
 import {
   useAdvanceMutation,
+  useAnswerQuestionMutation,
   useCancelMutation,
   useCloseRoundMutation,
   useCreateMutation,
@@ -58,6 +59,13 @@ interface UseLiveSessionMutateResult {
   revealResponses: (id: string, slideId: string) => void;
   revealResults: (id: string, slideId: string) => void;
   restartRound: (id: string, slideId: string) => void;
+  /** Host: type (or clear, with blank text) the answer next to a Q&A question. */
+  answerQuestion: (
+    id: string,
+    slideId: string,
+    questionId: string,
+    answer: string,
+  ) => void;
 
   // ── Presence ──
   reconnect: (id: string) => void;
@@ -78,6 +86,7 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
   const [revealResponsesMutation] = useRevealResponsesMutation();
   const [revealResultsMutation] = useRevealResultsMutation();
   const [restartRoundMutation] = useRestartRoundMutation();
+  const [answerQuestionMutation] = useAnswerQuestionMutation();
   const [reconnectMutation] = useReconnectMutation();
   const [heartbeatMutation] = useHeartbeatMutation();
 
@@ -110,6 +119,18 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     void revealResultsMutation({ id, slideId });
   const restartRound = (id: string, slideId: string) =>
     void restartRoundMutation({ id, slideId });
+  const answerQuestion = (
+    id: string,
+    slideId: string,
+    questionId: string,
+    answer: string,
+  ) =>
+    void answerQuestionMutation({
+      id,
+      slideId,
+      questionId,
+      hostAnswerRequest: { answer },
+    });
 
   const reconnect = (id: string) => void reconnectMutation({ id });
   const heartbeat = (id: string) => void heartbeatMutation({ id });
@@ -128,6 +149,7 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     revealResponses,
     revealResults,
     restartRound,
+    answerQuestion,
     reconnect,
     heartbeat,
   };

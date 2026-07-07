@@ -66,6 +66,9 @@ const SessionConnectionProvider = ({
     sendRestartRound: (slideId) => {
       mutate.restartRound(sessionId, slideId);
     },
+    sendHostAnswer: (slideId, questionId, answer) => {
+      mutate.answerQuestion(sessionId, slideId, questionId, answer);
+    },
     sendEnd: () => {
       mutate.end(sessionId);
     },

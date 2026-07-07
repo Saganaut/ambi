@@ -1,0 +1,76 @@
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+
+  .cloud {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    place-content: center;
+    gap: var(--space-2) var(--space-4);
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: var(--space-3);
+    overflow-y: auto;
+    list-style: none;
+
+    .word {
+      /* 0..1 magnitude from the renderer; drives size and ink strength. */
+      --word-scale: 0.5;
+      --word-font-size: calc(var(--font-size-sm) + var(--word-scale) * 2.25rem);
+
+      .wordButton {
+        position: relative;
+        padding: 0 var(--space-1);
+        border: none;
+        background: none;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: var(--word-font-size);
+        line-height: 1.1;
+        opacity: calc(0.55 + var(--word-scale) * 0.45);
+        overflow-wrap: anywhere;
+
+        /* Exact count: revealed on hover/focus so the cloud stays uncluttered. */
+        .count {
+          position: absolute;
+          inset-block-start: -0.35em;
+          inset-inline-end: -0.5em;
+          padding: 0 var(--space-1);
+          border-radius: var(--radius-sm);
+          background-color: var(--bg-surface-raised);
+          color: var(--text-secondary);
+          font-size: var(--font-size-xs);
+          font-weight: 600;
+          opacity: 0;
+        }
+
+        &:hover,
+        &:focus-visible {
+          color: var(--text-accent);
+          opacity: 1;
+
+          .count {
+            opacity: 1;
+          }
+        }
+      }
+    }
+
+    .highlight .wordButton {
+      color: var(--text-accent);
+    }
+  }
+
+  .caption {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+}

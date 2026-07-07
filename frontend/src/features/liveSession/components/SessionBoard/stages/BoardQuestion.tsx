@@ -12,6 +12,7 @@
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { McqBoardContent } from "../content/McqBoardContent";
+import { QAndABoardContent } from "../content/QAndABoardContent";
 import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
 import styles from "./BoardQuestion.module.css";
 
@@ -42,6 +43,10 @@ const renderContent = (
     case "MCQ":
       return (
         <McqBoardContent slide={slide} mode={mode} interactive={interactive} />
+      );
+    case "Q_AND_A":
+      return (
+        <QAndABoardContent slide={slide} mode={mode} interactive={interactive} />
       );
     default:
       // Per-kind presentation surfaces land incrementally; until then the round

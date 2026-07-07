@@ -1,0 +1,155 @@
+.qandaBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .displayToggle {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+
+  .empty {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    color: var(--text-secondary);
+    font-size: var(--font-size-lg);
+  }
+
+  .questions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+
+    .question {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: var(--p-md);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface-raised);
+
+      .questionMain {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-3);
+
+        .asker {
+          flex-shrink: 0;
+          color: var(--text-secondary);
+          font-size: var(--font-size-sm);
+          font-weight: 600;
+        }
+
+        .text {
+          margin: 0;
+          color: var(--text-primary);
+          font-size: var(--font-size-lg);
+          overflow-wrap: anywhere;
+        }
+      }
+
+      /* The host's typed answer, set off from the question like a reply. */
+      .hostAnswer {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-2);
+        margin: 0;
+        padding-inline-start: var(--space-4);
+        border-inline-start: var(--border-size-md) solid var(--edge-brand);
+        color: var(--text-secondary);
+        overflow-wrap: anywhere;
+
+        .hostAnswerLabel {
+          flex-shrink: 0;
+          color: var(--text-accent);
+          font-size: var(--font-size-sm);
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+      }
+
+      .rowActions,
+      .answerEditor {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        align-items: flex-start;
+      }
+    }
+  }
+
+  .echo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    .echoTitle {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .echoList {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      margin: 0;
+      padding-inline-start: var(--space-5);
+      color: var(--text-primary);
+    }
+  }
+
+  .compose {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    .capNote {
+      margin: 0;
+      text-align: center;
+      color: var(--text-success);
+      font-weight: 600;
+    }
+  }
+
+  .composeInput {
+    width: 100%;
+    padding: var(--space-3);
+    border: var(--border-size-md) solid var(--edge-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-raised);
+    color: var(--text-primary);
+    font: inherit;
+    resize: vertical;
+
+    &:focus-visible {
+      outline: var(--border-size-md) solid var(--edge-brand);
+      outline-offset: 0;
+    }
+  }
+
+  .composeActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+  }
+}

@@ -12,6 +12,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import type {
   ParticipantView,
+  QAndAQuestionView,
   ScoreboardEntry,
   SessionSnapshotResponse,
   SlideView,
@@ -58,6 +59,8 @@ export interface LiveSessionState {
   roundStartedAt: string | null;
   /** The current round's live per-option tally. */
   optionCounts: OptionCounts;
+  /** The current Q&A round's questions (with host answers); empty otherwise. */
+  qAndAQuestions: QAndAQuestionView[];
   results: RoundResults | null;
   scoreboard: ScoreboardEntry[];
   finalScoreboard: ScoreboardEntry[] | null;
@@ -84,6 +87,7 @@ const initialState: LiveSessionState = {
   currentSlide: null,
   roundStartedAt: null,
   optionCounts: {},
+  qAndAQuestions: [],
   results: null,
   scoreboard: [],
   finalScoreboard: null,
@@ -119,6 +123,7 @@ const liveSessionSlice = createSlice({
       state.currentSlide = s.currentSlide ?? null;
       state.roundStartedAt = s.currentRoundStartedAt ?? null;
       state.optionCounts = s.optionTally ?? {};
+      state.qAndAQuestions = s.qAndAQuestions ?? [];
       state.scoreboard = s.scoreboard ?? [];
       state.viewerParticipantId = s.viewerParticipantId ?? null;
       state.showRoomCodeInHeader = s.showRoomCodeInHeader ?? false;
@@ -168,6 +173,7 @@ const liveSessionSlice = createSlice({
           state.currentSlide = e.slide;
           state.roundStartedAt = e.roundStartedAt;
           state.optionCounts = {};
+          state.qAndAQuestions = [];
           state.results = null;
           state.phase = "SUBMIT";
           break;
@@ -182,6 +188,12 @@ const liveSessionSlice = createSlice({
           // Ignore a tally addressed to a slide we're no longer showing.
           if (e.slideId === state.currentSlideId) {
             state.optionCounts = e.optionCounts;
+          }
+          break;
+        case "QAndAUpdated":
+          // Full-state like TallyUpdated; same stale-slide guard.
+          if (e.slideId === state.currentSlideId) {
+            state.qAndAQuestions = e.questions;
           }
           break;
         case "SubmissionsLocked":
@@ -209,6 +221,7 @@ const liveSessionSlice = createSlice({
           state.roundStartedAt = e.roundStartedAt;
           state.phase = e.phase;
           state.optionCounts = {};
+          state.qAndAQuestions = [];
           state.results = null;
           break;
         case "LiveSessionEnded":
