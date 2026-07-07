@@ -49,14 +49,19 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const assignedCount = items.filter((item) => item.id && correctCells[item.id]).length;
   const fullyAssigned = items.length > 0 && assignedCount === items.length;
 
-  // Item labels grouped by their target cell, for the preview matrix.
-  const itemsInCell = (row: number, col: number): string[] =>
+  // Items grouped by their target cell (id + display label), for the preview.
+  const itemsInCell = (row: number, col: number): { id: string; label: string }[] =>
     items.flatMap((item, index) => {
       const cell = item.id ? correctCells[item.id] : undefined;
       if (!cell) return [];
       const target = parseCell(cell);
       if (target.row !== row || target.col !== col) return [];
-      return [item.label?.trim() || `Item ${(index + 1).toString()}`];
+      return [
+        {
+          id: item.id ?? index.toString(),
+          label: item.label?.trim() || `Item ${(index + 1).toString()}`,
+        },
+      ];
     });
 
   return (
@@ -104,9 +109,9 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               <span
                 key={`cell-${row.toString()}-${col.toString()}`}
                 className={styles.previewCell}>
-                {itemsInCell(row, col).map((label) => (
-                  <span key={label} className={styles.previewChip}>
-                    {label}
+                {itemsInCell(row, col).map((chip) => (
+                  <span key={chip.id} className={styles.previewChip}>
+                    {chip.label}
                   </span>
                 ))}
               </span>
