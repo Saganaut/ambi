@@ -212,7 +212,13 @@ const liveSessionSlice = createSlice({
             scoreboard: e.scoreboard,
             terminal: e.terminal,
           };
-          state.optionCounts = e.optionCounts;
+          // The reveal's durable counts supersede the live tally only when the
+          // kind is durably tallied at all — grid (and other non-MCQ) rounds
+          // aren't yet (open-decisions D5), and wiping the live counts here
+          // would blank the board until a snapshot re-seed.
+          if (Object.keys(e.optionCounts).length > 0) {
+            state.optionCounts = e.optionCounts;
+          }
           state.scoreboard = e.scoreboard;
           state.phase = "REVEAL_RESULTS";
           break;

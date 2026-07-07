@@ -359,6 +359,15 @@ export type QAndAConfigView = {
   maxResponses?: number;
   moderated?: boolean;
 };
+export type GridItemView = {
+  id?: string;
+  label?: string;
+};
+export type GridConfigView = {
+  rowLabels?: string[];
+  colLabels?: string[];
+  items?: GridItemView[];
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -390,6 +399,7 @@ export type SlideView = {
     | "FOLLOW_UP";
   options?: McqOptionView[];
   qAndA?: QAndAConfigView;
+  grid?: GridConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {

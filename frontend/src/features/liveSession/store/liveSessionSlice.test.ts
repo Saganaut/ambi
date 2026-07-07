@@ -128,6 +128,37 @@ describe("liveSessionSlice", () => {
     expect(state.optionCounts).toEqual({});
   });
 
+  it("keeps the live tally when the reveal carries no durable counts", () => {
+    // Non-MCQ kinds (e.g. grid) aren't durably tallied yet (D5): the reveal's
+    // empty counts must not blank the live per-cell tally on the board.
+    const state = play(
+      seed(lobbySnapshot),
+      eventReceived({
+        type: "RoundStarted",
+        slideId: "slide-1",
+        slide: { id: "slide-1", title: "Q1", contentType: "GRID" },
+        roundStartedAt: "2026-07-01T10:00:00Z",
+      }),
+      eventReceived({
+        type: "TallyUpdated",
+        slideId: "slide-1",
+        optionCounts: { "bat@0,0": 1 },
+      }),
+      eventReceived({
+        type: "ResultsRevealed",
+        slideId: "slide-1",
+        outcomes: [],
+        optionCounts: {},
+        correctOption: null,
+        scoreboard: [],
+        terminal: false,
+      }),
+    );
+
+    expect(state.phase).toBe("REVEAL_RESULTS");
+    expect(state.optionCounts).toEqual({ "bat@0,0": 1 });
+  });
+
   it("records lifecycle end and cancellation", () => {
     const ended = play(
       seed(lobbySnapshot),

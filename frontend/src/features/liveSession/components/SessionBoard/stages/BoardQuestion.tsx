@@ -7,10 +7,11 @@
 //   - results     → revealed: distribution + correct-answer highlight.
 //
 // The header (title + instructions) is shared; the body switches on the slide's
-// `contentType` and delegates to a per-kind component. MCQ and Q&A are built so
-// far; everything else falls back to a placeholder.
+// `contentType` and delegates to a per-kind component. MCQ, Q&A and Grid are
+// built so far; everything else falls back to a placeholder.
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../resolveBoardStage";
+import { GridBoardContent } from "../content/GridBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
 import { QAndABoardContent } from "../content/QAndABoardContent";
 import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
@@ -47,6 +48,10 @@ const renderContent = (
     case "Q_AND_A":
       return (
         <QAndABoardContent slide={slide} mode={mode} interactive={interactive} />
+      );
+    case "GRID":
+      return (
+        <GridBoardContent slide={slide} mode={mode} interactive={interactive} />
       );
     default:
       // Per-kind presentation surfaces land incrementally; until then the round
