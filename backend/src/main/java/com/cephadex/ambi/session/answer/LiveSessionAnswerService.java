@@ -1,5 +1,6 @@
 package com.cephadex.ambi.session.answer;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,12 +16,14 @@ import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
@@ -92,8 +95,13 @@ public class LiveSessionAnswerService {
             return;
         }
 
+        // `maxSelections` is an MCQ knob (how many options one pick may span). A
+        // grid submission is one whole placement map, so the deck default of 1
+        // must not make the first submission final — grid resubmits overwrite
+        // (last write before close wins), like a multi-select MCQ change.
+        int effectiveMaxSelections = request.payload() instanceof GridAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
-                request.payload(), maxSelections);
+                request.payload(), effectiveMaxSelections);
     }
 
     private void validatePayload(Slide slide, AnswerPayload payload, int maxSelections) {
@@ -107,7 +115,54 @@ public class LiveSessionAnswerService {
         if (content instanceof QAndAContent) {
             validateQAndA(payload);
         }
+        if (content instanceof GridContent grid && payload instanceof GridAnswer ans) {
+            validateGrid(grid, ans);
+        }
         // Other content types are stored as-is; their tally/validation lands with scoring.
+    }
+
+    /**
+     * A grid submission must place at least one real item on a real cell: every
+     * key must be an item on the slide, every value a well-formed
+     * {@code "rowIndex,colIndex"} within the matrix bounds.
+     */
+    private void validateGrid(GridContent content, GridAnswer answer) {
+        Map<String, String> placements = answer.placements();
+        if (placements == null || placements.isEmpty()) {
+            throw new ValidationException("at least one item must be placed");
+        }
+        Set<String> itemIds = content.items() == null ? Set.of()
+                : content.items().stream()
+                        .map(item -> item.id())
+                        .collect(Collectors.toSet());
+        int rows = content.rowLabels() == null ? 0 : content.rowLabels().size();
+        int cols = content.colLabels() == null ? 0 : content.colLabels().size();
+        for (Map.Entry<String, String> placement : placements.entrySet()) {
+            if (!itemIds.contains(placement.getKey())) {
+                throw new ValidationException("placed item is not on the slide");
+            }
+            if (!isCellWithin(placement.getValue(), rows, cols)) {
+                throw new ValidationException("placement cell is not on the grid");
+            }
+        }
+    }
+
+    /** Whether {@code cell} is a well-formed {@code "rowIndex,colIndex"} inside the matrix. */
+    private static boolean isCellWithin(String cell, int rows, int cols) {
+        if (cell == null) {
+            return false;
+        }
+        String[] parts = cell.split(",", -1);
+        if (parts.length != 2) {
+            return false;
+        }
+        try {
+            int row = Integer.parseInt(parts[0]);
+            int col = Integer.parseInt(parts[1]);
+            return row >= 0 && row < rows && col >= 0 && col < cols;
+        } catch (NumberFormatException malformed) {
+            return false;
+        }
     }
 
     /**

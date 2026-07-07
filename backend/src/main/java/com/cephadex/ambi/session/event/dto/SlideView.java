@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
@@ -27,7 +28,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * so the client can drive the answer UI (e.g. whether multiple MCQ selections are
  * allowed); {@code answerSettings} is {@code null} when no settings are in effect.
  * A Q&amp;A slide additionally carries its secret-free config slice
- * ({@link QAndAConfigView}); {@code qAndA} is {@code null} for every other kind.
+ * ({@link QAndAConfigView}); a Grid slide carries {@link GridConfigView} (the
+ * matrix + items, never {@code correctCells}); each is {@code null} for every
+ * other kind.
  */
 public record SlideView(
         String id,
@@ -39,6 +42,7 @@ public record SlideView(
         SlideType contentType,
         List<McqOptionView> options,
         QAndAConfigView qAndA,
+        GridConfigView grid,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -51,6 +55,7 @@ public record SlideView(
         SlideContent content = slide.getContent();
         List<McqOptionView> options = null;
         QAndAConfigView qAndA = null;
+        GridConfigView grid = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -59,6 +64,9 @@ public record SlideView(
             }
             if (content instanceof QAndAContent qanda) {
                 qAndA = QAndAConfigView.from(qanda);
+            }
+            if (content instanceof GridContent gridContent) {
+                grid = GridConfigView.from(gridContent);
             }
         }
         return new SlideView(
@@ -71,6 +79,7 @@ public record SlideView(
                 contentType,
                 options,
                 qAndA,
+                grid,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

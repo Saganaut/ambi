@@ -25,7 +25,10 @@ import com.cephadex.ambi.presentation.deck.Settings.InviteSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
@@ -196,6 +199,35 @@ class LiveSessionSnapshotServiceTest {
             assertThat(q.text()).isEqualTo("Why?");
             assertThat(q.hostAnswer()).isEqualTo("Because.");
         });
+    }
+
+    @Test
+    void gridRoundSnapshotCarriesMatrixConfigWithoutAnswerKey() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(new GridContent(
+                List.of("Row A"), List.of("Col A", "Col B"),
+                List.of(new GridItem("it-1", "One", null)),
+                Map.of("it-1", "0,1"),
+                ScoreMode.EXACT));
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"))));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.currentSlide()).isNotNull();
+        assertThat(snap.currentSlide().grid()).isNotNull();
+        assertThat(snap.currentSlide().grid().rowLabels()).containsExactly("Row A");
+        assertThat(snap.currentSlide().grid().colLabels()).containsExactly("Col A", "Col B");
+        assertThat(snap.currentSlide().grid().items()).singleElement()
+                .satisfies(item -> {
+                    assertThat(item.id()).isEqualTo("it-1");
+                    assertThat(item.label()).isEqualTo("One");
+                });
+        // The answer key must never travel: GridConfigView has no correctCells at all.
     }
 
     @Test

@@ -29,14 +29,18 @@ import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
@@ -150,6 +154,50 @@ class LiveSessionAnswerServiceTest {
                 .isInstanceOf(ForbiddenException.class);
     }
 
+    // ── Grid ───────────────────────────────────────────────────────────────────
+
+    @Test
+    void gridPlacementsBypassTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), gridContent());
+
+        service.submit(SID, request(new GridAnswer(java.util.Map.of("it-1", "0,1"))), registered);
+
+        // maxSelections is an MCQ knob; grid resubmits must overwrite, so the
+        // orchestrator is called with 0 (unlimited / last-write-wins).
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(GridAnswer.class), eq(0));
+    }
+
+    @Test
+    void gridEmptyPlacementsAreRejected() {
+        givenLiveSession(answerSettings(true, 1), gridContent());
+
+        assertThatThrownBy(() -> service.submit(SID, request(new GridAnswer(java.util.Map.of())), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void gridUnknownItemIsRejected() {
+        givenLiveSession(answerSettings(true, 1), gridContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new GridAnswer(java.util.Map.of("it-nope", "0,0"))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void gridOutOfBoundsOrMalformedCellIsRejected() {
+        givenLiveSession(answerSettings(true, 1), gridContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new GridAnswer(java.util.Map.of("it-1", "2,0"))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new GridAnswer(java.util.Map.of("it-1", "not-a-cell"))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
     // ── Q&A ────────────────────────────────────────────────────────────────────
 
     @Test
@@ -232,6 +280,16 @@ class LiveSessionAnswerServiceTest {
 
     private static AnswerSettings anonymizedAnswerSettings() {
         return new AnswerSettings(ResultsDisplayMode.MANUAL, false, false, true, 0, true, 1);
+    }
+
+    /** A 2×2 grid with two items ("it-1", "it-2") and no answer key. */
+    private static GridContent gridContent() {
+        return new GridContent(
+                List.of("Row A", "Row B"),
+                List.of("Col A", "Col B"),
+                List.of(new GridItem("it-1", "One", null), new GridItem("it-2", "Two", null)),
+                java.util.Map.of(),
+                ScoreMode.EXACT);
     }
 
     private static McqContent mcqContent(String... optionIds) {
