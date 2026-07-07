@@ -25,8 +25,11 @@ import com.cephadex.ambi.presentation.deck.Settings.InviteSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.answer.Answer;
@@ -228,6 +231,39 @@ class LiveSessionSnapshotServiceTest {
                     assertThat(item.label()).isEqualTo("One");
                 });
         // The answer key must never travel: GridConfigView has no correctCells at all.
+    }
+
+    @Test
+    void axisRoundSnapshotCarriesPlaneConfigWithoutAnswerKeyOrTolerance() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(new AxisContent(
+                "Weak", "Strong", "Slow", "Fast",
+                List.of(new AxisItem("it-1", "One")),
+                Map.of("it-1", new AxisPoint(0.3, 0.7)),
+                0.1,
+                ScoreMode.INSIDE_RADIUS));
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"))));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.currentSlide()).isNotNull();
+        assertThat(snap.currentSlide().axis()).isNotNull();
+        assertThat(snap.currentSlide().axis().xLowLabel()).isEqualTo("Weak");
+        assertThat(snap.currentSlide().axis().xHighLabel()).isEqualTo("Strong");
+        assertThat(snap.currentSlide().axis().yLowLabel()).isEqualTo("Slow");
+        assertThat(snap.currentSlide().axis().yHighLabel()).isEqualTo("Fast");
+        assertThat(snap.currentSlide().axis().items()).singleElement()
+                .satisfies(item -> {
+                    assertThat(item.id()).isEqualTo("it-1");
+                    assertThat(item.label()).isEqualTo("One");
+                });
+        // The grading secrets must never travel: AxisConfigView has neither
+        // correctPositions nor tolerance at all.
     }
 
     @Test

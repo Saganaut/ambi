@@ -5,20 +5,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
@@ -84,6 +89,37 @@ class RoundEvaluatorTest {
     }
 
     @Test
+    void gradesAxisAllOrNothingInsideTolerance() {
+        // Two targets, tolerance 0.1: every keyed item must land within radius.
+        Slide slide = slideWith(axis(
+                Map.of("it-1", new AxisPoint(0.2, 0.2), "it-2", new AxisPoint(0.8, 0.8)), 0.1));
+
+        // Both inside (0.05 off on one coordinate each).
+        assertThat(gradeOne(slide, new AxisAnswer(Map.of(
+                "it-1", new AxisPoint(0.25, 0.2), "it-2", new AxisPoint(0.8, 0.75))))).isTrue();
+        // One item outside tolerance fails the whole answer.
+        assertThat(gradeOne(slide, new AxisAnswer(Map.of(
+                "it-1", new AxisPoint(0.25, 0.2), "it-2", new AxisPoint(0.5, 0.5))))).isFalse();
+        // A keyed item missing from the placements fails.
+        assertThat(gradeOne(slide, new AxisAnswer(Map.of(
+                "it-1", new AxisPoint(0.2, 0.2))))).isFalse();
+        // Distance is Euclidean in normalized space: 0.08 on both axes is ~0.113 > 0.1.
+        assertThat(gradeOne(slide, new AxisAnswer(Map.of(
+                "it-1", new AxisPoint(0.28, 0.28), "it-2", new AxisPoint(0.8, 0.8))))).isFalse();
+    }
+
+    @Test
+    void axisWithEmptyAnswerKeyIsCollectOnlyAndNeverGradesCorrect() {
+        Slide slide = slideWith(axis(Map.of(), 0.1));
+
+        AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
+                List.of(answer("p", new AxisAnswer(Map.of("it-1", new AxisPoint(0.5, 0.5))), 10)), START).get(0);
+
+        assertThat(eval.correct()).isFalse();
+        assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
+    }
+
+    @Test
     void contentWithNoStaticKeyNeverGradesCorrect() {
         Slide slide = slideWith(mcq(Set.of("a")));
 
@@ -128,6 +164,12 @@ class RoundEvaluatorTest {
 
     private static McqContent mcq(Set<String> correct) {
         return new McqContent(null, correct, null);
+    }
+
+    private static AxisContent axis(Map<String, AxisPoint> correctPositions, double tolerance) {
+        return new AxisContent("Low X", "High X", "Low Y", "High Y",
+                List.of(new AxisItem("it-1", "One"), new AxisItem("it-2", "Two")),
+                correctPositions, tolerance, ScoreMode.INSIDE_RADIUS);
     }
 
     private static Slide slideWith(SlideContent content) {

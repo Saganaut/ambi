@@ -15,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = QAndAQuestions.class),
         @JsonSubTypes.Type(value = MatchingAnswer.class),
         @JsonSubTypes.Type(value = GridAnswer.class),
+        @JsonSubTypes.Type(value = AxisAnswer.class),
         @JsonSubTypes.Type(value = PlaceOnImageAnswer.class),
         @JsonSubTypes.Type(value = AllocationAnswer.class),
         @JsonSubTypes.Type(value = DrawingAnswer.class),
@@ -22,8 +23,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public sealed interface AnswerPayload
         permits McqAnswer, NumberAnswer, TextAnswer, RankingAnswer, ScalesAnswer,
-        QAndAAnswer, QAndAQuestions, MatchingAnswer, GridAnswer, PlaceOnImageAnswer, AllocationAnswer,
-        DrawingAnswer, FollowUpAnswer {
+        QAndAAnswer, QAndAQuestions, MatchingAnswer, GridAnswer, AxisAnswer, PlaceOnImageAnswer,
+        AllocationAnswer, DrawingAnswer, FollowUpAnswer {
 
     /** The slide type this payload answers. */
     SlideType slideType();

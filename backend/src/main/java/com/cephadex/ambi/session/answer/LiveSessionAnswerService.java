@@ -16,13 +16,16 @@ import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
@@ -96,10 +99,11 @@ public class LiveSessionAnswerService {
         }
 
         // `maxSelections` is an MCQ knob (how many options one pick may span). A
-        // grid submission is one whole placement map, so the deck default of 1
-        // must not make the first submission final — grid resubmits overwrite
-        // (last write before close wins), like a multi-select MCQ change.
-        int effectiveMaxSelections = request.payload() instanceof GridAnswer ? 0 : maxSelections;
+        // grid or axis submission is one whole placement map, so the deck default
+        // of 1 must not make the first submission final — placement resubmits
+        // overwrite (last write before close wins), like a multi-select MCQ change.
+        int effectiveMaxSelections = request.payload() instanceof GridAnswer
+                || request.payload() instanceof AxisAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), effectiveMaxSelections);
     }
@@ -117,6 +121,9 @@ public class LiveSessionAnswerService {
         }
         if (content instanceof GridContent grid && payload instanceof GridAnswer ans) {
             validateGrid(grid, ans);
+        }
+        if (content instanceof AxisContent axis && payload instanceof AxisAnswer ans) {
+            validateAxis(axis, ans);
         }
         // Other content types are stored as-is; their tally/validation lands with scoring.
     }
@@ -145,6 +152,38 @@ public class LiveSessionAnswerService {
                 throw new ValidationException("placement cell is not on the grid");
             }
         }
+    }
+
+    /**
+     * An axis submission must place at least one real item at a real point: every
+     * key must be an item on the slide, every point finite and within the
+     * normalized {@code [0, 1]} plane on both axes.
+     */
+    private void validateAxis(AxisContent content, AxisAnswer answer) {
+        Map<String, AxisPoint> placements = answer.placements();
+        if (placements == null || placements.isEmpty()) {
+            throw new ValidationException("at least one item must be placed");
+        }
+        Set<String> itemIds = content.items() == null ? Set.of()
+                : content.items().stream()
+                        .map(item -> item.id())
+                        .collect(Collectors.toSet());
+        for (Map.Entry<String, AxisPoint> placement : placements.entrySet()) {
+            if (!itemIds.contains(placement.getKey())) {
+                throw new ValidationException("placed item is not on the slide");
+            }
+            if (!isPointOnPlane(placement.getValue())) {
+                throw new ValidationException("placement is not on the plane");
+            }
+        }
+    }
+
+    /** Whether {@code point} is finite and within the normalized [0, 1] plane. */
+    private static boolean isPointOnPlane(AxisPoint point) {
+        return point != null
+                && Double.isFinite(point.x()) && Double.isFinite(point.y())
+                && point.x() >= 0 && point.x() <= 1
+                && point.y() >= 0 && point.y() <= 1;
     }
 
     /** Whether {@code cell} is a well-formed {@code "rowIndex,colIndex"} inside the matrix. */

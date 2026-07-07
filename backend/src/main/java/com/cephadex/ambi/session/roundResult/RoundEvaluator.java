@@ -10,6 +10,7 @@ import java.util.Set;
 
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AllocationContent;
+import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
@@ -19,12 +20,14 @@ import com.cephadex.ambi.presentation.slide.content.RankingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
@@ -136,6 +139,7 @@ public final class RoundEvaluator {
             case RankingAnswer a -> content instanceof RankingContent c && gradeRanking(c, a);
             case MatchingAnswer a -> content instanceof MatchingContent c && gradeMatching(c, a);
             case GridAnswer a -> content instanceof GridContent c && gradeGrid(c, a);
+            case AxisAnswer a -> content instanceof AxisContent c && gradeAxis(c, a);
             case ScalesAnswer a -> content instanceof ScalesContent c && gradeScales(c, a);
             case AllocationAnswer a -> content instanceof AllocationContent c && gradeAllocation(c, a);
             case PlaceOnImageAnswer a -> content instanceof PlaceOnImageContent c && gradePlaceOnImage(c, a);
@@ -215,6 +219,26 @@ public final class RoundEvaluator {
         return content.scoreMode() == ScoreMode.EXACT
                 && content.correctCells() != null
                 && content.correctCells().equals(answer.placements());
+    }
+
+    private static boolean gradeAxis(AxisContent content, AxisAnswer answer) {
+        // gradeScales' loop-over-answer-key composed with gradePlaceOnImage's
+        // radius test: every keyed item must land within tolerance of its target.
+        // An empty key marks an unscored collect-only plane. INSIDE_RADIUS is the
+        // only implemented mode; PARTIAL/DISTANCE-style credit is a seam.
+        if (content.scoreMode() != ScoreMode.INSIDE_RADIUS
+                || content.correctPositions() == null || content.correctPositions().isEmpty()
+                || answer.placements() == null) {
+            return false;
+        }
+        for (Map.Entry<String, AxisPoint> e : content.correctPositions().entrySet()) {
+            AxisPoint placed = answer.placements().get(e.getKey());
+            if (placed == null || Math.hypot(placed.x() - e.getValue().x(),
+                    placed.y() - e.getValue().y()) > content.tolerance()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean gradeScales(ScalesContent content, ScalesAnswer answer) {

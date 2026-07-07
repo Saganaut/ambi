@@ -242,6 +242,17 @@ export type AllocationAnswer = {
       [key: string]: number;
     };
   };
+export type AxisPoint = {
+  x: number;
+  y: number;
+};
+export type AxisAnswer = {
+  answerType: "AxisAnswer";
+} & AnswerPayloadBase & {
+    placements?: {
+      [key: string]: AxisPoint;
+    };
+  };
 export type DrawingAnswer = {
   answerType: "DrawingAnswer";
 } & AnswerPayloadBase & {
@@ -318,6 +329,7 @@ export type SubmitAnswerRequest = {
   slideId: string;
   payload:
     | AllocationAnswer
+    | AxisAnswer
     | DrawingAnswer
     | FollowUpAnswer
     | GridAnswer
@@ -368,6 +380,17 @@ export type GridConfigView = {
   colLabels?: string[];
   items?: GridItemView[];
 };
+export type AxisItemView = {
+  id?: string;
+  label?: string;
+};
+export type AxisConfigView = {
+  xLowLabel?: string;
+  xHighLabel?: string;
+  yLowLabel?: string;
+  yHighLabel?: string;
+  items?: AxisItemView[];
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -401,6 +424,7 @@ export type SlideView = {
   options?: McqOptionView[];
   qAndA?: QAndAConfigView;
   grid?: GridConfigView;
+  axis?: AxisConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {

@@ -29,10 +29,13 @@ import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
@@ -40,6 +43,7 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Scor
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
@@ -198,6 +202,53 @@ class LiveSessionAnswerServiceTest {
                 .isInstanceOf(ValidationException.class);
     }
 
+    // ── Axis ───────────────────────────────────────────────────────────────────
+
+    @Test
+    void axisPlacementsBypassTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), axisContent());
+
+        service.submit(SID, request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(0.4, 0.6)))), registered);
+
+        // Like grid, an axis resubmit must overwrite rather than lock on first
+        // submit, so the orchestrator is called with 0 (last-write-wins).
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(AxisAnswer.class), eq(0));
+    }
+
+    @Test
+    void axisEmptyPlacementsAreRejected() {
+        givenLiveSession(answerSettings(true, 1), axisContent());
+
+        assertThatThrownBy(() -> service.submit(SID, request(new AxisAnswer(java.util.Map.of())), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void axisUnknownItemIsRejected() {
+        givenLiveSession(answerSettings(true, 1), axisContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AxisAnswer(java.util.Map.of("it-nope", new AxisPoint(0.5, 0.5)))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void axisOutOfBoundsOrNonFinitePointIsRejected() {
+        givenLiveSession(answerSettings(true, 1), axisContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(1.2, 0.5)))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(0.5, -0.01)))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(Double.NaN, 0.5)))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
     // ── Q&A ────────────────────────────────────────────────────────────────────
 
     @Test
@@ -290,6 +341,16 @@ class LiveSessionAnswerServiceTest {
                 List.of(new GridItem("it-1", "One", null), new GridItem("it-2", "Two", null)),
                 java.util.Map.of(),
                 ScoreMode.EXACT);
+    }
+
+    /** An axis plane with two items ("it-1", "it-2") and no answer key. */
+    private static AxisContent axisContent() {
+        return new AxisContent(
+                "Low X", "High X", "Low Y", "High Y",
+                List.of(new AxisItem("it-1", "One"), new AxisItem("it-2", "Two")),
+                java.util.Map.of(),
+                0.1,
+                ScoreMode.INSIDE_RADIUS);
     }
 
     private static McqContent mcqContent(String... optionIds) {

@@ -26,11 +26,22 @@ public final class AnswerTallyKeys {
     public static final String GRID_KEY_SEPARATOR = "@";
 
     /**
+     * Axis placements are quantized into this many buckets per axis at
+     * key-derivation time — exact coordinates can't be histogram keys, a
+     * 10 × 10 bucket grid can. The frontend mirrors this constant to aggregate
+     * the heat overlay (it is not a request-DTO bound, so it does not flow
+     * through {@code generate-validation}); keep the two in sync.
+     */
+    public static final int AXIS_TALLY_BUCKETS = 10;
+
+    /**
      * The option-tally keys contributed by {@code payload}: one per chosen MCQ
-     * option, or one {@code itemId@rowIndex,colIndex} key per grid placement (so
-     * the live board can shade each cell by what landed there). Returns an empty
-     * list for payloads that aren't tallied yet (free text, drawings, …), so the
-     * caller simply counts nothing for them.
+     * option, one {@code itemId@rowIndex,colIndex} key per grid placement (so
+     * the live board can shade each cell by what landed there), or one
+     * {@code itemId@bucketX,bucketY} key per axis placement (quantized, so the
+     * live board can heat-map the plane). Returns an empty list for payloads
+     * that aren't tallied yet (free text, drawings, …), so the caller simply
+     * counts nothing for them.
      */
     public static List<String> optionKeys(AnswerPayload payload) {
         if (payload instanceof McqAnswer mcq) {
@@ -41,6 +52,19 @@ public final class AnswerTallyKeys {
                     .map(placement -> placement.getKey() + GRID_KEY_SEPARATOR + placement.getValue())
                     .toList();
         }
+        if (payload instanceof AxisAnswer axis && axis.placements() != null) {
+            // Bucket indices are small ints, so "bx,by" is exactly grid's cell-id
+            // grammar and the whole @-separated pipeline applies unchanged.
+            return axis.placements().entrySet().stream()
+                    .map(placement -> placement.getKey() + GRID_KEY_SEPARATOR
+                            + bucket(placement.getValue().x()) + "," + bucket(placement.getValue().y()))
+                    .toList();
+        }
         return List.of();
+    }
+
+    /** Quantize a normalized [0, 1] coordinate to a bucket index; 1.0 clamps into the last bucket. */
+    private static int bucket(double coordinate) {
+        return Math.min((int) Math.floor(coordinate * AXIS_TALLY_BUCKETS), AXIS_TALLY_BUCKETS - 1);
     }
 }
