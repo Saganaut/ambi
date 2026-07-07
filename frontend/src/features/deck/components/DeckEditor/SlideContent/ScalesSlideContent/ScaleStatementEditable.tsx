@@ -7,8 +7,10 @@
  * statement gets a success-tinted outline via `ItemCard`'s `tone`.
  *
  * When the range can't render as dots (no positive step, or too many ticks —
- * see `scaleTicks`) the row falls back to a numeric "Answer" field with an
- * explicit set/clear affordance.
+ * see `scaleTicks`), or the persisted target no longer lands on a tick (the
+ * author changed min/max/step after scoring), the row falls back to a numeric
+ * "Answer" field with an explicit set/clear affordance so the value stays
+ * visible and clearable instead of silently orphaned.
  *
  * A controlled row: the label mirror (and the fallback target mirror) lives
  * here while structural ops (schedule / commit / clear / flush / remove) come
@@ -73,6 +75,9 @@ const ScaleStatementEditable = ({
 }: ScaleStatementEditableProps) => {
   const ticks = scaleTicks(min, max, step);
   const scored = correctValue !== undefined;
+  // A target set before a min/max/step edit may no longer land on a tick; the
+  // dot track can't show (or clear) it, so such rows use the numeric fallback.
+  const onTrack = correctValue === undefined || ticks.includes(correctValue);
   // The fallback "Set answer" lands on the scale's midpoint so a freshly-scored
   // statement starts on a sensible in-range default rather than 0 / NaN.
   const midpoint = Math.round((min + max) / 2);
@@ -114,7 +119,7 @@ const ScaleStatementEditable = ({
           }}
           onBlur={onFlush}
         />
-        {ticks.length > 0 ? (
+        {ticks.length > 0 && onTrack ? (
           <div className={styles.statementScale}>
             <span className={styles.anchorCaption}>
               {leftLabel.length > 0 ? leftLabel : min}

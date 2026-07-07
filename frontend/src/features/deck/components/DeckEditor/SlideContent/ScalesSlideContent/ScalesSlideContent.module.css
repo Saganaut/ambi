@@ -97,6 +97,10 @@
   min-width: 1.75rem;
   padding: 0 var(--space-1);
   border-inline: var(--border-size-sm) solid var(--border-subtle);
+
+  /* Documented exception to the named-pairing catalog: the imported "Scale
+     Question" design colors each endpoint's value with its card accent, so
+     this reads --bg-primary / --border-brand as a foreground color. */
   color: var(--endpoint-accent);
   font-size: var(--font-size-sm);
   font-weight: 700;
@@ -267,6 +271,9 @@
   transform: scale(1.15);
 }
 
+/* Documented exception to the named-pairing catalog: the design fills the
+   selected point with the success border tone and rings it with the success
+   wash (inverting the notice pairing) so the dot reads as a solid marker. */
 .targetDotSelected {
   border-color: var(--border-success);
   background-color: var(--border-success);

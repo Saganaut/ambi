@@ -12,6 +12,10 @@ const scaleTicks = (min: number, max: number, step: number): number[] => {
   // lands on max instead of being dropped.
   const count = Math.floor((max - min) / step + 1e-9) + 1;
   if (count < 2 || count > MAX_TRACK_TICKS) return [];
+  // A step that doesn't land exactly on max would leave the right endpoint
+  // unselectable while the "min → max" caption implies otherwise — treat that
+  // range as un-renderable too.
+  if (Math.abs(min + (count - 1) * step - max) > 1e-6) return [];
   return Array.from(
     { length: count },
     (_, i) => Math.round((min + i * step) * 1e6) / 1e6,

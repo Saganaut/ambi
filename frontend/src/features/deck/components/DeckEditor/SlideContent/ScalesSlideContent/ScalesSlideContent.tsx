@@ -81,6 +81,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     setLeftLabel(question.leftLabel);
     setRightLabel(question.rightLabel);
     setTolerance(question.tolerance);
+    setAdvancedOpen(false);
   }
 
   if (!question) return <EmptySelect title="Scales" />;

@@ -43,7 +43,10 @@ const ScaleEndpointCard = ({
       ].join(" ")}>
       <div className={styles.endpointHeader}>
         <span className={styles.endpointSide}>{sideTitle}</span>
-        <div className={styles.endpointStepper}>
+        <div
+          className={styles.endpointStepper}
+          role='group'
+          aria-label={`${sideTitle} value`}>
           <button
             type='button'
             className={styles.stepperBtn}
@@ -54,7 +57,11 @@ const ScaleEndpointCard = ({
             }}>
             −
           </button>
-          <span className={styles.stepperValue}>{value}</span>
+          {/* aria-live: focus stays on the −/+ button after a tap, so announce
+              the new value to assistive tech. */}
+          <span className={styles.stepperValue} aria-live='polite'>
+            {value}
+          </span>
           <button
             type='button'
             className={styles.stepperBtn}
