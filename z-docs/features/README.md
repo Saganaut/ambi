@@ -5,6 +5,7 @@ Per-feature design docs. One subfolder (or single file) per feature; each owns i
 ## Existing
 
 - [Axis Slides](axis-slides/README.md) — Free-form 2D placement kind (spec only): items placed anywhere on a labeled X × Y plane, graded by distance to author-set targets within a tolerance radius.
+- [Scales Slides](scales-slides/README.md) — Continuous-slider redesign (spec only): drop the discrete `step`/tick model; author and players drag a marker between the two labeled ends and the position derives the value.
 - [Deck Editor](deck-editor/README.md) — `/decks/$deckId/view` authoring dashboard architecture (commit pattern, cache sync, RichText, fullscreen).
 - [Follow-Up Slides](follow-up-slides/README.md) — Slides chained off a scorable parent that consume its submissions at runtime: model, invariants (adjacency, one-per-slide, cascade delete), modes, editor UX.
 - [Membership](membership/README.md) — Pricing page scaffolding and components.

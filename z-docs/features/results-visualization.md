@@ -97,7 +97,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **NUMBER** | `double` | Histogram (or DotPlot / box) with target marker | ✅ Histogram built (no editor UI yet) |
 | **TEXT** | `String` | Word cloud, or ranked term bar | 🧩 word cloud built, not wired (no backend tally) |
 | **RANKING** | `List<String>` order | Avg-rank bar, or position-distribution stacked bar / bump | ♻️ reuses BarChart |
-| **SCALES** | `Map<id,Integer>` | Likert diverging stacked bar, or mean±spread per item | 🚧 diverging-bar placeholder |
+| **SCALES** | `Map<id,Double>` normalized positions (see [scales redesign](scales-slides/README.md)) | Per-statement bucketed strip/histogram, or mean±spread per item | 🚧 diverging-bar placeholder; live 10-bucket strips specced on the board |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 heatmap placeholder |
 | **PLACE_ON_IMAGE** | `double x,y` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder |
 | **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item color (needs raw placements — follow-up F2), or bucketed heatmap | 🚧 heatmap placeholder; live 10×10 bucket heat built on the board — see [axis slides](axis-slides/README.md) |
@@ -132,9 +132,13 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
 - **RANKING** — each participant submits a full ordering. Chart the **average
   (or median) rank position per item** (a bar could reuse `BarChart`), or the
   distribution of positions per item as a stacked bar (needs a stacked variant).
-- **SCALES** — a value per statement per participant. The canonical view is a
-  **Likert diverging stacked bar** (one row per statement, agree/disagree fanned
-  from center), or mean ± spread per item with the `correctValues` target marked.
+- **SCALES** — a continuous value per statement per participant (normalized
+  positions on the wire — see the
+  [continuous-slider redesign](scales-slides/README.md)). The natural view is a
+  **bucketed strip/histogram per statement** (the live board's 10-bucket heat
+  strips are the v1 form), or mean ± spread per item with the `correctValues`
+  target marked; the classic Likert diverging bar needs a bucketed variant now
+  that values no longer snap to discrete steps.
 - **GRID** — each participant places items into matrix cells. A **heatmap**
   (rows × cols, shaded by placement count) reads best; a per-item stacked bar is
   the fallback.
@@ -181,8 +185,10 @@ Ordered by breadth of slide types unlocked and reuse of existing infrastructure.
    aggregation of raw text plus a `resultsRegistry` adapter to wire into the
    post-round results pipeline above.
 2. **Histogram / box plot** → NUMBER. The only viz for continuous responses.
-3. **Diverging stacked bar (Likert)** → SCALES. Also the base for RANKING /
-   ALLOCATION position-distribution views.
+3. **Diverging stacked bar (Likert)** → SCALES (bucketed variant once the
+   [continuous-slider redesign](scales-slides/README.md) lands — values no
+   longer snap to discrete steps). Also the base for RANKING / ALLOCATION
+   position-distribution views.
 4. **Heatmap** → GRID, MATCHING (confusion matrix), PLACE_ON_IMAGE. One heatmap
    primitive covers three slide types.
 5. **Stacked / grouped bar** → RANKING, ALLOCATION. May extend the existing
