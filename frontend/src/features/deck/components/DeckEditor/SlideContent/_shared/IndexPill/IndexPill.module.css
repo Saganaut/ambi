@@ -23,8 +23,9 @@
 }
 
 /* Colored fill (set inline by the consumer): fix the numeral to near-white —
-   palette fills are mid-lightness in every theme, so themed text could clash. */
-.tinted {
+   palette fills are mid-lightness in every theme, so themed text could clash.
+   Double class so the override beats the variants regardless of source order. */
+.indexPill.tinted {
   color: oklch(99% 0 0deg);
 }
 

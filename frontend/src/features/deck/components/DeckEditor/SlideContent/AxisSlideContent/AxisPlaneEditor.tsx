@@ -27,7 +27,7 @@ import {
   type AxisQuestionView,
 } from "@deck/hooks/useAxisEditor";
 import type { AxisPoint } from "@deck/store/deckApi.gen";
-import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
+import { axisItemColor } from "./axisItemColor";
 import styles from "./AxisSlideContent.module.css";
 
 /** Pointer travel (px) below which a marker press counts as a tap, not a drag. */
@@ -209,7 +209,7 @@ const AxisPlaneEditor = ({
             if (!itemId) return null;
             const point = renderedPoint(itemId);
             if (!point) return null;
-            const color = resolveOptionColor(undefined, index);
+            const color = axisItemColor(index);
             // Both are positioned directly on the plane so their percentage
             // coordinates/sizes resolve against the plane's box.
             const position = {

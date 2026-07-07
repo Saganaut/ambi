@@ -59,7 +59,7 @@
   /* Near-square, capped so the plane never overflows the slide canvas. */
   max-width: 19rem;
   aspect-ratio: 1;
-  border: var(--border-size-sm) solid var(--bg-primary);
+  border: var(--border-size-sm) solid var(--edge-primary);
   border-radius: var(--radius-md);
   background-color: var(--bg-surface-raised);
 
@@ -74,7 +74,7 @@
 .planeArmed {
   cursor: crosshair;
   outline: var(--border-size-sm) solid
-    color-mix(in oklab, var(--bg-primary) 30%, transparent);
+    color-mix(in oklab, var(--edge-primary) 30%, transparent);
   outline-offset: var(--space-half);
 }
 

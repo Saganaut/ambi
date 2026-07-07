@@ -35,8 +35,8 @@ import {
 } from "@deck/hooks/useAxisEditor";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { EmptySelect, ItemList, ScoringFooter, SettingsCard } from "../_shared";
-import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
 import type { SlideContentProps } from "../slideContentProps";
+import { axisItemColor } from "./axisItemColor";
 import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
 import styles from "./AxisSlideContent.module.css";
@@ -153,7 +153,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 item={item}
                 sortIndex={index}
                 targetPosition={item.id ? (correctPositions[item.id] ?? null) : null}
-                color={resolveOptionColor(undefined, index)}
+                color={axisItemColor(index)}
                 selected={item.id != null && selectedItemId === item.id}
                 menuOpen={item.id != null && openMenuId === item.id}
                 canRemove={editor.canRemoveItem}
