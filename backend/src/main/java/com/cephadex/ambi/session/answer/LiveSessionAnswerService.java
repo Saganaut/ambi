@@ -15,11 +15,13 @@ import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
+import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -78,6 +80,17 @@ public class LiveSessionAnswerService {
         }
         validatePayload(slide, request.payload(), maxSelections);
 
+        // Q&A departs from the single-answer model: questions append server-side
+        // (per-participant cap from the content, not maxSelections), so it takes
+        // the dedicated orchestrator path.
+        if (request.payload() instanceof QAndAAnswer question) {
+            QAndAContent qanda = (QAndAContent) slide.getContent();
+            boolean anonymize = answer != null && answer.anonymizeAnswers();
+            orchestrator.submitQuestion(sessionId, request.slideId(), participant.getParticipantId(),
+                    question, qanda.maxResponses(), anonymize);
+            return;
+        }
+
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), maxSelections);
     }
@@ -90,7 +103,27 @@ public class LiveSessionAnswerService {
         if (content instanceof McqContent mcq && payload instanceof McqAnswer ans) {
             validateMcq(mcq, ans, maxSelections);
         }
+        if (content instanceof QAndAContent) {
+            validateQAndA(payload);
+        }
         // Other content types are stored as-is; their tally/validation lands with scoring.
+    }
+
+    /**
+     * A Q&amp;A submission must be the wire shape ({@link QAndAAnswer} — the stored
+     * {@code QAndAQuestions} aggregate is server-built and never accepted from a
+     * client) with a non-blank question within the length cap.
+     */
+    private void validateQAndA(AnswerPayload payload) {
+        if (!(payload instanceof QAndAAnswer question)) {
+            throw new ValidationException("answer type does not match the slide");
+        }
+        if (question.question() == null || question.question().isBlank()) {
+            throw new ValidationException("a question must not be empty");
+        }
+        if (question.question().length() > QAndAAnswer.MAX_QUESTION_LENGTH) {
+            throw new ValidationException("question is too long");
+        }
     }
 
     private void validateMcq(McqContent content, McqAnswer answer, int maxSelections) {

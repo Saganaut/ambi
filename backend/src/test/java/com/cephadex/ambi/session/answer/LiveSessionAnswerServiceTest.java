@@ -2,6 +2,7 @@ package com.cephadex.ambi.session.answer;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -28,6 +29,8 @@ import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
@@ -35,6 +38,8 @@ import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
+import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
+import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -144,9 +149,61 @@ class LiveSessionAnswerServiceTest {
                 .isInstanceOf(ForbiddenException.class);
     }
 
+    // ── Q&A ────────────────────────────────────────────────────────────────────
+
+    @Test
+    void qandaQuestionTakesTheDedicatedOrchestratorPath() {
+        givenLiveSession(answerSettings(true, 1), new QAndAContent(3, false));
+
+        service.submit(SID, request(new QAndAAnswer("Why though?")), registered);
+
+        verify(orchestrator).submitQuestion(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(QAndAAnswer.class), eq(3), eq(false));
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void qandaAnonymizeSettingTravelsToTheOrchestrator() {
+        givenLiveSession(anonymizedAnswerSettings(), new QAndAContent(null, false));
+
+        service.submit(SID, request(new QAndAAnswer("Who said that?")), registered);
+
+        verify(orchestrator).submitQuestion(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(QAndAAnswer.class), eq((Integer) null), eq(true));
+    }
+
+    @Test
+    void qandaBlankQuestionIsRejected() {
+        givenLiveSession(answerSettings(true, 1), new QAndAContent(null, false));
+
+        assertThatThrownBy(() -> service.submit(SID, request(new QAndAAnswer("   ")), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitQuestion(any(), any(), any(), any(), any(), anyBoolean());
+    }
+
+    @Test
+    void qandaOverlongQuestionIsRejected() {
+        givenLiveSession(answerSettings(true, 1), new QAndAContent(null, false));
+        String tooLong = "x".repeat(QAndAAnswer.MAX_QUESTION_LENGTH + 1);
+
+        assertThatThrownBy(() -> service.submit(SID, request(new QAndAAnswer(tooLong)), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void qandaStoredAggregateShapeIsRejectedFromClients() {
+        givenLiveSession(answerSettings(true, 1), new QAndAContent(null, false));
+        AnswerPayload storedShape = new QAndAQuestions(List.of());
+
+        assertThatThrownBy(() -> service.submit(SID, request(storedShape), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitQuestion(any(), any(), any(), any(), any(), anyBoolean());
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
     // ── fixtures ───────────────────────────────────────────────────────────────
 
-    private void givenLiveSession(AnswerSettings answer, McqContent content) {
+    private void givenLiveSession(AnswerSettings answer, SlideContent content) {
         Slide slide = new Slide();
         slide.setId(SLIDE);
         slide.setContent(content);
@@ -170,6 +227,10 @@ class LiveSessionAnswerServiceTest {
 
     private static AnswerSettings answerSettings(boolean allowAnonymous, int maxSelections) {
         return new AnswerSettings(ResultsDisplayMode.MANUAL, false, false, false, 0, allowAnonymous, maxSelections);
+    }
+
+    private static AnswerSettings anonymizedAnswerSettings() {
+        return new AnswerSettings(ResultsDisplayMode.MANUAL, false, false, true, 0, true, 1);
     }
 
     private static McqContent mcqContent(String... optionIds) {

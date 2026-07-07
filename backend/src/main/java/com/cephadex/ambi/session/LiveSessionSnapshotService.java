@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Settings;
+import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
+import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.SlideView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
@@ -20,10 +22,12 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
+import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
+import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
 import com.cephadex.ambi.session.redis.TallyStore;
 
 /**
@@ -48,16 +52,20 @@ public class LiveSessionSnapshotService {
     private final LiveRoundStateStore roundStateStore;
     private final TallyStore tallyStore;
     private final PresenceStore presenceStore;
+    private final AnswerStore answerStore;
+    private final QAndAHostAnswerStore qandaHostAnswers;
 
     public LiveSessionSnapshotService(LiveSessionRepository sessions, ParticipantRepository participants,
             ParticipantResolver participantResolver, LiveRoundStateStore roundStateStore, TallyStore tallyStore,
-            PresenceStore presenceStore) {
+            PresenceStore presenceStore, AnswerStore answerStore, QAndAHostAnswerStore qandaHostAnswers) {
         this.sessions = sessions;
         this.participants = participants;
         this.participantResolver = participantResolver;
         this.roundStateStore = roundStateStore;
         this.tallyStore = tallyStore;
         this.presenceStore = presenceStore;
+        this.answerStore = answerStore;
+        this.qandaHostAnswers = qandaHostAnswers;
     }
 
     /**
@@ -96,11 +104,23 @@ public class LiveSessionSnapshotService {
         String currentSlideId = roundState.currentSlideId();
         SlideView currentSlide = null;
         Map<String, Integer> optionTally = null;
+        List<QAndAQuestionView> qAndAQuestions = null;
         if (currentSlideId != null) {
-            currentSlide = session.getDeck().findSlide(currentSlideId)
-                    .map(slide -> SlideView.from(slide,
-                            Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings())))
-                    .orElse(null);
+            var slide = session.getDeck().findSlide(currentSlideId).orElse(null);
+            if (slide != null) {
+                Settings.AnswerSettings effective =
+                        Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
+                currentSlide = SlideView.from(slide, effective);
+                if (currentSlide.contentType() == SlideType.Q_AND_A) {
+                    // Same participant-safe assembly the QAndAUpdated deltas use, so the
+                    // seeded list and every patch agree (incl. the anonymize stripping).
+                    boolean anonymize = effective != null && effective.anonymizeAnswers();
+                    qAndAQuestions = QAndAQuestionView.from(
+                            answerStore.answers(sessionId, currentSlideId),
+                            qandaHostAnswers.all(sessionId, currentSlideId),
+                            anonymize);
+                }
+            }
             optionTally = tallyStore.tally(sessionId, currentSlideId);
         }
 
@@ -121,6 +141,7 @@ public class LiveSessionSnapshotService {
                 currentSlide,
                 roundState.roundStartedAt(),
                 optionTally,
+                qAndAQuestions,
                 rosterViews,
                 SessionEvents.scoreboard(roster),
                 viewer.getParticipantId(),

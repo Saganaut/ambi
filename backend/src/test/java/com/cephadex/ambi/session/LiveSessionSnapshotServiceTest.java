@@ -34,9 +34,11 @@ import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
+import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.PresenceStore;
+import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
 import com.cephadex.ambi.session.redis.TallyStore;
 import com.cephadex.ambi.user.enums.UserLevel;
 
@@ -50,6 +52,8 @@ class LiveSessionSnapshotServiceTest {
     private LiveRoundStateStore roundStateStore;
     private TallyStore tallyStore;
     private PresenceStore presenceStore;
+    private AnswerStore answerStore;
+    private QAndAHostAnswerStore qandaHostAnswers;
     private LiveSessionSnapshotService service;
 
     private AmbiPrincipal caller;
@@ -65,8 +69,10 @@ class LiveSessionSnapshotServiceTest {
         roundStateStore = mock(LiveRoundStateStore.class);
         tallyStore = mock(TallyStore.class);
         presenceStore = mock(PresenceStore.class);
+        answerStore = mock(AnswerStore.class);
+        qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         service = new LiveSessionSnapshotService(sessions, participants, participantResolver,
-                roundStateStore, tallyStore, presenceStore);
+                roundStateStore, tallyStore, presenceStore, answerStore, qandaHostAnswers);
 
         caller = new AmbiPrincipal(IdentityState.GUEST, "user-1", "pub-user", UserLevel.GUEST,
                 AuthProvider.INTERNAL, null, null, "sid-1");

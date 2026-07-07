@@ -5,6 +5,7 @@ import java.util.List;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
@@ -25,6 +26,8 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * <p>The participant-safe answer settings ({@link AnswerSettingsView}) travel too,
  * so the client can drive the answer UI (e.g. whether multiple MCQ selections are
  * allowed); {@code answerSettings} is {@code null} when no settings are in effect.
+ * A Q&amp;A slide additionally carries its secret-free config slice
+ * ({@link QAndAConfigView}); {@code qAndA} is {@code null} for every other kind.
  */
 public record SlideView(
         String id,
@@ -35,6 +38,7 @@ public record SlideView(
         boolean hideBackground,
         SlideType contentType,
         List<McqOptionView> options,
+        QAndAConfigView qAndA,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -46,11 +50,15 @@ public record SlideView(
     public static SlideView from(Slide slide, Settings.AnswerSettings effectiveAnswer) {
         SlideContent content = slide.getContent();
         List<McqOptionView> options = null;
+        QAndAConfigView qAndA = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
             if (content instanceof McqContent mcq) {
                 options = mcq.options().stream().map(McqOptionView::from).toList();
+            }
+            if (content instanceof QAndAContent qanda) {
+                qAndA = QAndAConfigView.from(qanda);
             }
         }
         return new SlideView(
@@ -62,6 +70,7 @@ public record SlideView(
                 slide.isHideBackground(),
                 contentType,
                 options,
+                qAndA,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

@@ -21,9 +21,12 @@ import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AnswerTallyKeys;
+import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
+import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
+import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -34,6 +37,7 @@ import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
+import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.TallyStore;
 import com.cephadex.ambi.session.roundResult.RoundResult;
@@ -80,6 +84,7 @@ public class LiveSessionOrchestrator {
     private final AnswerStore answerStore;
     private final TallyStore tallyStore;
     private final PresenceStore presenceStore;
+    private final QAndAHostAnswerStore qandaHostAnswers;
     private final EventPublisher publisher;
     private final RoundResultProjector roundResults;
     // DeadlineScheduler (round/submission timers, A3) is still deferred; pause
@@ -99,7 +104,8 @@ public class LiveSessionOrchestrator {
 
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
-            PresenceStore presenceStore, EventPublisher publisher, RoundResultProjector roundResults) {
+            PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers, EventPublisher publisher,
+            RoundResultProjector roundResults) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
@@ -107,6 +113,7 @@ public class LiveSessionOrchestrator {
         this.answerStore = answerStore;
         this.tallyStore = tallyStore;
         this.presenceStore = presenceStore;
+        this.qandaHostAnswers = qandaHostAnswers;
         this.publisher = publisher;
         this.roundResults = roundResults;
     }
@@ -359,6 +366,101 @@ public class LiveSessionOrchestrator {
     }
 
     /**
+     * Records one Q&amp;A question for the open round. Q&amp;A departs from the
+     * one-answer-per-participant model the other kinds share: a player may ask
+     * several questions, so the incoming {@link QAndAAnswer} is <em>appended</em>
+     * to the participant's stored {@link QAndAQuestions} aggregate (still one
+     * {@code Answer} per participant, so scoring and the durable flush keep their
+     * shape) with a server-assigned question id. Publishes the full
+     * {@code QAndAUpdated} list. Lock-free like {@link #submitAnswer}: the
+     * read-modify-write races only against the same participant's own concurrent
+     * submissions (one device in practice), never across participants.
+     *
+     * @param maxResponses per-participant question cap from the slide's
+     *                     {@code QAndAContent}; {@code null} or {@code 0} = unlimited
+     * @param anonymize    the round's {@code anonymizeAnswers} answer setting — when
+     *                     set, published views carry no {@code participantId}
+     * @throws ConflictException if no round is open for {@code slideId}, it is no
+     *                           longer accepting submissions, or the participant
+     *                           reached the question cap
+     */
+    public void submitQuestion(String sessionId, String slideId, String participantId,
+            QAndAAnswer payload, Integer maxResponses, boolean anonymize) {
+        LiveRoundState state = roundStateStore.load(sessionId).orElse(null);
+        if (state == null || !slideId.equals(state.currentSlideId()) || !state.phase().acceptsSubmissions()) {
+            throw new ConflictException("ROUND_NOT_OPEN", "this slide is not accepting submissions");
+        }
+
+        List<QAndAQuestions.Entry> entries = new java.util.ArrayList<>(
+                answerStore.answerOf(sessionId, slideId, participantId)
+                        .map(prior -> prior.getPayload())
+                        .filter(QAndAQuestions.class::isInstance)
+                        .map(prior -> ((QAndAQuestions) prior).questions())
+                        .orElse(List.of()));
+        if (maxResponses != null && maxResponses > 0 && entries.size() >= maxResponses) {
+            throw new ConflictException("QUESTION_LIMIT_REACHED",
+                    "you have reached this round's question limit");
+        }
+        entries.add(new QAndAQuestions.Entry(
+                java.util.UUID.randomUUID().toString(), payload.question().strip(), Instant.now()));
+
+        Answer answer = new Answer();
+        answer.setParticipantId(participantId);
+        answer.setSessionId(sessionId);
+        answer.setSlideId(slideId);
+        answer.setSubmittedAt(Instant.now());
+        answer.setPayload(new QAndAQuestions(List.copyOf(entries)));
+        answerStore.submit(sessionId, slideId, answer);
+
+        publishQAndAUpdated(state.publicId(), sessionId, slideId, anonymize);
+    }
+
+    /**
+     * Records (or clears) the host's typed answer next to a Q&amp;A question and
+     * broadcasts the updated list. A blank {@code answerText} clears the answer —
+     * the host's "undo". Allowed in any phase while the session is live (the host
+     * may keep answering after submissions close); the question must exist in the
+     * round's stored answers.
+     *
+     * @throws NotFoundException if the slide isn't in the deck snapshot or no
+     *                           question with {@code questionId} was asked this round
+     */
+    public void answerQuestion(String sessionId, String slideId, String questionId, String answerText) {
+        LiveSession session = requireSession(sessionId);
+        Slide slide = requireSlide(session, slideId);
+        boolean exists = answerStore.answers(sessionId, slideId).stream()
+                .anyMatch(a -> a.getPayload() instanceof QAndAQuestions questions
+                        && questions.questions() != null
+                        && questions.questions().stream().anyMatch(e -> questionId.equals(e.id())));
+        if (!exists) {
+            throw new NotFoundException("QUESTION_NOT_FOUND", "no such question in this round");
+        }
+
+        if (answerText == null || answerText.isBlank()) {
+            qandaHostAnswers.remove(sessionId, slideId, questionId);
+        } else {
+            qandaHostAnswers.put(sessionId, slideId, questionId, answerText.strip());
+        }
+
+        Settings.AnswerSettings effective =
+                Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
+        boolean anonymize = effective != null && effective.anonymizeAnswers();
+        publishQAndAUpdated(session.getPublicId(), sessionId, slideId, anonymize);
+    }
+
+    /** Assembles and broadcasts the round's current participant-safe Q&amp;A question list. */
+    private void publishQAndAUpdated(String publicId, String sessionId, String slideId, boolean anonymize) {
+        if (publicId == null) {
+            return;
+        }
+        List<QAndAQuestionView> questions = QAndAQuestionView.from(
+                answerStore.answers(sessionId, slideId),
+                qandaHostAnswers.all(sessionId, slideId),
+                anonymize);
+        publisher.publish(publicId, SessionEvents.qAndAUpdated(slideId, questions));
+    }
+
+    /**
      * Closes submissions on the current round, <strong>preserving what's on
      * display</strong>: a hidden round ({@code SUBMIT}) locks to {@code LOCKED}
      * (submissions stopped, nothing revealed); a live round ({@code SUBMIT_LIVE})
@@ -535,6 +637,7 @@ public class LiveSessionOrchestrator {
         tallyStore.clear(sessionId, slideId);
         if (restart) {
             answerStore.clear(sessionId, slideId);
+            qandaHostAnswers.clear(sessionId, slideId);
         }
         LiveRoundState started = current.startedRound(slideId, Instant.now(), phase);
         roundStateStore.save(sessionId, started);
@@ -717,6 +820,7 @@ public class LiveSessionOrchestrator {
         for (Slide slide : session.getDeck().getSlides()) {
             answerStore.clear(sessionId, slide.getId());
             tallyStore.clear(sessionId, slide.getId());
+            qandaHostAnswers.clear(sessionId, slide.getId());
         }
     }
 

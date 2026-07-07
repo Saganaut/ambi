@@ -21,6 +21,7 @@ public class SessionRedisProperties {
     private final RoundState roundState = new RoundState();
     private final Tally tally = new Tally();
     private final Answers answers = new Answers();
+    private final QandaHostAnswers qandaHostAnswers = new QandaHostAnswers();
     private final Presence presence = new Presence();
     private final Events events = new Events();
 
@@ -74,6 +75,21 @@ public class SessionRedisProperties {
         /**
          * TTL on a round's answer hash — the same abandoned-session backstop as the
          * state TTL. Refreshed on every submit.
+         */
+        private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class QandaHostAnswers {
+        /**
+         * Redis key namespace for a Q&amp;A round's host-typed answers. Each round's
+         * host answers are a Redis Hash at {@code <namespace>:<sessionId>:<slideId>},
+         * one field per question id. Runtime-only — never flushed to MongoDB.
+         */
+        private String namespace = "ambi:session:qa-host-answers";
+        /**
+         * TTL on a round's host-answer hash — the same abandoned-session backstop as
+         * the state TTL. Refreshed on every write.
          */
         private Duration ttl = Duration.ofHours(6);
     }

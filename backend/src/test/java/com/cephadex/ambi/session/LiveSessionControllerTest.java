@@ -105,7 +105,7 @@ class LiveSessionControllerTest {
     void snapshotDelegatesAndReturns200() throws Exception {
         when(snapshotService.getSnapshot(eq("sess-1"), any()))
                 .thenReturn(new SessionSnapshotResponse("sess-1", "pub-1", "ROOMCODE",
-                        LiveSessionLifecycle.LOBBY, RoundPhase.SUBMIT, null, null, null, null,
+                        LiveSessionLifecycle.LOBBY, RoundPhase.SUBMIT, null, null, null, null, null,
                         List.of(), List.of(), "part-1", true, true, false));
 
         mockMvc.perform(get("/api/liveSessions/sess-1"))

@@ -15,6 +15,11 @@ export const sharedValidation = {
       "minLength": 1
     }
   },
+  "HostAnswerRequest": {
+    "answer": {
+      "maxLength": 1000
+    }
+  },
   "JoinSessionRequest": {
     "displayName": {
       "maxLength": 60

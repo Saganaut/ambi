@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = RoundStarted.class, name = "RoundStarted"),
         @JsonSubTypes.Type(value = LiveResultsShown.class, name = "LiveResultsShown"),
         @JsonSubTypes.Type(value = TallyUpdated.class, name = "TallyUpdated"),
+        @JsonSubTypes.Type(value = QAndAUpdated.class, name = "QAndAUpdated"),
         @JsonSubTypes.Type(value = SubmissionsLocked.class, name = "SubmissionsLocked"),
         @JsonSubTypes.Type(value = ResponsesRevealed.class, name = "ResponsesRevealed"),
         @JsonSubTypes.Type(value = ResultsRevealed.class, name = "ResultsRevealed"),
@@ -40,6 +41,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public sealed interface SessionEvent
         permits LiveSessionStarted, ParticipantJoined, ParticipantLeft, ParticipantReconnected, ParticipantRemoved,
-        PresenceChanged, RoundStarted, LiveResultsShown, TallyUpdated, SubmissionsLocked, ResponsesRevealed,
-        ResultsRevealed, RoundRestarted, LiveSessionEnded, LiveSessionCancelled {
+        PresenceChanged, RoundStarted, LiveResultsShown, TallyUpdated, QAndAUpdated, SubmissionsLocked,
+        ResponsesRevealed, ResultsRevealed, RoundRestarted, LiveSessionEnded, LiveSessionCancelled {
 }

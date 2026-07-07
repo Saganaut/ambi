@@ -34,7 +34,10 @@ import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.answer.Answer;
+import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
+import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
+import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.LiveResultsShown;
 import com.cephadex.ambi.session.event.LiveSessionCancelled;
@@ -43,6 +46,7 @@ import com.cephadex.ambi.session.event.LiveSessionStarted;
 import com.cephadex.ambi.session.event.ParticipantJoined;
 import com.cephadex.ambi.session.event.ParticipantLeft;
 import com.cephadex.ambi.session.event.ParticipantReconnected;
+import com.cephadex.ambi.session.event.QAndAUpdated;
 import com.cephadex.ambi.session.event.ResponsesRevealed;
 import com.cephadex.ambi.session.event.ResultsRevealed;
 import com.cephadex.ambi.session.event.RoundStarted;
@@ -60,6 +64,7 @@ import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
+import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.TallyStore;
 import com.cephadex.ambi.session.roundResult.RoundResult;
@@ -82,6 +87,7 @@ class LiveSessionOrchestratorTest {
     private LiveRoundStateStore roundStateStore;
     private TallyStore tallyStore;
     private AnswerStore answerStore;
+    private QAndAHostAnswerStore qandaHostAnswers;
     private EventPublisher publisher;
     private RoundResultProjector roundResults;
     private LiveSessionOrchestrator orchestrator;
@@ -95,6 +101,7 @@ class LiveSessionOrchestratorTest {
         answerStore = mock(AnswerStore.class);
         tallyStore = mock(TallyStore.class);
         presenceStore = mock(PresenceStore.class);
+        qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         publisher = mock(EventPublisher.class);
         roundResults = mock(RoundResultProjector.class);
 
@@ -107,7 +114,7 @@ class LiveSessionOrchestratorTest {
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
-                tallyStore, presenceStore, publisher, roundResults);
+                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults);
     }
 
     private void stubPhase(RoundPhase phase) {
@@ -322,7 +329,7 @@ class LiveSessionOrchestratorTest {
         verify(tallyStore, never()).increment(any(), any(), any());
     }
 
-    private static Answer answerWith(McqAnswer payload) {
+    private static Answer answerWith(AnswerPayload payload) {
         Answer a = new Answer();
         a.setParticipantId("p-1");
         a.setSessionId(SID);
@@ -330,6 +337,112 @@ class LiveSessionOrchestratorTest {
         a.setSubmittedAt(Instant.now());
         a.setPayload(payload);
         return a;
+    }
+
+    // ── submitQuestion / answerQuestion (Q&A) ────────────────────────────────
+
+    @Test
+    void submitQuestionAppendsToPriorAggregateAndPublishes() {
+        stubPhase(RoundPhase.SUBMIT);
+        QAndAQuestions prior = new QAndAQuestions(
+                List.of(new QAndAQuestions.Entry("q-1", "First?", Instant.now())));
+        Answer priorAnswer = answerWith(prior);
+        when(answerStore.answerOf(SID, SLIDE, "p-1")).thenReturn(Optional.of(priorAnswer));
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(priorAnswer));
+        when(qandaHostAnswers.all(SID, SLIDE)).thenReturn(Map.of());
+
+        orchestrator.submitQuestion(SID, SLIDE, "p-1", new QAndAAnswer("  Second?  "), null, false);
+
+        ArgumentCaptor<Answer> stored = ArgumentCaptor.forClass(Answer.class);
+        verify(answerStore).submit(eq(SID), eq(SLIDE), stored.capture());
+        QAndAQuestions aggregate = (QAndAQuestions) stored.getValue().getPayload();
+        assertThat(aggregate.questions()).hasSize(2);
+        assertThat(aggregate.questions().get(0).id()).isEqualTo("q-1");
+        assertThat(aggregate.questions().get(1).text()).isEqualTo("Second?");
+        assertThat(aggregate.questions().get(1).id()).isNotBlank();
+        // Never touches the option tally — Q&A has no per-option histogram.
+        verify(tallyStore, never()).increment(any(), any(), any());
+        assertThat(publishedEvent()).isInstanceOf(QAndAUpdated.class);
+    }
+
+    @Test
+    void submitQuestionEnforcesPerParticipantCap() {
+        stubPhase(RoundPhase.SUBMIT);
+        QAndAQuestions prior = new QAndAQuestions(List.of(
+                new QAndAQuestions.Entry("q-1", "One?", Instant.now()),
+                new QAndAQuestions.Entry("q-2", "Two?", Instant.now())));
+        when(answerStore.answerOf(SID, SLIDE, "p-1")).thenReturn(Optional.of(answerWith(prior)));
+
+        assertThatThrownBy(() -> orchestrator.submitQuestion(SID, SLIDE, "p-1", new QAndAAnswer("Three?"), 2, false))
+                .isInstanceOf(ConflictException.class);
+        verify(answerStore, never()).submit(any(), any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void submitQuestionToClosedRoundIsRejected() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES);
+
+        assertThatThrownBy(() -> orchestrator.submitQuestion(SID, SLIDE, "p-1", new QAndAAnswer("Late?"), null, false))
+                .isInstanceOf(ConflictException.class);
+        verify(answerStore, never()).submit(any(), any(), any());
+    }
+
+    @Test
+    void submitQuestionAnonymizedPublishesWithoutParticipantIds() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answerOf(SID, SLIDE, "p-1")).thenReturn(Optional.empty());
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(answerWith(new QAndAQuestions(
+                List.of(new QAndAQuestions.Entry("q-1", "Who asked?", Instant.now()))))));
+        when(qandaHostAnswers.all(SID, SLIDE)).thenReturn(Map.of());
+
+        orchestrator.submitQuestion(SID, SLIDE, "p-1", new QAndAAnswer("Who asked?"), null, true);
+
+        QAndAUpdated event = (QAndAUpdated) publishedEvent();
+        assertThat(event.questions()).isNotEmpty();
+        assertThat(event.questions()).allSatisfy(q -> assertThat(q.participantId()).isNull());
+    }
+
+    @Test
+    void answerQuestionStoresHostAnswerAndPublishes() {
+        givenSlideWithMode(ResultsDisplayMode.MANUAL);
+        Answer asked = answerWith(new QAndAQuestions(
+                List.of(new QAndAQuestions.Entry("q-1", "Why?", Instant.now()))));
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(asked));
+        when(qandaHostAnswers.all(SID, SLIDE)).thenReturn(Map.of("q-1", "Because."));
+
+        orchestrator.answerQuestion(SID, SLIDE, "q-1", "Because.");
+
+        verify(qandaHostAnswers).put(SID, SLIDE, "q-1", "Because.");
+        QAndAUpdated event = (QAndAUpdated) publishedEvent();
+        assertThat(event.questions()).singleElement()
+                .satisfies(q -> assertThat(q.hostAnswer()).isEqualTo("Because."));
+    }
+
+    @Test
+    void answerQuestionWithBlankTextClearsIt() {
+        givenSlideWithMode(ResultsDisplayMode.MANUAL);
+        Answer asked = answerWith(new QAndAQuestions(
+                List.of(new QAndAQuestions.Entry("q-1", "Why?", Instant.now()))));
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(asked));
+        when(qandaHostAnswers.all(SID, SLIDE)).thenReturn(Map.of());
+
+        orchestrator.answerQuestion(SID, SLIDE, "q-1", "  ");
+
+        verify(qandaHostAnswers).remove(SID, SLIDE, "q-1");
+        verify(qandaHostAnswers, never()).put(any(), any(), any(), any());
+        assertThat(publishedEvent()).isInstanceOf(QAndAUpdated.class);
+    }
+
+    @Test
+    void answerQuestionForUnknownQuestionIsNotFound() {
+        givenSlideWithMode(ResultsDisplayMode.MANUAL);
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> orchestrator.answerQuestion(SID, SLIDE, "q-missing", "Because."))
+                .isInstanceOf(NotFoundException.class);
+        verify(qandaHostAnswers, never()).put(any(), any(), any(), any());
+        verify(publisher, never()).publish(any(), any());
     }
 
     // ── Session lifecycle ────────────────────────────────────────────────────

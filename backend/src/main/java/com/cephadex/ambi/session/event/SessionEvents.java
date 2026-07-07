@@ -8,6 +8,7 @@ import java.util.Map;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
+import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 import com.cephadex.ambi.session.event.dto.SlideView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
@@ -83,6 +84,15 @@ public final class SessionEvents {
 
     public static TallyUpdated tallyUpdated(String slideId, Map<String, Integer> optionCounts) {
         return new TallyUpdated(slideId, Map.copyOf(optionCounts));
+    }
+
+    /**
+     * The Q&amp;A round's full question list (a question arrived or a host answer
+     * changed). {@code questions} must already be participant-safe — built via
+     * {@link QAndAQuestionView#from}, which drops the asker on anonymised rounds.
+     */
+    public static QAndAUpdated qAndAUpdated(String slideId, List<QAndAQuestionView> questions) {
+        return new QAndAUpdated(slideId, List.copyOf(questions));
     }
 
     /** Submissions closed with nothing revealed (entered LOCKED) — carries no counts. */

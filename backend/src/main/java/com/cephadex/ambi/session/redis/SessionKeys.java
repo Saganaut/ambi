@@ -49,6 +49,15 @@ public class SessionKeys {
     }
 
     /**
+     * Key for a Q&amp;A round's host-answer hash (one field per question id).
+     * Keyed by {@code sessionId + slideId}, the same round identity as
+     * {@link #answersKey}.
+     */
+    public String qandaHostAnswersKey(String sessionId, String slideId) {
+        return props.getQandaHostAnswers().getNamespace() + ":" + sessionId + ":" + slideId;
+    }
+
+    /**
      * Key for a session's live participant-presence hash (one entry per
      * participant).
      */

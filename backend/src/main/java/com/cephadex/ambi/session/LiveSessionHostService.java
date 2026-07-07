@@ -63,6 +63,16 @@ public class LiveSessionHostService {
     }
 
     /**
+     * Types (or clears — blank text) the host's answer next to a Q&amp;A question;
+     * the updated list is broadcast as {@code QAndAUpdated}. Host only.
+     */
+    public void answerQuestion(String sessionId, String slideId, String questionId, String answerText,
+            AmbiPrincipal principal) {
+        requireHost(sessionId, principal);
+        orchestrator.answerQuestion(sessionId, slideId, questionId, answerText);
+    }
+
+    /**
      * Advances to and opens the next round. Host only. Returns the slide now open,
      * or a terminal marker when the deck snapshot is exhausted.
      */

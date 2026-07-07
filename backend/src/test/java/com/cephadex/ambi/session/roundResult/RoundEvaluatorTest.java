@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
+import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
@@ -21,6 +22,7 @@ import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
+import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
 
 /**
@@ -87,6 +89,19 @@ class RoundEvaluatorTest {
 
         AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
                 List.of(answer("p", new FollowUpAnswer("a question"), 10)), START).get(0);
+
+        assertThat(eval.correct()).isFalse();
+        assertThat(eval.choice()).isNull(); // free-form: not tallied
+    }
+
+    @Test
+    void qandaAggregateNeverGradesCorrect() {
+        Slide slide = slideWith(new QAndAContent(null, false));
+
+        AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
+                List.of(answer("p", new QAndAQuestions(
+                        List.of(new QAndAQuestions.Entry("q-1", "Why?", START))), 10)),
+                START).get(0);
 
         assertThat(eval.correct()).isFalse();
         assertThat(eval.choice()).isNull(); // free-form: not tallied

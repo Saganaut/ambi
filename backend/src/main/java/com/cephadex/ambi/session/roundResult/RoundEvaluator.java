@@ -143,6 +143,7 @@ public final class RoundEvaluator {
             case com.cephadex.ambi.session.answer.payload.FollowUpAnswer _ -> false;
             case com.cephadex.ambi.session.answer.payload.DrawingAnswer _ -> false;
             case com.cephadex.ambi.session.answer.payload.QAndAAnswer _ -> false;
+            case com.cephadex.ambi.session.answer.payload.QAndAQuestions _ -> false;
         };
     }
 

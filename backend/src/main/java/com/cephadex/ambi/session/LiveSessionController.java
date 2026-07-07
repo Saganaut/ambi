@@ -16,6 +16,7 @@ import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.dto.AdvanceResponse;
 import com.cephadex.ambi.session.dto.CreateSessionRequest;
 import com.cephadex.ambi.session.dto.CreateSessionResponse;
+import com.cephadex.ambi.session.dto.HostAnswerRequest;
 import com.cephadex.ambi.session.dto.JoinSessionRequest;
 import com.cephadex.ambi.session.dto.JoinSessionResponse;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
@@ -176,6 +177,20 @@ public class LiveSessionController {
             @PathVariable String id, @PathVariable String slideId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         hostService.restartRound(id, slideId, principal);
+    }
+
+    /**
+     * Types the host's answer next to a Q&amp;A question (host only). A blank body
+     * clears it. The updated question list reaches subscribers as
+     * {@code QAndAUpdated} over the session topic, not in this response.
+     */
+    @PostMapping("/{id}/rounds/{slideId}/questions/{questionId}/host-answer")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void answerQuestion(
+            @PathVariable String id, @PathVariable String slideId, @PathVariable String questionId,
+            @Valid @RequestBody HostAnswerRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        hostService.answerQuestion(id, slideId, questionId, body.answer(), principal);
     }
 
     // ── Participant presence ─────────────────────────────────────────────────

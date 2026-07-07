@@ -44,6 +44,16 @@ const injectedRtkApi = api.injectEndpoints({
         method: "POST",
       }),
     }),
+    answerQuestion: build.mutation<
+      AnswerQuestionApiResponse,
+      AnswerQuestionApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/questions/${queryArg.questionId}/host-answer`,
+        method: "POST",
+        body: queryArg.hostAnswerRequest,
+      }),
+    }),
     closeRound: build.mutation<CloseRoundApiResponse, CloseRoundApiArg>({
       query: (queryArg) => ({
         url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/close`,
@@ -135,6 +145,13 @@ export type RestartRoundApiArg = {
   id: string;
   slideId: string;
 };
+export type AnswerQuestionApiResponse = unknown;
+export type AnswerQuestionApiArg = {
+  id: string;
+  slideId: string;
+  questionId: string;
+  hostAnswerRequest: HostAnswerRequest;
+};
 export type CloseRoundApiResponse = unknown;
 export type CloseRoundApiArg = {
   id: string;
@@ -212,6 +229,9 @@ export type CreateSessionResponse = {
 export type CreateSessionRequest = {
   deckId: string;
 };
+export type HostAnswerRequest = {
+  answer?: string;
+};
 export type AnswerPayloadBase = {
   answerType: string;
 };
@@ -267,6 +287,16 @@ export type QAndAAnswer = {
 } & AnswerPayloadBase & {
     question?: string;
   };
+export type Entry = {
+  id?: string;
+  text?: string;
+  askedAt?: string;
+};
+export type QAndAQuestions = {
+  answerType: "QAndAQuestions";
+} & AnswerPayloadBase & {
+    questions?: Entry[];
+  };
 export type RankingAnswer = {
   answerType: "RankingAnswer";
 } & AnswerPayloadBase & {
@@ -296,6 +326,7 @@ export type SubmitAnswerRequest = {
     | NumberAnswer
     | PlaceOnImageAnswer
     | QAndAAnswer
+    | QAndAQuestions
     | RankingAnswer
     | ScalesAnswer
     | TextAnswer;
@@ -323,6 +354,10 @@ export type McqOptionView = {
   optionType?: "TEXT" | "NUMBER" | "IMAGE";
   text?: string;
   color?: string;
+};
+export type QAndAConfigView = {
+  maxResponses?: number;
+  moderated?: boolean;
 };
 export type AnswerSettingsView = {
   maxSelections?: number;
@@ -354,7 +389,15 @@ export type SlideView = {
     | "INSTRUCTION"
     | "FOLLOW_UP";
   options?: McqOptionView[];
+  qAndA?: QAndAConfigView;
   answerSettings?: AnswerSettingsView;
+};
+export type QAndAQuestionView = {
+  id?: string;
+  participantId?: string;
+  text?: string;
+  askedAt?: string;
+  hostAnswer?: string;
 };
 export type ScoreView = {
   points?: number;
@@ -394,6 +437,7 @@ export type SessionSnapshotResponse = {
   optionTally?: {
     [key: string]: number;
   };
+  qAndAQuestions?: QAndAQuestionView[];
   roster?: ParticipantView[];
   scoreboard?: ScoreboardEntry[];
   viewerParticipantId?: string;
@@ -408,6 +452,7 @@ export const {
   useRevealResultsMutation,
   useRevealResponsesMutation,
   useRestartRoundMutation,
+  useAnswerQuestionMutation,
   useCloseRoundMutation,
   useReconnectMutation,
   useLeaveMutation,
