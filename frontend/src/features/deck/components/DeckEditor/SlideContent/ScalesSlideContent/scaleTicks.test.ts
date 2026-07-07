@@ -1,3 +1,6 @@
+// Edge cases for the scale-track tick derivation: even/fractional steps,
+// float drift, and every bail-out (degenerate range, step overshoot / not
+// landing on max, tick-density cap) that sends the UI to its numeric fallback.
 import { describe, expect, it } from "vitest";
 
 import { MAX_TRACK_TICKS, scaleTicks } from "./scaleTicks";
