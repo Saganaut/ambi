@@ -172,7 +172,7 @@ const SlideDisplay = () => {
       case "Q_AND_A":
         return <QAndASlideContent deckId={deckId} slideId={slideId} />;
       case "GRID":
-        return <GridSlideContent />;
+        return <GridSlideContent deckId={deckId} slideId={slideId} />;
       case "PLACE_ON_IMAGE":
         return <PlaceOnImageSlideContent />;
       case "ALLOCATION":

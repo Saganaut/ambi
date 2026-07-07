@@ -1,57 +1,155 @@
-/* Slide-specific styles for the Grid editor. The visual overlay sits on top
-   of the backing image; cells are clickable buttons that toggle correctness.
-   Selected cells get an orange tint so authors can see the answer key at a
-   glance — matches the McqOption "cardCorrect" treatment. */
+/* GridSlideContent — author UI for Grid (drag-into-matrix) slides. The item
+   row chrome is the shared `ItemCard`; grid-specific styles are the axis-label
+   editors, the target preview matrix, and the drag grip (mirroring Ranking). */
 
-.gridOverlay {
-  display: grid;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-md);
-  background-color: var(--bg-surface);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  overflow: clip;
-  gap: var(--space-px);
-  padding: var(--space-px);
+/* ── Axis label lists (Rows / Columns) ──────────────────────────────────── */
+
+.labelsEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
 }
 
-.gridCell {
-  position: relative;
+.labelsTitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.labelRow {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
+}
+
+.labelRemove {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  padding: var(--space-1);
   border: none;
-  background-color: oklch(0% 0 0deg / 15%);
-  color: oklch(100% 0 0deg / 60%);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+
+  &:disabled {
+    color: var(--text-disabled);
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--text-error);
+    background-color: var(--bg-surface-raised);
+  }
+}
+
+.labelRemoveIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.labelAdd {
+  align-self: flex-start;
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+
+  &:disabled {
+    color: var(--text-disabled);
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-surface-raised);
+  }
+}
+
+/* ── Target preview matrix ──────────────────────────────────────────────── */
+
+.preview {
+  --preview-cols: 2;
+
+  display: grid;
+  grid-template-columns: auto repeat(var(--preview-cols), 1fr);
+  gap: var(--space-1);
   font-size: var(--font-size-xs);
-  font-family: var(--font-mono);
-  cursor: pointer;
-  outline: var(--border-size-sm) solid oklch(100% 0 0deg / 20%);
+}
+
+.previewHeader {
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-secondary);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.previewCell {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+}
+
+.previewChip {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ── Item rows ──────────────────────────────────────────────────────────── */
+
+.itemFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+/* Grip handle slotted into the card's `actions` (see RankingSlideContent). */
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
   transition:
-    background-color var(--duration-fast) ease-out,
     color var(--duration-fast) ease-out,
-    outline-color var(--duration-fast) ease-out;
+    background-color var(--duration-fast) ease-out;
 }
 
-.gridCell:hover {
-  background-color: oklch(0% 0 0deg / 30%);
-  color: oklch(100% 0 0deg / 90%);
-  outline-color: oklch(100% 0 0deg / 60%);
+.dragHandle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-raised);
 }
 
-.gridCellOn {
-  background-color: oklch(70% 0.2 60deg / 55%);
-  color: oklch(99% 0 0deg);
-  outline: var(--border-size-sm) solid var(--orange-400);
-  z-index: 1;
+.dragHandle:active {
+  cursor: grabbing;
 }
 
-.gridCellOn:hover {
-  background-color: oklch(70% 0.2 60deg / 70%);
+.dragHandleIcon {
+  width: 1rem;
+  height: 1rem;
 }
 
-.gridCellIndex {
-  pointer-events: none;
+/* The row being dragged: dim it so the drop target reads clearly. */
+.dragging {
+  opacity: 0.6;
 }

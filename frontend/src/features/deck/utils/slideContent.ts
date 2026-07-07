@@ -13,7 +13,7 @@
  * slide and its settings — so they are absent here entirely.
  */
 import { nanoid } from "nanoid";
-import { McqOption, RankItem, ScaleItem, SlideContent } from "../store/deckApi.gen";
+import { GridItem, McqOption, RankItem, ScaleItem, SlideContent } from "../store/deckApi.gen";
 type SlideType = NonNullable<SlideContent["contentType"]>;
 
 /**
@@ -124,11 +124,13 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         tolerance: 0,
       };
     case "GRID":
+      // Seeded 2×2 with two blank items (mirrors RANKING's two-item seed) so
+      // the editor opens on a workable matrix instead of an empty shell.
       return {
         contentType: "GRID",
-        rowLabels: [],
-        colLabels: [],
-        items: [],
+        rowLabels: ["", ""],
+        colLabels: ["", ""],
+        items: [buildDefaultGridItem(), buildDefaultGridItem()],
         correctCells: {},
         scoreMode: "EXACT",
       };
@@ -195,6 +197,17 @@ export const buildDefaultMcqOption = (): McqOption => ({
  * correct order. The label is empty for the author to fill in.
  */
 export const buildDefaultRankItem = (): RankItem => ({
+  id: nanoid(8),
+  label: "",
+});
+
+/**
+ * Build a blank grid item with a fresh client-minted id. GRID slides key each
+ * item's target cell by id (via the content's `correctCells`), so a stable id
+ * at creation time is what lets the author assign targets and the backend grade
+ * placements. The label is empty for the author to fill in.
+ */
+export const buildDefaultGridItem = (): GridItem => ({
   id: nanoid(8),
   label: "",
 });
