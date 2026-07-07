@@ -100,7 +100,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **SCALES** | `Map<id,Integer>` | Likert diverging stacked bar, or mean±spread per item | 🚧 diverging-bar placeholder |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 heatmap placeholder |
 | **PLACE_ON_IMAGE** | `double x,y` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder |
-| **AXIS** (spec only) | `Map<itemId,{x,y}>` | Scatter with per-item color, or bucketed heatmap | ❌ kind not implemented — see [axis slides](axis-slides/README.md) |
+| **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item color (needs raw placements — follow-up F2), or bucketed heatmap | 🚧 heatmap placeholder; live 10×10 bucket heat built on the board — see [axis slides](axis-slides/README.md) |
 | **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or Sankey | 🚧 heatmap placeholder (Sankey deferred) |
 | **ALLOCATION** | `Map<optionId,Integer>` | Avg-points grouped / 100%-stacked bar | ♻️ reuses BarChart |
 | **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🧩 word cloud built, not wired (no backend tally) |
@@ -111,8 +111,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **MEDIA** | — | None — display-only | n/a |
 | **INSTRUCTION** | — | None — join-info slide | n/a |
 
-All 16 `SlideType` members are covered above; the AXIS row is a planned kind
-(spec only), not yet a `SlideType` member.
+All 17 `SlideType` members are covered above.
 
 ---
 

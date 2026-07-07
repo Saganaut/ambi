@@ -9,9 +9,11 @@ coordinates, graded by distance to an author-set target within a tolerance
 radius). Coordinate and radius conventions are borrowed wholesale from
 PLACE_ON_IMAGE, which is AXIS minus the image.
 
-**Status: specification only — nothing is implemented.** This document is the
-build spec; see the [implementation checklist](#implementation-checklist) for
-the staged-commit plan.
+**Status: implemented (v1).** All three stages of the
+[implementation checklist](#implementation-checklist) have landed: the content
+model + authoring surface, the live answer pipeline, and the live board. The
+[follow-ups](#follow-ups-named-out-of-v1) (F1 target reveal, F2 scatter, …)
+remain open.
 
 ## Model
 

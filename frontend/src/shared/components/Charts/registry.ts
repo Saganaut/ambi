@@ -49,6 +49,7 @@ export const resultsRegistry: Record<string, ResultsConfig> = {
   RANKING: { supportedViz: ["BAR_HORIZONTAL", "BAR_VERTICAL", "NONE"], implemented: false },
   ALLOCATION: { supportedViz: ["BAR_HORIZONTAL", "BAR_VERTICAL", "NONE"], implemented: false },
   GRID: { supportedViz: ["HEATMAP", "NONE"], implemented: false },
+  AXIS: { supportedViz: ["HEATMAP", "NONE"], implemented: false },
   MATCHING: { supportedViz: ["HEATMAP", "NONE"], implemented: false },
   PLACE_ON_IMAGE: { supportedViz: ["IMAGE_OVERLAY", "HEATMAP", "NONE"], implemented: false },
 };

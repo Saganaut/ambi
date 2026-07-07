@@ -18,6 +18,7 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
+import { seededShuffle } from "./seededShuffle";
 import styles from "./GridBoardContent.module.css";
 
 interface GridBoardContentProps {
@@ -29,26 +30,6 @@ interface GridBoardContentProps {
 /** The backend cell-id shape ({@code "rowIndex,colIndex"}). */
 const cellIdOf = (row: number, col: number): string =>
   `${row.toString()},${col.toString()}`;
-
-/**
- * Deterministic per-round shuffle (Fisher–Yates over a string-seeded PRNG):
- * the bank order is stable across re-renders and reconnects on one device but
- * varies per round, without impure `Math.random()` in render.
- */
-const seededShuffle = <T,>(source: T[], seed: string): T[] => {
-  let state = 0;
-  for (const char of seed) state = (state * 31 + char.charCodeAt(0)) >>> 0;
-  const random = () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x1_0000_0000;
-  };
-  const out = [...source];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-};
 
 /** Sum the live per-`itemId@cell` tally into per-cell totals. */
 const cellTotals = (optionCounts: Record<string, number>): Record<string, number> => {

@@ -1,0 +1,150 @@
+.axisBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .outcomeCorrect,
+  .outcomeWrong {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .outcomeCorrect {
+    color: var(--text-success);
+  }
+
+  .outcomeWrong {
+    color: var(--text-error);
+  }
+
+  .planeFrame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .planeRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .axisLabelX,
+  .axisLabelYHigh,
+  .axisLabelYLow {
+    color: var(--text-secondary);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .axisLabelX {
+    flex: 0 1 8rem;
+    text-align: center;
+  }
+
+  .plane {
+    position: relative;
+    flex: 0 1 auto;
+    width: min(100%, 26rem);
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-raised);
+    overflow: hidden;
+  }
+
+  .planeArmed {
+    outline: var(--border-size-md) dashed var(--edge-brand);
+  }
+
+  /* One translucent cell of the 10×10 live heat overlay (only non-empty
+     buckets render). Sits under the chips so placements stay tappable. */
+  .heatCell {
+    /* 0..1 share of the busiest bucket — shades the cell like a heatmap. */
+    --bucket-heat: 0;
+
+    position: absolute;
+    background-color: var(--bg-brand);
+    opacity: calc(var(--bucket-heat) * 0.35);
+    pointer-events: none;
+  }
+
+  /* Full-plane tap target, shown only while an item is held — the second tap
+     carries the placement coordinates. */
+  .placeTarget {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border: none;
+    background: none;
+    cursor: crosshair;
+  }
+
+  .placedChip {
+    position: absolute;
+    z-index: 3;
+    transform: translate(-50%, -50%);
+    max-width: 9rem;
+    padding: var(--space-1) var(--space-3);
+    border: none;
+    border-radius: var(--radius-full);
+    background-color: var(--bg-brand);
+    color: var(--text-on-brand);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+
+    .bank {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+
+      .bankChip {
+        padding: var(--space-1) var(--space-3);
+        border: var(--border-size-md) solid var(--edge-subtle);
+        border-radius: var(--radius-full);
+        background-color: var(--bg-surface-raised);
+        color: var(--text-primary);
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .held {
+        border-color: var(--edge-brand);
+        background-color: var(--bg-brand);
+        color: var(--text-on-brand);
+      }
+    }
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .submittedNote {
+      margin: 0;
+      color: var(--text-success);
+      font-weight: 600;
+    }
+  }
+}
