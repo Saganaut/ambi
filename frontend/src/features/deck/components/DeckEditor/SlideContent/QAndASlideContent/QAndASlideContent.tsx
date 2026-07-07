@@ -1,111 +1,91 @@
 /**
- * Author surface for an open Q&A round (QAndAQuestion).
+ * Author surface for an open Q&A round (QAndAContent). Q&A is never scored:
+ * players send in free-text questions, the host shows them on the big screen
+ * (as a list or a word cloud) and can type an answer next to each one live.
  *
- * Q&A is never scored; the editor focuses on round-shape knobs:
- *   - submissions per player cap
- *   - upvoting toggle
- *   - moderation auto-approve toggle
- * A small banner at the top reminds authors that this kind is survey-only so
- * the absent "correct answer" field doesn't feel like a missing feature.
+ * The editable content knobs (`moderated`, `maxResponses`, `allowAnonymous`)
+ * are owned by the Q&A section of the Answers panel in the right sidebar —
+ * repeating them here would create two debounced write surfaces for the same
+ * fields. This surface therefore edits only the prompt (slide title) and
+ * reflects the panel's settings read-only in the footer.
  */
+import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { useSlideSettings } from "@deck/hooks/useSlideSettings";
+import { SlideContentWrapper } from "../SlideContentWrapper";
+import { EmptySelect, SettingsCard } from "../_shared";
+import type { SlideContentProps } from "../slideContentProps";
+import styles from "./QAndASlideContent.module.css";
 
-const QAndASlideContent = () => {
-  return <div>not implemented</div>;
+/** One-line summary of the round's collection rules for the footer. */
+const summarize = (
+  moderated: boolean,
+  maxResponses: number | undefined,
+  allowAnonymous: boolean,
+): string => {
+  const moderation = moderated
+    ? "You review each question before it appears on screen."
+    : "Questions appear on screen as they arrive.";
+  const cap =
+    maxResponses != null && maxResponses > 0
+      ? `Up to ${maxResponses} question${maxResponses === 1 ? "" : "s"} will be accepted.`
+      : "There is no cap on submissions.";
+  const anonymity = allowAnonymous ? "Anonymous submissions are allowed." : null;
+  return [moderation, cap, anonymity].filter(Boolean).join(" ");
 };
 
-//   const {
-//     question: element,
-//     schedule,
-//     flush,
-//     syncedFromId,
-//     markSynced,
-//   } = useQAndAEditor();
+const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
+  const { slide, updateMetadata, flush } = useSlideEditor(deckId, slideId, "Q_AND_A");
+  const { answerSettings } = useSlideSettings(deckId, slideId);
 
-//   const [prompt, setPrompt] = useState(element?.prompt ?? "");
-//   const [maxSubmissions, setMaxSubmissions] = useState<number>(
-//     element?.maxSubmissionsPerPlayer ?? 0,
-//   );
-//   const [allowVoting, setAllowVoting] = useState<boolean>(
-//     element?.allowVoting ?? false,
-//   );
-//   const [autoApprove, setAutoApprove] = useState<boolean>(
-//     element?.autoApprove ?? false,
-//   );
+  // Local mirror keeps the debounced prompt responsive; resynced when the
+  // active slide changes ("derive state during render", see NumberSlideContent).
+  const [title, setTitle] = useState(slide?.title ?? "");
+  const [syncedFromId, setSyncedFromId] = useState(slide?.id);
+  if (slide && syncedFromId !== slide.id) {
+    setSyncedFromId(slide.id);
+    setTitle(slide.title);
+  }
 
-//   if (element && syncedFromId !== element.id) {
-//     markSynced(element.id);
-//     setPrompt(element.prompt ?? "");
-//     setMaxSubmissions(element.maxSubmissionsPerPlayer ?? 0);
-//     setAllowVoting(element.allowVoting ?? false);
-//     setAutoApprove(element.autoApprove ?? false);
-//   }
+  if (!slide) return <EmptySelect title='Q & A' />;
 
-//   if (!element) return <EmptySelect title='Q & A' />;
+  const idBase = slide.id;
+  const footerText = summarize(
+    slide.content.moderated,
+    slide.content.maxResponses,
+    answerSettings?.allowAnonymous ?? false,
+  );
 
-//   const idBase = element.id ?? "";
-
-//   return (
-//     <Container name='QAndASlideEditor'>
-//       <SlideContentWrapper>
-//         <PromptField
-//           idBase={`qa-${idBase}`}
-//           value={prompt}
-//           placeholder='Ask players what they want to know…'
-//           onChange={(html) => {
-//             setPrompt(html);
-//             schedule({ prompt: html });
-//           }}
-//           onBlur={flush}
-//         />
-
-//         <div className={styles.pulseBanner}>
-//           <ChatBubbleLeftEllipsisIcon className={styles.pulseBannerIcon} />
-//           <span>Open-ended round — never scored.</span>
-//         </div>
-
-//         <SettingsCard title='Submissions'>
-//           <SettingsRow>
-//             <NumberInput
-//               label='Max per player (0 = unlimited)'
-//               id={`qa-max-${idBase}`}
-//               min={0}
-//               value={maxSubmissions}
-//               onChange={(next) => {
-//                 setMaxSubmissions(next);
-//                 schedule({ maxSubmissionsPerPlayer: next });
-//               }}
-//               onBlur={flush}
-//             />
-//           </SettingsRow>
-//         </SettingsCard>
-
-//         <SettingsCard title='Moderation'>
-//           <SettingsRow>
-//             <Checkbox
-//               label='Allow upvoting'
-//               id={`qa-vote-${idBase}`}
-//               checked={allowVoting}
-//               onChange={(e) => {
-//                 const next = e.target.checked;
-//                 setAllowVoting(next);
-//                 schedule({ allowVoting: next });
-//               }}
-//             />
-//             <Checkbox
-//               label='Skip host moderation (auto-approve)'
-//               id={`qa-auto-${idBase}`}
-//               checked={autoApprove}
-//               onChange={(e) => {
-//                 const next = e.target.checked;
-//                 setAutoApprove(next);
-//                 schedule({ autoApprove: next });
-//               }}
-//             />
-//           </SettingsRow>
-//         </SettingsCard>
-//       </SlideContentWrapper>
-//     </Container>
-//   );
-// };
+  return (
+    <SlideContentWrapper
+      prompt={{
+        idBase: `qa-${idBase}`,
+        value: title,
+        placeholder: "Ask the room what they want to know…",
+        onChange: (html) => {
+          setTitle(html);
+          updateMetadata({ title: html });
+        },
+        onBlur: flush,
+      }}
+      footer={<p>{footerText}</p>}>
+      <div className={styles.pulseBanner}>
+        <ChatBubbleLeftEllipsisIcon className={styles.pulseBannerIcon} aria-hidden='true' />
+        <span>Open-ended round — never scored.</span>
+      </div>
+      <SettingsCard title='During the round'>
+        <ol className={styles.flowSteps}>
+          <li>Players type questions and send them in.</li>
+          <li>Submissions show on the host screen as a list or a word cloud.</li>
+          <li>Type an answer next to any question to address it live.</li>
+        </ol>
+        <p className={styles.panelHint}>
+          Moderation, response caps, and anonymity are set in the Answers panel.
+        </p>
+      </SettingsCard>
+    </SlideContentWrapper>
+  );
+};
 
 export { QAndASlideContent };

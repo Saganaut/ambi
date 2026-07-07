@@ -1,7 +1,7 @@
-/* Slide-specific styles for the Q&A author surface. Surveys/Q&A rounds aren't
-   scoreable, so the layout focuses on participation knobs (caps, voting,
-   moderation). The pulse banner up top makes the "never scored" rule explicit
-   so authors don't hunt for a correct-answer field. */
+/* Slide-specific styles for the Q&A author surface. Q&A rounds aren't
+   scoreable, so the layout focuses on explaining the live flow. The pulse
+   banner up top makes the "never scored" rule explicit so authors don't hunt
+   for a correct-answer field. */
 
 .pulseBanner {
   display: flex;
@@ -17,5 +17,23 @@
 .pulseBannerIcon {
   width: 1.25rem;
   height: 1.25rem;
-  color: var(--text-info, var(--text-secondary));
+  color: var(--text-info);
+}
+
+.flowSteps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: start;
+}
+
+.panelHint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-align: start;
 }
