@@ -22,6 +22,12 @@
   color: var(--text-secondary);
 }
 
+/* Colored fill (set inline by the consumer): fix the numeral to near-white —
+   palette fills are mid-lightness in every theme, so themed text could clash. */
+.tinted {
+  color: oklch(99% 0 0deg);
+}
+
 .bare {
   display: flex;
   align-items: start;

@@ -6,10 +6,17 @@
  * Layout:
  *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
  *   - "Plane" card: the near-square plane framed by the four endpoint-label
- *     inputs, the unplaced-item bank, and the per-slide tolerance slider
+ *     pills, an "N of M placed" counter, and the per-slide tolerance slider
  *     (2–50 %) — every placed target's circle resizes live.
- *   - "Items" card: the draggable items, each with the accessible numeric
- *     X/Y fallback — `correctPositions` maps item id → normalized point.
+ *   - "Items" card: the item rows, each in its palette color (mirrored by its
+ *     marker on the plane) with the accessible numeric X/Y fallback —
+ *     `correctPositions` maps item id → normalized point.
+ *
+ * Interaction: selecting a row (click, or focusing its label) arms the plane —
+ * pressing/dragging on the plane places that item's target. Focusing a row's
+ * label also opens its popover menu (clear target / delete), the same
+ * focus-opened menu pattern as MCQ options; this composer owns which menu is
+ * open (at most one) and which row is selected.
  *
  * Grading is INSIDE_RADIUS (every keyed item must land within tolerance), so
  * the footer nudges until every item has a target — but only nudges: an empty
@@ -28,6 +35,7 @@ import {
 } from "@deck/hooks/useAxisEditor";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { EmptySelect, ItemList, ScoringFooter, SettingsCard } from "../_shared";
+import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
 import type { SlideContentProps } from "../slideContentProps";
 import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
@@ -38,20 +46,36 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { question } = editor;
 
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
+  // The row armed for placement on the plane, if any.
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  // Which row's menu is open — at most one per slide. Focusing a row's label
+  // opens its menu (and thereby closes any other); the menu owns dismissal.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
   // Resync the local mirror when the active slide changes ("derive state
   // during render" — safe when the new value differs).
   if (question && syncedFromId !== question.id) {
     setSyncedFromId(question.id);
     setPrompt(question.prompt);
+    setSelectedItemId(null);
+    setOpenMenuId(null);
   }
 
   if (!question) return <EmptySelect title='Axis' />;
 
   const { items, correctPositions, tolerance } = question;
-  const fullyAssigned =
-    items.length > 0 && items.every((item) => item.id && correctPositions[item.id]);
+  const placedCount = items.filter((item) => item.id && correctPositions[item.id]).length;
+  const fullyAssigned = items.length > 0 && placedCount === items.length;
   const tolerancePercent = Math.round(tolerance * 100);
+
+  const selectItem = (itemId: string | undefined) => {
+    if (itemId) setSelectedItemId(itemId);
+  };
+
+  const removeItem = (itemId: string | undefined) => {
+    editor.removeItem(itemId);
+    if (itemId && selectedItemId === itemId) setSelectedItemId(null);
+  };
 
   return (
     <SlideContentWrapper
@@ -75,17 +99,25 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           />
         )
       }>
-      <SettingsCard title='Plane'>
+      <SettingsCard
+        title='Plane'
+        action={
+          <span className={styles.placedCount}>
+            {placedCount} of {items.length} placed
+          </span>
+        }>
         <AxisPlaneEditor
           question={question}
+          selectedItemId={selectedItemId}
+          onToggleSelect={(itemId) => {
+            setSelectedItemId((held) => (held === itemId ? null : itemId));
+          }}
           onScheduleAxisLabel={editor.scheduleAxisLabel}
           onSetTargetPosition={editor.setTargetPosition}
           onFlush={editor.flush}
         />
         <div className={styles.toleranceRow}>
-          <label htmlFor={`axis-tolerance-${question.id}`}>
-            Tolerance · {tolerancePercent.toString()}%
-          </label>
+          <label htmlFor={`axis-tolerance-${question.id}`}>Tolerance</label>
           <input
             id={`axis-tolerance-${question.id}`}
             type='range'
@@ -97,10 +129,17 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               editor.setTolerance(Number(event.target.value) / 100);
             }}
           />
+          <span className={styles.toleranceValue}>±{tolerancePercent}%</span>
         </div>
       </SettingsCard>
 
-      <SettingsCard title='Items'>
+      <SettingsCard
+        title='Items'
+        action={
+          <span className={styles.itemsHint}>
+            Select a row, then drag on the plane to place its target.
+          </span>
+        }>
         <ItemList
           addLabel={
             editor.canAddItem ? "Add item" : `Maximum ${MAX_AXIS_ITEMS.toString()} items`
@@ -114,7 +153,17 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 item={item}
                 sortIndex={index}
                 targetPosition={item.id ? (correctPositions[item.id] ?? null) : null}
+                color={resolveOptionColor(undefined, index)}
+                selected={item.id != null && selectedItemId === item.id}
+                menuOpen={item.id != null && openMenuId === item.id}
                 canRemove={editor.canRemoveItem}
+                onSelect={() => {
+                  selectItem(item.id);
+                }}
+                onMenuOpenChange={(open) => {
+                  setOpenMenuId(open ? (item.id ?? null) : null);
+                  if (open) selectItem(item.id);
+                }}
                 onScheduleLabel={(label) => {
                   editor.scheduleItemLabel(item.id, label);
                 }}
@@ -123,7 +172,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   editor.setTargetPosition(item.id, point);
                 }}
                 onRemove={() => {
-                  editor.removeItem(item.id);
+                  removeItem(item.id);
                 }}
               />
             ))}

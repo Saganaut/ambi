@@ -229,7 +229,7 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   `remapAfterRemoval` — axes are fixed, a genuine simplification.)
 - Item ops: `addItem` / `removeItem` (removal drops the item's
   `correctPositions` entry — invariant 1), `scheduleItemLabel`,
-  `handleItemDragEnd` for bank order.
+  `handleItemDragEnd` for row display order.
 - `setTargetPosition(itemId, point | null)` and `setTolerance(value)` —
   immediate + flush (structural, like grid's cell assignment).
 - Constants: `MIN_AXIS_ITEMS = 1`, `MAX_AXIS_ITEMS = 12` (grid parity),
@@ -242,18 +242,27 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   `fullyAssigned = items.every(item => correctPositions[item.id])`, rendered
   as an advisory nudge ("Set a target position for every item to make this
   slide scoreable") — non-blocking, because collect-only is legitimate
-  (invariant 4).
-- `AxisPlaneEditor.tsx` — the plane with the four endpoint labels (empty
-  labels fall back to placeholders, grid's `"Row 1"` pattern). Unplaced items
-  sit in a bank beside it. **Select a chip, click the plane** →
-  `getBoundingClientRect` → normalized point → `setTargetPosition`. Placed
-  chips can be dragged (pointer capture) or re-placed by select-then-click.
-  Every placed chip renders its tolerance circle so the accepted region is
+  (invariant 4). Also owns which row is selected (armed for placement) and
+  which row's popover menu is open, plus an "N of M placed" counter in the
+  Plane card header.
+- `AxisPlaneEditor.tsx` — the plane framed by the four endpoint labels styled
+  as centered pills (empty labels fall back to placeholders, grid's `"Row 1"`
+  pattern). **Select a row, then press/drag on the plane** →
+  `getBoundingClientRect` → normalized point → `setTargetPosition` (committed
+  on release). Placed markers — a dot + label pill in the item's palette
+  color, dot centered on the target — can be dragged directly (pointer
+  capture) or tapped to toggle their row's selection. Every placed marker
+  renders its tolerance circle in the same color so the accepted region is
   visible while tuning. Accessible fallback: per-item numeric X/Y inputs
   (0–100 %) in the item rows.
-- `AxisItemEditable.tsx` — label row, `GridItemEditable` pattern.
-- Tolerance: one per-slide slider (2 % – 50 %, default 10 %); circles resize
-  live.
+- `AxisItemEditable.tsx` — item row (`GridItemEditable` pattern): the
+  palette-colored index badge, label field, X/Y inputs, and a clear-target
+  reset button. Clicking the row selects it; focusing the label also opens
+  `AxisItemMenu.tsx`, the focus-opened popover (clear target / delete) that
+  follows MCQ's option-menu pattern and reuses the shared `OptionMenu`
+  chrome.
+- Tolerance: one per-slide slider (2 % – 50 %, default 10 %) with a live
+  `±N %` readout; circles resize live.
 
 ### Registration
 

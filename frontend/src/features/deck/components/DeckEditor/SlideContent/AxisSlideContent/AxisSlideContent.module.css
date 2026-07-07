@@ -1,41 +1,52 @@
 /* AxisSlideContent — author UI for Axis (free-form 2D placement) slides. The
    item row chrome is the shared `ItemCard`; axis-specific styles are the
-   plane with its endpoint-label frame, the placed chips + tolerance circles,
-   the unplaced-item bank, and the drag grip (mirroring Grid). */
+   plane framed by its endpoint-label pills, the placed markers + tolerance
+   circles (each in its item's palette color, carried on --item-color), the
+   tolerance slider row, and the drag grip (mirroring Grid). */
 
-/* ── Plane + bank layout ────────────────────────────────────────────────── */
-
-.planeEditor {
-  display: flex;
-  gap: var(--space-4);
-  align-items: flex-start;
-}
+/* ── Plane layout ───────────────────────────────────────────────────────── */
 
 .planeFrame {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .planeRow {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   width: 100%;
 }
 
 /* Endpoint-label inputs: compact so the plane keeps the room. */
-.planeXLabel {
-  flex: 0 0 7rem;
+.endpointX {
+  flex: 0 1 7rem;
   min-width: 0;
 }
 
-.planeYLabel {
-  width: 12rem;
+.endpointY {
+  width: 11rem;
   max-width: 100%;
+}
+
+/* The endpoint inputs read as centered label pills framing the plane. */
+.endpointPill input {
+  padding: var(--space-1) var(--space-3);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-full);
+}
+
+.endpointPill input::placeholder {
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 /* ── The plane itself ───────────────────────────────────────────────────── */
@@ -48,25 +59,30 @@
   /* Near-square, capped so the plane never overflows the slide canvas. */
   max-width: 19rem;
   aspect-ratio: 1;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--bg-primary);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-raised);
 
   /* Tolerance circles overhang near the edges; the plane stays the viewport. */
   overflow: hidden;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
 }
 
+/* A row is selected: any press on the plane places (and drags) its target. */
 .planeArmed {
   cursor: crosshair;
-  border-color: var(--text-accent);
+  outline: var(--border-size-sm) solid
+    color-mix(in oklab, var(--bg-primary) 30%, transparent);
+  outline-offset: var(--space-half);
 }
 
 /* Faint centre lines quarter the plane so authors can eyeball coordinates. */
 .planeAxisLineX,
 .planeAxisLineY {
   position: absolute;
-  background-color: var(--border-default);
-  opacity: 0.6;
+  background-color: var(--border-subtle);
   pointer-events: none;
 }
 
@@ -74,107 +90,115 @@
   left: 0;
   right: 0;
   top: 50%;
-  height: 1px;
+  height: var(--space-px);
 }
 
 .planeAxisLineY {
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 1px;
+  width: var(--space-px);
 }
 
 /* ── Placed targets ─────────────────────────────────────────────────────── */
 
+/* Carries the item's palette color for the marker + circle pair. The real
+   value is set inline per item; this is only the declared fallback. */
+.markerGroup {
+  --item-color: var(--text-accent);
+}
+
+/* The accepted region, in the item's color: dashed outline + faint wash. The
+   wash lives on the pseudo-element so its low opacity never fades the dashed
+   outline. */
 .toleranceCircle {
   position: absolute;
   transform: translate(-50%, -50%);
-  border: 1px dashed var(--text-accent);
+  border: var(--space-px) dashed var(--item-color);
   border-radius: var(--radius-full);
   pointer-events: none;
 
-  /* A faint accent wash inside the accepted region. On the pseudo-element so
-     the low opacity never fades the dashed outline. */
   &::before {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background-color: var(--text-accent);
-    opacity: 0.12;
+    background-color: var(--item-color);
+    opacity: 0.14;
   }
 }
 
-.placedChip {
+/* Marker = dot + label pill. The transform keeps the DOT's centre — not the
+   pill's — on the target point, matching where the grader measures. */
+.marker {
+  --dot-size: 0.875rem;
+
   position: absolute;
-  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   max-width: 9rem;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-default);
+  padding: var(--space-half) var(--space-2) var(--space-half) var(--space-1);
+  transform: translate(calc(-1 * (var(--space-1) + var(--dot-size) / 2)), -50%);
+  border: var(--border-size-sm) solid var(--item-color);
   border-radius: var(--radius-full);
   background-color: var(--bg-surface-raised);
-  color: var(--text-primary);
+  color: var(--item-color);
   font-size: var(--font-size-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 600;
   cursor: grab;
 
   /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
   touch-action: none;
 }
 
-.placedChip:active {
+.marker:active {
   cursor: grabbing;
 }
 
-.placedChip[aria-pressed="true"] {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
+.marker[aria-pressed="true"] {
+  box-shadow: 0 0 0 var(--space-half)
+    color-mix(in oklab, var(--item-color) 35%, transparent);
 }
 
-/* ── Unplaced-item bank ─────────────────────────────────────────────────── */
-
-.bank {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  flex: 0 0 10rem;
-  min-width: 0;
-}
-
-.bankTitle {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.bankChip {
-  max-width: 100%;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-default);
+/* Ring with a filled centre, sitting exactly on the target point. */
+.markerDot {
+  position: relative;
+  flex: none;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border: var(--space-px) solid var(--item-color);
   border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
+}
+
+.markerDot::after {
+  content: "";
+  position: absolute;
+  inset: var(--space-half);
+  border-radius: inherit;
+  background-color: var(--item-color);
+}
+
+.markerLabel {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.bankChip[aria-pressed="true"] {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
+/* ── Card-header accessories ────────────────────────────────────────────── */
+
+/* "N of M placed" counter in the Plane card's header. */
+.placedCount {
+  flex: none;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
 }
 
-.bankEmpty,
-.bankHint {
-  margin: 0;
-  color: var(--text-muted);
+/* Placement how-to in the Items card's header. */
+.itemsHint {
   font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-align: right;
 }
 
 /* ── Tolerance slider ───────────────────────────────────────────────────── */
@@ -189,27 +213,52 @@
   & input[type="range"] {
     flex: 1;
     min-width: 0;
+    accent-color: var(--bg-primary);
   }
+}
+
+.toleranceValue {
+  min-width: 3rem;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 /* ── Item rows ──────────────────────────────────────────────────────────── */
 
 .itemFields {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
   flex: 1;
   min-width: 0;
+}
+
+/* The label field rides on the raised surface so it reads as the row's one
+   editable field against the card. */
+.labelField {
+  flex: 1;
+  min-width: 0;
+
+  & input {
+    background-color: var(--bg-surface-raised);
+  }
+}
+
+/* Positioned anchor for the row's popover menu (opens off the label field). */
+.menuAnchor {
+  position: relative;
 }
 
 .targetFields {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex: none;
 }
 
 .setTarget {
-  align-self: flex-start;
+  flex: none;
   padding: var(--space-1) var(--space-2);
   border: none;
   border-radius: var(--radius-sm);

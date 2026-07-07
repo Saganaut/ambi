@@ -9,10 +9,18 @@ interface IndexPillProps {
   /** 1-based position shown inside the pill. */
   value: number;
   variant?: "solid" | "bare";
+  /** Fill color override — e.g. an item's palette color (Axis rows). */
+  color?: string;
 }
 
-const IndexPill = ({ value, variant = "solid" }: IndexPillProps) => (
-  <span className={`${styles.indexPill} ${styles[variant]}`}>{value}</span>
+const IndexPill = ({ value, variant = "solid", color }: IndexPillProps) => (
+  <span
+    className={[styles.indexPill, styles[variant], color ? styles.tinted : ""]
+      .filter(Boolean)
+      .join(" ")}
+    style={color ? { backgroundColor: color } : undefined}>
+    {value}
+  </span>
 );
 
 export { IndexPill };

@@ -1,13 +1,17 @@
 /**
- * Single-row editor for an Axis item: the label plus the accessible fallback
- * for target placement — numeric X/Y inputs (0–100 %) that mirror
- * `correctPositions[itemId]`. A controlled row like `GridItemEditable`: the
- * label mirror lives here while structural ops (schedule / flush / remove /
- * set-target) come in as props from the one `useAxisEditor` in
- * `AxisSlideContent`. Drag-sortable by the grip handle to reorder the bank's
- * display order (placement targets are id-keyed, so order never affects them).
+ * Single-row editor for an Axis item: the palette-colored index badge, the
+ * label field, and the accessible fallback for target placement — numeric X/Y
+ * inputs (0–100 %) that mirror `correctPositions[itemId]` — plus a reset
+ * button that clears the target. Clicking anywhere on the row selects it,
+ * arming the plane for placement; focusing the label field also opens the
+ * item's popover menu (clear target / delete), MCQ's option-menu pattern.
+ * A controlled row like `GridItemEditable`: the label mirror lives here while
+ * structural ops (schedule / flush / remove / set-target) come in as props
+ * from the one `useAxisEditor` in `AxisSlideContent`. Drag-sortable by the
+ * grip handle to reorder display order (placement targets are id-keyed, so
+ * order never affects them).
  */
-import { Bars2Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ArrowUturnLeftIcon, Bars2Icon } from "@heroicons/react/24/outline";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useState } from "react";
 
@@ -17,6 +21,7 @@ import { AXIS_LABEL_MAX } from "@deck/hooks/useAxisEditor";
 import type { AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ItemCard } from "../_shared";
+import { AxisItemMenu } from "./AxisItemMenu";
 import styles from "./AxisSlideContent.module.css";
 
 interface AxisItemEditableProps {
@@ -24,7 +29,15 @@ interface AxisItemEditableProps {
   sortIndex: number;
   /** The item's assigned target point (normalized), or null when unassigned. */
   targetPosition: AxisPoint | null;
+  /** The item's palette color — shared with its marker on the plane. */
+  color: string;
+  /** Whether this row is selected (armed for placement on the plane). */
+  selected: boolean;
+  /** Whether this row's popover menu is open (at most one per slide). */
+  menuOpen: boolean;
   canRemove: boolean;
+  onSelect: () => void;
+  onMenuOpenChange: (open: boolean) => void;
   onScheduleLabel: (label: string) => void;
   onFlush: () => void;
   onSetTarget: (point: AxisPoint | null) => void;
@@ -38,7 +51,12 @@ const AxisItemEditable = ({
   item,
   sortIndex,
   targetPosition,
+  color,
+  selected,
+  menuOpen,
   canRemove,
+  onSelect,
+  onMenuOpenChange,
   onScheduleLabel,
   onFlush,
   onSetTarget,
@@ -55,6 +73,7 @@ const AxisItemEditable = ({
   }
 
   const displayIndex = sortIndex + 1;
+  const fieldId = `axis-item-label-${itemId}`;
 
   const setCoordinate = (coordinate: "x" | "y", percent: number) => {
     if (!targetPosition) return;
@@ -63,13 +82,16 @@ const AxisItemEditable = ({
   };
 
   return (
-    <div ref={ref} className={isDragging ? styles.dragging : undefined}>
+    // Row-wide selection target; the keyboard path is the label field's focus.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+    <div
+      ref={ref}
+      className={isDragging ? styles.dragging : undefined}
+      onClick={onSelect}>
       <ItemCard
         index={sortIndex}
-        tone={targetPosition ? "success" : undefined}
-        removeLabel={`Remove item ${displayIndex.toString()}`}
-        removeDisabled={!canRemove}
-        onRemove={onRemove}
+        active={selected}
+        indexColor={color}
         actions={
           <span
             ref={handleRef}
@@ -84,6 +106,8 @@ const AxisItemEditable = ({
             type='text'
             fullWidth
             withPadding={false}
+            id={fieldId}
+            className={styles.labelField}
             maxLength={AXIS_LABEL_MAX}
             value={label}
             placeholder={`Item ${displayIndex.toString()}`}
@@ -92,14 +116,31 @@ const AxisItemEditable = ({
               setLabel(next);
               onScheduleLabel(next);
             }}
+            onFocus={() => {
+              onMenuOpenChange(true);
+            }}
             onBlur={onFlush}
+            aria-haspopup='dialog'
+            aria-expanded={menuOpen}
+          />
+          <AxisItemMenu
+            displayIndex={displayIndex}
+            fieldId={fieldId}
+            open={menuOpen}
+            onOpenChange={onMenuOpenChange}
+            hasTarget={targetPosition != null}
+            canRemove={canRemove}
+            onClearTarget={() => {
+              onSetTarget(null);
+            }}
+            onRemove={onRemove}
           />
           {targetPosition ? (
             <div className={styles.targetFields}>
               <NumberInput
                 compact
                 id={`axis-target-x-${itemId}`}
-                label='X %'
+                label='X'
                 labelPosition='labelInFront'
                 value={toPercent(targetPosition.x)}
                 min={0}
@@ -111,7 +152,7 @@ const AxisItemEditable = ({
               <NumberInput
                 compact
                 id={`axis-target-y-${itemId}`}
-                label='Y %'
+                label='Y'
                 labelPosition='labelInFront'
                 value={toPercent(targetPosition.y)}
                 min={0}
@@ -123,7 +164,7 @@ const AxisItemEditable = ({
               <IconBtn
                 fill='ghost'
                 size='xs'
-                icon={<XMarkIcon />}
+                icon={<ArrowUturnLeftIcon />}
                 aria-label={`Clear target for item ${displayIndex.toString()}`}
                 onClick={() => {
                   onSetTarget(null);
@@ -139,7 +180,7 @@ const AxisItemEditable = ({
                 // types the exact spot from there.
                 onSetTarget({ x: 0.5, y: 0.5 });
               }}>
-              Set target position
+              Set target
             </button>
           )}
         </div>

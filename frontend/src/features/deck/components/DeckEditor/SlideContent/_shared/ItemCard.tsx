@@ -15,12 +15,14 @@ interface ItemCardProps {
   active?: boolean;
   /** Success-tinted outline — e.g. a statement whose correct answer is set. */
   tone?: "success";
+  /** Fill color for the index pill — e.g. the item's palette color (Axis). */
+  indexColor?: string;
   /** The editable body (typically one or more inputs). */
   children: ReactNode;
   /** Extra action buttons rendered to the right of the body, before remove. */
   actions?: ReactNode;
-  /** Aria label for the remove button — required for accessibility. */
-  removeLabel: string;
+  /** Aria label for the remove button — required alongside `onRemove`. */
+  removeLabel?: string;
   onRemove?: () => void;
   removeDisabled?: boolean;
 }
@@ -29,6 +31,7 @@ const ItemCard = ({
   index,
   active = false,
   tone,
+  indexColor,
   children,
   actions,
   removeLabel,
@@ -44,11 +47,11 @@ const ItemCard = ({
       ]
         .filter(Boolean)
         .join(" ")}>
-      <IndexPill value={index + 1} />
+      <IndexPill value={index + 1} color={indexColor} />
       <div className={styles.itemBody}>{children}</div>
       <div className={styles.itemActions}>
         {actions}
-        {onRemove && (
+        {onRemove && removeLabel && (
           <IconBtn
             fill='ghost'
             size='xs'
