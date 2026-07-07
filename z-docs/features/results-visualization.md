@@ -4,9 +4,11 @@ How live-session slide **results** are charted, which visualization suits each
 slide type, and what's still missing. This is a design/reference doc for
 planning future viz work. A per-type **map** (`resultsRegistry`) now records the
 valid charts for every question type, and the chart family covers them — but
-only **MCQ** is wired end-to-end into the editor UI. `Histogram` is built; the
-word-cloud, heatmap, Likert and image-overlay renderers are scaffolded
-placeholders awaiting real implementations.
+only **MCQ** is wired end-to-end into the editor UI. `Histogram` and
+`WordCloud` are built; the heatmap, Likert and image-overlay renderers are
+scaffolded placeholders awaiting real implementations. (`WordCloud`'s only
+current consumer is the live Q&A board, a separate pipeline from the one
+described below — see the [Q&A per-type note](#per-type-notes).)
 
 ---
 
@@ -66,38 +68,43 @@ The pipeline from raw responses to a rendered chart:
 | `ParetoChart` | `PARETO` | descending bars + cumulative-% line |
 | `DotPlot` | `DOT` | lollipop/dot per option |
 | `Histogram` | `HISTOGRAM` | gapless bars over binned values (built) |
-| `PlaceholderChart` | `WORD_CLOUD`, `HEATMAP`, `DIVERGING_BAR`, `IMAGE_OVERLAY` | "coming soon" stub — each has a thin wrapper (`WordCloud`, `Heatmap`, `DivergingBar`, `ImageOverlay`) to grow into |
+| `WordCloud` | `WORD_CLOUD` | terms sized by frequency, center-weighted layout (built; fed by [`adapters/words.ts`](../../frontend/src/shared/components/Charts/adapters/words.ts)) |
+| `PlaceholderChart` | `HEATMAP`, `DIVERGING_BAR`, `IMAGE_OVERLAY` | "coming soon" stub — each has a thin wrapper (`Heatmap`, `DivergingBar`, `ImageOverlay`) to grow into |
 | — | `NONE` | plain non-chart list |
 
 **Key caveat:** only MCQ is aggregated into `RoundResult.optionCounts`
 (`AnswerTallyKeys.optionKeys` returns empty for every other type). So charting
 any non-MCQ type requires **both** a new frontend adapter/registry entry **and**
 backend aggregation of the raw `Answer.payload` records — see the
-[wiring checklist](#wiring-checklist).
+[wiring checklist](#wiring-checklist). Q&A is the one exception: it's
+non-scorable (no `RoundResult` at all), so its live word cloud tokenizes raw
+submitted text directly on the frontend rather than going through this
+backend-aggregation pipeline — see its [per-type note](#per-type-notes).
 
 ---
 
 ## Chart-fit matrix
 
-Status legend: ✅ built & mapped · 🚧 mapped, renderer is a placeholder stub ·
-♻️ mapped, reuses an existing chart (needs adapter + backend tally) · ❌ not
-mapped, no component yet. "Mapped" = present in `resultsRegistry`; no non-MCQ
-type is wired into an editor section yet.
+Status legend: ✅ built & mapped · 🧩 renderer built, but not wired into an
+editor section (no adapter/backend tally) · 🚧 mapped, renderer is a
+placeholder stub · ♻️ mapped, reuses an existing chart (needs adapter + backend
+tally) · ❌ not mapped, no component yet. "Mapped" = present in
+`resultsRegistry`; no non-MCQ type is wired into an editor section yet.
 
 | Slide type | Response payload | Suitable visualization | Status |
 |---|---|---|---|
 | **MCQ** | `Set<String>` option ids | Bar / Pie / Donut / Line / Pareto / Dot | ✅ built |
 | **NUMBER** | `double` | Histogram (or DotPlot / box) with target marker | ✅ Histogram built (no editor UI yet) |
-| **TEXT** | `String` | Word cloud, or ranked term bar | 🚧 word cloud placeholder |
+| **TEXT** | `String` | Word cloud, or ranked term bar | 🧩 word cloud built, not wired (no backend tally) |
 | **RANKING** | `List<String>` order | Avg-rank bar, or position-distribution stacked bar / bump | ♻️ reuses BarChart |
 | **SCALES** | `Map<id,Integer>` | Likert diverging stacked bar, or mean±spread per item | 🚧 diverging-bar placeholder |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 heatmap placeholder |
 | **PLACE_ON_IMAGE** | `double x,y` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder |
 | **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or Sankey | 🚧 heatmap placeholder (Sankey deferred) |
 | **ALLOCATION** | `Map<optionId,Integer>` | Avg-points grouped / 100%-stacked bar | ♻️ reuses BarChart |
-| **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🚧 word cloud placeholder |
+| **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🧩 word cloud built, not wired (no backend tally) |
 | **DRAWING** | `String` imageData | Image gallery (not a quantitative chart) | ❌ gallery deferred |
-| **Q_AND_A** | `String` question | Moderated question list / feed (not a chart) | 🚧 word cloud placeholder (feed deferred) |
+| **Q_AND_A** | `String` question | List/word-cloud toggle on the live board (not a post-round chart) | ✅ live board built (bypasses this pipeline — see note) |
 | **TITLE** | — | None — display-only, no responses | n/a |
 | **CONTENT** (RichText) | — | None — display-only | n/a |
 | **MEDIA** | — | None — display-only | n/a |
@@ -142,8 +149,19 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   mode-dependent but generally frequency / word-cloud style.
 - **DRAWING** — serialized image per participant; not a quantitative chart —
   present as an **image gallery** (any real "chart" comes from downstream voting).
-- **Q&A** — free-text audience questions; present as a **moderated list/feed**
-  (optionally upvote counts), not a statistical chart.
+- **Q&A** — free-text audience questions, never scored. The **live board**
+  (`QAndABoardContent`) is built end-to-end: participants send questions
+  (capped per player by `QAndAContent.maxResponses`), the host answers inline
+  (`QAndAHostAnswerStore`, Redis-only — never flushed to Mongo), and a
+  per-device **List/Word-cloud toggle** visualizes the live submissions. The
+  cloud reuses the shared `WordCloud` renderer, but feeds it from a
+  client-side tokenizer (`adapters/words.ts`, `wordFrequencies`) over the raw
+  question text carried by the `QAndAUpdated` event/snapshot — it does **not**
+  go through `RoundResult`, the registry, or `ResultsDisplaySwitch`, since Q&A
+  has no backend tally to aggregate. The post-round/editor results view (the
+  pipeline this doc otherwise describes) is still unmapped for Q&A. The
+  authoring `moderated` flag and upvoting are **not** implemented at runtime —
+  `moderated` is stored but has no effect on what's shown live.
 
 ---
 
@@ -151,8 +169,11 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
 
 Ordered by breadth of slide types unlocked and reuse of existing infrastructure.
 
-1. **Word cloud** → TEXT (`WORDCLOUD` match mode), FOLLOW_UP, Q&A. Highest value
-   — the data model already names this mode but no renderer exists.
+1. **Word cloud** → the `WordCloud` renderer + tokenizer adapter are now built
+   and live for Q&A's board (a frontend-only pipeline — see its per-type
+   note). TEXT (`WORDCLOUD` match mode) and FOLLOW_UP still need backend
+   aggregation of raw text plus a `resultsRegistry` adapter to wire into the
+   post-round results pipeline above.
 2. **Histogram / box plot** → NUMBER. The only viz for continuous responses.
 3. **Diverging stacked bar (Likert)** → SCALES. Also the base for RANKING /
    ALLOCATION position-distribution views.
@@ -186,8 +207,9 @@ To chart a new slide type end-to-end:
    exhaustiveness check will flag a missing branch).
 
 Reuse first: RANKING and ALLOCATION mean-value views can ride on the existing
-`BarChart`; only genuinely new shapes (word cloud, histogram, heatmap, diverging
-bar, image overlay) need a new component under `Charts/`.
+`BarChart`. `Histogram` and `WordCloud` are already built; only the remaining
+new shapes (heatmap, diverging bar, image overlay) need a new component under
+`Charts/`.
 
 ---
 

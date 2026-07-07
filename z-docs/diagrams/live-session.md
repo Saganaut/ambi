@@ -13,7 +13,8 @@ fans out over one Redis pub/sub channel and is relayed to STOMP subscribers.
 Key classes: `LiveSessionController`, `LiveSessionLobbyService`,
 `LiveSessionAnswerService`, `LiveSessionOrchestrator`, `SessionLocks`,
 `TallyStore`, `AnswerStore`, `LiveRoundStateStore`, `PresenceStore`,
-`RedisEventPublisher`, `LiveSessionStompRelay`, `SubscribeAuthInterceptor`.
+`QAndAHostAnswerStore`, `RedisEventPublisher`, `LiveSessionStompRelay`,
+`SubscribeAuthInterceptor`.
 
 ## Session lifecycle
 
@@ -137,6 +138,7 @@ flowchart LR
         STATE[["roundState<br/>ambi:roundState:{sid} · JSON"]]
         TALLY[["tally<br/>ambi:tally:{sid}:{slideId} · HINCRBY"]]
         ANS[["answers<br/>ambi:answers:{sid}:{slideId} · HSET"]]
+        QANDA[["qa-host-answers<br/>ambi:session:qa-host-answers:{sid}:{slideId} · HSET, never flushed to Mongo"]]
         PRES[["presence<br/>ambi:presence:{sid} · HSET"]]
         CHAN(("pub/sub<br/>ambi:session:events"))
     end
@@ -144,6 +146,7 @@ flowchart LR
     ORCH -->|read/write| STATE
     ORCH -->|"lock-free"| TALLY
     ORCH -->|"lock-free"| ANS
+    ORCH -->|"lock-free"| QANDA
     ORCH --> PRES
     ORCH -->|publish| CHAN
 ```
@@ -158,6 +161,7 @@ flowchart LR
 | `RoundStarted` | round opens (hidden) | yes |
 | `LiveResultsShown` | opened live / mid-round go-live | yes |
 | `TallyUpdated` | answer submitted | **no** |
+| `QAndAUpdated` | Q&A question asked, or host answered/cleared one | **no** |
 | `SubmissionsLocked` | submissions closed (hidden) | yes |
 | `ResponsesRevealed` | responses shown | yes |
 | `ResultsRevealed` | scored reveal | yes |

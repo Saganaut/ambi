@@ -172,7 +172,7 @@ erDiagram
         string sessionId "ref"
         string participantId "ref"
         string slideId "ref"
-        AnswerPayload payload "emb, sealed (12 kinds)"
+        AnswerPayload payload "emb, sealed (13 kinds)"
         Instant submittedAt
     }
     ROUND_RESULT {
@@ -274,6 +274,7 @@ classDiagram
     AnswerPayload <|.. RankingAnswer
     AnswerPayload <|.. ScalesAnswer
     AnswerPayload <|.. QAndAAnswer
+    AnswerPayload <|.. QAndAQuestions
     AnswerPayload <|.. MatchingAnswer
     AnswerPayload <|.. GridAnswer
     AnswerPayload <|.. PlaceOnImageAnswer
@@ -281,3 +282,10 @@ classDiagram
     AnswerPayload <|.. DrawingAnswer
     AnswerPayload <|.. FollowUpAnswer
 ```
+
+Q&A is the one payload with two kinds: `QAndAAnswer` is the wire shape a
+participant submits (one free-text question); the orchestrator appends it
+server-side into `QAndAQuestions`, the stored per-participant aggregate (a
+player may ask several questions in a round, but the answer model keeps one
+`Answer` document per participant). A client submitting `QAndAQuestions`
+directly is rejected at validation.
