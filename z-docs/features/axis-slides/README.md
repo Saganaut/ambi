@@ -40,7 +40,9 @@ public record AxisContent(
     Map<String, AxisPoint> correctPositions,  // itemId → target; the answer key — NEVER sent to clients
     double tolerance,                         // normalized radius, one knob per slide
     ScoreMode scoreMode                       // fixed INSIDE_RADIUS; no authoring knob
-) implements ScorableContent { }
+) implements ScorableContent {
+  @Override public SlideType contentType() { return SlideType.AXIS; }
+}
 ```
 
 Shape decisions (each follows an existing precedent):
@@ -91,7 +93,9 @@ grading-only knowledge pre-reveal.
 
 ```java
 /** Placement of each item id at a normalized point on the plane. */
-public record AxisAnswer(Map<String, AxisPoint> placements) implements AnswerPayload { }
+public record AxisAnswer(Map<String, AxisPoint> placements) implements AnswerPayload {
+  @Override public SlideType slideType() { return SlideType.AXIS; }
+}
 ```
 
 ### Registration points
@@ -269,8 +273,10 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
 component serves participant and projector via the established
 `mode`/`interactive` props (the `GridBoardContent` pattern).
 
-- **Tap-to-select, tap-at-point-to-place.** Bank of chip buttons
-  (seeded shuffle by slide id, reusing `seededShuffle`); tap to hold
+- **Tap-to-select, tap-at-point-to-place.** Bank of chip buttons, seeded
+  shuffle by slide id — note `seededShuffle` is a private const in
+  `GridBoardContent.tsx`, so the AXIS commit extracts it to a shared module
+  (or duplicates the ~12 lines); tap to hold
   (`aria-pressed`), tap the plane to place at the tap's normalized
   coordinates, tap a placed chip to pick it back up. No drag needed — for a
   continuous surface the second tap inherently carries the coordinates, which
