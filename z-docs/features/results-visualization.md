@@ -100,6 +100,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **SCALES** | `Map<id,Integer>` | Likert diverging stacked bar, or mean±spread per item | 🚧 diverging-bar placeholder |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 heatmap placeholder |
 | **PLACE_ON_IMAGE** | `double x,y` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder |
+| **AXIS** (spec only) | `Map<itemId,{x,y}>` | Scatter with per-item color, or bucketed heatmap | ❌ kind not implemented — see [axis slides](axis-slides/README.md) |
 | **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or Sankey | 🚧 heatmap placeholder (Sankey deferred) |
 | **ALLOCATION** | `Map<optionId,Integer>` | Avg-points grouped / 100%-stacked bar | ♻️ reuses BarChart |
 | **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🧩 word cloud built, not wired (no backend tally) |
@@ -110,7 +111,8 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **MEDIA** | — | None — display-only | n/a |
 | **INSTRUCTION** | — | None — join-info slide | n/a |
 
-All 16 `SlideType` members are covered above.
+All 16 `SlideType` members are covered above; the AXIS row is a planned kind
+(spec only), not yet a `SlideType` member.
 
 ---
 
@@ -139,6 +141,11 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   the fallback.
 - **PLACE_ON_IMAGE** — normalized `x,y` pins. Overlay a **scatter/heatmap on the
   image** with the `correctTargets` circles drawn. Needs an image-aware renderer.
+- **AXIS** *(spec only)* — normalized `x,y` per item on a labeled plane. A
+  **scatter with per-item color** (targets + tolerance circles drawn once
+  revealed) reads best; the 10×10 bucketed heat the live board shows is the
+  fallback. Raw placements aren't client-readable yet (follow-up F2 in the
+  [axis spec](axis-slides/README.md)).
 - **MATCHING** — chosen left→right pairs. A **confusion-matrix heatmap**
   (left items × right items) or a **Sankey** weighted by pair counts shows where
   the crowd matched correctly vs. confused pairs.
