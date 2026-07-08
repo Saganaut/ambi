@@ -1,18 +1,12 @@
 /**
- * Single rail unit in the deck editor's left rail: a slide tile plus, when one
- * is attached, its follow-up rendered as an indented tile inside the same
- * sortable wrapper — so the pair drags as one block and the follow-up itself is
- * never independently draggable.
- *
- * Renders the slide preview, exposes a right-click dropdown for slide actions
- * (delete; "Add follow-up slide" on eligible slides), and selects a slide on
- * click by writing `slideId` into the route search. Deleting a slide with an
- * attached follow-up cascades server-side, so it's gated behind the promise
- * confirm dialog. The wrapper carries an HTML `id` so callers (e.g. the
- * add-slide flow) can scroll a freshly-created slide into view; the thumbnail
- * also self-scrolls when it becomes the active one so deep-link navigations
- * land in the visible scroll region. Drag handle comes from @dnd-kit's sortable
- * hook so the parent's DragDropProvider can reorder it.
+ * Deck editor left rail unit: slide tile + optional indented follow-up.
+ * Drags as a single block; follow-up is not independently draggable.
+ * * Features:
+ * - Renders slide preview & handles click selection (writes slideId to route).
+ * - Right-click dropdown: delete, "Add follow-up" (if eligible).
+ * - Delete with follow-up triggers server cascade (requires confirmation dialog).
+ * - Self-scrolls into view via HTML id on creation/activation.
+ * - @dnd-kit drag handle for parent reordering.
  */
 import { useConfirm } from "@/shared/components/ConfirmDialog/useConfirm";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
@@ -24,7 +18,6 @@ import React, { useEffect, useRef } from "react";
 import styles from "./LeftSidebarContent.module.css";
 import { SlideThumbnailContent } from "./SlideThumbnailContent";
 
-/** Friendly label for the thumbnail — falls back when the slide is untitled. */
 const slideDisplayName = (slide: SlideResponse): string => {
   const trimmed = slide.title.trim();
   return trimmed === "" ? `${slide.content.contentType} Slide` : trimmed;
@@ -32,13 +25,9 @@ const slideDisplayName = (slide: SlideResponse): string => {
 
 interface SlideThumbnailProps {
   slide: SlideResponse;
-  /** The slide's attached follow-up, rendered inside this unit (not sortable). */
   followUp?: SlideResponse;
-  /** Whether the context menu offers "Add follow-up slide". */
   canAddFollowUp: boolean;
-  /** Position among the rail's *units* — the @dnd-kit sortable index space. */
   sortIndex: number;
-  /** 1-based position among the deck's *slides* — the number badge. */
   displayNumber: number;
   deckId: string;
   currentQuestionId?: string;

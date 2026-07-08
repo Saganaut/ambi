@@ -10,13 +10,13 @@
 // `contentType` and delegates to a per-kind component. MCQ, Q&A, Grid, Axis and
 // Scales are built so far; everything else falls back to a placeholder.
 import type { SlideView } from "../../../store/liveSessionApi.gen";
-import type { BoardQuestionMode } from "../resolveBoardStage";
 import { AxisBoardContent } from "../content/AxisBoardContent";
+import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
 import { GridBoardContent } from "../content/GridBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
 import { QAndABoardContent } from "../content/QAndABoardContent";
 import { ScalesBoardContent } from "../content/ScalesBoardContent";
-import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
+import type { BoardQuestionMode } from "../resolveBoardStage";
 import styles from "./BoardQuestion.module.css";
 
 interface BoardQuestionProps {
@@ -37,32 +37,18 @@ const BoardQuestion = ({ slide, mode, interactive }: BoardQuestionProps) => (
   </div>
 );
 
-const renderContent = (
-  slide: SlideView,
-  mode: BoardQuestionMode,
-  interactive: boolean,
-) => {
+const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: boolean) => {
   switch (slide.contentType) {
     case "MCQ":
-      return (
-        <McqBoardContent slide={slide} mode={mode} interactive={interactive} />
-      );
+      return <McqBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "Q_AND_A":
-      return (
-        <QAndABoardContent slide={slide} mode={mode} interactive={interactive} />
-      );
+      return <QAndABoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "GRID":
-      return (
-        <GridBoardContent slide={slide} mode={mode} interactive={interactive} />
-      );
+      return <GridBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "AXIS":
-      return (
-        <AxisBoardContent slide={slide} mode={mode} interactive={interactive} />
-      );
+      return <AxisBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "SCALES":
-      return (
-        <ScalesBoardContent slide={slide} mode={mode} interactive={interactive} />
-      );
+      return <ScalesBoardContent slide={slide} mode={mode} interactive={interactive} />;
     default:
       // Per-kind presentation surfaces land incrementally; until then the round
       // still renders something coherent rather than a blank board.
