@@ -175,12 +175,6 @@
   gap: var(--space-3);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-
-  & input[type="range"] {
-    flex: 1;
-    min-width: 0;
-    accent-color: var(--bg-primary);
-  }
 }
 
 .toleranceValue {

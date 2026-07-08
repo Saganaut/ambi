@@ -3,7 +3,7 @@
  *
  * Prompt on top, then the "Scale" settings card — two endpoint cards (anchor
  * label + boundary value stepper) joined by a live track preview, with the
- * tolerance slider on its own always-visible row — then the statements the
+ * tolerance input on its own always-visible row — then the statements the
  * player rates on that scale.
  *
  * Scoring is per statement: each row repeats the scale as a continuous drag
@@ -19,6 +19,7 @@
  */
 import { useState } from "react";
 
+import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import {
   MAX_SCALE_STATEMENTS,
   SCALES_TOLERANCE_MAX_FRACTION,
@@ -147,16 +148,16 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
           />
         </div>
         <div className={styles.toleranceRow}>
-          <label htmlFor={`scales-tolerance-${idBase}`}>Tolerance</label>
-          <input
+          <NumberInput
+            compact
             id={`scales-tolerance-${idBase}`}
-            type="range"
+            label="Tolerance %"
+            labelPosition="labelInFront"
             min={Math.round(SCALES_TOLERANCE_MIN_FRACTION * 100)}
             max={Math.round(SCALES_TOLERANCE_MAX_FRACTION * 100)}
-            step={1}
             value={tolerancePercent}
-            onChange={(event) => {
-              setTolerance((Number(event.target.value) / 100) * span);
+            onChange={(next) => {
+              setTolerance((next / 100) * span);
             }}
           />
           <span className={styles.toleranceValue}>
