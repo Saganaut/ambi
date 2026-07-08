@@ -1,0 +1,134 @@
+.scalesBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .outcomeCorrect,
+  .outcomeWrong {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .outcomeCorrect {
+    color: var(--text-success);
+  }
+
+  .outcomeWrong {
+    color: var(--text-error);
+  }
+
+  .statements {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+  }
+
+  .statement {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .statementLabel {
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .trackRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .trackBody {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  .anchor {
+    flex: 0 1 6rem;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .anchor:last-of-type {
+    text-align: right;
+  }
+
+  .slider {
+    width: 100%;
+    accent-color: var(--bg-brand);
+    cursor: pointer;
+  }
+
+  /* Read-only stand-in for the slider on the projected / results view. */
+  .staticTrack {
+    width: 100%;
+    height: var(--border-size-sm);
+    border-radius: var(--radius-full);
+    background-color: var(--edge-subtle);
+  }
+
+  .readout {
+    min-width: 2.5rem;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  /* One 10-bucket heat strip under a statement's track. Each cell shades by its
+     share of that statement's busiest bucket — the strip analogue of the
+     grid/axis board's per-cell heat. */
+  .heatStrip {
+    display: flex;
+    gap: var(--space-1);
+    width: 100%;
+    height: var(--space-2);
+  }
+
+  .heatCell {
+    /* 0..1 share of the statement's busiest bucket — shades like a heatmap. */
+    --bucket-heat: 0;
+
+    flex: 1;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-brand);
+    opacity: calc(0.12 + var(--bucket-heat) * 0.6);
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .submittedNote {
+      margin: 0;
+      color: var(--text-success);
+      font-weight: 600;
+    }
+  }
+}
