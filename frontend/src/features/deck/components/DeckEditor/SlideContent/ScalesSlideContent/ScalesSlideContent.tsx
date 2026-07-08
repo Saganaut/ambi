@@ -30,7 +30,7 @@ import { EmptySelect, ItemList, SectionHeader, SettingsCard } from "../_shared";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
 import { ScaleStatementEditable } from "./ScaleStatementEditable";
-import { formatScaleValue } from "./scaleValue";
+import { formatScaleValue } from "@/shared/utils/scaleValue";
 import styles from "./ScalesSlideContent.module.css";
 
 interface ScalesSlideContentProps {

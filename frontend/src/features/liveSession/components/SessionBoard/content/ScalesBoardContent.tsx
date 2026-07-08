@@ -23,6 +23,7 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
+import { formatScaleValue, positionToValue } from "@/shared/utils/scaleValue";
 import styles from "./ScalesBoardContent.module.css";
 
 /**
@@ -41,12 +42,6 @@ interface ScalesBoardContentProps {
   mode: BoardQuestionMode;
   interactive: boolean;
 }
-
-/** Scale-unit readout: rounded to 2 decimals, trailing zeros trimmed, integers bare. */
-const formatScaleValue = (value: number): string => {
-  const rounded = Math.round(value * 100) / 100;
-  return (rounded === 0 ? 0 : rounded).toString();
-};
 
 /**
  * Sum the live per-`statementId@bucket` tally into per-statement bucket arrays
@@ -73,7 +68,6 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
   const scales = slide.scales;
   const min = scales?.min ?? 0;
   const max = scales?.max ?? 1;
-  const span = max - min;
   const items = useMemo(() => scales?.items ?? [], [scales?.items]);
 
   const { sendAnswer } = useSessionConnection();
@@ -141,7 +135,7 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
         {items.map((item, index) => {
           const statementId = item.id ?? "";
           const position = draft[statementId] ?? MIDPOINT;
-          const scaleValue = min + position * span;
+          const scaleValue = positionToValue(position, min, max);
           const label = item.label?.trim() || `Statement ${(index + 1).toString()}`;
           const bucketArr = totals[statementId];
           const highest = bucketArr ? Math.max(1, ...bucketArr) : 1;

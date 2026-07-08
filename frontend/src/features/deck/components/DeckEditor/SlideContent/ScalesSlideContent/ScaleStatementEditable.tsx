@@ -31,7 +31,7 @@ import type { ScaleItem } from "@deck/store/deckApi.gen";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ItemCard } from "../_shared";
-import { formatScaleValue, positionToValue, valueToPosition } from "./scaleValue";
+import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
 import styles from "./ScalesSlideContent.module.css";
 
 /** Arrow-key nudge, as a fraction of the span (the axis-board precedent). */
