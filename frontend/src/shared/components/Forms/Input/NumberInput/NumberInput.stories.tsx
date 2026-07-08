@@ -25,6 +25,10 @@ const meta = {
       control: "inline-radio",
       options: ["labelAbove", "labelInFront"],
     },
+    size: {
+      control: "inline-radio",
+      options: ["sm", "md", "lg"],
+    },
     value: { control: false },
     onChange: { control: false },
   },
@@ -54,6 +58,28 @@ export const WithInfoMessage: Story = {
 // errorMessage forces the error styling and replaces the info message.
 export const WithError: Story = {
   args: { errorMessage: "Must be at least 5 seconds." },
+};
+
+// The three sizes flip the field's manifest vars (padding, font, stepper width).
+export const Sizes: Story = {
+  render: (args) => {
+    const [value, setValue] = useState(args.value);
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        {(["sm", "md", "lg"] as const).map((size) => (
+          <NumberInput
+            {...args}
+            key={size}
+            id={`${args.id}-${size}`}
+            label={`Round timer (${size})`}
+            size={size}
+            value={value}
+            onChange={setValue}
+          />
+        ))}
+      </div>
+    );
+  },
 };
 
 // compact pairs with labelInFront for label-left settings rows: the field hugs

@@ -1,25 +1,33 @@
-// Numeric input: same chrome as Input, but the value/onChange API is typed as
-// `number` so callers don't repeat the parse-fallback dance. min / max / step
-// flow through to the native control. Mirrors the labelled-container layout
-// of Input so the two read identically in a form. Reuses Input's CSS module
-// so the bordered-text-box chrome stays in one place.
+// Numeric input: same labelled-container layout as Input, but the value/onChange
+// API is typed as `number` so callers skip the parse-fallback dance. The native
+// number spinners can't be styled to the design, so they're suppressed and a
+// custom two-button stepper drives min/max/step. The field grows to fill its
+// parent — the host dictates the width.
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import React from "react";
-import type { InputBaseProps } from "../InputBaseProps";
 import shared from "../Input.module.css";
-import styles from "../Input/Input.module.css";
+import type { InputBaseProps } from "../InputBaseProps";
+import styles from "./NumberInput.module.css";
 
 interface NumberInputProps
-  extends InputBaseProps,
-    Omit<
-      React.InputHTMLAttributes<HTMLInputElement>,
-      "value" | "onChange" | "type"
-    > {
+  extends
+    InputBaseProps,
+    Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type" | "size"> {
   value: number;
   onChange: (value: number) => void;
   labelPosition?: "labelAbove" | "labelInFront";
   fullWidth?: boolean;
   compact?: boolean;
+  size?: NumberInputSize;
 }
+
+type NumberInputSize = "sm" | "md" | "lg";
+
+const toNumber = (v: string | number | undefined): number | undefined => {
+  if (v == null || v === "") return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+};
 
 const NumberInput = ({
   value,
@@ -33,47 +41,94 @@ const NumberInput = ({
   errorMessage,
   fullWidth = false,
   compact = false,
+  size = "md",
   disabled,
   min,
   max,
   step,
   placeholder,
 }: NumberInputProps) => {
+  const minN = toNumber(min);
+  const maxN = toNumber(max);
+  const stepN = toNumber(step) ?? 1;
+  const current = Number.isFinite(value) ? value : 0;
+
+  const clamp = (n: number) => {
+    let next = n;
+    if (minN != null) next = Math.max(minN, next);
+    if (maxN != null) next = Math.min(maxN, next);
+    return next;
+  };
+
+  const stepBy = (delta: number) => {
+    if (disabled) return;
+    onChange(clamp(current + delta));
+  };
+
+  const atMax = maxN != null && current >= maxN;
+  const atMin = minN != null && current <= minN;
+
   return (
     <div
-      className={[
-        shared.inputContainer,
-        shared[labelPosition],
-        fullWidth ? shared.fullWidth : "",
-      ]
+      className={[shared.inputContainer, shared[labelPosition], fullWidth ? shared.fullWidth : ""]
         .filter(Boolean)
-        .join(" ")}>
+        .join(" ")}
+    >
       {label && <label htmlFor={id}>{label}</label>}
-      <div
-        className={[
-          styles.input,
-          fullWidth ? styles.fullWidth : "",
-          compact ? styles.compact : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}>
-        <input
-          type='number'
-          id={id}
-          name={name}
-          value={Number.isFinite(value) ? value : 0}
-          onChange={(e) => {
-            const next = Number(e.target.value);
-            onChange(Number.isFinite(next) ? next : 0);
-          }}
-          onBlur={onBlur}
-          disabled={disabled}
-          min={min}
-          max={max}
-          step={step}
-          placeholder={placeholder}
-          className={errorMessage != null ? styles.error : undefined}
-        />
+      <div className={[styles.wrapper, compact ? styles.compact : ""].filter(Boolean).join(" ")}>
+        <div
+          className={[
+            styles.field,
+            styles[size],
+            compact ? styles.compact : "",
+            disabled ? styles.disabled : "",
+            errorMessage != null ? styles.error : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <input
+            type="number"
+            id={id}
+            name={name}
+            value={current}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              onChange(Number.isFinite(next) ? next : 0);
+            }}
+            onBlur={onBlur}
+            disabled={disabled}
+            min={min}
+            max={max}
+            step={step}
+            placeholder={placeholder}
+            className={[styles.input, errorMessage != null ? styles.error : ""]
+              .filter(Boolean)
+              .join(" ")}
+          />
+          <div className={styles.stepper}>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="Increase"
+              className={[styles.stepBtn, styles.stepUp].join(" ")}
+              disabled={disabled || atMax}
+              onClick={() => stepBy(stepN)}
+            >
+              <ChevronUpIcon className={styles.icon} />
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="Decrease"
+              className={[styles.stepBtn, styles.stepDown].join(" ")}
+              disabled={disabled || atMin}
+              onClick={() => stepBy(-stepN)}
+            >
+              <ChevronDownIcon className={styles.icon} />
+            </button>
+          </div>
+        </div>
         {(errorMessage != null || infoMessage != null) && (
           <span
             className={[
@@ -82,7 +137,8 @@ const NumberInput = ({
               errorMessage && shared.errorMessage,
             ]
               .filter(Boolean)
-              .join(" ")}>
+              .join(" ")}
+          >
             {errorMessage ?? infoMessage}
           </span>
         )}
