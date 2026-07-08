@@ -14,8 +14,10 @@ import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
@@ -49,6 +51,18 @@ class SessionEventsTest {
         return slide;
     }
 
+    private static Slide scalesSlide() {
+        Slide slide = new Slide();
+        slide.setId("slide-scales");
+        slide.setTitle("Rate these meals");
+        slide.setContent(new ScalesContent(
+                1, 5, "Skip it", "Sacred",
+                List.of(new ScaleItem("meal-1", "Breakfast"), new ScaleItem("meal-2", "Elevenses")),
+                Map.of("meal-1", 4.5),
+                0.8));
+        return slide;
+    }
+
     // Participant-relevant fields set to distinctive values; host/scoring fields
     // (shuffleOptions, anonymizeAnswers, allowAnonymous, displayResultsMode) set so
     // the strip assertions are meaningful.
@@ -69,6 +83,24 @@ class SessionEventsTest {
         assertThat(json).doesNotContain("correctOptionIds");
         assertThat(json).doesNotContain("psst");
         assertThat(json).doesNotContain("Minas Tirith is the capital");
+    }
+
+    @Test
+    void slideViewCarriesScalesConfigButDropsAnswerKeyAndTolerance() {
+        SlideView view = SlideView.from(scalesSlide(), null);
+
+        // The participant-safe config travels: endpoints, anchor labels, statements.
+        assertThat(view.scales()).isNotNull();
+        assertThat(view.scales().min()).isEqualTo(1);
+        assertThat(view.scales().max()).isEqualTo(5);
+        assertThat(view.scales().leftLabel()).isEqualTo("Skip it");
+        assertThat(view.scales().items()).extracting("id").containsExactly("meal-1", "meal-2");
+
+        // correctValues (the answer key) and tolerance are grading-only — never on the wire.
+        String json = codec.serialize(view);
+        assertThat(json).doesNotContain("correctValues");
+        assertThat(json).doesNotContain("tolerance");
+        assertThat(json).doesNotContain("4.5");
     }
 
     @Test

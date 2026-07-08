@@ -15,11 +15,13 @@ import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
@@ -28,6 +30,7 @@ import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
+import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
 
 /**
@@ -120,6 +123,34 @@ class RoundEvaluatorTest {
     }
 
     @Test
+    void gradesScalesAllOrNothingWithinTolerance() {
+        // Scale 1–5 (span 4), tolerance 1 in scale units. Targets are in scale
+        // units; answers arrive as normalized positions and are denormalized.
+        Slide slide = slideWith(scales(Map.of("st-1", 4.0, "st-2", 2.0), 1.0));
+
+        // st-1 target 4 → position 0.75; st-2 target 2 → position 0.25. Exact hits.
+        assertThat(gradeOne(slide, new ScalesAnswer(Map.of("st-1", 0.75, "st-2", 0.25)))).isTrue();
+        // Boundary: exactly ± tolerance still counts. Target 4 ± 1 = [3, 5];
+        // position 0.5 → value 3.0, the low edge.
+        assertThat(gradeOne(slide, new ScalesAnswer(Map.of("st-1", 0.5, "st-2", 0.25)))).isTrue();
+        // Just outside: position 0.4 → value 2.6, which is 1.4 from target 4 > 1.
+        assertThat(gradeOne(slide, new ScalesAnswer(Map.of("st-1", 0.4, "st-2", 0.25)))).isFalse();
+        // A keyed statement missing from the positions fails the whole answer.
+        assertThat(gradeOne(slide, new ScalesAnswer(Map.of("st-1", 0.75)))).isFalse();
+    }
+
+    @Test
+    void scalesWithEmptyAnswerKeyIsCollectOnlyAndNeverGradesCorrect() {
+        Slide slide = slideWith(scales(Map.of(), 1.0));
+
+        AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
+                List.of(answer("p", new ScalesAnswer(Map.of("st-1", 0.5)), 10)), START).get(0);
+
+        assertThat(eval.correct()).isFalse();
+        assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
+    }
+
+    @Test
     void contentWithNoStaticKeyNeverGradesCorrect() {
         Slide slide = slideWith(mcq(Set.of("a")));
 
@@ -170,6 +201,12 @@ class RoundEvaluatorTest {
         return new AxisContent("Low X", "High X", "Low Y", "High Y",
                 List.of(new AxisItem("it-1", "One", null, null), new AxisItem("it-2", "Two", null, null)),
                 correctPositions, tolerance, ScoreMode.INSIDE_RADIUS);
+    }
+
+    private static ScalesContent scales(Map<String, Double> correctValues, double tolerance) {
+        return new ScalesContent(1, 5, "Low", "High",
+                List.of(new ScaleItem("st-1", "One"), new ScaleItem("st-2", "Two")),
+                correctValues, tolerance);
     }
 
     private static Slide slideWith(SlideContent content) {

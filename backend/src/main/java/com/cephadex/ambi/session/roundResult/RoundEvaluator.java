@@ -243,14 +243,18 @@ public final class RoundEvaluator {
 
     private static boolean gradeScales(ScalesContent content, ScalesAnswer answer) {
         Map<String, Double> key = content.correctValues();
-        Map<String, Integer> ratings = answer.ratings();
-        if (key == null || key.isEmpty() || ratings == null) {
+        Map<String, Double> positions = answer.positions();
+        if (key == null || key.isEmpty() || positions == null) {
             return false;
         }
-        // Every keyed item must be rated within ± tolerance of its target.
+        // Positions arrive normalized ([0, 1]); denormalize each with content in
+        // scope, then require every keyed statement within ± tolerance (scale
+        // units) of its target. An empty key marks an unscored collect-only slide.
+        double span = content.max() - content.min();
         for (Map.Entry<String, Double> e : key.entrySet()) {
-            Integer rating = ratings.get(e.getKey());
-            if (rating == null || Math.abs(rating - e.getValue()) > content.tolerance()) {
+            Double p = positions.get(e.getKey());
+            if (p == null
+                    || Math.abs(content.min() + p * span - e.getValue()) > content.tolerance()) {
                 return false;
             }
         }

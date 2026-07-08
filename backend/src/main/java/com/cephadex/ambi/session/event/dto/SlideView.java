@@ -8,6 +8,7 @@ import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
@@ -32,8 +33,10 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * ({@link QAndAConfigView}); a Grid slide carries {@link GridConfigView} (the
  * matrix + items, never {@code correctCells}); an Axis slide carries
  * {@link AxisConfigView} (the endpoint labels + items, never
- * {@code correctPositions} or {@code tolerance}); each is {@code null} for
- * every other kind.
+ * {@code correctPositions} or {@code tolerance}); a Scales slide carries
+ * {@link ScalesConfigView} (the endpoints, anchor labels + statements, never
+ * {@code correctValues} or {@code tolerance}); each is {@code null} for every
+ * other kind.
  */
 public record SlideView(
         String id,
@@ -47,6 +50,7 @@ public record SlideView(
         QAndAConfigView qAndA,
         GridConfigView grid,
         AxisConfigView axis,
+        ScalesConfigView scales,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -61,6 +65,7 @@ public record SlideView(
         QAndAConfigView qAndA = null;
         GridConfigView grid = null;
         AxisConfigView axis = null;
+        ScalesConfigView scales = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -76,6 +81,9 @@ public record SlideView(
             if (content instanceof AxisContent axisContent) {
                 axis = AxisConfigView.from(axisContent);
             }
+            if (content instanceof ScalesContent scalesContent) {
+                scales = ScalesConfigView.from(scalesContent);
+            }
         }
         return new SlideView(
                 slide.getId(),
@@ -89,6 +97,7 @@ public record SlideView(
                 qAndA,
                 grid,
                 axis,
+                scales,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

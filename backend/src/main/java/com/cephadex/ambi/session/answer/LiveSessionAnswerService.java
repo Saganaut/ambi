@@ -20,6 +20,7 @@ import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
@@ -29,6 +30,7 @@ import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
+import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -99,11 +101,12 @@ public class LiveSessionAnswerService {
         }
 
         // `maxSelections` is an MCQ knob (how many options one pick may span). A
-        // grid or axis submission is one whole placement map, so the deck default
-        // of 1 must not make the first submission final — placement resubmits
+        // grid, axis, or scales submission is one whole map, so the deck default
+        // of 1 must not make the first submission final — these resubmits
         // overwrite (last write before close wins), like a multi-select MCQ change.
         int effectiveMaxSelections = request.payload() instanceof GridAnswer
-                || request.payload() instanceof AxisAnswer ? 0 : maxSelections;
+                || request.payload() instanceof AxisAnswer
+                || request.payload() instanceof ScalesAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), effectiveMaxSelections);
     }
@@ -124,6 +127,9 @@ public class LiveSessionAnswerService {
         }
         if (content instanceof AxisContent axis && payload instanceof AxisAnswer ans) {
             validateAxis(axis, ans);
+        }
+        if (content instanceof ScalesContent scales && payload instanceof ScalesAnswer ans) {
+            validateScales(scales, ans);
         }
         // Other content types are stored as-is; their tally/validation lands with scoring.
     }
@@ -174,6 +180,33 @@ public class LiveSessionAnswerService {
             }
             if (!isPointOnPlane(placement.getValue())) {
                 throw new ValidationException("placement is not on the plane");
+            }
+        }
+    }
+
+    /**
+     * A scales submission must rate at least one real statement: every key must
+     * be an item on the slide, every value a finite normalized position within
+     * {@code [0, 1]}. Partial maps are accepted (grid/axis precedent — the board
+     * gates full completion client-side).
+     */
+    private void validateScales(ScalesContent content, ScalesAnswer answer) {
+        Map<String, Double> positions = answer.positions();
+        if (positions == null || positions.isEmpty()) {
+            throw new ValidationException("at least one statement must be rated");
+        }
+        Set<String> itemIds = content.items() == null ? Set.of()
+                : content.items().stream()
+                        .map(item -> item.id())
+                        .collect(Collectors.toSet());
+        for (Map.Entry<String, Double> rating : positions.entrySet()) {
+            if (!itemIds.contains(rating.getKey())) {
+                throw new ValidationException("rated statement is not on the slide");
+            }
+            Double position = rating.getValue();
+            if (position == null || !Double.isFinite(position)
+                    || position < 0 || position > 1) {
+                throw new ValidationException("rating is not on the scale");
             }
         }
     }

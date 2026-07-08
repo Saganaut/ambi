@@ -33,12 +33,14 @@ import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
@@ -49,6 +51,7 @@ import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
+import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -249,6 +252,53 @@ class LiveSessionAnswerServiceTest {
                 .isInstanceOf(ValidationException.class);
     }
 
+    // ── Scales ───────────────────────────────────────────────────────────────
+
+    @Test
+    void scalesPositionsBypassTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), scalesContent());
+
+        service.submit(SID, request(new ScalesAnswer(java.util.Map.of("it-1", 0.4))), registered);
+
+        // Like grid/axis, a scales resubmit must overwrite rather than lock on
+        // first submit, so the orchestrator is called with 0 (last-write-wins).
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(ScalesAnswer.class), eq(0));
+    }
+
+    @Test
+    void scalesEmptyPositionsAreRejected() {
+        givenLiveSession(answerSettings(true, 1), scalesContent());
+
+        assertThatThrownBy(() -> service.submit(SID, request(new ScalesAnswer(java.util.Map.of())), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void scalesUnknownStatementIsRejected() {
+        givenLiveSession(answerSettings(true, 1), scalesContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new ScalesAnswer(java.util.Map.of("it-nope", 0.5))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void scalesOutOfBoundsOrNonFinitePositionIsRejected() {
+        givenLiveSession(answerSettings(true, 1), scalesContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new ScalesAnswer(java.util.Map.of("it-1", 1.2))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new ScalesAnswer(java.util.Map.of("it-1", -0.01))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new ScalesAnswer(java.util.Map.of("it-1", Double.NaN))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
     // ── Q&A ────────────────────────────────────────────────────────────────────
 
     @Test
@@ -351,6 +401,15 @@ class LiveSessionAnswerServiceTest {
                 java.util.Map.of(),
                 0.1,
                 ScoreMode.INSIDE_RADIUS);
+    }
+
+    /** A 1–5 scale with two statements ("it-1", "it-2") and no answer key. */
+    private static ScalesContent scalesContent() {
+        return new ScalesContent(
+                1, 5, "Low", "High",
+                List.of(new ScaleItem("it-1", "One"), new ScaleItem("it-2", "Two")),
+                java.util.Map.of(),
+                1.0);
     }
 
     private static McqContent mcqContent(String... optionIds) {

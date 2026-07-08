@@ -26,22 +26,25 @@ public final class AnswerTallyKeys {
     public static final String GRID_KEY_SEPARATOR = "@";
 
     /**
-     * Axis placements are quantized into this many buckets per axis at
-     * key-derivation time — exact coordinates can't be histogram keys, a
-     * 10 × 10 bucket grid can. The frontend mirrors this constant to aggregate
-     * the heat overlay (it is not a request-DTO bound, so it does not flow
-     * through {@code generate-validation}); keep the two in sync.
+     * Continuous placements are quantized into this many buckets at
+     * key-derivation time — exact coordinates can't be histogram keys, a bucket
+     * index can. Used for both AXIS placements (per axis, a 10 × 10 bucket grid)
+     * and SCALES positions (one 10-bucket strip per statement). The frontend
+     * mirrors this constant to aggregate the heat overlay (it is not a
+     * request-DTO bound, so it does not flow through {@code generate-validation});
+     * keep the two in sync.
      */
     public static final int AXIS_TALLY_BUCKETS = 10;
 
     /**
      * The option-tally keys contributed by {@code payload}: one per chosen MCQ
      * option, one {@code itemId@rowIndex,colIndex} key per grid placement (so
-     * the live board can shade each cell by what landed there), or one
+     * the live board can shade each cell by what landed there), one
      * {@code itemId@bucketX,bucketY} key per axis placement (quantized, so the
-     * live board can heat-map the plane). Returns an empty list for payloads
-     * that aren't tallied yet (free text, drawings, …), so the caller simply
-     * counts nothing for them.
+     * live board can heat-map the plane), or one {@code statementId@bucket} key
+     * per scales position (quantized, so the board can heat each statement's
+     * track). Returns an empty list for payloads that aren't tallied yet (free
+     * text, drawings, …), so the caller simply counts nothing for them.
      */
     public static List<String> optionKeys(AnswerPayload payload) {
         if (payload instanceof McqAnswer mcq) {
@@ -58,6 +61,13 @@ public final class AnswerTallyKeys {
             return axis.placements().entrySet().stream()
                     .map(placement -> placement.getKey() + GRID_KEY_SEPARATOR
                             + bucket(placement.getValue().x()) + "," + bucket(placement.getValue().y()))
+                    .toList();
+        }
+        if (payload instanceof ScalesAnswer scales && scales.positions() != null) {
+            // A single bucket int after "@" is a strict subset of grid's "r,c"
+            // suffix, so it splits unambiguously under the same grammar.
+            return scales.positions().entrySet().stream()
+                    .map(rating -> rating.getKey() + GRID_KEY_SEPARATOR + bucket(rating.getValue()))
                     .toList();
         }
         return List.of();

@@ -316,7 +316,7 @@ export type RankingAnswer = {
 export type ScalesAnswer = {
   answerType: "ScalesAnswer";
 } & AnswerPayloadBase & {
-    ratings?: {
+    positions?: {
       [key: string]: number;
     };
   };
@@ -391,6 +391,17 @@ export type AxisConfigView = {
   yHighLabel?: string;
   items?: AxisItemView[];
 };
+export type ScaleItemView = {
+  id?: string;
+  label?: string;
+};
+export type ScalesConfigView = {
+  min?: number;
+  max?: number;
+  leftLabel?: string;
+  rightLabel?: string;
+  items?: ScaleItemView[];
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -425,6 +436,7 @@ export type SlideView = {
   qAndA?: QAndAConfigView;
   grid?: GridConfigView;
   axis?: AxisConfigView;
+  scales?: ScalesConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {

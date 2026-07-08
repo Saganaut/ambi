@@ -39,6 +39,21 @@ class AnswerTallyKeysTest {
     }
 
     @Test
+    void scalesContributesOneQuantizedBucketKeyPerStatement() {
+        assertThat(AnswerTallyKeys.optionKeys(new ScalesAnswer(Map.of(
+                "st-1", 0.05,
+                "st-2", 0.42))))
+                .containsExactlyInAnyOrder("st-1@0", "st-2@4");
+    }
+
+    @Test
+    void scalesPositionOfExactlyOneClampsIntoTheLastBucket() {
+        assertThat(AnswerTallyKeys.optionKeys(new ScalesAnswer(Map.of(
+                "st-1", 1.0))))
+                .containsExactly("st-1@9");
+    }
+
+    @Test
     void nonTallyablePayloadContributesNoKeys() {
         assertThat(AnswerTallyKeys.optionKeys(new TextAnswer("hello"))).isEmpty();
     }
