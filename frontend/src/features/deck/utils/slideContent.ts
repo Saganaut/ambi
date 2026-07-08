@@ -16,6 +16,7 @@ import { nanoid } from "nanoid";
 import {
   AxisItem,
   GridItem,
+  MatchItem,
   McqOption,
   RankItem,
   ScaleItem,
@@ -160,10 +161,15 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         scoreMode: "INSIDE_RADIUS",
       };
     case "MATCHING":
+      // Seed two blank pairs (the editor's minimum for a real matching round);
+      // left[i] ↔ right[i] is the authored pairing. An empty `correctPairs`
+      // marks the slide unscored (collect-only) — the author opts into scoring
+      // with the editor's Scorable toggle, which mirrors the authored pairing
+      // into the answer key.
       return {
         contentType: "MATCHING",
-        left: [],
-        right: [],
+        left: [buildDefaultMatchItem(), buildDefaultMatchItem()],
+        right: [buildDefaultMatchItem(), buildDefaultMatchItem()],
         correctPairs: {},
         scoreMode: "EXACT",
       };
@@ -244,6 +250,18 @@ export const buildDefaultGridItem = (): GridItem => ({
  * grade placements. The label is empty for the author to fill in.
  */
 export const buildDefaultAxisItem = (): AxisItem => ({
+  id: nanoid(8),
+  label: "",
+});
+
+/**
+ * Build a blank matching card with a fresh client-minted id. MATCHING slides
+ * key the answer map by card id (`correctPairs`: left id → right id), so a
+ * stable id at creation time is what lets the Scorable toggle link the
+ * authored pairs and the backend grade submissions. The label is empty for
+ * the author to fill in (or swap for an image).
+ */
+export const buildDefaultMatchItem = (): MatchItem => ({
   id: nanoid(8),
   label: "",
 });

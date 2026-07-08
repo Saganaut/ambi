@@ -185,7 +185,7 @@ const SlideDisplay = () => {
       case "ALLOCATION":
         return <AllocationSlideContent />;
       case "MATCHING":
-        return <MatchingSlideContent />;
+        return <MatchingSlideContent deckId={deckId} slideId={slideId} />;
       case "DRAWING":
         return <DrawingSlideContent />;
       case "FOLLOW_UP":

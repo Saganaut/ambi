@@ -93,8 +93,8 @@ public class SlideContentTypes {
 
     // --------------- Matching --------------------------------------------
 
-    /** One side of a matching pair. {@code image} is optional. */
-    public record MatchItem(String id, String label, AppImage image) {
+    /** One side of a matching pair. {@code image} and {@code color} are optional. */
+    public record MatchItem(String id, String label, AppImage image, String color) {
     }
 
 }

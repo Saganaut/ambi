@@ -922,6 +922,7 @@ export type MatchItem = {
   id?: string;
   label?: string;
   image?: AppImage;
+  color?: string;
 };
 export type MatchingContent = {
   left: MatchItem[];
