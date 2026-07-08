@@ -15,11 +15,14 @@ below reuses an AXIS mechanism verbatim. This doc follows the axis spec's
 structure and is written to be executed by an implementing agent without
 further design work.
 
-**Status: specification only.** Nothing below is implemented; the
-[implementation checklist](#implementation-checklist) stages the work. Today
-SCALES has an authoring surface but **no live board** (`BoardQuestion.tsx`
-falls through to `BoardContentPlaceholder`), no answer validation, and no
-tally keys — stages 2–3 fill those gaps as part of the redesign.
+**Status: implemented** (stages 1–3 landed; the [implementation
+checklist](#implementation-checklist) tracks each commit). The continuous
+model + editor, the answer pipeline (validation, grading, tally keys, the
+participant-safe view), and the live board (`BoardQuestion.tsx` now renders
+`ScalesBoardContent` for `SCALES`) are all in place. The named
+[follow-ups](#follow-ups-named-out-of-v1) — structured answer-key reveal,
+raw-value distribution charts, per-statement tolerance, partial credit —
+remain out of v1.
 
 ## Design decisions
 
@@ -429,9 +432,10 @@ constants; runtime safety is answer-path validation:
 ## Implementation checklist
 
 Staged commits, mirroring how AXIS landed. Each commit follows the full
-feature workflow (implement → commit via conventions → review).
+feature workflow (implement → commit via conventions → review). Stages 1–4
+are ✅ complete.
 
-1. **`feat(deck)` — content model + editor redesign.**
+1. ✅ **`feat(deck)` — content model + editor redesign.**
    `ScalesContent` minus `step` (Javadoc rewrite) → codegen (three individual
    scripts) → `slideContent.ts` + `deckMockData.ts` defaults →
    `useScalesEditor.ts` (drop step surface; `setTolerance` + fraction
@@ -441,7 +445,7 @@ feature workflow (implement → commit via conventions → review).
    readout) → `ScalePreview.tsx` (continuous track) → new `scaleValue.ts` +
    test → delete `scaleTicks.ts` + test → CSS. Tests: `scaleValue.test.ts`
    (mapping, clamping, formatting), editor-hook re-clamp behavior.
-2. **`feat(session)` — answer pipeline.** `ScalesAnswer.positions` (D1);
+2. ✅ **`feat(session)` — answer pipeline.** `ScalesAnswer.positions` (D1);
    `validateScales` + the `maxSelections = 0` override; the
    `AnswerTallyKeys` SCALES branch + Javadoc (D3);
    `RoundEvaluator.gradeScales` denormalizing (above); new
@@ -452,12 +456,12 @@ feature workflow (implement → commit via conventions → review).
    `AnswerTallyKeysTest` (one key per statement, `p = 1.0` clamp),
    `SessionEventsTest` (scales view carried; `correctValues`/`tolerance`
    absent).
-3. **`feat(session)` — live board.** `ScalesBoardContent` + CSS + tests;
+3. ✅ **`feat(session)` — live board.** `ScalesBoardContent` + CSS + tests;
    `BoardQuestion` case; mirrored bucket constant. Tests (the
    `GridBoardContent.test` harness): touched gating, submit/update flow,
    heat aggregation from bucket keys, read-only projector mode, own-outcome
    banner.
-4. **`docs`** — update this doc's status line, the
+4. ✅ **`docs`** — update this doc's status line, the
    [results-visualization](../results-visualization.md) SCALES row, and any
    glossary drift.
 

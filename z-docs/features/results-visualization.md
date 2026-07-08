@@ -97,7 +97,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **NUMBER** | `double` | Histogram (or DotPlot / box) with target marker | ✅ Histogram built (no editor UI yet) |
 | **TEXT** | `String` | Word cloud, or ranked term bar | 🧩 word cloud built, not wired (no backend tally) |
 | **RANKING** | `List<String>` order | Avg-rank bar, or position-distribution stacked bar / bump | ♻️ reuses BarChart |
-| **SCALES** | `Map<id,Double>` normalized positions (see [scales redesign](scales-slides/README.md)) | Per-statement bucketed strip/histogram, or mean±spread per item | 🚧 diverging-bar placeholder; live 10-bucket strips specced on the board |
+| **SCALES** | `Map<id,Double>` normalized positions (see [scales redesign](scales-slides/README.md)) | Per-statement bucketed strip/histogram, or mean±spread per item | 🚧 post-round diverging-bar placeholder; live per-statement 10-bucket strips built on the board — see [scales slides](scales-slides/README.md) |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 heatmap placeholder |
 | **PLACE_ON_IMAGE** | `double x,y` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder |
 | **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item color (needs raw placements — follow-up F2), or bucketed heatmap | 🚧 heatmap placeholder; live 10×10 bucket heat built on the board — see [axis slides](axis-slides/README.md) |
@@ -185,9 +185,9 @@ Ordered by breadth of slide types unlocked and reuse of existing infrastructure.
    aggregation of raw text plus a `resultsRegistry` adapter to wire into the
    post-round results pipeline above.
 2. **Histogram / box plot** → NUMBER. The only viz for continuous responses.
-3. **Diverging stacked bar (Likert)** → SCALES (bucketed variant once the
-   [continuous-slider redesign](scales-slides/README.md) lands — values no
-   longer snap to discrete steps). Also the base for RANKING / ALLOCATION
+3. **Diverging stacked bar (Likert)** → SCALES (now needs a bucketed variant —
+   the [continuous-slider redesign](scales-slides/README.md) shipped, so values
+   no longer snap to discrete steps). Also the base for RANKING / ALLOCATION
    position-distribution views.
 4. **Heatmap** → GRID, MATCHING (confusion matrix), PLACE_ON_IMAGE. One heatmap
    primitive covers three slide types.
