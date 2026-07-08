@@ -14,20 +14,20 @@
  * land in the visible scroll region. Drag handle comes from @dnd-kit's sortable
  * hook so the parent's DragDropProvider can reorder it.
  */
-import React, { useEffect, useRef } from "react";
+import { useConfirm } from "@/shared/components/ConfirmDialog/useConfirm";
+import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
+import { useDeckEditor } from "@deck/hooks/useDeckEditor";
+import { SlideResponse } from "@deck/store/deckApi.gen";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useNavigate } from "@tanstack/react-router";
-import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
-import { useConfirm } from "@/shared/components/ConfirmDialog/useConfirm";
+import React, { useEffect, useRef } from "react";
 import styles from "./LeftSidebarContent.module.css";
-import { SlideResponse } from "@deck/store/deckApi.gen";
-import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { SlideThumbnailContent } from "./SlideThumbnailContent";
 
 /** Friendly label for the thumbnail — falls back when the slide is untitled. */
 const slideDisplayName = (slide: SlideResponse): string => {
   const trimmed = slide.title.trim();
-  return trimmed === "" ? "Untitled slide" : trimmed;
+  return trimmed === "" ? `${slide.content.contentType} Slide` : trimmed;
 };
 
 interface SlideThumbnailProps {
@@ -82,8 +82,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
     if (followUp) {
       const ok = await confirm({
         title: "Delete slide?",
-        message:
-          "This slide has a follow-up slide. Deleting it deletes the follow-up too.",
+        message: "This slide has a follow-up slide. Deleting it deletes the follow-up too.",
         confirmLabel: "Delete both",
         variant: "danger",
       });
@@ -103,7 +102,8 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
     <div
       id={slide.id}
       className={`${styles.slideThumbnailWrapper} ${isDragging && styles.isDragging}`}
-      ref={setRefs}>
+      ref={setRefs}
+    >
       <DropdownMenu
         position={"top-left"}
         anchorToCursor
@@ -116,25 +116,29 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
             onClick={() => {
               selectSlide(slide.id);
             }}
-            className={`${styles.slideThumbnail} ${isActive && styles.active}`}>
+            className={`${styles.slideThumbnail} ${isActive && styles.active}`}
+          >
             <SlideThumbnailContent
               slideType={slide.content.contentType}
               title={slideDisplayName(slide)}
             />
           </div>
-        )}>
+        )}
+      >
         {canAddFollowUp && (
           <DropdownMenuItem
             onClick={() => {
               addFollowUp(slide.id);
-            }}>
+            }}
+          >
             Add follow-up slide
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
           onClick={() => {
             void handleDeleteSlide();
-          }}>
+          }}
+        >
           Delete slide
         </DropdownMenuItem>
       </DropdownMenu>
@@ -153,17 +157,20 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
                 onClick={() => {
                   selectSlide(followUp.id);
                 }}
-                className={`${styles.slideThumbnail} ${styles.followUpThumbnail} ${isFollowUpActive && styles.active}`}>
+                className={`${styles.slideThumbnail} ${styles.followUpThumbnail} ${isFollowUpActive && styles.active}`}
+              >
                 <SlideThumbnailContent
                   slideType={followUp.content.contentType}
                   title={slideDisplayName(followUp)}
                 />
               </div>
-            )}>
+            )}
+          >
             <DropdownMenuItem
               onClick={() => {
                 removeSlide(followUp.id);
-              }}>
+              }}
+            >
               Delete follow-up
             </DropdownMenuItem>
           </DropdownMenu>

@@ -7,31 +7,22 @@ here has been fixed yet; this is a findings list to work from.
 
 ## Backend (Java / Spring)
 
-1. **Ownership/permission logic tripled across `DeckService`, `GalleryService`,
-   `ThemeService`.** Each independently implements the same ~60-80 line shape:
-   `orgRoleFor(orgId, userId)`, `orgRoleFor(entity, principal)`, the
-   `userId`/`level`/`isPlatformAdmin` static helpers, `permissionsFor(entity, principal)`,
-   `requireView/Edit/Manage(entity, principal)`, and `load(id)`. A full access-control
-   mini-framework copy-pasted three times — a fix to one org-role edge case has to be
-   applied in three places or it silently drifts. **Highest value.** Extract a shared
-   `OwnershipAccessControl<T>` (or `PermissionEvaluator<T>`) taking the entity's
-   `canBeViewedBy/canBeEditedBy/canBeManagedBy` predicates plus an error-code prefix, and
-   a `PrincipalOrgResolver`/`AmbiPrincipals` utility bean for the static helpers.
-2. **`requireSession`/`requireHost` duplicated 5-6x** across the live-session package:
+1. **`requireSession`/`requireHost` duplicated 5-6x** across the live-session package:
    `LiveSessionPresenceService`, `LiveSessionLobbyService`, `LiveSessionOrchestrator`,
    `LiveSessionHostService`, `LiveSessionSnapshotService`, `LiveSessionAnswerService`.
    Extract a shared `LiveSessionAccess` component wrapping the repository + participant
    resolver, injected into all six.
-3. **`requireUserId(AmbiPrincipal)`** copy-pasted verbatim — including the same
+
+2. **`requireUserId(AmbiPrincipal)`** copy-pasted verbatim — including the same
    "defence-in-depth" javadoc — in `ThemeController`, `UserController`, `DeckController`,
    and inlined without extraction in `OrgController`. Small in line count but
    security-relevant; belongs in exactly one place (a static utility or shared base
    controller method).
-4. **Idempotent PUT-to-create pattern** (`DeckController.createDeck`,
+3. **Idempotent PUT-to-create pattern** (`DeckController.createDeck`,
    `ThemeController.createTheme`): try create → on `DuplicateKeyException` → return the
    existing resource via `toResponse`. Only two occurrences today; worth extracting if a
    third resource needs the same semantics, otherwise low priority.
-5. **Test-only: `principal(userId)` builder** duplicated byte-for-byte across ~9 test
+4. **Test-only: `principal(userId)` builder** duplicated byte-for-byte across ~9 test
    classes (`GalleryServiceTest`, `ThemeServiceTest`, `DeckServiceTest`,
    `CommentThreadServiceTest`, the live-session service tests, `ParticipantResolverTest`,
    `DeckReviewServiceTest`, plus variants in `AuthServiceTest`/`RedisTokenSessionServiceTest`).
@@ -90,22 +81,12 @@ rather than reimplementing it).
    `shared/components/Media/GalleryPicker/UploadTab.tsx` hardcodes a 10 MB limit where
    `IMAGE_TIERS.gallery` specifies 5 MB. Wire the upload path to `IMAGE_TIERS` or delete
    the orphaned module.
-8. **Pill/badge CSS — mostly a false positive; addressed (2026-07).** The original finding
-   was largely inaccurate on inspection: the design system already factors this deliberately
-   into `Badge` (semantic status, string label), `Tag` (neutral metadata pill, ReactNode
-   children — explicitly "distinct from Badge"), and `.indexPill` (numeric index marker,
-   which lives in `_shared/_shared.module.css`, *not* `OptionControls`). Of the four named
-   slide-content modules, three backed no live code: `AllocationSlideContent` and
-   `NumberSlideContent` are `not implemented` stubs with their pills (`.poolBadge`,
-   `.targetPreview`) in commented-out impls, and `RankingSlideContent`'s `.rankBadge` was a
-   pure orphan (never referenced, and not even a pill — no radius/background). Scales'
-   `.scaleTick` is live but a genuinely distinct element (a repeated tick in a track,
-   `bg-surface`), not a status badge. The one real duplication was the two divergent live
-   `.indexPill` declarations (`_shared.module.css` circle avatar vs `McqOptionEditable`
-   bare pill). **Done:** extracted a shared `_shared/IndexPill.tsx` with `solid`/`bare`
-   variants (both consumers migrated, old declarations removed, zero visual change) and
-   deleted the orphan `.rankBadge`. The staged `.poolBadge`/`.targetPreview` should move to
-   `Tag`/`Badge` when those editors are un-stubbed, not before.
+8. **Pill/badge CSS pattern reimplemented in 5 places** instead of reusing the existing
+   `.indexPill` in `_shared/OptionControls/OptionControls.module.css`:
+   `AllocationSlideContent.module.css`, `RankingSlideContent.module.css`,
+   `NumberSlideContent.module.css`, and `ScalesSlideContent.module.css` each hand-roll a
+   near-identical `inline-flex + radius-full + bg-surface-raised` pill. A `Badge`
+   component already exists too.
 9. **Two independent bespoke drawer implementations bypass the centralized
    `Modal`/`useModal` system.** `SidePanelDrawer.tsx` and `SpeakerNotesDrawer.tsx` each
    hand-roll an edge-pinned panel with open/close state, neither supporting Escape/backdrop

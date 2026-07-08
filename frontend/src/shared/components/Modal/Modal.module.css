@@ -30,7 +30,7 @@
      opacity (the dialog goes display:none → shown via showModal), and .closing
      drives the fade-out — ModalProvider defers unmount until it completes. */
   opacity: 1;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  transition: opacity var(--duration-fast) ease-in-out;
 
   /* ─── Variants ─────────────────────────────────────────────── */
   &.error {
@@ -67,7 +67,60 @@
     background-color: var(--bg-overlay);
     backdrop-filter: blur(4px);
     opacity: 1;
-    transition: opacity var(--duration-fast) var(--ease-out);
+    transition: opacity var(--duration-fast) ease-in-out;
+  }
+
+  &.closing,
+  &.closing::backdrop {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+  }
+
+  .closeButton {
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    transition: all var(--duration-fast) var(--ease-out);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+
+    &:hover {
+      background-color: var(--bg-subtle);
+      color: var(--text-primary);
+    }
+  }
+
+  .closeIcon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .content {
+    display: flex;
+    padding: var(--space-6);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    overflow-y: auto;
+    flex-grow: 1;
   }
 }
 
@@ -79,62 +132,10 @@
 }
 
 /* Fade out and stop taking clicks (content buttons, backdrop) mid-close. */
-.modal.closing,
-.modal.closing::backdrop {
-  opacity: 0;
-  pointer-events: none;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .modal,
   .modal::backdrop {
     transition: none;
   }
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-2) var(--space-4);
-}
-
-.title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  color: var(--text-primary);
-  font-family: var(--font-heading);
-}
-
-.closeButton {
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  transition: all var(--duration-fast) var(--ease-out);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-
-  &:hover {
-    background-color: var(--bg-subtle);
-    color: var(--text-primary);
-  }
-}
-
-.closeIcon {
-  width: 24px;
-  height: 24px;
-}
-
-.content {
-  display: flex;
-  padding: var(--space-6);
-  color: var(--text-secondary);
-  font-size: var(--font-size-base);
-  overflow-y: auto;
-  flex-grow: 1;
 }

@@ -36,10 +36,7 @@ const SLIDE_TYPE_LABELS: Omit<Record<SlideType, string>, "TITLE"> = {
   FOLLOW_UP: "Follow Up",
 };
 
-// Preserve the order defined in the graphics map by reading its keys directly.
-// Excluded from the picker:
-//   - FOLLOW_UP — never created standalone; attached to a parent slide via its
-//     "Add follow-up slide" action.
+//   - FOLLOW_UP — never created standalone; attached to a parent slide via its Add follow-up slide" action.
 const HIDDEN_SLIDE_TYPES: ReadonlySet<SlideType> = new Set(["FOLLOW_UP"]);
 
 const NON_SCORABLE_SLIDE_TYPE_KEYS = ["CONTENT", "INSTRUCTION", "MEDIA", "TITLE"];
@@ -80,7 +77,6 @@ const NewSlideModal = ({ onPick }: NewSlideModalProps) => {
         </div>
         <div>
           <h2>Presentation Slides</h2>
-
           <div className={styles.grid}>
             {NON_SCORABLE_SLIDE_TYPES.map((slideType) => {
               const Graphic = slideTypeGraphics[slideType];
