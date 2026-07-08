@@ -238,7 +238,7 @@ const ScaleStatementEditable = ({
           <span className={styles.anchorCaption}>
             {rightLabel.length > 0 ? rightLabel : max}
           </span>
-          {displayValue !== undefined && (
+          {displayValue !== undefined && span > 0 && (
             <span className={styles.valueReadout} aria-hidden='true'>
               {formatScaleValue(displayValue)}
             </span>

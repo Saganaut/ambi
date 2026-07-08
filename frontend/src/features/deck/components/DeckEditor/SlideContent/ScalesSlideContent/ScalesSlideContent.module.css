@@ -235,6 +235,7 @@
   display: flex;
   flex: 1;
   align-items: center;
+
   /* Breathing room so a marker parked at an end (position 0 / 1) clears the
      adjacent anchor caption instead of washing over it. */
   margin-inline: var(--space-1);
@@ -274,6 +275,7 @@
   padding: 0;
   border: var(--border-size-sm) solid var(--border-success);
   border-radius: var(--radius-full);
+
   /* Documented exception to the named-pairing catalog: the marker fills with
      the success border tone (the graded-target color) rather than a bg/text
      pair, matching the axis marker's solid dot. */
