@@ -239,7 +239,7 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   immediate commits, each patching one item (menu-driven edits).
 - `setTargetPosition(itemId, point | null)` and `setTolerance(value)` —
   immediate + flush (structural, like grid's cell assignment).
-- Constants: `MIN_AXIS_ITEMS = 1`, `MAX_AXIS_ITEMS = 12` (grid parity),
+- Constants: `MIN_AXIS_ITEMS = 1`, `MAX_AXIS_ITEMS = 6` (one per palette color),
   `AXIS_TOLERANCE_MIN = 0.02`, `AXIS_TOLERANCE_MAX = 0.5`,
   `AXIS_TOLERANCE_DEFAULT = 0.1`; endpoint/item label inputs `maxLength` 80.
 
@@ -262,8 +262,9 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   `getBoundingClientRect` → normalized point → `setTargetPosition` (committed
   on release). Placed markers — a dot + label pill in the item's resolved
   color (`resolveAxisItemColor(item.color, index)`: the authored override,
-  or a palette default that re-derives the base hue at a darker lightness
-  past the shared 6-color palette so items 7–12 stay distinguishable), dot
+  or a palette default from the shared 6-color palette — one distinct color
+  per item at the `MAX_AXIS_ITEMS = 6` cap, with a darker-lightness second
+  cycle kept as a defensive fallback should the cap ever rise), dot
   centered on the target — can be dragged directly (pointer capture) or
   tapped to toggle their row's selection. Every placed marker renders its
   tolerance circle in the same color so the accepted region is visible while
