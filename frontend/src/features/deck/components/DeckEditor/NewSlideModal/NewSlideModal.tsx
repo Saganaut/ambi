@@ -7,17 +7,17 @@
  * the commit.
  */
 
-import { SelectableTile } from "@ui/SelectableTile/SelectableTile";
-import styles from "./NewSlideModal.module.css";
-import { slideTypeGraphics } from "../../Slides/SlideTypeGraphics/slideTypeGraphics";
 import { SlideType } from "@deck/store/deckEnums.gen";
+import { SelectableTile } from "@ui/SelectableTile/SelectableTile";
+import { slideTypeGraphics } from "../../Slides/SlideTypeGraphics/slideTypeGraphics";
+import styles from "./NewSlideModal.module.css";
 
 interface NewSlideModalProps {
   onPick: (slideType: SlideType) => void;
 }
 
-const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
-  TITLE: "Title",
+const SLIDE_TYPE_LABELS: Omit<Record<SlideType, string>, "TITLE"> = {
+  // TITLE: "Title", omitting title now as it is not necessary
   CONTENT: "Content",
   MCQ: "Multiple Choice",
   TEXT: "Text Answer",
@@ -41,27 +41,64 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
 //   - FOLLOW_UP — never created standalone; attached to a parent slide via its
 //     "Add follow-up slide" action.
 const HIDDEN_SLIDE_TYPES: ReadonlySet<SlideType> = new Set(["FOLLOW_UP"]);
-const SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
-  (slideType) => !HIDDEN_SLIDE_TYPES.has(slideType),
+
+const NON_SCORABLE_SLIDE_TYPE_KEYS = ["CONTENT", "INSTRUCTION", "MEDIA", "TITLE"];
+
+// Seperate into Scorable and Non-Scorable slides
+const SCORABLE_SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
+  (slideType) =>
+    !HIDDEN_SLIDE_TYPES.has(slideType) && !NON_SCORABLE_SLIDE_TYPE_KEYS.includes(slideType),
+);
+
+const NON_SCORABLE_SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
+  (slideType) =>
+    !HIDDEN_SLIDE_TYPES.has(slideType) &&
+    NON_SCORABLE_SLIDE_TYPE_KEYS.includes(slideType) &&
+    slideType !== "TITLE",
 );
 
 const NewSlideModal = ({ onPick }: NewSlideModalProps) => {
   return (
-    <div className={styles.grid}>
-      {SLIDE_TYPES.map((slideType) => {
-        const Graphic = slideTypeGraphics[slideType];
-        return (
-          <SelectableTile
-            key={slideType}
-            size='sm'
-            media={<Graphic />}
-            title={SLIDE_TYPE_LABELS[slideType]}
-            onClick={() => {
-              onPick(slideType);
-            }}
-          />
-        );
-      })}
+    <div className={styles.newSlideModalBody}>
+      <div>
+        <h2>Interactive Slides</h2>
+        <div className={styles.grid}>
+          {SCORABLE_SLIDE_TYPES.map((slideType) => {
+            const Graphic = slideTypeGraphics[slideType];
+            return (
+              <SelectableTile
+                key={slideType}
+                size="sm"
+                media={<Graphic />}
+                title={SLIDE_TYPE_LABELS[slideType as Exclude<SlideType, "TITLE">]}
+                onClick={() => {
+                  onPick(slideType);
+                }}
+              />
+            );
+          })}
+        </div>
+        <div>
+          <h2>Presentation Slides</h2>
+
+          <div className={styles.grid}>
+            {NON_SCORABLE_SLIDE_TYPES.map((slideType) => {
+              const Graphic = slideTypeGraphics[slideType];
+              return (
+                <SelectableTile
+                  key={slideType}
+                  size="sm"
+                  media={<Graphic />}
+                  title={SLIDE_TYPE_LABELS[slideType as Exclude<SlideType, "TITLE">]}
+                  onClick={() => {
+                    onPick(slideType);
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
