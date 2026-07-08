@@ -26,6 +26,7 @@ import org.mockito.ArgumentMatchers;
 import org.springframework.dao.DuplicateKeyException;
 
 import com.cephadex.ambi.common.exception.ConflictException;
+import com.cephadex.ambi.media.storage.ImageUrlResolver;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
@@ -104,6 +105,7 @@ class LiveSessionOrchestratorTest {
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         publisher = mock(EventPublisher.class);
         roundResults = mock(RoundResultProjector.class);
+        ImageUrlResolver imageUrls = mock(ImageUrlResolver.class);
 
         // Run the locked action inline — both the Runnable and Supplier overloads.
         doAnswer(inv -> {
@@ -114,7 +116,7 @@ class LiveSessionOrchestratorTest {
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
-                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults);
+                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls);
     }
 
     private void stubPhase(RoundPhase phase) {

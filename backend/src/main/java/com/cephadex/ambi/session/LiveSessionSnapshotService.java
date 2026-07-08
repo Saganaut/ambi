@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.media.enums.ImageSizeOptions;
+import com.cephadex.ambi.media.storage.ImageUrlResolver;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
@@ -54,10 +56,12 @@ public class LiveSessionSnapshotService {
     private final PresenceStore presenceStore;
     private final AnswerStore answerStore;
     private final QAndAHostAnswerStore qandaHostAnswers;
+    private final ImageUrlResolver imageUrls;
 
     public LiveSessionSnapshotService(LiveSessionRepository sessions, ParticipantRepository participants,
             ParticipantResolver participantResolver, LiveRoundStateStore roundStateStore, TallyStore tallyStore,
-            PresenceStore presenceStore, AnswerStore answerStore, QAndAHostAnswerStore qandaHostAnswers) {
+            PresenceStore presenceStore, AnswerStore answerStore, QAndAHostAnswerStore qandaHostAnswers,
+            ImageUrlResolver imageUrls) {
         this.sessions = sessions;
         this.participants = participants;
         this.participantResolver = participantResolver;
@@ -66,6 +70,7 @@ public class LiveSessionSnapshotService {
         this.presenceStore = presenceStore;
         this.answerStore = answerStore;
         this.qandaHostAnswers = qandaHostAnswers;
+        this.imageUrls = imageUrls;
     }
 
     /**
@@ -110,7 +115,8 @@ public class LiveSessionSnapshotService {
             if (slide != null) {
                 Settings.AnswerSettings effective =
                         Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
-                currentSlide = SlideView.from(slide, effective);
+                currentSlide = SlideView.from(slide, effective,
+                        img -> imageUrls.displayUrl(img, ImageSizeOptions.MD));
                 if (currentSlide.contentType() == SlideType.Q_AND_A) {
                     // Same participant-safe assembly the QAndAUpdated deltas use, so the
                     // seeded list and every patch agree (incl. the anonymize stripping).

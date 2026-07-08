@@ -7,12 +7,13 @@
 //   - results     → revealed: distribution + correct-answer highlight.
 //
 // The header (title + instructions) is shared; the body switches on the slide's
-// `contentType` and delegates to a per-kind component. MCQ, Q&A, Grid, Axis and
-// Scales are built so far; everything else falls back to a placeholder.
+// `contentType` and delegates to a per-kind component. MCQ, Q&A, Grid, Axis,
+// Scales and Matching are built so far; everything else falls back to a placeholder.
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import { AxisBoardContent } from "../content/AxisBoardContent";
 import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
 import { GridBoardContent } from "../content/GridBoardContent";
+import { MatchingBoardContent } from "../content/MatchingBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
 import { QAndABoardContent } from "../content/QAndABoardContent";
 import { ScalesBoardContent } from "../content/ScalesBoardContent";
@@ -49,6 +50,8 @@ const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: b
       return <AxisBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "SCALES":
       return <ScalesBoardContent slide={slide} mode={mode} interactive={interactive} />;
+    case "MATCHING":
+      return <MatchingBoardContent slide={slide} mode={mode} interactive={interactive} />;
     default:
       // Per-kind presentation surfaces land incrementally; until then the round
       // still renders something coherent rather than a blank board.

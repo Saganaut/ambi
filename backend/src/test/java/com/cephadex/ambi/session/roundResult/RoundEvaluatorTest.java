@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
+import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
@@ -20,6 +21,7 @@ import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
@@ -27,6 +29,7 @@ import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
+import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
@@ -151,6 +154,29 @@ class RoundEvaluatorTest {
     }
 
     @Test
+    void gradesMatchingAsExactMapMatch() {
+        Slide slide = slideWith(matching(Map.of("left-1", "right-1", "left-2", "right-2")));
+
+        // The exact map (any entry order) grades true.
+        assertThat(gradeOne(slide, new MatchingAnswer(Map.of("left-2", "right-2", "left-1", "right-1")))).isTrue();
+        // One swapped pair fails the whole answer (EXACT, all-or-nothing).
+        assertThat(gradeOne(slide, new MatchingAnswer(Map.of("left-1", "right-2", "left-2", "right-1")))).isFalse();
+        // A partial map (a keyed left card unmatched) fails too.
+        assertThat(gradeOne(slide, new MatchingAnswer(Map.of("left-1", "right-1")))).isFalse();
+    }
+
+    @Test
+    void matchingWithEmptyAnswerKeyIsCollectOnlyAndNeverGradesCorrect() {
+        Slide slide = slideWith(matching(Map.of()));
+
+        AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
+                List.of(answer("p", new MatchingAnswer(Map.of("left-1", "right-1")), 10)), START).get(0);
+
+        assertThat(eval.correct()).isFalse();
+        assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
+    }
+
+    @Test
     void contentWithNoStaticKeyNeverGradesCorrect() {
         Slide slide = slideWith(mcq(Set.of("a")));
 
@@ -201,6 +227,13 @@ class RoundEvaluatorTest {
         return new AxisContent("Low X", "High X", "Low Y", "High Y",
                 List.of(new AxisItem("it-1", "One", null, null), new AxisItem("it-2", "Two", null, null)),
                 correctPositions, tolerance, ScoreMode.INSIDE_RADIUS);
+    }
+
+    private static MatchingContent matching(Map<String, String> correctPairs) {
+        return new MatchingContent(
+                List.of(new MatchItem("left-1", "One", null, null), new MatchItem("left-2", "Two", null, null)),
+                List.of(new MatchItem("right-1", "Uno", null, null), new MatchItem("right-2", "Dos", null, null)),
+                correctPairs, ScoreMode.EXACT);
     }
 
     private static ScalesContent scales(Map<String, Double> correctValues, double tolerance) {

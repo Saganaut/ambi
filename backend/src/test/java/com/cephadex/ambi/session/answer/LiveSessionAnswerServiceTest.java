@@ -33,11 +33,13 @@ import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
@@ -51,6 +53,7 @@ import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
+import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
@@ -299,6 +302,56 @@ class LiveSessionAnswerServiceTest {
                 .isInstanceOf(ValidationException.class);
     }
 
+    // ── Matching ─────────────────────────────────────────────────────────────
+
+    @Test
+    void matchingMatchesBypassTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), matchingContent());
+
+        service.submit(SID, request(new MatchingAnswer(java.util.Map.of("left-1", "right-1"))), registered);
+
+        // Like grid/axis/scales, a matching resubmit must overwrite rather than
+        // lock on first submit, so the orchestrator is called with 0 (last-write-wins).
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(MatchingAnswer.class), eq(0));
+    }
+
+    @Test
+    void matchingEmptyMatchesAreRejected() {
+        givenLiveSession(answerSettings(true, 1), matchingContent());
+
+        assertThatThrownBy(() -> service.submit(SID, request(new MatchingAnswer(java.util.Map.of())), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void matchingUnknownCardOnEitherSideIsRejected() {
+        givenLiveSession(answerSettings(true, 1), matchingContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new MatchingAnswer(java.util.Map.of("left-nope", "right-1"))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new MatchingAnswer(java.util.Map.of("left-1", "right-nope"))), registered))
+                .isInstanceOf(ValidationException.class);
+        // A left id in the value slot is just as much "not a right card".
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new MatchingAnswer(java.util.Map.of("left-1", "left-2"))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void matchingRightCardClaimedTwiceIsRejected() {
+        givenLiveSession(answerSettings(true, 1), matchingContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new MatchingAnswer(java.util.Map.of(
+                        "left-1", "right-1",
+                        "left-2", "right-1"))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
     // ── Q&A ────────────────────────────────────────────────────────────────────
 
     @Test
@@ -401,6 +454,15 @@ class LiveSessionAnswerServiceTest {
                 java.util.Map.of(),
                 0.1,
                 ScoreMode.INSIDE_RADIUS);
+    }
+
+    /** Two pairs ("left-1"/"left-2" ↔ "right-1"/"right-2") with no answer key. */
+    private static MatchingContent matchingContent() {
+        return new MatchingContent(
+                List.of(new MatchItem("left-1", "One", null, null), new MatchItem("left-2", "Two", null, null)),
+                List.of(new MatchItem("right-1", "Uno", null, null), new MatchItem("right-2", "Dos", null, null)),
+                java.util.Map.of(),
+                ScoreMode.EXACT);
     }
 
     /** A 1–5 scale with two statements ("it-1", "it-2") and no answer key. */

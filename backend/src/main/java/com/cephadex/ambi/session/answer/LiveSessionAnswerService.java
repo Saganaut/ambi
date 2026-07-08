@@ -1,5 +1,7 @@
 package com.cephadex.ambi.session.answer;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -18,16 +20,19 @@ import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
+import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
+import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
@@ -101,12 +106,13 @@ public class LiveSessionAnswerService {
         }
 
         // `maxSelections` is an MCQ knob (how many options one pick may span). A
-        // grid, axis, or scales submission is one whole map, so the deck default
-        // of 1 must not make the first submission final — these resubmits
+        // grid, axis, scales, or matching submission is one whole map, so the deck
+        // default of 1 must not make the first submission final — these resubmits
         // overwrite (last write before close wins), like a multi-select MCQ change.
         int effectiveMaxSelections = request.payload() instanceof GridAnswer
                 || request.payload() instanceof AxisAnswer
-                || request.payload() instanceof ScalesAnswer ? 0 : maxSelections;
+                || request.payload() instanceof ScalesAnswer
+                || request.payload() instanceof MatchingAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), effectiveMaxSelections);
     }
@@ -131,7 +137,42 @@ public class LiveSessionAnswerService {
         if (content instanceof ScalesContent scales && payload instanceof ScalesAnswer ans) {
             validateScales(scales, ans);
         }
+        if (content instanceof MatchingContent matching && payload instanceof MatchingAnswer ans) {
+            validateMatching(matching, ans);
+        }
         // Other content types are stored as-is; their tally/validation lands with scoring.
+    }
+
+    /**
+     * A matching submission must connect at least one real pair: every key a left
+     * card on the slide, every value a right card, and no right card claimed by
+     * two connections (the physical-card model — a card can only sit in one
+     * pairing). Partial maps are accepted (grid/axis precedent — the board gates
+     * full completion client-side).
+     */
+    private void validateMatching(MatchingContent content, MatchingAnswer answer) {
+        Map<String, String> matches = answer.matches();
+        if (matches == null || matches.isEmpty()) {
+            throw new ValidationException("at least one pair must be matched");
+        }
+        Set<String> leftIds = cardIds(content.left());
+        Set<String> rightIds = cardIds(content.right());
+        Set<String> claimed = new HashSet<>();
+        for (Map.Entry<String, String> match : matches.entrySet()) {
+            if (!leftIds.contains(match.getKey()) || !rightIds.contains(match.getValue())) {
+                throw new ValidationException("matched card is not on the slide");
+            }
+            if (!claimed.add(match.getValue())) {
+                throw new ValidationException("a card may only be matched once");
+            }
+        }
+    }
+
+    private static Set<String> cardIds(List<MatchItem> items) {
+        return items == null ? Set.of()
+                : items.stream()
+                        .map(item -> item.id())
+                        .collect(Collectors.toSet());
     }
 
     /**

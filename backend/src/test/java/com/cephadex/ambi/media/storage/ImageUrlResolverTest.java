@@ -120,6 +120,43 @@ class ImageUrlResolverTest {
     }
 
     @Test
+    void displayUrlWalksUpThenDownFromThePreferredTier() {
+        Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
+        variants.put(ImageSizeOptions.SM, "gallery/x/sm.webp");
+        variants.put(ImageSizeOptions.XL, "gallery/x/xl.webp");
+        AppImage internal = new AppImage();
+        internal.setExternal(false);
+        internal.setVariants(variants);
+
+        // MD missing → the next-larger stored tier (XL) wins over the smaller SM.
+        assertThat(resolver.displayUrl(internal, ImageSizeOptions.MD))
+                .isEqualTo("https://signed/ambi-images/gallery/x/xl.webp?sig=abc");
+
+        // Nothing at or above the preferred tier → settle for the largest below it.
+        variants.remove(ImageSizeOptions.XL);
+        assertThat(resolver.displayUrl(internal, ImageSizeOptions.MD))
+                .isEqualTo("https://signed/ambi-images/gallery/x/sm.webp?sig=abc");
+    }
+
+    @Test
+    void displayUrlPassesExternalImagesThroughAndNullsWhenNothingRenderable() {
+        AppImage external = new AppImage();
+        external.setExternal(true);
+        external.setExternalSrc("https://example.com/cat.png");
+        assertThat(resolver.displayUrl(external, ImageSizeOptions.MD))
+                .isEqualTo("https://example.com/cat.png");
+
+        // A blank external src, a variant-less internal image, and null all
+        // resolve to null rather than a broken URL.
+        external.setExternalSrc(" ");
+        assertThat(resolver.displayUrl(external, ImageSizeOptions.MD)).isNull();
+        AppImage empty = new AppImage();
+        empty.setExternal(false);
+        assertThat(resolver.displayUrl(empty, ImageSizeOptions.MD)).isNull();
+        assertThat(resolver.displayUrl(null, ImageSizeOptions.MD)).isNull();
+    }
+
+    @Test
     void urlReusesACachedSignatureWithinTheRefreshWindow() {
         AtomicInteger signings = new AtomicInteger();
         ImageUrlResolver cached = resolverWith(countingPresigner(signings), new FakeClock());

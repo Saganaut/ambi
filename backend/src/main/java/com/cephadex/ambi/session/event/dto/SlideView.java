@@ -1,11 +1,14 @@
 package com.cephadex.ambi.session.event.dto;
 
 import java.util.List;
+import java.util.function.Function;
 
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
+import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
@@ -35,7 +38,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * {@link AxisConfigView} (the endpoint labels + items, never
  * {@code correctPositions} or {@code tolerance}); a Scales slide carries
  * {@link ScalesConfigView} (the endpoints, anchor labels + statements, never
- * {@code correctValues} or {@code tolerance}); each is {@code null} for every
+ * {@code correctValues} or {@code tolerance}); a Matching slide carries
+ * {@link MatchingConfigView} (both card columns with the right column
+ * re-ordered, never {@code correctPairs}); each is {@code null} for every
  * other kind.
  */
 public record SlideView(
@@ -51,6 +56,7 @@ public record SlideView(
         GridConfigView grid,
         AxisConfigView axis,
         ScalesConfigView scales,
+        MatchingConfigView matching,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -58,14 +64,18 @@ public record SlideView(
      * {@code effectiveAnswer} is the slide's resolved answer settings (deck default
      * merged with any per-slide override, via
      * {@link Settings#effectiveAnswerSettings}); may be {@code null}.
+     * {@code imageUrl} resolves an item's {@link AppImage} to a renderable URL
+     * (see {@link MatchingConfigView} for why images travel pre-resolved).
      */
-    public static SlideView from(Slide slide, Settings.AnswerSettings effectiveAnswer) {
+    public static SlideView from(Slide slide, Settings.AnswerSettings effectiveAnswer,
+            Function<AppImage, String> imageUrl) {
         SlideContent content = slide.getContent();
         List<McqOptionView> options = null;
         QAndAConfigView qAndA = null;
         GridConfigView grid = null;
         AxisConfigView axis = null;
         ScalesConfigView scales = null;
+        MatchingConfigView matching = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -84,6 +94,9 @@ public record SlideView(
             if (content instanceof ScalesContent scalesContent) {
                 scales = ScalesConfigView.from(scalesContent);
             }
+            if (content instanceof MatchingContent matchingContent) {
+                matching = MatchingConfigView.from(matchingContent, imageUrl);
+            }
         }
         return new SlideView(
                 slide.getId(),
@@ -98,6 +111,7 @@ public record SlideView(
                 grid,
                 axis,
                 scales,
+                matching,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

@@ -1,0 +1,143 @@
+.matchingBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .outcomeCorrect,
+  .outcomeWrong {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .outcomeCorrect {
+    color: var(--text-success);
+  }
+
+  .outcomeWrong {
+    color: var(--text-error);
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 44rem;
+    margin: 0 auto;
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    min-width: 0;
+  }
+
+  .card {
+    /* The card's resolved accent (authored color or the shared palette row
+       fallback), set inline per card. */
+    --card-accent: var(--edge-subtle);
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    width: 100%;
+    min-height: 3.5rem;
+    padding: var(--space-2);
+    border: var(--border-size-sm) solid var(--edge-subtle);
+    border-left: var(--border-size-lg) solid var(--card-accent);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .card:disabled {
+    cursor: default;
+  }
+
+  .card.held {
+    border-color: var(--card-accent);
+    box-shadow: 0 0 0 var(--border-size-sm) var(--card-accent);
+  }
+
+  .card.matched {
+    background-color: var(--bg-subtle);
+  }
+
+  .cardPhrase {
+    overflow-wrap: anywhere;
+    font-weight: 600;
+  }
+
+  .cardImage {
+    width: 100%;
+    max-width: 8rem;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+  }
+
+  /* The paired left card's name, tinted with its accent so the connection
+     reads at a glance. */
+  .linkBadge {
+    --link-accent: var(--edge-subtle);
+
+    max-width: 100%;
+    overflow: hidden;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-full);
+    border: var(--border-size-sm) solid var(--link-accent);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .countChips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-1);
+  }
+
+  /* One chip per left card players connected here, in that card's accent. */
+  .countChip {
+    min-width: 1.5rem;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-full);
+    border: var(--border-size-sm) solid var(--link-accent, var(--edge-subtle));
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .submittedNote {
+      margin: 0;
+      color: var(--text-success);
+      font-weight: 600;
+    }
+  }
+}

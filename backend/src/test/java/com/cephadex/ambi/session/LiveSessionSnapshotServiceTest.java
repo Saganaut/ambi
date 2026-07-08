@@ -18,6 +18,7 @@ import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.media.storage.ImageUrlResolver;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.DeckSettings;
@@ -81,7 +82,8 @@ class LiveSessionSnapshotServiceTest {
         answerStore = mock(AnswerStore.class);
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         service = new LiveSessionSnapshotService(sessions, participants, participantResolver,
-                roundStateStore, tallyStore, presenceStore, answerStore, qandaHostAnswers);
+                roundStateStore, tallyStore, presenceStore, answerStore, qandaHostAnswers,
+                mock(ImageUrlResolver.class));
 
         caller = new AmbiPrincipal(IdentityState.GUEST, "user-1", "pub-user", UserLevel.GUEST,
                 AuthProvider.INTERNAL, null, null, "sid-1");

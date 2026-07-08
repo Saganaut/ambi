@@ -130,6 +130,44 @@ public class ImageUrlResolver {
     }
 
     /**
+     * A single renderable URL for {@code image} at (or nearest) the
+     * {@code preferred} rendition tier: an external image passes through its
+     * {@code externalSrc}; an internal one resolves the closest stored variant —
+     * walking up to larger tiers before settling for smaller ones, mirroring the
+     * frontend's {@code variantFor} — and presigns it. Returns {@code null} when
+     * {@code image} is null or carries nothing renderable. For consumers that
+     * need one URL rather than the whole hydrated object (e.g. the live-session
+     * views, whose wire path can't run the {@code AppImage} serializer).
+     */
+    public String displayUrl(AppImage image, ImageSizeOptions preferred) {
+        if (image == null) {
+            return null;
+        }
+        if (image.isExternal()) {
+            String src = image.getExternalSrc();
+            return src == null || src.isBlank() ? null : src;
+        }
+        Map<ImageSizeOptions, String> variants = image.getVariants();
+        if (variants == null) {
+            return null;
+        }
+        ImageSizeOptions[] tiers = ImageSizeOptions.values();
+        for (int i = preferred.ordinal(); i < tiers.length; i++) {
+            String key = variants.get(tiers[i]);
+            if (key != null && !key.isBlank()) {
+                return url(key);
+            }
+        }
+        for (int i = preferred.ordinal() - 1; i >= 0; i--) {
+            String key = variants.get(tiers[i]);
+            if (key != null && !key.isBlank()) {
+                return url(key);
+            }
+        }
+        return null;
+    }
+
+    /**
      * A copy of {@code image} with its internal {@code srcKey} and {@code variants}
      * (S3 keys) rewritten to presigned URLs. External images and null/empty inputs
      * are returned unchanged. The stored entity is never mutated.

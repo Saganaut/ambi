@@ -4,7 +4,9 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
@@ -61,9 +63,16 @@ public final class SessionEvents {
         return new PresenceChanged(participantId, presence.status(), presence.lastSeenAt());
     }
 
-    /** Round opened hidden (entered SUBMIT); reads the slide id/start time from the round state. */
-    public static RoundStarted roundStarted(LiveRoundState state, Slide slide, AnswerSettings effectiveAnswer) {
-        return new RoundStarted(state.currentSlideId(), SlideView.from(slide, effectiveAnswer), state.roundStartedAt());
+    /**
+     * Round opened hidden (entered SUBMIT); reads the slide id/start time from the
+     * round state. {@code imageUrl} resolves a slide item's {@link AppImage} to a
+     * renderable URL, for the config views that carry images pre-resolved (see
+     * {@code MatchingConfigView}).
+     */
+    public static RoundStarted roundStarted(LiveRoundState state, Slide slide, AnswerSettings effectiveAnswer,
+            Function<AppImage, String> imageUrl) {
+        return new RoundStarted(state.currentSlideId(), SlideView.from(slide, effectiveAnswer, imageUrl),
+                state.roundStartedAt());
     }
 
     /**
@@ -72,8 +81,9 @@ public final class SessionEvents {
      * may be the first event for this slide) and the current tally.
      */
     public static LiveResultsShown liveResultsShown(LiveRoundState state, Slide slide,
-            Map<String, Integer> optionCounts, AnswerSettings effectiveAnswer) {
-        return new LiveResultsShown(state.currentSlideId(), SlideView.from(slide, effectiveAnswer),
+            Map<String, Integer> optionCounts, AnswerSettings effectiveAnswer,
+            Function<AppImage, String> imageUrl) {
+        return new LiveResultsShown(state.currentSlideId(), SlideView.from(slide, effectiveAnswer, imageUrl),
                 state.roundStartedAt(), Map.copyOf(optionCounts));
     }
 

@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.enums.ImageSizeOptions;
+import com.cephadex.ambi.media.storage.ImageUrlResolver;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
@@ -89,6 +92,7 @@ public class LiveSessionOrchestrator {
     private final QAndAHostAnswerStore qandaHostAnswers;
     private final EventPublisher publisher;
     private final RoundResultProjector roundResults;
+    private final ImageUrlResolver imageUrls;
     // DeadlineScheduler (round/submission timers, A3) is still deferred; pause
     // support is a LiveRoundState record change to decide before it lands.
 
@@ -107,7 +111,7 @@ public class LiveSessionOrchestrator {
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
             PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers, EventPublisher publisher,
-            RoundResultProjector roundResults) {
+            RoundResultProjector roundResults, ImageUrlResolver imageUrls) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
@@ -118,6 +122,17 @@ public class LiveSessionOrchestrator {
         this.qandaHostAnswers = qandaHostAnswers;
         this.publisher = publisher;
         this.roundResults = roundResults;
+        this.imageUrls = imageUrls;
+    }
+
+    /**
+     * Resolves a slide item's image to the URL carried on the round's
+     * {@code SlideView} (see {@code MatchingConfigView} for why images travel
+     * pre-resolved). MD suits a board card face; smaller tiers would blur on a
+     * projected board.
+     */
+    private String slideItemImageUrl(AppImage image) {
+        return imageUrls.displayUrl(image, ImageSizeOptions.MD);
     }
 
     // ── Session lifecycle ────────────────────────────────────────────────────
@@ -649,9 +664,10 @@ public class LiveSessionOrchestrator {
         if (restart) {
             event = SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt());
         } else if (phase == RoundPhase.SUBMIT_LIVE) {
-            event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId), effectiveAnswer);
+            event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId),
+                    effectiveAnswer, this::slideItemImageUrl);
         } else {
-            event = SessionEvents.roundStarted(started, slide, effectiveAnswer);
+            event = SessionEvents.roundStarted(started, slide, effectiveAnswer, this::slideItemImageUrl);
         }
         publisher.publish(session.getPublicId(), event);
         return slide;

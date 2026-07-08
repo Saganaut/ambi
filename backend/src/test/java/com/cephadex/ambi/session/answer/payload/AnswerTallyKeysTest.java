@@ -54,6 +54,14 @@ class AnswerTallyKeysTest {
     }
 
     @Test
+    void matchingContributesOneLeftAtRightKeyPerConnection() {
+        assertThat(AnswerTallyKeys.optionKeys(new MatchingAnswer(Map.of(
+                "left-1", "right-b",
+                "left-2", "right-a"))))
+                .containsExactlyInAnyOrder("left-1@right-b", "left-2@right-a");
+    }
+
+    @Test
     void nonTallyablePayloadContributesNoKeys() {
         assertThat(AnswerTallyKeys.optionKeys(new TextAnswer("hello"))).isEmpty();
     }

@@ -402,6 +402,17 @@ export type ScalesConfigView = {
   rightLabel?: string;
   items?: ScaleItemView[];
 };
+export type MatchCardView = {
+  id?: string;
+  label?: string;
+  imageUrl?: string;
+  color?: string;
+};
+export type MatchingConfigView = {
+  left?: MatchCardView[];
+  right?: MatchCardView[];
+  scored?: boolean;
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -437,6 +448,7 @@ export type SlideView = {
   grid?: GridConfigView;
   axis?: AxisConfigView;
   scales?: ScalesConfigView;
+  matching?: MatchingConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {

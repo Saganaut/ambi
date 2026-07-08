@@ -9,15 +9,21 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.function.Function;
+
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
@@ -35,6 +41,9 @@ import com.cephadex.ambi.user.Avatar;
 class SessionEventsTest {
 
     private final RedisJsonCodec codec = new RedisJsonCodec();
+
+    /** Stand-in for the presigning resolver — these slides carry no images. */
+    private static final Function<AppImage, String> NO_IMAGES = _ -> null;
 
     private static Slide mcqSlide() {
         Slide slide = new Slide();
@@ -63,6 +72,30 @@ class SessionEventsTest {
         return slide;
     }
 
+    /**
+     * Authored pair order deliberately anti-alphabetical on the right column's
+     * ids, so the view's id re-ordering is observable. {@code king-image} carries
+     * an image; the rest are phrase cards.
+     */
+    private static Slide matchingSlide() {
+        AppImage image = new AppImage();
+        image.setExternal(true);
+        image.setExternalSrc("https://example.test/aragorn.png");
+        Slide slide = new Slide();
+        slide.setId("slide-matching");
+        slide.setTitle("Match the ruler to the realm");
+        slide.setContent(new MatchingContent(
+                List.of(
+                        new MatchItem("left-1", "Gondor", null, "#aabbcc"),
+                        new MatchItem("left-2", "Rohan", null, null)),
+                List.of(
+                        new MatchItem("right-z", "King Elessar", image, null),
+                        new MatchItem("right-a", "King Éomer", null, null)),
+                Map.of("left-1", "right-z", "left-2", "right-a"),
+                ScoreMode.EXACT));
+        return slide;
+    }
+
     // Participant-relevant fields set to distinctive values; host/scoring fields
     // (shuffleOptions, anonymizeAnswers, allowAnonymous, displayResultsMode) set so
     // the strip assertions are meaningful.
@@ -72,7 +105,7 @@ class SessionEventsTest {
 
     @Test
     void slideViewKeepsOptionsButDropsAnswerKeyAndNotes() {
-        SlideView view = SlideView.from(mcqSlide(), null);
+        SlideView view = SlideView.from(mcqSlide(), null, NO_IMAGES);
 
         assertThat(view.options()).extracting("id").containsExactly("opt-a", "opt-b");
         // No settings in effect → no answer-settings view.
@@ -87,7 +120,7 @@ class SessionEventsTest {
 
     @Test
     void slideViewCarriesScalesConfigButDropsAnswerKeyAndTolerance() {
-        SlideView view = SlideView.from(scalesSlide(), null);
+        SlideView view = SlideView.from(scalesSlide(), null, NO_IMAGES);
 
         // The participant-safe config travels: endpoints, anchor labels, statements.
         assertThat(view.scales()).isNotNull();
@@ -105,7 +138,7 @@ class SessionEventsTest {
 
     @Test
     void slideViewCarriesParticipantSafeAnswerSettings() {
-        SlideView view = SlideView.from(mcqSlide(), answerSettings());
+        SlideView view = SlideView.from(mcqSlide(), answerSettings(), NO_IMAGES);
 
         assertThat(view.answerSettings()).isNotNull();
         assertThat(view.answerSettings().maxSelections()).isEqualTo(3);
@@ -125,7 +158,7 @@ class SessionEventsTest {
     void roundStartedEventCarriesNoAnswerKey() {
         LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.now());
 
-        String json = codec.serialize(SessionEvents.roundStarted(state, mcqSlide(), answerSettings()));
+        String json = codec.serialize(SessionEvents.roundStarted(state, mcqSlide(), answerSettings(), NO_IMAGES));
 
         assertThat(json).contains("RoundStarted").contains("opt-a").contains("maxSelections");
         assertThat(json).doesNotContain("correctOptionIds");
@@ -136,10 +169,43 @@ class SessionEventsTest {
         LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.now());
 
         String json = codec.serialize(
-                SessionEvents.liveResultsShown(state, mcqSlide(), Map.of("opt-a", 3), answerSettings()));
+                SessionEvents.liveResultsShown(state, mcqSlide(), Map.of("opt-a", 3), answerSettings(), NO_IMAGES));
 
         assertThat(json).contains("LiveResultsShown").contains("opt-a");
         assertThat(json).doesNotContain("correctOptionIds");
+    }
+
+    @Test
+    void slideViewCarriesMatchingConfigButDropsAnswerKey() {
+        SlideView view = SlideView.from(matchingSlide(), null,
+                img -> img == null ? null : "https://cdn.test/presigned/aragorn");
+
+        // Both columns travel; the left column keeps its authored order.
+        assertThat(view.matching()).isNotNull();
+        assertThat(view.matching().left()).extracting("id").containsExactly("left-1", "left-2");
+        assertThat(view.matching().left()).extracting("color").containsExactly("#aabbcc", null);
+        // The right column is re-ordered by id, so the authored parallel-array
+        // zip (the answer key's positional form) cannot be reconstructed.
+        assertThat(view.matching().right()).extracting("id").containsExactly("right-a", "right-z");
+        // Images arrive pre-resolved through the supplied resolver; phrase cards carry none.
+        assertThat(view.matching().right()).extracting("imageUrl")
+                .containsExactly(null, "https://cdn.test/presigned/aragorn");
+        // An authored key marks the round as scored — without disclosing the key.
+        assertThat(view.matching().scored()).isTrue();
+
+        String json = codec.serialize(view);
+        assertThat(json).doesNotContain("correctPairs");
+    }
+
+    @Test
+    void matchingViewMarksCollectOnlyWhenNoKeyAuthored() {
+        Slide slide = matchingSlide();
+        MatchingContent content = (MatchingContent) slide.getContent();
+        slide.setContent(new MatchingContent(content.left(), content.right(), Map.of(), content.scoreMode()));
+
+        SlideView view = SlideView.from(slide, null, NO_IMAGES);
+
+        assertThat(view.matching().scored()).isFalse();
     }
 
     @Test

@@ -41,10 +41,12 @@ public final class AnswerTallyKeys {
      * option, one {@code itemId@rowIndex,colIndex} key per grid placement (so
      * the live board can shade each cell by what landed there), one
      * {@code itemId@bucketX,bucketY} key per axis placement (quantized, so the
-     * live board can heat-map the plane), or one {@code statementId@bucket} key
+     * live board can heat-map the plane), one {@code statementId@bucket} key
      * per scales position (quantized, so the board can heat each statement's
-     * track). Returns an empty list for payloads that aren't tallied yet (free
-     * text, drawings, …), so the caller simply counts nothing for them.
+     * track), or one {@code leftId@rightId} key per matching connection (so the
+     * live board can count each pairing). Returns an empty list for payloads
+     * that aren't tallied yet (free text, drawings, …), so the caller simply
+     * counts nothing for them.
      */
     public static List<String> optionKeys(AnswerPayload payload) {
         if (payload instanceof McqAnswer mcq) {
@@ -68,6 +70,13 @@ public final class AnswerTallyKeys {
             // suffix, so it splits unambiguously under the same grammar.
             return scales.positions().entrySet().stream()
                     .map(rating -> rating.getKey() + GRID_KEY_SEPARATOR + bucket(rating.getValue()))
+                    .toList();
+        }
+        if (payload instanceof MatchingAnswer matching && matching.matches() != null) {
+            // Both sides are client-minted alphanumeric card ids (no "@"), so the
+            // key splits unambiguously under the same grammar.
+            return matching.matches().entrySet().stream()
+                    .map(match -> match.getKey() + GRID_KEY_SEPARATOR + match.getValue())
                     .toList();
         }
         return List.of();
