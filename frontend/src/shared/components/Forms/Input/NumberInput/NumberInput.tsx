@@ -23,10 +23,10 @@ interface NumberInputProps
 
 type NumberInputSize = "sm" | "md" | "lg";
 
-const toNumber = (v: string | number | undefined): number | undefined => {
-  if (v == null || v === "") return undefined;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : undefined;
+const toNumber = (raw: string | number | undefined): number | undefined => {
+  if (raw == null || raw === "") return undefined;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : undefined;
 };
 
 const NumberInput = ({
@@ -53,8 +53,8 @@ const NumberInput = ({
   const stepN = toNumber(step) ?? 1;
   const current = Number.isFinite(value) ? value : 0;
 
-  const clamp = (n: number) => {
-    let next = n;
+  const clamp = (candidate: number) => {
+    let next = candidate;
     if (minN != null) next = Math.max(minN, next);
     if (maxN != null) next = Math.min(maxN, next);
     return next;
@@ -92,8 +92,8 @@ const NumberInput = ({
             id={id}
             name={name}
             value={current}
-            onChange={(e) => {
-              const next = Number(e.target.value);
+            onChange={(event) => {
+              const next = Number(event.target.value);
               onChange(Number.isFinite(next) ? next : 0);
             }}
             onBlur={onBlur}
