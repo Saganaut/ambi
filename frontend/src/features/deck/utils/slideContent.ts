@@ -123,12 +123,13 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         contentType: "SCALES",
         min: 1,
         max: 5,
-        step: 1,
         leftLabel: "Disagree",
         rightLabel: "Agree",
         items: [buildDefaultScaleItem()],
         correctValues: {},
-        tolerance: 0,
+        // 10 % of the default 1–5 span — a positive tolerance a scored slide
+        // needs on a continuum (an exact match is measure-zero).
+        tolerance: 0.4,
       };
     case "GRID":
       // Seeded 2×2 with two blank items (mirrors RANKING's two-item seed) so

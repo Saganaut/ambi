@@ -11,25 +11,31 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * Slider slide — players drag one or more items to a position on a scale.
+ * Slider slide — players rate one or more statements by dragging a marker
+ * anywhere along a continuous left↔right scale. The 1-D counterpart of
+ * {@link AxisContent}: positions land at arbitrary points on the track and are
+ * graded by distance to an author-set target within {@code tolerance}.
  *
  * <p>
- * Runtime answer: {@code Map<String, Double>} (itemId → value).
+ * Runtime answer: {@code Map<String, Double>} (statementId → normalized track
+ * position in {@code [0, 1]}, 0 = left end). Graders denormalize with
+ * {@code min + p · (max − min)} before comparing against the answer key.
  *
- * @param min           left-most value of the scale
- * @param max           right-most value of the scale
- * @param step          snap increment (e.g. {@code 1.0}, {@code 0.5})
+ * @param min           left-end value of the scale
+ * @param max           right-end value of the scale
  * @param leftLabel     label rendered at the left end of the slider
  * @param rightLabel    label rendered at the right end of the slider
- * @param items         items players must position; single-item lists show one
- *                      handle
- * @param correctValues target position per item (itemId → value)
- * @param tolerance     ± margin around each target that counts as correct
+ * @param items         statements players rate on the scale
+ * @param correctValues target per statement (statementId → value, in scale
+ *                      units) — the answer key, never sent to clients; empty =
+ *                      collect-only
+ * @param tolerance     ± margin in scale units around each target that counts
+ *                      as correct (the editor keeps it within 2–50 % of the
+ *                      span {@code max − min})
  */
 public record ScalesContent(
         @Schema(requiredMode = REQUIRED) double min,
         @Schema(requiredMode = REQUIRED) double max,
-        @Schema(requiredMode = REQUIRED) double step,
         @Schema(requiredMode = REQUIRED) String leftLabel,
         @Schema(requiredMode = REQUIRED) String rightLabel,
         @Schema(requiredMode = REQUIRED) List<ScaleItem> items,

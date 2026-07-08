@@ -177,7 +177,6 @@ const scalesContent: ScalesContent = {
   contentType: "SCALES",
   min: 1,
   max: 5,
-  step: 1,
   leftLabel: "Skip it",
   rightLabel: "Sacred",
   items: [
@@ -189,7 +188,7 @@ const scalesContent: ScalesContent = {
   correctValues: {
     meal_breakfast: 5,
     meal_second: 5,
-    meal_elevenses: 4,
+    meal_elevenses: 4.5,
     meal_luncheon: 4,
   },
   tolerance: 1,

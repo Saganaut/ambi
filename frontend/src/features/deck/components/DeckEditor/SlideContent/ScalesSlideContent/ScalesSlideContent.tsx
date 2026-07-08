@@ -2,14 +2,15 @@
  * Author surface for a Scales / Likert slide.
  *
  * Prompt on top, then the "Scale" settings card — two endpoint cards (anchor
- * label + boundary value stepper) joined by a live track preview, with step
- * and tolerance tucked behind an "Advanced" disclosure — then the statements
- * the player rates on that scale.
+ * label + boundary value stepper) joined by a live track preview, with the
+ * tolerance slider on its own always-visible row — then the statements the
+ * player rates on that scale.
  *
- * Scoring is per statement: each row repeats the scale as tappable points and
- * the author taps one to set that statement's correct answer (tap it again to
- * clear). There is no global "scored" switch — the slide is graded the moment
- * any statement has a target, and unscored when none do.
+ * Scoring is per statement: each row repeats the scale as a continuous drag
+ * track and the author drags a marker to set that statement's correct answer
+ * (the X next to the numeric field clears it). There is no global "scored"
+ * switch — the slide is graded the moment any statement has a target, and
+ * unscored when none do.
  *
  * There is exactly one `useScalesEditor` here; the scale-level fields are
  * mirrored locally so the debounced inputs stay responsive, and each row
@@ -17,18 +18,19 @@
  * through a single draft + debounce buffer.
  */
 import { useState } from "react";
-import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import {
   MAX_SCALE_STATEMENTS,
+  SCALES_TOLERANCE_MAX_FRACTION,
+  SCALES_TOLERANCE_MIN_FRACTION,
   useScalesEditor,
 } from "@deck/hooks/useScalesEditor";
 import { SlideContentWrapper } from "../SlideContentWrapper";
-import { EmptySelect, ItemList, SectionHeader, SettingsCard, SettingsRow } from "../_shared";
+import { EmptySelect, ItemList, SectionHeader, SettingsCard } from "../_shared";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
 import { ScaleStatementEditable } from "./ScaleStatementEditable";
+import { formatScaleValue } from "./scaleValue";
 import styles from "./ScalesSlideContent.module.css";
 
 interface ScalesSlideContentProps {
@@ -43,10 +45,9 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     flush,
     scheduleMin,
     scheduleMax,
-    scheduleStep,
     scheduleLeftLabel,
     scheduleRightLabel,
-    scheduleTolerance,
+    setTolerance,
     canAddStatement,
     addStatement,
     canRemove,
@@ -59,15 +60,13 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
 
   // Local mirrors keep the debounced inputs responsive: `updateSlideContent`
   // buffers to a draft and only commits on flush, so binding straight to the
-  // store value would make these fields feel frozen mid-edit.
+  // store value would make these fields feel frozen mid-edit. Tolerance needs
+  // no mirror — `setTolerance` commits immediately (clamped + flushed).
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
   const [min, setMin] = useState(question?.min ?? 1);
   const [max, setMax] = useState(question?.max ?? 5);
-  const [step, setStep] = useState(question?.step ?? 1);
   const [leftLabel, setLeftLabel] = useState(question?.leftLabel ?? "");
   const [rightLabel, setRightLabel] = useState(question?.rightLabel ?? "");
-  const [tolerance, setTolerance] = useState(question?.tolerance ?? 0);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
 
   // Resync every mirror when the active slide changes ("derive state during
@@ -77,16 +76,15 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     setPrompt(question.prompt);
     setMin(question.min);
     setMax(question.max);
-    setStep(question.step);
     setLeftLabel(question.leftLabel);
     setRightLabel(question.rightLabel);
-    setTolerance(question.tolerance);
-    setAdvancedOpen(false);
   }
 
   if (!question) return <EmptySelect title="Scales" />;
 
   const idBase = question.id;
+  const span = max - min;
+  const tolerancePercent = span > 0 ? Math.round((question.tolerance / span) * 100) : 0;
 
   return (
     <SlideContentWrapper
@@ -128,7 +126,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
             }}
             onFlush={flush}
           />
-          <ScalePreview min={min} max={max} step={step} />
+          <ScalePreview min={min} max={max} />
           <ScaleEndpointCard
             side="right"
             idBase={idBase}
@@ -148,58 +146,28 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
             onFlush={flush}
           />
         </div>
-        <button
-          type="button"
-          className={styles.advancedToggle}
-          aria-expanded={advancedOpen}
-          onClick={() => {
-            setAdvancedOpen((open) => !open);
-          }}
-        >
-          <ChevronRightIcon
-            aria-hidden="true"
-            className={[
-              styles.advancedChevron,
-              advancedOpen ? styles.advancedChevronOpen : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+        <div className={styles.toleranceRow}>
+          <label htmlFor={`scales-tolerance-${idBase}`}>Tolerance</label>
+          <input
+            id={`scales-tolerance-${idBase}`}
+            type="range"
+            min={Math.round(SCALES_TOLERANCE_MIN_FRACTION * 100)}
+            max={Math.round(SCALES_TOLERANCE_MAX_FRACTION * 100)}
+            step={1}
+            value={tolerancePercent}
+            onChange={(event) => {
+              setTolerance((Number(event.target.value) / 100) * span);
+            }}
           />
-          Advanced · step {step}
-          {tolerance > 0 && <> · ±{tolerance}</>}
-        </button>
-        {advancedOpen && (
-          <SettingsRow>
-            <NumberInput
-              label="Step"
-              id={`scales-step-${idBase}`}
-              value={step}
-              min={0}
-              onChange={(next) => {
-                setStep(next);
-                scheduleStep(next);
-              }}
-              onBlur={flush}
-            />
-            <NumberInput
-              label="Tolerance (±)"
-              id={`scales-tolerance-${idBase}`}
-              value={tolerance}
-              min={0}
-              step={step}
-              onChange={(next) => {
-                setTolerance(next);
-                scheduleTolerance(next);
-              }}
-              onBlur={flush}
-            />
-          </SettingsRow>
-        )}
+          <span className={styles.toleranceValue}>
+            ±{formatScaleValue(question.tolerance)}
+          </span>
+        </div>
       </SettingsCard>
 
       <SectionHeader
         label="Statements"
-        hint="tap a point on a statement's scale to set its correct answer"
+        hint="drag along a statement's scale to set its correct answer"
       />
       <ItemList
         addLabel={
@@ -219,7 +187,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
             correctValue={statement.id ? question.correctValues[statement.id] : undefined}
             min={min}
             max={max}
-            step={step}
+            tolerance={question.tolerance}
             leftLabel={leftLabel}
             rightLabel={rightLabel}
             onScheduleLabel={(next) => {

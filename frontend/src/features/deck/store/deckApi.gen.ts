@@ -838,7 +838,6 @@ export type ScaleItem = {
 export type ScalesContent = {
   min: number;
   max: number;
-  step: number;
   leftLabel: string;
   rightLabel: string;
   items: ScaleItem[];

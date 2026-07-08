@@ -2,19 +2,25 @@
 //
 // Sits on the generic `useSlideEditor<"SCALES">` and exposes the intent-level
 // surface the Scales author UI consumes: a synthesized `question` view, a
-// prompt edit, the scale-level fields (min / max / step / anchor labels /
-// tolerance), and per-statement ops keyed by statement id. There is exactly ONE
+// prompt edit, the scale-level fields (min / max / anchor labels / tolerance),
+// and per-statement ops keyed by statement id. There is exactly ONE
 // `useSlideEditor` instance per Scales slide (this hook is instantiated once,
 // in `ScalesSlideContent`), so every write — the prompt, the scale settings,
 // each statement's label and target — funnels through a single draft + debounce
 // buffer.
 //
+// The scale is continuous: players drag a marker anywhere along the track, so
+// grading needs a positive tolerance (an exact match on a continuum is
+// measure-zero). The editor is where that bound lives — `setTolerance` clamps
+// to the fraction bounds below, and every `min`/`max` edit re-clamps the
+// stored tolerance against the new span in the same commit.
+//
 // Scoring is opt-in per statement and needs no extra field: SCALES content
-// stores `correctValues` (statementId → target value), and the backend grades a
-// slide as unscored the moment that map is empty (mirroring how empty
-// `acceptedAnswers` marks a TEXT slide as a word cloud). So "score this
-// statement" is just "set its target", and "make it unscored" is "drop its
-// key from the map".
+// stores `correctValues` (statementId → target value, in scale units), and the
+// backend grades a slide as unscored the moment that map is empty (mirroring
+// how empty `acceptedAnswers` marks a TEXT slide as a word cloud). So "score
+// this statement" is just "set its target", and "make it unscored" is "drop
+// its key from the map".
 import type { ScaleItem } from "@deck/store/deckApi.gen";
 
 import { buildDefaultScaleItem } from "../utils/slideContent";
@@ -24,6 +30,19 @@ import { useSlideEditor } from "./useSlideEditor";
 const MIN_SCALE_STATEMENTS = 1;
 /** … and is capped so the author's list (and the player's screen) stays sane. */
 const MAX_SCALE_STATEMENTS = 10;
+/** Tolerance is bounded as a fraction of the span (max − min): 2 % at the tightest … */
+const SCALES_TOLERANCE_MIN_FRACTION = 0.02;
+/** … up to half the track (an almost-anything-goes margin). */
+const SCALES_TOLERANCE_MAX_FRACTION = 0.5;
+/** Default fraction for a new slide (`buildDefaultContent` bakes it in scale units). */
+const SCALES_TOLERANCE_DEFAULT_FRACTION = 0.1;
+
+/** Keep a scale-unit tolerance within the fraction bounds of the given span. */
+const clampTolerance = (value: number, span: number): number =>
+  Math.min(
+    SCALES_TOLERANCE_MAX_FRACTION * span,
+    Math.max(SCALES_TOLERANCE_MIN_FRACTION * span, value),
+  );
 
 /** Flattened, UI-facing view of the active Scales slide. */
 interface ScalesQuestionView {
@@ -32,10 +51,9 @@ interface ScalesQuestionView {
   prompt: string;
   min: number;
   max: number;
-  step: number;
   leftLabel: string;
   rightLabel: string;
-  /** ± margin around each target that still counts as correct (scored only). */
+  /** ± margin in scale units around each target that still counts as correct. */
   tolerance: number;
   items: ScaleItem[];
   /** statementId → target value; empty means the slide is unscored. */
@@ -53,13 +71,12 @@ interface UseScalesEditorResult {
   schedulePrompt: (html: string) => void;
   /** Flush any pending debounced edit immediately (bind to blur). */
   flush: () => void;
-  /** Debounced scale-field edits (bind change → schedule, blur → flush). */
+  /** Debounced scale-field edits (bind change → schedule, blur → flush).
+   *  Endpoint edits re-clamp the stored tolerance against the new span. */
   scheduleMin: (value: number) => void;
   scheduleMax: (value: number) => void;
-  scheduleStep: (value: number) => void;
   scheduleLeftLabel: (value: string) => void;
   scheduleRightLabel: (value: string) => void;
-  scheduleTolerance: (value: number) => void;
 
   /** ── Statements (keyed by `item.id`) ─────────────────────────────────── */
   /** True while under {@link MAX_SCALE_STATEMENTS}. */
@@ -76,10 +93,12 @@ interface UseScalesEditorResult {
   /** ── Scoring ─────────────────────────────────────────────────────────── */
   /** Debounced per-statement target edit → `correctValues[id]`. */
   scheduleCorrectValue: (statementId: string | undefined, value: number) => void;
-  /** Immediate per-statement target set (a tap on the statement's scale). */
+  /** Immediate per-statement target set (a drag release on the statement's track). */
   commitCorrectValue: (statementId: string | undefined, value: number) => void;
   /** Drop one statement's target, leaving that statement unscored. */
   clearCorrectValue: (statementId: string | undefined) => void;
+  /** Set the per-slide tolerance in scale units (clamped to the fraction bounds). Immediate. */
+  setTolerance: (value: number) => void;
 }
 
 const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult => {
@@ -104,7 +123,6 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
           prompt: slide.title,
           min: content.min,
           max: content.max,
-          step: content.step,
           leftLabel: content.leftLabel,
           rightLabel: content.rightLabel,
           tolerance: content.tolerance,
@@ -116,14 +134,21 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
 
   const schedulePrompt = (html: string) => editor.updateMetadata({ title: html });
 
-  // Scale-level fields are independent scalars, so a plain object patch is safe
-  // (shallow-merged onto the freshest content); no function form needed.
-  const scheduleMin = (value: number) => editor.updateSlideContent({ min: value });
-  const scheduleMax = (value: number) => editor.updateSlideContent({ max: value });
-  const scheduleStep = (value: number) => editor.updateSlideContent({ step: value });
+  // Endpoint edits change the span, so they re-clamp the stored tolerance in
+  // the same commit — the function form derives both from the freshest pending
+  // draft.
+  const scheduleMin = (value: number) =>
+    editor.updateSlideContent((prev) => ({
+      min: value,
+      tolerance: clampTolerance(prev.tolerance, prev.max - value),
+    }));
+  const scheduleMax = (value: number) =>
+    editor.updateSlideContent((prev) => ({
+      max: value,
+      tolerance: clampTolerance(prev.tolerance, value - prev.min),
+    }));
   const scheduleLeftLabel = (value: string) => editor.updateSlideContent({ leftLabel: value });
   const scheduleRightLabel = (value: string) => editor.updateSlideContent({ rightLabel: value });
-  const scheduleTolerance = (value: number) => editor.updateSlideContent({ tolerance: value });
 
   const addStatement = () => {
     if (!canAddStatement) return;
@@ -176,16 +201,21 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     editor.flush();
   };
 
+  const setTolerance = (value: number) => {
+    editor.updateSlideContent((prev) => ({
+      tolerance: clampTolerance(value, prev.max - prev.min),
+    }));
+    editor.flush();
+  };
+
   return {
     question,
     schedulePrompt,
     flush: editor.flush,
     scheduleMin,
     scheduleMax,
-    scheduleStep,
     scheduleLeftLabel,
     scheduleRightLabel,
-    scheduleTolerance,
     canAddStatement,
     addStatement,
     canRemove,
@@ -194,8 +224,16 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     scheduleCorrectValue,
     commitCorrectValue,
     clearCorrectValue,
+    setTolerance,
   };
 };
 
-export { MAX_SCALE_STATEMENTS, MIN_SCALE_STATEMENTS, useScalesEditor };
+export {
+  MAX_SCALE_STATEMENTS,
+  MIN_SCALE_STATEMENTS,
+  SCALES_TOLERANCE_DEFAULT_FRACTION,
+  SCALES_TOLERANCE_MAX_FRACTION,
+  SCALES_TOLERANCE_MIN_FRACTION,
+  useScalesEditor,
+};
 export type { ScalesQuestionView, UseScalesEditorResult };

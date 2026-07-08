@@ -2,8 +2,9 @@
 
    Scale settings: two endpoint cards (anchor label + boundary value stepper)
    flank a live track preview, so the author sees the player's scale exactly
-   as it runs left → right. Each statement row then repeats the scale as
-   tappable points — the tapped point is that statement's correct answer. */
+   as it runs left → right. Each statement row then repeats the scale as a
+   continuous drag track — the marker's position is that statement's correct
+   answer, with a tolerance band showing the accepted region. */
 
 /* ─── Scale settings card ─────────────────────────────────────────────── */
 
@@ -166,35 +167,28 @@
   white-space: nowrap;
 }
 
-/* ─── Advanced disclosure ─────────────────────────────────────────────── */
+/* ─── Tolerance row ───────────────────────────────────────────────────── */
 
-.advancedToggle {
-  display: inline-flex;
+.toleranceRow {
+  display: flex;
   align-items: center;
-  align-self: flex-start;
-  gap: var(--space-1);
-  padding: var(--space-1) 0;
-  border: none;
-  background-color: transparent;
-  color: var(--text-secondary);
+  gap: var(--space-3);
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-out);
+  color: var(--text-secondary);
+
+  & input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--bg-primary);
+  }
 }
 
-.advancedToggle:hover {
+.toleranceValue {
+  min-width: 3rem;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-}
-
-.advancedChevron {
-  width: var(--space-3);
-  height: var(--space-3);
-  transition: transform var(--duration-fast) var(--ease-out);
-}
-
-.advancedChevronOpen {
-  transform: rotate(90deg);
 }
 
 /* ─── Statement rows ──────────────────────────────────────────────────── */
@@ -219,7 +213,7 @@
   display: flex;
   flex: 1 1 14rem;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -233,55 +227,82 @@
   text-overflow: ellipsis;
 }
 
-.targetTrack {
+/* The statement's continuous drag surface: press anywhere to place the
+   target, drag to move it. `touch-action: none` keeps a touch-drag from
+   scrolling the page (the axis-plane precedent). */
+.dragTrack {
   position: relative;
   display: flex;
   flex: 1;
   align-items: center;
-  justify-content: space-between;
+  /* Breathing room so a marker parked at an end (position 0 / 1) clears the
+     adjacent anchor caption instead of washing over it. */
+  margin-inline: var(--space-1);
   min-width: 7rem;
   height: 1.5rem;
+  touch-action: none;
+  cursor: pointer;
 }
 
 .targetLine {
   position: absolute;
+  inset-inline: 0;
   top: 50%;
-  inset-inline: var(--space-2);
   height: var(--border-size-sm);
   border-radius: var(--radius-full);
   background-color: var(--border-subtle);
   transform: translateY(-50%);
 }
 
-.targetDot {
-  position: relative;
+/* The accepted region, centered on the marker — the 1-D analogue of the axis
+   tolerance circle. `left` is the marker fraction; the element is shifted back
+   by half its own width so it stays centered on the target. */
+.toleranceBand {
+  position: absolute;
+  top: 50%;
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-success);
+  transform: translate(-50%, -50%);
+}
+
+.marker {
+  position: absolute;
+  top: 50%;
   width: var(--space-4);
   height: var(--space-4);
   padding: 0;
-  border: var(--border-size-sm) solid var(--border-default);
+  border: var(--border-size-sm) solid var(--border-success);
   border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-  cursor: pointer;
-  transition:
-    transform var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
-}
-
-.targetDot:hover {
-  transform: scale(1.15);
-}
-
-/* Documented exception to the named-pairing catalog: the design fills the
-   selected point with the success border tone and rings it with the success
-   wash (inverting the notice pairing) so the dot reads as a solid marker. */
-.targetDotSelected {
-  border-color: var(--border-success);
+  /* Documented exception to the named-pairing catalog: the marker fills with
+     the success border tone (the graded-target color) rather than a bg/text
+     pair, matching the axis marker's solid dot. */
   background-color: var(--border-success);
-  outline: var(--border-size-md) solid var(--bg-success);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
-/* Fallback when the range can't render as points: a compact numeric target
-   field with its clear button, kept from stretching. */
+.marker:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.marker:focus-visible {
+  outline: var(--border-size-md) solid var(--border-brand);
+  outline-offset: var(--space-1);
+}
+
+.valueReadout {
+  min-width: 2.5rem;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The always-available precise/accessible numeric target field with its clear
+   button, kept from stretching. */
 .targetField {
   display: flex;
   flex: none;

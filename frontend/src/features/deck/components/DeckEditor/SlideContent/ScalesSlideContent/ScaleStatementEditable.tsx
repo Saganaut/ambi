@@ -1,27 +1,28 @@
 /**
  * Single-row editor for a Scales statement: the label input plus the
- * statement's own copy of the scale, rendered as tappable points flanked by
- * the anchor labels. Tapping a point sets that statement's correct answer
- * (committed immediately — no debounce, it's a discrete intent); tapping the
- * selected point clears it, leaving the statement unscored. A scored
- * statement gets a success-tinted outline via `ItemCard`'s `tone`.
+ * statement's own copy of the scale as a continuous drag track — the 1-D
+ * analogue of the Axis plane. Pointerdown places the statement's target at
+ * the pointer, dragging follows it (debounced), and release commits; the
+ * marker itself is a keyboard slider (ArrowLeft/ArrowRight nudge by 2 % of
+ * the span, Home/End jump to the ends). A tolerance band centered on the
+ * marker shows the accepted region in the same units the grader measures,
+ * so what the author sees is what is graded. A scored statement gets a
+ * success-tinted outline via `ItemCard`'s `tone`.
  *
- * When the range can't render as dots (no positive step, or too many ticks —
- * see `scaleTicks`), or the persisted target no longer lands on a tick (the
- * author changed min/max/step after scoring), the row falls back to a numeric
- * "Answer" field with an explicit set/clear affordance so the value stays
- * visible and clearable instead of silently orphaned.
+ * The numeric "Answer" field is the always-available precise and accessible
+ * entry, with the X button as the one clearing affordance; the "Set answer"
+ * button seeds unscored rows with the scale midpoint.
  *
- * A controlled row: the label mirror (and the fallback target mirror) lives
- * here while structural ops (schedule / commit / clear / flush / remove) come
- * in as props from the one `useScalesEditor` in `ScalesSlideContent`, so every
+ * A controlled row: the label and answer-field mirrors live here while
+ * structural ops (schedule / commit / clear / flush / remove) come in as
+ * props from the one `useScalesEditor` in `ScalesSlideContent`, so every
  * write funnels through a single draft + debounce buffer.
  *
  * Statement order is display-only — each statement is keyed by id in the
  * content's `correctValues` — so rows are not drag-sortable (unlike Ranking,
  * where order is the answer).
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import { Input } from "@components/Forms/Input/Input/Input";
@@ -30,26 +31,30 @@ import type { ScaleItem } from "@deck/store/deckApi.gen";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ItemCard } from "../_shared";
-import { scaleTicks } from "./scaleTicks";
+import { formatScaleValue, positionToValue, valueToPosition } from "./scaleValue";
 import styles from "./ScalesSlideContent.module.css";
+
+/** Arrow-key nudge, as a fraction of the span (the axis-board precedent). */
+const KEYBOARD_NUDGE_STEP = 0.02;
 
 interface ScaleStatementEditableProps {
   statement: ScaleItem;
   sortIndex: number;
   canRemove: boolean;
-  /** The statement's correct answer, or undefined while it is unscored. */
+  /** The statement's correct answer in scale units, or undefined while unscored. */
   correctValue: number | undefined;
-  /** Scale definition — drives the tappable points and the fallback bounds. */
+  /** Scale definition — drives the track mapping and the numeric-field bounds. */
   min: number;
   max: number;
-  step: number;
+  /** ± margin in scale units, rendered as the band around the marker. */
+  tolerance: number;
   /** Anchor labels echoed beside the statement's scale. */
   leftLabel: string;
   rightLabel: string;
   onScheduleLabel: (next: ScaleItem) => void;
-  /** Immediate target set (a point tap or "Set answer"). */
+  /** Immediate target set (drag release, keyboard nudge, or "Set answer"). */
   onCommitCorrectValue: (value: number) => void;
-  /** Debounced target edit from the fallback numeric field. */
+  /** Debounced target edit (mid-drag, or the numeric field). */
   onScheduleCorrectValue: (value: number) => void;
   onClearCorrectValue: () => void;
   onFlush: () => void;
@@ -63,7 +68,7 @@ const ScaleStatementEditable = ({
   correctValue,
   min,
   max,
-  step,
+  tolerance,
   leftLabel,
   rightLabel,
   onScheduleLabel,
@@ -73,20 +78,23 @@ const ScaleStatementEditable = ({
   onFlush,
   onRemove,
 }: ScaleStatementEditableProps) => {
-  const ticks = scaleTicks(min, max, step);
   const scored = correctValue !== undefined;
-  // A target set before a min/max/step edit may no longer land on a tick; the
-  // dot track can't show (or clear) it, so such rows use the numeric fallback.
-  const onTrack = correctValue === undefined || ticks.includes(correctValue);
-  // The fallback "Set answer" lands on the scale's midpoint so a freshly-scored
-  // statement starts on a sensible in-range default rather than 0 / NaN.
-  const midpoint = Math.round((min + max) / 2);
+  // "Set answer" seeds the scale's midpoint so a freshly-scored statement
+  // starts on a sensible in-range default rather than 0 / NaN.
+  const midpoint = (min + max) / 2;
+
+  const trackRef = useRef<HTMLDivElement>(null);
+  // Live value while the pointer is captured on the track — the marker follows
+  // it so the drag stays responsive while writes debounce behind it.
+  const [dragValue, setDragValue] = useState<number | null>(null);
 
   const [label, setLabel] = useState(statement.label ?? "");
-  // Local mirror for the fallback numeric field only — dot taps commit
-  // immediately and read straight from `correctValue`.
+  // Local mirror for the numeric "Answer" field, resynced whenever the
+  // committed target changes (a drag release or keyboard nudge must not leave
+  // the field showing a stale number).
   const [target, setTarget] = useState(correctValue ?? midpoint);
   const [syncedFromId, setSyncedFromId] = useState(statement.id);
+  const [syncedFromValue, setSyncedFromValue] = useState(correctValue);
 
   // Resync the local mirrors when this row is reused for a different statement
   // ("derive state during render" — safe when the value differs).
@@ -94,9 +102,73 @@ const ScaleStatementEditable = ({
     setSyncedFromId(statement.id);
     setLabel(statement.label ?? "");
     setTarget(correctValue ?? midpoint);
+    setSyncedFromValue(correctValue);
+  } else if (syncedFromValue !== correctValue) {
+    setSyncedFromValue(correctValue);
+    setTarget(correctValue ?? midpoint);
   }
 
   const displayIndex = sortIndex + 1;
+  /** The marker's rendered value: the live drag value while dragging, else the target. */
+  const displayValue = dragValue ?? correctValue;
+
+  /** Scale-unit value at a pointer position, clamped onto the track. */
+  const valueFromClient = (clientX: number): number | null => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return null;
+    return positionToValue((clientX - rect.left) / rect.width, min, max);
+  };
+
+  // Track press: place the target immediately and keep following the pointer,
+  // committing once on release ("drag along the track").
+  const handleTrackPointerDown = (event: React.PointerEvent) => {
+    const value = valueFromClient(event.clientX);
+    if (value == null) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragValue(value);
+    onScheduleCorrectValue(value);
+  };
+
+  const handleTrackPointerMove = (event: React.PointerEvent) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const value = valueFromClient(event.clientX);
+    if (value == null) return;
+    setDragValue(value);
+    onScheduleCorrectValue(value);
+  };
+
+  const handleTrackPointerUp = (event: React.PointerEvent) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const value = valueFromClient(event.clientX) ?? dragValue;
+    if (value != null) onCommitCorrectValue(value);
+    setDragValue(null);
+  };
+
+  const handleMarkerKeyDown = (event: React.KeyboardEvent) => {
+    if (correctValue === undefined) return;
+    const position = valueToPosition(correctValue, min, max);
+    let next: number;
+    switch (event.key) {
+      case "ArrowLeft":
+        next = positionToValue(position - KEYBOARD_NUDGE_STEP, min, max);
+        break;
+      case "ArrowRight":
+        next = positionToValue(position + KEYBOARD_NUDGE_STEP, min, max);
+        break;
+      case "Home":
+        next = min;
+        break;
+      case "End":
+        next = max;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    onCommitCorrectValue(next);
+  };
+
+  const span = max - min;
 
   return (
     <ItemCard
@@ -119,47 +191,60 @@ const ScaleStatementEditable = ({
           }}
           onBlur={onFlush}
         />
-        {ticks.length > 0 && onTrack ? (
-          <div className={styles.statementScale}>
-            <span className={styles.anchorCaption}>
-              {leftLabel.length > 0 ? leftLabel : min}
-            </span>
-            <div
-              className={styles.targetTrack}
-              role='group'
-              aria-label={`Correct answer for statement ${displayIndex.toString()}`}>
-              <div className={styles.targetLine} />
-              {ticks.map((value) => {
-                const selected = value === correctValue;
-                return (
-                  <button
-                    key={value}
-                    type='button'
-                    className={[
-                      styles.targetDot,
-                      selected ? styles.targetDotSelected : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    aria-pressed={selected}
-                    aria-label={
-                      selected
-                        ? `Clear correct answer ${value.toString()}`
-                        : `Set correct answer to ${value.toString()}`
-                    }
-                    onClick={() => {
-                      if (selected) onClearCorrectValue();
-                      else onCommitCorrectValue(value);
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <span className={styles.anchorCaption}>
-              {rightLabel.length > 0 ? rightLabel : max}
-            </span>
+        <div className={styles.statementScale}>
+          <span className={styles.anchorCaption}>
+            {leftLabel.length > 0 ? leftLabel : min}
+          </span>
+          {/* Pointer placement surface; the accessible path is the marker
+              slider and the numeric "Answer" field. */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+          <div
+            ref={trackRef}
+            className={styles.dragTrack}
+            onPointerDown={handleTrackPointerDown}
+            onPointerMove={handleTrackPointerMove}
+            onPointerUp={handleTrackPointerUp}>
+            <div className={styles.targetLine} />
+            {displayValue !== undefined && span > 0 && (
+              <>
+                <span
+                  className={styles.toleranceBand}
+                  style={{
+                    left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
+                    width: `${(((tolerance * 2) / span) * 100).toString()}%`,
+                  }}
+                  aria-hidden='true'
+                />
+                <button
+                  type='button'
+                  // A real button so it's focusable/clickable everywhere; the
+                  // slider role carries the value semantics for AT.
+                  // eslint-disable-next-line jsx-a11y/role-supports-aria-props
+                  role='slider'
+                  className={styles.marker}
+                  style={{
+                    left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
+                  }}
+                  aria-valuemin={min}
+                  aria-valuemax={max}
+                  aria-valuenow={displayValue}
+                  aria-valuetext={formatScaleValue(displayValue)}
+                  aria-label={`Correct answer for statement ${displayIndex.toString()}`}
+                  onKeyDown={handleMarkerKeyDown}
+                />
+              </>
+            )}
           </div>
-        ) : scored ? (
+          <span className={styles.anchorCaption}>
+            {rightLabel.length > 0 ? rightLabel : max}
+          </span>
+          {displayValue !== undefined && (
+            <span className={styles.valueReadout} aria-hidden='true'>
+              {formatScaleValue(displayValue)}
+            </span>
+          )}
+        </div>
+        {scored ? (
           <div className={styles.targetField}>
             <NumberInput
               label='Answer'
@@ -168,7 +253,6 @@ const ScaleStatementEditable = ({
               value={target}
               min={min}
               max={max}
-              step={step}
               onChange={(next) => {
                 setTarget(next);
                 onScheduleCorrectValue(next);
