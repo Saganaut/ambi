@@ -26,7 +26,7 @@ import { useSlideEditor } from "./useSlideEditor";
 /** At least one item to place … */
 const MIN_AXIS_ITEMS = 1;
 /** … and few enough that the item bank stays scannable (grid parity). */
-const MAX_AXIS_ITEMS = 12;
+const MAX_AXIS_ITEMS = 6;
 /** Tolerance is a normalized radius: 2 % of the plane at the tightest … */
 const AXIS_TOLERANCE_MIN = 0.02;
 /** … up to half the plane (an almost-anything-goes region). */

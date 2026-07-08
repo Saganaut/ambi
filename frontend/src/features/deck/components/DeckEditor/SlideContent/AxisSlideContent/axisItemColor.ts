@@ -1,10 +1,11 @@
 // Marker/badge color for an Axis item row. Reuses the shared option palette
-// (the single source of truth with MCQ — `Charts/optionPalette.ts`), but Axis
-// allows up to 12 items (`MAX_AXIS_ITEMS`) while the palette holds 6, so a
-// plain modulo would hand rows 7–12 the exact color of rows 1–6. The second
-// cycle re-derives each hue at a darker lightness (CSS relative color, the
-// same `oklch(from …)` syntax tokens.css builds its scales with) so every row
-// keeps a distinguishable marker.
+// (the single source of truth with MCQ — `Charts/optionPalette.ts`). Axis caps
+// at `MAX_AXIS_ITEMS` (6), matching the palette's 6 colors, so every row gets a
+// distinct hue on the first cycle. Should that cap ever rise past the palette
+// size, a plain modulo would hand the overflow rows the exact colors of rows
+// 1–6, so the second cycle re-derives each hue at a darker lightness (CSS
+// relative color, the same `oklch(from …)` syntax tokens.css builds its scales
+// with) to keep every marker distinguishable.
 import { buildOptionPalette, MAX_OPTION_COLORS } from "@/shared/components/Charts/optionPalette";
 
 /** Lightness for the palette's second cycle (first cycle is 0.65). */
