@@ -1,0 +1,113 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+
+  .field {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    border: var(--border-size-sm) solid var(--border-color, var(--border-default));
+    border-radius: var(--radius-md);
+    background: var(--bg-canvas);
+    overflow: hidden;
+
+    &.disabled {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    &.error {
+      border-color: var(--border-error);
+    }
+
+    input.input {
+      appearance: textfield;
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      padding: var(--space-2) var(--space-3);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--role-primary);
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        appearance: none;
+        margin: 0;
+      }
+
+      &.error {
+        color: var(--text-error);
+      }
+    }
+
+    .stepper {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      width: var(--space-8);
+      border-left: var(--border-size-sm) solid var(--border-default);
+
+      .stepBtn {
+        flex: 1 1 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.12s ease;
+
+        &:disabled {
+          cursor: default;
+          opacity: 0.4;
+        }
+
+        .icon {
+          width: var(--space-4);
+          height: var(--space-4);
+        }
+
+        &.stepUp,
+        &.stepDown {
+          background: var(--bg-canvas);
+          color: var(--text-primary);
+        }
+
+        &.stepUp {
+          border-bottom: var(--border-size-sm) solid var(--border-default);
+        }
+
+        &.stepUp:not(:disabled):hover,
+        &.stepDown:not(:disabled):hover {
+          background: var(--bg-secondary);
+        }
+      }
+    }
+
+    &.compact {
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    &.compact .input {
+      width: var(--space-16);
+      flex: 0 0 auto;
+      text-align: center;
+    }
+  }
+
+  .message {
+    position: absolute;
+    bottom: -24px;
+    left: 10px;
+  }
+
+  &.compact {
+    width: auto;
+  }
+}
