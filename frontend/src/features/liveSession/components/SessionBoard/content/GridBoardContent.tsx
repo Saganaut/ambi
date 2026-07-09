@@ -100,24 +100,23 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
   const accentOf = (item: GridItemView): string =>
     resolveDatumColor(
       item.color,
-      Math.max(0, (gridItems ?? []).findIndex((authored) => authored.id === item.id)),
+      (gridItems ?? []).findIndex((authored) => authored.id === item.id),
     );
 
-  // A chip face is the item's image (when authored) beside its label; an
-  // image-only chip keeps its accessible name via the img alt text.
-  const chipFace = (item: GridItemView) =>
-    item.imageUrl ? (
+  // A chip face is the item's image (when authored) beside its label. The img
+  // alt carries the accessible name only when no visible label would — a
+  // labeled chip's name must not read doubled ("Bat Bat").
+  const chipFace = (item: GridItemView) => {
+    const label = item.label?.trim();
+    return item.imageUrl ? (
       <>
-        <img
-          className={styles.chipImage}
-          src={item.imageUrl}
-          alt={item.label?.trim() || "Item"}
-        />
-        {item.label?.trim() && <span>{item.label.trim()}</span>}
+        <img className={styles.chipImage} src={item.imageUrl} alt={label ? "" : "Item"} />
+        {label && <span>{label}</span>}
       </>
     ) : (
-      item.label?.trim() || "Item"
+      label || "Item"
     );
+  };
 
   return (
     <div className={styles.gridBoardContent}>

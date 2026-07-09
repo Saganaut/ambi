@@ -132,6 +132,8 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         label='Grid'
         hint={`${items.length.toString()} / ${MAX_GRID_ITEMS.toString()} items · click a cell to add an item, drag its grip to move it`}
       />
+      {/* DragDropProvider directly (not DragDropWrapper): this is a free
+          drag onto droppable cells, not the wrapper's single-list reorder. */}
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div
           className={styles.matrix}

@@ -118,16 +118,18 @@ describe("GridBoardContent placing", () => {
         colLabels: ["Flies", "Walks"],
         items: [
           { id: "bat", label: "Bat", imageUrl: "https://img.test/bat.png", color: "#123456" },
-          { id: "pen", label: "Penguin" },
+          { id: "pen", imageUrl: "https://img.test/pen.png" },
         ],
       },
     };
     render(<GridBoardContent slide={withImage} mode="prompt" interactive />);
 
-    const image = screen.getByRole("img", { name: "Bat" });
-    expect(image).toHaveAttribute("src", "https://img.test/bat.png");
-    // The chip button is still addressable by the item label.
-    expect(screen.getByRole("button", { name: /Bat/ })).toBeInTheDocument();
+    // A labeled chip: the visible label is the whole accessible name (the
+    // img alt is empty so the name doesn't read doubled), image still shown.
+    const chip = screen.getByRole("button", { name: "Bat" });
+    expect(chip.querySelector("img")).toHaveAttribute("src", "https://img.test/bat.png");
+    // An image-only chip falls back to the img alt for its name.
+    expect(screen.getByRole("button", { name: "Item" })).toBeInTheDocument();
   });
 });
 

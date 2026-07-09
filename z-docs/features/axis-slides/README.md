@@ -270,7 +270,7 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   tolerance circle in the same color so the accepted region is visible while
   tuning. Accessible fallback: per-item numeric X/Y inputs (0–100 %) in the
   item rows.
-- `AxisItemEditable.tsx` — item row (`GridItemEditable` pattern): the
+- `AxisItemEditable.tsx` — item row (`RankingItemEditable` pattern): the
   palette-colored index badge, label field, an image thumbnail when one is
   set, and the accessible X/Y inputs. Clicking the row selects it; focusing
   the label opens `AxisItemMenu.tsx`.
