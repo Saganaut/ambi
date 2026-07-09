@@ -66,8 +66,8 @@ public class SlideContentTypes {
 
     // --------------- Grid ------------------------------------------------
 
-    /** An item to drop into a grid cell. {@code image} is optional. */
-    public record GridItem(String id, String label, AppImage image) {
+    /** An item to drop into a grid cell. {@code image} and {@code color} are optional. */
+    public record GridItem(String id, String label, AppImage image, String color) {
     }
 
     // --------------- Axis -------------------------------------------------

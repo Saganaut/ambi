@@ -14,10 +14,7 @@
 // behind it. Grading is EXACT (all placements must match), so `scoreMode` has
 // no authoring knob — `buildDefaultContent` fixes it and the editor never
 // writes it.
-import type { DragEndEvent } from "@dnd-kit/react";
-import { isSortable } from "@dnd-kit/react/sortable";
-
-import type { GridItem } from "@deck/store/deckApi.gen";
+import type { AppImage, GridItem } from "@deck/store/deckApi.gen";
 
 import { buildDefaultGridItem } from "../utils/slideContent";
 import { useSlideEditor } from "./useSlideEditor";
@@ -30,6 +27,8 @@ const MAX_GRID_DIMENSION = 6;
 const MIN_GRID_ITEMS = 1;
 /** … and few enough that the item bank stays scannable. */
 const MAX_GRID_ITEMS = 12;
+/** `maxLength` for item phrase inputs (Matching-card parity). */
+const GRID_ITEM_LABEL_MAX = 80;
 
 /** Which matrix axis an op addresses. */
 type GridAxis = "row" | "col";
@@ -78,13 +77,16 @@ interface UseGridEditorResult {
   /** ── Items (keyed by `item.id`) ──────────────────────────────────────── */
   canAddItem: boolean;
   canRemoveItem: boolean;
-  addItem: () => void;
+  /** Append a blank item already targeted at `cell`. Immediate. */
+  addItemToCell: (cell: string) => void;
   /** Remove the item and its target-cell assignment. */
   removeItem: (itemId: string | undefined) => void;
   /** Debounced item label edit. */
   scheduleItemLabel: (itemId: string | undefined, label: string) => void;
-  /** @dnd-kit drop handler for the item list (bank display order only). */
-  handleItemDragEnd: (event: DragEndEvent) => void;
+  /** Override the item's palette color (menu swatch / custom picker). Immediate. */
+  setItemColor: (itemId: string | undefined, color: string) => void;
+  /** Set or clear (empty AppImage) the item's image. Immediate. */
+  setItemImage: (itemId: string | undefined, image: AppImage) => void;
   /** Assign (cell id) or clear (null) the item's target cell. Immediate. */
   setTargetCell: (itemId: string | undefined, cell: string | null) => void;
 }
@@ -170,9 +172,13 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
   const canAddItem = items.length < MAX_GRID_ITEMS;
   const canRemoveItem = items.length > MIN_GRID_ITEMS;
 
-  const addItem = () => {
+  const addItemToCell = (cell: string) => {
     if (!canAddItem) return;
-    editor.updateSlideContent((prev) => ({ items: [...prev.items, buildDefaultGridItem()] }));
+    const item = buildDefaultGridItem();
+    editor.updateSlideContent((prev) => ({
+      items: [...prev.items, item],
+      ...(item.id ? { correctCells: { ...prev.correctCells, [item.id]: cell } } : {}),
+    }));
     editor.flush();
   };
 
@@ -185,25 +191,25 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     editor.flush();
   };
 
-  const scheduleItemLabel = (itemId: string | undefined, label: string) => {
+  /** Merge a patch into one item, leaving the rest of the bank untouched. */
+  const patchItem = (itemId: string | undefined, patch: Partial<GridItem>) => {
     if (!itemId) return;
     editor.updateSlideContent((prev) => ({
-      items: prev.items.map((item) => (item.id === itemId ? { ...item, label } : item)),
+      items: prev.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
     }));
   };
 
-  const handleItemDragEnd = (event: DragEndEvent) => {
-    if (event.canceled) return;
-    const { source } = event.operation;
-    if (!isSortable(source)) return;
-    const { initialIndex, index } = source;
-    if (initialIndex === index) return;
-    editor.updateSlideContent((prev) => {
-      const next = prev.items.slice();
-      const [moved] = next.splice(initialIndex, 1);
-      next.splice(index, 0, moved);
-      return { items: next };
-    });
+  const scheduleItemLabel = (itemId: string | undefined, label: string) => {
+    patchItem(itemId, { label });
+  };
+
+  const setItemColor = (itemId: string | undefined, color: string) => {
+    patchItem(itemId, { color });
+    editor.flush();
+  };
+
+  const setItemImage = (itemId: string | undefined, image: AppImage) => {
+    patchItem(itemId, { image });
     editor.flush();
   };
 
@@ -230,15 +236,17 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     scheduleLabel,
     canAddItem,
     canRemoveItem,
-    addItem,
+    addItemToCell,
     removeItem,
     scheduleItemLabel,
-    handleItemDragEnd,
+    setItemColor,
+    setItemImage,
     setTargetCell,
   };
 };
 
 export {
+  GRID_ITEM_LABEL_MAX,
   MAX_GRID_DIMENSION,
   MAX_GRID_ITEMS,
   MIN_GRID_DIMENSION,

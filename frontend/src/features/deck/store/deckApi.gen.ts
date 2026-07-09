@@ -851,6 +851,7 @@ export type GridItem = {
   id?: string;
   label?: string;
   image?: AppImage;
+  color?: string;
 };
 export type GridContent = {
   rowLabels: string[];

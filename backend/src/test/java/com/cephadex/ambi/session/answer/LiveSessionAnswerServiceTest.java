@@ -441,7 +441,7 @@ class LiveSessionAnswerServiceTest {
         return new GridContent(
                 List.of("Row A", "Row B"),
                 List.of("Col A", "Col B"),
-                List.of(new GridItem("it-1", "One", null), new GridItem("it-2", "Two", null)),
+                List.of(new GridItem("it-1", "One", null, null), new GridItem("it-2", "Two", null, null)),
                 java.util.Map.of(),
                 ScoreMode.EXACT);
     }

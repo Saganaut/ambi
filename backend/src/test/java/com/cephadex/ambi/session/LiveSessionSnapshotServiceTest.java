@@ -212,7 +212,7 @@ class LiveSessionSnapshotServiceTest {
         when(slide.getId()).thenReturn("slide-1");
         when(slide.getContent()).thenReturn(new GridContent(
                 List.of("Row A"), List.of("Col A", "Col B"),
-                List.of(new GridItem("it-1", "One", null)),
+                List.of(new GridItem("it-1", "One", null, null)),
                 Map.of("it-1", "0,1"),
                 ScoreMode.EXACT));
         Deck deck = mock(Deck.class);

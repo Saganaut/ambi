@@ -1,124 +1,215 @@
-/* GridSlideContent — author UI for Grid (drag-into-matrix) slides. The item
-   row chrome is the shared `ItemCard`; grid-specific styles are the axis-label
-   editors, the target preview matrix, and the drag grip (mirroring Ranking). */
+/* GridSlideContent — author UI for Grid (drag-into-matrix) slides, authored
+   directly on the matrix: in-place editable axis label pills (hover for the
+   delete ×), "+" affordances to grow either axis, droppable cells holding
+   the shared phrase-or-image item cards, and a tray for unplaced items. */
 
-/* ── Axis label lists (Rows / Columns) ──────────────────────────────────── */
+/* ── Matrix frame ───────────────────────────────────────────────────────── */
 
-.labelsEditor {
-  display: flex;
-  flex-direction: column;
+.matrix {
+  /* Fallback for the inline value set from the column count. */
+  --grid-cols: 2;
+
+  display: grid;
+  grid-template-columns:
+    minmax(6rem, auto)
+    repeat(var(--grid-cols), minmax(0, 1fr))
+    auto;
   gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
+  align-items: stretch;
 }
 
-.labelsTitle {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.labelRow {
+.headerTrailer {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
 }
 
-.labelRemove {
+/* ── Axis label pills ───────────────────────────────────────────────────── */
+
+.axisLabel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: center;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+}
+
+/* Column headers stretch across their track; row labels hug their column. */
+.axisLabelCol {
+  align-self: stretch;
+}
+
+.axisLabelInput {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  outline-offset: calc(-1 * var(--space-half));
+}
+
+.axisLabelCol .axisLabelInput {
+  text-align: center;
+}
+
+/* The delete × floats on the pill's corner, revealed on hover/focus-within
+   (it stays in the tree so keyboard focus can reach it). */
+.axisLabelRemove {
+  position: absolute;
+  top: calc(-1 * var(--space-2));
+  right: calc(-1 * var(--space-2));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  padding: var(--space-1);
+  padding: var(--space-half);
   border: none;
-  border-radius: var(--radius-sm);
-  background: none;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  box-shadow: var(--shadow-sm);
   color: var(--text-muted);
-
-  &:disabled {
-    color: var(--text-disabled);
-  }
-
-  &:hover:not(:disabled) {
-    color: var(--text-error);
-    background-color: var(--bg-surface-raised);
-  }
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease-out;
 }
 
-.labelRemoveIcon {
+.axisLabelRemove:hover {
+  color: var(--text-error);
+}
+
+.axisLabelRemove:focus-visible {
+  opacity: 1;
+}
+
+.axisLabel:hover .axisLabelRemove,
+.axisLabel:focus-within .axisLabelRemove {
+  opacity: 1;
+}
+
+.axisLabelRemoveIcon {
   width: 1rem;
   height: 1rem;
 }
 
-.labelAdd {
-  align-self: flex-start;
-  padding: var(--space-1) var(--space-2);
-  border: none;
-  border-radius: var(--radius-sm);
+/* ── Add column / add row ───────────────────────────────────────────────── */
+
+.axisAdd,
+.rowAdd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  border: var(--space-px) dashed var(--border-default);
+  border-radius: var(--radius-md);
   background: none;
   color: var(--text-accent);
   font-size: var(--font-size-sm);
   font-weight: 600;
-
-  &:disabled {
-    color: var(--text-disabled);
-  }
-
-  &:hover:not(:disabled) {
-    background-color: var(--bg-surface-raised);
-  }
+  transition:
+    color var(--duration-fast) ease-out,
+    border-color var(--duration-fast) ease-out,
+    background-color var(--duration-fast) ease-out;
 }
 
-/* ── Target preview matrix ──────────────────────────────────────────────── */
-
-.preview {
-  --preview-cols: 2;
-
-  display: grid;
-  grid-template-columns: auto repeat(var(--preview-cols), 1fr);
-  gap: var(--space-1);
-  font-size: var(--font-size-xs);
+.axisAdd {
+  padding: var(--space-2);
 }
 
-.previewHeader {
-  padding: var(--space-1) var(--space-2);
-  color: var(--text-secondary);
-  font-weight: 600;
-  overflow-wrap: anywhere;
+.rowAdd {
+  grid-column: 1 / -1;
+  padding: var(--space-2);
 }
 
-.previewCell {
+.axisAdd:hover,
+.rowAdd:hover {
+  border-color: var(--text-accent);
+  background-color: var(--bg-surface-raised);
+}
+
+.axisAddIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ── Cells ──────────────────────────────────────────────────────────────── */
+
+.cell {
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: var(--space-1);
-  min-height: 2rem;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 8rem;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
   background-color: var(--bg-surface);
 }
 
-.previewChip {
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
+/* Live drop target while an item drags over the cell. */
+.cellDropTarget {
+  outline: var(--border-size-md) dashed var(--text-accent);
+  outline-offset: calc(-1 * var(--space-1));
 }
 
-/* ── Item rows ──────────────────────────────────────────────────────────── */
-
-.itemFields {
+/* Empty cell: the whole body is one big add button. */
+.cellAddEmpty {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   flex: 1;
-  min-width: 0;
+  padding: var(--space-2);
+  border: var(--space-px) dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
 }
 
-/* Grip handle slotted into the card's `actions` (see RankingSlideContent). */
+.cellAddEmpty:hover {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+/* Filled cell: a compact "+" revealed on hover/focus (kept in the tree so
+   keyboard focus can reach it). */
+.cellAddCompact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: var(--space-1);
+  border: var(--space-px) dashed var(--border-default);
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease-out;
+}
+
+.cellAddCompact:hover {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.cellAddCompact:focus-visible {
+  opacity: 1;
+}
+
+.cell:hover .cellAddCompact,
+.cell:focus-within .cellAddCompact {
+  opacity: 1;
+}
+
+.cellAddIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ── Item cards ─────────────────────────────────────────────────────────── */
+
+/* Grip handle slotted into the shared card's footer `actions`. */
 .dragHandle {
   display: inline-flex;
   align-items: center;
@@ -149,7 +240,22 @@
   height: 1rem;
 }
 
-/* The row being dragged: dim it so the drop target reads clearly. */
+/* The card being dragged: dim it so the drop target reads clearly. */
 .dragging {
   opacity: 0.6;
+}
+
+/* ── Unplaced tray ──────────────────────────────────────────────────────── */
+
+.unplaced {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.unplacedItems {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--space-2);
 }
