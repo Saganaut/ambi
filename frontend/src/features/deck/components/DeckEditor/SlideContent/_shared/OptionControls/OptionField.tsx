@@ -14,6 +14,7 @@ import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomCol
 import { FloatingPopover } from "@/shared/components/PopoverWrapper/PopoverWrapper";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { useModal } from "@hooks/useModal";
+import type { AppImage } from "@deck/store/deckApi.gen";
 import { McqOption } from "@/shared/types/Elements.types";
 import type { HTMLProps } from "react";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
@@ -31,8 +32,12 @@ interface OptionFieldProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onToggleCorrect: () => void;
-  onScheduleText: (option: McqOption) => void;
-  onCommit: (option: McqOption) => void;
+  /** Debounced label edit — just the new text; the parent patches the option. */
+  onScheduleText: (text: string) => void;
+  /** Override the option's color. */
+  onSetColor: (color: string) => void;
+  /** Set or clear (empty AppImage) the option's image. */
+  onSetImage: (image: AppImage) => void;
   onRemove: () => void;
   flush: () => void;
   openPicker: OpenGalleryPicker;
@@ -47,7 +52,8 @@ const OptionField = ({
   onOpenChange,
   onToggleCorrect,
   onScheduleText,
-  onCommit,
+  onSetColor,
+  onSetImage,
   onRemove,
   flush,
   openPicker,
@@ -57,18 +63,13 @@ const OptionField = ({
   const color = resolveOptionColor(option.color, paletteIndex);
   const hasImage = !isImageEmpty(option.image);
 
-  const applyColor = (next: string) => {
-    onScheduleText({ ...option, color: next });
-    flush();
-  };
-
   const handleToggleCorrect = () => {
     onOpenChange(false);
     onToggleCorrect();
   };
 
   const handlePickColor = (next: string) => {
-    applyColor(next);
+    onSetColor(next);
     onOpenChange(false);
   };
 
@@ -80,7 +81,7 @@ const OptionField = ({
         <CustomColorPicker
           initialColor={color}
           onApply={(hex) => {
-            applyColor(hex);
+            onSetColor(hex);
             closeModal();
           }}
         />
@@ -89,11 +90,10 @@ const OptionField = ({
   };
 
   const handleUploadImage = () => {
-    flush();
     onOpenChange(false);
     openPicker(
       (image) => {
-        onCommit({ ...option, image });
+        onSetImage(image);
       },
       {
         title: "Upload an image",
@@ -105,9 +105,8 @@ const OptionField = ({
   };
 
   const handleClearImage = () => {
-    flush();
     onOpenChange(false);
-    onCommit({ ...option, image: emptyImage() });
+    onSetImage(emptyImage());
   };
 
   const handleRemove = () => {

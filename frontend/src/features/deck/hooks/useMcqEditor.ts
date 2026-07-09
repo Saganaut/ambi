@@ -13,7 +13,7 @@
 // All option identity is compared by `option.id.value`: an `McqOptionId` is a
 // `{ value? }` wrapper, while `content.correctOptionIds` holds the bare value
 // strings.
-import type { McqOption } from "@deck/store/deckApi.gen";
+import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
 import type { McqDataVisualization } from "@deck/store/deckEnums.gen";
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
@@ -62,10 +62,12 @@ interface UseMcqEditorResult {
   /** True while above {@link MIN_MCQ_OPTIONS} — same for every option. */
   canRemove: boolean;
   isCorrect: (optionId: string | undefined) => boolean;
-  /** Debounced field edit (text / colour). */
-  scheduleOption: (optionId: string | undefined, next: McqOption) => void;
-  /** Immediate field edit (e.g. clearing an image). */
-  commitOption: (optionId: string | undefined, next: McqOption) => void;
+  /** Debounced label edit. */
+  scheduleOptionText: (optionId: string | undefined, text: string) => void;
+  /** Override the option's palette color (menu swatch / custom picker). Immediate. */
+  setOptionColor: (optionId: string | undefined, color: string) => void;
+  /** Set or clear (empty AppImage) the option's image. Immediate. */
+  setOptionImage: (optionId: string | undefined, image: AppImage) => void;
   toggleCorrect: (optionId: string | undefined) => void;
   removeOption: (optionId: string | undefined) => void;
 }
@@ -84,11 +86,17 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
   const canAddOption = options.length < MAX_MCQ_OPTIONS;
   const canRemove = options.length > MIN_MCQ_OPTIONS;
 
-  // Replace one option in place, deriving from the freshest pending draft so
-  // sibling edits in the same debounce window aren't clobbered.
-  const setOption = (id: string, next: McqOption) =>
+  // Merge a patch into one option, deriving from the freshest pending draft so
+  // sibling edits in the same debounce window aren't clobbered — and, crucially,
+  // so fields the caller doesn't touch survive. The author UI feeds each option
+  // to the menu/label as chart data (`ChartDatum`), a lossy view that carries a
+  // resolved `imageUrl` but not the raw `image`; a whole-option replace built
+  // from that view would silently wipe a set image whenever the color or label
+  // changed. Patching only the edited field keeps the rest of the stored option
+  // intact.
+  const patchOption = (id: string, patch: Partial<McqOption>) =>
     editor.updateSlideContent((prev) => ({
-      options: prev.options.map((o) => (o.id === id ? next : o)),
+      options: prev.options.map((o) => (o.id === id ? { ...o, ...patch } : o)),
     }));
 
   const question: McqQuestionView | undefined = slide
@@ -134,14 +142,20 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
   const isCorrect = (id: string | undefined) =>
     !!id && (content?.correctOptionIds.includes(id) ?? false);
 
-  const scheduleOption = (id: string | undefined, next: McqOption) => {
+  const scheduleOptionText = (id: string | undefined, text: string) => {
     if (!id) return;
-    setOption(id, next);
+    patchOption(id, { text });
   };
 
-  const commitOption = (id: string | undefined, next: McqOption) => {
+  const setOptionColor = (id: string | undefined, color: string) => {
     if (!id) return;
-    setOption(id, next);
+    patchOption(id, { color });
+    editor.flush();
+  };
+
+  const setOptionImage = (id: string | undefined, image: AppImage) => {
+    if (!id) return;
+    patchOption(id, { image });
     editor.flush();
   };
 
@@ -174,8 +188,9 @@ const useMcqEditor = (deckId: string, slideId: string): UseMcqEditorResult => {
     setDataVisualization,
     canRemove,
     isCorrect,
-    scheduleOption,
-    commitOption,
+    scheduleOptionText,
+    setOptionColor,
+    setOptionImage,
     toggleCorrect,
     removeOption,
   };

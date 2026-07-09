@@ -18,7 +18,8 @@ interface LabelProps {
   /** Shrink text to fit a bounded slot (the option card). */
   fit?: boolean;
   option: McqOption;
-  onScheduleText: (option: McqOption) => void;
+  /** Debounced label edit — emits just the new text; the parent patches the option. */
+  onScheduleText: (text: string) => void;
   flush: () => void;
   /** Focusing the field opens the option menu — the field is its trigger. */
   onFocus?: () => void;
@@ -42,7 +43,7 @@ const Label = ({ option, onScheduleText, flush, onFocus, menuOpen, fit = false }
 
   const handleTextChange = (next: string) => {
     setText(next);
-    onScheduleText({ ...option, text: next });
+    onScheduleText(next);
   };
 
   return (

@@ -3,10 +3,9 @@
  * Actual visualization.
  * Also passes in question prompt editing calls to the wrapper component
  */
-import { AnswerSettings } from "@/features/deck/store/deckApi.gen";
+import { AnswerSettings, AppImage } from "@/features/deck/store/deckApi.gen";
 import { ChartDatum, ChartType } from "@/shared/components/Charts/Chart.types";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { McqOption } from "@/shared/types/Elements.types";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import { useState } from "react";
 import { OptionField } from "../_shared/OptionControls/OptionField";
@@ -31,11 +30,12 @@ const McqSlideContentView = ({
     question,
     schedulePrompt,
     flush,
-    scheduleOption,
+    scheduleOptionText,
     isCorrect,
     toggleCorrect,
     canRemove,
-    commitOption,
+    setOptionColor,
+    setOptionImage,
     removeOption,
   } = editor;
 
@@ -77,11 +77,14 @@ const McqSlideContentView = ({
       onToggleCorrect={() => {
         toggleCorrect(datum.id);
       }}
-      onScheduleText={(next: McqOption) => {
-        scheduleOption(datum.id, next);
+      onScheduleText={(text: string) => {
+        scheduleOptionText(datum.id, text);
       }}
-      onCommit={(next: McqOption) => {
-        commitOption(datum.id, next);
+      onSetColor={(color: string) => {
+        setOptionColor(datum.id, color);
+      }}
+      onSetImage={(image: AppImage) => {
+        setOptionImage(datum.id, image);
       }}
       onRemove={() => {
         removeOption(datum.id);
