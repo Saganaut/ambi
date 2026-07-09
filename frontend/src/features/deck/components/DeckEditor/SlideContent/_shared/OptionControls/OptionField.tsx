@@ -3,8 +3,15 @@
 // and the composer keeps at most one option's menu open via the controlled
 // `open` prop. Positioning, portalling, and dismissal (outside press + Escape)
 // are handled by `FloatingPopover`; the field is the popover's anchor, so it
-// counts as "inside" and moving the caret around it never dismisses. Focus
-// management is off so opening the menu doesn't pull the caret out of the field.
+// counts as "inside" and moving the caret around it never dismisses.
+//
+// Focus management is off (`manageFocus={false}`) so opening the menu never
+// pulls the caret out of the field. Keyboard access into the menu is provided by
+// `listNavigation`: the field keeps focus and the caret on open, and Up/Down
+// step roving focus through the menu's buttons (Enter/Space activate, Escape
+// closes). `ctx.listNav` carries floating-ui's item handles down to the shared
+// `OptionMenuContent` via `OptionMenuNavContext`.
+//
 // The menu body is the shared `OptionMenuContent`; the custom-color path hands
 // off to the shared modal and image upload to the gallery picker.
 import { CheckIcon } from "@heroicons/react/24/outline";
@@ -18,6 +25,7 @@ import type { AppImage } from "@deck/store/deckApi.gen";
 import { McqOption } from "@/shared/types/Elements.types";
 import type { HTMLProps } from "react";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
+import { OptionMenuNavContext } from "../OptionMenu/OptionMenuNavContext";
 import { resolveOptionColor } from "../McqOptionEditable/optionColor";
 import { Label } from "./Label";
 import styles from "./OptionControls.module.css";
@@ -118,6 +126,7 @@ const OptionField = ({
     <FloatingPopover
       openOn="controlled"
       manageFocus={false}
+      listNavigation
       open={open}
       onOpenChange={onOpenChange}
       placement="bottom-start"
@@ -141,23 +150,25 @@ const OptionField = ({
     >
       {({ ctx }) => (
         <div style={ctx.styles}>
-          <OptionMenuContent
-            displayIndex={option.id}
-            currentColor={color}
-            canRemove={canRemove}
-            hasImage={hasImage}
-            primaryAction={{
-              label: isCorrect ? "Mark as wrong" : "Mark as correct",
-              icon: CheckIcon,
-              pressed: isCorrect,
-              onSelect: handleToggleCorrect,
-            }}
-            onPickColor={handlePickColor}
-            onCustomColor={handleCustomColor}
-            onUploadImage={handleUploadImage}
-            onClearImage={handleClearImage}
-            onRemove={handleRemove}
-          />
+          <OptionMenuNavContext value={ctx.listNav ?? null}>
+            <OptionMenuContent
+              displayIndex={option.id}
+              currentColor={color}
+              canRemove={canRemove}
+              hasImage={hasImage}
+              primaryAction={{
+                label: isCorrect ? "Mark as wrong" : "Mark as correct",
+                icon: CheckIcon,
+                pressed: isCorrect,
+                onSelect: handleToggleCorrect,
+              }}
+              onPickColor={handlePickColor}
+              onCustomColor={handleCustomColor}
+              onUploadImage={handleUploadImage}
+              onClearImage={handleClearImage}
+              onRemove={handleRemove}
+            />
+          </OptionMenuNavContext>
         </div>
       )}
     </FloatingPopover>

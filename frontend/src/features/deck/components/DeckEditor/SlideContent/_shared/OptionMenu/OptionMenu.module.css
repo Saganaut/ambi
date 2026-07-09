@@ -73,6 +73,13 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
 
+    /* Roving focus lands here during arrow-key navigation; the app-wide
+       `button { outline: none }` reset hides it, so restore a visible ring. */
+    &:focus-visible {
+      outline: var(--border-size-sm) solid var(--border-focus);
+      outline-offset: 2px;
+    }
+
     /* The chip's own fill is the user's option color (set inline); the ring
        marking the current pick is design chrome. */
     &[aria-pressed="true"] {
@@ -124,8 +131,17 @@
     cursor: pointer;
     transition: background-color var(--duration-fast) ease-out;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background-color: var(--bg-subtle);
+    }
+
+    /* Roving focus indicator — the app-wide `button { outline: none }` reset
+       otherwise hides where arrow-key navigation has landed. Inset so the ring
+       stays clear of the popover's padded edge. */
+    &:focus-visible {
+      outline: var(--border-size-sm) solid var(--border-focus);
+      outline-offset: -2px;
     }
 
     &:disabled {
@@ -150,7 +166,8 @@
   .menuItemBrand {
     color: var(--bg-brand);
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background-color: var(--bg-secondary);
     }
   }
@@ -158,7 +175,8 @@
   .menuItemDanger {
     color: var(--text-error);
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background-color: var(--bg-error);
     }
   }

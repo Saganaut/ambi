@@ -8,11 +8,36 @@
 // render it straight into the floating surface.
 import { PhotoIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { useListItem } from "@floating-ui/react";
+import { type ButtonHTMLAttributes, useContext } from "react";
 
 import { buildOptionPalette } from "@/shared/components/Charts/optionPalette";
 import { Popover } from "@components/Forms/Input/Popover/Popover";
 import styles from "./OptionMenu.module.css";
+import { OptionMenuNavContext } from "./OptionMenuNavContext";
 import type { OptionMenuPrimaryAction } from "./OptionMenu.types";
+
+// A menu button that registers for arrow-key navigation when the host popover
+// provides `OptionMenuNavContext` (the MCQ `FloatingPopover`). Without it — the
+// legacy inline shell — it renders as a plain button, so `useListItem` no-ops
+// and no roving/menu semantics are added. `useListItem` must run every render to
+// keep hook order stable, hence a component rather than an inline branch.
+const MenuNavButton = (props: ButtonHTMLAttributes<HTMLButtonElement>) => {
+  const nav = useContext(OptionMenuNavContext);
+  const { ref, index } = useListItem();
+  if (!nav) {
+    return <button type="button" {...props} />;
+  }
+  return (
+    <button
+      type="button"
+      ref={ref}
+      {...nav.getItemProps(props)}
+      role="menuitem"
+      tabIndex={nav.activeIndex === index ? 0 : -1}
+    />
+  );
+};
 
 interface OptionMenuContentProps {
   /** Display identifier used for the accessible menu label. */
@@ -48,15 +73,14 @@ const OptionMenuContent = ({
     <Popover role="dialog" ariaLabel={`Option ${displayIndex} menu`} className={styles.menu}>
       {primaryAction && (
         <>
-          <button
-            type="button"
+          <MenuNavButton
             className={styles.menuItem}
             aria-pressed={primaryAction.pressed}
             onClick={primaryAction.onSelect}
           >
             <primaryAction.icon className={styles.menuItemIcon} aria-hidden="true" />
             {primaryAction.label}
-          </button>
+          </MenuNavButton>
 
           <div className={styles.menuDivider} aria-hidden="true" />
         </>
@@ -65,9 +89,8 @@ const OptionMenuContent = ({
       <span className={styles.sectionLabel}>Color</span>
       <div className={styles.swatchStrip} role="group" aria-label="Option color">
         {palette.map((paletteColor, paletteIndex) => (
-          <button
+          <MenuNavButton
             key={paletteColor}
-            type="button"
             className={styles.chip}
             style={{ backgroundColor: paletteColor }}
             aria-label={`Palette color ${(paletteIndex + 1).toString()}`}
@@ -77,41 +100,38 @@ const OptionMenuContent = ({
             }}
           />
         ))}
-        <button
-          type="button"
+        <MenuNavButton
           className={[styles.chip, styles.chipPlus].join(" ")}
           aria-label="Custom color"
           onClick={onCustomColor}
         >
           <PlusIcon className={styles.chipPlusIcon} aria-hidden="true" />
-        </button>
+        </MenuNavButton>
       </div>
 
       <div className={styles.menuDivider} aria-hidden="true" />
 
-      <button
-        type="button"
+      <MenuNavButton
         className={[styles.menuItem, styles.menuItemBrand].join(" ")}
         onClick={onUploadImage}
       >
         <PhotoIcon className={styles.menuItemIcon} aria-hidden="true" />
         Upload an image
-      </button>
+      </MenuNavButton>
       {hasImage && (
-        <button type="button" className={styles.menuItem} onClick={onClearImage}>
+        <MenuNavButton className={styles.menuItem} onClick={onClearImage}>
           <XMarkIcon className={styles.menuItemIcon} aria-hidden="true" />
           Remove image
-        </button>
+        </MenuNavButton>
       )}
-      <button
-        type="button"
+      <MenuNavButton
         className={[styles.menuItem, styles.menuItemDanger].join(" ")}
         disabled={!canRemove}
         onClick={onRemove}
       >
         <TrashIcon className={styles.menuItemIcon} aria-hidden="true" />
         Delete
-      </button>
+      </MenuNavButton>
     </Popover>
   );
 };
