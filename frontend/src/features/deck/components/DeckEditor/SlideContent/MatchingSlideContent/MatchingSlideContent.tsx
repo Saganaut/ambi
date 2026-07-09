@@ -17,8 +17,8 @@
  * while the slide is collect-only, but only nudges: an unscored matching
  * round (icebreaker sorting, opinion pairing) is legitimate.
  *
- * Per-card editing lives on `MatchCardEditable`; structural and scoring ops
- * all route through the one `useMatchingEditor`.
+ * Per-card editing lives on the shared `PhraseOrImageCard`; structural and
+ * scoring ops all route through the one `useMatchingEditor`.
  */
 import { useState } from "react";
 
