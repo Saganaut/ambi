@@ -1,18 +1,22 @@
 /**
  * One authored pair in the Matching editor: the numbered `ItemCard` row whose
- * body is left card ↔ right card with a "match" connector between them. The
- * two cards share the pair's palette color by default (mirrored on the index
- * pill) but each can be recolored on its own. Removal lives in the cards'
- * menus (a pair is deleted whole), so the row itself renders no remove
- * button. A controlled row: all writes come in as props from the one
- * `useMatchingEditor` in `MatchingSlideContent`.
+ * body is left card ↔ right card with a "match" connector between them. Each
+ * card is a shared `PhraseOrImageCard` (phrase or image face, focus-opened
+ * option menu). The two cards share the pair's palette color by default
+ * (mirrored on the index pill) but each can be recolored on its own. Removal
+ * lives in the cards' menus (a pair is deleted whole), so the row itself
+ * renders no remove button. A controlled row: all writes come in as props
+ * from the one `useMatchingEditor` in `MatchingSlideContent`.
  */
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
-import type { MatchingPairView, MatchSide } from "@deck/hooks/useMatchingEditor";
+import {
+  MATCHING_LABEL_MAX,
+  type MatchingPairView,
+  type MatchSide,
+} from "@deck/hooks/useMatchingEditor";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { ItemCard } from "../_shared";
-import { MatchCardEditable } from "./MatchCardEditable";
+import { ItemCard, PhraseOrImageCard } from "../_shared";
 import styles from "./MatchingSlideContent.module.css";
 
 interface MatchingPairEditableProps {
@@ -49,13 +53,15 @@ const MatchingPairEditable = ({
   const renderCard = (side: MatchSide) => {
     const card = pair[side];
     return (
-      <MatchCardEditable
-        card={card}
-        side={side}
-        pairNumber={pairNumber}
+      <PhraseOrImageCard
+        item={card}
+        itemName={`pair ${pairNumber.toString()} ${side} card`}
+        displayIndex={`${pairNumber.toString()} · ${side}`}
+        placeholder={`Card ${pairNumber.toString()}${side === "left" ? "a" : "b"}`}
+        labelMaxLength={MATCHING_LABEL_MAX}
         color={resolveDatumColor(card.color, pairIndex)}
         menuOpen={card.id != null && openMenuId === card.id}
-        canRemovePair={canRemovePair}
+        canRemove={canRemovePair}
         onMenuOpenChange={(open) => {
           onMenuOpenChange(card.id, open);
         }}
@@ -69,7 +75,7 @@ const MatchingPairEditable = ({
         onSetImage={(image) => {
           onSetImage(side, card.id, image);
         }}
-        onRemovePair={onRemovePair}
+        onRemove={onRemovePair}
         openPicker={openPicker}
       />
     );

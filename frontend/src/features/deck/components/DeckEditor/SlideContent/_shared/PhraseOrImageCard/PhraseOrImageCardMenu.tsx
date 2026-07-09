@@ -1,14 +1,13 @@
 /**
- * Per-card popover menu for Matching pair cards — the same focus-opened
+ * Per-card popover menu for phrase-or-image cards — the same focus-opened
  * pattern as MCQ's option menu (`OptionControls/Menu`) and `AxisItemMenu`:
- * the composer opens it when the card's field (phrase input or image slot)
- * takes focus, this controller owns dismissal (outside pointerdown and
- * Escape) with the field counted inside the boundary (it is the trigger —
- * interacting with it must not dismiss the menu). The menu itself is the
- * shared `OptionMenu` (palette + custom color, image upload/clear, delete);
- * the kind-specific primary action flips the card between its two faces —
- * phrase and image. Delete removes the whole pair: a card never exists
- * without its partner.
+ * the card opens it when its field (phrase input or image slot) takes focus,
+ * this controller owns dismissal (outside pointerdown and Escape) with the
+ * field counted inside the boundary (it is the trigger — interacting with it
+ * must not dismiss the menu). The menu itself is the shared `OptionMenu`
+ * (palette + custom color, image upload/clear, delete); the primary action
+ * flips the card between its two faces — phrase and image. What delete
+ * removes (a whole Matching pair, one Grid item) is the composer's business.
  */
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef } from "react";
@@ -16,49 +15,49 @@ import { useEffect, useRef } from "react";
 import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { useModal } from "@hooks/useModal";
-import type { AppImage, MatchItem } from "@deck/store/deckApi.gen";
+import type { AppImage } from "@deck/store/deckApi.gen";
 import { emptyImage, isImageEmpty } from "@utils/image";
-import { OptionMenu } from "../_shared/OptionMenu/OptionMenu";
-import styles from "./MatchingSlideContent.module.css";
+import { OptionMenu } from "../OptionMenu/OptionMenu";
+import styles from "./PhraseOrImageCard.module.css";
 
-interface MatchCardMenuProps {
-  card: MatchItem;
+interface PhraseOrImageCardMenuProps {
+  item: { image?: AppImage };
   /** Human label for the accessible menu name, e.g. "3 · left". */
   displayIndex: string;
   /** DOM id of the card's field — the menu's trigger, inside the dismissal boundary. */
   fieldId: string;
-  /** The card's resolved color (override or pair palette default). */
+  /** The card's resolved accent color (override or palette default). */
   color: string;
-  /** Controlled open state — the composer opens on field focus. */
+  /** Controlled open state — the card opens on field focus. */
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Whether the card currently shows its image face. */
   isImageCard: boolean;
-  canRemovePair: boolean;
+  canRemove: boolean;
   /** Flip the card between its phrase and image faces. */
   onFlip: () => void;
   onSetColor: (color: string) => void;
   onSetImage: (image: AppImage) => void;
-  /** Remove the whole pair this card belongs to. */
-  onRemovePair: () => void;
+  /** Remove whatever unit this card stands for (pair, item). */
+  onRemove: () => void;
   openPicker: OpenGalleryPicker;
 }
 
-const MatchCardMenu = ({
-  card,
+const PhraseOrImageCardMenu = ({
+  item,
   displayIndex,
   fieldId,
   color,
   open,
   onOpenChange,
   isImageCard,
-  canRemovePair,
+  canRemove,
   onFlip,
   onSetColor,
   onSetImage,
-  onRemovePair,
+  onRemove,
   openPicker,
-}: MatchCardMenuProps) => {
+}: PhraseOrImageCardMenuProps) => {
   const anchorRef = useRef<HTMLDivElement>(null);
   const { openModal, closeModal } = useModal();
 
@@ -117,7 +116,7 @@ const MatchCardMenu = ({
       },
       {
         title: "Upload an image",
-        initialUrl: card.image?.externalSrc,
+        initialUrl: item.image?.externalSrc,
         cropWidth: 1,
         cropHeight: 1,
       },
@@ -131,7 +130,7 @@ const MatchCardMenu = ({
 
   const handleRemove = () => {
     onOpenChange(false);
-    onRemovePair();
+    onRemove();
   };
 
   return (
@@ -140,8 +139,8 @@ const MatchCardMenu = ({
         <OptionMenu
           displayIndex={displayIndex}
           currentColor={color}
-          canRemove={canRemovePair}
-          hasImage={!isImageEmpty(card.image)}
+          canRemove={canRemove}
+          hasImage={!isImageEmpty(item.image)}
           primaryAction={{
             label: isImageCard ? "Use a phrase" : "Use an image",
             icon: ArrowsRightLeftIcon,
@@ -159,4 +158,4 @@ const MatchCardMenu = ({
   );
 };
 
-export { MatchCardMenu };
+export { PhraseOrImageCardMenu };

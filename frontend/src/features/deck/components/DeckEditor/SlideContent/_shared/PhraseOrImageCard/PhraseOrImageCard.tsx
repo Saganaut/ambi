@@ -1,84 +1,103 @@
 /**
- * One card of a Matching pair. A card holds exactly one face at a time — a
- * phrase (fit-to-slot text field) or an image (gallery-picked thumbnail) —
- * with a footer flip button to switch. Which face shows is derived from the
- * data (an image set → image face) plus a local "flipped to image, nothing
- * uploaded yet" override, so no ambiguous phrase+image state ever persists:
- * flipping an image card back to phrase clears its image.
+ * One editable "phrase or image" card — the shared body for slide-kind items
+ * that hold either a short text or a picked image (Matching cards, Grid
+ * items). A card shows exactly one face at a time — a phrase (fit-to-slot
+ * text field) or an image (gallery-picked thumbnail) — with a footer flip
+ * button to switch. Which face shows is derived from the data (an image set →
+ * image face) plus a local "flipped to image, nothing uploaded yet" override,
+ * so no ambiguous phrase+image state ever persists: flipping an image card
+ * back to phrase clears its image.
  *
  * Focusing the card's field (phrase input or image slot) opens its popover
- * menu (flip, color, image, delete pair) — MCQ's option-menu pattern; the
- * composer owns which menu is open. Clicking the image slot goes straight to
- * the gallery picker. A controlled card: the phrase mirror lives here while
- * every write comes in as props from the one `useMatchingEditor` in
- * `MatchingSlideContent`.
+ * menu (flip, color, image, delete) — MCQ's option-menu pattern; the composer
+ * owns which menu is open (at most one per slide). Clicking the image slot
+ * goes straight to the gallery picker. A controlled card: the phrase mirror
+ * lives here while every write comes in as props from the composer's one
+ * editor hook. What "delete" means (the whole Matching pair, the one Grid
+ * item) is the caller's: it supplies the handler and the enable flag.
  */
 import { ArrowsRightLeftIcon, PhotoIcon } from "@heroicons/react/24/outline";
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { useFitText } from "@hooks/useFitText";
-import { MATCHING_LABEL_MAX, type MatchSide } from "@deck/hooks/useMatchingEditor";
-import type { AppImage, MatchItem } from "@deck/store/deckApi.gen";
+import type { AppImage } from "@deck/store/deckApi.gen";
 import { emptyImage, isImageEmpty, resolveImageUrl } from "@utils/image";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { MatchCardMenu } from "./MatchCardMenu";
-import styles from "./MatchingSlideContent.module.css";
+import { PhraseOrImageCardMenu } from "./PhraseOrImageCardMenu";
+import styles from "./PhraseOrImageCard.module.css";
 
-interface MatchCardEditableProps {
-  card: MatchItem;
-  side: MatchSide;
-  /** 1-based pair position, for placeholders and accessible names. */
-  pairNumber: number;
-  /** The card's resolved color (override or pair palette default). */
+/** The slice of an item a card edits — Matching cards and Grid items fit. */
+interface PhraseOrImageItem {
+  id?: string;
+  label?: string;
+  image?: AppImage;
+}
+
+interface PhraseOrImageCardProps {
+  item: PhraseOrImageItem;
+  /** Human name for accessible labels, e.g. "pair 3 left card" / "item 4". */
+  itemName: string;
+  /** Short display identifier for the menu's accessible name, e.g. "3 · left". */
+  displayIndex: string;
+  /** Placeholder for the phrase field. */
+  placeholder: string;
+  /** `maxLength` for the phrase field. */
+  labelMaxLength: number;
+  /** The card's resolved accent color (override or palette default). */
   color: string;
-  /** Whether this card's popover menu is open (at most one per slide). */
+  /** Whether this card's popover menu is open (the composer owns it). */
   menuOpen: boolean;
-  canRemovePair: boolean;
+  canRemove: boolean;
   onMenuOpenChange: (open: boolean) => void;
   /** Debounced phrase edit. */
   onScheduleLabel: (label: string) => void;
   onFlush: () => void;
   onSetColor: (color: string) => void;
   onSetImage: (image: AppImage) => void;
-  /** Remove the whole pair this card belongs to. */
-  onRemovePair: () => void;
+  /** Remove whatever unit this card stands for (pair, item). */
+  onRemove: () => void;
   openPicker: OpenGalleryPicker;
+  /** Extra footer action(s) rendered beside the flip button, e.g. a drag grip. */
+  actions?: ReactNode;
 }
 
-const MatchCardEditable = ({
-  card,
-  side,
-  pairNumber,
+const PhraseOrImageCard = ({
+  item,
+  itemName,
+  displayIndex,
+  placeholder,
+  labelMaxLength,
   color,
   menuOpen,
-  canRemovePair,
+  canRemove,
   onMenuOpenChange,
   onScheduleLabel,
   onFlush,
   onSetColor,
   onSetImage,
-  onRemovePair,
+  onRemove,
   openPicker,
-}: MatchCardEditableProps) => {
-  const cardId = card.id ?? "";
-  const fieldId = `match-card-${cardId}`;
+  actions,
+}: PhraseOrImageCardProps) => {
+  const itemId = item.id ?? "";
+  const fieldId = `phrase-image-card-${itemId}`;
 
-  const [label, setLabel] = useState(card.label ?? "");
+  const [label, setLabel] = useState(item.label ?? "");
   // "Flipped to image but nothing uploaded yet" — pure UI state; the card
   // reads back as a phrase card until an image is actually picked.
   const [flippedToImage, setFlippedToImage] = useState(false);
-  const [syncedFromId, setSyncedFromId] = useState(card.id);
-  if (syncedFromId !== card.id) {
-    setSyncedFromId(card.id);
-    setLabel(card.label ?? "");
+  const [syncedFromId, setSyncedFromId] = useState(item.id);
+  if (syncedFromId !== item.id) {
+    setSyncedFromId(item.id);
+    setLabel(item.label ?? "");
     setFlippedToImage(false);
   }
 
-  const hasImage = !isImageEmpty(card.image);
+  const hasImage = !isImageEmpty(item.image);
   const isImageCard = hasImage || flippedToImage;
-  const thumbnailSrc = hasImage ? resolveImageUrl(card.image, "SM", cardId, 200, 200, false) : null;
+  const thumbnailSrc = hasImage ? resolveImageUrl(item.image, "SM", itemId, 200, 200, false) : null;
 
   // Called unconditionally to keep hook order stable; the ref only attaches
   // while the phrase face renders.
@@ -103,7 +122,7 @@ const MatchCardEditable = ({
       },
       {
         title: "Upload an image",
-        initialUrl: card.image?.externalSrc,
+        initialUrl: item.image?.externalSrc,
         cropWidth: 1,
         cropHeight: 1,
       },
@@ -111,7 +130,7 @@ const MatchCardEditable = ({
   };
 
   return (
-    <div className={styles.card} style={{ "--match-card-color": color } as CSSProperties}>
+    <div className={styles.card} style={{ "--card-color": color } as CSSProperties}>
       {isImageCard ? (
         <button
           type="button"
@@ -121,7 +140,7 @@ const MatchCardEditable = ({
           onFocus={() => {
             onMenuOpenChange(true);
           }}
-          aria-label={`Pair ${pairNumber.toString()} ${side} card image`}
+          aria-label={`${itemName} image`}
           aria-haspopup="dialog"
           aria-expanded={menuOpen}
         >
@@ -142,9 +161,9 @@ const MatchCardEditable = ({
           rows={2}
           ref={fitRef}
           id={fieldId}
-          maxLength={MATCHING_LABEL_MAX}
+          maxLength={labelMaxLength}
           value={label}
-          placeholder={`Card ${pairNumber.toString()}${side === "left" ? "a" : "b"}`}
+          placeholder={placeholder}
           onChange={(e) => {
             const next = e.target.value;
             setLabel(next);
@@ -160,26 +179,27 @@ const MatchCardEditable = ({
       )}
       <div className={styles.cardFooter}>
         <span className={styles.kindBadge}>{isImageCard ? "Image" : "Phrase"}</span>
-        <MatchCardMenu
-          card={card}
-          displayIndex={`${pairNumber.toString()} · ${side}`}
+        <PhraseOrImageCardMenu
+          item={item}
+          displayIndex={displayIndex}
           fieldId={fieldId}
           color={color}
           open={menuOpen}
           onOpenChange={onMenuOpenChange}
           isImageCard={isImageCard}
-          canRemovePair={canRemovePair}
+          canRemove={canRemove}
           onFlip={handleFlip}
           onSetColor={onSetColor}
           onSetImage={onSetImage}
-          onRemovePair={onRemovePair}
+          onRemove={onRemove}
           openPicker={openPicker}
         />
+        {actions}
         <IconBtn
           fill="ghost"
           size="xs"
           icon={<ArrowsRightLeftIcon />}
-          aria-label={`Switch pair ${pairNumber.toString()} ${side} card to ${isImageCard ? "a phrase" : "an image"}`}
+          aria-label={`Switch ${itemName} to ${isImageCard ? "a phrase" : "an image"}`}
           onClick={handleFlip}
         />
       </div>
@@ -187,4 +207,5 @@ const MatchCardEditable = ({
   );
 };
 
-export { MatchCardEditable };
+export { PhraseOrImageCard };
+export type { PhraseOrImageItem };
