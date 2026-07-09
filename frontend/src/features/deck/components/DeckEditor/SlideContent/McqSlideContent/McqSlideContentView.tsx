@@ -4,13 +4,12 @@
  * Also passes in question prompt editing calls to the wrapper component
  */
 import { AnswerSettings } from "@/features/deck/store/deckApi.gen";
-import { ChartDatum, ChartType, MenuAlign } from "@/shared/components/Charts/Chart.types";
+import { ChartDatum, ChartType } from "@/shared/components/Charts/Chart.types";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import { useState } from "react";
-import { Label } from "../_shared/OptionControls/Label";
-import { Menu } from "../_shared/OptionControls/Menu";
+import { OptionField } from "../_shared/OptionControls/OptionField";
 import { ResultsDisplaySwitch } from "../ResultsDisplaySwitch/ResultsDisplaySwitch";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import styles from "./McqSlideContent.module.css";
@@ -66,25 +65,9 @@ const McqSlideContentView = ({
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
   const renderLabel = (datum: ChartDatum) => (
-    <Label
+    <OptionField
       option={datum}
-      flush={flush}
-      onScheduleText={(next: McqOption) => {
-        scheduleOption(datum.id, next);
-      }}
-      onFocus={() => {
-        setOpenMenuId(datum.id);
-      }}
-      menuOpen={openMenuId === datum.id}
-    />
-  );
-
-  const renderMenu = (datum: ChartDatum, menuAlign?: MenuAlign) => (
-    <Menu
-      activeOption={datum}
-      index={datum.id}
       paletteIndex={question.options.findIndex((option) => option.id === datum.id)}
-      popoverAlign={menuAlign}
       canRemove={canRemove}
       isCorrect={isCorrect(datum.id)}
       open={openMenuId === datum.id}
@@ -107,6 +90,12 @@ const McqSlideContentView = ({
       openPicker={openPicker}
     />
   );
+
+  // The menu now lives with the label (it opens off the field, via
+  // OptionField). The chart's menu slot renders nothing, but the callback stays
+  // truthy so charts that gate their action row on it (e.g. BarChart's correct
+  // badge) keep rendering it.
+  const renderMenu = () => null;
 
   return (
     <SlideContentWrapper

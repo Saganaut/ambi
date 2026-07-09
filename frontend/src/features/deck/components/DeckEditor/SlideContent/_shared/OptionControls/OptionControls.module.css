@@ -1,11 +1,11 @@
-/* OptionControls — the per-option menu controller composed into option cards
-   and chart labels. The menu opens off the label field's focus, so the only
-   chrome left here is the popover's positioned anchor. */
+/* OptionControls — the per-option editable label paired with its dropdown menu
+   (OptionField). The label field is the popover's trigger; FloatingPopover
+   portals and positions the menu, so no positioned anchor is needed here. */
 
-/* Positioned anchor for the OptionMenu popover: keeps the menu opening off
-   the controls slot (card footer, chart label row) rather than whatever
-   ancestor happens to be positioned (in charts that would be the
-   full-height column). */
-.menuAnchor {
-  position: relative;
+/* Wraps the label field so it can serve as the popover's anchor element
+   (FloatingPopover measures this box to place the menu). Fills the slot the
+   bare label used to, so card/chart layout is unchanged. */
+.triggerWrap {
+  display: block;
+  width: 100%;
 }
