@@ -66,13 +66,19 @@
       }
 
       .placedChip {
+        /* Fallback for the inline value set from the item's resolved color. */
+        --chip-accent: var(--bg-brand);
+
         position: relative;
         z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
         padding: var(--space-1) var(--space-3);
-        border: none;
+        border: var(--border-size-md) solid var(--chip-accent);
         border-radius: var(--radius-full);
-        background-color: var(--bg-brand);
-        color: var(--text-on-brand);
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
         font-weight: 600;
 
         &:disabled {
@@ -118,8 +124,14 @@
       gap: var(--space-2);
 
       .bankChip {
+        /* Fallback for the inline value set from the item's resolved color. */
+        --chip-accent: var(--edge-subtle);
+
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
         padding: var(--space-1) var(--space-3);
-        border: var(--border-size-md) solid var(--edge-subtle);
+        border: var(--border-size-md) solid var(--chip-accent);
         border-radius: var(--radius-full);
         background-color: var(--bg-surface-raised);
         color: var(--text-primary);
@@ -144,5 +156,13 @@
       color: var(--text-success);
       font-weight: 600;
     }
+  }
+
+  /* Authored item image, shown inside its chip beside the label. */
+  .chipImage {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-full);
+    object-fit: cover;
   }
 }

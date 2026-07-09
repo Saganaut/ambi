@@ -86,7 +86,7 @@ public record SlideView(
                 qAndA = QAndAConfigView.from(qanda);
             }
             if (content instanceof GridContent gridContent) {
-                grid = GridConfigView.from(gridContent);
+                grid = GridConfigView.from(gridContent, imageUrl);
             }
             if (content instanceof AxisContent axisContent) {
                 axis = AxisConfigView.from(axisContent);

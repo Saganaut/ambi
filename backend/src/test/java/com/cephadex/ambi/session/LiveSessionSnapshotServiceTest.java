@@ -212,7 +212,7 @@ class LiveSessionSnapshotServiceTest {
         when(slide.getId()).thenReturn("slide-1");
         when(slide.getContent()).thenReturn(new GridContent(
                 List.of("Row A"), List.of("Col A", "Col B"),
-                List.of(new GridItem("it-1", "One", null, null)),
+                List.of(new GridItem("it-1", "One", null, "#aabbcc")),
                 Map.of("it-1", "0,1"),
                 ScoreMode.EXACT));
         Deck deck = mock(Deck.class);
@@ -231,6 +231,8 @@ class LiveSessionSnapshotServiceTest {
                 .satisfies(item -> {
                     assertThat(item.id()).isEqualTo("it-1");
                     assertThat(item.label()).isEqualTo("One");
+                    assertThat(item.imageUrl()).isNull();
+                    assertThat(item.color()).isEqualTo("#aabbcc");
                 });
         // The answer key must never travel: GridConfigView has no correctCells at all.
     }

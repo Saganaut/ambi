@@ -109,6 +109,26 @@ describe("GridBoardContent placing", () => {
     expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Bat" })).not.toBeInTheDocument();
   });
+
+  it("renders an authored item image inside its chip, keeping the label as its name", () => {
+    const withImage: SlideView = {
+      ...slide,
+      grid: {
+        rowLabels: ["Mammal", "Bird"],
+        colLabels: ["Flies", "Walks"],
+        items: [
+          { id: "bat", label: "Bat", imageUrl: "https://img.test/bat.png", color: "#123456" },
+          { id: "pen", label: "Penguin" },
+        ],
+      },
+    };
+    render(<GridBoardContent slide={withImage} mode="prompt" interactive />);
+
+    const image = screen.getByRole("img", { name: "Bat" });
+    expect(image).toHaveAttribute("src", "https://img.test/bat.png");
+    // The chip button is still addressable by the item label.
+    expect(screen.getByRole("button", { name: /Bat/ })).toBeInTheDocument();
+  });
 });
 
 describe("GridBoardContent results", () => {

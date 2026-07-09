@@ -374,6 +374,8 @@ export type QAndAConfigView = {
 export type GridItemView = {
   id?: string;
   label?: string;
+  imageUrl?: string;
+  color?: string;
 };
 export type GridConfigView = {
   rowLabels?: string[];

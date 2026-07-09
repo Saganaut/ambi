@@ -12,8 +12,9 @@
 //
 // Tap-to-place (rather than drag) keeps the surface small-screen and
 // keyboard/AT friendly: chips and cells are plain buttons.
-import { useEffect, useMemo, useState } from "react";
-import type { SlideView } from "../../../store/liveSessionApi.gen";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
+import type { GridItemView, SlideView } from "../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../resolveBoardStage";
@@ -94,6 +95,30 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
   const labelOf = (labels: string[], index: number, fallback: string): string =>
     labels[index]?.trim() || `${fallback} ${(index + 1).toString()}`;
 
+  // Chip accent: the authored color override, else the shared palette by the
+  // item's AUTHORED position (pre-shuffle), so chips match the editor's colors.
+  const accentOf = (item: GridItemView): string =>
+    resolveDatumColor(
+      item.color,
+      Math.max(0, (gridItems ?? []).findIndex((authored) => authored.id === item.id)),
+    );
+
+  // A chip face is the item's image (when authored) beside its label; an
+  // image-only chip keeps its accessible name via the img alt text.
+  const chipFace = (item: GridItemView) =>
+    item.imageUrl ? (
+      <>
+        <img
+          className={styles.chipImage}
+          src={item.imageUrl}
+          alt={item.label?.trim() || "Item"}
+        />
+        {item.label?.trim() && <span>{item.label.trim()}</span>}
+      </>
+    ) : (
+      item.label?.trim() || "Item"
+    );
+
   return (
     <div className={styles.gridBoardContent}>
       {myOutcome && (
@@ -138,6 +163,7 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                     key={item.id}
                     type='button'
                     className={styles.placedChip}
+                    style={{ "--chip-accent": accentOf(item) } as CSSProperties}
                     disabled={!canPlace}
                     aria-label={`Pick ${item.label?.trim() || "item"} back up from ${cellName}`}
                     onClick={() => {
@@ -148,7 +174,7 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                       });
                       setHeldItemId(item.id);
                     }}>
-                    {item.label?.trim() || "Item"}
+                    {chipFace(item)}
                   </button>
                 ))}
                 {showCounts && total > 0 && (
@@ -193,12 +219,13 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                       ]
                         .filter(Boolean)
                         .join(" ")}
+                      style={{ "--chip-accent": accentOf(item) } as CSSProperties}
                       aria-pressed={heldItemId === item.id}
                       disabled={!canPlace}
                       onClick={() => {
                         setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
                       }}>
-                      {item.label?.trim() || "Item"}
+                      {chipFace(item)}
                     </button>
                   ))
                 )}
