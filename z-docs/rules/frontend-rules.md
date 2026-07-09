@@ -5,7 +5,7 @@ Rules for the React + TypeScript frontend under `frontend/`. Styling and icons h
 1. **TypeScript first** — All new code is TypeScript with strict typing; avoid `any`.
 2. **Semantic HTML & accessibility** — Use semantic elements; build every component with ARIA and keyboard navigation in mind.
 3. **React 19 & React Compiler** — Write code compatible with React 19 and its Compiler.
-4. **Lint clean** — ESLint and Stylelint must report zero errors before commit (`scripts/pre-commit` runs `lint:all`); CI also lints every push/PR to `main`.
+4. **Lint clean** — oxlint and Stylelint must report zero errors before commit (`scripts/pre-commit` runs `lint:all`); CI also lints every push/PR to `main`.
 5. **CSS Modules & tokens** — Use lowerCamelCase selectors and tokens from `tokens.css`. See [styling-rules.md](styling-rules.md).
 6. **TanStack Router** — Do all client-side routing via the file-based convention in `frontend/src/routes/`.
 7. **State management** — Minimize Redux core store for generic global state; prefer RTK Query's cache as the primary mechanism for server data and associated UI state. Mutations reconcile the cache from their own response (no invalidate + refetch) and components reach the cache only through intent-level hooks. — [details](frontend/rtk-query-cache.md)
