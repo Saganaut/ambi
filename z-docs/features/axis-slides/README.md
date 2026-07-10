@@ -274,36 +274,45 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   palette-colored index badge, a label field with its popover menu
   (`AxisItemField.tsx`), an image thumbnail when one is set, and the
   accessible X/Y inputs. Clicking the row selects it.
-- `AxisItemField.tsx` — the Axis counterpart of MCQ's
-  `OptionControls/OptionField.tsx`. The label `Input` is itself the popover's
-  trigger, wrapped in a `.triggerWrap` anchor div; focusing it opens the
-  menu. The shared `FloatingPopover`
+- `AxisItemField.tsx` — a thin wrapper around the shared `ItemField`
+  (`_shared/ItemField/ItemField.tsx`) that supplies the Axis-specific
+  primary action: "Set target" (seeds `{x: 0.5, y: 0.5}`, the plane's
+  center) / "Clear target". `ItemField` — extracted from `AxisItemField`
+  and also used by [Place-on-Image](../place-on-image/README.md)'s target
+  rows — owns the generic mechanics: the label `Input` is itself the
+  popover's trigger, wrapped in a `.triggerWrap` anchor div; focusing it
+  opens the menu. The shared `FloatingPopover`
   (`shared/components/Popover/PopoverWrapper.tsx`) handles portalling,
-  floating-ui positioning (`flip`/`shift`, replacing the old
-  `useFlipToFit`), and dismissal (outside press + Escape via `useDismiss`) —
+  floating-ui positioning (`flip`/`shift`, replacing the old manual
+  flip-to-fit measurement), and dismissal (outside press + Escape via
+  `useDismiss`) —
   the field is the popover's anchor, so it counts as "inside" and typing in
   it never dismisses the menu, with no DOM-id boundary check needed.
   `manageFocus={false}` keeps the caret in the field on open;
   `listNavigation` gives Up/Down roving focus through the menu's buttons via
-  `PopoverNavContext` (new for Axis). The menu body is the shared
-  `OptionMenuContent` rendered directly — the legacy `OptionMenu` shell is
-  no longer part of the Axis path. The kind-specific primary action toggles
-  "Set target" (seeds `{x: 0.5, y: 0.5}`, the plane's center) / "Clear
-  target"; below it, the shared color palette + custom-color modal,
-  upload/remove image via the gallery picker, and delete. The row's old
-  inline "Set target" button and clear-target icon are gone — those actions
-  live in the menu now.
+  `PopoverNavContext`. The menu body is the shared `OptionMenuContent`
+  rendered directly — the legacy `OptionMenu` shell is no longer part of
+  the Axis (or Place-on-Image) path. Below the kind-specific primary
+  action: the shared color palette + custom-color modal, upload/remove
+  image via the gallery picker, and delete. The row's old inline "Set
+  target" button and clear-target icon are gone — those actions live in
+  the menu now.
 
-**Shared dependency:** Axis (`AxisItemField.tsx`), MCQ
-(`OptionControls/OptionField.tsx`), and Match/Grid
-(`_shared/PhraseOrImageCard/PhraseOrImageCard.tsx`) all render the shared
+**Shared dependency:** all render the shared
 `_shared/OptionMenu/OptionMenuContent.tsx` — the presentational menu body
 (palette + custom color, image upload/clear, delete, and a `primaryAction`
 prop each kind supplies: MCQ passes mark-correct, Axis passes
-set/clear-target, Match/Grid passes the phrase/image face flip) — directly
-inside a `FloatingPopover`. The legacy `_shared/OptionMenu/OptionMenu.tsx`
-shell (manual outside-pointerdown/Escape dismissal, `useFlipToFit.ts`
-positioning) is no longer on those paths; it remains in use only by Ranking
+set/clear-target, Place-on-Image passes center-target, Match/Grid passes
+the phrase/image face flip). Axis (`AxisItemField.tsx`) and
+Place-on-Image's target rows reach it via the shared
+`_shared/ItemField/ItemField.tsx` (label field as popover trigger,
+`FloatingPopover`, `OptionMenuContent`); MCQ
+(`OptionControls/OptionField.tsx`) and Match/Grid
+(`_shared/PhraseOrImageCard/PhraseOrImageCard.tsx`) render
+`FloatingPopover`/`OptionMenuContent` directly rather than through
+`ItemField`. The legacy `_shared/OptionMenu/OptionMenu.tsx` shell (manual
+outside-pointerdown/Escape dismissal, static start/end alignment) is no
+longer on any of those paths; it remains in use only by Ranking
 (`RankItemMenu.tsx`), which hasn't migrated yet.
 
 ### Registration

@@ -27,10 +27,15 @@ public record PlaceOnImageContent(
 }
 ```
 
-`Target(String id, double x, double y, double radius)` (shared with Axis, in
-`SlideContentTypes.java`) is an **anonymous** circle — unlike Axis's items,
-targets carry no label/identity beyond their id, so there's no bank to
-address them by name; the editor addresses them by array index.
+`Target(String id, String label, AppImage image, String color, double x,
+double y, double radius)` (shared with Axis, in `SlideContentTypes.java`)
+carries the same optional author annotations as Axis's `AxisItem` —
+`label`, `image`, `color` — so the editor's shared `ItemField` row control
+(see [Editor UX](#editor-ux) below) can label a target, override its
+palette color, or attach an image; the grader reads only `x`/`y`/`radius`
+and ignores the rest. There's still no bank to address targets by name —
+the editor's target ops (`moveTarget`, `removeTarget`, ...) take an array
+index, not an id or label.
 
 Coordinates are screen-space over the image box: **`(0, 0)` is the image's
 top-left corner**, y is *not* inverted — the opposite of Axis's bottom-left
@@ -83,9 +88,12 @@ Over the generic `useSlideEditor(deckId, slideId, "PLACE_ON_IMAGE")`:
 - Synthesized `question` view (`prompt` from `slide.title`, `image`,
   `targets`, one shared `tolerance`); debounced `schedulePrompt`.
 - `setImage(image)` — immediate; swaps the backing image.
-- Target ops, addressed by array index (targets carry no label):
-  `addTarget(point?)` (defaults to image centre), `moveTarget(index, point)`,
-  `removeTarget(index)`.
+- Coordinate/structural ops, addressed by array index (there's still no
+  by-name bank): `addTarget(point?)` (defaults to image centre),
+  `moveTarget(index, point)`, `removeTarget(index)`.
+- Author-annotation ops, mirroring Axis's item ops and also addressed by
+  index: `scheduleTargetLabel(index, label)` (debounced), `setTargetColor(index, color)`
+  and `setTargetImage(index, image)` (both immediate).
 - **`setTolerance(value)`** — the one knob that matters: every target's
   `radius` on the wire is kept in lockstep (clamped `0.02`–`0.5`, i.e. 2–50 %),
   so a target-less slide's *next* `addTarget` seeds at the shared default
@@ -95,25 +103,37 @@ Over the generic `useSlideEditor(deckId, slideId, "PLACE_ON_IMAGE")`:
   a model constraint; per-target tolerance is authorable by hand-editing the
   content, just not through this editor.
 - Constants: `MAX_PLACE_TARGETS = 6` (one per shared palette color, matching
-  Axis's item cap), `PLACE_TOLERANCE_MIN/MAX/DEFAULT = 0.02 / 0.5 / 0.1`.
+  Axis's item cap), `PLACE_TOLERANCE_MIN/MAX/DEFAULT = 0.02 / 0.5 / 0.1`,
+  `PLACE_LABEL_MAX = 80` (mirrors `AXIS_LABEL_MAX`).
 
 ### Components — `SlideContent/PlaceOnImageSlideContent/`
 
 - `PlaceOnImageSlideContent.tsx` — mirrors `AxisSlideContent`'s side-by-side
   `SettingsCard` layout: an "Image" card (choose/replace button + the
   placement surface) and a "Targets" card (tolerance `NumberInput` in the
-  header, one `ItemCard` row per target with accessible X/Y percent inputs,
-  add/remove). Advisory (non-blocking) footer nudges for an image and at
-  least one target — a target-less slide is still valid.
+  header, one `ItemCard` row per target, add/remove). Each row's fields are
+  the shared `ItemField` (`_shared/ItemField/ItemField.tsx` — the same
+  label-field-with-popover control [Axis's items](../axis-slides/README.md)
+  use): the label doubles as the popover trigger, and the menu holds "Center
+  target" (the pointer-free placement path, parking the target at the
+  image's centre), the shared color palette/custom-color modal, image
+  upload/clear, and delete — replacing the old numeric X/Y percent inputs. A
+  row also shows an image thumbnail when the target has one. The composer
+  owns which row's menu is open (at most one). Advisory (non-blocking)
+  footer nudges for an image and at least one target — a target-less slide
+  is still valid.
 - `PlaceOnImageSurface.tsx` — the placement surface: a plain block `<img>` at
   its intrinsic aspect ratio (never letterboxed/stretched), so the normalized
   overlay coordinates land exactly where players would see them. Press the
   open image to drop a new target and keep dragging it; release commits.
-  Placed markers (numbered dot in the target's palette color, from
-  `targetColor.ts`, the shared 6-color palette) drag directly via pointer
-  capture. Each marker draws its tolerance region as an ellipse sized to the
-  same percentage of the (usually non-square) image box the grader measures
-  in — what the author sees is what is graded.
+  Placed markers drag directly via pointer capture, in the target's resolved
+  color (`resolveTargetColor(target.color, index)` in `targetColor.ts` — the
+  authored override when set, else the shared 6-color palette by index). A
+  labeled target grows an Axis-style label pill next to its numbered dot —
+  the dot, not the pill, stays centred on the graded point; unlabeled
+  targets stay a bare numbered dot. Each marker draws its tolerance region as
+  an ellipse sized to the same percentage of the (usually non-square) image
+  box the grader measures in — what the author sees is what is graded.
 - Image picking uses `cropAspect: "source"` (see
   [below](#gallerypicker-cropaspect-source)) so the uploaded backing image is
   never clipped to a fixed frame before the placement surface — which renders
