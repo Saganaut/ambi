@@ -11,12 +11,12 @@ interface DefaultResultsDisplayProps {
   onReorder: (event: DragEndEvent) => void;
   addOption: () => void;
   canAddOption: boolean;
-  renderLabel?: (datum: ChartDatum) => ReactNode;
+  renderLabelWithMenu?: (datum: ChartDatum) => ReactNode;
   renderMenu?: (datum: ChartDatum) => ReactNode;
 }
 
 const DefaultResultsDisplay = ({
-  renderLabel,
+  renderLabelWithMenu,
   renderMenu,
   data,
   displayAsPercentage,
@@ -40,7 +40,7 @@ const DefaultResultsDisplay = ({
             datum={option}
             denominator={denominator}
             highestValue={highestValue}
-            renderLabel={renderLabel}
+            renderLabelWithMenu={renderLabelWithMenu}
             isCorrect={option.isCorrect ?? false}
             renderMenu={renderMenu}
             displayAsPercentage={displayAsPercentage}

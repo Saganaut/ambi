@@ -3,7 +3,6 @@ import { useRef } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps, ChartSegmentRenderProps, MenuAlign } from "../Chart.types";
-import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
 import styles from "./BarChart.module.css";
@@ -19,13 +18,13 @@ export type BarChartSegmentRenderProps = ChartSegmentRenderProps & {
 
 const SortableListItem = ({
   sortIndex,
-  renderLabel,
-  renderMenu,
+  renderLabelWithMenu,
+  // renderMenu,
   displayAsPercentage,
   datum,
   highestValue,
   denominator,
-  menuAlign,
+  // menuAlign,
   orientation = "horizontal",
 }: BarChartSegmentRenderProps) => {
   const max = Math.max(1, highestValue ?? 1);
@@ -46,7 +45,11 @@ const SortableListItem = ({
   return (
     <li ref={setCardRef} className={`${styles.row} ${datum.highlight ? styles.highlight : ""}`}>
       <div className={styles.optionControls}>
-        {renderLabel ? renderLabel(datum) : <span className={styles.label}>{datum.text ?? ""}</span>}
+        {renderLabelWithMenu ? (
+          renderLabelWithMenu(datum)
+        ) : (
+          <span className={styles.label}>{datum.text ?? ""}</span>
+        )}
       </div>
       <div className={styles.track}>
         <div
@@ -66,21 +69,23 @@ const SortableListItem = ({
       </div>
       <span className={styles.value}>
         {datum.value}
-        {displayAsPercentage && denominator > 0 && <span className={styles.share}> ({sharePct}%)</span>}
+        {displayAsPercentage && denominator > 0 && (
+          <span className={styles.share}> ({sharePct}%)</span>
+        )}
       </span>
-      {renderMenu && (
+      {/* {renderMenu && (
         <span className={styles.rowActions}>
           <CorrectBadge isCorrect={datum.isCorrect} />
           {renderMenu(datum, menuAlign)}
         </span>
-      )}
+      )} */}
     </li>
   );
 };
 
 const BarChart = ({
-  renderLabel,
-  renderMenu,
+  renderLabelWithMenu,
+  // renderMenu,
   onReorder,
   data,
   displayAsPercentage,
@@ -99,9 +104,7 @@ const BarChart = ({
   // thumbnail is legible; all bars grow together to stay aligned.
   const hasImages = data.some((datum) => datum.imageUrl != null);
   return (
-    <div
-      className={`${styles.chart} ${styles[orientation]} ${hasImages ? styles.withImages : ""}`}
-    >
+    <div className={`${styles.chart} ${styles[orientation]} ${hasImages ? styles.withImages : ""}`}>
       <ul className={styles.bars}>
         <DragDropWrapper onReorder={onReorder}>
           {data.map((datum, index) => (
@@ -112,8 +115,8 @@ const BarChart = ({
               datum={datum}
               displayAsPercentage={displayAsPercentage}
               sortIndex={index}
-              renderLabel={renderLabel}
-              renderMenu={renderMenu}
+              renderLabelWithMenu={renderLabelWithMenu}
+              // renderMenu={renderMenu}
               menuAlign={menuAlignFor(index)}
               orientation={orientation}
             />

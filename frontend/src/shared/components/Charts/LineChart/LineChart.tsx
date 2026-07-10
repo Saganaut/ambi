@@ -12,7 +12,7 @@ const H = 60;
 const PAD = 6;
 
 const LineChart = ({
-  renderLabel,
+  renderLabelWithMenu,
   renderMenu,
   data,
   displayAsPercentage,
@@ -105,9 +105,9 @@ const LineChart = ({
           >
             <div className={styles.optionControls}>
               <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
-              {renderLabel ? (
+              {renderLabelWithMenu ? (
                 <>
-                  {renderLabel(datum)} {renderMenu?.(datum, menuAlignFor(index))}
+                  {renderLabelWithMenu(datum)} {renderMenu?.(datum, menuAlignFor(index))}
                 </>
               ) : (
                 <span className={styles.labelText}>{datum.text ?? ""}</span>

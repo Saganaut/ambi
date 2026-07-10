@@ -817,6 +817,7 @@ export type RankItem = {
   id?: string;
   label?: string;
   image?: AppImage;
+  color?: string;
 };
 export type RankingContent = {
   items: RankItem[];

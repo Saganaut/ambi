@@ -54,8 +54,8 @@ public class SlideContentTypes {
 
     // --------------- Ranking ---------------------------------------------
 
-    /** An item in a ranking question. {@code image} is optional. */
-    public record RankItem(String id, String label, AppImage image) {
+    /** An item in a ranking question. {@code image} and {@code color} are optional. */
+    public record RankItem(String id, String label, AppImage image, String color) {
     }
 
     // --------------- Scales ----------------------------------------------

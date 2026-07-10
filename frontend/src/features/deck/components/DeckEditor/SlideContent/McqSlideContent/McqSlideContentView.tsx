@@ -64,7 +64,7 @@ const McqSlideContentView = ({
 
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
-  const renderLabel = (datum: ChartDatum) => (
+  const renderLabelWithMenu = (datum: ChartDatum) => (
     <OptionField
       option={datum}
       paletteIndex={question.options.findIndex((option) => option.id === datum.id)}
@@ -94,12 +94,6 @@ const McqSlideContentView = ({
     />
   );
 
-  // The menu now lives with the label (it opens off the field, via
-  // OptionField). The chart's menu slot renders nothing, but the callback stays
-  // truthy so charts that gate their action row on it (e.g. BarChart's correct
-  // badge) keep rendering it.
-  const renderMenu = () => null;
-
   return (
     <SlideContentWrapper
       prompt={{
@@ -123,8 +117,8 @@ const McqSlideContentView = ({
           <ResultsDisplaySwitch
             viz={effective}
             caption="Sample data"
-            renderMenu={renderMenu}
-            renderLabel={renderLabel}
+            // renderMenu={renderMenu}
+            renderLabelWithMenu={renderLabelWithMenu}
             editor={editor}
             answerSettings={answerSettings}
           />

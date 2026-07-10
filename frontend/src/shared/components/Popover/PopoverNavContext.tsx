@@ -2,16 +2,16 @@
 // + the active index) down to the individual buttons in `OptionMenuContent`.
 // Null when the host doesn't wire navigation — the legacy inline `OptionMenu`
 // shell (Axis / Ranking / Matching) provides no context, so its buttons render
-// plain. Only the MCQ `FloatingPopover` path supplies a value.
-import { createContext } from "react";
+// plain.
 import type { UseInteractionsReturn } from "@floating-ui/react";
+import { createContext } from "react";
 
-interface OptionMenuNavValue {
+interface PopoverNavValue {
   getItemProps: UseInteractionsReturn["getItemProps"];
   activeIndex: number | null;
 }
 
-const OptionMenuNavContext = createContext<OptionMenuNavValue | null>(null);
+const PopoverNavContext = createContext<PopoverNavValue | null>(null);
 
-export { OptionMenuNavContext };
-export type { OptionMenuNavValue };
+export { PopoverNavContext };
+export type { PopoverNavValue };

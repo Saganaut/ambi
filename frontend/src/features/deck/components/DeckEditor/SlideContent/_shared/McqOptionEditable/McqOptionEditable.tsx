@@ -18,7 +18,7 @@ type DefaultNoChartSegmentProps = ChartSegmentRenderProps;
 const McqOptionEditable = ({
   sortIndex,
   displayAsPercentage,
-  renderLabel,
+  renderLabelWithMenu,
   renderMenu,
   datum,
   highestValue,
@@ -50,15 +50,15 @@ const McqOptionEditable = ({
       >
         <div className={styles.topRow}>
           <div className={styles.textColumn}>
-            <IndexPill value={displayIndex} variant='bare' />
+            <IndexPill value={displayIndex} variant="bare" />
             <div
               className={styles.interactiveZone}
               onClick={(e) => {
                 e.stopPropagation();
               }}
             >
-              {renderLabel ? (
-                renderLabel(datum)
+              {renderLabelWithMenu ? (
+                renderLabelWithMenu(datum)
               ) : (
                 <span className={styles.label}>{datum.text ?? ""}</span>
               )}

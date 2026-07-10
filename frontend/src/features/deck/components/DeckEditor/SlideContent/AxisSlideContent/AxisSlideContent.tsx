@@ -29,18 +29,18 @@
  */
 import { useState } from "react";
 
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
-import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import {
   AXIS_TOLERANCE_MAX,
   AXIS_TOLERANCE_MIN,
   MAX_AXIS_ITEMS,
   useAxisEditor,
 } from "@deck/hooks/useAxisEditor";
-import { SlideContentWrapper } from "../SlideContentWrapper";
 import { EmptySelect, ItemList, ScoringFooter, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
+import { SlideContentWrapper } from "../SlideContentWrapper";
 import { resolveAxisItemColor } from "./axisItemColor";
 import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
@@ -118,7 +118,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 <NumberInput
                   compact
                   id={`axis-tolerance-${question.id}`}
-                  label="Tolerance ±%"
+                  label="Tolerance %"
                   labelPosition="labelInFront"
                   min={Math.round(AXIS_TOLERANCE_MIN * 100)}
                   max={Math.round(AXIS_TOLERANCE_MAX * 100)}

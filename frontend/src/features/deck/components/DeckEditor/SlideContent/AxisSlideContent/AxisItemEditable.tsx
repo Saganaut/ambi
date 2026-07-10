@@ -11,13 +11,12 @@
  * in `AxisSlideContent`. Drag-sortable by the grip handle to reorder display
  * order (placement targets are id-keyed, so order never affects them).
  */
-import { Bars2Icon } from "@heroicons/react/24/outline";
 import { useSortable } from "@dnd-kit/react/sortable";
+import { Bars2Icon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
-import { Input } from "@components/Forms/Input/Input/Input";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { Input } from "@components/Forms/Input/Input/Input";
 import { AXIS_LABEL_MAX } from "@deck/hooks/useAxisEditor";
 import type { AppImage, AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 import { resolveImageUrl } from "@utils/image";
@@ -83,11 +82,11 @@ const AxisItemEditable = ({
   const fieldId = `axis-item-label-${itemId}`;
   const thumbnailSrc = resolveImageUrl(item.image, "SM", itemId, 200, 200, false);
 
-  const setCoordinate = (coordinate: "x" | "y", percent: number) => {
-    if (!targetPosition) return;
-    const clamped = Math.min(100, Math.max(0, percent)) / 100;
-    onSetTarget({ ...targetPosition, [coordinate]: clamped });
-  };
+  // const setCoordinate = (coordinate: "x" | "y", percent: number) => {
+  //   if (!targetPosition) return;
+  //   const clamped = Math.min(100, Math.max(0, percent)) / 100;
+  //   onSetTarget({ ...targetPosition, [coordinate]: clamped });
+  // };
 
   return (
     // Row-wide selection target; the keyboard path is the label field's focus.
@@ -148,7 +147,8 @@ const AxisItemEditable = ({
           {thumbnailSrc && <img className={styles.itemThumbnail} src={thumbnailSrc} alt="" />}
           {targetPosition && (
             <div className={styles.targetFields}>
-              <NumberInput
+              {/*This takes up a lot of room and is probably unecessary, leaving ti in case we change our minds */}
+              {/* <NumberInput
                 compact
                 id={`axis-target-x-${itemId}`}
                 label="X"
@@ -171,7 +171,7 @@ const AxisItemEditable = ({
                 onChange={(next) => {
                   setCoordinate("y", next);
                 }}
-              />
+              /> */}
             </div>
           )}
         </div>

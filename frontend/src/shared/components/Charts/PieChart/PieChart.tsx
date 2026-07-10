@@ -19,7 +19,7 @@ const PieChartSegment = ({
   datum,
   denominator,
   displayAsPercentage,
-  renderLabel,
+  renderLabelWithMenu,
   renderMenu,
 }: PieChartSegmentRenderProps) => {
   const pct = denominator > 0 ? (datum.value / denominator) * 100 : 0;
@@ -48,8 +48,8 @@ const PieChartSegment = ({
       />
       <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
       <div className={styles.optionControls}>
-        {renderLabel ? (
-          renderLabel(datum)
+        {renderLabelWithMenu ? (
+          renderLabelWithMenu(datum)
         ) : (
           <span className={styles.legendLabel}>{datum.text ?? ""}</span>
         )}
@@ -70,7 +70,7 @@ const PieChartSegment = ({
 
 const PieChart = ({
   variant = "pie",
-  renderLabel,
+  renderLabelWithMenu,
   renderMenu,
   onReorder,
   data,
@@ -182,7 +182,7 @@ const PieChart = ({
                 denominator={total}
                 displayAsPercentage={displayAsPercentage}
                 sortIndex={index}
-                renderLabel={renderLabel}
+                renderLabelWithMenu={renderLabelWithMenu}
                 renderMenu={renderMenu}
               />
             ))}

@@ -3,7 +3,7 @@
 // are what visually distinguish a histogram from `BAR_VERTICAL`'s spaced columns.
 // Consumes the same `ChartProps`/`ChartDatum[]` contract as every other results
 // chart, so it slots straight into the dispatcher + preview pipeline; the MCQ-only
-// editor render props (`renderLabel`, `onReorder`, …) are accepted but unused here.
+// editor render props (`renderLabelWithMenu`, `onReorder`, …) are accepted but unused here.
 import type { ChartProps } from "../Chart.types";
 import styles from "./Histogram.module.css";
 

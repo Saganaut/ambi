@@ -2,17 +2,16 @@
 // to read and write NumberContent fields.
 // Old `allowNegative` is gone. The new model always has `min`/`max` (display
 // range) plus a `tolerance` and `unit`.
-import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { Input } from "@components/Forms/Input/Input/Input";
-import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { getRouteApi } from "@tanstack/react-router";
+import { useState } from "react";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
 const NumberOptionsSection = () => {
-
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
@@ -37,7 +36,6 @@ const NumberOptionsSection = () => {
 
   if (!slide) return null;
 
-
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Numeric answer</h4>
@@ -46,7 +44,7 @@ const NumberOptionsSection = () => {
           labelPosition="labelInFront"
           compact
           id={`number-min-${slideId}`}
-          label='Minimum'
+          label="Minimum"
           value={minValue}
           onChange={(next) => {
             setMinValue(next);
@@ -58,7 +56,7 @@ const NumberOptionsSection = () => {
           labelPosition="labelInFront"
           compact
           id={`number-max-${slideId}`}
-          label='Maximum'
+          label="Maximum"
           value={maxValue}
           onChange={(next) => {
             setMaxValue(next);
@@ -70,7 +68,7 @@ const NumberOptionsSection = () => {
           labelPosition="labelInFront"
           compact
           id={`number-tolerance-${slideId}`}
-          label='Tolerance (accepted deviation)'
+          label="Tolerance"
           min={0}
           value={tolerance}
           onChange={(next) => {
@@ -83,10 +81,10 @@ const NumberOptionsSection = () => {
           labelPosition="labelInFront"
           compact
           id={`number-unit-${slideId}`}
-          label='Unit (e.g. km, °C)'
-          type='text'
+          label="Unit (e.g. km, °C)"
+          type="text"
           value={unit}
-          placeholder='Unit…'
+          placeholder="Unit…"
           onChange={(e) => {
             const next = e.target.value;
             setUnit(next);

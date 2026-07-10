@@ -6,6 +6,7 @@
 import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
 import { AnswerSettings } from "@/features/deck/store/deckApi.gen";
 import { BarChart } from "@/shared/components/Charts/BarChart/BarChart";
+import { ChartDatum, type ChartType } from "@/shared/components/Charts/Chart.types";
 import { DivergingBar } from "@/shared/components/Charts/DivergingBar/DivergingBar";
 import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
 import { Heatmap } from "@/shared/components/Charts/Heatmap/Heatmap";
@@ -14,9 +15,8 @@ import { ImageOverlay } from "@/shared/components/Charts/ImageOverlay/ImageOverl
 import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
-import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
-import { ChartDatum, type ChartType, type MenuAlign } from "@/shared/components/Charts/Chart.types";
 import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
+import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
 import { ReactNode } from "react";
 import { DefaultResultsDisplay } from "../McqSlideContent/DefaultResultsDisplay";
 
@@ -26,8 +26,8 @@ export interface ResultsDisplaySwitchProps {
   animateOnMount?: boolean;
   /** When on, values randomise (0–10) every 3s — a live-results preview. */
   continuousAnimation?: boolean;
-  renderLabel: (datum: ChartDatum) => ReactNode;
-  renderMenu: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
+  renderLabelWithMenu: (datum: ChartDatum) => ReactNode;
+  // renderMenu: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
   editor: UseMcqEditorResult;
   answerSettings?: AnswerSettings;
 }
@@ -37,8 +37,7 @@ const ResultsDisplaySwitch = ({
   caption,
   animateOnMount = true,
   continuousAnimation = false,
-  renderLabel,
-  renderMenu,
+  renderLabelWithMenu,
   editor,
   answerSettings,
 }: ResultsDisplaySwitchProps) => {
@@ -55,8 +54,8 @@ const ResultsDisplaySwitch = ({
     continuousAnimation,
     data,
     displayAsPercentage: answerSettings?.displayResultsAsPercentage ?? false,
-    renderLabel,
-    renderMenu,
+    renderLabelWithMenu,
+    // renderMenu,
     onReorder: editor.handleOptionDragEnd,
     addOption: editor.addOption,
     canAddOption: editor.canAddOption,

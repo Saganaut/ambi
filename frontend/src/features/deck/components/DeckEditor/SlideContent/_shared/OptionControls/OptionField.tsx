@@ -10,23 +10,23 @@
 // `listNavigation`: the field keeps focus and the caret on open, and Up/Down
 // step roving focus through the menu's buttons (Enter/Space activate, Escape
 // closes). `ctx.listNav` carries floating-ui's item handles down to the shared
-// `OptionMenuContent` via `OptionMenuNavContext`.
+// `OptionMenuContent` via `PopoverNavContext`.
 //
 // The menu body is the shared `OptionMenuContent`; the custom-color path hands
 // off to the shared modal and image upload to the gallery picker.
 import { CheckIcon } from "@heroicons/react/24/outline";
 import { emptyImage, isImageEmpty } from "@utils/image";
 
-import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
-import { FloatingPopover } from "@/shared/components/PopoverWrapper/PopoverWrapper";
+import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
+import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { useModal } from "@hooks/useModal";
-import type { AppImage } from "@deck/store/deckApi.gen";
 import { McqOption } from "@/shared/types/Elements.types";
+import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
+import type { AppImage } from "@deck/store/deckApi.gen";
+import { useModal } from "@hooks/useModal";
 import type { HTMLProps } from "react";
-import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
-import { OptionMenuNavContext } from "../OptionMenu/OptionMenuNavContext";
 import { resolveOptionColor } from "../McqOptionEditable/optionColor";
+import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
 import { Label } from "./Label";
 import styles from "./OptionControls.module.css";
 
@@ -150,7 +150,7 @@ const OptionField = ({
     >
       {({ ctx }) => (
         <div style={ctx.styles}>
-          <OptionMenuNavContext value={ctx.listNav ?? null}>
+          <PopoverNavContext value={ctx.listNav ?? null}>
             <OptionMenuContent
               displayIndex={option.id}
               currentColor={color}
@@ -168,7 +168,7 @@ const OptionField = ({
               onClearImage={handleClearImage}
               onRemove={handleRemove}
             />
-          </OptionMenuNavContext>
+          </PopoverNavContext>
         </div>
       )}
     </FloatingPopover>

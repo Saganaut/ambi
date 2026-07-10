@@ -13,7 +13,7 @@
 // structural edit — add, remove, drag-reorder — rebuilds `correctOrder` from
 // the current item order to keep the two in lockstep. A label-only edit leaves
 // the order untouched.
-import type { RankItem } from "@deck/store/deckApi.gen";
+import type { AppImage, RankItem } from "@deck/store/deckApi.gen";
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 
@@ -58,6 +58,10 @@ interface UseRankingEditorResult {
   scheduleItem: (itemId: string | undefined, next: RankItem) => void;
   /** Immediate label edit (e.g. clearing an image, once images ship). */
   commitItem: (itemId: string | undefined, next: RankItem) => void;
+  /** Override the item's palette color (menu swatch / custom picker). Immediate. */
+  setItemColor: (itemId: string | undefined, color: string) => void;
+  /** Set or clear (empty AppImage) the item's image. Immediate. */
+  setItemImage: (itemId: string | undefined, image: AppImage) => void;
   removeItem: (itemId: string | undefined) => void;
 }
 
@@ -118,6 +122,24 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
     editor.flush();
   };
 
+  // Merge a patch into one item and persist immediately (menu-driven edits).
+  // Order is unchanged, so `correctOrder` is intentionally left as-is.
+  const commitItemPatch = (id: string | undefined, patch: Partial<RankItem>) => {
+    if (!id) return;
+    editor.updateSlideContent((prev) => ({
+      items: prev.items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    }));
+    editor.flush();
+  };
+
+  const setItemColor = (id: string | undefined, color: string) => {
+    commitItemPatch(id, { color });
+  };
+
+  const setItemImage = (id: string | undefined, image: AppImage) => {
+    commitItemPatch(id, { image });
+  };
+
   const removeItem = (id: string | undefined) => {
     if (!id || !canRemove) return;
     editor.updateSlideContent((prev) => {
@@ -152,6 +174,8 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
     canRemove,
     scheduleItem,
     commitItem,
+    setItemColor,
+    setItemImage,
     removeItem,
   };
 };

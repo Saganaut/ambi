@@ -13,10 +13,12 @@
  */
 import { useState } from "react";
 
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import { MAX_RANKING_ITEMS, useRankingEditor } from "@deck/hooks/useRankingEditor";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { EmptySelect, ItemList, SectionHeader } from "../_shared";
+import { resolveRankItemColor } from "./rankItemColor";
 import { RankingItemEditable } from "./RankingItemEditable";
 
 interface RankingSlideContentProps {
@@ -34,10 +36,16 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
     handleItemDragEnd,
     canRemove,
     scheduleItem,
+    setItemColor,
+    setItemImage,
     removeItem,
   } = useRankingEditor(deckId, slideId);
+  const openPicker = useGalleryPicker();
 
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
+  // Which row's menu is open — at most one per slide. Focusing a row's label
+  // opens its menu (and thereby closes any other); the menu owns dismissal.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
 
   // Resync the local mirror when the active slide changes ("derive state during
@@ -45,6 +53,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
   if (question && syncedFromId !== question.id) {
     setSyncedFromId(question.id);
     setPrompt(question.prompt);
+    setOpenMenuId(null);
   }
 
   if (!question) return <EmptySelect title="Ranking" />;
@@ -75,14 +84,26 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
               key={item.id ?? idx}
               item={item}
               sortIndex={idx}
+              color={resolveRankItemColor(item.color, idx)}
+              menuOpen={item.id != null && openMenuId === item.id}
               canRemove={canRemove}
+              onMenuOpenChange={(open) => {
+                setOpenMenuId(open ? (item.id ?? null) : null);
+              }}
               onScheduleLabel={(next) => {
                 scheduleItem(item.id, next);
               }}
               onFlush={flush}
+              onSetColor={(next) => {
+                setItemColor(item.id, next);
+              }}
+              onSetImage={(image) => {
+                setItemImage(item.id, image);
+              }}
               onRemove={() => {
                 removeItem(item.id);
               }}
+              openPicker={openPicker}
             />
           ))}
         </DragDropWrapper>

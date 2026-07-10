@@ -18,7 +18,7 @@ const H = 60;
 const PAD = 6;
 
 const ParetoChart = ({
-  renderLabel,
+  renderLabelWithMenu,
   renderMenu,
   data,
   addOption,
@@ -112,8 +112,8 @@ const ParetoChart = ({
           >
             <div className={styles.optionControls}>
               <OptionImage src={it.datum.imageUrl} alt={it.datum.imageAlt} />
-              {renderLabel ? (
-                renderLabel(it.datum)
+              {renderLabelWithMenu ? (
+                renderLabelWithMenu(it.datum)
               ) : (
                 <span className={styles.labelText}>{it.datum.text ?? ""}</span>
               )}

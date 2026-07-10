@@ -8,7 +8,7 @@ import styles from "./DotPlot.module.css";
 export type DotPlotProps = ChartProps;
 
 const DotPlot = ({
-  renderLabel,
+  renderLabelWithMenu,
   renderMenu,
   data,
   displayAsPercentage,
@@ -34,8 +34,8 @@ const DotPlot = ({
             >
               <div className={styles.optionControls}>
                 <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
-                {renderLabel ? (
-                  renderLabel(datum)
+                {renderLabelWithMenu ? (
+                  renderLabelWithMenu(datum)
                 ) : (
                   <span className={styles.label}>{datum.text ?? ""}</span>
                 )}

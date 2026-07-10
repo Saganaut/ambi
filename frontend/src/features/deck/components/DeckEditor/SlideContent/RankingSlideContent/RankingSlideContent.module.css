@@ -1,6 +1,43 @@
 /* RankingSlideContent — author UI for Ranking slides. The row chrome (index
-   pill, body, remove) is the shared `ItemCard`; only the drag-to-reorder grip
-   and the dragging state are ranking-specific and live here. */
+   pill, body) is the shared `ItemCard`; the label field, its focus-opened
+   popover menu, the image thumbnail, and the drag-to-reorder grip are
+   ranking-specific and live here (mirroring AxisSlideContent). */
+
+/* ── Item rows ──────────────────────────────────────────────────────────── */
+
+.itemFields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+/* The label field rides on the raised surface so it reads as the row's one
+   editable field against the card. The min-width keeps it usable when the
+   thumbnail crowds the row. */
+.labelField {
+  flex: 1;
+  min-width: 5rem;
+
+  & input {
+    background-color: var(--bg-surface-raised);
+  }
+}
+
+/* Positioned anchor for the row's popover menu (opens off the label field). */
+.menuAnchor {
+  position: relative;
+}
+
+/* Thumbnail of the item's authored image (set via the row's menu). */
+.itemThumbnail {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
 
 /* Grip handle slotted into the card's `actions`. Restricting the drag
    activator to this handle (via the sortable `handleRef`) keeps the label
@@ -13,6 +50,7 @@
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   cursor: grab;
+
   /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
   touch-action: none;
   transition:

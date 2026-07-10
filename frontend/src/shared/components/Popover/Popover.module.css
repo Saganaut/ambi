@@ -1,0 +1,70 @@
+/* Popover — shared visual chrome for floating edit surfaces (the RichTextInput
+   toolbar, future inline editors, etc.). Only the look-and-feel lives here:
+   positioning is left to the consumer so the same primitive can pair with
+   TipTap's BubbleMenu, an absolute-positioned panel, or a portal. */
+
+.popover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: var(--border-size-sm) solid transparent;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 150ms) ease-out,
+    border-color var(--duration-fast, 150ms) ease-out;
+}
+
+.btn:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-subtle);
+}
+
+.btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.btnActive {
+  background-color: var(--action-active);
+  color: var(--white-100);
+  border-color: var(--action-active);
+}
+
+.divider {
+  width: 1px;
+  align-self: stretch;
+  background-color: var(--border-subtle);
+  margin: 0 var(--space-1);
+}
+
+.groupLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  padding: 0 var(--space-1);
+}

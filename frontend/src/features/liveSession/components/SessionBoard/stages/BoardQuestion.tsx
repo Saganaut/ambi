@@ -1,14 +1,11 @@
-// Question stage — the prompt and its answer/result body. One component covers
-// all three question moments via `mode` (prompt / liveResults / results):
-//   - prompt      → show the question; the body is interactive on a participant's
-//                   own device, read-only when projected/host.
-//   - liveResults → the tally is visible (responses revealed / live), but the
-//                   correct answer is not yet disclosed.
-//   - results     → revealed: distribution + correct-answer highlight.
-//
-// The header (title + instructions) is shared; the body switches on the slide's
-// `contentType` and delegates to a per-kind component. MCQ, Q&A, Grid, Axis,
-// Scales and Matching are built so far; everything else falls back to a placeholder.
+/**
+ * Question stage component covering 3 moments via `mode`:
+ * - prompt: Shows question. Interactive for participant; read-only for host/projector.
+ * - liveResults: Shows response tally/live updates; correct answer hidden.
+ * - results: Shows final distribution + highlights correct answer.
+ * * Shared header (title + instructions). Body switches on `contentType`
+ * (MCQ, Q&A, Grid, Axis, Scales, Matching built; others fallback to placeholder).
+ */
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import { AxisBoardContent } from "../content/AxisBoardContent";
 import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";

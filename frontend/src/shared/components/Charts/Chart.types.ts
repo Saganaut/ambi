@@ -36,7 +36,7 @@ export interface ChartProps {
   /** True while another option may be added (under the option cap). */
   canAddOption?: boolean;
   /** The option's editable text field. */
-  renderLabel?: (datum: ChartDatum) => ReactNode;
+  renderLabelWithMenu?: (datum: ChartDatum) => ReactNode;
   /**
    * The option's menu (correct-toggle/image/colour/remove). Charts whose menu anchor sits
    * near the canvas' right edge (a narrow column, an absolutely-positioned
@@ -77,7 +77,7 @@ export interface ChartSegmentRenderProps {
   isCorrect?: boolean;
   canAddOption?: boolean;
   addOption?: () => void;
-  renderLabel?: (datum: ChartDatum) => ReactNode;
+  renderLabelWithMenu?: (datum: ChartDatum) => ReactNode;
   renderMenu?: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
   onReorder?: (event: DragEndEvent) => void;
 }

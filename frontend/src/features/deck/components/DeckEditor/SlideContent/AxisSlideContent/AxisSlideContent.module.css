@@ -95,9 +95,6 @@
   border-radius: var(--radius-md);
   background-color: var(--bg-surface-raised);
 
-  /* Tolerance circles overhang near the edges; the plane stays the viewport. */
-  overflow: hidden;
-
   /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
   touch-action: none;
 }
