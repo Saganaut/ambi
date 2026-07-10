@@ -155,11 +155,15 @@
 }
 
 /* Labeled variant: pill chrome around dot + text; the transform keeps the
-   dot's centre — not the pill's — on the target point. */
+   dot's centre — not the pill's — on the target point (border + padding sit
+   left of the dot inside the border-box). */
 .markerLabeled {
   max-width: 9rem;
   padding: var(--space-half) var(--space-2) var(--space-half) var(--space-1);
-  transform: translate(calc(-1 * (var(--space-1) + var(--dot-size) / 2)), -50%);
+  transform: translate(
+    calc(-1 * (var(--border-size-sm) + var(--space-1) + var(--dot-size) / 2)),
+    -50%
+  );
   border: var(--border-size-sm) solid var(--target-color);
   border-radius: var(--radius-full);
   background-color: var(--bg-surface-raised);

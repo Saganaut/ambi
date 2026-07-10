@@ -204,7 +204,8 @@ const PlaceOnImageSurface = ({
   };
 
   return (
-    // Pointer placement surface; the accessible path is the target rows' numeric inputs.
+    // Pointer placement surface; the pointer-free path is the target rows'
+    // popover menus ("Center target").
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={surfaceRef}
