@@ -77,6 +77,15 @@
 
 /* ─── Menu ─────────────────────────────────────────────────────────────── */
 
-.menuAnchor {
-  position: relative;
+/* Wraps the card's face (phrase field or image slot) so it can serve as the
+   popover's anchor element (FloatingPopover measures this box to place the
+   menu). Fills the face's slot in the card column so layout is unchanged. */
+.triggerWrap {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+
+  & > * {
+    flex: 1;
+  }
 }

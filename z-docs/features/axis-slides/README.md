@@ -294,16 +294,17 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   inline "Set target" button and clear-target icon are gone — those actions
   live in the menu now.
 
-**Shared dependency:** Axis (`AxisItemField.tsx`) and MCQ
-(`OptionControls/OptionField.tsx`) both render the shared
+**Shared dependency:** Axis (`AxisItemField.tsx`), MCQ
+(`OptionControls/OptionField.tsx`), and Match/Grid
+(`_shared/PhraseOrImageCard/PhraseOrImageCard.tsx`) all render the shared
 `_shared/OptionMenu/OptionMenuContent.tsx` — the presentational menu body
 (palette + custom color, image upload/clear, delete, and a `primaryAction`
 prop each kind supplies: MCQ passes mark-correct, Axis passes
-set/clear-target) — directly inside a `FloatingPopover`. The legacy
-`_shared/OptionMenu/OptionMenu.tsx` shell (manual outside-pointerdown/Escape
-dismissal, `useFlipToFit.ts` positioning) is no longer on either path; it
-remains in use by Ranking (`RankItemMenu.tsx`) and Match/Grid
-(`PhraseOrImageCardMenu.tsx`), which haven't migrated yet.
+set/clear-target, Match/Grid passes the phrase/image face flip) — directly
+inside a `FloatingPopover`. The legacy `_shared/OptionMenu/OptionMenu.tsx`
+shell (manual outside-pointerdown/Escape dismissal, `useFlipToFit.ts`
+positioning) is no longer on those paths; it remains in use only by Ranking
+(`RankItemMenu.tsx`), which hasn't migrated yet.
 
 ### Registration
 

@@ -9,23 +9,32 @@
  * back to phrase clears its image.
  *
  * Focusing the card's field (phrase input or image slot) opens its popover
- * menu (flip, color, image, delete) — MCQ's option-menu pattern; the composer
- * owns which menu is open (at most one per slide). Clicking the image slot
- * goes straight to the gallery picker. A controlled card: the phrase mirror
- * lives here while every write comes in as props from the composer's one
- * editor hook. What "delete" means (the whole Matching pair, the one Grid
- * item) is the caller's: it supplies the handler and the enable flag.
+ * menu (flip, color, image, delete) — the same field-as-trigger pattern as
+ * MCQ's `OptionField` and `AxisItemField`. The face is the popover's anchor;
+ * `FloatingPopover` handles portalling, positioning, and dismissal (outside
+ * press + Escape), with focus management off so opening never pulls the caret
+ * out of the phrase field and `listNavigation` for arrow-key access into the
+ * shared `OptionMenuContent`. The composer owns which menu is open (at most
+ * one per slide). Clicking the image slot goes straight to the gallery
+ * picker. A controlled card: the phrase mirror lives here while every write
+ * comes in as props from the composer's one editor hook. What "delete" means
+ * (the whole Matching pair, the one Grid item) is the caller's: it supplies
+ * the handler and the enable flag.
  */
 import { ArrowsRightLeftIcon, PhotoIcon } from "@heroicons/react/24/outline";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type HTMLProps, type ReactNode } from "react";
 
-import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
+import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
+import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { useFitText } from "@hooks/useFitText";
+import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
+import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { emptyImage, isImageEmpty, resolveImageUrl } from "@utils/image";
+import { useFitText } from "@hooks/useFitText";
+import { useModal } from "@hooks/useModal";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { PhraseOrImageCardMenu } from "./PhraseOrImageCardMenu";
+import { emptyImage, isImageEmpty, resolveImageUrl } from "@utils/image";
+import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
 import styles from "./PhraseOrImageCard.module.css";
 
 /** The slice of an item a card edits — Matching cards and Grid items fit. */
@@ -83,6 +92,7 @@ const PhraseOrImageCard = ({
 }: PhraseOrImageCardProps) => {
   const itemId = item.id ?? "";
   const fieldId = `phrase-image-card-${itemId}`;
+  const { openModal, closeModal } = useModal();
 
   const [label, setLabel] = useState(item.label ?? "");
   // "Flipped to image but nothing uploaded yet" — pure UI state; the card
@@ -129,71 +139,132 @@ const PhraseOrImageCard = ({
     );
   };
 
+  const handleMenuFlip = () => {
+    onMenuOpenChange(false);
+    handleFlip();
+  };
+
+  const handlePickColor = (next: string) => {
+    onMenuOpenChange(false);
+    onSetColor(next);
+  };
+
+  const handleCustomColor = () => {
+    onMenuOpenChange(false);
+    openModal({
+      title: "Custom color",
+      content: (
+        <CustomColorPicker
+          initialColor={color}
+          onApply={(hex) => {
+            onSetColor(hex);
+            closeModal();
+          }}
+        />
+      ),
+    });
+  };
+
+  const handleClearImage = () => {
+    onMenuOpenChange(false);
+    onSetImage(emptyImage());
+  };
+
+  const handleRemove = () => {
+    onMenuOpenChange(false);
+    onRemove();
+  };
+
   return (
     <div className={styles.card} style={{ "--card-color": color } as CSSProperties}>
-      {isImageCard ? (
-        <button
-          type="button"
-          id={fieldId}
-          className={styles.imageSlot}
-          onClick={handlePickImage}
-          onFocus={() => {
-            onMenuOpenChange(true);
-          }}
-          aria-label={`${itemName} image`}
-          aria-haspopup="dialog"
-          aria-expanded={menuOpen}
-        >
-          {thumbnailSrc ? (
-            <img className={styles.imageThumbnail} src={thumbnailSrc} alt="" />
-          ) : (
-            <span className={styles.uploadHint}>
-              <PhotoIcon className={styles.uploadHintIcon} aria-hidden="true" />
-              Upload an image
-            </span>
-          )}
-        </button>
-      ) : (
-        <TextArea
-          isBordered={false}
-          fullWidth
-          autoGrow={false}
-          rows={2}
-          ref={fitRef}
-          id={fieldId}
-          maxLength={labelMaxLength}
-          value={label}
-          placeholder={placeholder}
-          onChange={(e) => {
-            const next = e.target.value;
-            setLabel(next);
-            onScheduleLabel(next);
-          }}
-          onFocus={() => {
-            onMenuOpenChange(true);
-          }}
-          onBlur={onFlush}
-          aria-haspopup="dialog"
-          aria-expanded={menuOpen}
-        />
-      )}
+      <FloatingPopover
+        openOn="controlled"
+        manageFocus={false}
+        listNavigation
+        open={menuOpen}
+        onOpenChange={onMenuOpenChange}
+        placement="bottom-start"
+        offsetAmount={8}
+        zIndex={100}
+        renderTrigger={(triggerProps) => (
+          // triggerProps carries floating-ui's callback ref (typed for a generic
+          // HTMLElement); it attaches fine to a div at runtime.
+          <div {...(triggerProps as HTMLProps<HTMLDivElement>)} className={styles.triggerWrap}>
+            {isImageCard ? (
+              <button
+                type="button"
+                id={fieldId}
+                className={styles.imageSlot}
+                onClick={handlePickImage}
+                onFocus={() => {
+                  onMenuOpenChange(true);
+                }}
+                aria-label={`${itemName} image`}
+                aria-haspopup="dialog"
+                aria-expanded={menuOpen}
+              >
+                {thumbnailSrc ? (
+                  <img className={styles.imageThumbnail} src={thumbnailSrc} alt="" />
+                ) : (
+                  <span className={styles.uploadHint}>
+                    <PhotoIcon className={styles.uploadHintIcon} aria-hidden="true" />
+                    Upload an image
+                  </span>
+                )}
+              </button>
+            ) : (
+              <TextArea
+                isBordered={false}
+                fullWidth
+                autoGrow={false}
+                rows={2}
+                ref={fitRef}
+                id={fieldId}
+                maxLength={labelMaxLength}
+                value={label}
+                placeholder={placeholder}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setLabel(next);
+                  onScheduleLabel(next);
+                }}
+                onFocus={() => {
+                  onMenuOpenChange(true);
+                }}
+                onBlur={onFlush}
+                aria-haspopup="dialog"
+                aria-expanded={menuOpen}
+              />
+            )}
+          </div>
+        )}
+      >
+        {({ ctx }) => (
+          <div style={ctx.styles}>
+            <PopoverNavContext value={ctx.listNav ?? null}>
+              <OptionMenuContent
+                displayIndex={displayIndex}
+                currentColor={color}
+                canRemove={canRemove}
+                hasImage={hasImage}
+                primaryAction={{
+                  label: isImageCard ? "Use a phrase" : "Use an image",
+                  icon: ArrowsRightLeftIcon,
+                  pressed: isImageCard,
+                  onSelect: handleMenuFlip,
+                }}
+                onPickColor={handlePickColor}
+                onCustomColor={handleCustomColor}
+                onUploadImage={handlePickImage}
+                onClearImage={handleClearImage}
+                onRemove={handleRemove}
+              />
+            </PopoverNavContext>
+          </div>
+        )}
+      </FloatingPopover>
       <div className={styles.cardFooter}>
         <span className={styles.kindBadge}>{isImageCard ? "Image" : "Phrase"}</span>
-        <PhraseOrImageCardMenu
-          item={item}
-          displayIndex={displayIndex}
-          fieldId={fieldId}
-          color={color}
-          open={menuOpen}
-          onOpenChange={onMenuOpenChange}
-          isImageCard={isImageCard}
-          canRemove={canRemove}
-          onFlip={handleFlip}
-          onSetColor={onSetColor}
-          onSetImage={onSetImage}
-          onRemove={onRemove}
-          openPicker={openPicker}
-        />
         {actions}
         <IconBtn
           fill="ghost"

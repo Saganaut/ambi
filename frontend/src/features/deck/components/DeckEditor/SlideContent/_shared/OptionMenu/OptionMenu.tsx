@@ -1,5 +1,5 @@
-// The per-option dropdown menu (opened by a controller — e.g. RankItemMenu
-// or MatchCardMenu — when the option's label field takes focus).
+// The per-option dropdown menu (opened by a controller — e.g. RankItemMenu —
+// when the option's label field takes focus).
 // Purely presentational — the controller owns the open state and outside-click
 // boundary. This is the legacy positioning shell: it anchors the menu to the
 // controller's wrapper (the positioned ancestor) and flips up / end-aligns as
