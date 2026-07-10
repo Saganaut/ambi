@@ -271,26 +271,39 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   tuning. Accessible fallback: per-item numeric X/Y inputs (0–100 %) in the
   item rows.
 - `AxisItemEditable.tsx` — item row (`RankingItemEditable` pattern): the
-  palette-colored index badge, label field, an image thumbnail when one is
-  set, and the accessible X/Y inputs. Clicking the row selects it; focusing
-  the label opens `AxisItemMenu.tsx`.
-- `AxisItemMenu.tsx` — a controller over the shared `OptionMenu` (the same
-  menu MCQ options use), following MCQ's focus-opened popover pattern. The
-  kind-specific primary action toggles "Set target" (seeds `{x: 0.5, y:
-  0.5}`, the plane's center) / "Clear target"; below it, the shared color
-  palette + custom-color modal, upload/remove image via the gallery picker,
-  and delete. The row's old inline "Set target" button and clear-target icon
-  are gone — those actions live in the menu now.
+  palette-colored index badge, a label field with its popover menu
+  (`AxisItemField.tsx`), an image thumbnail when one is set, and the
+  accessible X/Y inputs. Clicking the row selects it.
+- `AxisItemField.tsx` — the Axis counterpart of MCQ's
+  `OptionControls/OptionField.tsx`. The label `Input` is itself the popover's
+  trigger, wrapped in a `.triggerWrap` anchor div; focusing it opens the
+  menu. The shared `FloatingPopover`
+  (`shared/components/Popover/PopoverWrapper.tsx`) handles portalling,
+  floating-ui positioning (`flip`/`shift`, replacing the old
+  `useFlipToFit`), and dismissal (outside press + Escape via `useDismiss`) —
+  the field is the popover's anchor, so it counts as "inside" and typing in
+  it never dismisses the menu, with no DOM-id boundary check needed.
+  `manageFocus={false}` keeps the caret in the field on open;
+  `listNavigation` gives Up/Down roving focus through the menu's buttons via
+  `PopoverNavContext` (new for Axis). The menu body is the shared
+  `OptionMenuContent` rendered directly — the legacy `OptionMenu` shell is
+  no longer part of the Axis path. The kind-specific primary action toggles
+  "Set target" (seeds `{x: 0.5, y: 0.5}`, the plane's center) / "Clear
+  target"; below it, the shared color palette + custom-color modal,
+  upload/remove image via the gallery picker, and delete. The row's old
+  inline "Set target" button and clear-target icon are gone — those actions
+  live in the menu now.
 
-**Shared dependency:** `_shared/OptionMenu/OptionMenu.tsx` generalized its
-formerly hardcoded "Mark as correct" toggle into a `primaryAction` prop
-(`{ label, icon, pressed?, onSelect }`), so each kind supplies its own
-leading action — MCQ's controller (`OptionControls/Menu.tsx`) passes the
-mark-correct action, `AxisItemMenu.tsx` passes set/clear-target.
-`_shared/OptionMenu/useFlipToFit.ts` also picked up an asymmetric flip-up
-gate: it only flips the menu above its anchor when the flipped position
-would clear the clipping container's top edge — a menu clipped below can
-still scroll into view, one clipped above never can.
+**Shared dependency:** Axis (`AxisItemField.tsx`) and MCQ
+(`OptionControls/OptionField.tsx`) both render the shared
+`_shared/OptionMenu/OptionMenuContent.tsx` — the presentational menu body
+(palette + custom color, image upload/clear, delete, and a `primaryAction`
+prop each kind supplies: MCQ passes mark-correct, Axis passes
+set/clear-target) — directly inside a `FloatingPopover`. The legacy
+`_shared/OptionMenu/OptionMenu.tsx` shell (manual outside-pointerdown/Escape
+dismissal, `useFlipToFit.ts` positioning) is no longer on either path; it
+remains in use by Ranking (`RankItemMenu.tsx`) and Match/Grid
+(`PhraseOrImageCardMenu.tsx`), which haven't migrated yet.
 
 ### Registration
 
