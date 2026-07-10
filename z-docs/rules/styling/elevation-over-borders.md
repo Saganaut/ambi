@@ -8,14 +8,14 @@ Borders draw a hard line around every box; on a busy screen they stack into visu
 
 ## The elevation tokens
 
-Soft neutral drop shadows seeded from `#959da5`, defined in [`tokens.css`](../../../frontend/src/tokens.css). Under `[data-appearance="dark"]` they swap to black-based shadows (a soft grey shadow doesn't read on a dark canvas).
+Soft neutral drop shadows seeded from `#959da5`, defined in [`tokens.css`](../../../frontend/src/tokens.css). The same shadow is used in light and dark appearance (they live in `:root`, not the `[data-appearance]` blocks).
 
-| Token         | Value (light)          | Use                                            |
+| Token         | Value                  | Use                                            |
 | ------------- | ---------------------- | ---------------------------------------------- |
-| `--shadow-xs` | `0 1px 3px #959da51f`  | Hairline lift — the border replacement on flat elements (chips, inputs, list rows). |
-| `--shadow-sm` | `0 3px 10px #959da529` | Resting cards and tiles.                       |
-| `--shadow-md` | `0 8px 24px #959da533` | Raised cards, dropdowns, menus. `--shadow` aliases this. |
-| `--shadow-lg` | `0 16px 40px #959da53d`| Modals, popovers, anything floating over content. |
+| `--shadow-xs` | `0 1px 3px #959da533`  | Hairline lift — the border replacement on flat elements (chips, inputs, list rows). |
+| `--shadow-sm` | `0 3px 10px #959da547` | Resting cards and tiles.                       |
+| `--shadow-md` | `0 8px 24px #959da561` | Raised cards, dropdowns, menus. `--shadow` aliases this. |
+| `--shadow-lg` | `0 16px 40px #959da575`| Modals, popovers, anything floating over content. |
 
 Always consume `--shadow-*` (or `--shadow`) — never hand-write a `box-shadow` colour, and never use `rgb()`/`rgba()` (see [color-formats](color-formats.md); the tokens are authored in hex-with-alpha).
 

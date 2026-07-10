@@ -413,17 +413,13 @@
 
   /* --- Elevation & Shadows --- */
 
-  /* Soft neutral drop shadows (#959da5). Prefer elevation over borders for      */
+  /* Soft neutral drop shadows (#959da5), used the same in light and dark. See   */
 
-  /* separation — see rules/styling/elevation-over-borders.md. Dark appearance    */
-
-  /* swaps to black-based shadows (soft grey doesn't read on a dark canvas) in    */
-
-  /* the [data-appearance="dark"] block below.                                    */
-  --shadow-xs: 0 1px 3px #959da51f;
-  --shadow-sm: 0 3px 10px #959da529;
-  --shadow-md: 0 8px 24px #959da533;
-  --shadow-lg: 0 16px 40px #959da53d;
+  /* rules/styling/elevation-over-borders.md — prefer elevation over borders.      */
+  --shadow-xs: 0 1px 3px #959da533;
+  --shadow-sm: 0 3px 10px #959da547;
+  --shadow-md: 0 8px 24px #959da561;
+  --shadow-lg: 0 16px 40px #959da575;
   --shadow: var(--shadow-md);
 
   /* --- Z-Index Layering (Prevents "z-index: 999999" chaos) --- */
@@ -455,20 +451,17 @@
 
 /* tokens that can't auto-adapt from the role mixes live here: the edge tint      */
 
-/* (which mixes toward an explicit black/white) and the drop shadow. Both         */
+/* (which mixes toward an explicit black/white). Both light and dark are written  */
 
-/* light and dark are written out so a light scope nested inside a dark global    */
+/* out so a light scope nested inside a dark global (or vice-versa) resets         */
 
-/* (or vice-versa) resets correctly rather than inheriting the wrong value.       */
+/* correctly rather than inheriting the wrong value. The drop shadow is           */
+
+/* appearance-independent (same soft shadow everywhere), so it stays in :root.    */
 
 [data-appearance="light"] {
   --edge-tint: black;
   --bg-display-only: var(--role-canvas);
-  --shadow-xs: 0 1px 3px #959da51f;
-  --shadow-sm: 0 3px 10px #959da529;
-  --shadow-md: 0 8px 24px #959da533;
-  --shadow-lg: 0 16px 40px #959da53d;
-  --shadow: var(--shadow-md);
 }
 
 [data-appearance="dark"] {
@@ -479,9 +472,4 @@
   /* recomputes every edge token automatically.                                  */
   --edge-tint: white;
   --bg-display-only: var(--role-canvas);
-  --shadow-xs: 0 1px 3px #0006;
-  --shadow-sm: 0 3px 10px #00000073;
-  --shadow-md: 0 8px 24px #00000080;
-  --shadow-lg: 0 16px 40px #0000008c;
-  --shadow: var(--shadow-md);
 }
