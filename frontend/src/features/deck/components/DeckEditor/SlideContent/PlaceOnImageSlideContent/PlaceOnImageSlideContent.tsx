@@ -69,7 +69,9 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   const pickImage = () => {
     editor.flush();
-    openPicker(editor.setImage, { title: "Backing image" });
+    // "source" keeps an upload's own aspect ratio — the placement surface
+    // renders the image at its intrinsic shape, so no frame to crop to.
+    openPicker(editor.setImage, { title: "Backing image", cropAspect: "source" });
   };
 
   const setCoordinate = (index: number, coordinate: "x" | "y", percent: number) => {

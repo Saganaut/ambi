@@ -22,6 +22,8 @@ interface OpenPickerOptions {
   /** Target slot shape — constrains the Upload tab's crop aspect (default 16:9). */
   cropWidth?: number;
   cropHeight?: number;
+  /** "source": uploads keep their own aspect ratio (wins over cropWidth/cropHeight). */
+  cropAspect?: "source";
 }
 
 type OpenGalleryPicker = (
@@ -41,6 +43,7 @@ const useGalleryPicker = (): OpenGalleryPicker => {
             initialUrl={options?.initialUrl}
             cropWidth={options?.cropWidth}
             cropHeight={options?.cropHeight}
+            cropAspect={options?.cropAspect}
             onPick={(image) => {
               onPick(image);
               closeModal();

@@ -10,7 +10,10 @@
 // The gallery is the per-user singleton (`GET /api/galleries/mine`); its images
 // are the paginated sub-resource (`GET /api/galleries/{id}/images`). Callers that
 // target a fixed-shape slot (deck/slide background, avatar, …) pass cropWidth +
-// cropHeight to constrain the Upload tab's crop box; it defaults to 16:9.
+// cropHeight to constrain the Upload tab's crop box; it defaults to 16:9. A
+// caller whose slot takes the image's own shape (Place-on-Image's backing
+// image) passes cropAspect="source" instead, so uploads keep their aspect
+// ratio rather than being clipped to a frame.
 import { useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tabs, type TabsItem } from "@ui/Tabs/Tabs";
@@ -33,6 +36,9 @@ interface GalleryPickerProps {
   /** Target slot dimensions; together they set the crop box aspect ratio. */
   cropWidth?: number;
   cropHeight?: number;
+  /** "source": the crop box takes each uploaded image's own aspect ratio
+   *  (wins over cropWidth/cropHeight). */
+  cropAspect?: "source";
 }
 
 type PickerTab = "gallery" | "upload";
@@ -43,11 +49,13 @@ const GalleryPicker = ({
   initialUrl,
   cropWidth,
   cropHeight,
+  cropAspect,
 }: GalleryPickerProps) => {
   const { data: gallery, isError: galleryError } = useGetMyGalleryQuery();
   const galleryId = gallery?.id;
-  const aspect =
-    cropWidth && cropHeight ? cropWidth / cropHeight : DEFAULT_CROP_ASPECT;
+  const aspect: number | "source" =
+    cropAspect ??
+    (cropWidth && cropHeight ? cropWidth / cropHeight : DEFAULT_CROP_ASPECT);
   const [tab, setTab] = useState<PickerTab>(initialUrl ? "upload" : "gallery");
 
   const items: TabsItem[] = [

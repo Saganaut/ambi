@@ -35,8 +35,8 @@ interface UploadSource {
 
 interface UploadTabProps {
   galleryId?: string;
-  /** Crop box aspect ratio passed through to the editor. */
-  aspect: number;
+  /** Crop box aspect ratio passed through to the editor ("source" = the image's own). */
+  aspect: number | "source";
   /** Prefill for the paste-URL field. */
   initialUrl?: string;
   onPicked: (image: AppImage) => void;

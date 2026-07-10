@@ -3,9 +3,16 @@
 // adjusts zoom, and supplies a name + alt text. react-easy-crop reports
 // `croppedAreaPixels` already in the source image's natural-pixel space, so the
 // area we hand back can be fed straight to `getCroppedBlob`.
+//
+// Callers whose slot has no shape of its own (Place-on-Image's backing image)
+// pass `aspect: "source"`: the crop box takes the uploaded image's own aspect
+// ratio, so at zoom 1 it covers the whole image and nothing is clipped unless
+// the user zooms in deliberately. react-easy-crop only crops to a fixed
+// numeric aspect, so "source" resolves to the natural ratio once the media
+// loads.
 import { useState } from "react";
 import Cropper from "react-easy-crop";
-import type { Area, Point } from "react-easy-crop";
+import type { Area, MediaSize, Point } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { Btn } from "@ui/Buttons/Btn";
 import { Input } from "@components/Forms/Input/Input/Input";
@@ -15,8 +22,8 @@ import styles from "./GalleryPicker.module.css";
 interface ImageCropEditorProps {
   /** Object/blob URL of the source image being cropped. */
   imageSrc: string;
-  /** Crop box aspect ratio (width / height). */
-  aspect: number;
+  /** Crop box aspect ratio (width / height), or "source" to match the image's own. */
+  aspect: number | "source";
   /** Prefill for the name field (e.g. the source filename). */
   initialName?: string;
   /** True while the parent is cropping + uploading. */
@@ -45,6 +52,10 @@ const ImageCropEditor = ({
   const [area, setArea] = useState<PixelArea | null>(null);
   const [name, setName] = useState(initialName ?? "");
   const [altText, setAltText] = useState("");
+  // The image's own ratio, learned when the media loads ("source" mode only).
+  // Until then the box is square for one paint; the cropper re-fits on change.
+  const [sourceAspect, setSourceAspect] = useState<number | null>(null);
+  const resolvedAspect = aspect === "source" ? (sourceAspect ?? 1) : aspect;
 
   const handleConfirm = () => {
     if (!area) return;
@@ -58,9 +69,13 @@ const ImageCropEditor = ({
           image={imageSrc}
           crop={crop}
           zoom={zoom}
-          aspect={aspect}
+          aspect={resolvedAspect}
           onCropChange={setCrop}
           onZoomChange={setZoom}
+          onMediaLoaded={(mediaSize: MediaSize) => {
+            if (aspect !== "source" || mediaSize.naturalHeight === 0) return;
+            setSourceAspect(mediaSize.naturalWidth / mediaSize.naturalHeight);
+          }}
           onCropComplete={(_: Area, areaPixels: Area) => {
             setArea(areaPixels);
           }}
