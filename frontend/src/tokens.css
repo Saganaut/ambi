@@ -308,9 +308,8 @@
 }
 
 :root {
-  /* --- Shadow (Expanded Scale) --- */
-  --shadow:
-    rgb(0, 0, 0 / 10%) 0 10px 15px -3px, rgb(0, 0, 0 / 5%) 0 4px 6px -2px;
+  /* --- Shadow (default alias → --shadow-md; full scale defined below) --- */
+  --shadow: var(--shadow-md);
 
   /* --- Typography (Expanded Scale) --- */
   --font-mono: "Poppins", "IBM Plex Mono", monospace;
@@ -415,12 +414,19 @@
   --border-size-md: 4px;
   --border-size-lg: 6px;
 
-  /* --- Elevation & Shadows--- */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
-  --shadow-md:
-    0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -1px rgb(0, 0, 0 / 6%);
-  --shadow-lg:
-    0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -2px rgb(0, 0, 0 /5%);
+  /* --- Elevation & Shadows --- */
+
+  /* Soft neutral drop shadows (#959da5). Prefer elevation over borders for      */
+
+  /* separation — see rules/styling/elevation-over-borders.md. Dark appearance    */
+
+  /* swaps to black-based shadows (soft grey doesn't read on a dark canvas) in    */
+
+  /* the [data-appearance="dark"] block below.                                    */
+  --shadow-xs: 0 1px 3px #959da51f;
+  --shadow-sm: 0 3px 10px #959da529;
+  --shadow-md: 0 8px 24px #959da533;
+  --shadow-lg: 0 16px 40px #959da53d;
 
   /* --- Z-Index Layering (Prevents "z-index: 999999" chaos) --- */
   --z-negative: -1;
@@ -460,8 +466,11 @@
 [data-appearance="light"] {
   --edge-tint: black;
   --bg-display-only: var(--role-canvas);
-  --shadow:
-    rgb(0, 0, 0 / 10%) 0 10px 15px -3px, rgb(0, 0, 0 / 5%) 0 4px 6px -2px;
+  --shadow-xs: 0 1px 3px #959da51f;
+  --shadow-sm: 0 3px 10px #959da529;
+  --shadow-md: 0 8px 24px #959da533;
+  --shadow-lg: 0 16px 40px #959da53d;
+  --shadow: var(--shadow-md);
 }
 
 [data-appearance="dark"] {
@@ -472,5 +481,9 @@
   /* recomputes every edge token automatically.                                  */
   --edge-tint: white;
   --bg-display-only: var(--role-canvas);
-  --shadow: rgb(0 0 0 / 40%) 0 10px 15px -3px, rgb(0 0 0 / 25%) 0 4px 6px -2px;
+  --shadow-xs: 0 1px 3px #0006;
+  --shadow-sm: 0 3px 10px #00000073;
+  --shadow-md: 0 8px 24px #00000080;
+  --shadow-lg: 0 16px 40px #0000008c;
+  --shadow: var(--shadow-md);
 }

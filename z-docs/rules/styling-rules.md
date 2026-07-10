@@ -9,5 +9,6 @@ CSS, tokens, and design-system conventions. Full explanation: [frontend/STYLES.m
 5. **Named color combinations & button variants** — Text/background pairings and `Btn`/`IconBtn` `variant` × `fill` styling come from a fixed catalog; anything off-list is outside the system. — [details](styling/color-and-button-variants.md)
 6. **Color formats** — Colors are authored as `oklch()` (the primary, palette/derived format) or hex (the user-input/fallback format) — never `rgb()`, `hsl()`, or named colors. — [details](styling/color-formats.md)
 7. **Container queries** — Responsive layout uses container queries, not viewport media queries. — [details](styling/container-queries.md)
-8. **Accessibility** — Use semantic HTML with keyboard support and correct ARIA. No `window.alert` / `prompt` / `confirm` — use the shared modal / popover patterns.
-9. **Lint** — Stylelint and oxlint must pass before commit (`lint:all` in the pre-commit hook).
+8. **Elevation over borders** — Prefer a soft `--shadow-*` drop shadow over a border to separate a surface; borders stay only for focus, status semantics, true dividers, and the `bordered` button fill. — [details](styling/elevation-over-borders.md)
+9. **Accessibility** — Use semantic HTML with keyboard support and correct ARIA. No `window.alert` / `prompt` / `confirm` — use the shared modal / popover patterns.
+10. **Lint** — Stylelint and oxlint must pass before commit (`lint:all` in the pre-commit hook).
