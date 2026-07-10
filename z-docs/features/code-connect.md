@@ -13,9 +13,11 @@ Parser-based mappings (`figma.connect()`), colocated with the components:
 | [`Btn.figma.tsx`](../../frontend/src/shared/components/UIElements/Buttons/Btn.figma.tsx) | `Btn` (`@ui/Buttons/Btn`) | "Button" set, `node-id=142-505` |
 | [`IconBtn.figma.tsx`](../../frontend/src/shared/components/UIElements/Buttons/IconBtn.figma.tsx) | `IconBtn` (`@ui/Buttons/IconBtn`) | "IconButton" set, `node-id=147-517` |
 
-Config lives in [`frontend/figma.config.json`](../../frontend/figma.config.json)
-(`parser: react`, `include: src/**/*.figma.tsx`). The dev dependency is
-`@figma/code-connect`.
+Config lives in [`frontend/figma.config.json`](../../frontend/figma.config.json):
+`parser: react`; `include` globs all `src` TS/TSX (the parser must reach both the
+`.figma.tsx` mapping **and** the component source it imports); and the project's
+`@ui/*` etc. path aliases are mirrored under `paths` so the CLI resolves imports
+the same way Vite/tsconfig do. The dev dependency is `@figma/code-connect`.
 
 ### Property mapping
 

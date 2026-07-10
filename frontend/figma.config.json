@@ -1,7 +1,27 @@
 {
   "codeConnect": {
     "parser": "react",
-    "include": ["src/**/*.figma.tsx"],
+    "include": ["src/**/*.tsx", "src/**/*.ts"],
+    "exclude": ["src/**/*.test.tsx", "src/**/*.stories.tsx"],
+    "paths": {
+      "@/*": ["src/*"],
+      "@assets/*": ["src/shared/assets/*"],
+      "@shared/*": ["src/shared/*"],
+      "@components/*": ["src/shared/components/*"],
+      "@ui/*": ["src/shared/components/UIElements/*"],
+      "@context/*": ["src/shared/context/*"],
+      "@hooks/*": ["src/shared/hooks/*"],
+      "@pages/*": ["src/pages/*"],
+      "@routes/*": ["src/routes/*"],
+      "@store/*": ["src/shared/store/*"],
+      "@types/*": ["src/shared/types/*"],
+      "@utils/*": ["src/shared/utils/*"],
+      "@deck/*": ["src/features/deck/*"],
+      "@account/*": ["src/features/account/*"],
+      "@features/*": ["src/features/*"],
+      "@liveSession/*": ["src/features/liveSession/*"],
+      "@auth/*": ["src/features/auth/*"]
+    },
     "importPaths": {
       "src/shared/components/UIElements/Buttons/*": "@ui/Buttons/*"
     }
