@@ -146,6 +146,42 @@ describe("usePlaceOnImageEditor target ops", () => {
     ]);
   });
 
+  it("label/color/image ops patch only the addressed target, never coordinates", async () => {
+    const result = await renderUsePlaceOnImageEditor();
+
+    act(() => {
+      result.current.scheduleTargetLabel(0, "Rivendell");
+      result.current.flush();
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+    let targets = placeContentOf(lastPutBody)?.correctTargets;
+    expect(targets?.[0].label).toBe("Rivendell");
+    expect(targets?.[1].label).toBeUndefined();
+
+    act(() => {
+      result.current.setTargetColor(1, "#ff8800");
+    });
+    await vi.waitFor(() =>
+      expect(placeContentOf(lastPutBody)?.correctTargets[1].color).toBe("#ff8800"),
+    );
+
+    const image = { external: true, externalSrc: "https://example.test/rivendell.png" };
+    act(() => {
+      result.current.setTargetImage(0, image);
+    });
+    await vi.waitFor(() =>
+      expect(placeContentOf(lastPutBody)?.correctTargets[0].image).toEqual(image),
+    );
+
+    targets = placeContentOf(lastPutBody)?.correctTargets;
+    expect(targets?.[0].color).toBeUndefined();
+    expect(targets?.[1].image).toBeUndefined();
+    // Annotation edits never disturb the answer key's geometry.
+    expect(targets?.map(({ x, y, radius }) => ({ x, y, radius }))).toEqual(
+      placeContent.correctTargets.map(({ x, y, radius }) => ({ x, y, radius })),
+    );
+  });
+
   it("setTolerance clamps to the tolerance bounds and rewrites every radius", async () => {
     const result = await renderUsePlaceOnImageEditor();
 

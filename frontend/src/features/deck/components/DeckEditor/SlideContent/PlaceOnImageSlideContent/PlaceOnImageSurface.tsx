@@ -17,13 +17,18 @@
  * measures in. The tolerance region is drawn with its width and height as the
  * same percentage of the (usually non-square) image box, so it renders as the
  * exact ellipse the normalized-distance grader accepts — what the author sees
- * is what is graded. The accessible, pointer-free path lives in the Targets
- * card's numeric X/Y inputs (see `PlaceOnImageSlideContent`).
+ * is what is graded. The pointer-free path lives in the target rows' popover
+ * menus ("Center target", see `PlaceOnImageSlideContent`).
+ *
+ * A labeled target's marker grows an Axis-style label pill next to its
+ * numbered dot — the DOT's centre, not the pill's, stays on the target point,
+ * matching where the grader measures. Unlabeled markers stay a bare dot so
+ * they don't crowd the image.
  */
 import { useRef, useState } from "react";
 
 import type { PlacePoint, PlaceTargetView } from "@deck/hooks/usePlaceOnImageEditor";
-import { targetColor } from "./targetColor";
+import { resolveTargetColor } from "./targetColor";
 import styles from "./PlaceOnImageSlideContent.module.css";
 
 /** Pointer travel (px) below which a marker press counts as a tap, not a drag. */
@@ -140,17 +145,32 @@ const PlaceOnImageSurface = ({
   const renderedPoint = (index: number): PlacePoint =>
     drag?.index === index ? drag.point : targets[index];
 
-  /** Marker + tolerance region at a normalized point, in the index's palette color. */
+  /** Marker + tolerance region at a normalized point, in the target's
+   *  resolved color. A non-empty label grows the marker into a pill whose
+   *  numbered dot stays centred on the point. */
   const renderTarget = (point: PlacePoint, index: number, key: string, isGhost: boolean) => {
+    const label = isGhost ? "" : (targets[index].label?.trim() ?? "");
+    const color = resolveTargetColor(isGhost ? undefined : targets[index].color, index);
     const position = {
       left: `${(point.x * 100).toString()}%`,
       top: `${(point.y * 100).toString()}%`,
     };
+    const markerClass = [styles.marker, label ? styles.markerLabeled : ""]
+      .filter(Boolean)
+      .join(" ");
+    const markerBody = (
+      <>
+        <span className={styles.markerDot} aria-hidden="true">
+          {index + 1}
+        </span>
+        {label && <span className={styles.markerLabel}>{label}</span>}
+      </>
+    );
     return (
       <span
         key={key}
         className={styles.markerGroup}
-        style={{ "--target-color": targetColor(index) } as React.CSSProperties}
+        style={{ "--target-color": color } as React.CSSProperties}
       >
         <span
           className={styles.toleranceRegion}
@@ -163,20 +183,20 @@ const PlaceOnImageSurface = ({
         />
         {isGhost ? (
           // The new target being placed — not committed yet, so not a button.
-          <span className={[styles.marker, styles.markerGhost].join(" ")} style={position}>
-            {index + 1}
+          <span className={[markerClass, styles.markerGhost].join(" ")} style={position}>
+            {markerBody}
           </span>
         ) : (
           <button
             type="button"
-            className={styles.marker}
+            className={markerClass}
             style={position}
-            aria-label={`Target ${(index + 1).toString()} — drag to move`}
+            aria-label={`Target ${(index + 1).toString()}${label ? ` (${label})` : ""} — drag to move`}
             onPointerDown={handleMarkerPointerDown(index)}
             onPointerMove={handleMarkerPointerMove}
             onPointerUp={handleMarkerPointerUp}
           >
-            {index + 1}
+            {markerBody}
           </button>
         )}
       </span>

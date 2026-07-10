@@ -86,9 +86,12 @@ public class SlideContentTypes {
 
     /**
      * A click target on an image.
-     * {@code x}, {@code y}, and {@code radius} are normalized to [0, 1].
+     * {@code label}, {@code image}, and {@code color} are optional author
+     * annotations (mirroring {@link AxisItem}); {@code x}, {@code y}, and
+     * {@code radius} are normalized to [0, 1].
      */
-    public record Target(String id, double x, double y, double radius) {
+    public record Target(String id, String label, AppImage image, String color,
+            double x, double y, double radius) {
     }
 
     // --------------- Matching --------------------------------------------

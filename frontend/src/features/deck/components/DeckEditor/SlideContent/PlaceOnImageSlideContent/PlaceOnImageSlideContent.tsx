@@ -14,16 +14,20 @@
  *     surface as the body — press open image to add a target and drag it,
  *     drag markers to move them.
  *   - "Targets" card: the tolerance percent input (2–50 %, every circle
- *     resizes live) in the header; one row per target — numbered in its
- *     marker's palette color — with numeric X/Y inputs (percent of the image,
- *     top-left origin) as the accessible, pointer-free placement path, a
- *     remove button, and an "Add target" affordance (drops at the centre).
+ *     resizes live) in the header; one row per target — the shared
+ *     `ItemField` (label field whose focus opens the row's popover menu:
+ *     center target, palette/custom color, image, delete — Axis's row
+ *     pattern), an image thumbnail when one is set, and an "Add target"
+ *     affordance (drops at the centre). This composer owns which menu is
+ *     open (at most one). The menu's "Center target" is the pointer-free
+ *     placement path.
  *
  * Grading is INSIDE_RADIUS (pin inside any target's circle), the only mode
  * the grader implements, so `scoreMode` has no authoring knob. The footer
  * nudges until an image is chosen and at least one target exists — but only
  * nudges: a target-less slide is a legitimate collect-only pin drop.
  */
+import { ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
@@ -31,20 +35,18 @@ import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { Btn } from "@ui/Buttons/Btn";
 import {
   MAX_PLACE_TARGETS,
+  PLACE_LABEL_MAX,
   PLACE_TOLERANCE_MAX,
   PLACE_TOLERANCE_MIN,
   usePlaceOnImageEditor,
 } from "@deck/hooks/usePlaceOnImageEditor";
-import { largestUrl } from "@utils/image";
-import { EmptySelect, ItemCard, ItemList, ScoringFooter, SettingsCard } from "../_shared";
+import { largestUrl, resolveImageUrl } from "@utils/image";
+import { EmptySelect, ItemCard, ItemField, ItemList, ScoringFooter, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { PlaceOnImageSurface } from "./PlaceOnImageSurface";
-import { targetColor } from "./targetColor";
+import { resolveTargetColor } from "./targetColor";
 import styles from "./PlaceOnImageSlideContent.module.css";
-
-/** Normalized [0, 1] coordinate → whole percent for the numeric inputs. */
-const toPercent = (value: number): number => Math.round(value * 100);
 
 const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = usePlaceOnImageEditor(deckId, slideId);
@@ -52,12 +54,16 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const openPicker = useGalleryPicker();
 
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
+  // Which row's menu is open — at most one per slide. Focusing a row's label
+  // opens its menu (and thereby closes any other); the menu owns dismissal.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [syncedFromId, setSyncedFromId] = useState(question?.id);
   // Resync the local mirror when the active slide changes ("derive state
   // during render" — safe when the new value differs).
   if (question && syncedFromId !== question.id) {
     setSyncedFromId(question.id);
     setPrompt(question.prompt);
+    setOpenMenuId(null);
   }
 
   if (!question) return <EmptySelect title="Place on image" />;
@@ -72,11 +78,6 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     // "source" keeps an upload's own aspect ratio — the placement surface
     // renders the image at its intrinsic shape, so no frame to crop to.
     openPicker(editor.setImage, { title: "Backing image", cropAspect: "source" });
-  };
-
-  const setCoordinate = (index: number, coordinate: "x" | "y", percent: number) => {
-    const target = targets[index];
-    editor.moveTarget(index, { ...target, [coordinate]: percent / 100 });
   };
 
   const footer = hasImage ? (
@@ -160,44 +161,60 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 editor.addTarget();
               }}
             >
-              {targets.map((target, index) => (
-                <ItemCard
-                  key={target.id}
-                  index={index}
-                  indexColor={targetColor(index)}
-                  removeLabel={`Remove target ${(index + 1).toString()}`}
-                  onRemove={() => {
-                    editor.removeTarget(index);
-                  }}
-                >
-                  <div className={styles.targetFields}>
-                    <NumberInput
-                      compact
-                      id={`place-target-x-${target.id}`}
-                      label="X %"
-                      labelPosition="labelInFront"
-                      value={toPercent(target.x)}
-                      min={0}
-                      max={100}
-                      onChange={(next) => {
-                        setCoordinate(index, "x", next);
-                      }}
-                    />
-                    <NumberInput
-                      compact
-                      id={`place-target-y-${target.id}`}
-                      label="Y %"
-                      labelPosition="labelInFront"
-                      value={toPercent(target.y)}
-                      min={0}
-                      max={100}
-                      onChange={(next) => {
-                        setCoordinate(index, "y", next);
-                      }}
-                    />
-                  </div>
-                </ItemCard>
-              ))}
+              {targets.map((target, index) => {
+                const thumbnailSrc = resolveImageUrl(target.image, "SM", target.id, 200, 200, false);
+                return (
+                  <ItemCard
+                    key={target.id}
+                    index={index}
+                    indexColor={resolveTargetColor(target.color, index)}
+                  >
+                    <div className={styles.targetFields}>
+                      <ItemField
+                        itemId={target.id}
+                        label={target.label}
+                        image={target.image}
+                        displayIndex={index + 1}
+                        placeholder={`Target ${(index + 1).toString()}`}
+                        maxLength={PLACE_LABEL_MAX}
+                        color={resolveTargetColor(target.color, index)}
+                        open={openMenuId === target.id}
+                        onOpenChange={(open) => {
+                          setOpenMenuId(open ? target.id : null);
+                        }}
+                        canRemove
+                        primaryAction={{
+                          // The pointer-free placement path: park the target at
+                          // the image's centre, ready for numeric-free nudging.
+                          label: "Center target",
+                          icon: ViewfinderCircleIcon,
+                          onSelect: () => {
+                            setOpenMenuId(null);
+                            editor.moveTarget(index, { x: 0.5, y: 0.5 });
+                          },
+                        }}
+                        onScheduleLabel={(label) => {
+                          editor.scheduleTargetLabel(index, label);
+                        }}
+                        onFlush={editor.flush}
+                        onSetColor={(color) => {
+                          editor.setTargetColor(index, color);
+                        }}
+                        onSetImage={(image) => {
+                          editor.setTargetImage(index, image);
+                        }}
+                        onRemove={() => {
+                          editor.removeTarget(index);
+                        }}
+                        openPicker={openPicker}
+                      />
+                      {thumbnailSrc && (
+                        <img className={styles.targetThumbnail} src={thumbnailSrc} alt="" />
+                      )}
+                    </div>
+                  </ItemCard>
+                );
+              })}
             </ItemList>
           </SettingsCard>
         </div>

@@ -6,6 +6,7 @@ export type { PromptFieldProps } from "./PromptField";
 export { SectionHeader } from "./SectionHeader";
 export { SettingsCard, SettingsRow } from "./SettingsCard";
 export { ItemCard } from "./ItemCard";
+export { ItemField } from "./ItemField/ItemField";
 export { ItemList } from "./ItemList";
 export { PhraseOrImageCard } from "./PhraseOrImageCard/PhraseOrImageCard";
 export type { PhraseOrImageItem } from "./PhraseOrImageCard/PhraseOrImageCard";

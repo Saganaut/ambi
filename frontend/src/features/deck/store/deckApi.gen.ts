@@ -903,6 +903,9 @@ export type AxisContent = {
 };
 export type Target = {
   id?: string;
+  label?: string;
+  image?: AppImage;
+  color?: string;
   x?: number;
   y?: number;
   radius?: number;

@@ -13,14 +13,15 @@
 // coordinate space is pure plumbing — no endpoint labels, no item bank.
 // Coordinates are screen-space over the image box: (0, 0) is the image's
 // top-left corner (unlike Axis, whose y is inverted); the player runtime must
-// measure in the same space. Targets are anonymous circles (`correctTargets`),
-// each with its own normalized `radius` on the wire — the editor keeps them
-// in lockstep as ONE tolerance knob (Axis's slide-level `tolerance`), so the
-// view derives `tolerance` from the first target and `setTolerance` rewrites
-// every radius. Grading is INSIDE_RADIUS (the pin lands inside any target
-// circle) and the grader implements nothing else, so `scoreMode` has no
-// authoring knob — `buildDefaultContent` fixes it and the editor never
-// writes it.
+// measure in the same space. Targets (`correctTargets`) are circles with
+// optional author annotations — label, color override, image (Axis's item
+// fields) — and each carries its own normalized `radius` on the wire; the
+// editor keeps the radii in lockstep as ONE tolerance knob (Axis's
+// slide-level `tolerance`), so the view derives `tolerance` from the first
+// target and `setTolerance` rewrites every radius. Grading is INSIDE_RADIUS
+// (the pin lands inside any target circle) and the grader implements nothing
+// else, so `scoreMode` has no authoring knob — `buildDefaultContent` fixes it
+// and the editor never writes it.
 import { nanoid } from "nanoid";
 
 import type { AppImage, Target } from "@deck/store/deckApi.gen";
@@ -36,6 +37,8 @@ const PLACE_TOLERANCE_MIN = 0.02;
 const PLACE_TOLERANCE_MAX = 0.5;
 /** Default tolerance for a slide with no targets yet (first `addTarget`). */
 const PLACE_TOLERANCE_DEFAULT = 0.1;
+/** `maxLength` for target label inputs (mirrors `AXIS_LABEL_MAX`). */
+const PLACE_LABEL_MAX = 80;
 
 /** A normalized point on the image, screen-space: (0, 0) is the top-left. */
 interface PlacePoint {
@@ -43,11 +46,15 @@ interface PlacePoint {
   y: number;
 }
 
-/** A wire `Target` with its optional fields resolved for the UI. */
+/** A wire `Target` with its coordinate fields resolved for the UI. */
 interface PlaceTargetView {
   id: string;
   x: number;
   y: number;
+  label?: string;
+  image?: AppImage;
+  /** Authored color override; the palette default applies when absent. */
+  color?: string;
 }
 
 /** Flattened, UI-facing view of the active Place-on-Image slide. */
@@ -82,6 +89,12 @@ interface UsePlaceOnImageEditorResult {
   /** Move a target to a clamped normalized point. Immediate. */
   moveTarget: (index: number, point: PlacePoint) => void;
   removeTarget: (index: number) => void;
+  /** Debounced target label edit. */
+  scheduleTargetLabel: (index: number, label: string) => void;
+  /** Override the target's palette color (menu swatch / custom picker). Immediate. */
+  setTargetColor: (index: number, color: string) => void;
+  /** Set or clear (empty AppImage) the target's image. Immediate. */
+  setTargetImage: (index: number, image: AppImage) => void;
 
   /** ── Scoring ─────────────────────────────────────────────────────────── */
   /** Set the shared tolerance radius (clamped to the 2–50 % bounds) on every
@@ -113,6 +126,9 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
           id: target.id ?? `target-${index.toString()}`,
           x: target.x ?? 0.5,
           y: target.y ?? 0.5,
+          label: target.label,
+          image: target.image,
+          color: target.color,
         })),
         tolerance: sharedTolerance(targets),
       }
@@ -159,6 +175,29 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
     editor.flush();
   };
 
+  /** Merge a patch into one target; `flush` opts structural (menu) edits out
+   *  of the debounce window, while label typing stays debounced. */
+  const patchTarget = (index: number, patch: Partial<Target>, flush: boolean) => {
+    editor.updateSlideContent((prev) => ({
+      correctTargets: prev.correctTargets.map((target, i) =>
+        i === index ? { ...target, ...patch } : target,
+      ),
+    }));
+    if (flush) editor.flush();
+  };
+
+  const scheduleTargetLabel = (index: number, label: string) => {
+    patchTarget(index, { label }, false);
+  };
+
+  const setTargetColor = (index: number, color: string) => {
+    patchTarget(index, { color }, true);
+  };
+
+  const setTargetImage = (index: number, image: AppImage) => {
+    patchTarget(index, { image }, true);
+  };
+
   const setTolerance = (value: number) => {
     const clamped = Math.min(PLACE_TOLERANCE_MAX, Math.max(PLACE_TOLERANCE_MIN, value));
     editor.updateSlideContent((prev) => ({
@@ -176,12 +215,16 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
     addTarget,
     moveTarget,
     removeTarget,
+    scheduleTargetLabel,
+    setTargetColor,
+    setTargetImage,
     setTolerance,
   };
 };
 
 export {
   MAX_PLACE_TARGETS,
+  PLACE_LABEL_MAX,
   PLACE_TOLERANCE_DEFAULT,
   PLACE_TOLERANCE_MAX,
   PLACE_TOLERANCE_MIN,

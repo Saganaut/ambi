@@ -111,26 +111,24 @@
   }
 }
 
-/* Marker = numbered dot, its centre exactly on the target point (matching
-   where the grader measures) — targets carry no label, so the number is the
-   whole pill, tying the marker to its row's index pill. */
+/* Marker = numbered dot (tying it to its row's index pill), its centre
+   exactly on the target point (matching where the grader measures). A
+   labeled target grows the Axis-style pill around the dot — see
+   `.markerLabeled`, whose transform keeps the DOT centred, not the pill. */
 .marker {
   --dot-size: 1.375rem;
 
   position: absolute;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: var(--dot-size);
-  height: var(--dot-size);
+  gap: var(--space-1);
   padding: 0;
   transform: translate(-50%, -50%);
-  border: var(--border-size-sm) solid oklch(99% 0 0deg);
-  border-radius: var(--radius-full);
-  background-color: var(--target-color);
-  color: oklch(99% 0 0deg);
+  border: none;
+  background: none;
+  color: var(--target-color);
   font-size: var(--font-size-xs);
-  font-weight: 700;
+  font-weight: 600;
   cursor: grab;
 
   /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
@@ -139,6 +137,38 @@
 
 .marker:active {
   cursor: grabbing;
+}
+
+/* The numbered dot itself, in the target's color. */
+.markerDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border: var(--border-size-sm) solid oklch(99% 0 0deg);
+  border-radius: var(--radius-full);
+  background-color: var(--target-color);
+  color: oklch(99% 0 0deg);
+  font-weight: 700;
+}
+
+/* Labeled variant: pill chrome around dot + text; the transform keeps the
+   dot's centre — not the pill's — on the target point. */
+.markerLabeled {
+  max-width: 9rem;
+  padding: var(--space-half) var(--space-2) var(--space-half) var(--space-1);
+  transform: translate(calc(-1 * (var(--space-1) + var(--dot-size) / 2)), -50%);
+  border: var(--border-size-sm) solid var(--target-color);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+}
+
+.markerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* The not-yet-committed target following the pointer during placement. */
@@ -166,15 +196,20 @@
 
 /* ── Target rows ────────────────────────────────────────────────────────── */
 
+/* Label field (+ optional thumbnail) inside the row card. */
 .targetFields {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex: 1;
   min-width: 0;
+}
 
-  /* Whole percents only (0–100): keep the X/Y fields narrow. */
-  & input[type="number"] {
-    width: 3.5rem;
-  }
+/* Thumbnail of the target's authored image (set via the row's menu). */
+.targetThumbnail {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
 }
