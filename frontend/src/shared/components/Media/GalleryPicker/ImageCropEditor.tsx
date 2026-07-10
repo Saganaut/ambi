@@ -1,6 +1,7 @@
-// Crop + details step of the Upload tab. The user frames the image within a
-// fixed-aspect crop box (aspect comes from the caller's target width/height),
-// adjusts zoom, and supplies a name + alt text. react-easy-crop reports
+// Crop + details step of the Upload tab. The user frames the image within the
+// crop box (its aspect comes from the caller's target slot — usually a fixed
+// width/height ratio), adjusts zoom, and supplies a name + alt text.
+// react-easy-crop reports
 // `croppedAreaPixels` already in the source image's natural-pixel space, so the
 // area we hand back can be fed straight to `getCroppedBlob`.
 //
