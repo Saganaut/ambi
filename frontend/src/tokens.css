@@ -308,9 +308,6 @@
 }
 
 :root {
-  /* --- Shadow (default alias → --shadow-md; full scale defined below) --- */
-  --shadow: var(--shadow-md);
-
   /* --- Typography (Expanded Scale) --- */
   --font-mono: "Poppins", "IBM Plex Mono", monospace;
   --font-heading: system-ui, "Segoe UI", "Roboto", sans-serif;
@@ -427,6 +424,7 @@
   --shadow-sm: 0 3px 10px #959da529;
   --shadow-md: 0 8px 24px #959da533;
   --shadow-lg: 0 16px 40px #959da53d;
+  --shadow: var(--shadow-md);
 
   /* --- Z-Index Layering (Prevents "z-index: 999999" chaos) --- */
   --z-negative: -1;
