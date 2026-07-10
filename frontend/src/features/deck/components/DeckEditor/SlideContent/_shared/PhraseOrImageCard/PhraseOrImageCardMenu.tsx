@@ -1,6 +1,6 @@
 /**
  * Per-card popover menu for phrase-or-image cards — the same focus-opened
- * pattern as MCQ's option menu (`OptionControls/Menu`) and `AxisItemMenu`:
+ * pattern as MCQ's option menu (`OptionControls/OptionField`) and `RankItemMenu`:
  * the card opens it when its field (phrase input or image slot) takes focus,
  * this controller owns dismissal (outside pointerdown and Escape) with the
  * field counted inside the boundary (it is the trigger — interacting with it

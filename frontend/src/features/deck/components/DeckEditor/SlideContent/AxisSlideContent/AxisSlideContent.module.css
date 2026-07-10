@@ -246,21 +246,21 @@
   min-width: 0;
 }
 
-/* The label field rides on the raised surface so it reads as the row's one
-   editable field against the card. The min-width keeps it usable when the
-   thumbnail and X/Y fields crowd the row. */
-.labelField {
+/* Wraps the label field so it can serve as the popover's anchor element
+   (FloatingPopover measures this box to place the menu). Takes the field's
+   slot in the row; the min-width keeps it usable when the thumbnail and X/Y
+   fields crowd the row. */
+.triggerWrap {
   flex: 1;
   min-width: 5rem;
+}
 
+/* The label field rides on the raised surface so it reads as the row's one
+   editable field against the card. */
+.labelField {
   & input {
     background-color: var(--bg-surface-raised);
   }
-}
-
-/* Positioned anchor for the row's popover menu (opens off the label field). */
-.menuAnchor {
-  position: relative;
 }
 
 .targetFields {

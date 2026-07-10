@@ -1,7 +1,7 @@
 /**
  * Per-item popover menu for Ranking item rows — the same focus-opened pattern
- * as MCQ's option menu (`OptionControls/Menu`), `AxisItemMenu`, and
- * `MatchCardMenu`: the composer opens it when the row's label field takes
+ * as MCQ's option menu (`OptionControls/OptionField`) and `MatchCardMenu`:
+ * the composer opens it when the row's label field takes
  * focus, this controller owns dismissal (outside pointerdown and Escape) with
  * the label field counted inside the boundary (it is the trigger — moving the
  * caret must not dismiss the menu). The menu itself is the shared `OptionMenu`

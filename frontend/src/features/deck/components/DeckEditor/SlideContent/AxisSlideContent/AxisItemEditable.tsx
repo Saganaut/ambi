@@ -1,27 +1,24 @@
 /**
  * Single-row editor for an Axis item: the palette-colored index badge, the
- * label field, an image thumbnail when one is set, and the accessible
- * fallback for target placement — numeric X/Y inputs (0–100 %) that mirror
- * `correctPositions[itemId]`. Clicking anywhere on the row selects it,
- * arming the plane for placement; focusing the label field also opens the
- * item's popover menu (set/clear target, color, image, delete), MCQ's
- * option-menu pattern. A controlled row like `GridItemEditable`: the label
- * mirror lives here while structural ops (schedule / flush / remove /
- * set-target / color / image) come in as props from the one `useAxisEditor`
- * in `AxisSlideContent`. Drag-sortable by the grip handle to reorder display
- * order (placement targets are id-keyed, so order never affects them).
+ * label field with its popover menu (`AxisItemField`), an image thumbnail
+ * when one is set, and the accessible fallback for target placement —
+ * numeric X/Y inputs (0–100 %) that mirror `correctPositions[itemId]`.
+ * Clicking anywhere on the row selects it, arming the plane for placement;
+ * focusing the label field also opens the item's popover menu (set/clear
+ * target, color, image, delete), MCQ's option-menu pattern. Structural ops
+ * (schedule / flush / remove / set-target / color / image) come in as props
+ * from the one `useAxisEditor` in `AxisSlideContent`. Drag-sortable by the
+ * grip handle to reorder display order (placement targets are id-keyed, so
+ * order never affects them).
  */
 import { useSortable } from "@dnd-kit/react/sortable";
 import { Bars2Icon } from "@heroicons/react/24/outline";
-import { useState } from "react";
 
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { Input } from "@components/Forms/Input/Input/Input";
-import { AXIS_LABEL_MAX } from "@deck/hooks/useAxisEditor";
 import type { AppImage, AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 import { resolveImageUrl } from "@utils/image";
 import { ItemCard } from "../_shared";
-import { AxisItemMenu } from "./AxisItemMenu";
+import { AxisItemField } from "./AxisItemField";
 import styles from "./AxisSlideContent.module.css";
 
 interface AxisItemEditableProps {
@@ -71,15 +68,7 @@ const AxisItemEditable = ({
   const itemId = item.id ?? "";
   const { ref, handleRef, isDragging } = useSortable({ id: itemId, index: sortIndex });
 
-  const [label, setLabel] = useState(item.label ?? "");
-  const [syncedFromId, setSyncedFromId] = useState(item.id);
-  if (syncedFromId !== item.id) {
-    setSyncedFromId(item.id);
-    setLabel(item.label ?? "");
-  }
-
   const displayIndex = sortIndex + 1;
-  const fieldId = `axis-item-label-${itemId}`;
   const thumbnailSrc = resolveImageUrl(item.image, "SM", itemId, 200, 200, false);
 
   // const setCoordinate = (coordinate: "x" | "y", percent: number) => {
@@ -108,36 +97,16 @@ const AxisItemEditable = ({
         }
       >
         <div className={styles.itemFields}>
-          <Input
-            type="text"
-            fullWidth
-            withPadding={false}
-            id={fieldId}
-            className={styles.labelField}
-            maxLength={AXIS_LABEL_MAX}
-            value={label}
-            placeholder={`Item ${displayIndex.toString()}`}
-            onChange={(event) => {
-              const next = event.target.value;
-              setLabel(next);
-              onScheduleLabel(next);
-            }}
-            onFocus={() => {
-              onMenuOpenChange(true);
-            }}
-            onBlur={onFlush}
-            aria-haspopup="dialog"
-            aria-expanded={menuOpen}
-          />
-          <AxisItemMenu
+          <AxisItemField
             item={item}
             displayIndex={displayIndex}
-            fieldId={fieldId}
             color={color}
             open={menuOpen}
             onOpenChange={onMenuOpenChange}
             hasTarget={targetPosition != null}
             canRemove={canRemove}
+            onScheduleLabel={onScheduleLabel}
+            onFlush={onFlush}
             onSetTarget={onSetTarget}
             onSetColor={onSetColor}
             onSetImage={onSetImage}
