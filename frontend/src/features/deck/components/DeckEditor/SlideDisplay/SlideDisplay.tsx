@@ -181,7 +181,7 @@ const SlideDisplay = () => {
       case "AXIS":
         return <AxisSlideContent deckId={deckId} slideId={slideId} />;
       case "PLACE_ON_IMAGE":
-        return <PlaceOnImageSlideContent />;
+        return <PlaceOnImageSlideContent deckId={deckId} slideId={slideId} />;
       case "ALLOCATION":
         return <AllocationSlideContent />;
       case "MATCHING":

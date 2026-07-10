@@ -1,69 +1,180 @@
-/* Slide-specific styles for the PlaceOnImage editor. The target picker is a
-   16:9 surface; the marker + tolerance ring are absolutely positioned at the
-   normalised (x, y) so the same coords work at any rendered size. */
+/* PlaceOnImageSlideContent — author UI for Place-on-Image (pin on the backing
+   image) slides. The target row chrome is the shared `ItemCard`; the styles
+   here are the side-by-side image/targets columns (mirroring Axis), the
+   placement surface whose height comes from the image's own intrinsic aspect
+   ratio (a block <img> sizes the wrapper — only the empty placeholder falls
+   back to 16:9), and the numbered markers + tolerance regions (palette color
+   carried on --target-color; width/height are the same percentage of the
+   non-square box, so the region renders as the exact ellipse the
+   normalized-distance grader accepts). */
 
-.targetPicker {
+/* ── Editor layout: surface and target rows side by side ────────────────── */
+
+.editorRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.imageColumn {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.targetsColumn {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.imageColumn > section,
+.targetsColumn > section {
+  width: 100%;
+}
+
+/* ── The placement surface ──────────────────────────────────────────────── */
+
+.surface {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  margin-inline: auto;
+
+  /* Capped so the editor row fits the slide canvas unscrolled; the height
+     follows from the image's intrinsic ratio. */
+  max-width: 24rem;
+  border: var(--border-size-sm) solid var(--edge-primary);
   border-radius: var(--radius-md);
-  background-color: var(--bg-surface);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  cursor: crosshair;
   overflow: clip;
-  border: var(--border-size-sm) solid transparent;
-  outline: none;
-  transition: border-color var(--duration-fast) ease-out;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
 }
 
-.targetPicker:focus-visible {
-  border-color: var(--border-default);
+/* Room to add a target: any press on the image drops (and drags) one. */
+.surfaceArmed {
+  cursor: crosshair;
+  outline: var(--border-size-sm) solid color-mix(in oklab, var(--edge-primary) 30%, transparent);
+  outline-offset: var(--space-half);
 }
 
-.targetEmpty {
-  position: absolute;
-  inset: 0;
+/* The image is the box: block-level so no baseline gap, full width so the
+   wrapper's height is set by the intrinsic aspect ratio. */
+.surfaceImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+/* No image yet: a 16:9 stand-in so the card doesn't collapse. */
+.surfaceEmpty {
+  aspect-ratio: 16 / 9;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-style: dashed;
+  background-color: var(--bg-surface);
+}
+
+.surfacePlaceholder {
+  padding: var(--space-4);
   color: var(--text-muted);
   font-size: var(--font-size-sm);
-  background-color: var(--bg-surface);
-  border: var(--border-size-sm) dashed var(--edge-surface);
-  border-radius: var(--radius-md);
+  text-align: center;
 }
 
-.toleranceRing {
+/* ── Placed targets ─────────────────────────────────────────────────────── */
+
+/* Carries the target's palette color for the marker + region pair. The real
+   value is set inline per target; this is only the declared fallback. */
+.markerGroup {
+  --target-color: var(--text-accent);
+}
+
+/* The accepted region, in the target's color: dashed outline + faint wash.
+   The wash lives on the pseudo-element so its low opacity never fades the
+   dashed outline. */
+.toleranceRegion {
   position: absolute;
   transform: translate(-50%, -50%);
-  height: 0;
+  border: var(--space-px) dashed var(--target-color);
   border-radius: var(--radius-full);
-  background-color: oklch(70% 0.2 60deg / 18%);
-  border: var(--border-size-sm) solid var(--orange-400);
   pointer-events: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--target-color);
+    opacity: 0.14;
+  }
 }
 
-.targetMarker {
+/* Marker = numbered dot, its centre exactly on the target point (matching
+   where the grader measures) — targets carry no label, so the number is the
+   whole pill, tying the marker to its row's index pill. */
+.marker {
+  --dot-size: 1.375rem;
+
   position: absolute;
-  width: 1rem;
-  height: 1rem;
-  transform: translate(-50%, -50%);
-  border-radius: var(--radius-full);
-  background-color: var(--orange-400);
-  border: var(--border-size-sm) solid oklch(99% 0 0deg);
-  pointer-events: none;
-}
-
-.coordsBadge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  justify-content: center;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: var(--border-size-sm) solid oklch(99% 0 0deg);
   border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
+  background-color: var(--target-color);
+  color: oklch(99% 0 0deg);
   font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: grab;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+}
+
+.marker:active {
+  cursor: grabbing;
+}
+
+/* The not-yet-committed target following the pointer during placement. */
+.markerGhost {
+  cursor: crosshair;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* ── Card-header accessories ────────────────────────────────────────────── */
+
+/* How-to hint + tolerance input cluster in the Targets card's header. */
+.targetsMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.targetsHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ── Target rows ────────────────────────────────────────────────────────── */
+
+.targetFields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+
+  /* Whole percents only (0–100): keep the X/Y fields narrow. */
+  & input[type="number"] {
+    width: 3.5rem;
+  }
 }
