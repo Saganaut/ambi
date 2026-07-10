@@ -7,7 +7,7 @@ it — GRID is discrete (items snap into labeled matrix cells, graded by exact
 cell match); AXIS is continuous (items land at arbitrary normalized
 coordinates, graded by distance to an author-set target within a tolerance
 radius). Coordinate and radius conventions are borrowed wholesale from
-PLACE_ON_IMAGE, which is AXIS minus the image.
+[PLACE_ON_IMAGE](../place-on-image/README.md), which is AXIS minus the image.
 
 **Status: implemented (v1).** All three stages of the
 [implementation checklist](#implementation-checklist) have landed: the content
