@@ -183,7 +183,7 @@ const SlideDisplay = () => {
       case "PLACE_ON_IMAGE":
         return <PlaceOnImageSlideContent deckId={deckId} slideId={slideId} />;
       case "ALLOCATION":
-        return <AllocationSlideContent />;
+        return <AllocationSlideContent deckId={deckId} slideId={slideId} />;
       case "MATCHING":
         return <MatchingSlideContent deckId={deckId} slideId={slideId} />;
       case "DRAWING":

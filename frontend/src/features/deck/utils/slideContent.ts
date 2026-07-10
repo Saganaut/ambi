@@ -174,9 +174,12 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         scoreMode: "EXACT",
       };
     case "ALLOCATION":
+      // Seed two blank options (the minimum for a real split, mirroring MCQ).
+      // `correctAllocations` is left off so a new slide starts unscored
+      // (collect-only) — the author opts into scoring per option in the editor.
       return {
         contentType: "ALLOCATION",
-        options: [],
+        options: [buildDefaultAllocationOption(), buildDefaultAllocationOption()],
         totalPointsToAllocate: 100,
         tolerancePerOption: 0,
       };
@@ -219,6 +222,21 @@ export const buildDefaultMcqOption = (): McqOption => ({
   id: nanoid(8),
   optionType: "TEXT",
   text: "Untitled Option",
+});
+
+/**
+ * Build a blank Allocation option with a fresh client-minted id. Allocation
+ * reuses the `McqOption` record, but unlike MCQ's factory the label starts
+ * empty: the editor's option rows follow the item-row pattern (empty label +
+ * "Option N" placeholder) shared with Grid/Axis/Matching. ALLOCATION content
+ * keys its answer map by option id (`correctAllocations`), so a stable id at
+ * creation time is what lets the author set answers and the backend grade
+ * splits.
+ */
+export const buildDefaultAllocationOption = (): McqOption => ({
+  id: nanoid(8),
+  optionType: "TEXT",
+  text: "",
 });
 
 /**
