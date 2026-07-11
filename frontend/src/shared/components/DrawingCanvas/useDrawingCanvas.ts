@@ -58,11 +58,12 @@ interface DrawingHistory {
 
 const EMPTY_HISTORY: DrawingHistory = { past: [], present: [], future: [] };
 
-const loadImage = (url: string): Promise<HTMLImageElement> =>
+const loadImage = (url: string, anonymous: boolean): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
-    // Required so the canvas stays readable (untainted) for PNG export.
-    image.crossOrigin = "anonymous";
+    // Anonymous keeps the canvas readable (untainted) for PNG export, but
+    // needs CORS approval from the image host.
+    if (anonymous) image.crossOrigin = "anonymous";
     image.onload = () => {
       resolve(image);
     };
@@ -71,6 +72,15 @@ const loadImage = (url: string): Promise<HTMLImageElement> =>
     };
     image.src = url;
   });
+
+/**
+ * Load for on-screen display: prefer a CORS-clean copy (so the visible canvas
+ * matches what export can composite), but fall back to a plain load — the
+ * visible canvas is never read back, so a tainting image is fine to SHOW even
+ * when export will have to skip it.
+ */
+const loadDisplayImage = (url: string): Promise<HTMLImageElement> =>
+  loadImage(url, true).catch(() => loadImage(url, false));
 
 interface UseDrawingCanvasArgs {
   palette: readonly string[];
@@ -158,7 +168,7 @@ const useDrawingCanvas = ({
       return;
     }
     let cancelled = false;
-    loadImage(backgroundImageUrl)
+    loadDisplayImage(backgroundImageUrl)
       .then((image) => {
         if (cancelled) return;
         backgroundRef.current = image;
@@ -182,6 +192,21 @@ const useDrawingCanvas = ({
     },
     [],
   );
+
+  // Disabling mid-stroke must abort cleanly: pointer handlers may detach or
+  // no-op before the finishing pointerup arrives, and a stranded
+  // activePointerRef would block every future stroke.
+  useEffect(() => {
+    if (!disabled) return;
+    activePointerRef.current = null;
+    draftRef.current = null;
+    const snapshot = strokeSnapshotRef.current;
+    strokeSnapshotRef.current = null;
+    if (snapshot) {
+      setHistory((h) => ({ ...h, present: snapshot }));
+    }
+    scheduleDraw();
+  }, [disabled, scheduleDraw]);
 
   const isEmpty = history.present.length === 0;
   const onEmptyChangeRef = useRef(onEmptyChange);
@@ -352,9 +377,10 @@ const useDrawingCanvas = ({
     ctx.fillRect(0, 0, DRAWING_LOGICAL_SIZE, DRAWING_LOGICAL_SIZE);
     if (backgroundImageUrl) {
       try {
-        renderCoverImage(ctx, await loadImage(backgroundImageUrl));
+        // Anonymous-only here: a tainting copy would make toBlob throw.
+        renderCoverImage(ctx, await loadImage(backgroundImageUrl, true));
       } catch {
-        // Export the strokes on plain paper if the background won't load.
+        // Export the strokes on plain paper if a CORS-clean copy won't load.
       }
     }
     renderElements(ctx, historyRef.current.present);

@@ -87,12 +87,14 @@ const DrawingCanvas = ({
         />
       )}
       <div className={styles.surface}>
+        {/* Handlers stay attached even while disabled (the hook gates input
+            internally) so a mid-stroke disable can still clean up its pointer. */}
         <canvas
           ref={canvasRef}
           className={styles.canvas}
           role='img'
           aria-label={ariaLabel}
-          {...(disabled ? {} : canvasHandlers)}
+          {...canvasHandlers}
         />
       </div>
     </div>
