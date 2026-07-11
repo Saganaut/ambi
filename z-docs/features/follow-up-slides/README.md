@@ -54,9 +54,13 @@ authoritative validator:
 | `PREDICT_POPULAR`  | `MCQ`                    | Which option was picked most?                                                     |
 | `BEST_ANSWER_VOTE` | `MCQ`, `TEXT`, `DRAWING` | Which submission was best? (vote — picked options on MCQ, free-form answers else) |
 
-MCQ parents (the only kind creatable in the editor today) support both modes,
-so the author picks one when adding the follow-up and can change it in the
-inspector. `TEXT`/`DRAWING` rows document intent for when those editors land.
+`MCQ`, `TEXT`, and `DRAWING` slides are all creatable in the editor today, so
+a follow-up can attach to any of them. `MCQ` is the only parent with more
+than one valid mode — the author picks one when adding the follow-up and can
+change it in the inspector; `TEXT` and `DRAWING` parents are
+`BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` itself has no runtime yet
+regardless of parent type — see [Runtime (future)](#runtime-future) — so
+today this only pairs the slides at authoring time.
 
 The frontend mirrors the table in
 `frontend/src/features/deck/utils/followUp.ts` (`FOLLOW_UP_MODE_PARENTS`),

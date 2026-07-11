@@ -38,6 +38,16 @@ sequenceDiagram
     GS-->>U: GalleryImage (keys hydrated → presigned URLs)
 ```
 
+`ImageIngestService.ingest` also has a prefix-parameterized overload used by
+non-gallery flows that need their own key namespace and ownership scoping:
+live-session [Drawing](../features/drawing-slide/README.md#live-session--draw-and-submit)
+answer uploads key their objects under `drawing/{sessionId}/{participantId}/{uuid}`
+(sibling to `gallery/{uuid}`, minted by `LiveSessionAnswerService.storeDrawing`)
+so answer validation can check a submitted image is one this participant
+uploaded through this session, and a resubmit's delete can target exactly its
+own objects. The 3-arg overload (gallery uploads, shown above) is just this
+one with the prefix defaulted to `gallery/` + a fresh UUID.
+
 ## Read hydration — keys to presigned URLs
 
 The S3 key is the source of truth; URLs are never persisted. On read, keys are

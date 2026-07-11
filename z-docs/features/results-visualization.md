@@ -104,7 +104,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or Sankey | 🚧 heatmap placeholder (Sankey deferred) |
 | **ALLOCATION** | `Map<optionId,Integer>` | Avg-points grouped / 100%-stacked bar | ♻️ reuses BarChart |
 | **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🧩 word cloud built, not wired (no backend tally) |
-| **DRAWING** | `String` imageData | Image gallery (not a quantitative chart) | ❌ gallery deferred |
+| **DRAWING** | `AppImage` (rendered PNG, stored in S3) | Image gallery (not a quantitative chart) | ✅ gallery built (bypasses this pipeline — see note) |
 | **Q_AND_A** | `String` question | List/word-cloud toggle on the live board (not a post-round chart) | ✅ live board built (bypasses this pipeline — see note) |
 | **TITLE** | — | None — display-only, no responses | n/a |
 | **CONTENT** (RichText) | — | None — display-only | n/a |
@@ -157,8 +157,15 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   bar can reuse `BarChart`.
 - **FOLLOW_UP** — a free-text response derived from the parent round; shape is
   mode-dependent but generally frequency / word-cloud style.
-- **DRAWING** — serialized image per participant; not a quantitative chart —
-  present as an **image gallery** (any real "chart" comes from downstream voting).
+- **DRAWING** — a rendered PNG per participant, stored in S3; not a
+  quantitative chart. The **results gallery** is built and live
+  (`ResultsRevealed.drawings` → `DrawingSubmissionView` → `DrawingBoardContent`'s
+  results mode, a 1:1 tile grid of image + player name), but like Q&A it
+  bypasses this doc's `ChartDatum`/registry/`ResultsDisplaySwitch` pipeline —
+  `DRAWING` is deliberately absent from `resultsRegistry`. See
+  [drawing slides](drawing-slide/README.md#results-gallery). Any real
+  "chart" (e.g. a leaderboard of votes) would come from a downstream
+  best-answer-vote follow-up once that mode's runtime exists.
 - **Q&A** — free-text audience questions, never scored. The **live board**
   (`QAndABoardContent`) is built end-to-end: participants send questions
   (capped per player by `QAndAContent.maxResponses`), the host answers inline
@@ -193,8 +200,10 @@ Ordered by breadth of slide types unlocked and reuse of existing infrastructure.
    primitive covers three slide types.
 5. **Stacked / grouped bar** → RANKING, ALLOCATION. May extend the existing
    `BarChart` rather than adding a new component.
-6. **Image-overlay results** → PLACE_ON_IMAGE (scatter/heatmap on image),
-   DRAWING (gallery). Image-aware, lower reuse.
+6. **Image-overlay results** → PLACE_ON_IMAGE (scatter/heatmap on image).
+   Image-aware, lower reuse. (DRAWING's results gallery is already built, via
+   its own dedicated pipeline outside this registry — see its
+   [per-type note](#per-type-notes).)
 
 Note: **average-value bars** for RANKING and ALLOCATION can likely reuse
 `BarChart` today with just an adapter + backend tally — the cheapest wins.
@@ -230,5 +239,7 @@ new shapes (heatmap, diverging bar, image overlay) need a new component under
 - [Deck Editor](deck-editor/README.md) — authoring dashboard the pickers live in.
 - [Follow-Up Slides](follow-up-slides/README.md) — how FOLLOW_UP consumes parent
   submissions.
+- [Drawing Slides](drawing-slide/README.md) — the results gallery pipeline that
+  bypasses this doc's registry, mirroring Q&A's live word cloud.
 - [Missing Features](missing-features.md) — cross-cutting backlog.
 - [Glossary](../glossary.md) — deck / slide / element domain terms.

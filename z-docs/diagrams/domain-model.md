@@ -253,11 +253,11 @@ classDiagram
     ScorableContent <|.. PlaceOnImageContent
     ScorableContent <|.. MatchingContent
     ScorableContent <|.. AllocationContent
+    ScorableContent <|.. DrawingContent
 
     NonScorableContent <|.. TitleContent
     NonScorableContent <|.. MediaContent
     NonScorableContent <|.. QAndAContent
-    NonScorableContent <|.. DrawingContent
     NonScorableContent <|.. FollowUpContent
 ```
 
