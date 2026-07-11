@@ -96,14 +96,48 @@
   height: 1rem;
 }
 
-.canvasDims {
+.imageActions {
   display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.imagePreview {
+  display: block;
+  max-width: 100%;
+  max-height: 16rem;
+
+  /* The card body is a stretch-aligned flex column; keep intrinsic aspect. */
+  align-self: flex-start;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.imageHint {
+  margin: 0;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
+}
+
+/* "Draw the prompt image" modal body */
+
+.drawModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(70vh, 34rem);
+  max-width: 100%;
+}
+
+.drawModalError {
+  margin: 0;
+  color: var(--text-error);
+  font-size: var(--font-size-sm);
+}
+
+.drawModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }

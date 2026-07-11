@@ -1,173 +1,189 @@
 /**
- * Author surface for a Drawing question.
+ * Author surface for a Drawing slide (DrawingContent) — the open-canvas,
+ * survey-style kind: players freehand-draw on a fixed 1:1 canvas and submit
+ * a rendered PNG. There is no static answer key (typically paired with a
+ * best-answer-vote follow-up), so this surface has no scoring knobs.
  *
- * Drawing is open-canvas / survey-only. The editor exposes:
- *   - Prompt
- *   - Optional backing image (paste URL or pick from gallery)
- *   - Canvas geometry + per-player caps
- *   - Live palette swatch editor (`PaletteEditor`) — replaces the legacy
- *     comma-separated palette input
+ * Layout:
+ *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
+ *   - "Prompt image" card: optional image players see with the canvas —
+ *     choose from the gallery, or draw one right here (DrawingCanvas in the
+ *     global modal → PNG → gallery ingest). A placement radio decides
+ *     whether players see it beside the canvas or under their strokes as a
+ *     traceable layer.
+ *   - "Canvas tools" card: which tools players get (pen is always on) and
+ *     the stroke-color palette (shown while COLOR_PALETTE is enabled).
+ *
+ * `correctImage` exists on the wire for a future compare/vote feature and is
+ * deliberately not surfaced here.
  */
+import { useState } from "react";
 
-const DrawingSlideContent = () => {
-  return <div>not implemented</div>;
+import { DEFAULT_DRAWING_PALETTE } from "@deck/utils/slideContent";
+import { useDrawingEditor } from "@deck/hooks/useDrawingEditor";
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { useModal } from "@hooks/useModal";
+import { RadioGroup } from "@components/Forms/Input/RadioGroup/RadioGroup";
+import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import { Btn } from "@ui/Buttons/Btn";
+import type { PromptPlacement, Tool } from "@deck/store/deckEnums.gen";
+import { isImageEmpty, largestUrl } from "@utils/image";
+import { EmptySelect, SettingsCard, SettingsRow } from "../_shared";
+import type { SlideContentProps } from "../slideContentProps";
+import { SlideContentWrapper } from "../SlideContentWrapper";
+import { DrawPromptModalBody } from "./DrawPromptModalBody";
+import { PaletteEditor } from "./PaletteEditor";
+import styles from "./DrawingSlideContent.module.css";
+
+/** The player-facing tool toggles this surface offers (PEN is always on). */
+const TOOL_TOGGLES: { tool: Tool; label: string }[] = [
+  { tool: "ERASER", label: "Eraser" },
+  { tool: "SHAPES", label: "Shapes" },
+  { tool: "COLOR_PALETTE", label: "Color palette" },
+];
+
+const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
+  const editor = useDrawingEditor(deckId, slideId);
+  const { question } = editor;
+  const openPicker = useGalleryPicker();
+  const { openModal, closeModal } = useModal();
+
+  const [prompt, setPrompt] = useState(question?.prompt ?? "");
+  const [palette, setPalette] = useState<string[]>(question?.palette ?? []);
+  const [syncedFromId, setSyncedFromId] = useState(question?.id);
+  // Resync the local mirrors when the active slide changes ("derive state
+  // during render" — safe when the new value differs).
+  if (question && syncedFromId !== question.id) {
+    setSyncedFromId(question.id);
+    setPrompt(question.prompt);
+    setPalette(question.palette);
+  }
+
+  if (!question) return <EmptySelect title='Drawing' />;
+
+  const imageUrl = isImageEmpty(question.imagePrompt)
+    ? null
+    : largestUrl(question.imagePrompt, question.id);
+  const hasImage = imageUrl != null;
+  const hasPaletteTool = question.tools.includes("COLOR_PALETTE");
+
+  const pickImage = () => {
+    editor.flush();
+    // "source" keeps the upload's own aspect ratio; ALONGSIDE display shows it
+    // as-is, and BACKGROUND cover-fits it onto the square canvas at draw time.
+    openPicker(editor.setImagePrompt, { title: "Prompt image", cropAspect: "source" });
+  };
+
+  const drawImage = () => {
+    editor.flush();
+    openModal({
+      title: "Draw the prompt image",
+      content: (
+        <DrawPromptModalBody
+          palette={palette.length > 0 ? palette : DEFAULT_DRAWING_PALETTE}
+          onCancel={closeModal}
+          onSave={async (blob) => {
+            await editor.saveDrawnPrompt(blob);
+            closeModal();
+          }}
+        />
+      ),
+    });
+  };
+
+  return (
+    <SlideContentWrapper
+      prompt={{
+        idBase: `draw-${question.id}`,
+        value: prompt,
+        placeholder: "Ask players to draw something…",
+        onChange: (html) => {
+          setPrompt(html);
+          editor.schedulePrompt(html);
+        },
+        onBlur: editor.flush,
+      }}
+      footer={
+        <p>
+          Players draw on a square canvas and their pictures are collected — pair
+          this slide with a best-answer-vote follow-up to score them.
+        </p>
+      }>
+      <SettingsCard
+        title='Prompt image'
+        action={
+          <span className={styles.imageActions}>
+            <Btn variant='secondary' size='sm' onClick={pickImage}>
+              {hasImage ? "Replace image" : "Choose image"}
+            </Btn>
+            <Btn variant='secondary' size='sm' onClick={drawImage}>
+              Draw one
+            </Btn>
+            {hasImage && (
+              <Btn variant='error' fill='ghost' size='sm' onClick={editor.clearImagePrompt}>
+                Remove
+              </Btn>
+            )}
+          </span>
+        }>
+        {hasImage ? (
+          <img
+            className={styles.imagePreview}
+            src={imageUrl}
+            alt={question.imagePrompt?.altText ?? "Prompt image"}
+          />
+        ) : (
+          <p className={styles.imageHint}>
+            Optional — give players an image to look at or trace. Leave it off for a
+            title-only prompt.
+          </p>
+        )}
+        <RadioGroup
+          name={`draw-placement-${question.id}`}
+          legend='Players see it'
+          options={[
+            { value: "ALONGSIDE", label: "Beside the canvas" },
+            { value: "BACKGROUND", label: "On the canvas, traceable" },
+          ]}
+          value={question.promptPlacement}
+          disabled={!hasImage}
+          onChange={(value) => {
+            editor.setPromptPlacement(value as PromptPlacement);
+          }}
+        />
+      </SettingsCard>
+
+      <SettingsCard title='Canvas tools'>
+        <SettingsRow>
+          {TOOL_TOGGLES.map(({ tool, label }) => (
+            <Toggle
+              key={tool}
+              id={`draw-tool-${tool}-${question.id}`}
+              label={label}
+              checked={question.tools.includes(tool)}
+              onChange={(e) => {
+                editor.setToolEnabled(tool, e.target.checked);
+              }}
+            />
+          ))}
+        </SettingsRow>
+        {hasPaletteTool && (
+          <PaletteEditor
+            palette={palette}
+            canAdd={editor.canAddPaletteColor}
+            onChange={(next) => {
+              setPalette(next);
+              editor.schedulePalette(next);
+            }}
+            onCommit={(next) => {
+              setPalette(next);
+              editor.commitPalette(next);
+            }}
+          />
+        )}
+      </SettingsCard>
+    </SlideContentWrapper>
+  );
 };
-
-//   const {
-//     question: element,
-//     schedule,
-//     flush,
-//     commit,
-//     syncedFromId,
-//     markSynced,
-//   } = useDrawingEditor();
-
-//   const [prompt, setPrompt] = useState(element?.prompt ?? "");
-//   const [pasteUrl, setPasteUrl] = useState(() =>
-//     pasteUrlOf(element?.backingImage),
-//   );
-//   const [canvasWidth, setCanvasWidth] = useState<number>(
-//     element?.canvasWidth ?? 1920,
-//   );
-//   const [canvasHeight, setCanvasHeight] = useState<number>(
-//     element?.canvasHeight ?? 1080,
-//   );
-//   const [maxStrokes, setMaxStrokes] = useState<number>(
-//     element?.maxStrokesPerPlayer ?? 200,
-//   );
-//   const [maxPoints, setMaxPoints] = useState<number>(
-//     element?.maxPointsPerStroke ?? 500,
-//   );
-//   const [palette, setPalette] = useState<string[]>(element?.palette ?? []);
-
-//   if (element && syncedFromId !== element.id) {
-//     markSynced(element.id);
-//     setPrompt(element.prompt ?? "");
-//     setPasteUrl(pasteUrlOf(element.backingImage));
-//     setCanvasWidth(element.canvasWidth ?? 1920);
-//     setCanvasHeight(element.canvasHeight ?? 1080);
-//     setMaxStrokes(element.maxStrokesPerPlayer ?? 200);
-//     setMaxPoints(element.maxPointsPerStroke ?? 500);
-//     setPalette(element.palette ?? []);
-//   }
-
-//   if (!element) return <EmptySelect title='Drawing' />;
-
-//   const idBase = element.id ?? "";
-
-//   const previewUrl =
-//     displayUrl(element.backingImage, idBase || "draw", 640, 360) ?? "";
-
-//   const dimsBadge = (
-//     <span className={styles.canvasDims}>
-//       {canvasWidth}×{canvasHeight}
-//     </span>
-//   );
-
-//   return (
-//     <Container name='DrawingSlideEditor'>
-//       <SlideContentWrapper>
-//         <PromptField
-//           idBase={`draw-${idBase}`}
-//           value={prompt}
-//           placeholder='Sketch your team logo'
-//           onChange={(html) => {
-//             setPrompt(html);
-//             schedule({ prompt: html });
-//           }}
-//           onBlur={flush}
-//         />
-
-//         <SettingsCard title='Backing image'>
-//           <ImageBackingEditor
-//             idBase={`draw-${idBase}`}
-//             previewUrl={previewUrl}
-//             pasteUrl={pasteUrl}
-//             urlLabel='Backing image URL (optional)'
-//             emptyPlaceholderAlt='Blank canvas'
-//             onUrlChange={(next, image) => {
-//               setPasteUrl(next);
-//               schedule({ backingImage: image });
-//             }}
-//             onBeforePick={flush}
-//             onGalleryPick={(image) => {
-//               setPasteUrl("");
-//               commit({ backingImage: image });
-//             }}
-//             onUrlBlur={flush}
-//           />
-//         </SettingsCard>
-
-//         <SettingsCard title='Canvas' action={dimsBadge}>
-//           <SettingsRow>
-//             <NumberInput
-//               label='Width (logical units)'
-//               id={`draw-w-${idBase}`}
-//               min={1}
-//               value={canvasWidth}
-//               onChange={(next) => {
-//                 setCanvasWidth(next);
-//                 schedule({ canvasWidth: next });
-//               }}
-//               onBlur={flush}
-//             />
-//             <NumberInput
-//               label='Height (logical units)'
-//               id={`draw-h-${idBase}`}
-//               min={1}
-//               value={canvasHeight}
-//               onChange={(next) => {
-//                 setCanvasHeight(next);
-//                 schedule({ canvasHeight: next });
-//               }}
-//               onBlur={flush}
-//             />
-//           </SettingsRow>
-//         </SettingsCard>
-
-//         <SettingsCard title='Limits'>
-//           <SettingsRow>
-//             <NumberInput
-//               label='Max strokes per player'
-//               id={`draw-max-strokes-${idBase}`}
-//               min={1}
-//               value={maxStrokes}
-//               onChange={(next) => {
-//                 setMaxStrokes(next);
-//                 schedule({ maxStrokesPerPlayer: next });
-//               }}
-//               onBlur={flush}
-//             />
-//             <NumberInput
-//               label='Max points per stroke'
-//               id={`draw-max-points-${idBase}`}
-//               min={1}
-//               value={maxPoints}
-//               onChange={(next) => {
-//                 setMaxPoints(next);
-//                 schedule({ maxPointsPerStroke: next });
-//               }}
-//               onBlur={flush}
-//             />
-//           </SettingsRow>
-//         </SettingsCard>
-
-//         <SettingsCard title='Palette'>
-//           <PaletteEditor
-//             palette={palette}
-//             onChange={(next) => {
-//               setPalette(next);
-//               schedule({ palette: next });
-//             }}
-//             onCommit={(next) => {
-//               setPalette(next);
-//               commit({ palette: next });
-//             }}
-//           />
-//         </SettingsCard>
-//       </SlideContentWrapper>
-//     </Container>
-//   );
-// };
 
 export { DrawingSlideContent };

@@ -8,13 +8,15 @@ import styles from "./DrawingSlideContent.module.css";
 
 interface PaletteEditorProps {
   palette: string[];
+  /** False hides the add tile (palette at its cap). */
+  canAdd?: boolean;
   onChange: (next: string[]) => void;
   onCommit?: (next: string[]) => void;
 }
 
 const DEFAULT_COLOR = "#6019FF";
 
-const PaletteEditor = ({ palette, onChange, onCommit }: PaletteEditorProps) => {
+const PaletteEditor = ({ palette, canAdd = true, onChange, onCommit }: PaletteEditorProps) => {
   const handleSwatchChange = (idx: number, color: string) => {
     const next = palette.map((c, i) => (i === idx ? color : c));
     onChange(next);
@@ -61,13 +63,15 @@ const PaletteEditor = ({ palette, onChange, onCommit }: PaletteEditorProps) => {
           </button>
         </div>
       ))}
-      <button
-        type='button'
-        className={styles.paletteAdd}
-        aria-label='Add color'
-        onClick={handleAdd}>
-        <PlusIcon />
-      </button>
+      {canAdd && (
+        <button
+          type='button'
+          className={styles.paletteAdd}
+          aria-label='Add color'
+          onClick={handleAdd}>
+          <PlusIcon />
+        </button>
+      )}
     </div>
   );
 };
