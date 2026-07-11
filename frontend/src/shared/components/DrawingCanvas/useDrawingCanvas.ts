@@ -43,7 +43,8 @@ const ERASER_RADIUS = 20;
 const HISTORY_LIMIT = 100;
 
 export interface DrawingCanvasHandle {
-  /** Rasterize paper + background + strokes to a PNG blob. */
+  /** Rasterize paper + background + strokes to a PNG blob. Only committed
+   *  strokes are included — a stroke whose pointer is still down is not. */
   exportPng: () => Promise<Blob>;
   clear: () => void;
   isEmpty: () => boolean;
@@ -88,6 +89,10 @@ const useDrawingCanvas = ({
   const backgroundRef = useRef<HTMLImageElement | null>(null);
   const draftRef = useRef<DrawingElement | null>(null);
   const strokeSnapshotRef = useRef<readonly DrawingElement[] | null>(null);
+  // The one pointer allowed to draw. Guards every lifecycle handler so a
+  // second contact (resting palm, extra finger) can't commit or wipe the
+  // primary pointer's in-progress stroke.
+  const activePointerRef = useRef<number | null>(null);
   const frameRef = useRef(0);
 
   const [history, setHistory] = useState<DrawingHistory>(EMPTY_HISTORY);
@@ -216,6 +221,8 @@ const useDrawingCanvas = ({
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (disabled || !e.isPrimary || e.button !== 0) return;
+      if (activePointerRef.current !== null) return;
+      activePointerRef.current = e.pointerId;
       e.currentTarget.setPointerCapture(e.pointerId);
       const p = toLogical(e);
       if (tool === "eraser") {
@@ -244,7 +251,8 @@ const useDrawingCanvas = ({
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (disabled || !e.currentTarget.hasPointerCapture(e.pointerId)) return;
+      if (disabled || e.pointerId !== activePointerRef.current) return;
+      if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
       const p = toLogical(e);
       if (tool === "eraser") {
         eraseAt(p);
@@ -264,6 +272,8 @@ const useDrawingCanvas = ({
 
   const finishStroke = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerId !== activePointerRef.current) return;
+      activePointerRef.current = null;
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
@@ -287,11 +297,23 @@ const useDrawingCanvas = ({
     [tool, commit],
   );
 
-  const onPointerCancel = useCallback(() => {
-    draftRef.current = null;
-    strokeSnapshotRef.current = null;
-    scheduleDraw();
-  }, [scheduleDraw]);
+  const onPointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerId !== activePointerRef.current) return;
+      activePointerRef.current = null;
+      // A cancelled drag is aborted wholesale: drop the pen/shape draft, and
+      // roll an eraser drag back to its snapshot so no half-applied removal
+      // gets silently baked into the next commit's history.
+      draftRef.current = null;
+      const snapshot = strokeSnapshotRef.current;
+      strokeSnapshotRef.current = null;
+      if (snapshot) {
+        setHistory((h) => ({ ...h, present: snapshot }));
+      }
+      scheduleDraw();
+    },
+    [scheduleDraw],
+  );
 
   const undo = useCallback(() => {
     setHistory((h) => {
