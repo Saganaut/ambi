@@ -1,0 +1,95 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.surface {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+
+  /* Pointer strokes must never scroll/zoom the page mid-draw. */
+  touch-action: none;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toolGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.swatch {
+  /* Set inline per swatch; fallback keeps stylelint aware of the var. */
+  --swatch-color: transparent;
+
+  width: var(--space-6);
+  height: var(--space-6);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--swatch-color);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.swatchActive {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.brushBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-7);
+  height: var(--space-7);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.brushBtn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.brushActive {
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-xs);
+}
+
+.brushDot {
+  /* Set inline per size; fallback keeps stylelint aware of the var. */
+  --brush-dot-size: 6px;
+
+  width: var(--brush-dot-size);
+  height: var(--brush-dot-size);
+  border-radius: var(--radius-full);
+  background-color: var(--text-primary);
+}
