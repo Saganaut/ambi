@@ -76,6 +76,17 @@ const ENUMS = [
     emitList: "FOLLOW_UP_MODE_LIST",
   },
   {
+    name: "Tool",
+    feature: "deck",
+    prop: ["DrawingContent", "tools"],
+    emitList: "TOOL_LIST",
+  },
+  {
+    name: "PromptPlacement",
+    feature: "deck",
+    prop: ["DrawingContent", "promptPlacement"],
+  },
+  {
     name: "ThemeAppearance",
     feature: "theme",
     prop: ["ThemeSpec", "appearance"],

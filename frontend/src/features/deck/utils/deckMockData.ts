@@ -277,8 +277,8 @@ const allocationContent: AllocationContent = {
 const drawingContent: DrawingContent = {
   contentType: "DRAWING",
   imagePrompt: externalImage("https://picsum.photos/seed/mordor-map/1200/800"),
-  canvasWidth: 1200,
-  canvasHeight: 800,
+  promptPlacement: "ALONGSIDE",
+  palette: ["#1A1A1A", "#E5484D", "#3E63DD"],
   tools: ["PEN", "ERASER", "COLOR_PALETTE"],
 };
 

@@ -42,6 +42,19 @@ export const NON_SCORABLE_SLIDE_TYPES: ReadonlySet<SlideType> = new Set<SlideTyp
 export const isScorableSlideType = (slideType: SlideType): boolean =>
   !NON_SCORABLE_SLIDE_TYPES.has(slideType);
 
+/**
+ * Starting stroke colors for a new Drawing slide — a compact, high-contrast
+ * set the author can freely edit in the palette editor.
+ */
+export const DEFAULT_DRAWING_PALETTE: readonly string[] = [
+  "#1A1A1A",
+  "#E5484D",
+  "#FFB224",
+  "#30A46C",
+  "#3E63DD",
+  "#8E4EC6",
+];
+
 const assertNever = (slideType: never): never => {
   throw new Error(`Unhandled slideType: ${String(slideType)}`);
 };
@@ -184,11 +197,14 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         tolerancePerOption: 0,
       };
     case "DRAWING":
+      // The canvas is a fixed 1:1 square (logical resolution is a client
+      // constant), so geometry is not part of the content. Palette is the
+      // author-editable stroke-color offering shown to players.
       return {
         contentType: "DRAWING",
-        canvasWidth: 800,
-        canvasHeight: 600,
-        tools: ["PEN", "ERASER"],
+        promptPlacement: "ALONGSIDE",
+        palette: [...DEFAULT_DRAWING_PALETTE],
+        tools: ["PEN", "ERASER", "COLOR_PALETTE"],
       };
     case "PLACE_ON_IMAGE":
       // `image` is a required AppImage; `external` is its only required field,

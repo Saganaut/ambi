@@ -256,7 +256,7 @@ export type AxisAnswer = {
 export type DrawingAnswer = {
   answerType: "DrawingAnswer";
 } & AnswerPayloadBase & {
-    imageData?: string;
+    image?: AppImage;
   };
 export type FollowUpAnswer = {
   answerType: "FollowUpAnswer";

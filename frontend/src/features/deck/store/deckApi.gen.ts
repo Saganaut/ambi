@@ -956,9 +956,9 @@ export type AllocationContent = {
 };
 export type DrawingContent = {
   imagePrompt?: AppImage;
+  promptPlacement: "ALONGSIDE" | "BACKGROUND";
   correctImage?: AppImage;
-  canvasWidth: number;
-  canvasHeight: number;
+  palette: string[];
   tools: ("PEN" | "ERASER" | "SHAPES" | "TEXT" | "COLOR_PALETTE")[];
   contentType: "DRAWING";
 };

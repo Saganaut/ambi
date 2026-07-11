@@ -103,3 +103,20 @@ export const FollowUpMode = {
 } as const satisfies Record<FollowUpMode, FollowUpMode>;
 
 export const FOLLOW_UP_MODE_LIST = Object.values(FollowUpMode) as FollowUpMode[];
+
+export type Tool = "COLOR_PALETTE" | "ERASER" | "PEN" | "SHAPES" | "TEXT";
+export const Tool = {
+  COLOR_PALETTE: "COLOR_PALETTE",
+  ERASER: "ERASER",
+  PEN: "PEN",
+  SHAPES: "SHAPES",
+  TEXT: "TEXT",
+} as const satisfies Record<Tool, Tool>;
+
+export const TOOL_LIST = Object.values(Tool) as Tool[];
+
+export type PromptPlacement = "ALONGSIDE" | "BACKGROUND";
+export const PromptPlacement = {
+  ALONGSIDE: "ALONGSIDE",
+  BACKGROUND: "BACKGROUND",
+} as const satisfies Record<PromptPlacement, PromptPlacement>;
