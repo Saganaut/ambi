@@ -7,6 +7,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
+import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
@@ -40,8 +41,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * {@link ScalesConfigView} (the endpoints, anchor labels + statements, never
  * {@code correctValues} or {@code tolerance}); a Matching slide carries
  * {@link MatchingConfigView} (both card columns with the right column
- * re-ordered, never {@code correctPairs}); each is {@code null} for every
- * other kind.
+ * re-ordered, never {@code correctPairs}); a Drawing slide carries
+ * {@link DrawingConfigView} (prompt image + placement, palette, tools, never
+ * {@code correctImage}); each is {@code null} for every other kind.
  */
 public record SlideView(
         String id,
@@ -57,6 +59,7 @@ public record SlideView(
         AxisConfigView axis,
         ScalesConfigView scales,
         MatchingConfigView matching,
+        DrawingConfigView drawing,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -76,6 +79,7 @@ public record SlideView(
         AxisConfigView axis = null;
         ScalesConfigView scales = null;
         MatchingConfigView matching = null;
+        DrawingConfigView drawing = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -97,6 +101,9 @@ public record SlideView(
             if (content instanceof MatchingContent matchingContent) {
                 matching = MatchingConfigView.from(matchingContent, imageUrl);
             }
+            if (content instanceof DrawingContent drawingContent) {
+                drawing = DrawingConfigView.from(drawingContent, imageUrl);
+            }
         }
         return new SlideView(
                 slide.getId(),
@@ -112,6 +119,7 @@ public record SlideView(
                 axis,
                 scales,
                 matching,
+                drawing,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

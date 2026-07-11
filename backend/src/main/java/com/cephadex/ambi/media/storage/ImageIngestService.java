@@ -52,7 +52,8 @@ public class ImageIngestService {
     }
 
     /**
-     * Validate, store, and tier an uploaded image.
+     * Validate, store, and tier an uploaded gallery image (keys minted under
+     * the {@code gallery/} namespace).
      *
      * @param bytes            the raw upload
      * @param contentType      the declared MIME type (validated against the allow-list)
@@ -60,9 +61,18 @@ public class ImageIngestService {
      * @return the populated, S3-backed {@link AppImage}
      */
     public AppImage ingest(byte[] bytes, String contentType, String originalFilename) {
+        return ingest(bytes, contentType, originalFilename, "gallery/" + UUID.randomUUID());
+    }
+
+    /**
+     * Validate, store, and tier an uploaded image under an explicit key
+     * {@code prefix}. Lets non-gallery flows (e.g. live-session drawing
+     * answers) keep their objects in their own namespace so ownership checks
+     * and cleanup can key off the prefix.
+     */
+    public AppImage ingest(byte[] bytes, String contentType, String originalFilename, String prefix) {
         validate(bytes, contentType);
 
-        String prefix = "gallery/" + UUID.randomUUID();
         String originalKey = ImageKeys.originalKey(prefix);
         storage.put(originalKey, bytes, contentType);
 

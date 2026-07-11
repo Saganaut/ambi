@@ -51,6 +51,7 @@ const SessionConnectionProvider = ({
     sendAnswer: (slideId, payload) => {
       mutate.submitAnswer(sessionId, { slideId, payload });
     },
+    uploadDrawing: (file) => mutate.uploadDrawing(sessionId, file),
     sendRevealResponses: (slideId) => {
       mutate.revealResponses(sessionId, slideId);
     },

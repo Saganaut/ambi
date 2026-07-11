@@ -4,11 +4,13 @@
  * - liveResults: Shows response tally/live updates; correct answer hidden.
  * - results: Shows final distribution + highlights correct answer.
  * * Shared header (title + instructions). Body switches on `contentType`
- * (MCQ, Q&A, Grid, Axis, Scales, Matching built; others fallback to placeholder).
+ * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing built; others fallback to
+ * placeholder).
  */
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import { AxisBoardContent } from "../content/AxisBoardContent";
 import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
+import { DrawingBoardContent } from "../content/DrawingBoardContent";
 import { GridBoardContent } from "../content/GridBoardContent";
 import { MatchingBoardContent } from "../content/MatchingBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
@@ -49,6 +51,8 @@ const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: b
       return <ScalesBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "MATCHING":
       return <MatchingBoardContent slide={slide} mode={mode} interactive={interactive} />;
+    case "DRAWING":
+      return <DrawingBoardContent slide={slide} mode={mode} interactive={interactive} />;
     default:
       // Per-kind presentation surfaces land incrementally; until then the round
       // still renders something coherent rather than a blank board.

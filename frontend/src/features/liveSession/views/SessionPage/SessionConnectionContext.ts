@@ -10,7 +10,10 @@
 // (the effect returns to every client over the socket).
 import { createContext, use } from "react";
 
-import type { SubmitAnswerApiArg } from "../../store/liveSessionApi.gen";
+import type {
+  SubmitAnswerApiArg,
+  UploadDrawingApiResponse,
+} from "../../store/liveSessionApi.gen";
 
 /** The answer payload a participant submits — the discriminated `payload` body. */
 export type SessionAnswerPayload =
@@ -21,6 +24,9 @@ export interface SessionConnection {
   sendStart: () => void;
   /** Participant: submit this device's answer for the given slide. */
   sendAnswer: (slideId: string, payload: SessionAnswerPayload) => void;
+  /** Participant: store a rendered drawing PNG; resolves with the stored
+   *  image to submit inside a DrawingAnswer via {@link sendAnswer}. */
+  uploadDrawing: (file: File) => Promise<UploadDrawingApiResponse>;
   /** Host: reveal the live response distribution without ending the round. */
   sendRevealResponses: (slideId: string) => void;
   /** Host: close submissions for the round (locks + scores it). */

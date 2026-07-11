@@ -109,6 +109,8 @@ public class SecurityConfig {
                         // through to the USER catch-all below.
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/join").hasRole("GUEST")
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/answers").hasRole("GUEST")
+                        // Drawing answers upload their rendered PNG first, then submit it.
+                        .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/drawings").hasRole("GUEST")
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/leave").hasRole("GUEST")
                         // Presence is participant self-service, so guest players may call it too.
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/reconnect").hasRole("GUEST")

@@ -26,12 +26,14 @@ import {
   useRevealResultsMutation,
   useStartMutation,
   useSubmitAnswerMutation,
+  useUploadDrawingMutation,
   type AdvanceApiResponse,
   type CreateApiArg,
   type CreateApiResponse,
   type JoinApiArg,
   type JoinApiResponse,
   type SubmitAnswerApiArg,
+  type UploadDrawingApiResponse,
 } from "../store/liveSessionApi.gen";
 
 interface UseLiveSessionMutateResult {
@@ -50,6 +52,9 @@ interface UseLiveSessionMutateResult {
     id: string,
     request: SubmitAnswerApiArg["submitAnswerRequest"],
   ) => void;
+  /** Store a rendered drawing PNG for a Drawing round; resolves with the
+   *  stored image to submit inside a DrawingAnswer. */
+  uploadDrawing: (id: string, file: File) => Promise<UploadDrawingApiResponse>;
 
   // ── Host round & navigation control ──
   /** Advance to the next round; resolves with the opened slide (or terminal). */
@@ -80,6 +85,7 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
   const [endMutation] = useEndMutation();
   const [cancelMutation] = useCancelMutation();
   const [submitAnswerMutation] = useSubmitAnswerMutation();
+  const [uploadDrawingMutation] = useUploadDrawingMutation();
   const [advanceMutation] = useAdvanceMutation();
   const [goToRoundMutation] = useGoToRoundMutation();
   const [closeRoundMutation] = useCloseRoundMutation();
@@ -107,6 +113,9 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     id: string,
     request: SubmitAnswerApiArg["submitAnswerRequest"],
   ) => void submitAnswerMutation({ id, submitAnswerRequest: request });
+
+  const uploadDrawing = (id: string, file: File) =>
+    uploadDrawingMutation({ id, body: { file } }).unwrap();
 
   const advance = (id: string) => advanceMutation({ id }).unwrap();
   const goToRound = (id: string, slideId: string) =>
@@ -143,6 +152,7 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     end,
     cancel,
     submitAnswer,
+    uploadDrawing,
     advance,
     goToRound,
     closeRound,

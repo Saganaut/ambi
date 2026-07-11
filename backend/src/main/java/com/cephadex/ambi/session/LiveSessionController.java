@@ -1,16 +1,23 @@
 package com.cephadex.ambi.session;
 
+import java.io.IOException;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.exception.ValidationException;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.session.answer.LiveSessionAnswerService;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.dto.AdvanceResponse;
@@ -119,6 +126,30 @@ public class LiveSessionController {
             @Valid @RequestBody SubmitAnswerRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         answerService.submit(id, body, principal);
+    }
+
+    /**
+     * Stores the caller's rendered drawing (a canvas PNG) for a Drawing round on
+     * session {@code id}. Returns the stored {@link AppImage} (presigned on this
+     * REST path) which the client then submits inside a {@code DrawingAnswer} via
+     * {@code POST /{id}/answers} — answer validation only accepts images stored
+     * through this route for this session.
+     */
+    @PostMapping(path = "/{id}/drawings", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public AppImage uploadDrawing(
+            @PathVariable String id,
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return answerService.storeDrawing(id, bytesOf(file), file.getContentType(), principal);
+    }
+
+    private static byte[] bytesOf(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new ValidationException("Could not read the uploaded file.");
+        }
     }
 
     // ── Host round & navigation control ──────────────────────────────────────

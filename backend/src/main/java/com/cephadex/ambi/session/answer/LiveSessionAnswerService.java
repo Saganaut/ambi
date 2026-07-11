@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -15,10 +16,13 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.common.validation.ValidationConstants;
+import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.storage.ImageIngestService;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
+import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
@@ -31,6 +35,7 @@ import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
+import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
@@ -52,15 +57,44 @@ import com.cephadex.ambi.session.participant.ParticipantResolver;
 @Service
 public class LiveSessionAnswerService {
 
+    /** Key namespace for participant drawing uploads: {@code drawing/{sessionId}/…}. */
+    private static final String DRAWING_KEY_NAMESPACE = "drawing/";
+
     private final LiveSessionRepository sessions;
     private final ParticipantResolver participantResolver;
     private final LiveSessionOrchestrator orchestrator;
+    private final ImageIngestService imageIngest;
 
     public LiveSessionAnswerService(LiveSessionRepository sessions, ParticipantResolver participantResolver,
-            LiveSessionOrchestrator orchestrator) {
+            LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest) {
         this.sessions = sessions;
         this.participantResolver = participantResolver;
         this.orchestrator = orchestrator;
+        this.imageIngest = imageIngest;
+    }
+
+    /**
+     * Ingests a participant's rendered drawing (PNG bytes) into S3 under this
+     * session's {@code drawing/{sessionId}/…} namespace and returns the stored
+     * {@link AppImage} for the client to echo back inside a
+     * {@link DrawingAnswer}. The namespace is what {@code validateDrawing}
+     * later checks, so an answer can only reference an image uploaded through
+     * this same session.
+     *
+     * @throws NotFoundException   if the session doesn't exist
+     * @throws ConflictException   if the session isn't in progress
+     * @throws ForbiddenException  if the caller isn't a (non-banned) roster participant
+     * @throws ValidationException if the upload is empty/oversized/not an image
+     */
+    public AppImage storeDrawing(String sessionId, byte[] bytes, String contentType, AmbiPrincipal principal) {
+        LiveSession session = sessions.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
+        if (!session.isLive()) {
+            throw new ConflictException("SESSION_NOT_LIVE", "session is not in progress");
+        }
+        participantResolver.resolve(session, principal);
+        String prefix = DRAWING_KEY_NAMESPACE + sessionId + "/" + UUID.randomUUID();
+        return imageIngest.ingest(bytes, contentType, null, prefix);
     }
 
     /**
@@ -92,7 +126,7 @@ public class LiveSessionAnswerService {
         if (answer != null && !answer.allowAnonymous() && principal.state() == IdentityState.GUEST) {
             throw new ForbiddenException("ANONYMOUS_NOT_ALLOWED", "this slide does not accept guest answers");
         }
-        validatePayload(slide, request.payload(), maxSelections);
+        validatePayload(sessionId, slide, request.payload(), maxSelections);
 
         // Q&A departs from the single-answer model: questions append server-side
         // (per-participant cap from the content, not maxSelections), so it takes
@@ -106,18 +140,20 @@ public class LiveSessionAnswerService {
         }
 
         // `maxSelections` is an MCQ knob (how many options one pick may span). A
-        // grid, axis, scales, or matching submission is one whole map, so the deck
-        // default of 1 must not make the first submission final — these resubmits
-        // overwrite (last write before close wins), like a multi-select MCQ change.
+        // grid, axis, scales, matching, or drawing submission is one whole
+        // artifact, so the deck default of 1 must not make the first submission
+        // final — these resubmits overwrite (last write before close wins), like
+        // a multi-select MCQ change.
         int effectiveMaxSelections = request.payload() instanceof GridAnswer
                 || request.payload() instanceof AxisAnswer
                 || request.payload() instanceof ScalesAnswer
-                || request.payload() instanceof MatchingAnswer ? 0 : maxSelections;
+                || request.payload() instanceof MatchingAnswer
+                || request.payload() instanceof DrawingAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), effectiveMaxSelections);
     }
 
-    private void validatePayload(Slide slide, AnswerPayload payload, int maxSelections) {
+    private void validatePayload(String sessionId, Slide slide, AnswerPayload payload, int maxSelections) {
         SlideContent content = slide.getContent();
         if (content == null || payload.slideType() != content.contentType()) {
             throw new ValidationException("answer type does not match the slide");
@@ -140,7 +176,26 @@ public class LiveSessionAnswerService {
         if (content instanceof MatchingContent matching && payload instanceof MatchingAnswer ans) {
             validateMatching(matching, ans);
         }
+        if (content instanceof DrawingContent && payload instanceof DrawingAnswer ans) {
+            validateDrawing(sessionId, ans);
+        }
         // Other content types are stored as-is; their tally/validation lands with scoring.
+    }
+
+    /**
+     * A drawing submission must reference an image stored through this session's
+     * {@code storeDrawing} upload — internal, and keyed under this session's
+     * {@code drawing/{sessionId}/…} namespace. That rules out external URLs and
+     * cross-session (or gallery) key references alike.
+     */
+    private void validateDrawing(String sessionId, DrawingAnswer answer) {
+        AppImage image = answer.image();
+        if (image == null || image.isExternal() || image.getSrcKey() == null) {
+            throw new ValidationException("a drawing answer must carry an uploaded drawing image");
+        }
+        if (!image.getSrcKey().startsWith(DRAWING_KEY_NAMESPACE + sessionId + "/")) {
+            throw new ValidationException("drawing image was not uploaded through this session");
+        }
     }
 
     /**

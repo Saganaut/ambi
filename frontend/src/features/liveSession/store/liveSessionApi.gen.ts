@@ -84,6 +84,16 @@ const injectedRtkApi = api.injectEndpoints({
         method: "POST",
       }),
     }),
+    uploadDrawing: build.mutation<
+      UploadDrawingApiResponse,
+      UploadDrawingApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/liveSessions/${queryArg.id}/drawings`,
+        method: "POST",
+        body: queryArg.body,
+      }),
+    }),
     cancel: build.mutation<CancelApiResponse, CancelApiArg>({
       query: (queryArg) => ({
         url: `/api/liveSessions/${queryArg.id}/cancel`,
@@ -172,6 +182,13 @@ export type HeartbeatApiArg = {
 export type EndApiResponse = unknown;
 export type EndApiArg = {
   id: string;
+};
+export type UploadDrawingApiResponse = /** status 201 Created */ AppImage;
+export type UploadDrawingApiArg = {
+  id: string;
+  body: {
+    file: Blob;
+  };
 };
 export type CancelApiResponse = unknown;
 export type CancelApiArg = {
@@ -415,6 +432,12 @@ export type MatchingConfigView = {
   right?: MatchCardView[];
   scored?: boolean;
 };
+export type DrawingConfigView = {
+  imagePromptUrl?: string;
+  promptPlacement?: "ALONGSIDE" | "BACKGROUND";
+  palette?: string[];
+  tools?: ("PEN" | "ERASER" | "SHAPES" | "TEXT" | "COLOR_PALETTE")[];
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -451,6 +474,7 @@ export type SlideView = {
   axis?: AxisConfigView;
   scales?: ScalesConfigView;
   matching?: MatchingConfigView;
+  drawing?: DrawingConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {
@@ -519,6 +543,7 @@ export const {
   useLeaveMutation,
   useHeartbeatMutation,
   useEndMutation,
+  useUploadDrawingMutation,
   useCancelMutation,
   useSubmitAnswerMutation,
   useAdvanceMutation,

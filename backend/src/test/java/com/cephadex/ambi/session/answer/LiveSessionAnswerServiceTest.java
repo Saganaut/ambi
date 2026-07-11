@@ -1,13 +1,17 @@
 package com.cephadex.ambi.session.answer;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -24,12 +28,15 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.common.validation.ValidationConstants;
+import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.storage.ImageIngestService;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
+import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
@@ -46,8 +53,11 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Scal
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
+import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
+import com.cephadex.ambi.presentation.slide.enums.Tool;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
+import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
@@ -74,6 +84,7 @@ class LiveSessionAnswerServiceTest {
     private LiveSessionRepository sessions;
     private ParticipantResolver participantResolver;
     private LiveSessionOrchestrator orchestrator;
+    private ImageIngestService imageIngest;
     private LiveSessionAnswerService service;
 
     private Participant participant;
@@ -84,7 +95,8 @@ class LiveSessionAnswerServiceTest {
         sessions = mock(LiveSessionRepository.class);
         participantResolver = mock(ParticipantResolver.class);
         orchestrator = mock(LiveSessionOrchestrator.class);
-        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator);
+        imageIngest = mock(ImageIngestService.class);
+        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest);
 
         participant = Participant.join("user-1", "Player One", null, null);
         registered = principal(IdentityState.REGISTERED, "user-1", UserLevel.USER);
@@ -404,6 +416,90 @@ class LiveSessionAnswerServiceTest {
         verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
     }
 
+    // ── Drawing ────────────────────────────────────────────────────────────────
+
+    @Test
+    void drawingAnswerBypassesTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+
+        service.submit(SID,
+                request(new DrawingAnswer(drawingImage("drawing/" + SID + "/abc/original"))), registered);
+
+        // A drawing is one whole artifact; resubmits must overwrite, so the
+        // orchestrator is called with 0 (unlimited / last-write-wins).
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(DrawingAnswer.class), eq(0));
+    }
+
+    @Test
+    void drawingAnswerWithoutImageIsRejected() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+
+        assertThatThrownBy(() -> service.submit(SID, request(new DrawingAnswer(null)), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void drawingAnswerWithExternalImageIsRejected() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+        AppImage external = new AppImage();
+        external.setExternal(true);
+        external.setExternalSrc("https://example.com/not-a-drawing.png");
+
+        assertThatThrownBy(() -> service.submit(SID, request(new DrawingAnswer(external)), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void drawingAnswerReferencingForeignKeysIsRejected() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+
+        // Another session's upload…
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new DrawingAnswer(drawingImage("drawing/other-session/abc/original"))), registered))
+                .isInstanceOf(ValidationException.class);
+        // …and a gallery image are both off-limits.
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new DrawingAnswer(drawingImage("gallery/abc/original"))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void storeDrawingIngestsUnderTheSessionNamespace() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+        AppImage stored = drawingImage("drawing/" + SID + "/xyz/original");
+        when(imageIngest.ingest(any(), any(), any(), any())).thenReturn(stored);
+
+        AppImage result = service.storeDrawing(SID, new byte[] { 1, 2 }, "image/png", registered);
+
+        assertThat(result).isSameAs(stored);
+        verify(imageIngest).ingest(eq(new byte[] { 1, 2 }), eq("image/png"), isNull(),
+                startsWith("drawing/" + SID + "/"));
+    }
+
+    @Test
+    void storeDrawingWhenSessionNotLiveIsConflict() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isLive()).thenReturn(false);
+        when(sessions.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> service.storeDrawing(SID, new byte[] { 1 }, "image/png", registered))
+                .isInstanceOf(ConflictException.class);
+        verifyNoInteractions(imageIngest);
+    }
+
+    @Test
+    void storeDrawingNonParticipantIsForbidden() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+        when(participantResolver.resolve(any(), any()))
+                .thenThrow(new ForbiddenException("NOT_A_PARTICIPANT", "no"));
+
+        assertThatThrownBy(() -> service.storeDrawing(SID, new byte[] { 1 }, "image/png", registered))
+                .isInstanceOf(ForbiddenException.class);
+        verifyNoInteractions(imageIngest);
+    }
+
     // ── fixtures ───────────────────────────────────────────────────────────────
 
     private void givenLiveSession(AnswerSettings answer, SlideContent content) {
@@ -463,6 +559,20 @@ class LiveSessionAnswerServiceTest {
                 List.of(new MatchItem("right-1", "Uno", null, null), new MatchItem("right-2", "Dos", null, null)),
                 java.util.Map.of(),
                 ScoreMode.EXACT);
+    }
+
+    /** A pen+eraser drawing slide with a one-color palette and no prompt image. */
+    private static DrawingContent drawingContent() {
+        return new DrawingContent(null, PromptPlacement.ALONGSIDE, null,
+                List.of("#111111"), java.util.Set.of(Tool.PEN, Tool.ERASER));
+    }
+
+    /** An internal (S3-backed) AppImage with the given source key. */
+    private static AppImage drawingImage(String srcKey) {
+        AppImage image = new AppImage();
+        image.setExternal(false);
+        image.setSrcKey(srcKey);
+        return image;
     }
 
     /** A 1–5 scale with two statements ("it-1", "it-2") and no answer key. */
