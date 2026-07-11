@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -31,8 +30,6 @@ import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageIngestService;
-import com.cephadex.ambi.media.storage.S3StorageService;
-import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
@@ -88,8 +85,6 @@ class LiveSessionAnswerServiceTest {
     private ParticipantResolver participantResolver;
     private LiveSessionOrchestrator orchestrator;
     private ImageIngestService imageIngest;
-    private AnswerStore answerStore;
-    private S3StorageService storage;
     private LiveSessionAnswerService service;
 
     private Participant participant;
@@ -101,10 +96,7 @@ class LiveSessionAnswerServiceTest {
         participantResolver = mock(ParticipantResolver.class);
         orchestrator = mock(LiveSessionOrchestrator.class);
         imageIngest = mock(ImageIngestService.class);
-        answerStore = mock(AnswerStore.class);
-        storage = mock(S3StorageService.class);
-        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest,
-                answerStore, storage);
+        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest);
 
         participant = Participant.join("user-1", "Player One", null, null);
         registered = principal(IdentityState.REGISTERED, "user-1", UserLevel.USER);
@@ -442,38 +434,6 @@ class LiveSessionAnswerServiceTest {
         // orchestrator is called with 0 (unlimited / last-write-wins).
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(DrawingAnswer.class), eq(0));
-    }
-
-    @Test
-    void drawingResubmitDeletesTheReplacedUpload() {
-        givenLiveSession(answerSettings(true, 1), drawingContent());
-        Answer prior = new Answer();
-        prior.setParticipantId(participant.getParticipantId());
-        prior.setPayload(new DrawingAnswer(drawingImage(ownDrawingKey("old"))));
-        when(answerStore.answerOf(SID, SLIDE, participant.getParticipantId()))
-                .thenReturn(Optional.of(prior));
-
-        service.submit(SID, request(new DrawingAnswer(drawingImage(ownDrawingKey("new")))), registered);
-
-        // The superseded upload's objects are removed so unlimited update
-        // cycles can't grow S3 unbounded.
-        verify(storage).delete(anyCollection());
-        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
-                any(DrawingAnswer.class), eq(0));
-    }
-
-    @Test
-    void drawingResubmitOfTheSameImageDeletesNothing() {
-        givenLiveSession(answerSettings(true, 1), drawingContent());
-        Answer prior = new Answer();
-        prior.setParticipantId(participant.getParticipantId());
-        prior.setPayload(new DrawingAnswer(drawingImage(ownDrawingKey("same"))));
-        when(answerStore.answerOf(SID, SLIDE, participant.getParticipantId()))
-                .thenReturn(Optional.of(prior));
-
-        service.submit(SID, request(new DrawingAnswer(drawingImage(ownDrawingKey("same")))), registered);
-
-        verify(storage, never()).delete(anyCollection());
     }
 
     @Test

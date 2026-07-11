@@ -3,9 +3,11 @@ package com.cephadex.ambi.session;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -23,10 +25,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
+import org.mockito.InOrder;
 import org.springframework.dao.DuplicateKeyException;
 
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
+import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
@@ -97,6 +101,7 @@ class LiveSessionOrchestratorTest {
     private EventPublisher publisher;
     private RoundResultProjector roundResults;
     private ImageUrlResolver imageUrls;
+    private S3StorageService storage;
     private LiveSessionOrchestrator orchestrator;
 
     @BeforeEach
@@ -112,6 +117,7 @@ class LiveSessionOrchestratorTest {
         publisher = mock(EventPublisher.class);
         roundResults = mock(RoundResultProjector.class);
         imageUrls = mock(ImageUrlResolver.class);
+        storage = mock(S3StorageService.class);
 
         // Run the locked action inline — both the Runnable and Supplier overloads.
         doAnswer(inv -> {
@@ -122,7 +128,7 @@ class LiveSessionOrchestratorTest {
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
-                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls);
+                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage);
     }
 
     private void stubPhase(RoundPhase phase) {
@@ -335,6 +341,53 @@ class LiveSessionOrchestratorTest {
                 .isInstanceOf(ConflictException.class);
         verify(answerStore, never()).submit(any(), any(), any());
         verify(tallyStore, never()).increment(any(), any(), any());
+    }
+
+    @Test
+    void drawingResubmitDeletesTheReplacedUploadAfterTheWrite() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answerOf(SID, SLIDE, "p-1"))
+                .thenReturn(Optional.of(answerWith(new DrawingAnswer(drawingImage("drawing/s/p/old/original")))));
+
+        orchestrator.submitAnswer(SID, SLIDE, "p-1",
+                new DrawingAnswer(drawingImage("drawing/s/p/new/original")), 0);
+
+        // Delete strictly AFTER the overwrite lands: a rejected submit must
+        // never strand the still-current answer pointing at dead objects.
+        InOrder inOrder = inOrder(answerStore, storage);
+        inOrder.verify(answerStore).submit(eq(SID), eq(SLIDE), any(Answer.class));
+        inOrder.verify(storage).delete(anyCollection());
+    }
+
+    @Test
+    void drawingResubmitOfTheSameImageDeletesNothing() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answerOf(SID, SLIDE, "p-1"))
+                .thenReturn(Optional.of(answerWith(new DrawingAnswer(drawingImage("drawing/s/p/same/original")))));
+
+        orchestrator.submitAnswer(SID, SLIDE, "p-1",
+                new DrawingAnswer(drawingImage("drawing/s/p/same/original")), 0);
+
+        verify(answerStore).submit(eq(SID), eq(SLIDE), any(Answer.class));
+        verify(storage, never()).delete(anyCollection());
+    }
+
+    @Test
+    void drawingSubmitToClosedRoundDeletesNothing() {
+        stubPhase(RoundPhase.LOCKED);
+
+        assertThatThrownBy(() -> orchestrator.submitAnswer(SID, SLIDE, "p-1",
+                new DrawingAnswer(drawingImage("drawing/s/p/new/original")), 0))
+                .isInstanceOf(ConflictException.class);
+        verify(storage, never()).delete(anyCollection());
+    }
+
+    /** An internal (S3-backed) AppImage with the given source key. */
+    private static AppImage drawingImage(String srcKey) {
+        AppImage image = new AppImage();
+        image.setExternal(false);
+        image.setSrcKey(srcKey);
+        return image;
     }
 
     private static Answer answerWith(AnswerPayload payload) {

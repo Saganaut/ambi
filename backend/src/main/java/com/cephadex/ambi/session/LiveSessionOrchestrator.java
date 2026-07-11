@@ -17,7 +17,9 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
+import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
+import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
@@ -96,6 +98,7 @@ public class LiveSessionOrchestrator {
     private final EventPublisher publisher;
     private final RoundResultProjector roundResults;
     private final ImageUrlResolver imageUrls;
+    private final S3StorageService storage;
     // DeadlineScheduler (round/submission timers, A3) is still deferred; pause
     // support is a LiveRoundState record change to decide before it lands.
 
@@ -114,7 +117,7 @@ public class LiveSessionOrchestrator {
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
             PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers, EventPublisher publisher,
-            RoundResultProjector roundResults, ImageUrlResolver imageUrls) {
+            RoundResultProjector roundResults, ImageUrlResolver imageUrls, S3StorageService storage) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
@@ -126,6 +129,7 @@ public class LiveSessionOrchestrator {
         this.publisher = publisher;
         this.roundResults = roundResults;
         this.imageUrls = imageUrls;
+        this.storage = storage;
     }
 
     /**
@@ -371,6 +375,13 @@ public class LiveSessionOrchestrator {
         answer.setSubmittedAt(Instant.now());
         answer.setPayload(payload);
         answerStore.submit(sessionId, slideId, answer);
+
+        // The overwrite has landed; now drop the superseded drawing's S3 objects
+        // so unlimited "update drawing" cycles can't grow storage unbounded
+        // (delete-on-remove, like GalleryService). Deleting only AFTER the write
+        // means a rejected or failed resubmit can never strand the still-current
+        // answer pointing at dead objects.
+        prior.ifPresent(p -> deleteReplacedDrawing(p.getPayload(), payload));
 
         // Reconcile the per-option tally: back out the prior selection (a multi-select
         // change), then apply the new one, so each option's bar reflects current picks.
@@ -618,6 +629,19 @@ public class LiveSessionOrchestrator {
             publisher.publish(current.publicId(),
                     SessionEvents.resultsRevealed(result, roster, drawings, terminal));
         }));
+    }
+
+    /**
+     * Deletes the S3 objects of a drawing the given resubmission just replaced
+     * (no-ops unless both payloads are drawings and the image actually changed).
+     */
+    private void deleteReplacedDrawing(AnswerPayload priorPayload, AnswerPayload nextPayload) {
+        if (priorPayload instanceof DrawingAnswer previous && nextPayload instanceof DrawingAnswer next
+                && previous.image() != null && previous.image().getSrcKey() != null
+                && next.image() != null
+                && !previous.image().getSrcKey().equals(next.image().getSrcKey())) {
+            storage.delete(ImageKeys.allKeys(previous.image()));
+        }
     }
 
     /**

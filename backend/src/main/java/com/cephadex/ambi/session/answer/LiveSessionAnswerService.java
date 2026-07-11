@@ -18,8 +18,6 @@ import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageIngestService;
-import com.cephadex.ambi.media.storage.ImageKeys;
-import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -47,7 +45,6 @@ import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
-import com.cephadex.ambi.session.redis.AnswerStore;
 
 /**
  * Application service behind {@code POST /api/liveSessions/{id}/answers}: turns an
@@ -67,18 +64,13 @@ public class LiveSessionAnswerService {
     private final ParticipantResolver participantResolver;
     private final LiveSessionOrchestrator orchestrator;
     private final ImageIngestService imageIngest;
-    private final AnswerStore answerStore;
-    private final S3StorageService storage;
 
     public LiveSessionAnswerService(LiveSessionRepository sessions, ParticipantResolver participantResolver,
-            LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest, AnswerStore answerStore,
-            S3StorageService storage) {
+            LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest) {
         this.sessions = sessions;
         this.participantResolver = participantResolver;
         this.orchestrator = orchestrator;
         this.imageIngest = imageIngest;
-        this.answerStore = answerStore;
-        this.storage = storage;
     }
 
     /**
@@ -142,14 +134,6 @@ public class LiveSessionAnswerService {
             throw new ForbiddenException("ANONYMOUS_NOT_ALLOWED", "this slide does not accept guest answers");
         }
         validatePayload(sessionId, participant.getParticipantId(), slide, request.payload(), maxSelections);
-
-        // Resubmitting a drawing replaces the stored answer wholesale; delete
-        // the superseded upload's S3 objects so unlimited "update drawing"
-        // cycles can't grow storage unbounded (mirrors GalleryService's
-        // delete-on-remove).
-        if (request.payload() instanceof DrawingAnswer drawing) {
-            deleteReplacedDrawing(sessionId, request.slideId(), participant.getParticipantId(), drawing);
-        }
 
         // Q&A departs from the single-answer model: questions append server-side
         // (per-participant cap from the content, not maxSelections), so it takes
@@ -224,20 +208,6 @@ public class LiveSessionAnswerService {
         }
     }
 
-    /**
-     * Deletes the S3 objects of the drawing this participant's new submission
-     * replaces (if any, and if it actually changed image).
-     */
-    private void deleteReplacedDrawing(String sessionId, String slideId, String participantId, DrawingAnswer next) {
-        answerStore.answerOf(sessionId, slideId, participantId).ifPresent(prior -> {
-            if (prior.getPayload() instanceof DrawingAnswer previous
-                    && previous.image() != null
-                    && previous.image().getSrcKey() != null
-                    && !previous.image().getSrcKey().equals(next.image().getSrcKey())) {
-                storage.delete(ImageKeys.allKeys(previous.image()));
-            }
-        });
-    }
 
     /**
      * A matching submission must connect at least one real pair: every key a left
