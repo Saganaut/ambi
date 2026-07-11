@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
@@ -86,6 +88,8 @@ import com.cephadex.ambi.user.Avatar;
  */
 @Service
 public class LiveSessionOrchestrator {
+
+    private static final Logger log = LoggerFactory.getLogger(LiveSessionOrchestrator.class);
 
     private final LiveSessionRepository repo;
     private final ParticipantRepository participants;
@@ -634,13 +638,21 @@ public class LiveSessionOrchestrator {
     /**
      * Deletes the S3 objects of a drawing the given resubmission just replaced
      * (no-ops unless both payloads are drawings and the image actually changed).
+     * Best-effort: the overwrite has already landed, so a storage failure must
+     * not fail the submit — an orphaned object is acceptable, a false 500 on a
+     * durably-recorded answer is not.
      */
     private void deleteReplacedDrawing(AnswerPayload priorPayload, AnswerPayload nextPayload) {
         if (priorPayload instanceof DrawingAnswer previous && nextPayload instanceof DrawingAnswer next
                 && previous.image() != null && previous.image().getSrcKey() != null
                 && next.image() != null
                 && !previous.image().getSrcKey().equals(next.image().getSrcKey())) {
-            storage.delete(ImageKeys.allKeys(previous.image()));
+            try {
+                storage.delete(ImageKeys.allKeys(previous.image()));
+            } catch (RuntimeException e) {
+                log.warn("Could not delete replaced drawing objects under {} — leaving them orphaned",
+                        previous.image().getSrcKey(), e);
+            }
         }
     }
 

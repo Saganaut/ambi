@@ -208,7 +208,6 @@ public class LiveSessionAnswerService {
         }
     }
 
-
     /**
      * A matching submission must connect at least one real pair: every key a left
      * card on the slide, every value a right card, and no right card claimed by

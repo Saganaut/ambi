@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -30,6 +31,7 @@ import org.springframework.dao.DuplicateKeyException;
 
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
+import com.cephadex.ambi.media.storage.MediaStorageException;
 import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
@@ -357,6 +359,22 @@ class LiveSessionOrchestratorTest {
         InOrder inOrder = inOrder(answerStore, storage);
         inOrder.verify(answerStore).submit(eq(SID), eq(SLIDE), any(Answer.class));
         inOrder.verify(storage).delete(anyCollection());
+    }
+
+    @Test
+    void drawingResubmitSurvivesAFailedCleanupDelete() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answerOf(SID, SLIDE, "p-1"))
+                .thenReturn(Optional.of(answerWith(new DrawingAnswer(drawingImage("drawing/s/p/old/original")))));
+        doThrow(new MediaStorageException("delete failed", null))
+                .when(storage).delete(anyCollection());
+
+        // The overwrite already landed; a failed best-effort cleanup must not
+        // turn the successful submit into a 500 (worst case: an orphaned object).
+        orchestrator.submitAnswer(SID, SLIDE, "p-1",
+                new DrawingAnswer(drawingImage("drawing/s/p/new/original")), 0);
+
+        verify(answerStore).submit(eq(SID), eq(SLIDE), any(Answer.class));
     }
 
     @Test

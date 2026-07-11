@@ -10,9 +10,10 @@ import com.cephadex.ambi.media.enums.ImageSizeOptions;
 
 /**
  * The single authority for an uploaded image's S3 key layout. Every object for
- * one image lives under a shared {@code gallery/{uuid}} prefix: the untouched
- * original at {@code …/original} and one WebP rendition per size tier at
- * {@code …/{tier}.webp}.
+ * one image lives under a shared prefix — {@code gallery/{uuid}} for gallery
+ * uploads, {@code drawing/{sessionId}/{participantId}/{uuid}} for live-session
+ * drawing answers — with the untouched original at {@code …/original} and one
+ * WebP rendition per size tier at {@code …/{tier}.webp}.
  *
  * <p>Because the whole key set is derivable from the original's key, the inbound
  * {@code AppImage} deserializer can reconstruct the canonical variant keys from
