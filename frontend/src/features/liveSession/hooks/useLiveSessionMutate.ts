@@ -3,8 +3,9 @@
 // is broadcast-only: each command is an HTTP POST whose effect comes back to all
 // clients as a `SessionEvent` over the socket, so these handlers just fire and
 // forget — there is no response cache to reconcile (the socket is the update
-// path). Commands that return a body (`create`, `join`, `advance`) hand back the
-// unwrapped promise so the `useLiveSession` view-model can act on it (navigate).
+// path). Commands that return a body (`create`, `join`, `advance`,
+// `uploadDrawing`) hand back the unwrapped promise so the caller can act on it
+// (navigate, submit the stored image).
 //
 // Write-only surface (see z-docs/rules/frontend/hook-roles.md): read live state
 // via `useLiveSessionQuery`. Args are typed by indexed access on the generated

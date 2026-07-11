@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
+import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 
 /**
@@ -17,6 +18,9 @@ import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
  * <p>{@code outcomes} reuses {@link ParticipantOutcome}, which is already
  * participant-safe (keyed by {@code participantId}). {@code correctOption} is the
  * revealed answer key for this slide — disclosed only now, at results time.
+ * {@code drawings} is the submitted-drawings gallery for a Drawing round
+ * (presigned URLs, see {@link DrawingSubmissionView}); {@code null} for every
+ * other kind.
  */
 public record ResultsRevealed(
         String slideId,
@@ -24,5 +28,6 @@ public record ResultsRevealed(
         Map<String, Integer> optionCounts,
         String correctOption,
         List<ScoreboardEntry> scoreboard,
+        List<DrawingSubmissionView> drawings,
         boolean terminal) implements SessionEvent {
 }

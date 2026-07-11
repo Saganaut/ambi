@@ -33,9 +33,14 @@ import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.DrawingContent;
+import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
+import com.cephadex.ambi.presentation.slide.enums.Tool;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
@@ -91,6 +96,7 @@ class LiveSessionOrchestratorTest {
     private QAndAHostAnswerStore qandaHostAnswers;
     private EventPublisher publisher;
     private RoundResultProjector roundResults;
+    private ImageUrlResolver imageUrls;
     private LiveSessionOrchestrator orchestrator;
 
     @BeforeEach
@@ -105,7 +111,7 @@ class LiveSessionOrchestratorTest {
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         publisher = mock(EventPublisher.class);
         roundResults = mock(RoundResultProjector.class);
-        ImageUrlResolver imageUrls = mock(ImageUrlResolver.class);
+        imageUrls = mock(ImageUrlResolver.class);
 
         // Run the locked action inline — both the Runnable and Supplier overloads.
         doAnswer(inv -> {
@@ -634,6 +640,46 @@ class LiveSessionOrchestratorTest {
         ResultsRevealed event = (ResultsRevealed) publishedEvent();
         assertThat(event.slideId()).isEqualTo(SLIDE);
         assertThat(event.terminal()).isTrue();
+        // Not a drawing round → no gallery payload.
+        assertThat(event.drawings()).isNull();
+    }
+
+    @Test
+    void revealResultsCarriesDrawingGalleryForDrawingRound() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES);
+        Slide slide = slideWithId(SLIDE);
+        slide.setContent(new DrawingContent(null, PromptPlacement.ALONGSIDE, null,
+                List.of("#111111"), Set.of(Tool.PEN)));
+        RoundResult result = RoundResult.compute(SID, slide, List.of(), Instant.now());
+        when(roundResults.find(SID, SLIDE)).thenReturn(Optional.of(result));
+
+        Participant artist = Participant.join("user-1", "Artist One", null, null);
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of(slide));
+        when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
+        LiveSession session = mock(LiveSession.class);
+        when(session.getId()).thenReturn(SID);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getRoster()).thenReturn(List.of(artist.getParticipantId()));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        when(participants.findAllById(List.of(artist.getParticipantId()))).thenReturn(List.of(artist));
+
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("drawing/" + SID + "/abc/original");
+        Answer answer = new Answer();
+        answer.setParticipantId(artist.getParticipantId());
+        answer.setPayload(new DrawingAnswer(stored));
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(answer));
+        when(imageUrls.displayUrl(eq(stored), any())).thenReturn("https://s3/presigned-drawing");
+
+        orchestrator.revealResults(SID, SLIDE);
+
+        ResultsRevealed event = (ResultsRevealed) publishedEvent();
+        assertThat(event.drawings()).hasSize(1);
+        assertThat(event.drawings().get(0).participantId()).isEqualTo(artist.getParticipantId());
+        assertThat(event.drawings().get(0).displayName()).isEqualTo("Artist One");
+        assertThat(event.drawings().get(0).imageUrl()).isEqualTo("https://s3/presigned-drawing");
     }
 
     // ── F4 guard: reject opening a second slide while one is open ─────────────

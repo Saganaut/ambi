@@ -18,6 +18,8 @@ import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageIngestService;
+import com.cephadex.ambi.media.storage.ImageKeys;
+import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -45,6 +47,7 @@ import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
+import com.cephadex.ambi.session.redis.AnswerStore;
 
 /**
  * Application service behind {@code POST /api/liveSessions/{id}/answers}: turns an
@@ -64,22 +67,29 @@ public class LiveSessionAnswerService {
     private final ParticipantResolver participantResolver;
     private final LiveSessionOrchestrator orchestrator;
     private final ImageIngestService imageIngest;
+    private final AnswerStore answerStore;
+    private final S3StorageService storage;
 
     public LiveSessionAnswerService(LiveSessionRepository sessions, ParticipantResolver participantResolver,
-            LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest) {
+            LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest, AnswerStore answerStore,
+            S3StorageService storage) {
         this.sessions = sessions;
         this.participantResolver = participantResolver;
         this.orchestrator = orchestrator;
         this.imageIngest = imageIngest;
+        this.answerStore = answerStore;
+        this.storage = storage;
     }
 
     /**
-     * Ingests a participant's rendered drawing (PNG bytes) into S3 under this
-     * session's {@code drawing/{sessionId}/…} namespace and returns the stored
-     * {@link AppImage} for the client to echo back inside a
+     * Ingests a participant's rendered drawing (PNG bytes) into S3 under the
+     * caller's {@code drawing/{sessionId}/{participantId}/…} namespace and
+     * returns the stored {@link AppImage} for the client to echo back inside a
      * {@link DrawingAnswer}. The namespace is what {@code validateDrawing}
-     * later checks, so an answer can only reference an image uploaded through
-     * this same session.
+     * later checks, so an answer can only reference an image the same
+     * participant uploaded through this same session — presigned gallery URLs
+     * revealed at results time leak other players' keys, and those must not be
+     * submittable as one's own drawing in a later round.
      *
      * @throws NotFoundException   if the session doesn't exist
      * @throws ConflictException   if the session isn't in progress
@@ -92,9 +102,14 @@ public class LiveSessionAnswerService {
         if (!session.isLive()) {
             throw new ConflictException("SESSION_NOT_LIVE", "session is not in progress");
         }
-        participantResolver.resolve(session, principal);
-        String prefix = DRAWING_KEY_NAMESPACE + sessionId + "/" + UUID.randomUUID();
+        Participant participant = participantResolver.resolve(session, principal);
+        String prefix = drawingPrefix(sessionId, participant.getParticipantId()) + UUID.randomUUID();
         return imageIngest.ingest(bytes, contentType, null, prefix);
+    }
+
+    /** The key prefix all of one participant's drawing uploads share in a session. */
+    private static String drawingPrefix(String sessionId, String participantId) {
+        return DRAWING_KEY_NAMESPACE + sessionId + "/" + participantId + "/";
     }
 
     /**
@@ -126,7 +141,15 @@ public class LiveSessionAnswerService {
         if (answer != null && !answer.allowAnonymous() && principal.state() == IdentityState.GUEST) {
             throw new ForbiddenException("ANONYMOUS_NOT_ALLOWED", "this slide does not accept guest answers");
         }
-        validatePayload(sessionId, slide, request.payload(), maxSelections);
+        validatePayload(sessionId, participant.getParticipantId(), slide, request.payload(), maxSelections);
+
+        // Resubmitting a drawing replaces the stored answer wholesale; delete
+        // the superseded upload's S3 objects so unlimited "update drawing"
+        // cycles can't grow storage unbounded (mirrors GalleryService's
+        // delete-on-remove).
+        if (request.payload() instanceof DrawingAnswer drawing) {
+            deleteReplacedDrawing(sessionId, request.slideId(), participant.getParticipantId(), drawing);
+        }
 
         // Q&A departs from the single-answer model: questions append server-side
         // (per-participant cap from the content, not maxSelections), so it takes
@@ -153,7 +176,8 @@ public class LiveSessionAnswerService {
                 request.payload(), effectiveMaxSelections);
     }
 
-    private void validatePayload(String sessionId, Slide slide, AnswerPayload payload, int maxSelections) {
+    private void validatePayload(String sessionId, String participantId, Slide slide, AnswerPayload payload,
+            int maxSelections) {
         SlideContent content = slide.getContent();
         if (content == null || payload.slideType() != content.contentType()) {
             throw new ValidationException("answer type does not match the slide");
@@ -177,25 +201,42 @@ public class LiveSessionAnswerService {
             validateMatching(matching, ans);
         }
         if (content instanceof DrawingContent && payload instanceof DrawingAnswer ans) {
-            validateDrawing(sessionId, ans);
+            validateDrawing(sessionId, participantId, ans);
         }
         // Other content types are stored as-is; their tally/validation lands with scoring.
     }
 
     /**
-     * A drawing submission must reference an image stored through this session's
-     * {@code storeDrawing} upload — internal, and keyed under this session's
-     * {@code drawing/{sessionId}/…} namespace. That rules out external URLs and
-     * cross-session (or gallery) key references alike.
+     * A drawing submission must reference an image the submitting participant
+     * stored through this session's {@code storeDrawing} upload — internal, and
+     * keyed under {@code drawing/{sessionId}/{participantId}/…}. That rules out
+     * external URLs, gallery keys, other sessions' uploads, and other
+     * participants' drawings (whose keys leak via the presigned gallery URLs at
+     * results time) alike.
      */
-    private void validateDrawing(String sessionId, DrawingAnswer answer) {
+    private void validateDrawing(String sessionId, String participantId, DrawingAnswer answer) {
         AppImage image = answer.image();
         if (image == null || image.isExternal() || image.getSrcKey() == null) {
             throw new ValidationException("a drawing answer must carry an uploaded drawing image");
         }
-        if (!image.getSrcKey().startsWith(DRAWING_KEY_NAMESPACE + sessionId + "/")) {
-            throw new ValidationException("drawing image was not uploaded through this session");
+        if (!image.getSrcKey().startsWith(drawingPrefix(sessionId, participantId))) {
+            throw new ValidationException("drawing image was not uploaded by this participant in this session");
         }
+    }
+
+    /**
+     * Deletes the S3 objects of the drawing this participant's new submission
+     * replaces (if any, and if it actually changed image).
+     */
+    private void deleteReplacedDrawing(String sessionId, String slideId, String participantId, DrawingAnswer next) {
+        answerStore.answerOf(sessionId, slideId, participantId).ifPresent(prior -> {
+            if (prior.getPayload() instanceof DrawingAnswer previous
+                    && previous.image() != null
+                    && previous.image().getSrcKey() != null
+                    && !previous.image().getSrcKey().equals(next.image().getSrcKey())) {
+                storage.delete(ImageKeys.allKeys(previous.image()));
+            }
+        });
     }
 
     /**

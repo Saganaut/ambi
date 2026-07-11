@@ -22,15 +22,18 @@ import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
+import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerTallyKeys;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
+import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
@@ -611,8 +614,42 @@ public class LiveSessionOrchestrator {
             LiveSession session = requireSession(sessionId);
             List<Participant> roster = participants.findAllById(session.getRoster());
             boolean terminal = isLastRound(session, slideId);
-            publisher.publish(current.publicId(), SessionEvents.resultsRevealed(result, roster, terminal));
+            List<DrawingSubmissionView> drawings = drawingSubmissions(session, slideId, roster);
+            publisher.publish(current.publicId(),
+                    SessionEvents.resultsRevealed(result, roster, drawings, terminal));
         }));
+    }
+
+    /**
+     * The submitted-drawings gallery for a Drawing round: every stored answer's
+     * image resolved to a presigned URL, labelled with the submitter's display
+     * name. {@code null} for every other slide kind, so the event field stays
+     * absent. LG (960px bound) keeps 1024²-logical drawings crisp on a
+     * projected results grid.
+     */
+    private List<DrawingSubmissionView> drawingSubmissions(LiveSession session, String slideId,
+            List<Participant> roster) {
+        // Tolerant lookup: the gallery is a bonus payload on an already-scored
+        // reveal — a missing slide must not fail the whole reveal.
+        Slide slide = session.getDeck() == null ? null
+                : session.getDeck().findSlide(slideId).orElse(null);
+        if (slide == null || !(slide.getContent() instanceof DrawingContent)) {
+            return null;
+        }
+        Map<String, String> names = new HashMap<>();
+        for (Participant participant : roster) {
+            names.put(participant.getParticipantId(), participant.getDisplayName());
+        }
+        List<DrawingSubmissionView> drawings = new ArrayList<>();
+        for (Answer answer : answerStore.answers(session.getId(), slideId)) {
+            if (answer.getPayload() instanceof DrawingAnswer drawing && drawing.image() != null) {
+                drawings.add(new DrawingSubmissionView(
+                        answer.getParticipantId(),
+                        names.get(answer.getParticipantId()),
+                        imageUrls.displayUrl(drawing.image(), ImageSizeOptions.LG)));
+            }
+        }
+        return drawings;
     }
 
     /**

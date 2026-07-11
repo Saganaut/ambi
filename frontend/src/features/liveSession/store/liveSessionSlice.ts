@@ -18,6 +18,7 @@ import type {
   SlideView,
 } from "./liveSessionApi.gen";
 import type {
+  DrawingSubmission,
   LiveSessionLifecycle,
   OptionCounts,
   ParticipantOutcome,
@@ -39,6 +40,8 @@ export interface RoundResults {
   optionCounts: OptionCounts;
   correctOption: string | null;
   scoreboard: ScoreboardEntry[];
+  /** Submitted-drawings gallery for a Drawing round; null otherwise. */
+  drawings: DrawingSubmission[] | null;
   terminal: boolean;
 }
 
@@ -210,6 +213,7 @@ const liveSessionSlice = createSlice({
             optionCounts: e.optionCounts,
             correctOption: e.correctOption,
             scoreboard: e.scoreboard,
+            drawings: e.drawings ?? null,
             terminal: e.terminal,
           };
           // The reveal's durable counts supersede the live tally only when the

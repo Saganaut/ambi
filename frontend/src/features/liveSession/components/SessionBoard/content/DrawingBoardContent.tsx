@@ -10,9 +10,9 @@
 //   - liveResults → still answerable pre-lock; the backend forces
 //                   maxSelections=0 for drawings, so re-submitting overwrites
 //                   (the button flips to "Update drawing").
-//   - results     → drawing input locks. The submitted-drawings gallery rides
-//                   the round-results work (next phase) — for now the board
-//                   confirms the round is closed.
+//   - results     → drawing input locks and the board shows the gallery of
+//                   everyone's submitted drawings (1:1 tiles with names),
+//                   delivered presigned on the ResultsRevealed event.
 //
 // The canvas is keyed by slideId so navigating rounds always starts a fresh
 // drawing (its element state is component-internal).
@@ -44,8 +44,9 @@ const DrawingBoardContent = ({ slide, mode, interactive }: DrawingBoardContentPr
   const { sendAnswer, uploadDrawing } = useSessionConnection();
   // `mode` stays "prompt" for a LOCKED round; the phase tells closed-but-not-
   // revealed apart from a host projection of an open round.
-  const { phase } = useLiveSessionQuery();
+  const { phase, results } = useLiveSessionQuery();
   const accepting = phase === "SUBMIT" || phase === "SUBMIT_LIVE";
+  const gallery = results?.slideId === slideId ? (results.drawings ?? []) : [];
   const canvasRef = useRef<DrawingCanvasHandle>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
@@ -79,6 +80,34 @@ const DrawingBoardContent = ({ slide, mode, interactive }: DrawingBoardContentPr
       setSubmitState("idle");
     }
   };
+
+  if (mode === "results") {
+    // Everyone (host, projector, participants) sees the same gallery.
+    return (
+      <div className={styles.drawingBoardContent}>
+        {gallery.length > 0 ? (
+          <ul className={styles.gallery}>
+            {gallery.map((entry) => (
+              <li key={entry.participantId} className={styles.galleryTile}>
+                {entry.imageUrl && (
+                  <img
+                    className={styles.galleryImage}
+                    src={entry.imageUrl}
+                    alt={`Drawing by ${entry.displayName ?? "a player"}`}
+                  />
+                )}
+                <span className={styles.galleryName}>
+                  {entry.displayName ?? "Player"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.note}>No drawings were submitted this round.</p>
+        )}
+      </div>
+    );
+  }
 
   if (!canDraw) {
     // Host/projector (and everyone once the round closes): the prompt image
@@ -121,7 +150,8 @@ const DrawingBoardContent = ({ slide, mode, interactive }: DrawingBoardContentPr
           <p className={styles.sent}>Drawing sent — you can keep tweaking it.</p>
         )}
         <Btn
-          variant='primary'
+          size='sm'
+          variant='brand'
           disabled={isEmpty || submitState === "saving"}
           onClick={() => {
             void submit();

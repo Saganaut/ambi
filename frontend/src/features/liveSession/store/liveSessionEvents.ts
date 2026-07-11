@@ -130,6 +130,17 @@ export interface ResponsesRevealed {
   optionCounts: OptionCounts;
 }
 
+/**
+ * One participant's submitted drawing, carried by {@link ResultsRevealed} for
+ * a Drawing round. Event-only, hand-typed to mirror the backend
+ * `DrawingSubmissionView`; `imageUrl` arrives presigned.
+ */
+export interface DrawingSubmission {
+  participantId: string;
+  displayName: string | null;
+  imageUrl: string | null;
+}
+
 export interface ResultsRevealed {
   type: "ResultsRevealed";
   slideId: string;
@@ -138,6 +149,8 @@ export interface ResultsRevealed {
   /** The answer key, disclosed only now. null for content with no single correct option. */
   correctOption: string | null;
   scoreboard: ScoreboardEntry[];
+  /** The submitted-drawings gallery for a Drawing round; null for every other kind. */
+  drawings: DrawingSubmission[] | null;
   /** true on the final round — the cue for the podium. */
   terminal: boolean;
 }

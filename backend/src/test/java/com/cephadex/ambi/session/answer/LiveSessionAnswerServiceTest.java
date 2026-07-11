@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -30,6 +31,8 @@ import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageIngestService;
+import com.cephadex.ambi.media.storage.S3StorageService;
+import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
@@ -85,6 +88,8 @@ class LiveSessionAnswerServiceTest {
     private ParticipantResolver participantResolver;
     private LiveSessionOrchestrator orchestrator;
     private ImageIngestService imageIngest;
+    private AnswerStore answerStore;
+    private S3StorageService storage;
     private LiveSessionAnswerService service;
 
     private Participant participant;
@@ -96,7 +101,10 @@ class LiveSessionAnswerServiceTest {
         participantResolver = mock(ParticipantResolver.class);
         orchestrator = mock(LiveSessionOrchestrator.class);
         imageIngest = mock(ImageIngestService.class);
-        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest);
+        answerStore = mock(AnswerStore.class);
+        storage = mock(S3StorageService.class);
+        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest,
+                answerStore, storage);
 
         participant = Participant.join("user-1", "Player One", null, null);
         registered = principal(IdentityState.REGISTERED, "user-1", UserLevel.USER);
@@ -418,17 +426,54 @@ class LiveSessionAnswerServiceTest {
 
     // ── Drawing ────────────────────────────────────────────────────────────────
 
+    /** A key under the fixture participant's own drawing namespace. */
+    private String ownDrawingKey(String suffix) {
+        return "drawing/" + SID + "/" + participant.getParticipantId() + "/" + suffix + "/original";
+    }
+
     @Test
     void drawingAnswerBypassesTheSingleAnswerRule() {
         givenLiveSession(answerSettings(true, 1), drawingContent());
 
         service.submit(SID,
-                request(new DrawingAnswer(drawingImage("drawing/" + SID + "/abc/original"))), registered);
+                request(new DrawingAnswer(drawingImage(ownDrawingKey("abc")))), registered);
 
         // A drawing is one whole artifact; resubmits must overwrite, so the
         // orchestrator is called with 0 (unlimited / last-write-wins).
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(DrawingAnswer.class), eq(0));
+    }
+
+    @Test
+    void drawingResubmitDeletesTheReplacedUpload() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+        Answer prior = new Answer();
+        prior.setParticipantId(participant.getParticipantId());
+        prior.setPayload(new DrawingAnswer(drawingImage(ownDrawingKey("old"))));
+        when(answerStore.answerOf(SID, SLIDE, participant.getParticipantId()))
+                .thenReturn(Optional.of(prior));
+
+        service.submit(SID, request(new DrawingAnswer(drawingImage(ownDrawingKey("new")))), registered);
+
+        // The superseded upload's objects are removed so unlimited update
+        // cycles can't grow S3 unbounded.
+        verify(storage).delete(anyCollection());
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(DrawingAnswer.class), eq(0));
+    }
+
+    @Test
+    void drawingResubmitOfTheSameImageDeletesNothing() {
+        givenLiveSession(answerSettings(true, 1), drawingContent());
+        Answer prior = new Answer();
+        prior.setParticipantId(participant.getParticipantId());
+        prior.setPayload(new DrawingAnswer(drawingImage(ownDrawingKey("same"))));
+        when(answerStore.answerOf(SID, SLIDE, participant.getParticipantId()))
+                .thenReturn(Optional.of(prior));
+
+        service.submit(SID, request(new DrawingAnswer(drawingImage(ownDrawingKey("same")))), registered);
+
+        verify(storage, never()).delete(anyCollection());
     }
 
     @Test
@@ -457,25 +502,32 @@ class LiveSessionAnswerServiceTest {
 
         // Another session's upload…
         assertThatThrownBy(() -> service.submit(SID,
-                request(new DrawingAnswer(drawingImage("drawing/other-session/abc/original"))), registered))
+                request(new DrawingAnswer(drawingImage(
+                        "drawing/other-session/" + participant.getParticipantId() + "/abc/original"))), registered))
                 .isInstanceOf(ValidationException.class);
-        // …and a gallery image are both off-limits.
+        // …another participant's drawing in this session (its key leaks via the
+        // presigned gallery URLs at results time)…
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new DrawingAnswer(drawingImage("drawing/" + SID + "/someone-else/abc/original"))),
+                registered))
+                .isInstanceOf(ValidationException.class);
+        // …and a gallery image are all off-limits.
         assertThatThrownBy(() -> service.submit(SID,
                 request(new DrawingAnswer(drawingImage("gallery/abc/original"))), registered))
                 .isInstanceOf(ValidationException.class);
     }
 
     @Test
-    void storeDrawingIngestsUnderTheSessionNamespace() {
+    void storeDrawingIngestsUnderTheParticipantNamespace() {
         givenLiveSession(answerSettings(true, 1), drawingContent());
-        AppImage stored = drawingImage("drawing/" + SID + "/xyz/original");
+        AppImage stored = drawingImage(ownDrawingKey("xyz"));
         when(imageIngest.ingest(any(), any(), any(), any())).thenReturn(stored);
 
         AppImage result = service.storeDrawing(SID, new byte[] { 1, 2 }, "image/png", registered);
 
         assertThat(result).isSameAs(stored);
         verify(imageIngest).ingest(eq(new byte[] { 1, 2 }), eq("image/png"), isNull(),
-                startsWith("drawing/" + SID + "/"));
+                startsWith("drawing/" + SID + "/" + participant.getParticipantId() + "/"));
     }
 
     @Test

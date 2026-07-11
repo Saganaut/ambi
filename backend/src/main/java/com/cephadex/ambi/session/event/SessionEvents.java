@@ -9,6 +9,7 @@ import java.util.function.Function;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
@@ -118,15 +119,18 @@ public final class SessionEvents {
     /**
      * Scored results for a round (combined parent+child for a follow-up; entered
      * REVEAL_RESULTS). Reuses the round's {@link RoundResult} for outcomes/counts and
-     * builds the standings from the supplied roster.
+     * builds the standings from the supplied roster. {@code drawings} is the
+     * submitted-drawings gallery for a Drawing round, {@code null} otherwise.
      */
-    public static ResultsRevealed resultsRevealed(RoundResult result, List<Participant> roster, boolean terminal) {
+    public static ResultsRevealed resultsRevealed(RoundResult result, List<Participant> roster,
+            List<DrawingSubmissionView> drawings, boolean terminal) {
         return new ResultsRevealed(
                 result.id().slideId(),
                 List.copyOf(result.perParticipant()),
                 Map.copyOf(result.optionCounts()),
                 result.correctOption().orElse(null),
                 scoreboard(roster),
+                drawings == null ? null : List.copyOf(drawings),
                 terminal);
     }
 
