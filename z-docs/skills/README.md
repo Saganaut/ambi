@@ -4,7 +4,7 @@ Notes on Claude Code skills used while working on Ambi. Skills are reusable agen
 
 ## Index
 
-_No project-local skills yet._
+- [`.claude/skills/verify/SKILL.md`](../../.claude/skills/verify/SKILL.md) — `verify`: drives the running Ambi app with Playwright to verify frontend changes end-to-end (dev login, fresh deck, editor flows, persisted-content assertions).
 
 ## What belongs here
 
