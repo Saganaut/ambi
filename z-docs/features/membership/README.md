@@ -4,12 +4,17 @@ Scaffolding for paid memberships and a public pricing page. Stripe integration
 is intentionally **out of scope** for now — the components are shaped so a
 billing provider can be slotted in later without rework.
 
-> Backend membership models / endpoints are part of the backend rewrite and
-> intentionally not documented here.
+> A concrete backend membership model already exists — `billing/Membership`,
+> `billing/BillingState`, `billing/enums/MembershipTier` (`FREE`,
+> `INDIVIDUAL`, `ORG_SEAT`, `ORG_TEAM`, `ORG_BUSINESS`), `MembershipStatus`,
+> `PaymentProvider`; `org/OrgMembership`, `org/enums/OrgRole`; and
+> `OrgController`'s `GET /api/orgs/mine` — and is documented in
+> [`backend/src/main/java/com/cephadex/ambi/auth/README.md`](../../../backend/src/main/java/com/cephadex/ambi/auth/README.md).
+> This doc covers only the frontend pricing-page scaffolding below.
 
 ## Frontend
 
-### Reusable components (`frontend/src/components/Pricing/`)
+### Reusable components (`frontend/src/pages/PricingPage/components/`)
 
 All components follow project conventions: arrow-function `const`, named
 export at the bottom, `ComponentNameProps` interface, CSS Modules driven by
@@ -47,7 +52,8 @@ export at the bottom, `ComponentNameProps` interface, CSS Modules driven by
 
 - `frontend/src/routes/pricing.tsx` — TanStack file-based route at `/pricing`,
   delegating to `PricingPage` per the routes-as-thin-shims convention.
-- `NavBar` — new top-level "Pricing" link.
+- `NavBar` — a top-level "Pricing" link exists but is currently **commented
+  out** (`NavBar.tsx:27-29`).
 
 ## What's deliberately not here
 

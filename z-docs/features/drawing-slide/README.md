@@ -214,9 +214,10 @@ references it.
    Matching) — a submission is one whole artifact, not an MCQ-style
    incremental pick, so the deck's `maxSelections` default must not make the
    first draw final. Resubmitting also **deletes the superseded upload's S3
-   objects** (`LiveSessionAnswerService.deleteReplacedDrawing`, mirroring
-   `GalleryService`'s delete-on-remove) so unlimited "update drawing" cycles
-   can't grow storage unbounded.
+   objects** (`LiveSessionOrchestrator.deleteReplacedDrawing`, a private
+   method called from `submitAnswer`, mirroring `GalleryService`'s
+   delete-on-remove) so unlimited "update drawing" cycles can't grow storage
+   unbounded.
 
 ### Participant-safe config — `DrawingConfigView`
 
@@ -230,7 +231,8 @@ carries `correctImage`.**
 ### Board — `DrawingBoardContent.tsx`
 
 One component covers every moment, switched by `mode`
-(`resolveBoardStage.ts`'s `BoardQuestionMode`):
+(`resolveBoardStage.ts`'s `BoardQuestionMode`, which has three values —
+`"prompt" | "liveResults" | "results"`):
 
 - **`prompt`** (round open) — a participant with `interactive` and an
   accepting phase (`SUBMIT`/`SUBMIT_LIVE`) gets the full `DrawingCanvas`:
@@ -245,6 +247,12 @@ One component covers every moment, switched by `mode`
   phase-correct note instead (`mode` stays `"prompt"` for a locked round —
   the round `phase` is what tells a closed-but-not-revealed round apart from
   a host projecting a still-open one).
+- **`liveResults`** — the same still-answerable canvas surface as `prompt`
+  (drawing input isn't locked yet); `DrawingBoardContent` treats it
+  identically to `prompt` via the shared `canDraw` check (`mode !==
+  "results"`). Since `DrawingAnswer` is forced to `maxSelections = 0`,
+  resubmitting during `liveResults` overwrites the prior submission, same as
+  during `prompt`.
 - **`results`** — everyone (host, projector, every participant) sees the
   same [results gallery](#results-gallery); the canvas is gone.
 - The canvas is **keyed by `slideId`**, so navigating between rounds always

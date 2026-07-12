@@ -96,5 +96,10 @@ the mode carry into rounds with no extra model work. The runtime keys off
 `FollowUpMode` + `Slide.parentId`: hold the follow-up until the parent round
 resolves, build its options from the parent's submissions (`Round` state, not
 deck content), and score via the existing best-answer/deception point settings.
-A `FollowUpAnswer` payload variant will be needed when answers land
-(AnswerPayload variants pair 1:1 with content kinds).
+A `FollowUpAnswer` payload variant already exists
+(`session/answer/payload/FollowUpAnswer.java`, registered in the sealed
+`AnswerPayload` hierarchy and graded a permanent `false` in
+`RoundEvaluator.isCorrect`, same as `DrawingAnswer`/`QAndAAnswer`) — it's
+sealed-interface scaffolding for this future work, not yet consumed at
+runtime; the `VOTE` phase and options-from-submissions logic above are what's
+still missing.

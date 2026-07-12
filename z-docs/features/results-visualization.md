@@ -72,10 +72,18 @@ The pipeline from raw responses to a rendered chart:
 | `PlaceholderChart` | `HEATMAP`, `DIVERGING_BAR`, `IMAGE_OVERLAY` | "coming soon" stub — each has a thin wrapper (`Heatmap`, `DivergingBar`, `ImageOverlay`) to grow into |
 | — | `NONE` | plain non-chart list |
 
-**Key caveat:** only MCQ is aggregated into `RoundResult.optionCounts`
-(`AnswerTallyKeys.optionKeys` returns empty for every other type). So charting
-any non-MCQ type requires **both** a new frontend adapter/registry entry **and**
-backend aggregation of the raw `Answer.payload` records — see the
+**Key caveat:** these two aggregations are separate and don't line up.
+`AnswerTallyKeys.optionKeys` — which feeds the **ephemeral Redis `tallyStore`**
+behind the live `TallyUpdated` event — already returns keys for MCQ, GRID,
+AXIS, SCALES, and MATCHING (empty for NUMBER, TEXT, RANKING, ALLOCATION,
+FOLLOW_UP, Q_AND_A, and DRAWING). The **durable** `RoundResult.optionCounts`,
+by contrast, is built from `ParticipantOutcome.choice()` via
+`RoundEvaluator.describeChoice()`, which is non-null only for MCQ, NUMBER, and
+TEXT — so post-round charting of GRID/AXIS/SCALES/MATCHING (whose live boards
+already read the ephemeral tally) still has no durable data source once the
+round closes. So charting any type describeChoice doesn't cover requires
+**both** a new frontend adapter/registry entry **and** backend aggregation of
+the raw `Answer.payload` records into `RoundResult` — see the
 [wiring checklist](#wiring-checklist). Q&A is the one exception: it's
 non-scorable (no `RoundResult` at all), so its live word cloud tokenizes raw
 submitted text directly on the frontend rather than going through this
@@ -98,10 +106,10 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **TEXT** | `String` | Word cloud, or ranked term bar | 🧩 word cloud built, not wired (no backend tally) |
 | **RANKING** | `List<String>` order | Avg-rank bar, or position-distribution stacked bar / bump | ♻️ reuses BarChart |
 | **SCALES** | `Map<id,Double>` normalized positions (see [scales redesign](scales-slides/README.md)) | Per-statement bucketed strip/histogram, or mean±spread per item | 🚧 post-round diverging-bar placeholder; live per-statement 10-bucket strips built on the board — see [scales slides](scales-slides/README.md) |
-| **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 heatmap placeholder |
+| **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 post-round heatmap placeholder; live per-cell shading built on the board (`GridBoardContent`) |
 | **PLACE_ON_IMAGE** | `double x,y` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder |
 | **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item color (needs raw placements — follow-up F2), or bucketed heatmap | 🚧 heatmap placeholder; live 10×10 bucket heat built on the board — see [axis slides](axis-slides/README.md) |
-| **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or Sankey | 🚧 heatmap placeholder (Sankey deferred) |
+| **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or Sankey | 🚧 post-round heatmap placeholder (Sankey deferred); live per-pair connection counts built on the board (`MatchingBoardContent`) |
 | **ALLOCATION** | `Map<optionId,Integer>` | Avg-points grouped / 100%-stacked bar | ♻️ reuses BarChart |
 | **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🧩 word cloud built, not wired (no backend tally) |
 | **DRAWING** | `AppImage` (rendered PNG, stored in S3) | Image gallery (not a quantitative chart) | ✅ gallery built (bypasses this pipeline — see note) |
@@ -141,7 +149,9 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   that values no longer snap to discrete steps.
 - **GRID** — each participant places items into matrix cells. A **heatmap**
   (rows × cols, shaded by placement count) reads best; a per-item stacked bar is
-  the fallback.
+  the fallback. The live board (`GridBoardContent`) already shades each cell by
+  its live placement count during `liveResults`/`results`; the post-round
+  heatmap chart is the still-missing piece.
 - **PLACE_ON_IMAGE** — normalized `x,y` pins. Overlay a **scatter/heatmap on the
   image** with the `correctTargets` circles drawn. Needs an image-aware renderer.
 - **AXIS** *(spec only)* — normalized `x,y` per item on a labeled plane. A
@@ -151,7 +161,10 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   [axis spec](axis-slides/README.md)).
 - **MATCHING** — chosen left→right pairs. A **confusion-matrix heatmap**
   (left items × right items) or a **Sankey** weighted by pair counts shows where
-  the crowd matched correctly vs. confused pairs.
+  the crowd matched correctly vs. confused pairs. The live board
+  (`MatchingBoardContent`) already shows per-pair connection-count chips during
+  `liveResults`/`results`; the post-round heatmap/Sankey chart is the still-
+  missing piece.
 - **ALLOCATION** — points distributed across options. Chart **average points per
   option** (grouped or 100%-stacked bar) vs. `correctAllocations`. A simple mean
   bar can reuse `BarChart`.
@@ -214,9 +227,12 @@ Note: **average-value bars** for RANKING and ALLOCATION can likely reuse
 
 To chart a new slide type end-to-end:
 
-1. **Backend** — aggregate the type's `Answer.payload` into `RoundResult` (today
-   `AnswerTallyKeys.optionKeys` only yields keys for MCQ; extend it or add a
-   type-specific projection so the tally isn't empty).
+1. **Backend** — aggregate the type's `Answer.payload` into the durable
+   `RoundResult.optionCounts` (today `describeChoice()` only covers MCQ,
+   NUMBER, and TEXT; extend it or add a type-specific projection so the
+   post-round tally isn't empty). `AnswerTallyKeys.optionKeys` already covers
+   MCQ/GRID/AXIS/SCALES/MATCHING, but that only feeds the ephemeral live
+   tally, not `RoundResult`.
 2. **Adapter** — add `adapters/<type>.ts` producing `ChartDatum[]` (model
    `adapters/mcq.ts`): a `…ToChartData` mapper + a sample-distribution generator
    for authoring previews.

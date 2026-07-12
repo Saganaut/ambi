@@ -268,12 +268,16 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   centered on the target — can be dragged directly (pointer capture) or
   tapped to toggle their row's selection. Every placed marker renders its
   tolerance circle in the same color so the accepted region is visible while
-  tuning. Accessible fallback: per-item numeric X/Y inputs (0–100 %) in the
-  item rows.
+  tuning. A per-item numeric X/Y accessible-fallback input pair (0–100 %) in
+  the item rows previously backed keyboard/screen-reader placement; **this is
+  currently being removed from `AxisItemEditable.tsx` in an in-progress
+  change** (uncommitted at time of writing) with no replacement landed yet —
+  treat the accessible-fallback story as open, not settled.
 - `AxisItemEditable.tsx` — item row (`RankingItemEditable` pattern): the
   palette-colored index badge, a label field with its popover menu
-  (`AxisItemField.tsx`), an image thumbnail when one is set, and the
-  accessible X/Y inputs. Clicking the row selects it.
+  (`AxisItemField.tsx`), and an image thumbnail when one is set. Clicking the
+  row selects it. (The row's accessible X/Y inputs are being removed — see the
+  note above.)
 - `AxisItemField.tsx` — a thin wrapper around the shared `ItemField`
   (`_shared/ItemField/ItemField.tsx`) that supplies the Axis-specific
   primary action: "Set target" (seeds `{x: 0.5, y: 0.5}`, the plane's
@@ -379,7 +383,7 @@ runtime safety is answer-path validation:
 
 | Constant | Value | Where enforced |
 | --- | --- | --- |
-| `MIN_AXIS_ITEMS` / `MAX_AXIS_ITEMS` | 1 / 12 | `useAxisEditor.ts` |
+| `MIN_AXIS_ITEMS` / `MAX_AXIS_ITEMS` | 1 / 6 | `useAxisEditor.ts` |
 | `AXIS_TOLERANCE_MIN` / `MAX` / `DEFAULT` | 0.02 / 0.5 / 0.1 | `useAxisEditor.ts` (tolerance `NumberInput` bounds) |
 | Endpoint & item label length | 80 | editor input `maxLength` |
 | Placement bounds (`[0,1]`, finite) | — | `LiveSessionAnswerService.validateAxis` |

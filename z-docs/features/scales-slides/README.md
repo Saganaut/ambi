@@ -303,18 +303,20 @@ screen — the GRID/AXIS seam, unchanged.
     the dots — clearing is the X button only. The "Set answer" button for
     unscored rows stays, seeding the midpoint `(min + max) / 2` (no longer
     rounded).
-- **New `scaleValue.ts` + `scaleValue.test.ts`** (same folder): `clamp01`,
+- **New `scaleValue.ts` + `scaleValue.test.ts`** (`frontend/src/shared/utils/`,
+  not this folder — shared so the board can reuse it): `clamp01`,
   `positionToValue`, `valueToPosition`, `formatScaleValue` — unit-testable
   and conceptually shared with the board.
 - **Delete `scaleTicks.ts` and `scaleTicks.test.ts`** — nothing else imports
   them (verified).
 - `ScalesSlideContent.tsx` — remove the `step` local mirror and the whole
   **Advanced disclosure** (its only remaining tenant, tolerance, gets
-  promoted): an always-visible tolerance row in the Scale card using a native
-  `<input type="range">` (the `AxisSlideContent` tolerance-slider precedent),
-  spanning 2–50 in integer percent, labeled `Tolerance · ±{scale units}`.
-  Pass `tolerance` down to each statement row for the band; stop passing
-  `step`.
+  promoted): an always-visible tolerance row in the Scale card using a
+  `NumberInput` (the `AxisSlideContent` tolerance-input precedent, also a
+  `NumberInput` — not a native `<input type="range">`), spanning 2–50 in
+  integer percent, labeled `Tolerance %` with a separate `±{value}` span next
+  to it (`formatScaleValue(question.tolerance)`, in scale units). Pass
+  `tolerance` down to each statement row for the band; stop passing `step`.
 - `ScalePreview.tsx` — drop the `step` prop and the `scaleTicks` import;
   render a fixed decorative track (line + two end dots) with caption
   `{min} → {max}`.

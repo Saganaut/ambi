@@ -155,10 +155,11 @@ The shared `useGalleryPicker` → `GalleryPicker` → `UploadTab` →
 existing fixed `cropWidth`/`cropHeight`, default 16:9): the Upload tab's crop
 box takes the uploaded image's own aspect ratio, learned via
 `react-easy-crop`'s `onMediaLoaded`, so at zoom 1 the whole image is kept and
-nothing is clipped unless the author zooms in deliberately. PLACE_ON_IMAGE is
-the only caller that opts in today; every other gallery-picker caller (deck/
-slide cover & background, MCQ option images, Axis item images, theme
-logo/background) keeps its fixed-shape crop.
+nothing is clipped unless the author zooms in deliberately. PLACE_ON_IMAGE and
+`DrawingSlideContent.tsx` (its prompt-image picker) are the two callers that
+opt in today; every other gallery-picker caller (deck/slide cover &
+background, MCQ option images, Axis item images, theme logo/background) keeps
+its fixed-shape crop.
 
 ## Status / gaps
 
@@ -168,15 +169,16 @@ planned or in progress:
 
 - **No participant-safe config view.** `SlideView.java`'s `from(...)` factory
   has a branch per playable kind (`McqContent`, `QAndAContent`, `GridContent`,
-  `AxisContent`, `ScalesContent`, `MatchingContent`) but none for
-  `PlaceOnImageContent` — a live session never sends players the image or
+  `AxisContent`, `ScalesContent`, `MatchingContent`, `DrawingContent`) but none
+  for `PlaceOnImageContent` — a live session never sends players the image or
   targets to look at.
 - **No answer validation.** `LiveSessionAnswerService.validatePayload` has a
   dedicated `validate*` method per playable kind; PLACE_ON_IMAGE falls through
   the comment "other content types are stored as-is; their tally/validation
   lands with scoring."
 - **No live board component.** `BoardQuestion.tsx` has a `case` for MCQ,
-  Q_AND_A, GRID, AXIS, SCALES, and MATCHING — none for PLACE_ON_IMAGE.
+  Q_AND_A, GRID, AXIS, SCALES, MATCHING, and DRAWING — none for
+  PLACE_ON_IMAGE.
 - **No results chart.** `Charts/registry.ts`:
   `PLACE_ON_IMAGE: { supportedViz: ["IMAGE_OVERLAY", "HEATMAP", "NONE"], implemented: false }`
   — see the [results-visualization](../results-visualization.md) per-type

@@ -1,6 +1,8 @@
 # TODO
 
-- Show results as % (we have counts, but not %). - ADDED TO BACKEND NEED TO ADD TO FRONT
+- ~~Show results as % (we have counts, but not %).~~ DONE — `AnswerPanel`'s
+  `displayResultsAsPercentage` toggle feeds `ResultsDisplaySwitch`, and every
+  chart accepts `displayAsPercentage`.
 - label for deck heading ADDED TO BACKEND NEED TO ADD TO FRONT
 - On MCQ questions, we need to add an option to make the question focus on an image.  Like image mode vs text mode. In image mode the image takes center stage, text mode the image is secondary. Otherwise images could be too small for certain use cases
 - vote for hte best answer doesn't make any sense for MCQ, it should only be for free form text or drawings..
@@ -20,7 +22,10 @@
 - We need to stop using the term player, instead we should use participant
 
 BUGS
-Allow multiple selection correct answers
+~~Allow multiple selection correct answers~~ DONE — `McqContent.correctOptionIds`
+is a `Set<String>`, `RoundEvaluator.gradeMcq` does an exact-set match, and the
+editor's `toggleCorrect` (in `useMcqEditor.ts`) lets authors mark more than one
+option correct.
 
  --- [ambi] [io-8080-exec-10] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot map `null` into type `boolean` (set `DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES` to 'false' to allow)]
 

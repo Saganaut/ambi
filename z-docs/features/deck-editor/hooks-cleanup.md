@@ -65,11 +65,11 @@ pattern as `useSlide`. `useDeck` now exposes `setDeckImage(slot, image)` and
 Both hooks now import it from there; `useSlide` still re-exports it for consumers
 that already import it from that path.
 
-### 6. `UseDeckSettingsResult` interface not exported
+### 6. `UseDeckSettingsResult` interface not exported *(RESOLVED — file renamed)*
 
-`useDeckSettings.ts` never exports `UseDeckSettingsResult`. Only `SettingsPatch` (an
-internal implementation detail) is exported. Every other hook exports its `Use*Result`
-type. Either export `UseDeckSettingsResult` or stop exporting `SettingsPatch`.
+`useDeckSettings.ts` was renamed to `hooks/useDeckSettingsMutate.ts` as part of
+the CQRS split (see Overlap #1). It now exports both `UseDeckSettingsMutateResult`
+and `SettingsPatch`, matching every other hook's convention.
 
 ### 7. `useImageSlot.tsx` has wrong file extension
 
@@ -166,12 +166,8 @@ exposes only `remove`. `useDeck` no longer exists.
 
 ## Leftover / Debt
 
-- `useSlide.ts:162` — `console.log("Payload", payload)` debug line. Remove.
 - `ImageSlotContext.tsx:13-31` — unresolved planning comment block ("concerns:",
   "consider…"). Resolve or delete.
 - `useDeckActions.ts` — `addToCollection` is a stub (`console.log` only). Implement or
   remove.
 - `useCreateDeck.ts:44` — unresolved `// TODO` comment.
-- `ImageSlot.types.ts` — `slotButtons[5]` (`"rightCentered"`) has identical
-  `placement` coordinates to `slotButtons[1]` (`"rightHalf"`). Likely a copy-paste
-  error; verify the intended grid coords.
