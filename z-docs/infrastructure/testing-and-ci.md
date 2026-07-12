@@ -1,6 +1,6 @@
 # Testing & CI
 
-Test stacks for both layers, the GitHub Actions CI workflow, and the local pre-commit / pre-push git hooks.
+Test stacks for both layers and the local pre-commit / pre-push git hooks.
 
 > Rule-level testing conventions (don't change a test to make it pass, etc.) live in [backend-rules](../rules/backend-rules.md) and [frontend-rules](../rules/frontend-rules.md).
 
@@ -51,11 +51,9 @@ npm run screenshot -- /decks/<id>/edit   # id-bearing routes need a real id
 
 PNGs are written to `frontend/.screenshots/` (git-ignored). The script (`frontend/scripts/screenshot.mjs`) logs in via `/api/dev/login`, then screenshots each route as the logged-in dev user.
 
-## CI (GitHub Actions)
+## CI
 
-GitHub Actions runs both test suites on every push to `main` and every PR targeting `main`. Workflow: `.github/workflows/ci.yml`. Both jobs run in parallel; the push/merge is blocked if either fails.
-
-To enforce this at the repository level, enable branch protection on `main` in GitHub repo Settings → Branches → Require status checks (select `Frontend tests` and `Backend tests`).
+There is no GitHub Actions (or other hosted) CI configured yet — no `.github/` workflow exists in the repo. Correctness is instead enforced locally via the committed `scripts/pre-commit` and `scripts/pre-push` git hooks (see below), which every contributor installs once per clone.
 
 ## Local git hooks
 

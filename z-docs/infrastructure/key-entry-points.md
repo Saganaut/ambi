@@ -8,7 +8,7 @@ The files worth knowing first when navigating the codebase.
 | `frontend/src/features/<feature>/store/<feature>ValidationConstants.ts` | Auto-generated per-feature validation bounds (+ `shared/store/sharedValidationConstants.ts`) — **do not edit** |
 | `backend/.../common/validation/ValidationConstants.java` | Source of truth for validation bounds (drives the above) |
 | `frontend/src/routes/__root.tsx`           | Root layout (TanStack Router + shared AuthBar)            |
-| `frontend/src/hooks/useCurrentUser.ts`     | Auth state machine (visitor/guest/registered)             |
+| `frontend/src/features/auth/hooks/useCurrentUser.ts` | Auth state machine (visitor/guest/registered)   |
 | `frontend/openapi-config.cts`              | API codegen config                                        |
 | `backend/.../config/SecurityConfig.java`   | Auth, CORS, public routes, OAuth2 success handler         |
 | `backend/.../config/SampleDataSeeder.java` | Manual sample-data seeder (`scripts/seed-sample-data.sh`) |
