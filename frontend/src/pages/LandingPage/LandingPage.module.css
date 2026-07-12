@@ -32,7 +32,7 @@
   border-radius: var(--radius-full);
   background: radial-gradient(
     circle,
-    oklch(52% 0.2 25deg / 15%) 0%,
+    oklch(from var(--red-500) l c h / 15%) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -108,13 +108,13 @@
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   text-decoration: none;
-  box-shadow: 0 0 24px oklch(52% 0.2 25deg / 30%);
+  box-shadow: 0 0 24px oklch(from var(--red-500) l c h / 30%);
 }
 
 .btnPrimary:hover {
   background: var(--red-400);
   border-color: var(--red-400);
-  box-shadow: 0 0 40px oklch(52% 0.2 25deg / 50%);
+  box-shadow: 0 0 40px oklch(from var(--red-500) l c h / 50%);
   transform: translateY(-2px);
 }
 
@@ -292,7 +292,7 @@
   inset: 0;
   background: radial-gradient(
     ellipse at center,
-    oklch(52% 0.2 25deg / 8%) 0%,
+    oklch(from var(--red-500) l c h / 8%) 0%,
     transparent 70%
   );
   pointer-events: none;

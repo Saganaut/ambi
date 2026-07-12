@@ -7,30 +7,46 @@
 
   /* directly (via the JS palette applier), so they never touch this palette.     */
 
-  --red-200: oklch(93% 0.2 25deg);
-  --red-300: oklch(89% 0.2 25deg);
-  --red-400: oklch(77% 0.2 25deg);
-  --red-500: oklch(52% 0.2 25deg);
-  --red-600: oklch(45% 0.2 25deg);
-  --red-700: oklch(39% 0.2 25deg);
-  --red-800: oklch(28% 0.2 25deg);
-  --red-900: oklch(22% 0.2 25deg);
-  --yellow-200: oklch(96% 0.06 95deg);
-  --yellow-300: oklch(93% 0.15 95deg);
-  --yellow-400: oklch(90% 0.22 95deg);
-  --yellow-500: oklch(88% 0.21 95deg);
-  --yellow-600: oklch(82% 0.19 90deg);
-  --yellow-700: oklch(72% 0.16 85deg);
-  --yellow-800: oklch(55% 0.13 80deg);
-  --yellow-900: oklch(35% 0.09 75deg);
-  --green-200: oklch(92% 0.04 170deg);
-  --green-300: oklch(87% 0.06 170deg);
-  --green-400: oklch(74% 0.13 170deg);
-  --green-500: oklch(49% 0.11 170deg);
-  --green-600: oklch(60% 0.13 170deg);
-  --green-700: oklch(37% 0.08 170deg);
-  --green-800: oklch(27% 0.06 170deg);
-  --green-900: oklch(21% 0.05 170deg);
+  /* Status hues (red/green/yellow/blue) are hand-tuned OKLCH ramps designed as   */
+
+  /* brand siblings: hues harmonized to the violet/cyan/orange triad (raspberry    */
+
+  /* red leans violet-ward away from the orange CTA, malachite green backs away    */
+
+  /* from the cyan accent, saffron yellow keeps real chroma, royal-azure blue      */
+
+  /* sits midway between cyan and violet). Washes 100-300, solids 400-600, text    */
+
+  /* and dark-mode washes 700-900; WCAG-checked (700-on-200 >= 4.5:1, 500/600      */
+
+  /* solids vs white >= 3/4.5:1; yellow solids always pair with dark ink).         */
+  --red-100: oklch(96.5% 0.03 12deg);
+  --red-200: oklch(93% 0.062 12deg);
+  --red-300: oklch(86% 0.115 12deg);
+  --red-400: oklch(70% 0.2 14deg);
+  --red-500: oklch(59% 0.235 16deg);
+  --red-600: oklch(50% 0.21 18deg);
+  --red-700: oklch(42% 0.17 18deg);
+  --red-800: oklch(30% 0.115 16deg);
+  --red-900: oklch(20% 0.07 14deg);
+  --yellow-100: oklch(97% 0.035 92deg);
+  --yellow-200: oklch(94.5% 0.075 92deg);
+  --yellow-300: oklch(90.5% 0.13 92deg);
+  --yellow-400: oklch(86.5% 0.17 90deg);
+  --yellow-500: oklch(84% 0.175 88deg);
+  --yellow-600: oklch(73% 0.155 84deg);
+  --yellow-700: oklch(55% 0.12 79deg);
+  --yellow-800: oklch(43% 0.095 76deg);
+  --yellow-900: oklch(29% 0.06 72deg);
+  --green-100: oklch(96.5% 0.028 155deg);
+  --green-200: oklch(93.5% 0.058 155deg);
+  --green-300: oklch(87% 0.105 155deg);
+  --green-400: oklch(76% 0.165 155deg);
+  --green-500: oklch(64.5% 0.185 153deg);
+  --green-600: oklch(54% 0.155 152deg);
+  --green-700: oklch(45% 0.12 152deg);
+  --green-800: oklch(32% 0.08 152deg);
+  --green-900: oklch(21% 0.05 152deg);
   --turqoise-200: oklch(92% 0.04 200deg);
   --turqoise-300: oklch(87% 0.06 200deg);
   --turqoise-400: oklch(74% 0.13 200deg);
@@ -39,14 +55,15 @@
   --turqoise-700: oklch(37% 0.08 200deg);
   --turqoise-800: oklch(27% 0.06 200deg);
   --turqoise-900: oklch(21% 0.05 200deg);
-  --blue-200: oklch(93% 0.04 260deg);
-  --blue-300: oklch(88% 0.06 260deg);
-  --blue-400: oklch(76% 0.13 260deg);
-  --blue-500: oklch(51% 0.11 260deg);
-  --blue-600: oklch(62% 0.13 260deg);
-  --blue-700: oklch(38% 0.08 260deg);
-  --blue-800: oklch(28% 0.06 260deg);
-  --blue-900: oklch(22% 0.05 260deg);
+  --blue-100: oklch(96.5% 0.025 252deg);
+  --blue-200: oklch(93% 0.052 252deg);
+  --blue-300: oklch(86% 0.1 252deg);
+  --blue-400: oklch(70% 0.175 252deg);
+  --blue-500: oklch(56.5% 0.215 254deg);
+  --blue-600: oklch(49% 0.195 256deg);
+  --blue-700: oklch(41% 0.155 256deg);
+  --blue-800: oklch(29.5% 0.105 254deg);
+  --blue-900: oklch(19.5% 0.065 252deg);
   --lavender-200: oklch(93% 0.04 290deg);
   --lavender-300: oklch(88% 0.06 290deg);
   --lavender-400: oklch(77% 0.13 290deg);
@@ -180,10 +197,10 @@
   --role-accent-secondary: var(--orange-500);
   --role-border: var(--violet-700);
   --role-border-subtle: var(--ultraviolet-200);
-  --role-red: oklch(52% 0.2 25deg);
-  --role-green: oklch(60% 0.13 170deg);
-  --role-yellow: oklch(82% 0.19 90deg);
-  --role-blue: oklch(62% 0.13 260deg);
+  --role-red: var(--red-500);
+  --role-green: var(--green-500);
+  --role-yellow: var(--yellow-500);
+  --role-blue: var(--blue-500);
 }
 
 /* ─── Semantic Tokens (derived from roles) ──────────────────────────────── */
