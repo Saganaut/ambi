@@ -1,10 +1,18 @@
 # Frontend TODO audit (2026-07)
 
 A sweep of all `TODO`/`FIXME` comments in `frontend/src` (excluding `.test.*` and
-`.stories.*`). 31 markers found. Most are **blocked** on backend work (the
-element→slide / liveSession model migration, missing endpoints) or require a
-**design decision**, so they are not quick fixes. The genuinely self-contained
-ones were completed as part of this audit and are listed first.
+`.stories.*`). 31 markers found at the time of the sweep. Most are **blocked**
+on backend work (the element→slide / liveSession model migration, missing
+endpoints) or require a **design decision**, so they are not quick fixes. The
+genuinely self-contained ones were completed as part of this audit and are
+listed first.
+
+> **Drift note:** this is a dated snapshot, not a live inventory. Several items
+> below have since been resolved or deleted (noted inline), and new TODOs have
+> appeared since (e.g. `features/deck/hooks/useDeckEditor.ts`,
+> `shared/components/Forms/Input/ColorPicker/ColorPickerNew.tsx`,
+> `.../SlideContent/_shared/OptionMenu/OptionMenu.tsx`'s "still using legacy
+> method" comment) that aren't reflected here.
 
 ## ✅ Fixed in this pass
 
@@ -33,18 +41,13 @@ until the corresponding API lands.
 - `.../EditSlideSections/ElementTagsSection.tsx` — slide-level tags (`chrome.tagIds`) no longer exist.
 - `.../EditSlideSections/CommonOptionsSection.tsx` — old `chrome.mediaCaption` / `chrome.altText` gone.
 - `.../ParticipantPanel/ParticipantsPanel.tsx` — per-slide reactions override needs new model support.
-- `.../SlideContent/SlideContent/MediaSlots.tsx` — stubbed pending slide-block migration.
-- `.../SlideContent/SlideContent/Block.types.ts` — replace bespoke type once backend models slide layout.
 - `.../SlideContent/_shared/ImageBackingEditor.tsx` — stubbed pending slide-block migration.
 - `shared/components/PlayerInfo/PlayerInfo.tsx` (×2) — needs a player-state API; image caching decision.
 - `shared/types/Elements.types.ts` — needs full rework once backend updates land.
 
 ## 🧭 Needs a design decision (not quick fixes)
 
-- `.../SlideContent/_shared/OptionControls/Menu.tsx` — `MAGIC_NUMBER = 2` fallback
-  for `resolveOptionColor`; needs a proper index→color mapping now that index is a string.
 - `.../SlideContent/_shared/McqOptionEditable/McqOptionEditable.tsx` — "find ways to add this in here".
-- `shared/components/Charts/BarChart/BarChart.tsx` — better fallback or discriminated union for the type.
 - `features/deck/hooks/useCreateDeck.ts` — consider awaiting the persisted deck id.
 - `.../ImagePlacementPicker/ImagePlacementPicker.tsx` — performance cost review.
 
@@ -53,8 +56,8 @@ until the corresponding API lands.
 - `.../RightSidebar/shared/ImagePicker.tsx` — replace lorem-picsum with a real placeholder for prod.
 - `.../Slides/SlideTypeGraphics/slideTypeGraphics.ts` — needs real images for TITLE, MEDIA, FOLLOW_UP.
 
-## 🔒 Security review needed (deferred — file already has uncommitted changes)
+## 🔒 Security review needed (deferred)
 
 - `shared/components/Forms/Input/RichTextDisplay/RichTextDisplay.tsx` (×2) — sanitization
-  needs verification. Left untouched: this file has in-progress uncommitted edits and the
-  concern is non-trivial (deserves its own security-focused change).
+  needs verification. Left untouched: the concern is non-trivial and deserves its own
+  security-focused change.

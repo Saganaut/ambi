@@ -7,17 +7,18 @@ here has been fixed yet; this is a findings list to work from.
 
 ## Backend (Java / Spring)
 
-1. **`requireSession`/`requireHost` duplicated 5-6x** across the live-session package:
+1. **`requireSession`/`requireHost` duplicated 4x** across the live-session package:
    `LiveSessionPresenceService`, `LiveSessionLobbyService`, `LiveSessionOrchestrator`,
-   `LiveSessionHostService`, `LiveSessionSnapshotService`, `LiveSessionAnswerService`.
+   `LiveSessionHostService` each still carry a private copy. (`LiveSessionSnapshotService`
+   and `LiveSessionAnswerService` do not — they were not part of this duplication.)
    Extract a shared `LiveSessionAccess` component wrapping the repository + participant
-   resolver, injected into all six.
+   resolver, injected into all four.
 
-2. **`requireUserId(AmbiPrincipal)`** copy-pasted verbatim — including the same
-   "defence-in-depth" javadoc — in `ThemeController`, `UserController`, `DeckController`,
-   and inlined without extraction in `OrgController`. Small in line count but
-   security-relevant; belongs in exactly one place (a static utility or shared base
-   controller method).
+2. ~~**`requireUserId(AmbiPrincipal)`** copy-pasted verbatim...~~ — **resolved**:
+   extracted to `AmbiPrincipals.requireUserId(...)` and statically imported in
+   `ThemeController`, `UserController`, `DeckController`, and `OrgController` (plus
+   several services).
+
 3. **Idempotent PUT-to-create pattern** (`DeckController.createDeck`,
    `ThemeController.createTheme`): try create → on `DuplicateKeyException` → return the
    existing resource via `toResponse`. Only two occurrences today; worth extracting if a
@@ -81,12 +82,13 @@ rather than reimplementing it).
    `shared/components/Media/GalleryPicker/UploadTab.tsx` hardcodes a 10 MB limit where
    `IMAGE_TIERS.gallery` specifies 5 MB. Wire the upload path to `IMAGE_TIERS` or delete
    the orphaned module.
-8. **Pill/badge CSS pattern reimplemented in 5 places** instead of reusing the existing
-   `.indexPill` in `_shared/OptionControls/OptionControls.module.css`:
-   `AllocationSlideContent.module.css`, `RankingSlideContent.module.css`,
-   `NumberSlideContent.module.css`, and `ScalesSlideContent.module.css` each hand-roll a
-   near-identical `inline-flex + radius-full + bg-surface-raised` pill. A `Badge`
-   component already exists too.
+8. **Pill/badge CSS pattern reimplemented in 3 places** instead of reusing the
+   dedicated `_shared/IndexPill/IndexPill.tsx` component:
+   `AllocationSlideContent.module.css`, `NumberSlideContent.module.css`, and
+   `ScalesSlideContent.module.css` each hand-roll a near-identical
+   `inline-flex + radius-full + bg-surface-raised` pill. (`RankingSlideContent` no
+   longer duplicates this — it was refactored to reuse the shared `ItemCard`, which
+   itself renders `IndexPill`.) A `Badge` component already exists too.
 9. **Two independent bespoke drawer implementations bypass the centralized
    `Modal`/`useModal` system.** `SidePanelDrawer.tsx` and `SpeakerNotesDrawer.tsx` each
    hand-roll an edge-pinned panel with open/close state, neither supporting Escape/backdrop

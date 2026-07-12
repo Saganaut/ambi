@@ -9,15 +9,15 @@ are migrated and type-check clean.
 
 ## Skipped — blocked on API migration
 
-| Component      | File                                     | Missing exports it depends on                                                                                                   |
-| -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| CommentThread  | `features/decks/components/DeckEditor/CommentThread/CommentThread.tsx` | `useListRepliesQuery`, `DeckCommentResponse`                                                                                    |
-| GalleryPicker  | `shared/components/Media/GalleryPicker/GalleryPicker.tsx`              | `GalleryImageResponse`, `Image`, `useListImagesQuery`, `useUploadImageMutation`, `@hooks/useCurrentUserOrgs`                    |
-| MediaPicker    | `shared/components/Media/MediaPicker/MediaPicker.tsx`                  | `useListMediaQuery`, `useUploadMediaMutation`, `useCreateMediaEmbedMutation`, `MediaAssetResponse`, `@hooks/useCurrentUserOrgs` |
-| MediaAssetChip | `shared/components/Media/MediaPicker/MediaAssetChip.tsx`               | `useGetMediaQuery`, `MediaAssetResponse`                                                                                        |
-| ~~TagPicker~~  | ~~`shared/components/UIElements/TagPicker/TagPicker.tsx`~~              | ~~`useCreateTagMutation`, `useListTagsQuery`, `TagResponse`~~ — **resolved**: split into props-only component + `useTagPickerData` hook; `TagPicker.stories.tsx` added. |
+| Component      | File                                     | Status                                                                                                                           |
+| -------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| CommentThread  | `features/deck/components/DeckEditor/RightSidebar/DiscussionPanel/CommentThread.tsx` | No longer blocked — the old blocking imports (`useListRepliesQuery`, `DeckCommentResponse`) are gone; the component is now props-driven (takes `CommentThreadResponse`/`CommentResponse` data via props, not its own queries). May be story-able now; no story exists yet. |
+| GalleryPicker  | `shared/components/Media/GalleryPicker/GalleryPicker.tsx`              | Still no story. The old blocking imports are gone — it now uses `useGetMyGalleryQuery`/`useListImagesQuery`/`useUploadImageMutation` and `AppImage` from `@features/gallery/store/galleryApi.gen`, not the old `GalleryImageResponse`/`Image`/`@hooks/useCurrentUserOrgs`. Would still need the `withStore` decorator + MSW to mock those endpoints. |
+| ~~MediaPicker~~ | ~~`shared/components/Media/MediaPicker/MediaPicker.tsx`~~ | **Deleted** — the `Media/MediaPicker/` directory no longer exists. |
+| ~~MediaAssetChip~~ | ~~`shared/components/Media/MediaPicker/MediaAssetChip.tsx`~~ | **Deleted** along with `MediaPicker/`. |
+| ~~TagPicker~~  | ~~`shared/components/UIElements/TagPicker/TagPicker.tsx`~~ | **Deleted**, superseded by `shared/components/UIElements/Tag/Tag.tsx` — a new, simpler component with `Tag.stories.tsx` already in place. |
 
-These are data-bound (RTK Query) components, so their stories will need the
+Data-bound (RTK Query) components still needing stories will need the
 `withStore` decorator (`.storybook/decorators/withStore.tsx`) and likely MSW to
 mock the endpoints, rather than hitting a live backend.
 
@@ -31,7 +31,7 @@ No action needed unless these gain renderable UI.
 
 ## Conventions for new stories
 
-Follow the existing stories (e.g. `features/decks/components/DeckCard/DeckCard.stories.tsx`,
+Follow the existing stories (e.g. `features/deck/components/DeckCard/DeckCard.stories.tsx`,
 `UIElements/Alert/Alert.stories.tsx`): `@storybook/react-vite` `Meta`/`StoryObj`
 with `satisfies Meta<typeof X>`, `tags: ["autodocs"]`, `title` mirroring the
 folder path under `UIElements/` or `Decks/`, `fn()` from `storybook/test` for callbacks, and any
