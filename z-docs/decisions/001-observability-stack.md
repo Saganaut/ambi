@@ -24,10 +24,14 @@ tracking now, Web Vitals and session replay later.
 A **hybrid** backbone, built in a vendor-agnostic foundation now with the vendor
 SDKs deferred until they earn their keep.
 
-**Logs.** The app emits structured **JSON to stdout** under the `prod` Spring
-profile (`logback-spring.xml` + `logstash-logback-encoder`); non-prod keeps the
-readable coloured console. In production the **container log driver** (awslogs on
-ECS / CloudWatch agent on EC2) ships stdout to **CloudWatch Logs** — the app
+**Logs.** _Planned:_ the app is to emit structured **JSON to stdout** under the
+`prod` Spring profile (a `logback-spring.xml` config wiring the already-present
+`logstash-logback-encoder` dependency); non-prod would keep the readable
+coloured console. Today neither the config file nor any logging-level
+configuration exists — the encoder dependency sits in `pom.xml` inert, and the
+app runs on Spring Boot's default (unstructured) console logging in every
+profile. In production the **container log driver** (awslogs on ECS /
+CloudWatch agent on EC2) would ship stdout to **CloudWatch Logs** — the app
 makes no CloudWatch API calls for logging. Queried via CloudWatch Logs Insights.
 
 **Correlation.** The frontend stamps every API call with an `X-Request-Id`
@@ -46,10 +50,15 @@ The frontend gains a shared `logger` (`utils/logger.ts`), a root `ErrorBoundary`
 window `error`/`unhandledrejection` capture, and `hidden` source maps for future
 symbolication. **Sentry** (free tier, per-layer DSNs) is the chosen vendor for
 error tracking + Web Vitals + session replay, wired in a later phase via the
-clearly-marked seams (`logger.ts` PROD SEAM; commented deps in `pom.xml`).
+clearly-marked seam (`logger.ts` PROD SEAM). The backend Sentry dependency
+(`sentry-spring-boot-starter`) is not yet in `pom.xml` at all — not even
+commented — it is future work, to be added when that phase starts.
 
-**Metrics.** Actuator exposes `health,info,metrics`; Micrometer →
-`micrometer-registry-cloudwatch2` in prod (deferred dependency).
+**Metrics.** _Planned:_ Actuator is to expose `health,info,metrics`, with
+Micrometer publishing to `micrometer-registry-cloudwatch2` in prod. Today only
+`health` is exposed (Spring Boot's default with no `management.*` config
+present), and `micrometer-registry-cloudwatch2` is not a dependency in
+`pom.xml` — it is future work, not a deferred-but-present dependency.
 
 **Local parity.** A **LocalStack** container (`compose.yaml`, scoped to
 `cloudwatch,logs`) lets the CloudWatch path be exercised in dev. **Garage stays
@@ -57,8 +66,9 @@ the S3 implementation** — LocalStack does not replace it.
 
 ## Consequences
 
-- Logs are structured and correlated from day one; the `prod`-vs-dev split means
-  dev DX is unchanged while prod is CloudWatch-ready.
+- Log lines are correlated from day one (`traceId`/`userId` in the MDC,
+  `X-Request-Id` echoed on every response); structured JSON output is not — it
+  stays on the default console format until `logback-spring.xml` is written.
 - The foundation is vendor-neutral: adopting Sentry (or swapping it) touches
   `logger.ts`, `pom.xml`, and config — not call sites.
 - stdout-+-log-driver keeps the app free of AWS coupling for logging and works

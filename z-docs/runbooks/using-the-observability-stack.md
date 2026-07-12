@@ -1,14 +1,22 @@
 <!--
   Runbook: how to use the Ambi observability foundation day-to-day —
-  emitting correlated logs front and back, running prod-shaped JSON logging
-  locally, reading the X-Request-Id ↔ traceId thread, and exercising the
-  LocalStack CloudWatch path. The "why" lives in the ADR
-  (z-docs/decisions/001-observability-stack.md); this file is the "how".
+  emitting correlated logs front and back, reading the X-Request-Id ↔ traceId
+  thread, and exercising the LocalStack CloudWatch path. The "why" lives in
+  the ADR (z-docs/decisions/001-observability-stack.md); this file is the
+  "how".
 -->
 
 # Using the observability stack
 
 The architecture and the reasoning behind it are in **[ADR 001 — Observability & logging stack](../decisions/001-observability-stack.md)**. This runbook is the operational how-to: what to call, how to run it, and how to confirm a log line on the backend matches a request from the browser.
+
+> **Status check:** structured JSON logging (`logback-spring.xml` +
+> `logstash-logback-encoder`) described in some sections below is **planned,
+> not implemented** — there is no `logback-spring.xml` in the repo, and the
+> app runs on Spring Boot's default console logging in every profile today.
+> What _is_ live: `MdcLoggingFilter`'s `traceId`/`userId` MDC correlation, the
+> `X-Request-Id` echo, and the RFC 9457 `ProblemDetail` error path. The
+> sections below are marked accordingly.
 
 The one idea to hold onto: **every request carries an `X-Request-Id`**. The frontend mints it, the backend adopts it into the SLF4J MDC as `traceId`, and it shows up in log lines, error response bodies, and the `X-Request-Id` response header. That single id is how you tie a user click to a server-side stack trace.
 
@@ -24,7 +32,7 @@ private static final Logger log = LoggerFactory.getLogger(MyService.class);
 log.info("Deck published deckId={} elements={}", deckId, count);
 ```
 
-You never set `traceId` or `userId` yourself — `MdcLoggingFilter` (`backend/.../web/MdcLoggingFilter.java`) has already put them in the MDC for the request, and `logback-spring.xml` emits them on every record. Just log a clear message with structured key=value context.
+You never set `traceId` or `userId` yourself — `MdcLoggingFilter` (`backend/.../config/MdcLoggingFilter.java`) has already put them in the MDC for the request. Note that today's default console pattern does **not** print MDC values automatically (that needs either a custom Logback pattern/encoder or `micrometer-tracing` on the classpath, neither of which is present yet) — `traceId`/`userId` are reliably visible today via `GlobalExceptionHandler`'s error response body and the `X-Request-Id` response header, not via bracketed console text. Just log a clear message with structured key=value context.
 
 **Do not catch-and-swallow.** Let exceptions propagate to `GlobalExceptionHandler` (the single `@RestControllerAdvice`), which logs 5xx with the full stack trace + `traceId` and returns an RFC 9457 `ProblemDetail`. See [exception-rules](../rules/exception-rules.md).
 
@@ -37,9 +45,10 @@ The normal way to bring up the whole stack — Docker, frontend, and backend —
 ```
 
 This already exports `dev.env` before launching the backend and boots the default
-(non-`prod`) profile, so you get the familiar coloured console line with `[traceId]`
-inserted — interleaved with the Vite frontend output in the same terminal. **No extra
-steps are needed to get readable dev logs this way.**
+(non-`prod`) profile, interleaved with the Vite frontend output in the same
+terminal. **No extra steps are needed to get dev logs this way** — you get
+Spring Boot's default console output, with `traceId`/`userId` available in the
+MDC for any log statement that references them explicitly.
 
 To run **just the backend** (e.g. frontend already running elsewhere):
 
@@ -48,45 +57,27 @@ set -a && . ./dev.env && set +a   # see note below — required for placeholder 
 cd backend && ./mvnw spring-boot:run
 ```
 
-> The `set -a … dev.env … set +a` step is mandatory for a non-interactive boot — `ambi.sh` does the equivalent in its backend subshell. There is no in-app dotenv loader: `dev.env` reaches Spring only because the shell exports it into the process environment first. `application.properties` binds `logging.level.org.springframework.security=${LOGGING_LEVEL}`, so the placeholder must already be a real OS env var (`LOGGING_LEVEL` is set in `dev.env`) or startup fails with `Value: "${LOGGING_LEVEL}"`.
+> The `set -a … dev.env … set +a` step is mandatory for a non-interactive boot — `ambi.sh` does the equivalent in its backend subshell. There is no in-app dotenv loader: `dev.env` reaches Spring only because the shell exports it into the process environment first. This matters if you add a `${...}` placeholder to `application.properties` in future work — today's properties don't have any unresolved ones tied to `dev.env` values that would fail startup (`dev.env` does set `LOGGING_LEVEL_ROOT`, but no property currently binds to it).
 
-### Run with prod (JSON) logging locally
+### Structured JSON / prod-shaped logging locally — planned, not implemented
 
-To see exactly what CloudWatch will ingest — one-line JSON on stdout with `traceId`/`userId` fields:
+The ADR's target state is one-line JSON on stdout under the `prod` profile
+(`logback-spring.xml` + `logstash-logback-encoder`), so you can see locally
+exactly what CloudWatch will ingest. **This does not exist yet** — there is no
+`logback-spring.xml` in the repo, so running with `-Dspring-boot.run.profiles=prod`
+today only applies `application-PROD.properties` (disables Swagger UI); logging
+output is unchanged from the default profile. Revisit this section once the
+Logback config lands.
 
-```bash
-set -a && . ./dev.env && set +a
-cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
-```
+### Persisting logs to a file — planned, not implemented
 
-In production nothing changes in the app: stdout is shipped to CloudWatch Logs by the container log driver (awslogs on ECS / the CloudWatch agent on EC2). The app makes **no** AWS calls to log.
-
-### Persisting logs to a file (optional)
-
-By default logs only stream to the terminal — nothing is written to disk. To **also** tee the backend logs to a file (handy for grepping by `traceId` after the fact), turn on the opt-in `filelog` Logback profile:
-
-```bash
-./scripts/ambi.sh --file-logs        # or: -f
-```
-
-This keeps the normal console output **and** appends readable, non-coloured lines (with `[traceId]`) to `backend/logs/ambi.log` — rolled daily and at 10 MB, 7 days / 100 MB retained, gzipped. The directory is git-ignored.
-
-Running the backend directly, activate the same profile yourself (it stacks on top of dev or prod):
-
-```bash
-set -a && . ./dev.env && set +a
-cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=filelog
-# override the path/name with LOG_FILE=/some/where/app.log
-```
-
-Then tail or grep it like any file:
-
-```bash
-tail -f backend/logs/ambi.log
-grep smoke-123 backend/logs/ambi.log
-```
-
-The appender lives in the `filelog` block of `logback-spring.xml`; it is off unless the profile is active and never affects production behaviour.
+The intent is an opt-in `filelog` Logback profile that also tees output to
+`backend/logs/ambi.log` (rolled, retained, gzipped), toggled via
+`./scripts/ambi.sh --file-logs` / `-f`. The script flag exists today and sets
+`SPRING_PROFILES_ACTIVE=filelog`, but since there is no `logback-spring.xml`
+to interpret that profile, activating it currently has **no effect** — no file
+is written. This will start working once the Logback config (with its
+`filelog` appender block) is added.
 
 ---
 
@@ -95,14 +86,14 @@ The appender lives in the `filelog` block of `logback-spring.xml`; it is off unl
 Import the shared logger — never call `console.*` directly in new code:
 
 ```ts
-import { logger } from "@/utils/logger";
+import { logger } from "@/shared/utils/logger";
 
 logger.info("Deck saved", { deckId });
 logger.error("Failed to load deck", { deckId, err });
 ```
 
 - **Dev**: pretty, level-prefixed console output.
-- **Prod**: quiet for `debug`/`info`/`warn`; `error` still hits `console.error`. The single Sentry seam is the `PROD SEAM` comment in `frontend/src/utils/logger.ts` — that one file is all that changes when Sentry lands.
+- **Prod**: quiet for `debug`/`info`/`warn`; `error` still hits `console.error`. The single Sentry seam is the `PROD SEAM` comment in `frontend/src/shared/utils/logger.ts` — that one file is all that changes when Sentry lands.
 
 You get error reporting for free in two places, so you rarely log errors by hand:
 
@@ -130,8 +121,10 @@ You normally only call `logger.*` directly for domain events and caught-and-hand
    # → {"detail":"Deck not found", ..., "traceId":"smoke-123"}
    ```
 
-   In the backend console you'll see the matching line, e.g.
-   `... [smoke-123] c.b...DeckController : ...`.
+   `smoke-123` is the same id echoed back on the `X-Request-Id` response
+   header — that's the thread to grep the MDC/logs by once structured logging
+   lands (see the status note above; today's default console pattern doesn't
+   print MDC values, so there is no bracketed `[smoke-123]` console line yet).
 
 3. **From the browser**: open DevTools → Network, trigger any API call, and confirm the request's `X-Request-Id` header equals the response's `X-Request-Id`. Grep the backend logs for that id to find the server side of the same request.
 
@@ -139,13 +132,19 @@ You normally only call `logger.*` directly for domain events and caught-and-hand
 
 ## Health & metrics (Actuator)
 
-Exposed endpoints are limited to `health,info,metrics` (`application.properties`), with health probes enabled:
+Only the `health` endpoint is exposed today — there is no `management.*`
+config anywhere, so Spring Boot's default (health-only) exposure applies. Only
+`/actuator/health/**` is `permitAll` in `SecurityConfig`; every other
+`/actuator/**` path (including `/actuator/metrics`) requires authentication
+and returns `401` if you're not logged in:
 
 ```bash
 curl -s http://localhost:8080/actuator/health      # {"status":"UP", ...}
-curl -s http://localhost:8080/actuator/metrics      # list of metric names
-curl -s http://localhost:8080/actuator/metrics/jvm.memory.used
+curl -s http://localhost:8080/actuator/metrics      # 401 Unauthorized — not exposed/permitted
 ```
+
+`info` and `metrics` exposure, plus Micrometer → CloudWatch publishing, are
+planned (see ADR 001) but not wired up.
 
 The app-specific `/api/health` controller is separate and is what the frontend may probe.
 
@@ -155,13 +154,13 @@ The app-specific `/api/health` controller is separate and is what the frontend m
 
 **LocalStack does nothing for logging.** It is pre-positioned for the _deferred metrics path_ only. If you're working on logs, you can ignore this section entirely (and the `localstack` container that `./scripts/ambi.sh` / `docker compose up -d` starts).
 
-Why there's nothing to test here for logs: in production the path is **stdout → container log driver → CloudWatch Logs**. The app makes no AWS calls to log, so there is no CloudWatch log appender to emulate locally. The local equivalent of "what CloudWatch will ingest" is simply the **prod-profile JSON on stdout** shown above — not anything in LocalStack.
+Why there's nothing to test here for logs: in production the path would be **stdout → container log driver → CloudWatch Logs**. The app makes no AWS calls to log, so there is no CloudWatch log appender to emulate locally. Once structured logging is implemented, the local equivalent of "what CloudWatch will ingest" will simply be the prod-profile JSON on stdout (see the planned section above) — not anything in LocalStack.
 
 What LocalStack _is_ for: once `micrometer-registry-cloudwatch2` is wired (deferred), published custom **metrics** can be inspected against the emulator without touching real AWS:
 
 ```bash
 docker compose up -d localstack        # edge port :4566
-export AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1   # already in dev.env
+export AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1   # AWS_ENDPOINT_URL is already in dev.env; AWS_REGION is not (see example.env)
 awslocal cloudwatch list-metrics       # or: aws --endpoint-url=$AWS_ENDPOINT_URL cloudwatch list-metrics
 ```
 
@@ -171,7 +170,7 @@ Garage stays our S3 — LocalStack is scoped to `cloudwatch,logs` only and does 
 
 ## Log lifecycle & operations — TBD
 
-> **Status: not yet decided.** The _foundation_ — structured JSON, end-to-end `traceId` correlation, and the CloudWatch Logs sink (stdout → log driver) — is settled in [ADR 001](../decisions/001-observability-stack.md). What's still open is what we actually **do** with the logs once they land in CloudWatch. The options below are proposals, not decisions; pick one per item before the first real deploy and promote anything load-bearing into the ADR.
+> **Status: not yet decided.** The _design_ — structured JSON, end-to-end `traceId` correlation, and the CloudWatch Logs sink (stdout → log driver) — is settled in [ADR 001](../decisions/001-observability-stack.md), though structured JSON output itself is still planned (see the status note at the top of this runbook); `traceId` correlation is already live. What's still open is what we actually **do** with the logs once they land in CloudWatch. The options below are proposals, not decisions; pick one per item before the first real deploy and promote anything load-bearing into the ADR.
 
 ### 1. Retention & archival
 
@@ -203,7 +202,7 @@ Volume is tiny (a learning project), so cost is dominated by the retention windo
 
 ### 6. Local / dev parity
 
-- File logging is now opt-in (`./scripts/ambi.sh -f`, above). **TBD** whether to add a local Loki+Grafana for dashboard parity in dev, or just keep `tee` / `grep` on the file. Only worth it if we adopt option 2-B.
+- File logging is planned as opt-in (`./scripts/ambi.sh -f`, above) but not yet functional — see the status note above. **TBD** whether to add a local Loki+Grafana for dashboard parity in dev, or just keep `tee` / `grep` on the file once it works. Only worth it if we adopt option 2-B.
 
 ---
 
@@ -211,9 +210,10 @@ Volume is tiny (a learning project), so cost is dominated by the retention windo
 
 These are intentionally **not** wired yet (see the ADR's deferred section). When you pick them up:
 
-| To add                                                         | Edit                                                                               |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Sentry error tracking + Web Vitals + session replay (frontend) | the `PROD SEAM` in `frontend/src/utils/logger.ts`; add `@sentry/react`             |
-| Sentry (backend)                                               | `backend/pom.xml` (commented intent next to the logstash encoder) + init in config |
-| CloudWatch custom metrics                                      | `backend/pom.xml` → `micrometer-registry-cloudwatch2`; validate against LocalStack |
-| X-Ray / OpenTelemetry tracing                                  | propagate into the same `traceId` MDC key                                          |
+| To add                                                         | Edit                                                                                              |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Structured JSON logging                                        | add `backend/src/main/resources/logback-spring.xml` wiring the already-present `logstash-logback-encoder` dependency |
+| Sentry error tracking + Web Vitals + session replay (frontend) | the `PROD SEAM` in `frontend/src/shared/utils/logger.ts`; add `@sentry/react`                      |
+| Sentry (backend)                                               | add the `sentry-spring-boot-starter` dependency to `backend/pom.xml` (not present, not even commented, today) + init in config |
+| CloudWatch custom metrics                                      | add `management.*` exposure config + `micrometer-registry-cloudwatch2` to `backend/pom.xml` (not present today); validate against LocalStack |
+| X-Ray / OpenTelemetry tracing                                  | propagate into the same `traceId` MDC key                                                          |

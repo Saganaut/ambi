@@ -43,11 +43,13 @@ flowchart TB
 
 ### Docker Compose services
 
-| Service   | Image                      | Ports       | Role                                 |
-| --------- | -------------------------- | ----------- | ------------------------------------ |
-| `mongodb` | `mongo:latest`             | 27017       | Primary database                     |
-| `redis`   | `redis/redis-stack-server` | 6379 / 8001 | Cache, sessions, (planned) job queue |
-| `garage`  | `dxflrs/garage:v1.0.1`     | 3900 / 3903 | Local S3-compatible object storage   |
+| Service         | Image                       | Ports       | Role                                              |
+| --------------- | ---------------------------- | ----------- | -------------------------------------------------- |
+| `mongodb`       | `mongo:7.0`                  | 27017       | Primary database                                   |
+| `redis`         | `redis/redis-stack-server`   | 6379 / 8001 | Cache, sessions, (planned) job queue               |
+| `garage`        | `dxflrs/garage:v1.0.1`       | 3900 / 3903 | Local S3-compatible object storage                 |
+| `mongo-express` | `mongo-express:latest`       | 8081        | Web-based MongoDB admin UI                         |
+| `localstack`    | `localstack/localstack:4`    | 4566        | Local AWS emulation, scoped to `cloudwatch,logs`   |
 
 ---
 
@@ -303,7 +305,7 @@ The `queue.py` abstraction layer reads `QUEUE_BACKEND=redis|sqs` from the enviro
 | `SQS_DLQ_URL`               | _(unused locally)_      | `https://sqs.<region>.../dlq`       |
 | `SNS_TOPIC_ARN`             | _(unused locally)_      | `arn:aws:sns:...`                   |
 | `S3_ENDPOINT`               | `http://localhost:3900` | _(omit; SDK uses default AWS)_      |
-| `S3_BUCKET`                 | `ambi`                  | `ambi-prod`                         |
+| `S3_BUCKET`                 | `ambi-images`            | `ambi-prod`                         |
 | `SENTRY_DSN`                | `https://...@sentry.io` | same                                |
 | `SENTRY_ENVIRONMENT`        | `local`                 | `production`                        |
 | `SENTRY_TRACES_SAMPLE_RATE` | `1.0`                   | `0.1`                               |
@@ -361,7 +363,7 @@ Weekly and monthly archives are produced by the same script; a day-of-week / day
 
 ## Observability
 
-The backbone and its rationale are recorded in [ADR 001 — Observability & logging stack](../decisions/001-observability-stack.md): a **hybrid** of CloudWatch (logs + metrics, via the container log driver) and Sentry (errors + frontend Web Vitals/replay), with **LocalStack** providing local CloudWatch parity. The **vendor-agnostic foundation is implemented** (structured JSON logging, `X-Request-Id`→`traceId`→`userId` correlation, frontend logger + error boundary, Actuator metrics); the **Sentry/X-Ray vendor wiring is deferred** until needed, behind clearly-marked seams.
+The backbone and its rationale are recorded in [ADR 001 — Observability & logging stack](../decisions/001-observability-stack.md): a **hybrid** of CloudWatch (logs + metrics, via the container log driver) and Sentry (errors + frontend Web Vitals/replay), with **LocalStack** providing local CloudWatch parity. Part of the vendor-agnostic foundation is implemented today — `X-Request-Id`→`traceId`→`userId` correlation (`MdcLoggingFilter`) and the frontend logger + error boundary; **structured JSON logging and Actuator metrics/info exposure are still planned**, not yet wired up. The **Sentry/X-Ray vendor wiring is deferred** until needed, behind clearly-marked seams.
 
 ### Error tracking — Sentry _(deferred vendor phase)_
 
@@ -383,9 +385,25 @@ Sentry is the chosen error-tracking vendor across all three layers, wired later 
 
 **DLQ → Sentry alert:** when a message lands in the DLQ (locally: a monitor process tails `jobs:dlq`; on AWS: CloudWatch alarm on DLQ depth → Lambda → Sentry `capture_message`), a Sentry issue is raised with the full job payload attached.
 
-### Structured logging _(implemented)_
+### Structured logging _(planned)_ / correlation _(implemented)_
 
-Under the `prod` Spring profile, Spring Boot emits one-line JSON via Logback + `logstash-logback-encoder` (`logback-spring.xml`); the default/local profile keeps the readable coloured console. Each record includes `traceId` and `userId` so log lines correlate with each other (and, later, Sentry issues). The ids are set by `MdcLoggingFilter`: the frontend stamps each request with an `X-Request-Id` (`emptyApi.ts`), the filter adopts it as the MDC `traceId` (minting one if absent) and adds `userId` (the authenticated principal name), then echoes the id back on the response. Example record:
+**Correlation is implemented today.** `MdcLoggingFilter` puts `traceId` and
+`userId` into the SLF4J MDC for every request: the frontend stamps each
+request with an `X-Request-Id` (`emptyApi.ts`), the filter adopts it as the
+MDC `traceId` (minting one if absent) and adds `userId` (the authenticated
+principal name), then echoes the id back on the response. The same `traceId`
+is stamped into RFC 9457 `ProblemDetail` error bodies by
+`GlobalExceptionHandler` (the single `@RestControllerAdvice`), so a client-side
+id ties directly to the matching server log lines.
+
+**Structured JSON output is planned, not yet implemented.** The target is for
+the `prod` Spring profile to emit one-line JSON via Logback +
+`logstash-logback-encoder` (`logback-spring.xml`), with the default/local
+profile keeping the readable console. Today there is no `logback-spring.xml`
+in the repo and no `logging.*` configuration at all — every profile runs on
+Spring Boot's default (unstructured) console output. The
+`logstash-logback-encoder` dependency is already in `backend/pom.xml`, but
+nothing wires it up yet. Example of the target record shape once implemented:
 
 ```json
 {
@@ -400,7 +418,7 @@ Under the `prod` Spring profile, Spring Boot emits one-line JSON via Logback + `
 
 Python workers use `structlog` (or stdlib `logging` with a JSON formatter). Every log record includes `job_id`, `job_type`, and `attempt`.
 
-Logs always go to **stdout**; the app makes no CloudWatch API calls itself. On AWS the container log driver (awslogs on ECS / CloudWatch agent on EC2) ships stdout to CloudWatch Logs, queried with CloudWatch Logs Insights. Locally, the `localstack` container (`compose.yaml`, scoped to `cloudwatch,logs`) lets that path be exercised in dev; Actuator metrics feed `micrometer-registry-cloudwatch2` in prod (deferred dependency).
+Logs always go to **stdout**; the app makes no CloudWatch API calls itself. On AWS the container log driver (awslogs on ECS / CloudWatch agent on EC2) would ship stdout to CloudWatch Logs, queried with CloudWatch Logs Insights. Locally, the `localstack` container (`compose.yaml`, scoped to `cloudwatch,logs`) lets that path be exercised in dev; Actuator metrics feeding `micrometer-registry-cloudwatch2` in prod is planned — neither the metrics/info exposure config nor the `micrometer-registry-cloudwatch2` dependency exist yet (only the `health` endpoint is exposed today).
 
 ### Health endpoint
 
