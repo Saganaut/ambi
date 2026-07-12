@@ -19,9 +19,11 @@ hooks**. It sits inside the feature-sliced layering of
 | **Mutate** | `use<Entity><Slice>Mutate` | write only | read the cache to build payloads; hold write-coordination (debounce) state |
 | **View-model** | `use<Workflow>` (`use<Entity>Editor`, `use<Page>`) | composes query + mutate hooks into a render shape | confirm dialogs, navigation, route arguments, local UI state |
 
-Examples: `useDeckQuery`, `useSlideQuery` (query); `useDeckMutate`,
-`useDeckImageMutate`, `useDeckSettingsMutate`, `useDeckSharingMutate`,
-`useSlideImageMutate` (mutate); `useDeckEditor`, `useMyDecksPage` (view-model).
+Examples: `useDeckQuery` (query); `useDeckMutate`, `useDeckImageMutate`,
+`useDeckSettingsMutate` (mutate); `useDeckEditor` (view-model). The `useSlide`
+cluster is still unsplit into this taxonomy — `useSlideQuery` doesn't exist
+yet; splitting it out is a known TODO, see
+[deck-editor/hooks-cleanup.md](../../features/deck-editor/hooks-cleanup.md).
 
 ## Query hooks
 
