@@ -1,6 +1,6 @@
 # Color Formats
 
-**Rule:** Colors are authored in exactly two textual formats — `oklch()` and hex — never `rgb()`, `hsl()`, named colors, or anything else.
+**Rule:** Colors are authored in exactly two textual formats — `oklch()` and hex — never `hsl()`, named colors, or anything else, with one documented exception: `rgb()`/`rgba()` is allowed for pure black/white alpha scrims, overlays, and shadows, since those are alpha operations with no semantic token equivalent. `frontend/stylelint.config.mjs`'s `scale-unlimited/declaration-strict-value` allowlist explicitly permits `/^rgb\(/` and `/^rgba\(/` alongside `/^oklch\(/`. The canonical example is `frontend/src/tokens.css`'s `--bg-overlay: rgb(0 0 0 / 50%)`; `ImagePicker.module.css` uses the same pattern for a scrim gradient (`rgba(0, 0, 0, 0.5)`).
 
 ## OKLCH — the primary format
 
