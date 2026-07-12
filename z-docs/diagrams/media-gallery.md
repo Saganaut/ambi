@@ -6,7 +6,7 @@ keys, and reads are hydrated into short-lived presigned URLs.
 
 Key classes: `GalleryController`, `RemoteImageController`, `GalleryService`,
 `ImageIngestService`, `S3StorageService`, `S3Config`, `ImageUrlResolver`,
-`AppImageDeserializer`, `RemoteImageService`. Data shapes:
+`AppImageSerializer`, `AppImageDeserializer`, `RemoteImageService`. Data shapes:
 [Domain Model — Media](domain-model.md#media). Infra:
 [infrastructure.md](../infrastructure/infrastructure.md).
 
@@ -84,8 +84,14 @@ flowchart TB
     G3 -->|no| REJ
     G3 -->|yes| G4{"content-type allowed<br/>& size ≤ cap?"}
     G4 -->|no| REJ
-    G4 -->|yes| OK["RemoteImage(bytes, contentType)<br/>→ ImageIngestService"]
+    G4 -->|yes| OK["RemoteImage(bytes, contentType)"]
+    OK --> BR["Browser<br/>ResponseEntity of raw bytes → canvas crop"]
 ```
+
+The proxy terminates here: it streams the fetched bytes straight back to the
+browser (`ResponseEntity<byte[]>`) for client-side canvas cropping. Ingestion
+into the gallery happens later, via a separate
+`POST /api/galleries/{id}/images/upload` (the pipeline above).
 
 ## Deletion
 
@@ -100,7 +106,7 @@ sequenceDiagram
     GS->>GS: ImageKeys.allKeys(image) — original + all variants
     GS->>S3: delete(keys) — batch, idempotent
     GS->>M: delete GalleryImage document
-    Note over M: copies embedded in decks/themes survive<br/>(content copied at selection time)
+    Note over M: usage sites (decks/themes) embed a copy of the AppImage<br/>referencing the SAME S3 keys — deleting the bytes blanks them too<br/>(only the DB document is copied at selection time)
 ```
 
 ## S3 client configuration

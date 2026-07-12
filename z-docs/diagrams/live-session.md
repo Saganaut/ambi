@@ -11,7 +11,9 @@ fans out over one Redis pub/sub channel and is relayed to STOMP subscribers.
 > sequences. Open questions: [live-session-open-decisions.md](../live-session-open-decisions.md).
 
 Key classes: `LiveSessionController`, `LiveSessionLobbyService`,
-`LiveSessionAnswerService`, `LiveSessionOrchestrator`, `SessionLocks`,
+`LiveSessionAnswerService`, `LiveSessionHostService` (owns
+close/reveal/restart/advance/goTo), `LiveSessionSnapshotService`,
+`LiveSessionPresenceService`, `LiveSessionOrchestrator`, `SessionLocks`,
 `TallyStore`, `AnswerStore`, `LiveRoundStateStore`, `PresenceStore`,
 `QAndAHostAnswerStore`, `RedisEventPublisher`, `LiveSessionStompRelay`,
 `SubscribeAuthInterceptor`.
@@ -50,12 +52,19 @@ stateDiagram-v2
     LOCKED --> REVEAL_RESULTS : revealResults
     SUBMIT --> REVEAL_RESULTS : revealResults (closes + scores)
     SUBMIT_LIVE --> REVEAL_RESULTS : revealResults (closes + scores)
-    REVEAL_RESULTS --> SUBMIT : restartRound
+    LOCKED --> SUBMIT : restartRound (pre-score only)
     REVEAL_RESULTS --> [*] : next slide / end
 
     note right of SUBMIT
         acceptsSubmissions() = true
         for SUBMIT and SUBMIT_LIVE only
+    end note
+
+    note right of REVEAL_RESULTS
+        restartRound throws ROUND_ALREADY_SCORED
+        once here — revealResults persists a
+        RoundResult; restart only succeeds pre-score
+        (SUBMIT / SUBMIT_LIVE / LOCKED / REVEAL_RESPONSES)
     end note
 ```
 
@@ -134,12 +143,12 @@ sequenceDiagram
 flowchart LR
     ORCH["LiveSessionOrchestrator"]
     subgraph redis["Redis (volatile, ~6h TTL)"]
-        LOCK[["lock<br/>ambi:lock:{sid} · SET NX · 10s lease"]]
-        STATE[["roundState<br/>ambi:roundState:{sid} · JSON"]]
-        TALLY[["tally<br/>ambi:tally:{sid}:{slideId} · HINCRBY"]]
-        ANS[["answers<br/>ambi:answers:{sid}:{slideId} · HSET"]]
+        LOCK[["lock<br/>ambi:session:lock:{sid} · SET NX · 10s lease"]]
+        STATE[["roundState<br/>ambi:session:roundstate:{sid} · JSON"]]
+        TALLY[["tally<br/>ambi:session:tally:{sid}:{slideId} · HINCRBY"]]
+        ANS[["answers<br/>ambi:session:answers:{sid}:{slideId} · HSET"]]
         QANDA[["qa-host-answers<br/>ambi:session:qa-host-answers:{sid}:{slideId} · HSET, never flushed to Mongo"]]
-        PRES[["presence<br/>ambi:presence:{sid} · HSET"]]
+        PRES[["presence<br/>ambi:session:presence:{sid} · HSET"]]
         CHAN(("pub/sub<br/>ambi:session:events"))
     end
     ORCH -->|"withLock (transitions)"| LOCK
@@ -156,8 +165,11 @@ flowchart LR
 | Event | Trigger | Locked? |
 |---|---|---|
 | `LiveSessionStarted` | host starts | yes |
-| `ParticipantJoined` / `Left` / `Reconnected` / `Removed` | roster change | yes |
-| `PresenceChanged` | heartbeat / socket | no |
+| `ParticipantJoined` | joins by roomCode | **no** |
+| `ParticipantLeft` | leaves roster | yes |
+| `ParticipantReconnected` | rejoins an existing session | **no** |
+| `ParticipantRemoved` | defined, but **never published** (dead) | — |
+| `PresenceChanged` | defined, but **never published** (dead) | — |
 | `RoundStarted` | round opens (hidden) | yes |
 | `LiveResultsShown` | opened live / mid-round go-live | yes |
 | `TallyUpdated` | answer submitted | **no** |

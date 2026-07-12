@@ -14,6 +14,7 @@ Per-feature deep dives: [Deck Authoring](deck-authoring.md),
 flowchart LR
     subgraph controllers["Controllers (/api)"]
         AUTH["AuthController /auth"]
+        OAUTH2["Spring Security oauth2Login<br/>/oauth2/** · /login/oauth2/**"]
         USER["UserController /users"]
         ORG["OrgController /orgs"]
         DECK["DeckController /decks"]
@@ -28,7 +29,9 @@ flowchart LR
     subgraph services["Services"]
         AS["AuthService"]
         TS["RedisTokenSessionService"]
+        GOSH["GoogleOAuth2SuccessHandler"]
         USVC["UserService"]
+        ORR["OrgRoleResolver"]
         DS["DeckService"]
         SR["SlideRankService"]
         CS["CommentThreadService"]
@@ -39,6 +42,9 @@ flowchart LR
         RIS["RemoteImageService"]
         LLS["LiveSessionLobbyService"]
         LAS["LiveSessionAnswerService"]
+        LHS["LiveSessionHostService"]
+        LPS["LiveSessionPresenceService"]
+        LSS["LiveSessionSnapshotService"]
         ORCH["LiveSessionOrchestrator"]
         S3["S3StorageService"]
         IUR["ImageUrlResolver"]
@@ -53,13 +59,15 @@ flowchart LR
 
     AUTH --> AS --> TS --> REDIS
     AS --> USVC
-    AUTH -.-> GOOG
+    OAUTH2 -.-> GOOG
+    OAUTH2 --> GOSH --> TS
+    GOSH --> USVC
     USER --> USVC --> MONGO
     ORG --> USVC
 
     DECK --> DS --> MONGO
     DS --> SR
-    DS --> USVC
+    DS --> ORR --> USVC
     COMMENT --> CS --> MONGO
     COMMENT --> DS
     REVIEW --> DRS --> MONGO
@@ -68,12 +76,15 @@ flowchart LR
 
     GAL --> GS --> MONGO
     GAL --> IIS --> S3 --> OBJ
-    GS --> IUR --> OBJ
+    GS --> S3
+    IUR --> OBJ
     RIMG --> RIS
-    RIS -.-> IIS
 
     LSC --> LLS --> ORCH
     LSC --> LAS --> ORCH
+    LSC --> LHS --> ORCH
+    LSC --> LPS --> ORCH
+    LSC --> LSS --> ORCH
     ORCH --> MONGO
     ORCH --> REDIS
     LLS --> DS
@@ -84,9 +95,10 @@ flowchart LR
 ```mermaid
 flowchart TB
     REQ["request"] --> KIND{"route class"}
-    KIND -->|public| PUB["/auth/me · /username-available · /logout<br/>/decks/public · /themes/built-in"]
+    KIND -->|public| PUB["/auth/me · /username-available · /logout<br/>/auth/guest · /auth/refresh<br/>/decks/public · /themes/built-in"]
     KIND -->|"ROLE_USER"| RU["/users · /galleries · /media"]
-    KIND -->|"sign-in"| SI["/auth register/refresh · /orgs<br/>liveSessions/join · comments · reviews (write)"]
+    KIND -->|"ROLE_PRE_REGISTRATION"| PREG["/auth/register"]
+    KIND -->|"sign-in"| SI["/orgs · liveSessions/join<br/>comments · reviews (write)"]
     KIND -->|"resource ACL"| ACL["Deck / Theme / Gallery / Comment / Review<br/>canBeViewedBy · EditedBy · ManagedBy"]
     KIND -->|"org membership"| OM["org-owned Deck / Theme / Gallery<br/>OrgRole OWNER/ADMIN/USER"]
     KIND -->|"host only"| HO["liveSessions start · end · cancel"]
@@ -109,7 +121,7 @@ flowchart TB
 | LiveSession | `LiveSessionRepository` | `LiveSessions` |
 | Participant | `ParticipantRepository` | `participants` |
 | Answer | `AnswerRepository` | `answers` |
-| RoundResult | — | `round_results` |
+| RoundResult | `RoundResultRepository` (package-private) | `round_results` |
 
 Volatile live-session state (locks, round state, tallies, answers, presence,
 pub/sub) lives in **Redis** — see [Live Session](live-session.md#redis-stores-at-runtime).

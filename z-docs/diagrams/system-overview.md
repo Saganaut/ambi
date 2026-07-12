@@ -111,15 +111,17 @@ flowchart TB
 
 ## Observability path
 
-Vendor-agnostic foundation is implemented; error-tracking vendors (Sentry) are
-deferred. See [ADR 001](../decisions/001-observability-stack.md).
+Only the MDC/traceId wiring and the RFC 9457 error path are implemented today;
+JSON structured logging, CloudWatch metrics delivery, and error-tracking
+vendors (Sentry) are all deferred. See
+[ADR 001](../decisions/001-observability-stack.md).
 
 ```mermaid
 flowchart LR
     FE["Frontend<br/>stamps X-Request-Id"] --> BE
     BE["Backend<br/>MdcLoggingFilter<br/>requestId → traceId → userId"]
-    BE -->|"JSON logs to stdout"| LOGS["CloudWatch Logs<br/>(LocalStack in dev)"]
-    BE -->|"Actuator + Micrometer"| METRICS["CloudWatch Metrics"]
+    BE -.->|"deferred: JSON logs to stdout<br/>(no logback-spring.xml yet)"| LOGS["CloudWatch Logs<br/>(LocalStack in dev)"]
+    BE -.->|"deferred: Actuator + Micrometer<br/>(no CloudWatch registry dep)"| METRICS["CloudWatch Metrics"]
     BE -->|"RFC 9457 ProblemDetail"| ERR["Error responses<br/>(traceId echoed)"]
     ERR -.->|deferred| SENTRY["Sentry (per-layer DSN)"]
     LOGS --> INSIGHTS["Logs Insights / alarms"]
