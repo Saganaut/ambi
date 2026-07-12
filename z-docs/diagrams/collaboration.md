@@ -33,8 +33,8 @@ sequenceDiagram
     participant M as MongoDB
 
     U->>CC: POST .../comment-threads {body}
-    CC->>DS: check deck VIEW
-    CC->>CS: createThread (author snapshot at write)
+    CC->>CS: createThread (check deck VIEW via DS.getSlide · author snapshot at write)
+    CS->>DS: getSlide (VIEW + slide exists)
     CS->>M: insert CommentThread + first Comment
     CC-->>U: thread
 

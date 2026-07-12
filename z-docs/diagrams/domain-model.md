@@ -83,7 +83,7 @@ erDiagram
     SLIDE {
         string id "client-minted UUID"
         string title
-        SlideContent content "emb, sealed (14 kinds)"
+        SlideContent content "emb, sealed (17 kinds)"
         string sortOrder "LexoRank"
         string parentId "follow-up link"
         string childId "follow-up link"
@@ -129,9 +129,22 @@ erDiagram
     }
     DECK_ANALYTICS {
         string id PK "== deck id"
-        double ratingAverage
+        int schemaVersion
+        Instant computedAt
+        long sampleSessionCount
+        long totalSessions "+ completed/abandoned, completionRate"
+        long uniquePlayers "+ totalParticipations, avgParticipantsPerSession"
+        long viewCount
+        long forkCount
+        Instant firstPlayedAt "+ lastPlayedAt, averageSessionDurationMs"
         long ratingCount
-        SlideStats slides "emb list"
+        Double ratingAverage
+        map ratingDistribution "star (1..5) -> count"
+        double averageScorePercent "+ medianScorePercent"
+        ScoreBucket[] scoreDistribution "emb list"
+        SlideStats[] slides "emb list, per-slide difficulty stats"
+        string[] hardestSlideIds "+ easiestSlideIds"
+        string[] mostSkippedSlideIds "+ slowestSlideIds"
     }
 ```
 
@@ -172,7 +185,7 @@ erDiagram
         string sessionId "ref"
         string participantId "ref"
         string slideId "ref"
-        AnswerPayload payload "emb, sealed (13 kinds)"
+        AnswerPayload payload "emb, sealed (14 kinds)"
         Instant submittedAt
     }
     ROUND_RESULT {
@@ -187,7 +200,7 @@ erDiagram
         string choice
         boolean correct
         int points
-        double responseTimeMs
+        long responseTimeMs
     }
 ```
 
@@ -250,15 +263,18 @@ classDiagram
     ScorableContent <|.. RankingContent
     ScorableContent <|.. ScalesContent
     ScorableContent <|.. GridContent
+    ScorableContent <|.. AxisContent
     ScorableContent <|.. PlaceOnImageContent
     ScorableContent <|.. MatchingContent
     ScorableContent <|.. AllocationContent
     ScorableContent <|.. DrawingContent
+    ScorableContent <|.. FollowUpContent
 
     NonScorableContent <|.. TitleContent
+    NonScorableContent <|.. RichTextContent
     NonScorableContent <|.. MediaContent
+    NonScorableContent <|.. InstructionContent
     NonScorableContent <|.. QAndAContent
-    NonScorableContent <|.. FollowUpContent
 ```
 
 ```mermaid
@@ -277,6 +293,7 @@ classDiagram
     AnswerPayload <|.. QAndAQuestions
     AnswerPayload <|.. MatchingAnswer
     AnswerPayload <|.. GridAnswer
+    AnswerPayload <|.. AxisAnswer
     AnswerPayload <|.. PlaceOnImageAnswer
     AnswerPayload <|.. AllocationAnswer
     AnswerPayload <|.. DrawingAnswer

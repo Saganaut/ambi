@@ -20,6 +20,7 @@ flowchart TB
     subgraph svc["Service"]
         DS["DeckService<br/>permission checks + orchestration"]
         SR["SlideRankService<br/>LexoRank reordering"]
+        ORR["OrgRoleResolver<br/>resolves requester's org role"]
         US["UserService<br/>org-role lookups"]
     end
     subgraph repo["Repository"]
@@ -32,7 +33,8 @@ flowchart TB
 
     DC --> DS
     DS --> SR
-    DS --> US
+    DS --> ORR
+    ORR --> US
     DS --> DR
     DR --> DECK
     DECK --> SLIDE
@@ -51,9 +53,9 @@ flowchart TB
 
     V --> VR{"owner? · ACL editor?<br/>PUBLIC+PUBLISHED? · org member?"}
     E --> ER{"owner? · ACL EDITOR?<br/>org OWNER/ADMIN?"}
-    M --> MR{"owner? · org OWNER/ADMIN?"}
+    M --> MR{"owner? · org OWNER?"}
 
-    VR -->|no| D404["404 (hide existence)"]
+    VR -->|no| D403V["403 ForbiddenException<br/>(honest — decks are high-entropy ids)"]
     ER -->|no| D403["403"]
     MR -->|no| D403
     VR -->|yes| OK["proceed"]
@@ -63,29 +65,28 @@ flowchart TB
 
 ## Optimistic create & edit round-trip
 
-The frontend mints ids and seeds the cache before the network call; the backend
-treats create as idempotent.
+The frontend mints ids before the network call; the backend treats create as
+idempotent.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant U as Author
-    participant R as TanStack route<br/>/my-decks/create
-    participant Q as RTK Query cache
+    participant H as useCreateDeck
     participant API as DeckController
+    participant Q as RTK Query cache
 
-    U->>R: click "New deck"
-    R->>R: mint UUID
-    R->>Q: upsertQueryData(getDeck, empty deck)
-    R->>U: navigate /decks/{id}/edit (replace)
-    R->>API: PUT /api/decks/{id} (same id)
+    U->>H: click "New deck"
+    H->>H: id = crypto.randomUUID()
+    H->>API: createDeckMutation({id}) → PUT /api/decks/{id}
+    H->>U: navigate /decks/{id}/edit
     API-->>Q: DeckResponse (idempotent create)
 
     Note over U,Q: editing a slide field
     U->>Q: type (local useState mirror)
     Q->>Q: useDebouncedCommit(500ms) schedule
-    Q->>API: PATCH mutation (on debounce / blur flush)
-    API-->>Q: response folded into getDeck cache<br/>(apiEnhancements onQueryStarted)
+    Q->>API: PUT /api/decks/{id}/slides/{slideId} (on debounce / blur flush)
+    API-->>Q: response reconciled into listDeckSlides cache<br/>(apiEnhancements onQueryStarted)
 ```
 
 ## Frontend editor composition
@@ -99,11 +100,11 @@ flowchart TB
     HOOK --> SL["useSlide — add/remove/reorder"]
 
     DE --> LEFT["LeftSidebarContent<br/>slide rail · dnd-kit reorder · NewSlideModal"]
-    DE --> CANVAS["SlideDisplay<br/>switch on element.kind"]
+    DE --> CANVAS["SlideDisplay<br/>switch on slide.content.contentType"]
     DE --> RIGHT["RightSidebarContent<br/>SidePanelDrawer"]
 
-    CANVAS --> SC["SlideContent/*SlideContent<br/>13 kind editors"]
-    SC --> UEE["useElementEditor(isKind)<br/>schedule · flush · commit · markSynced"]
+    CANVAS --> SC["SlideContent/*SlideContent<br/>17 kind editors"]
+    SC --> UEE["useSlideEditor(deckId, slideId, contentType)<br/>{ slide, updateMetadata, updateSlideContent, flush }"]
     RIGHT --> PANELS["EditSlidePanel · AnswerPanel<br/>DiscussionPanel · InviteSettingsPanel …"]
     SC --> RTI["RichTextInput (TipTap)"]
 ```

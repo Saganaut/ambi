@@ -20,13 +20,19 @@ stateDiagram-v2
     VISITOR --> PRE_REGISTRATION : OAuth, no matching user
     GUEST --> REGISTERED : OAuth (upgrade in place)
     PRE_REGISTRATION --> REGISTERED : POST /api/auth/register
-    GUEST --> REGISTERED : POST /api/auth/register
+    GUEST --> GUEST : POST /api/auth/refresh (slide)
     REGISTERED --> REGISTERED : POST /api/auth/refresh (slide)
     GUEST --> VISITOR : logout / guest TTL expiry
     REGISTERED --> VISITOR : POST /api/auth/logout
     note right of PRE_REGISTRATION
         identity lives only in the
         session — no User document yet
+    end note
+    note left of GUEST
+        /refresh is permitAll with no
+        identity check — it slides
+        whichever session cookie it's
+        given, at any state
     end note
 ```
 
@@ -139,9 +145,9 @@ sequenceDiagram
 ```mermaid
 flowchart TB
     REQ["Incoming /api/** request"] --> CAP["OAuthReturnUrlCaptureFilter<br/>(OAuth start only)"]
-    CAP --> COOKIE["CookieAuthenticationFilter<br/>AMBI_AT → RedisTokenSessionService.validate<br/>→ AmbiAuthenticationToken"]
-    COOKIE --> CSRF["CSRF: double-submit cookie<br/>X-XSRF-TOKEN + CookieCsrfTokenRepository"]
-    CSRF --> AUTHZ["AuthorizationFilter<br/>public routes · ROLE_USER · resource ACL"]
+    CAP --> CSRF["CSRF: double-submit cookie<br/>X-XSRF-TOKEN + CookieCsrfTokenRepository<br/>(fixed early chain position)"]
+    CSRF --> COOKIE["CookieAuthenticationFilter<br/>AMBI_AT → RedisTokenSessionService.validate<br/>→ AmbiAuthenticationToken<br/>(added just before AuthorizationFilter)"]
+    COOKIE --> AUTHZ["AuthorizationFilter<br/>public routes · ROLE_USER · resource ACL"]
     AUTHZ --> CTRL["Controller + @AuthenticationPrincipal"]
 
     subgraph redis["Redis (authority)"]

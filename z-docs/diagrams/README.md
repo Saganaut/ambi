@@ -14,7 +14,6 @@ review, and lives next to the docs it illustrates.
 | [Backend Service Map](backend-services.md) | Every controller → service → store; authz model | component · flow · tables |
 | [Authentication & Sessions](authentication.md) | OAuth, guest, refresh, filter chain | state · sequence · flow |
 | [Deck Authoring](deck-authoring.md) | Deck editor + backend, settings hierarchy | layering · sequence · state |
-| [Non-scorable Slides](content-slide.md) | The four non-scorable display types (Title / Content / Media / Instruction): content records, codegen flow, authoring | class · flow · sequence |
 | [Live Session](live-session.md) | Real-time play, lifecycle, event fan-out | state · sequence · flow |
 | [Media & Gallery](media-gallery.md) | Image ingest, presigned reads, SSRF proxy | sequence · flow |
 | [Collaboration](collaboration.md) | Comment threads and deck reviews | flow · sequence |

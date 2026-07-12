@@ -16,7 +16,7 @@ flowchart TB
     subgraph feats["features/*  (account · auth · deck · gallery · liveSession · org · theme)"]
         direction LR
         API[".../store/<feature>Api.gen.ts<br/>injectEndpoints (generated)"]
-        SLICE[".../store/*Slice.ts<br/>authPrompt · panel"]
+        SLICE[".../store/*Slice.ts<br/>authPrompt · panel · liveSessionSlice"]
         HOOKS[".../hooks/*"]
         VIEWS[".../views + components"]
     end
@@ -73,14 +73,15 @@ stateDiagram-v2
 ```mermaid
 flowchart TB
     ROOT["__root.tsx<br/>ErrorBoundary · Layout/Toast/Modal providers · NavBar"]
-    ROOT --> PUB["index · about · pricing · terms · register · invite/$token"]
+    ROOT --> PUB["index · about · pricing · terms-and-conditions ·<br/>register · invite/$token"]
+    ROOT --> JOIN["join — SessionJoinPage<br/>(public player entry point)"]
     ROOT --> AUTH["_authenticated.tsx<br/>beforeLoad: requireRegistered"]
     AUTH --> ACC["account · achievements · my-favorites · scheduled"]
     AUTH --> DECKS["decks/index (MyDecks)"]
     DECKS --> DID["decks/$deckId/"]
-    DID --> EDIT["edit — DeckEditor"]
-    DID --> VIEW["view — DeckViewPage"]
-    DID --> PRES["present"]
+    DID --> EDIT["edit — DeckViewPage → DeckEditor"]
+    DID --> VIEW["view — DeckViewPage → DeckEditor<br/>(same component; no separate read-only view)"]
+    DID --> PRES["present — unimplemented placeholder stub"]
     AUTH --> SESS["sessions/$sessionId/index — SessionPage"]
 ```
 
