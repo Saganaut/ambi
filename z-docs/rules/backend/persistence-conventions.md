@@ -16,7 +16,7 @@ Mechanical conventions for documents, controllers, and feature packages. Establi
 ## Controller shape
 
 - Base path is **`/api/<feature-plural>`** (`/api/decks`, `/api/galleries`, `/api/users`); sub-resources nest (`/api/decks/{deckId}/slides/{slideId}/comment-threads`).
-- Methods **return the Response DTO directly** — never `ResponseEntity`. Use `void` + `@ResponseStatus(HttpStatus.NO_CONTENT)` for deletes and other body-less results. Returning the DTO directly lets `GlobalExceptionHandler` own all error mapping (see [exception-rules.md](../exception-rules.md) §6).
+- Methods **return the Response DTO directly** — not `ResponseEntity`, except where the response needs to set headers/cookies (`AuthController`, `DevAuthController` for `Set-Cookie`; `RemoteImageController` for byte content headers). Use `void` + `@ResponseStatus(HttpStatus.NO_CONTENT)` for deletes and other body-less results. Returning the DTO directly lets `GlobalExceptionHandler` own all error mapping (see [exception-rules.md](../exception-rules.md) §6).
 
 ## Enums
 
@@ -24,4 +24,4 @@ Enums live in a **`<feature>/enums/`** sub-package (`presentation/deck/enums/`, 
 
 ## Dependency injection
 
-Services and controllers use **plain constructor injection** — an explicit constructor with manual `this.field = field` assignment. No `@Autowired` (zero in the codebase) and **no Lombok `@RequiredArgsConstructor`** on services/controllers; Lombok is for models only (see [backend-rules.md](../backend-rules.md) §2). Spring wires the single constructor automatically.
+Services and controllers use **plain constructor injection** — an explicit constructor with manual `this.field = field` assignment. No `@Autowired` on services or controllers (one deliberate use exists elsewhere, on `ImageUrlResolver`, a `@Component` that uses it to disambiguate constructors) and **no Lombok `@RequiredArgsConstructor`** on services/controllers; Lombok is for models only (see [backend-rules.md](../backend-rules.md) §2). Spring wires the single constructor automatically.

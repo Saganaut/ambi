@@ -28,10 +28,10 @@ Conventions: see [frontend-rules](../rules/frontend-rules.md) and [styling-rules
 | Database        | MongoDB (Spring Data)              |
 | Cache / Pub-Sub | Redis (also backs Spring Session)  |
 | Auth            | Spring Security + Google OAuth 2.0 |
-| API docs        | SpringDoc OpenAPI v2               |
+| API docs        | SpringDoc OpenAPI v3               |
 | Boilerplate     | Lombok                             |
 
-Package: `cephadex.ambi`. Layers: `controller/`, `service/`, `repository/`, `model/`, `dto/`, `config/`. Conventions: see [backend-rules](../rules/backend-rules.md).
+Package: `com.cephadex.ambi`. No flat `controller/`/`service/`/`repository/`/`model/`/`dto/` layers — the code is feature-based: top-level packages (`auth/`, `billing/`, `common/`, `config/`, `media/`, `org/`, `presentation/`, `session/`, `theme/`, `user/`), each with its own `controller/`/`service/`/`dto/`/`enums/` sub-packages. Conventions: see [backend-rules](../rules/backend-rules.md).
 
 ## REST API
 
