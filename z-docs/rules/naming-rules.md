@@ -14,7 +14,7 @@ File-naming conventions for the frontend, plus backend DTO/API class naming.
 
 ## Backend DTO / API class names
 
-1. **DTO suffixes** — Every class in `dto/` ends in exactly one of `Request`, `Response`, `Page`, or `Message`, is a `record`, and lives in its own file. — [details](naming/dto-naming.md)
+1. **DTO suffixes** — Every class in a per-feature `dto/` package (e.g. `presentation/deck/dto/`, `session/dto/`, `media/gallery/dto/`) ends in exactly one of `Request`, `Response`, or `Page`, is a `record`, and lives in its own file. **Exception:** `session/event/dto/` holds a sanctioned family of session read-model / projection records suffixed `*View` (plus `ScoreboardEntry`), used for participant/host-safe live-session snapshots — see [details](naming/dto-naming.md) for the full suffix taxonomy, the `MeResponse` sealed-interface exception, and why live-session STOMP broadcasts are `SessionEvent` implementations rather than `dto/` classes.
 
 ## Variable and identifier naming
 
