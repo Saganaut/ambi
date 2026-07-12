@@ -16,10 +16,10 @@ Each enhancement module is imported **for its side effect only** from the `share
 
 ## Intent-level hooks wrap every mutation
 
-Components never call a generated `useXMutation` directly. Each feature exposes a hook (`useDeck`, `useAuthActions`, `useRegister`, `useAccount`) that:
+Components never call a generated `useXMutation` directly. Each feature exposes a hook (`useDeckMutate`, `useAuthActions`, `useRegister`, `useAccount`) that:
 
-- wraps the query + its mutations and returns a **named result object** (`UseDeckResult`, never a bare tuple) of intent handlers — `rename`, `setVisibility`, `share`, `remove`;
+- wraps the query + its mutations and returns a **named result object** (`UseDeckMutateResult`, never a bare tuple) of intent handlers — `rename`, `setVisibility`, `share`, `remove`;
 - keeps handlers thin (just fire the mutation) — cache behavior stays in the enhancement module so it applies no matter who calls;
 - types mutation params via **indexed access** on the generated arg types (`setVisibility: (visibility: SetVisibilityRequest["visibility"]) => void`) so a schema change breaks compilation rather than drifting.
 
-Worked example: `features/deck/hooks/useDeck.ts`.
+Worked example: `features/deck/hooks/useDeckMutate.ts`. It's one of several deck hooks split by role (see [hook-roles.md](hook-roles.md)): `useDeckQuery.ts` reads the deck, `useDeckMutate.ts` (this one) owns the rename/visibility/share/remove intents, `useDeckImageMutate.ts` and `useDeckSettingsMutate.ts` own their own mutation slices, and `useDeckActions.ts` / `useDeckEditor.ts` compose them for the editor.
