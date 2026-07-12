@@ -49,8 +49,8 @@ flowchart TB
     ORCH -->|save/remove/clear| PRES
     ORCH -->|persist lifecycle/roster| LS
     ORCH --> PART
-    ORCH -.->|TODO: flush on close| ANS
-    ORCH -.->|TODO: scoring| RR
+    ORCH -->|flush answers on close| ANS
+    ORCH -->|persist scored RoundResult| RR
 
     ORCH -->|publish event| PUB
     PUB -->|convertAndSend JSON| CHAN
@@ -77,20 +77,20 @@ sequenceDiagram
     participant BROKER as SimpleBroker
     participant Clients as WS subscribers
 
-    Host->>ORCH: POST .../round/open/{slideId}
+    Host->>ORCH: POST /api/liveSessions/{id}/rounds/{slideId}
     ORCH->>LOCK: tryAcquire (SET NX, 10s)
     activate LOCK
     ORCH->>STATE: load(sessionId) → LiveRoundState
     ORCH->>TALLY: clear(sessionId, slideId)
     ORCH->>STATE: save(current.startedRound(slideId, now))
-    ORCH->>PUB: publish(publicId, RoundOpened)
+    ORCH->>PUB: publish(publicId, RoundStarted)
     ORCH->>LOCK: release (Lua compare-and-delete)
     deactivate LOCK
 
     PUB->>CHAN: convertAndSend EventEnvelope(publicId, event)
     CHAN-->>RELAY: deliver to every instance's relay
     RELAY->>BROKER: convertAndSend /topic/liveSession/{publicId}, event
-    BROKER-->>Clients: RoundOpened pushed to local subscribers
+    BROKER-->>Clients: RoundStarted pushed to local subscribers
 ```
 
 ## Notes

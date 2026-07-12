@@ -1,6 +1,7 @@
 # Live Session — Open Decisions
 
-**Status:** Pre-implementation review · **Date:** 2026-06-18
+**Status:** Mostly implemented — historical decision log · **Date:** 2026-06-18
+(updated 2026-07-12)
 
 A holistic review of `backend/.../session/liveSession/` (and the surrounding
 `session/` package) ahead of implementation. The durable + volatile split (Mongo
@@ -12,6 +13,13 @@ and to each other — plus several modeling questions the stubs are deferring.
 Each item below states the decision, why it matters, and a **Suggestion**. The
 suggestions are starting positions, not settled ADRs — promote the ones we adopt
 into `decisions/`.
+
+**As of 2026-07-12, the transport/orchestration spine, the target method
+surface, grading, scoring, and most of the persistence/correctness items below
+are built.** Items are marked ✅ RESOLVED in place with a one-line as-built note;
+the decision history is kept rather than deleted. Genuinely open items (timers,
+game-type scope beyond what's graded, deception/voting, capacity limits,
+`SessionLifecycleProjector`) remain unmarked.
 
 ---
 
@@ -44,7 +52,13 @@ Decisions locked this session and reflected in code:
 
 ### Target method surface (`LiveSessionOrchestrator`)
 
-Stubbed (`UnsupportedOperationException`) with full contracts unless noted *wired*.
+> ✅ **RESOLVED** — all methods below are implemented on `LiveSessionOrchestrator`
+> (not stubbed with `UnsupportedOperationException`). `startRound` is state-guarded
+> via `requireRoundOpenable`; `closeSubmissions` flushes answers to Mongo and
+> scores via `scoreAndPersistRound`; `restartRound` rejects a round that's already
+> been scored (`ConflictException("ROUND_ALREADY_SCORED", …)`) rather than
+> re-scoring it. The table below is kept as the as-designed contract for
+> reference.
 
 | Method | Contract | Ref |
 | --- | --- | --- |
@@ -56,11 +70,11 @@ Stubbed (`UnsupportedOperationException`) with full contracts unless noted *wire
 | `leave(sessionId, participantId)` | roster + presence removal, publish | C3 |
 | `reconnect(sessionId, participantId) → Participant` | re-identify (needs `findByParticipantId`), mark online | C2 |
 | `heartbeat(sessionId, participantId)` | refresh presence, debounced | F5 |
-| `startRound(sessionId, slideId)` | *wired* — open SUBMIT, clear tally; +state guard TODO | F4 |
+| `startRound(sessionId, slideId)` | open SUBMIT, clear tally, state-guarded (`requireRoundOpenable`) | F4 |
 | `submitAnswer(sessionId, slideId, participantId, payload)` | `AnswerStore.submit` **and** `TallyStore.increment`, publish tally | D5 |
-| `closeSubmissions(sessionId, slideId)` | *wired (phase only)* — SUBMIT → REVEAL_RESPONSES; +flush/score/persist TODO (replaces `endRound`) | E1, E4 |
+| `closeSubmissions(sessionId, slideId)` | SUBMIT → REVEAL_RESPONSES, flushes answers to Mongo and scores via `scoreAndPersistRound` (replaces `endRound`) | E1, E4 |
 | `revealResults(sessionId, slideId)` | (any non-results phase) → REVEAL_RESULTS, closing + scoring an open round first; combined results for follow-ups; signal terminal | B2, B3 |
-| `restartRound(sessionId, slideId)` | *wired* — fresh start, tally cleared; +answer clear / idempotent re-score TODO | F2 |
+| `restartRound(sessionId, slideId)` | fresh start, tally cleared; rejects (`ROUND_ALREADY_SCORED`) if the round was already scored | F2 |
 | `advance(sessionId) → Slide` | server-owned next slide (Lexorank + parent→child), open round, signal terminal | B3 |
 | `goTo(sessionId, slideId)` | validate slideId against snapshot, open round | B3 |
 
@@ -70,6 +84,18 @@ Reserved (deferred): `submitVote` + `RoundPhase.VOTE` (D3); `pauseTimer`/
 ---
 
 ## A. Transport / orchestration spine (mostly unbuilt)
+
+> ✅ **A1/A2 RESOLVED (built).** A full controller/service/WebSocket/event layer
+> now exists under `session/`: `LiveSessionController` (`@RequestMapping
+> "/api/liveSessions"`) fronts `LiveSessionHostService`, `LiveSessionLobbyService`,
+> `LiveSessionPresenceService`, `LiveSessionSnapshotService`, and
+> `LiveSessionAnswerService`. `session/transport/WebSocketConfig` registers a
+> native `/ws` STOMP endpoint with a `/topic` `SimpleBroker`, guarded by
+> `SubscribeAuthInterceptor`. `SessionPubSubConfig` + `LiveSessionStompRelay`
+> bridge `RedisEventPublisher`'s `ambi:session:events` channel to every
+> instance's local broker, so the multi-instance fan-out from A2 is implemented as
+> designed below. See [live-session-flow](live-session-flow.md) for the full
+> sequence.
 
 There is **no controller, service, WebSocket, or event layer** under `session/`.
 Everything that exists is domain + storage. These are the most structural calls.
@@ -119,6 +145,14 @@ so decide pause support **now** even if the timer is deferred.
 ## B. State-model reconciliation (overlapping representations)
 
 ### B1. `Round.java` vs `LiveSessionOrchestrator`
+
+> ✅ **RESOLVED (as suggested).** `session/liveSession/Round.java` is still
+> present but is a dead stub (`UnsupportedOperationException` on every method) —
+> nothing constructs or calls it. `LiveSessionOrchestrator` is the seam it
+> collapses into: all round transitions (`startRound`, `submitAnswer`,
+> `closeSubmissions`, `revealResponses`, `revealResults`, `restartRound`) live
+> there against Redis + `RoundEvaluator`/`RoundScorer`. `Round.java` can be
+> deleted as a follow-up cleanup.
 
 `Round` is a stub (`submitAnswer/submitVote/pauseTimer/restartRound/
 revealRoundResponses/revealRoundResults`), but the orchestrator already owns
@@ -211,6 +245,13 @@ from presence. If lobby reads become hot, add a denormalised read-model later.
 
 ### C4. Guest vs registered join + room code vs invite token
 
+> ✅ **RESOLVED (as suggested, single-code).** `inviteToken` has been removed
+> from `LiveSession` entirely (its field, constructor line, and
+> `regenerateInviteToken()` are commented out / gone — see F1). `roomCode` is now
+> the only join code, unique-indexed, and doubles as the URL-embeddable link per
+> the "yes we only need one code" call below. `join(roomCode, userId,
+> displayName, avatar, colorTag)` is implemented on the orchestrator.
+
 Yes we only need one code here really. The room code can be used in a URL
 
 `roomCode` (human-typed) and `inviteToken` (link) both exist with rotate methods;
@@ -228,6 +269,14 @@ default, with a deck/`AudienceSettings` flag to restrict to authenticated users.
 
 ### D1. The grading SEAM is stale — and unblocks scope
 
+> ✅ **RESOLVED (exceeded).** `RoundEvaluator.isCorrect` grades MCQ (exact-set
+> match against `McqContent.correctOptionIds`), Number (`EXACT`/`RANGE`), Text
+> (`EXACT`/`CONTAINS`), Ranking, Matching, Grid (all `ScoreMode.EXACT`), Axis and
+> PlaceOnImage (`INSIDE_RADIUS`), Scales, and Allocation (± tolerance) — not just
+> MCQ. Only content with no static key (FollowUp, Drawing, Q&A) or
+> relative/partial-credit scoring modes (`CLOSEST`, `NEAREST`, `DISTANCE`,
+> `PARTIAL`) remain explicit false-returning seams.
+
 `RoundEvaluator.isCorrect()` always returns `false`, with a comment that
 "SlideContent is not yet a field on `Slide`." **It is now** — `Slide.content`
 exists and `McqContent.correctOptionIds` is the answer key. MCQ grading is
@@ -238,6 +287,14 @@ implementable today.
 the stale comment. Treat this as a quick win (see punch list).
 
 ### D2. Which game types ship in v1?
+
+> ✅ **RESOLVED (exceeded the v1 suggestion).** Grading landed for MCQ, Number,
+> Text, Ranking, Matching, Grid, Axis, Scales, Allocation, and PlaceOnImage (see
+> D1) — well past the MCQ + Number recommendation below. `describeChoice` (the
+> tally-key renderer) still only renders the scalar-keyed types (MCQ, Number,
+> Text); map/coordinate answers (Matching, Grid, Scales, PlaceOnImage,
+> Allocation, Ranking) grade correctly but aren't tallied as an option-count bar.
+> Drawing/Q&A/FollowUp remain non-scorable display types, deferred with D3.
 
 There are ~13 `AnswerPayload` types (Allocation, Drawing, Grid, Matching,
 Ranking, Scales, PlaceOnImage, …) but only MCQ is rendered in `describeChoice`.
@@ -251,6 +308,12 @@ open-ended/creative types (Drawing, free text) until voting exists (D3).
 
 ### D3. Best-answer & deception are hard-coded off
 
+**Still open.** `AnswerEvaluation.bestAnswer=false`, `deceivedCount=0` remain
+hard-coded in `RoundEvaluator.evaluate`; `Round.submitVote` is still a stub.
+`RoundPhase` has grown since this was written — it's now `SUBMIT`,
+`SUBMIT_LIVE`, `LOCKED`, `REVEAL_RESPONSES`, `REVEAL_RESULTS` — but there is
+still **no `VOTE` phase**, so the suggestion below stands.
+
 `AnswerEvaluation.bestAnswer=false`, `deceivedCount=0`; `Round.submitVote` is a
 stub; `RoundPhase` has only `SUBMIT`/`REVEAL` — **no VOTE phase**.
 
@@ -263,6 +326,12 @@ every phase switch.
 
 ### D4. `streakBonuses` shape mismatch
 
+> ✅ **RESOLVED (as suggested).** No TODO remains in `RoundScorer`.
+> `Participant.awardPoints(..., Map<Integer, Integer> streakBonuses)` takes the
+> map shape directly (keyed by streak length; may be `null`), matching how
+> `PointSettings` resolves bonuses — no index hazard, no null hand-off. Streak
+> bonuses apply.
+
 Explicit TODO in `RoundScorer`: `PointSettings.streakBonuses` is
 `Map<Integer, StreakMilestone>` but `Participant.awardPoints` takes a `List` —
 so `null` is passed and **streak bonuses never apply**. `awardPoints` also does
@@ -274,6 +343,14 @@ streak length). Change `awardPoints` to take the map and do `map.get(streak)`
 edit. Quick win.
 
 ### D5. Tally double-bookkeeping
+
+> ✅ **Partially resolved — `TallyStore` is now incremented.**
+> `LiveSessionOrchestrator.submitAnswer` calls `tallyStore.increment` (and
+> `decrement` to back out a superseded choice) via the shared `AnswerTallyKeys`
+> helper, so submit-time and scoring-time key derivation agree (the "shared
+> helper" suggestion below is implemented). The live-vs-durable duplication
+> itself is intentional per the suggestion, not eliminated. Still worth
+> revisiting if the two ever measurably disagree in practice.
 
 This deserves more investigation before making a decision
 
@@ -297,6 +374,13 @@ in-progress chart, **drop `TallyStore`** and reveal straight from the recomputed
 
 ### E1. `AnswerRepository` won't compile as a repository
 
+> ✅ **RESOLVED (as suggested).** `AnswerRepository` is
+> `interface AnswerRepository extends MongoRepository<Answer, String>` with
+> `findBySessionId` and `findBySessionIdAndSlideId`, exactly as suggested. The
+> Redis→Mongo flush happens in `RoundResultProjector.persist`, called from
+> `LiveSessionOrchestrator.scoreAndPersistRound` at round close, inside the lock,
+> before scoring is finalized.
+
 It's an empty *class*, not an interface extending `MongoRepository` (explicit
 TODO). The Redis→Mongo flush path doesn't exist.
 
@@ -306,6 +390,17 @@ TODO). The Redis→Mongo flush path doesn't exist.
 Mongo at **round close**, inside the lock, before scoring. Quick win.
 
 ### E2. Projectors don't exist
+
+> ✅ **`RoundResultProjector` RESOLVED (built and wired).**
+> `session/roundResult/RoundResultProjector.persist(RoundResult, List<Participant>,
+> List<Answer>)` is called from `LiveSessionOrchestrator.scoreAndPersistRound`
+> (invoked from both `closeSubmissions` and `revealResults`) — it saves the
+> flushed answers, the mutated participants, and the `RoundResult` together, and
+> the score-once guard (F2) keeps re-running a close from double-applying.
+> **`SessionLifecycleProjector` is still genuinely unbuilt** — no such class
+> exists; `LiveSession` lifecycle/roster persistence happens via direct
+> `repo.save(session)` calls inside `LiveSessionOrchestrator` rather than through
+> a dedicated projector. This half of E2 stays open.
 
 README names `RoundResultProjector` and `SessionLifecycleProjector`; neither is
 built. Nothing calls `recordPhase()`, `showResults()`, participant saves, or the
@@ -332,6 +427,12 @@ the round restarts. Don't over-engineer continuous answer flushing yet.
 
 ### E4. `endRound` scoring wiring
 
+> ✅ **RESOLVED (as suggested).** Scoring runs inline inside the lock via
+> `scoreAndPersistRound`, called from both `closeSubmissions` and
+> `revealResults`: it resolves points via `SlideSettings.resolvePoints`,
+> gathers the participant map from the roster, evaluates via `RoundEvaluator`,
+> scores via `RoundScorer`, and hands persistence to `RoundResultProjector` (E2).
+
 Big TODO: `endRound` only flips the phase. Scoring needs answers (E1), the
 participants map (C3), resolved `PointSettings`, and the slide from the snapshot.
 
@@ -347,13 +448,24 @@ Mongo by `roster` ids. Revisit async scoring only if it measurably blocks.
 
 ### F1. Uniqueness indexes missing
 
+✅ **RESOLVED:** removed the invite token for now and made room code and public
+id unique (`@Indexed(unique = true)` on both `roomCode` and `publicId` on
+`LiveSession`). See C4 — `inviteToken` is fully gone from the class, not just
+unindexed.
+
 `roomCode`/`inviteToken`/`publicId` have **no `@Indexed(unique=true)`** on
 `LiveSession` (Deck has them; LiveSession doesn't). `RoomCode.generate()` is
 "uniqueness-blind" and *requires* a DB index + collision-retry.
 
-RESOLVED: removed the invite token for now and made room code and public id unique.
-
 ### F2. Re-run `RoundResult` id collision
+
+> ✅ **RESOLVED (stricter than suggested).** Rather than allowing an overwrite,
+> `restartRound` now **rejects** restarting a round that's already been scored:
+> `LiveSessionOrchestrator.restartRound` throws
+> `ConflictException("ROUND_ALREADY_SCORED", …)` if a `RoundResult` already
+> exists for `(sessionId, slideId)`. So the id-collision/overwrite scenario this
+> item worried about can no longer happen — a scored round is immutable; only an
+> unscored, still-open round can be restarted.
 
 `RoundResultId = (sessionId, slideId)`, so `restartRound` **overwrites** the
 prior result; linked parent/child slides may also collide.
@@ -374,6 +486,14 @@ and add a guard/log if a snapshot exceeds a safe threshold (e.g. 8MB). Revisit
 only if real decks approach the limit.
 
 ### F4. Idempotency of host actions
+
+> ✅ **RESOLVED (as suggested).** Transitions are now state-guarded, mirroring
+> `LiveSession`'s `requireStatus` pattern: `startRound`/`goTo`/`advance` go
+> through `requireRoundOpenable`, which rejects opening a different slide while
+> a round is still accepting submissions. `closeSubmissions` and `revealResults`
+> are idempotent closes (re-running a close on an already-closed/scored round is
+> a no-op / doesn't re-score — see F2). Combined with F2's reject-on-restart,
+> double-clicks are safe.
 
 Transitions are lock-guarded but not state-guarded — `startRound` while a round
 is live silently overwrites it.
@@ -399,6 +519,9 @@ as config with conservative defaults.
 
 ## Recommended ordering (what unblocks the most)
 
+> Historical — kept for context. **A1/A2, C4/F1, and B1 are done** (see above);
+> the only item below still genuinely open is the D2/D3 VOTE-phase scope.
+
 1. **A1/A2** transport + fan-out — defines every DTO and the orchestrator's
    notify seam.
 2. **C1–C3** participant identity & live source-of-truth — blocks join,
@@ -409,6 +532,9 @@ as config with conservative defaults.
    twice.
 
 ## Quick-win punch list (small, independent, do anytime)
+
+> Historical — kept for context. **All four items below are done** (see D1, D4,
+> E1, F1 above).
 
 - **D1** — implement MCQ grading; delete the stale SEAM comment.
 - **D4** — switch `awardPoints` streak bonuses to `Map<Integer, StreakMilestone>`.
