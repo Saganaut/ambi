@@ -417,6 +417,35 @@
   --gap-lg: var(--space-4);
   --gap-xl: var(--space-6);
 
+  /* --- Layout Spacing — between & around large components --- */
+
+  /* The layout tier, one level above --p-* and --gap-*: --stack-* separates   */
+
+  /* sibling regions (grid/flex gap, section breaks); --gutter-* insets a      */
+
+  /* region's own edges (padding), composable per axis like the --p-* sets.    */
+
+  /* Hierarchy comes from stepping the ladder — a container's stack must       */
+
+  /* exceed the gaps inside its children.                                      */
+
+  /* See rules/styling/spacing-hierarchy.md.                                   */
+  --stack-sm: var(--space-4); /* 16px — cards in a dense grid, tile lists */
+  --stack-md: var(--space-6); /* 24px — default card/panel grid gap, header-to-body */
+  --stack-lg: var(--space-8); /* 32px — panel-to-panel, section breaks in app pages */
+  --stack-xl: var(--space-12); /* 48px — page-section boundaries (marketing/doc pages) */
+  --gutter-sm: var(--space-4); /* 16px — inline inset of app pages, sidebars */
+  --gutter-md: var(--space-6); /* 24px — cards, dialogs, marketing-page inline inset */
+  --gutter-lg: var(--space-8); /* 32px — block inset of app pages */
+  --gutter-xl: var(--space-12); /* 48px — block inset of marketing/doc pages */
+
+  /* Fluid inline gutter — tightens in narrow containers, maxes at            */
+
+  /* --gutter-md. cqi resolves against the nearest query container (falls     */
+
+  /* back to the small viewport when none), per the container-queries rule.   */
+  --gutter-fluid: clamp(var(--gutter-sm), 3cqi, var(--gutter-md));
+
   /* --- Border Radius --- */
   --radius-sm: 4px;
   --radius-md: 8px;

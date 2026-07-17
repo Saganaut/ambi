@@ -4,14 +4,14 @@
   align-self: center;
   width: 100%;
   max-width: 1440px;
-  padding: var(--space-8) var(--space-4);
+  padding: var(--gutter-lg) var(--gutter-sm);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--stack-md);
   gap: var(--space-4);
   flex-wrap: wrap;
 }
@@ -23,7 +23,7 @@
 }
 
 .section {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--stack-lg);
 }
 
 .sectionTitle {
