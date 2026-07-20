@@ -67,9 +67,9 @@ import com.cephadex.ambi.user.Avatar;
  * successful transition the orchestrator publishes a {@code SessionEvent} via
  * {@link EventPublisher} — it never talks to a transport directly.
  *
- * <p>This is the seam {@code Round.java} collapses into: a round has no durable
- * document and no identity beyond {@code (sessionId, slideId)}, so its
- * transitions live here rather than in a separate object (open-decisions B1).
+ * <p>A round has no durable document and no identity beyond
+ * {@code (sessionId, slideId)}, so its transitions live here rather than in a
+ * separate Round object (open-decisions B1).
  *
  * <h2>Round phases</h2>
  * A standalone slide runs {@code SUBMIT → REVEAL_RESPONSES → REVEAL_RESULTS}. A

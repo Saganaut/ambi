@@ -9,9 +9,9 @@
 - This is in order to avoid ambiguity and because their primary role is to enforce rules tied to the session
 - but they also need to persist as documents in MongoDb
 - They should not inherit the document base class, they should have custom setters to maintain invariance
-- Round.java does not have a persistent document, it is initialized from a slide within a deck snapshot
-- LiveSession is the aggregate for participant.java, , and round.java as well as the liveSession itself
-- answer.java is governed by the aggregate rules, its only role is to submit answers. Checks for correctness/scoring are done in Round.java
+- A round has no domain class or persistent document — it exists only as `(sessionId, slideId)`; its transitions live in LiveSessionOrchestrator.java (open-decisions B1)
+- LiveSession is the aggregate for participant.java as well as the liveSession itself
+- answer.java is governed by the aggregate rules, its only role is to submit answers. Checks for correctness/scoring are done in RoundEvaluator.java/RoundScorer.java
 - Participant.java has mutable fields, the scoring ones.
 - Round results round is computed from Answers which remain the source of truth
 - LiveSessionOrchestrator.java will manage it all
@@ -39,7 +39,6 @@
 - PresenceStore
 - TallyStore
 - LiveSessionRepository
-- RoundRepository
 - ParticipantRepository
 - AnswerRepository
 - RoundResultRepository

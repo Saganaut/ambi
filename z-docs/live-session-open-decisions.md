@@ -146,13 +146,14 @@ so decide pause support **now** even if the timer is deferred.
 
 ### B1. `Round.java` vs `LiveSessionOrchestrator`
 
-> ✅ **RESOLVED (as suggested).** `session/liveSession/Round.java` is still
-> present but is a dead stub (`UnsupportedOperationException` on every method) —
-> nothing constructs or calls it. `LiveSessionOrchestrator` is the seam it
-> collapses into: all round transitions (`startRound`, `submitAnswer`,
+> ✅ **RESOLVED (as suggested).** `LiveSessionOrchestrator` is the seam `Round`
+> collapsed into: all round transitions (`startRound`, `submitAnswer`,
 > `closeSubmissions`, `revealResponses`, `revealResults`, `restartRound`) live
-> there against Redis + `RoundEvaluator`/`RoundScorer`. `Round.java` can be
-> deleted as a follow-up cleanup.
+> there against Redis + `RoundEvaluator`/`RoundScorer`. The dead
+> `session/liveSession/Round.java` stub (`UnsupportedOperationException` on
+> every method, nothing constructing or calling it) was deleted 2026-07-20; its
+> only genuinely unbuilt operations remain deferred as D3 (`submitVote`) and A3
+> (`pauseTimer`/`resumeTimer`).
 
 `Round` is a stub (`submitAnswer/submitVote/pauseTimer/restartRound/
 revealRoundResponses/revealRoundResults`), but the orchestrator already owns
