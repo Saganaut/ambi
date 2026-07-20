@@ -20,6 +20,7 @@
   --border-color: transparent;
   --gap: var(--space-2);
   --min-height: 2.5rem;
+  --btn-shadow: var(--shadow-xs);
 
   display: flex;
   align-items: center;
@@ -33,10 +34,12 @@
   color: var(--color);
   background-color: var(--background-color);
   border: var(--border-size-sm) solid var(--border-color);
+  box-shadow: var(--btn-shadow);
   transition:
     background-color var(--duration-base) ease-in-out,
     color var(--duration-base) ease-in-out,
-    border-color var(--duration-base) ease-in-out;
+    border-color var(--duration-base) ease-in-out,
+    box-shadow var(--duration-base) ease-in-out;
 
   /* ─── Variants (color slot) ────────────────────────────────── */
   &.primary {
@@ -98,6 +101,7 @@
   &.ghost {
     --background-color: transparent;
     --border-color: transparent;
+    --btn-shadow: none;
   }
 
   /* ─── Hover ─────────────────────────────────────────────────── */
@@ -114,12 +118,8 @@
   &.warning:hover,
   &.info:hover {
     color: oklch(from var(--color) calc(l - 0.1) calc(c + 0.01) h);
-    background-color: oklch(
-      from var(--background-color) calc(l + 0.8) calc(c + 0.02) h
-    );
-    border-color: oklch(
-      from var(--border-color) calc(l - 0.1) calc(c + 0.02) h
-    );
+    background-color: oklch(from var(--background-color) calc(l + 0.8) calc(c + 0.02) h);
+    border-color: oklch(from var(--border-color) calc(l - 0.1) calc(c + 0.02) h);
   }
 
   &.disabled,
@@ -178,8 +178,19 @@
   &.isDisabled,
   &.isDisabled:hover,
   &:disabled:hover {
+    --btn-shadow: none;
+
     opacity: 0.3;
     pointer-events: none;
+  }
+
+  /*
+   * Hover lifts elevation one token (elevation-over-borders.md). Declared
+   * after :disabled so this higher-specificity selector stays last (avoids
+   * no-descending-specificity); ghost has no surface to lift, so it opts out.
+   */
+  &:not(.ghost):hover {
+    --btn-shadow: var(--shadow-sm);
   }
 }
 
@@ -213,6 +224,7 @@
   --border-fill: var(--text-primary);
   --background-color: var(--bg-fill);
   --border-color: transparent;
+  --btn-shadow: var(--shadow-xs);
   --height: var(--space-14);
   --width: var(--space-14);
 
@@ -223,6 +235,7 @@
   color: var(--color);
   background-color: var(--background-color);
   border: var(--border-size-sm) solid var(--border-color);
+  box-shadow: var(--btn-shadow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -231,7 +244,8 @@
   transition:
     background-color var(--duration-base) ease-in-out,
     border-color var(--duration-base) ease-in-out,
-    color var(--duration-base) ease-in-out;
+    color var(--duration-base) ease-in-out,
+    box-shadow var(--duration-base) ease-in-out;
 
   /* SVG strokes follow currentcolor, so state changes on the button's    */
 
@@ -307,6 +321,7 @@
   &.ghost {
     --background-color: transparent;
     --border-color: transparent;
+    --btn-shadow: none;
   }
 
   /* ─── Disabled (platform state — declared early so its specificity      */
@@ -316,6 +331,8 @@
   &.isDisabled,
   &.isDisabled:hover,
   &:disabled:hover {
+    --btn-shadow: none;
+
     opacity: 0.3;
     pointer-events: none;
   }
@@ -326,6 +343,8 @@
 
   /* color for contrast; ghost / bordered just shift color (and border).      */
   &:not(.ghost, .disabled):hover {
+    --btn-shadow: var(--shadow-sm);
+
     background-color: var(--action-hover);
     color: var(--bg-surface);
   }

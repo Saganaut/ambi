@@ -5,7 +5,7 @@
 // Any color × any fill is legal — e.g. error+ghost is a red text-only
 // destructive control. Each value maps to a nested className in
 // Buttons.module.css; see styling-rules.md "Named button + icon-button
-// variants" for the catalog and /design-system for live demos.
+// variants" for the catalog and the Figma design-system library for live demos.
 
 export type BtnSize = "xs" | "sm" | "md" | "lg";
 

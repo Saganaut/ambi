@@ -8,21 +8,21 @@ Borders draw a hard line around every box; on a busy screen they stack into visu
 
 ## The elevation tokens
 
-Soft neutral drop shadows seeded from `#959da5`, defined in [`tokens.css`](../../../frontend/src/tokens.css). The same shadow is used in light and dark appearance (they live in `:root`, not the `[data-appearance]` blocks).
+Soft neutral drop shadows seeded from `#141414`, defined in [`tokens.css`](../../../frontend/src/tokens.css). The same shadow is used in light and dark appearance (they live in `:root`, not the `[data-appearance]` blocks).
 
 | Token         | Value                  | Use                                            |
 | ------------- | ---------------------- | ---------------------------------------------- |
-| `--shadow-xs` | `0 1px 3px #959da533`  | Hairline lift — the border replacement on flat elements (chips, inputs, list rows). |
-| `--shadow-sm` | `0 3px 10px #959da547` | Resting cards and tiles.                       |
-| `--shadow-md` | `0 8px 24px #959da561` | Raised cards, dropdowns, menus. `--shadow` aliases this. |
-| `--shadow-lg` | `0 16px 40px #959da575`| Modals, popovers, anything floating over content. |
+| `--shadow-xs` | `0 1px 3px #14141433`  | Hairline lift — the border replacement on flat elements (chips, inputs, list rows). |
+| `--shadow-sm` | `0 3px 10px #14141447` | Resting cards and tiles.                       |
+| `--shadow-md` | `0 8px 24px #14141461` | Raised cards, dropdowns, menus. `--shadow` aliases this. |
+| `--shadow-lg` | `0 16px 40px #14141475`| Modals, popovers, anything floating over content. |
 
 Always consume `--shadow-*` (or `--shadow`) — never hand-write a `box-shadow` colour, and never use `rgb()`/`rgba()` (see [color-formats](color-formats.md); the tokens are authored in hex-with-alpha).
 
 ## How to apply
 
 - **Separating a surface** (card, panel, dropdown, sheet) → `box-shadow: var(--shadow-sm)` (or `-md`/`-lg` by elevation). No `border`.
-- **A flat control that used a 1px border** (input, chip, secondary button) → `--shadow-xs` on the filled surface instead of `border` / the `--edge-*` tokens.
+- **A flat control that used a 1px border** (input, chip, filled button) → `--shadow-xs` on the filled surface instead of `border` / the `--edge-*` tokens. `Btn` / `IconBtn` apply this on the `default` and `bordered` fills (hover steps up to `--shadow-sm`); `ghost` opts out.
 - **Hover/active elevation** → step up one token (`--shadow-sm` → `--shadow-md`), don't add a border.
 
 ## When a border is still allowed
@@ -35,3 +35,11 @@ Borders and the `--border-*` / `--edge-*` tokens are **not** deleted — they st
 - **The `bordered` button fill** — an explicit, opt-in variant treatment.
 
 If a separation need fits none of the elevation tokens and isn't one of the above, raise it before hand-rolling a border.
+
+## Edges are a last resort
+
+The `--edge-*` tokens are a **decorative** hairline — an `~8%` tint off the fill they sit on, which lands around `1.2:1` against that fill. Do **not** add one by default: separate a surface with elevation (`--shadow-*`) instead.
+
+Because an edge sits far below the `3:1` WCAG 1.4.11 (non-text contrast) threshold, it can never *satisfy* an accessibility requirement, so it must **never** stand in for a boundary that carries meaning — focus, a control's identity, or status. Those remain `--border-*` / `outline` jobs (see [above](#when-a-border-is-still-allowed)).
+
+The one rare, legitimate reach for an edge is accessibility-adjacent: two same-coloured surfaces abut and a soft shadow reads ambiguously (or is dropped, e.g. forced-colours mode), so a faint but real seam helps a low-vision user tell them apart. That aids perception without being the *load-bearing* boundary. Outside that case, prefer a shadow or a semantic border.

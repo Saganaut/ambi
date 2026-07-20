@@ -262,17 +262,9 @@
   --edge-tint: black;
   --edge-canvas: color-mix(in oklab, var(--bg-canvas) 92%, var(--edge-tint));
   --edge-surface: color-mix(in oklab, var(--bg-surface) 92%, var(--edge-tint));
-  --edge-surface-raised: color-mix(
-    in oklab,
-    var(--bg-surface-raised) 92%,
-    var(--edge-tint)
-  );
+  --edge-surface-raised: color-mix(in oklab, var(--bg-surface-raised) 92%, var(--edge-tint));
   --edge-subtle: color-mix(in oklab, var(--bg-subtle) 92%, var(--edge-tint));
-  --edge-secondary: color-mix(
-    in oklab,
-    var(--bg-secondary) 92%,
-    var(--edge-tint)
-  );
+  --edge-secondary: color-mix(in oklab, var(--bg-secondary) 92%, var(--edge-tint));
   --edge-primary: color-mix(in oklab, var(--bg-primary) 92%, var(--edge-tint));
   --edge-brand: color-mix(in oklab, var(--bg-brand) 92%, var(--edge-tint));
 
@@ -459,13 +451,13 @@
 
   /* --- Elevation & Shadows --- */
 
-  /* Soft neutral drop shadows (#959da5), used the same in light and dark. See   */
+  /* Soft neutral drop shadows (#141414), used the same in light and dark. See   */
 
   /* rules/styling/elevation-over-borders.md — prefer elevation over borders.      */
-  --shadow-xs: 0 1px 3px #959da533;
-  --shadow-sm: 0 3px 10px #959da547;
-  --shadow-md: 0 8px 24px #959da561;
-  --shadow-lg: 0 16px 40px #959da575;
+  --shadow-xs: 0 1px 3px #14141433;
+  --shadow-sm: 0 3px 10px #14141447;
+  --shadow-md: 0 8px 24px #14141461;
+  --shadow-lg: 0 16px 40px #14141475;
   --shadow: var(--shadow-md);
 
   /* --- Z-Index Layering (Prevents "z-index: 999999" chaos) --- */

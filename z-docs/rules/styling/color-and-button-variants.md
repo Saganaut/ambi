@@ -1,6 +1,6 @@
 # Named Color Combinations & Button Variants
 
-**Rule:** Text/background pairings and button styling come from a fixed catalog. Anything not on these lists is outside the system. Live catalog: `/design-system` → Tokens / Common.
+**Rule:** Text/background pairings and button styling come from a fixed catalog. Anything not on these lists is outside the system. Live catalog: the Figma design-system library.
 
 ## Named text + background combinations
 
@@ -81,15 +81,15 @@ Status colors mean exactly one thing: feedback about an operation. Never decorat
 
 ### `fill` — background + border treatment
 
-| Fill       | Effect                                                                       |
-| ---------- | ---------------------------------------------------------------------------- |
-| `default`  | Background from the variant, transparent border. Standard filled look.        |
-| `bordered` | Background from the variant + the variant's matching border color.            |
-| `ghost`    | Transparent background and border. Text/icon only (variant's color).          |
+| Fill       | Effect                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| `default`  | Background from the variant + a soft resting shadow (`--shadow-xs`), transparent border. Standard filled look. |
+| `bordered` | Background from the variant + the variant's matching border color, plus the resting shadow.   |
+| `ghost`    | Transparent background, border, and shadow. Text/icon only (variant's color).                 |
 
 For a close (X) button on `IconBtn`, pass `XMarkIcon` as the `icon` with `fill="ghost"` — there is no `variant="close"` shortcut.
 
-Variants and fills are each a nested rule under `.btn` / `.iconBtn` in `Buttons.module.css`. Variants set `--color` / `--bg-fill` / `--border-fill`; fills decide whether `--background-color` and `--border-color` consume those or fall back to transparent. Sizes and shapes compose on top.
+Variants and fills are each a nested rule under `.btn` / `.iconBtn` in `Buttons.module.css`. Variants set `--color` / `--bg-fill` / `--border-fill`; fills decide whether `--background-color` and `--border-color` consume those or fall back to transparent, and whether the resting `--btn-shadow` (`--shadow-xs`, stepping up to `--shadow-sm` on hover per [elevation-over-borders](elevation-over-borders.md)) applies — `ghost` opts out with `--btn-shadow: none`. Sizes and shapes compose on top.
 
 ## Modifier vocabulary
 
