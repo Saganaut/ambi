@@ -1,6 +1,6 @@
 package com.cephadex.ambi.session.participant;
 
-import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
@@ -30,14 +30,24 @@ public class ParticipantResolver {
      *                            participant on the roster
      */
     public Participant resolve(LiveSession session, AmbiPrincipal principal) {
+        return find(session, principal)
+                .orElseThrow(() -> new ForbiddenException("NOT_A_PARTICIPANT", "not a participant in this session"));
+    }
+
+    /**
+     * The caller's participant on {@code session}'s roster, if present — the
+     * non-throwing counterpart to {@link #resolve}. Returns empty when the caller
+     * carries no user id, or has no non-banned participant on the roster. Used by
+     * the boundary that must decide roster membership without treating a miss as an
+     * error (the STOMP subscribe authorization).
+     */
+    public Optional<Participant> find(LiveSession session, AmbiPrincipal principal) {
         String userId = principal == null ? null : principal.userId();
         if (userId == null) {
-            throw new ForbiddenException("NOT_A_PARTICIPANT", "not a participant in this session");
+            return Optional.empty();
         }
-        List<Participant> roster = participants.findAllById(session.getRoster());
-        return roster.stream()
+        return participants.findAllById(session.getRoster()).stream()
                 .filter(p -> !p.isBanned() && userId.equals(p.getUserId()))
-                .findFirst()
-                .orElseThrow(() -> new ForbiddenException("NOT_A_PARTICIPANT", "not a participant in this session"));
+                .findFirst();
     }
 }

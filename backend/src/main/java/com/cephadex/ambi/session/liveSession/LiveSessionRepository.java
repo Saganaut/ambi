@@ -8,4 +8,7 @@ public interface LiveSessionRepository extends MongoRepository<LiveSession, Stri
 
     /** The session currently using {@code roomCode}, if any (the code is uniquely indexed). */
     Optional<LiveSession> findByRoomCode(String roomCode);
+
+    /** The session published under {@code publicId}, if any (the id is uniquely indexed). */
+    Optional<LiveSession> findByPublicId(String publicId);
 }

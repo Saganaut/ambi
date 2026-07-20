@@ -13,22 +13,41 @@ import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.session.liveSession.LiveSession;
+import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
+import com.cephadex.ambi.session.participant.ParticipantResolver;
 
 /**
  * Authorizes STOMP {@code SUBSCRIBE} frames to session topics. STOMP frames don't
  * traverse the servlet security chain (that only runs on the HTTP handshake), so
  * this inbound-channel interceptor is where per-subscription access is enforced.
  *
- * <p><strong>v1 posture (open-decisions C2):</strong> the {@code publicId} in the
- * destination is a random UUID, so any authenticated, non-visitor principal
- * (registered users <em>and</em> guests) who knows it may subscribe. The tighter
- * "is this principal actually on the session roster" check waits on the
- * participant token; the TODO below marks where it goes.
+ * <p>A {@code SUBSCRIBE} to {@code /topic/liveSession/<publicId>} is admitted only
+ * when the subscriber is on that session's roster (host or participant). The check
+ * mirrors the REST command surface: the subscriber's {@link AmbiPrincipal} is
+ * resolved to a non-banned participant on the session's roster via the shared
+ * {@link ParticipantResolver}. Knowing the {@code publicId} is not sufficient —
+ * closing the gap where any authenticated, non-visitor caller who learned the id
+ * could eavesdrop on a session they never joined (open-decisions C2).
+ *
+ * <p>The topic carries the session's {@code publicId} (see
+ * {@code LiveSessionStompRelay}), not its Mongo id, so authorization loads the
+ * session by {@code publicId}. Roster membership resolves off the persisted
+ * {@code Participant.userId} — the same identity the REST endpoints authorize on;
+ * the userId is only stripped from the wire DTOs, never from the stored document.
  */
 @Component
 public class SubscribeAuthInterceptor implements ChannelInterceptor {
 
     private static final String SESSION_TOPIC_PREFIX = "/topic/liveSession/";
+
+    private final LiveSessionRepository sessions;
+    private final ParticipantResolver participantResolver;
+
+    public SubscribeAuthInterceptor(LiveSessionRepository sessions, ParticipantResolver participantResolver) {
+        this.sessions = sessions;
+        this.participantResolver = participantResolver;
+    }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -40,21 +59,35 @@ public class SubscribeAuthInterceptor implements ChannelInterceptor {
         if (destination == null || !destination.startsWith(SESSION_TOPIC_PREFIX)) {
             return message;
         }
-        if (!isAuthenticated(accessor.getUser())) {
+        AmbiPrincipal principal = authenticatedPrincipal(accessor.getUser());
+        if (principal == null) {
             throw new MessagingException("authentication required to subscribe to a session topic");
         }
-        // TODO(C2): once the participant token exists, resolve the principal to a
-        // participantId and reject if it is not on this session's roster.
+        String publicId = destination.substring(SESSION_TOPIC_PREFIX.length());
+        if (publicId.isEmpty() || publicId.indexOf('/') >= 0) {
+            throw new MessagingException("malformed session topic destination");
+        }
+        LiveSession session = sessions.findByPublicId(publicId)
+                .orElseThrow(() -> new MessagingException("no session for that topic"));
+        if (participantResolver.find(session, principal).isEmpty()) {
+            throw new MessagingException("not a participant in this session");
+        }
         return message;
     }
 
-    private static boolean isAuthenticated(Principal user) {
+    /**
+     * The authenticated, non-visitor {@link AmbiPrincipal} behind the STOMP session,
+     * or {@code null} when the frame carries no usable identity (unauthenticated,
+     * a non-{@code AmbiPrincipal} authentication, or a bare visitor). Visitors are
+     * rejected because they have no user id and so can never be on a roster.
+     */
+    private static AmbiPrincipal authenticatedPrincipal(Principal user) {
         if (!(user instanceof Authentication auth) || !auth.isAuthenticated()) {
-            return false;
+            return null;
         }
-        if (auth.getPrincipal() instanceof AmbiPrincipal principal) {
-            return principal.state() != IdentityState.VISITOR;
+        if (auth.getPrincipal() instanceof AmbiPrincipal principal && principal.state() != IdentityState.VISITOR) {
+            return principal;
         }
-        return false;
+        return null;
     }
 }

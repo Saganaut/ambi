@@ -58,7 +58,7 @@ flowchart TB
     RELAY -->|convertAndSend<br/>/topic/liveSession/{publicId}| BROKER
     BROKER -->|push event| WS
 
-    WS -. SUBSCRIBE frame .-> AUTH["SubscribeAuthInterceptor<br/>authenticated · not VISITOR"]
+    WS -. SUBSCRIBE frame .-> AUTH["SubscribeAuthInterceptor<br/>on the session roster"]
 ```
 
 ## Event publish sequence (e.g. `startRound`)

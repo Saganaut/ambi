@@ -18,7 +18,7 @@
 | 4 | **Medium** | Auth | Fail-open default Spring profile (`DEV`) exposes `POST /api/dev/login` + Swagger on a mis-provisioned prod |
 | 5 | **Medium** | Auth | JWT signing key falls back to a committed default; no fail-fast in PROD |
 | 6 | **Medium** | Auth | `Secure` cookie flag depends on `request.isSecure()`; no `forward-headers-strategy` for proxied TLS |
-| 7 | **Medium** | Auth | WebSocket `SUBSCRIBE` not authorized against session roster (known `TODO(C2)`) |
+| 7 | **Medium** | Auth | WebSocket `SUBSCRIBE` not authorized against session roster (known `TODO(C2)`) — ✅ RESOLVED |
 | 8 | **Medium** | Media | Image decompression bomb — no decoded-pixel cap before rasterization (DoS) |
 | 9 | **Medium** | Media / Injection | Cross-tenant image-key reference via client-supplied `srcKey` (flagged by 2 lanes) |
 | 10 | **Medium** | Injection | Slide-content model & several answer payloads have no size/cascade validation (storage DoS) |
@@ -100,13 +100,13 @@ Every auth cookie (`AMBI_AT`, `AMBI_RT`, `AMBI_RU`) sets `Secure` from `request.
 
 **Remediation:** set `server.forward-headers-strategy=FRAMEWORK` in PROD (and ensure the proxy sends `X-Forwarded-Proto`), or force `secure(true)` in prod.
 
-### 7. WebSocket subscription not authorized against the session roster
+### 7. WebSocket subscription not authorized against the session roster — ✅ RESOLVED
 
-`session/transport/SubscribeAuthInterceptor.java:43-49` (`TODO(C2)`)
+`session/transport/SubscribeAuthInterceptor.java`
 
-`SUBSCRIBE` to `/topic/liveSession/<publicId>` requires only an authenticated, non-visitor principal — it does not verify roster membership, unlike the REST snapshot `GET /api/liveSessions/{id}` which enforces it via `ParticipantResolver.resolve`. Any signed-in user who learns a session's `publicId` can subscribe to the full live event stream (scoreboard, reveals, presence) without joining. Bounded by the fact that `publicId` is a random UUID and payloads use participant-safe DTOs (no answer key); acknowledged in-code as v1 posture.
+`SUBSCRIBE` to `/topic/liveSession/<publicId>` previously required only an authenticated, non-visitor principal — it did not verify roster membership, unlike the REST snapshot `GET /api/liveSessions/{id}` which enforces it via `ParticipantResolver.resolve`. Any signed-in user who learned a session's `publicId` could subscribe to the full live event stream (scoreboard, reveals, presence) without joining. Bounded by the fact that `publicId` is a random UUID and payloads use participant-safe DTOs (no answer key).
 
-**Remediation:** resolve the subscriber to a `participantId` and reject non-roster principals, mirroring the REST check.
+**Resolution (as recommended):** `SubscribeAuthInterceptor` now loads the session by `publicId` and resolves the subscriber to a non-banned roster participant via the shared `ParticipantResolver.find`, rejecting any non-roster (or unauthenticated / visitor / unknown-session) SUBSCRIBE — mirroring the REST check. The `TODO(C2)` "participant token" blocker was not real: roster membership resolves off the persisted `Participant.userId` (stripped only from the wire, never from the stored document), the same identity the REST command surface already authorizes on.
 
 ### 8. Image decompression bomb — no decoded-pixel cap
 

@@ -227,6 +227,15 @@ back deterministically. For guests, mint a signed **participant token** (cookie)
 at join that carries `participantId`; reconnection presents the token. Never
 trust a client-supplied `participantId` without the token/user match.
 
+> **Note — partially resolved.** The stored `userId` is *not* stripped (only the
+> wire DTOs are), so the STOMP SUBSCRIBE authorization gap this section was cited
+> for (`SubscribeAuthInterceptor` `TODO(C2)`, security-report finding 7) is
+> **closed**: subscribe access now resolves the principal's `userId` against the
+> roster, no participant token required — see
+> [`SubscribeAuthInterceptor`](../backend/src/main/java/com/cephadex/ambi/session/transport/SubscribeAuthInterceptor.java).
+> The signed **guest participant token** proposed above remains open, but only for
+> its *reconnection re-identification* purpose — not for subscribe authorization.
+
 ### C3. Live source of truth for the roster + scores
 
 README says `Participant` "lives in Redis for the duration," but there is **no

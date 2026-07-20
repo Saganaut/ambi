@@ -18,6 +18,12 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.user.enums.UserLevel;
 
+/**
+ * Resolving an authenticated caller to their roster participant: {@code resolve}
+ * returns the matching non-banned participant and throws {@link ForbiddenException}
+ * when the caller has no user id, is not on the roster, or is banned; {@code find}
+ * is the non-throwing counterpart, returning empty in those same cases.
+ */
 class ParticipantResolverTest {
 
     private ParticipantRepository participants;
@@ -65,6 +71,32 @@ class ParticipantResolverTest {
 
         assertThatThrownBy(() -> resolver.resolve(session, principal("user-1")))
                 .isInstanceOf(ForbiddenException.class);
+    }
+
+    // ── find (non-throwing) ──────────────────────────────────────────────────
+
+    @Test
+    void findReturnsRosterParticipant() {
+        Participant p = Participant.join("user-1", "Name", null, null);
+        when(participants.findAllById(any())).thenReturn(List.of(p));
+
+        assertThat(resolver.find(session, principal("user-1"))).containsSame(p);
+    }
+
+    @Test
+    void findIsEmptyWhenCallerNotOnRoster() {
+        Participant p = Participant.join("user-1", "Name", null, null);
+        when(participants.findAllById(any())).thenReturn(List.of(p));
+
+        assertThat(resolver.find(session, principal("user-2"))).isEmpty();
+    }
+
+    @Test
+    void findIsEmptyWhenCallerHasNoUserId() {
+        AmbiPrincipal visitor = new AmbiPrincipal(IdentityState.VISITOR, null, null, null,
+                AuthProvider.INTERNAL, null, null, "sid-x");
+
+        assertThat(resolver.find(session, visitor)).isEmpty();
     }
 
     private static AmbiPrincipal principal(String userId) {
