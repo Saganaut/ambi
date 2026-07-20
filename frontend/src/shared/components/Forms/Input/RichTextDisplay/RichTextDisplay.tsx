@@ -8,11 +8,15 @@
  * block boundaries (paragraphs, list items, headings, <br>) preserved as
  * newlines.
  *
- * The HTML originates from the user via RichTextInput, so it has already
- * been sanitized to the TipTap mark/node set — `dangerouslySetInnerHTML`
- * is acceptable here for the same reason it's safe in the editor's own
- * rendered output.
+ * The HTML nominally originates from RichTextInput (TipTap), but the stored
+ * `body` is a plain string on the wire — seed data, a direct API write, an
+ * imported deck, or a `javascript:` href could carry markup outside the
+ * editor's schema. We therefore sanitize with DOMPurify at this boundary
+ * before injecting via `dangerouslySetInnerHTML`, so no script, event handler,
+ * or unsafe URL scheme can ever reach the DOM regardless of the source. See
+ * `sanitizeRichText` for the allowlist (which mirrors the TipTap schema).
  */
+import { sanitizeRichText } from "@utils/sanitizeHtml";
 import { truncateText } from "@utils/utils";
 import { useMemo } from "react";
 import styles from "./RichTextDisplay.module.css";
@@ -112,18 +116,21 @@ const truncateHtml = (html: string, maxLength: number): string => {
   const truncated = copy(doc.body, root);
   return truncated ? `${root.innerHTML}...` : root.innerHTML;
 };
-//TODO: Need to make sure this is secure
 const RichTextDisplay = ({ value, styled = true, maxLength, className }: RichTextDisplayProps) => {
+  // Sanitize once at the boundary; every downstream path (plain-text stripping,
+  // truncation, direct injection) operates on the allowlisted HTML only.
+  const safeHtml = useMemo(() => sanitizeRichText(value), [value]);
+
   const plainText = useMemo(() => {
     if (styled) return "";
-    const text = htmlToPlainText(value);
+    const text = htmlToPlainText(safeHtml);
     return maxLength === undefined ? text : truncateText(text, maxLength);
-  }, [styled, value, maxLength]);
+  }, [styled, safeHtml, maxLength]);
 
   const styledHtml = useMemo(() => {
     if (!styled) return "";
-    return maxLength === undefined ? value : truncateHtml(value, maxLength);
-  }, [styled, value, maxLength]);
+    return maxLength === undefined ? safeHtml : truncateHtml(safeHtml, maxLength);
+  }, [styled, safeHtml, maxLength]);
 
   if (!styled) {
     return <div className={`${styles.plain} ${className ?? ""}`.trim()}>{plainText}</div>;
@@ -132,8 +139,7 @@ const RichTextDisplay = ({ value, styled = true, maxLength, className }: RichTex
   return (
     <div
       className={`${styles.content} ${className ?? ""}`.trim()}
-      //TODO: still need to double check this
-      // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml -- HTML originates from RichTextInput (TipTap), constrained to the editor's mark/node schema
+      // eslint-disable-next-line react/no-danger -- styledHtml is DOMPurify-sanitized via sanitizeRichText (allowlist matches the TipTap schema; scripts/handlers/unsafe URLs stripped)
       dangerouslySetInnerHTML={{ __html: styledHtml }}
     />
   );

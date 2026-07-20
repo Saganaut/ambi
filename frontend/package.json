@@ -42,6 +42,7 @@
     "@uiw/react-color": "^2.10.1",
     "@uiw/react-color-block": "^2.10.1",
     "@uiw/react-color-swatch": "^2.10.1",
+    "dompurify": "^3.4.12",
     "nanoid": "^5.1.11",
     "perfect-freehand": "^1.2.3",
     "qrcode.react": "^4.2.0",
