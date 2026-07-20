@@ -114,35 +114,6 @@ const AxisItemEditable = ({
             openPicker={openPicker}
           />
           {thumbnailSrc && <img className={styles.itemThumbnail} src={thumbnailSrc} alt="" />}
-          {targetPosition && (
-            <div className={styles.targetFields}>
-              {/*This takes up a lot of room and is probably unecessary, leaving ti in case we change our minds */}
-              {/* <NumberInput
-                compact
-                id={`axis-target-x-${itemId}`}
-                label="X"
-                labelPosition="labelInFront"
-                value={toPercent(targetPosition.x)}
-                min={0}
-                max={100}
-                onChange={(next) => {
-                  setCoordinate("x", next);
-                }}
-              />
-              <NumberInput
-                compact
-                id={`axis-target-y-${itemId}`}
-                label="Y"
-                labelPosition="labelInFront"
-                value={toPercent(targetPosition.y)}
-                min={0}
-                max={100}
-                onChange={(next) => {
-                  setCoordinate("y", next);
-                }}
-              /> */}
-            </div>
-          )}
         </div>
       </ItemCard>
     </div>

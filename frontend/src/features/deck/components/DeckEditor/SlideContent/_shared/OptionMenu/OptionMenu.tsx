@@ -6,14 +6,13 @@
 // needed to stay inside the clipping container. The menu body itself lives in
 // the shared `OptionMenuContent`; MCQ renders that straight into a
 // `FloatingPopover`, which handles positioning without this shell.
-//TODO: THIS IS STILL USING LEGACY METHOD, CHANGE TO USE POPOVER WRAPPER 
+//TODO: THIS IS STILL USING LEGACY METHOD, CHANGE TO USE POPOVER WRAPPER
 import { useRef } from "react";
 
 import type { MenuAlign } from "@/shared/components/Charts/Chart.types";
-import { OptionMenuContent } from "./OptionMenuContent";
-import type { OptionMenuPrimaryAction } from "./OptionMenu.types";
 import styles from "./OptionMenu.module.css";
-import { useFlipToFit } from "./useFlipToFit";
+import type { OptionMenuPrimaryAction } from "./OptionMenu.types";
+import { OptionMenuContent } from "./OptionMenuContent";
 
 interface OptionMenuProps {
   /** Display identifier used for the accessible menu label. */
@@ -47,18 +46,11 @@ const OptionMenu = ({
   onRemove,
 }: OptionMenuProps) => {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const { flipUp, flipEnd } = useFlipToFit(wrapRef);
 
   return (
     <div
       ref={wrapRef}
-      className={[
-        styles.menuWrap,
-        (align === "end" || flipEnd) && styles.alignEnd,
-        flipUp && styles.dropUp,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={[styles.menuWrap, align === "end" && styles.alignEnd].filter(Boolean).join(" ")}
       onClick={(event) => {
         event.stopPropagation();
       }}
