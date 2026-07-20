@@ -36,4 +36,47 @@ describe("SessionHeader", () => {
 
     expect(screen.queryByText(/Join code:/)).not.toBeInTheDocument();
   });
+
+  // ── Round timer (ADR 002) ────────────────────────────────────────────────
+
+  it("shows the frozen remaining time while the timer is paused", () => {
+    h.query = {
+      currentSlide: null,
+      phase: "SUBMIT",
+      roundDeadline: "2026-07-01T10:00:30Z",
+      timerPausedAt: "2026-07-01T10:00:10Z",
+    };
+
+    render(<SessionHeader />);
+
+    // deadline - pausedAt = 20s, frozen — no wall clock involved.
+    expect(screen.getByRole("timer")).toHaveTextContent("0:20");
+    expect(screen.getByText("paused")).toBeInTheDocument();
+  });
+
+  it("shows no timer for an untimed round", () => {
+    h.query = {
+      currentSlide: null,
+      phase: "SUBMIT",
+      roundDeadline: null,
+      timerPausedAt: null,
+    };
+
+    render(<SessionHeader />);
+
+    expect(screen.queryByRole("timer")).not.toBeInTheDocument();
+  });
+
+  it("hides the timer once submissions are closed", () => {
+    h.query = {
+      currentSlide: null,
+      phase: "LOCKED",
+      roundDeadline: "2026-07-01T10:00:30Z",
+      timerPausedAt: null,
+    };
+
+    render(<SessionHeader />);
+
+    expect(screen.queryByRole("timer")).not.toBeInTheDocument();
+  });
 });

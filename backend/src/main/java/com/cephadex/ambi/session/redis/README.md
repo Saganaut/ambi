@@ -15,12 +15,14 @@ plain `StringRedisTemplate` ops, namespaced keys, no lock library.
 | --- | --- |
 | [`SessionLocks`](SessionLocks.java) | Per-session mutual exclusion (SET-NX + Lua compare-and-delete). |
 | [`LiveRoundStateStore`](LiveRoundStateStore.java) | Load / save / clear the `LiveRoundState` snapshot. |
-| [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile control state (phase, current slide, start time). |
+| [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile control state (phase, current slide, start time, and — ADR 002 — `durationMs`/`pausedAt`/`accumulatedPauseMs` for the auto-close timer). |
 | [`TallyStore`](TallyStore.java) | Per-round option counts as a Redis Hash — lock-free `HINCRBY` per submission. |
 | [`AnswerStore`](AnswerStore.java) | Per-round in-flight answers as a Redis Hash (one field per participant; re-submit overwrites), flushed to Mongo at round close. |
 | [`PresenceStore`](PresenceStore.java) / [`Presence`](Presence.java) | Per-session live participant presence (connection status + last-seen) as a Redis Hash. |
+| [`SessionDeadline`](SessionDeadline.java) | A typed ZSET member (ADR 002) — `close:{sid}:{slideId}`, `hostAway:{sid}`, or `graceCancel:{sid}` — the scheduler-fired transition it represents. |
+| [`DeadlineStore`](DeadlineStore.java) | The global deadline ZSET (ADR 002): `schedule`/`cancel` entries, and the atomic Lua `popDue` the leader drains. |
 | [`SessionKeys`](SessionKeys.java) | Builds the namespaced keys from a `SessionId`. |
-| [`SessionRedisProperties`](SessionRedisProperties.java) | `ambi.session.*` config (namespaces, lock lease, round-state TTL). |
+| [`SessionRedisProperties`](SessionRedisProperties.java) | `ambi.session.*` config (namespaces, lock lease, round-state TTL, and the `deadlines.*` block — leader lease, poll interval, host-offline/grace windows). |
 | [`RedisJsonCodec`](../../common/redis/RedisJsonCodec.java) | Shared Jackson-3 codec (lives in `common/redis`, reusable). |
 
 ## Lock protocol
@@ -67,6 +69,8 @@ session").
 | Tally | `ambi:session:tally:<sessionId>:<slideId>` (Hash) | `ambi.session.tally.namespace` |
 | Answers | `ambi:session:answers:<sessionId>:<slideId>` (Hash) | `ambi.session.answers.namespace` |
 | Presence | `ambi:session:presence:<sessionId>` (Hash) | `ambi.session.presence.namespace` |
+| Deadlines (ADR 002) | `ambi:session:deadlines` (global ZSET, no TTL) | `ambi.session.deadlines.key` |
+| Deadline leader (ADR 002) | `ambi:session:deadline-leader` (SET NX PX, 15s lease) | `ambi.session.deadlines.leader-key` |
 
 Inspect live keys with `docker compose exec redis redis-cli -a password KEYS 'ambi:session:*'`.
 
@@ -81,7 +85,11 @@ submit at once would all serialize on one lock. Splitting it into a Redis Hash
 makes each submission a single atomic `HINCRBY` — no lock, no whole-blob rewrite.
 The split is by **write pattern**, not because the snapshot was large.
 
-## Out of scope (future)
+## Deadline scheduling (ADR 002)
 
-Deadline scheduling and event publishing are hinted in
-`LiveSessionOrchestrator` but not built here yet.
+The round-timer auto-close and host-disconnect liveness policy are built on top
+of this layer, not inside it: `SessionDeadline` + `DeadlineStore` hold the
+global deadline ZSET; `../DeadlineScheduler.java` is the leader-elected poller
+that drains it and dispatches into `LiveSessionOrchestrator`. See
+[ADR 002](../../../../../../../../../z-docs/decisions/002-live-session-round-timers.md)
+and [live-session-flow](../../../../../../../../../z-docs/live-session-flow.md#round-timer-auto-close-adr-002).

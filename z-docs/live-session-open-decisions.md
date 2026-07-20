@@ -139,7 +139,9 @@ one-class change.
 > [ADR 002](decisions/002-live-session-round-timers.md) for the full decision
 > (`durationMs`/`pausedAt`/`accumulatedPauseMs` on `LiveRoundState`, Redis ZSET
 > deadline poll, pause/resume host ops, host-disconnect grace via the same
-> scheduler). Implementation is carded on the board.
+> scheduler). **Implemented 2026-07-20**: `DeadlineScheduler` + `DeadlineStore`
+> (leader-elected ZSET poll), `pauseTimer`/`resumeTimer` host ops, and the
+> host-disconnect auto-pause + grace-cancel are all in.
 
 Stubbed in the orchestrator; `Round.pauseTimer/resumeTimer` are stubs.
 `LiveRoundState` has `roundStartedAt` but **no deadline, duration, or

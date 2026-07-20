@@ -62,6 +62,18 @@ public class LiveSessionHostService {
         orchestrator.restartRound(sessionId, slideId);
     }
 
+    /** Pauses the open timed round's auto-close countdown (submissions stay open). Host only. */
+    public void pauseTimer(String sessionId, String slideId, AmbiPrincipal principal) {
+        requireHost(sessionId, principal);
+        orchestrator.pauseTimer(sessionId, slideId);
+    }
+
+    /** Resumes a paused round timer, pushing the deadline out by the pause. Host only. */
+    public void resumeTimer(String sessionId, String slideId, AmbiPrincipal principal) {
+        requireHost(sessionId, principal);
+        orchestrator.resumeTimer(sessionId, slideId);
+    }
+
     /**
      * Types (or clears — blank text) the host's answer next to a Q&amp;A question;
      * the updated list is broadcast as {@code QAndAUpdated}. Host only.

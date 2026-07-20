@@ -65,7 +65,20 @@ class LiveSessionPresenceServiceTest {
 
         service.heartbeat(SID, caller);
 
-        verify(orchestrator).heartbeat(SID, p.getParticipantId());
+        verify(orchestrator).heartbeat(SID, p.getParticipantId(), false);
+    }
+
+    @Test
+    void hostHeartbeatDelegatesWithHostFlag() {
+        LiveSession session = mock(LiveSession.class);
+        Participant p = Participant.join("user-1", "Host", null, null);
+        when(sessions.findById(SID)).thenReturn(Optional.of(session));
+        when(participantResolver.resolve(session, caller)).thenReturn(p);
+        when(session.isHost(p.getParticipantId())).thenReturn(true);
+
+        service.heartbeat(SID, caller);
+
+        verify(orchestrator).heartbeat(SID, p.getParticipantId(), true);
     }
 
     @Test

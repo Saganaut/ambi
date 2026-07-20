@@ -36,11 +36,16 @@ public class LiveSessionPresenceService {
         orchestrator.reconnect(sessionId, participant.getParticipantId());
     }
 
-    /** Records a liveness heartbeat for the caller (server-debounced, no broadcast). */
+    /**
+     * Records a liveness heartbeat for the caller (server-debounced, no broadcast).
+     * A host beat also feeds the host-disconnect watch (F5 / ADR 002), so the host
+     * flag is resolved here where the session is already loaded.
+     */
     public void heartbeat(String sessionId, AmbiPrincipal principal) {
         LiveSession session = requireSession(sessionId);
         Participant participant = participantResolver.resolve(session, principal);
-        orchestrator.heartbeat(sessionId, participant.getParticipantId());
+        orchestrator.heartbeat(sessionId, participant.getParticipantId(),
+                session.isHost(participant.getParticipantId()));
     }
 
     private LiveSession requireSession(String sessionId) {

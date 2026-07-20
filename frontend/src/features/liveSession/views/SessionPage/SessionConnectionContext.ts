@@ -40,6 +40,10 @@ export interface SessionConnection {
   sendAdvance: () => void;
   /** Host: restart the current round from the top. */
   sendRestartRound: (slideId: string) => void;
+  /** Host: pause the timed round's auto-close countdown (submissions stay open). */
+  sendPauseTimer: (slideId: string) => void;
+  /** Host: resume a paused round timer; the deadline shifts out by the pause. */
+  sendResumeTimer: (slideId: string) => void;
   /** Host: type (or clear, with blank text) the answer next to a Q&A question. */
   sendHostAnswer: (slideId: string, questionId: string, answer: string) => void;
   /** Host: end the session now; scores so far are final. */

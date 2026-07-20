@@ -1,6 +1,6 @@
 # 002 — Auto-close round timers for live sessions
 
-**Status:** Accepted (implementation pending — tracked on the Ambi Dev board)
+**Status:** Accepted — implemented 2026-07-20
 **Date:** 2026-07-20
 
 ## Context

@@ -156,7 +156,7 @@ class SessionEventsTest {
 
     @Test
     void roundStartedEventCarriesNoAnswerKey() {
-        LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.now());
+        LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.now(), null, null, 0L);
 
         String json = codec.serialize(SessionEvents.roundStarted(state, mcqSlide(), answerSettings(), NO_IMAGES));
 
@@ -166,7 +166,7 @@ class SessionEventsTest {
 
     @Test
     void liveResultsShownCarriesSlideAndCountsButNoAnswerKey() {
-        LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.now());
+        LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.now(), null, null, 0L);
 
         String json = codec.serialize(
                 SessionEvents.liveResultsShown(state, mcqSlide(), Map.of("opt-a", 3), answerSettings(), NO_IMAGES));

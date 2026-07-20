@@ -70,6 +70,7 @@ describe("liveSessionSlice", () => {
         slideId: "slide-1",
         slide: { id: "slide-1", title: "Q1", contentType: "MCQ" },
         roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: null,
       },
       { type: "TallyUpdated", slideId: "slide-1", optionCounts: { "opt-a": 2 } },
       { type: "SubmissionsLocked", slideId: "slide-1" },
@@ -118,6 +119,7 @@ describe("liveSessionSlice", () => {
         slideId: "slide-1",
         slide: { id: "slide-1", title: "Q1", contentType: "MCQ" },
         roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: null,
       }),
       eventReceived({
         type: "TallyUpdated",
@@ -139,6 +141,7 @@ describe("liveSessionSlice", () => {
         slideId: "slide-1",
         slide: { id: "slide-1", title: "Q1", contentType: "GRID" },
         roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: null,
       }),
       eventReceived({
         type: "TallyUpdated",
@@ -159,6 +162,86 @@ describe("liveSessionSlice", () => {
 
     expect(state.phase).toBe("REVEAL_RESULTS");
     expect(state.optionCounts).toEqual({ "bat@0,0": 1 });
+  });
+
+  it("tracks the round timer through pause and resume", () => {
+    const opened = play(
+      seed(lobbySnapshot),
+      eventReceived({
+        type: "RoundStarted",
+        slideId: "slide-1",
+        slide: { id: "slide-1", title: "Q1", contentType: "MCQ" },
+        roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: "2026-07-01T10:00:30Z",
+      }),
+    );
+    expect(opened.roundDeadline).toBe("2026-07-01T10:00:30Z");
+    expect(opened.timerPausedAt).toBeNull();
+
+    const paused = play(
+      seed(lobbySnapshot),
+      eventReceived({
+        type: "RoundStarted",
+        slideId: "slide-1",
+        slide: { id: "slide-1", title: "Q1", contentType: "MCQ" },
+        roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: "2026-07-01T10:00:30Z",
+      }),
+      eventReceived({
+        type: "TimerPaused",
+        slideId: "slide-1",
+        pausedAt: "2026-07-01T10:00:10Z",
+        deadline: "2026-07-01T10:00:30Z",
+      }),
+    );
+    expect(paused.timerPausedAt).toBe("2026-07-01T10:00:10Z");
+
+    const resumed = play(
+      seed(lobbySnapshot),
+      eventReceived({
+        type: "RoundStarted",
+        slideId: "slide-1",
+        slide: { id: "slide-1", title: "Q1", contentType: "MCQ" },
+        roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: "2026-07-01T10:00:30Z",
+      }),
+      eventReceived({
+        type: "TimerPaused",
+        slideId: "slide-1",
+        pausedAt: "2026-07-01T10:00:10Z",
+        deadline: "2026-07-01T10:00:30Z",
+      }),
+      eventReceived({
+        type: "TimerResumed",
+        slideId: "slide-1",
+        deadline: "2026-07-01T10:00:45Z",
+      }),
+    );
+    expect(resumed.timerPausedAt).toBeNull();
+    // The resumed deadline carries the folded-in pause.
+    expect(resumed.roundDeadline).toBe("2026-07-01T10:00:45Z");
+  });
+
+  it("ignores a timer event addressed to a slide that is no longer current", () => {
+    const state = play(
+      seed(lobbySnapshot),
+      eventReceived({
+        type: "RoundStarted",
+        slideId: "slide-1",
+        slide: { id: "slide-1", title: "Q1", contentType: "MCQ" },
+        roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: null,
+      }),
+      eventReceived({
+        type: "TimerPaused",
+        slideId: "slide-OLD",
+        pausedAt: "2026-07-01T10:00:10Z",
+        deadline: "2026-07-01T10:00:30Z",
+      }),
+    );
+
+    expect(state.timerPausedAt).toBeNull();
+    expect(state.roundDeadline).toBeNull();
   });
 
   it("records lifecycle end and cancellation", () => {

@@ -17,6 +17,8 @@
 //                      results are revealed, or immediately for a display slide).
 //   - restart         → reopen; backend rejects a round already scored at close,
 //                      so this is gated to the still-open phases only.
+//   - pause/resumeTimer → freeze/unfreeze a timed round's auto-close countdown
+//                      (ADR 002); only while the timed round is still accepting.
 import type { LiveSessionLifecycle, RoundPhase } from "../../store/liveSessionEvents";
 
 export interface HostActions {
@@ -25,6 +27,8 @@ export interface HostActions {
   canRevealResults: boolean;
   canAdvance: boolean;
   canRestart: boolean;
+  canPauseTimer: boolean;
+  canResumeTimer: boolean;
 }
 
 const NONE: HostActions = {
@@ -33,18 +37,24 @@ const NONE: HostActions = {
   canRevealResults: false,
   canAdvance: false,
   canRestart: false,
+  canPauseTimer: false,
+  canResumeTimer: false,
 };
 
 /**
  * @param isDisplaySlide the current slide carries no answers (a display slide) —
  *   there is no submit phase to close/reveal, so the only action is to advance.
  * @param hasSlide a current slide id exists to target the round commands with.
+ * @param timed the open round has an auto-close timer (a deadline was broadcast).
+ * @param timerPaused the round timer is currently paused.
  */
 export const resolveHostActions = (
   status: LiveSessionLifecycle | null,
   phase: RoundPhase | null,
   isDisplaySlide: boolean,
   hasSlide: boolean,
+  timed = false,
+  timerPaused = false,
 ): HostActions => {
   if (status !== "IN_PROGRESS") return NONE;
 
@@ -69,5 +79,9 @@ export const resolveHostActions = (
     canAdvance: phase === "REVEAL_RESULTS",
     // Restart reopens the round; the backend rejects it once scored at close.
     canRestart: accepting,
+    // The backend rejects pause/resume on a closed or untimed round; pause and
+    // resume are each other's complements while the timer exists.
+    canPauseTimer: accepting && timed && !timerPaused,
+    canResumeTimer: accepting && timed && timerPaused,
   };
 };

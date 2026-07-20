@@ -9,7 +9,7 @@
 // as a thin adapter over the REST command hook `useLiveSessionMutate`, keyed on
 // this session's id. Consumers (SessionControls, McqBoardContent) fire commands
 // through it; the effect returns to every client over the socket.
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { useAppDispatch } from "@store/hooks";
 
@@ -25,6 +25,13 @@ import { openLiveSessionSocket } from "../../store/liveSessionSocket";
 import { SessionConnectionContext } from "./SessionConnectionContext";
 import type { SessionConnection } from "./SessionConnectionContext";
 import styles from "./SessionConnectionProvider.module.css";
+
+/**
+ * How often each connected client beats. Must sit well inside the backend's
+ * host-offline threshold (`ambi.session.deadlines.host-offline-after`, 30s) so
+ * a healthy host is never mistaken for disconnected.
+ */
+const HEARTBEAT_INTERVAL_MS = 10_000;
 
 interface SessionConnectionProviderProps {
   /** The session id — carried by the `$sessionId` route param; the REST/snapshot key. */
@@ -67,6 +74,12 @@ const SessionConnectionProvider = ({
     sendRestartRound: (slideId) => {
       mutate.restartRound(sessionId, slideId);
     },
+    sendPauseTimer: (slideId) => {
+      mutate.pauseTimer(sessionId, slideId);
+    },
+    sendResumeTimer: (slideId) => {
+      mutate.resumeTimer(sessionId, slideId);
+    },
     sendHostAnswer: (slideId, questionId, answer) => {
       mutate.answerQuestion(sessionId, slideId, questionId, answer);
     },
@@ -79,6 +92,26 @@ const SessionConnectionProvider = ({
   useEffect(() => {
     if (snapshot) dispatch(seed(snapshot));
   }, [snapshot, dispatch]);
+
+  // Liveness heartbeat while the page is open (server-debounced). Presence feeds
+  // the roster display, and a host's beats arm the host-disconnect watch that
+  // auto-pauses timed rounds (ADR 002/F5) — so send one immediately, then keep
+  // beating well inside the server's 30s offline threshold. The command adapter
+  // is a fresh closure each render, so the interval calls through a ref instead
+  // of keying the effect on it (which would churn the timer every render).
+  const heartbeatRef = useRef(mutate.heartbeat);
+  heartbeatRef.current = mutate.heartbeat;
+  const seeded = snapshot != null;
+  useEffect(() => {
+    if (!seeded) return;
+    heartbeatRef.current(sessionId);
+    const timer = setInterval(() => {
+      heartbeatRef.current(sessionId);
+    }, HEARTBEAT_INTERVAL_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [seeded, sessionId]);
 
   // Open the socket once the snapshot has given us the topic key (publicId).
   // Keyed on publicId so a snapshot refetch doesn't churn the connection; resets

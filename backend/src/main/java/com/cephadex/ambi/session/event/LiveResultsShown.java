@@ -15,8 +15,9 @@ import com.cephadex.ambi.session.event.dto.SlideView;
  * event (the first event a client sees for the slide) and {@code null} on the
  * mid-round toggle, where the client already has it from the prior
  * {@link RoundStarted}. Carries the current {@code optionCounts}, which keep
- * updating via {@link TallyUpdated}.
+ * updating via {@link TallyUpdated}. {@code deadline} is the auto-close instant
+ * for a timed round (ADR 002), {@code null} for an untimed one.
  */
 public record LiveResultsShown(String slideId, SlideView slide, Instant roundStartedAt,
-        Map<String, Integer> optionCounts) implements SessionEvent {
+        Map<String, Integer> optionCounts, Instant deadline) implements SessionEvent {
 }

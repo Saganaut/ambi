@@ -1,6 +1,5 @@
 package com.cephadex.ambi.session.event;
 
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +14,6 @@ import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 import com.cephadex.ambi.session.event.dto.SlideView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
-import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantScore;
 import com.cephadex.ambi.session.participant.enums.RemovalReason;
@@ -73,7 +71,7 @@ public final class SessionEvents {
     public static RoundStarted roundStarted(LiveRoundState state, Slide slide, AnswerSettings effectiveAnswer,
             Function<AppImage, String> imageUrl) {
         return new RoundStarted(state.currentSlideId(), SlideView.from(slide, effectiveAnswer, imageUrl),
-                state.roundStartedAt());
+                state.roundStartedAt(), state.deadline());
     }
 
     /**
@@ -85,12 +83,13 @@ public final class SessionEvents {
             Map<String, Integer> optionCounts, AnswerSettings effectiveAnswer,
             Function<AppImage, String> imageUrl) {
         return new LiveResultsShown(state.currentSlideId(), SlideView.from(slide, effectiveAnswer, imageUrl),
-                state.roundStartedAt(), Map.copyOf(optionCounts));
+                state.roundStartedAt(), Map.copyOf(optionCounts), state.deadline());
     }
 
     /** The mid-round go-live toggle: no slide (the client already has it from {@code RoundStarted}). */
     public static LiveResultsShown liveResultsShown(LiveRoundState state, Map<String, Integer> optionCounts) {
-        return new LiveResultsShown(state.currentSlideId(), null, state.roundStartedAt(), Map.copyOf(optionCounts));
+        return new LiveResultsShown(state.currentSlideId(), null, state.roundStartedAt(), Map.copyOf(optionCounts),
+                state.deadline());
     }
 
     public static TallyUpdated tallyUpdated(String slideId, Map<String, Integer> optionCounts) {
@@ -134,8 +133,22 @@ public final class SessionEvents {
                 terminal);
     }
 
-    public static RoundRestarted roundRestarted(String slideId, RoundPhase phase, Instant roundStartedAt) {
-        return new RoundRestarted(slideId, phase, roundStartedAt);
+    /** The fresh reopened round, read off the just-saved state (slide id, phase, start, deadline). */
+    public static RoundRestarted roundRestarted(LiveRoundState state) {
+        return new RoundRestarted(state.currentSlideId(), state.phase(), state.roundStartedAt(), state.deadline());
+    }
+
+    /**
+     * The round timer paused (host action or host-disconnect auto-pause), read off
+     * the just-saved paused state.
+     */
+    public static TimerPaused timerPaused(LiveRoundState state) {
+        return new TimerPaused(state.currentSlideId(), state.pausedAt(), state.deadline());
+    }
+
+    /** The round timer running again, read off the just-saved resumed state. */
+    public static TimerResumed timerResumed(LiveRoundState state) {
+        return new TimerResumed(state.currentSlideId(), state.deadline());
     }
 
     public static LiveSessionEnded liveSessionEnded(List<Participant> roster) {

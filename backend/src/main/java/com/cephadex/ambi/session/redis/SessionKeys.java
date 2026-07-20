@@ -64,4 +64,18 @@ public class SessionKeys {
     public String presenceKey(String sessionId) {
         return props.getPresence().getNamespace() + ":" + sessionId;
     }
+
+    /**
+     * Key of the single global deadline ZSET (ADR 002). Unlike the other keys it
+     * is not per-session: the scheduler leader polls one sorted set whose members
+     * ({@link SessionDeadline}) carry the session identity themselves.
+     */
+    public String deadlinesKey() {
+        return props.getDeadlines().getKey();
+    }
+
+    /** Key of the deadline-scheduler leader lease. */
+    public String deadlineLeaderKey() {
+        return props.getDeadlines().getLeaderKey();
+    }
 }

@@ -23,8 +23,16 @@ interface SessionControlsProps {
 }
 
 const SessionControls = ({ className }: SessionControlsProps) => {
-  const { status, phase, currentSlide, currentSlideId, roster, viewerIsHost } =
-    useLiveSessionQuery();
+  const {
+    status,
+    phase,
+    currentSlide,
+    currentSlideId,
+    roster,
+    viewerIsHost,
+    roundDeadline,
+    timerPausedAt,
+  } = useLiveSessionQuery();
   const {
     sendStart,
     sendRevealResponses,
@@ -32,6 +40,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     sendRevealResults,
     sendAdvance,
     sendRestartRound,
+    sendPauseTimer,
+    sendResumeTimer,
     sendEnd,
   } = useSessionConnection();
   const confirm = useConfirm();
@@ -65,6 +75,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     phase,
     currentSlide ? isDisplaySlide(currentSlide) : false,
     hasSlide,
+    roundDeadline != null,
+    timerPausedAt != null,
   );
 
   const handleEnd = async () => {
@@ -124,6 +136,18 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         {actions.canAdvance && (
           <Btn size="sm" variant={hasSlide ? undefined : "brand"} onClick={sendAdvance}>
             {hasSlide ? "Next round" : "Start round"}
+          </Btn>
+        )}
+        {/* Timed rounds only: freeze/unfreeze the auto-close countdown. */}
+        {(actions.canPauseTimer || actions.canResumeTimer) && (
+          <Btn
+            size="sm"
+            onClick={() => {
+              if (actions.canPauseTimer) sendPauseTimer(slideId);
+              else sendResumeTimer(slideId);
+            }}
+          >
+            {actions.canPauseTimer ? "Pause timer" : "Resume timer"}
           </Btn>
         )}
 

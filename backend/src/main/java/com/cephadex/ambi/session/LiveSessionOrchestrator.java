@@ -46,13 +46,17 @@ import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
+import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
+import com.cephadex.ambi.session.redis.DeadlineStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
+import com.cephadex.ambi.session.redis.SessionDeadline;
 import com.cephadex.ambi.session.redis.SessionLocks;
+import com.cephadex.ambi.session.redis.SessionRedisProperties;
 import com.cephadex.ambi.session.redis.TallyStore;
 import com.cephadex.ambi.session.roundResult.RoundResult;
 import com.cephadex.ambi.session.roundResult.RoundResultProjector;
@@ -84,9 +88,11 @@ import com.cephadex.ambi.user.Avatar;
  *
  * <p><strong>Status:</strong> the full orchestrator surface is wired — session
  * lifecycle, roster, presence/reconnect, the round lifecycle (open → close+score →
- * reveal), and server-owned navigation. Deferred seams (best-answer/deception
- * voting, timed rounds, combined follow-up reveal) are noted at their call sites
- * and in the deferred block near the end.
+ * reveal), server-owned navigation, and the auto-close round timers of ADR 002
+ * (deadlines in a Redis ZSET drained by {@link DeadlineScheduler}, pause/resume,
+ * and the host-disconnect grace policy). Deferred seams (best-answer/deception
+ * voting, combined follow-up reveal) are noted at their call sites and in the
+ * deferred block near the end.
  */
 @Service
 public class LiveSessionOrchestrator {
@@ -106,9 +112,8 @@ public class LiveSessionOrchestrator {
     private final ImageUrlResolver imageUrls;
     private final S3StorageService storage;
     private final RedisJsonCodec codec;
-    // DeadlineScheduler (auto-close round timers, A3 — decided 2026-07-20, see
-    // ADR 002): durationMs/pausedAt/accumulatedPauseMs on LiveRoundState plus a
-    // Redis ZSET deadline poll land with that feature's card.
+    private final DeadlineStore deadlines;
+    private final SessionRedisProperties redisProps;
 
     /**
      * Server-side debounce for {@link #heartbeat}: a beat landing within this window
@@ -140,7 +145,7 @@ public class LiveSessionOrchestrator {
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
             PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers, EventPublisher publisher,
             RoundResultProjector roundResults, ImageUrlResolver imageUrls, S3StorageService storage,
-            RedisJsonCodec codec) {
+            RedisJsonCodec codec, DeadlineStore deadlines, SessionRedisProperties redisProps) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
@@ -154,6 +159,8 @@ public class LiveSessionOrchestrator {
         this.imageUrls = imageUrls;
         this.storage = storage;
         this.codec = codec;
+        this.deadlines = deadlines;
+        this.redisProps = redisProps;
     }
 
     /**
@@ -261,11 +268,21 @@ public class LiveSessionOrchestrator {
         locks.withLock(sessionId, () -> {
             LiveSession session = requireSession(sessionId);
             requireNotTerminal(session);
-            session.cancel();
-            repo.save(session);
-            clearSessionRedis(session);
-            publisher.publish(session.getPublicId(), SessionEvents.liveSessionCancelled("Cancelled by host"));
+            cancelUnlocked(session, "Cancelled by host");
         });
+    }
+
+    /**
+     * The cancel transition itself, <strong>lock-free</strong>: the caller must
+     * already hold the session lock ({@link SessionLocks} is not reentrant).
+     * Shared by {@link #cancelSession} and the host-disconnect grace expiry
+     * ({@link #hostGraceExpired}), which differ only in their guard and reason.
+     */
+    private void cancelUnlocked(LiveSession session, String reason) {
+        session.cancel();
+        repo.save(session);
+        clearSessionRedis(session);
+        publisher.publish(session.getPublicId(), SessionEvents.liveSessionCancelled(reason));
     }
 
     // ── Participants & presence ──────────────────────────────────────────────
@@ -370,7 +387,11 @@ public class LiveSessionOrchestrator {
         }
         participant.heartbeat(); // ONLINE + lastSeenAt
         participants.save(participant);
-        presenceStore.save(sessionId, participantId, Presence.online(Instant.now()));
+        Instant now = Instant.now();
+        presenceStore.save(sessionId, participantId, Presence.online(now));
+        if (session.isHost(participantId)) {
+            armHostLiveness(sessionId, now);
+        }
         publisher.publish(session.getPublicId(), SessionEvents.participantReconnected(participant));
         return participant;
     }
@@ -379,8 +400,12 @@ public class LiveSessionOrchestrator {
      * Records a liveness heartbeat: refreshes the participant's presence /
      * last-seen. Server-debounced (ignore more than ~1/sec per participant — F5).
      * Does not publish (presence is read on demand for the lobby/scoreboard).
+     *
+     * <p>{@code host} is resolved by the caller (which already holds the session to
+     * authorize the beat): a host beat also re-arms the host-liveness deadline that
+     * drives the disconnect policy (F5 / ADR 002).
      */
-    public void heartbeat(String sessionId, String participantId) {
+    public void heartbeat(String sessionId, String participantId, boolean host) {
         Instant now = Instant.now();
         // Debounce: ignore a beat that lands within HEARTBEAT_DEBOUNCE of the last
         // recorded presence, so a chatty client can't hammer Redis. The participant
@@ -392,6 +417,90 @@ public class LiveSessionOrchestrator {
             return;
         }
         presenceStore.save(sessionId, participantId, Presence.online(now));
+        if (host) {
+            armHostLiveness(sessionId, now);
+        }
+    }
+
+    /**
+     * (Re-)arms the host-liveness deadline off a host presence write (F5 / ADR
+     * 002): the {@code HOST_AWAY} entry moves {@code hostOfflineAfter} past the
+     * beat, and any pending grace-cancel is called off — the host is back.
+     */
+    private void armHostLiveness(String sessionId, Instant seenAt) {
+        deadlines.schedule(SessionDeadline.hostAway(sessionId),
+                seenAt.plus(redisProps.getDeadlines().getHostOfflineAfter()));
+        deadlines.cancel(SessionDeadline.graceCancel(sessionId));
+    }
+
+    /**
+     * Fired by the {@code DeadlineScheduler} when the host's liveness deadline
+     * lapses (F5 / ADR 002). Re-validates presence under the session lock — a
+     * fresh beat may have raced the firing, in which case the deadline is simply
+     * re-armed. On a genuine loss: the open timed round auto-pauses (same
+     * transition as {@link #pauseTimer}), the host's presence flips to
+     * {@code DISCONNECTED} and is broadcast, and the grace-cancel countdown
+     * starts. If the host returns before it fires, any presence write calls it
+     * off ({@link #armHostLiveness}); otherwise {@link #hostGraceExpired} cancels
+     * the session.
+     */
+    public void hostPresenceLost(String sessionId) {
+        locks.withLock(sessionId, () -> {
+            LiveSession session = requireSession(sessionId);
+            if (session.isTerminal()) {
+                return; // ended while the deadline was in flight — nothing to do
+            }
+            String hostId = session.getHostParticipantId();
+            Instant now = Instant.now();
+            Duration offlineAfter = redisProps.getDeadlines().getHostOfflineAfter();
+            Presence presence = presenceStore.find(sessionId, hostId).orElse(null);
+            Instant lastSeen = presence == null ? null : presence.lastSeenAt();
+            if (lastSeen != null && Duration.between(lastSeen, now).compareTo(offlineAfter) < 0) {
+                // False alarm — a beat raced the firing. Re-arm from the actual beat.
+                armHostLiveness(sessionId, lastSeen);
+                return;
+            }
+
+            LiveRoundState current = roundStateStore.load(sessionId).orElse(null);
+            if (current != null && current.currentSlideId() != null && current.phase().acceptsSubmissions()
+                    && current.timed() && !current.isPaused()) {
+                LiveRoundState paused = current.paused(now);
+                roundStateStore.save(sessionId, paused);
+                deadlines.cancel(SessionDeadline.closeRound(sessionId, current.currentSlideId()));
+                if (paused.publicId() != null) {
+                    publisher.publish(paused.publicId(), SessionEvents.timerPaused(paused));
+                }
+            }
+
+            Presence offline = new Presence(ConnectionStatus.DISCONNECTED, lastSeen);
+            presenceStore.save(sessionId, hostId, offline);
+            publisher.publish(session.getPublicId(), SessionEvents.presenceChanged(hostId, offline));
+            deadlines.schedule(SessionDeadline.graceCancel(sessionId),
+                    now.plus(redisProps.getDeadlines().getHostGrace()));
+        });
+    }
+
+    /**
+     * Fired by the {@code DeadlineScheduler} when a disconnected host's grace runs
+     * out (F5 / ADR 002): the session is cancelled — unless the host slipped back
+     * in (a presence write should already have called this off; re-validated here
+     * anyway), in which case the liveness watch simply re-arms.
+     */
+    public void hostGraceExpired(String sessionId) {
+        locks.withLock(sessionId, () -> {
+            LiveSession session = requireSession(sessionId);
+            if (session.isTerminal()) {
+                return;
+            }
+            Presence presence = presenceStore.find(sessionId, session.getHostParticipantId()).orElse(null);
+            Instant lastSeen = presence == null ? null : presence.lastSeenAt();
+            if (lastSeen != null && Duration.between(lastSeen, Instant.now())
+                    .compareTo(redisProps.getDeadlines().getHostOfflineAfter()) < 0) {
+                armHostLiveness(sessionId, lastSeen);
+                return;
+            }
+            cancelUnlocked(session, "Host disconnected");
+        });
     }
 
     // ── Round control ────────────────────────────────────────────────────────
@@ -580,9 +689,19 @@ public class LiveSessionOrchestrator {
      * graded and points awarded via {@link RoundScorer}, and the record + mutated
      * participants persisted through {@link RoundResultProjector}. The scored
      * {@code ResultsRevealed} event is published later by {@link #revealResults}.
+     *
+     * <p>Also the expiry path of a timed round (ADR 002): the
+     * {@code DeadlineScheduler} calls this exact method when the round's deadline
+     * fires. {@code slideId} must match the open round — a close for any other
+     * slide (a stale timer firing after the host moved on) is a no-op — and any
+     * pending auto-close deadline for the round is cancelled either way.
      */
     public void closeSubmissions(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
+            if (!slideId.equals(current.currentSlideId())) {
+                return; // stale close (a timer firing after the host moved on) — never touch another round
+            }
+            deadlines.cancel(SessionDeadline.closeRound(sessionId, slideId));
             if (current.phase().isClosed()) {
                 return; // already closed — idempotent; scoring happens once, on the close transition
             }
@@ -687,6 +806,7 @@ public class LiveSessionOrchestrator {
             // round already closed at its own close is not re-scored (score-once).
             boolean wasOpen = !current.phase().isClosed();
             roundStateStore.save(sessionId, current.withPhase(RoundPhase.REVEAL_RESULTS));
+            deadlines.cancel(SessionDeadline.closeRound(sessionId, slideId)); // revealing also consumes the timer
             if (wasOpen) {
                 scoreAndPersistRound(sessionId, slideId, current.roundStartedAt());
             }
@@ -779,6 +899,67 @@ public class LiveSessionOrchestrator {
     }
 
     /**
+     * Pauses the open timed round's auto-close timer (ADR 002): stamps
+     * {@code pausedAt}, removes the pending deadline, and publishes
+     * {@code TimerPaused}. Submissions stay open — only the countdown freezes.
+     * Idempotent if already paused.
+     *
+     * @throws ConflictException if no timed round is open on {@code slideId}
+     */
+    public void pauseTimer(String sessionId, String slideId) {
+        locks.withLock(sessionId, () -> {
+            LiveRoundState current = requireOpenTimedRound(sessionId, slideId);
+            if (current.isPaused()) {
+                return; // already paused — idempotent
+            }
+            LiveRoundState paused = current.paused(Instant.now());
+            roundStateStore.save(sessionId, paused);
+            deadlines.cancel(SessionDeadline.closeRound(sessionId, slideId));
+            if (paused.publicId() != null) {
+                publisher.publish(paused.publicId(), SessionEvents.timerPaused(paused));
+            }
+        });
+    }
+
+    /**
+     * Resumes a paused round timer (ADR 002): folds the elapsed pause into
+     * {@code accumulatedPauseMs}, re-schedules the recomputed deadline, and
+     * publishes {@code TimerResumed} carrying it. Idempotent if not paused.
+     *
+     * @throws ConflictException if no timed round is open on {@code slideId}
+     */
+    public void resumeTimer(String sessionId, String slideId) {
+        locks.withLock(sessionId, () -> {
+            LiveRoundState current = requireOpenTimedRound(sessionId, slideId);
+            if (!current.isPaused()) {
+                return; // already running — idempotent
+            }
+            LiveRoundState resumed = current.resumed(Instant.now());
+            roundStateStore.save(sessionId, resumed);
+            deadlines.schedule(SessionDeadline.closeRound(sessionId, slideId), resumed.deadline());
+            if (resumed.publicId() != null) {
+                publisher.publish(resumed.publicId(), SessionEvents.timerResumed(resumed));
+            }
+        });
+    }
+
+    /**
+     * The open, submissions-accepting, timed round on {@code slideId} — the state
+     * pause/resume operate on. Must be called under the session lock.
+     */
+    private LiveRoundState requireOpenTimedRound(String sessionId, String slideId) {
+        LiveRoundState current = roundStateStore.load(sessionId).orElse(null);
+        if (current == null || !slideId.equals(current.currentSlideId())
+                || !current.phase().acceptsSubmissions()) {
+            throw new ConflictException("ROUND_NOT_OPEN", "this slide has no open round");
+        }
+        if (!current.timed()) {
+            throw new ConflictException("ROUND_NOT_TIMED", "this round has no timer");
+        }
+        return current;
+    }
+
+    /**
      * Shared open/reopen path, <strong>lock-free</strong>: the caller must already
      * hold the session lock. Operates on an already-resolved session + slide so a
      * navigation caller ({@link #advance}/{@link #goTo}) can resolve the next slide
@@ -801,13 +982,25 @@ public class LiveSessionOrchestrator {
             answerStore.clear(sessionId, slideId);
             qandaHostAnswers.clear(sessionId, slideId);
         }
-        LiveRoundState started = current.startedRound(slideId, Instant.now(), phase);
-        roundStateStore.save(sessionId, started);
         Settings.AnswerSettings effectiveAnswer =
                 Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
+        LiveRoundState started = current.startedRound(slideId, Instant.now(), phase,
+                timerDurationMs(effectiveAnswer));
+        roundStateStore.save(sessionId, started);
+        // Re-point the auto-close deadline (ADR 002): the superseded round's entry —
+        // if any — must go regardless of whether the new round is timed, or a stale
+        // timer could fire into the new round.
+        if (current.currentSlideId() != null && !current.currentSlideId().equals(slideId)) {
+            deadlines.cancel(SessionDeadline.closeRound(sessionId, current.currentSlideId()));
+        }
+        if (started.timed()) {
+            deadlines.schedule(SessionDeadline.closeRound(sessionId, slideId), started.deadline());
+        } else {
+            deadlines.cancel(SessionDeadline.closeRound(sessionId, slideId));
+        }
         SessionEvent event;
         if (restart) {
-            event = SessionEvents.roundRestarted(slideId, phase, started.roundStartedAt());
+            event = SessionEvents.roundRestarted(started);
         } else if (phase == RoundPhase.SUBMIT_LIVE) {
             event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId),
                     effectiveAnswer, this::slideItemImageUrl);
@@ -832,6 +1025,17 @@ public class LiveSessionOrchestrator {
                         "a round is already open on another slide");
             }
         });
+    }
+
+    /**
+     * The auto-close timer length for a round (ADR 002): the slide's resolved
+     * {@code countdownTime} (seconds) when positive, else {@code null} — the round
+     * opens untimed and keeps the host-driven close.
+     */
+    private Long timerDurationMs(Settings.AnswerSettings effectiveAnswer) {
+        return effectiveAnswer != null && effectiveAnswer.countdownTime() > 0
+                ? effectiveAnswer.countdownTime() * 1000L
+                : null;
     }
 
     /**
@@ -927,8 +1131,6 @@ public class LiveSessionOrchestrator {
 
     // ── Deferred past v1 (seams reserved) ────────────────────────────────────
     // - submitVote(...) + RoundPhase.VOTE — best-answer/deception voting (D3).
-    // - pauseTimer(...) / resumeTimer(...) + DeadlineScheduler — timed rounds (A3);
-    //   decide the LiveRoundState pause accumulator field before adding.
 
     // ── Lifecycle helpers ────────────────────────────────────────────────────
 
@@ -975,9 +1177,20 @@ public class LiveSessionOrchestrator {
         throw new ConflictException("ROOM_CODE_UNAVAILABLE", "could not allocate a unique room code");
     }
 
-    /** Drops every Redis key for a now-terminal session (state, presence, per-round answers/tallies). */
+    /**
+     * Drops every Redis key for a now-terminal session (state, presence, per-round
+     * answers/tallies) and its pending deadline entries, so no timer can fire into
+     * a finished session.
+     */
     private void clearSessionRedis(LiveSession session) {
         String sessionId = session.getId();
+        roundStateStore.load(sessionId).ifPresent(state -> {
+            if (state.currentSlideId() != null) {
+                deadlines.cancel(SessionDeadline.closeRound(sessionId, state.currentSlideId()));
+            }
+        });
+        deadlines.cancel(SessionDeadline.hostAway(sessionId));
+        deadlines.cancel(SessionDeadline.graceCancel(sessionId));
         roundStateStore.clear(sessionId);
         presenceStore.clear(sessionId);
         for (Slide slide : session.getDeck().getSlides()) {

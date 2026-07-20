@@ -46,7 +46,7 @@ export interface ParticipantOutcome {
   responseTimeMs: number;
 }
 
-// ── The 16 event members ────────────────────────────────────────────────────
+// ── The 18 event members ────────────────────────────────────────────────────
 
 export interface LiveSessionStarted {
   type: "LiveSessionStarted";
@@ -91,6 +91,8 @@ export interface RoundStarted {
   slideId: string;
   slide: SlideView;
   roundStartedAt: string;
+  /** Server-authoritative auto-close instant for a timed round (ADR 002); null when untimed. */
+  deadline: string | null;
 }
 
 export interface LiveResultsShown {
@@ -100,6 +102,8 @@ export interface LiveResultsShown {
   slide: SlideView | null;
   roundStartedAt: string;
   optionCounts: OptionCounts;
+  /** Server-authoritative auto-close instant for a timed round (ADR 002); null when untimed. */
+  deadline: string | null;
 }
 
 export interface TallyUpdated {
@@ -160,6 +164,27 @@ export interface RoundRestarted {
   slideId: string;
   phase: RoundPhase;
   roundStartedAt: string;
+  /** The fresh auto-close instant for a timed round (ADR 002); null when untimed. */
+  deadline: string | null;
+}
+
+/**
+ * The open timed round's countdown froze (host action, or auto-pause on host
+ * presence loss). Submissions stay open; the remaining time on the clock is
+ * `deadline - pausedAt` until a `TimerResumed` arrives.
+ */
+export interface TimerPaused {
+  type: "TimerPaused";
+  slideId: string;
+  pausedAt: string;
+  deadline: string;
+}
+
+/** The paused timer is running again; re-seed the countdown from `deadline`. */
+export interface TimerResumed {
+  type: "TimerResumed";
+  slideId: string;
+  deadline: string;
 }
 
 export interface LiveSessionEnded {
@@ -188,6 +213,8 @@ export type SessionEvent =
   | ResponsesRevealed
   | ResultsRevealed
   | RoundRestarted
+  | TimerPaused
+  | TimerResumed
   | LiveSessionEnded
   | LiveSessionCancelled;
 

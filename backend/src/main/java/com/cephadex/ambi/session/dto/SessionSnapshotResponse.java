@@ -33,6 +33,8 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * @param currentSlideId        the open slide, or {@code null} between rounds
  * @param currentSlide          the participant-safe view of the open slide, or {@code null} between rounds
  * @param currentRoundStartedAt when the open round started, or {@code null} between rounds
+ * @param currentRoundDeadline  the timed round's auto-close instant (ADR 002), or {@code null} for an untimed round; while paused it holds the deadline as frozen at the pause
+ * @param currentRoundPausedAt  when the round timer was paused, or {@code null} while it is running (or untimed)
  * @param optionTally           the open round's live per-option counts, or {@code null} between rounds
  * @param qAndAQuestions        the open Q&amp;A round's questions (with host answers), or {@code null} when the open slide isn't Q&amp;A
  * @param roster                every participant, in join order, with live connection status
@@ -51,6 +53,8 @@ public record SessionSnapshotResponse(
         String currentSlideId,
         SlideView currentSlide,
         Instant currentRoundStartedAt,
+        Instant currentRoundDeadline,
+        Instant currentRoundPausedAt,
         Map<String, Integer> optionTally,
         List<QAndAQuestionView> qAndAQuestions,
         List<ParticipantView> roster,

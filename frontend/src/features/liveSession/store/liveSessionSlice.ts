@@ -60,6 +60,14 @@ export interface LiveSessionState {
   currentSlideId: string | null;
   currentSlide: SlideView | null;
   roundStartedAt: string | null;
+  /**
+   * The timed round's server-authoritative auto-close instant (ADR 002); null
+   * for an untimed round. While paused it holds the deadline as frozen at the
+   * pause — remaining time is `roundDeadline - timerPausedAt`.
+   */
+  roundDeadline: string | null;
+  /** When the round timer was paused; null while it is running (or untimed). */
+  timerPausedAt: string | null;
   /** The current round's live per-option tally. */
   optionCounts: OptionCounts;
   /** The current Q&A round's questions (with host answers); empty otherwise. */
@@ -89,6 +97,8 @@ const initialState: LiveSessionState = {
   currentSlideId: null,
   currentSlide: null,
   roundStartedAt: null,
+  roundDeadline: null,
+  timerPausedAt: null,
   optionCounts: {},
   qAndAQuestions: [],
   results: null,
@@ -125,6 +135,8 @@ const liveSessionSlice = createSlice({
       state.currentSlideId = s.currentSlideId ?? null;
       state.currentSlide = s.currentSlide ?? null;
       state.roundStartedAt = s.currentRoundStartedAt ?? null;
+      state.roundDeadline = s.currentRoundDeadline ?? null;
+      state.timerPausedAt = s.currentRoundPausedAt ?? null;
       state.optionCounts = s.optionTally ?? {};
       state.qAndAQuestions = s.qAndAQuestions ?? [];
       state.scoreboard = s.scoreboard ?? [];
@@ -175,6 +187,8 @@ const liveSessionSlice = createSlice({
           state.currentSlideId = e.slideId;
           state.currentSlide = e.slide;
           state.roundStartedAt = e.roundStartedAt;
+          state.roundDeadline = e.deadline;
+          state.timerPausedAt = null;
           state.optionCounts = {};
           state.qAndAQuestions = [];
           state.results = null;
@@ -182,8 +196,14 @@ const liveSessionSlice = createSlice({
           break;
         case "LiveResultsShown":
           state.currentSlideId = e.slideId;
-          if (e.slide) state.currentSlide = e.slide;
+          // Carrying a slide means a fresh round opened live (not the mid-round
+          // go-live toggle) — reset the pause stamp along with the round state.
+          if (e.slide) {
+            state.currentSlide = e.slide;
+            state.timerPausedAt = null;
+          }
           state.roundStartedAt = e.roundStartedAt;
+          state.roundDeadline = e.deadline;
           state.optionCounts = e.optionCounts;
           state.phase = "SUBMIT_LIVE";
           break;
@@ -229,10 +249,24 @@ const liveSessionSlice = createSlice({
         case "RoundRestarted":
           state.currentSlideId = e.slideId;
           state.roundStartedAt = e.roundStartedAt;
+          state.roundDeadline = e.deadline;
+          state.timerPausedAt = null;
           state.phase = e.phase;
           state.optionCounts = {};
           state.qAndAQuestions = [];
           state.results = null;
+          break;
+        case "TimerPaused":
+          if (e.slideId === state.currentSlideId) {
+            state.timerPausedAt = e.pausedAt;
+            state.roundDeadline = e.deadline;
+          }
+          break;
+        case "TimerResumed":
+          if (e.slideId === state.currentSlideId) {
+            state.timerPausedAt = null;
+            state.roundDeadline = e.deadline;
+          }
           break;
         case "LiveSessionEnded":
           state.status = "FINISHED";

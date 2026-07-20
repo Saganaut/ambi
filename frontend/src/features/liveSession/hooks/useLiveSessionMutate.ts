@@ -21,8 +21,10 @@ import {
   useHeartbeatMutation,
   useJoinMutation,
   useLeaveMutation,
+  usePauseTimerMutation,
   useReconnectMutation,
   useRestartRoundMutation,
+  useResumeTimerMutation,
   useRevealResponsesMutation,
   useRevealResultsMutation,
   useStartMutation,
@@ -65,6 +67,10 @@ interface UseLiveSessionMutateResult {
   revealResponses: (id: string, slideId: string) => void;
   revealResults: (id: string, slideId: string) => void;
   restartRound: (id: string, slideId: string) => void;
+  /** Host: pause the open timed round's auto-close countdown (submissions stay open). */
+  pauseTimer: (id: string, slideId: string) => void;
+  /** Host: resume a paused round timer (the deadline shifts out by the pause). */
+  resumeTimer: (id: string, slideId: string) => void;
   /** Host: type (or clear, with blank text) the answer next to a Q&A question. */
   answerQuestion: (
     id: string,
@@ -93,6 +99,8 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
   const [revealResponsesMutation] = useRevealResponsesMutation();
   const [revealResultsMutation] = useRevealResultsMutation();
   const [restartRoundMutation] = useRestartRoundMutation();
+  const [pauseTimerMutation] = usePauseTimerMutation();
+  const [resumeTimerMutation] = useResumeTimerMutation();
   const [answerQuestionMutation] = useAnswerQuestionMutation();
   const [reconnectMutation] = useReconnectMutation();
   const [heartbeatMutation] = useHeartbeatMutation();
@@ -129,6 +137,10 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     void revealResultsMutation({ id, slideId });
   const restartRound = (id: string, slideId: string) =>
     void restartRoundMutation({ id, slideId });
+  const pauseTimer = (id: string, slideId: string) =>
+    void pauseTimerMutation({ id, slideId });
+  const resumeTimer = (id: string, slideId: string) =>
+    void resumeTimerMutation({ id, slideId });
   const answerQuestion = (
     id: string,
     slideId: string,
@@ -160,6 +172,8 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     revealResponses,
     revealResults,
     restartRound,
+    pauseTimer,
+    resumeTimer,
     answerQuestion,
     reconnect,
     heartbeat,

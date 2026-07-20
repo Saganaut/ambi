@@ -24,6 +24,7 @@ public class SessionRedisProperties {
     private final QandaHostAnswers qandaHostAnswers = new QandaHostAnswers();
     private final Presence presence = new Presence();
     private final Events events = new Events();
+    private final Deadlines deadlines = new Deadlines();
 
     @Data
     public static class Lock {
@@ -108,6 +109,57 @@ public class SessionRedisProperties {
          * the state TTL. Refreshed on every write.
          */
         private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class Deadlines {
+        /**
+         * Key of the single global deadline ZSET (ADR 002): one entry per pending
+         * scheduler-fired transition ({@code score = deadline epochMillis}, member =
+         * a {@link SessionDeadline}). Global rather than per-session so the leader
+         * polls one key instead of scanning a keyspace.
+         */
+        private String key = "ambi:session:deadlines";
+        /**
+         * Key of the scheduler-leader lease. Exactly one app instance holds it at a
+         * time (SET NX PX + compare-and-renew) and polls the deadline ZSET, so two
+         * instances never race to fire the same deadline.
+         */
+        private String leaderKey = "ambi:session:deadline-leader";
+        /**
+         * TTL on the leader lease. A crashed leader's lease self-expires after this
+         * window and another instance takes over; it must comfortably exceed the
+         * poll interval so a healthy leader never loses its own lease between polls.
+         */
+        private Duration leaderLease = Duration.ofSeconds(15);
+        /**
+         * How often the leader polls the ZSET for due deadlines — the upper bound on
+         * how late an auto-close fires past its deadline. Read via a property
+         * placeholder by {@code DeadlineScheduler}'s {@code @Scheduled} poll, so it
+         * is fixed at startup (not hot-reloadable like the other values here).
+         */
+        private Duration pollInterval = Duration.ofSeconds(1);
+        /** Max deadlines dispatched per poll; the rest stay queued for the next tick. */
+        private int batchSize = 16;
+        /**
+         * How far a deadline is pushed back when its dispatch loses the session lock
+         * to a concurrent operation ({@code SESSION_LOCKED}) — the transition is
+         * retried, not dropped.
+         */
+        private Duration retryDelay = Duration.ofSeconds(2);
+        /**
+         * How long after the host's last presence write they are considered
+         * disconnected (F5). Each host heartbeat re-arms a {@code HOST_AWAY}
+         * deadline this far out; when one actually fires, the open round
+         * auto-pauses and the {@link #hostGrace} countdown starts.
+         */
+        private Duration hostOfflineAfter = Duration.ofSeconds(30);
+        /**
+         * How long a disconnected host has to return before the session is
+         * cancelled (F5). Armed when {@code HOST_AWAY} fires; cleared by any host
+         * presence write.
+         */
+        private Duration hostGrace = Duration.ofMinutes(2);
     }
 
     @Data

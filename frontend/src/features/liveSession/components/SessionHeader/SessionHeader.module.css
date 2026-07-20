@@ -9,6 +9,16 @@
 
   .sessionTimer {
     display: flex;
+    align-items: baseline;
+    gap: var(--p-xs);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .timerPaused {
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    opacity: 0.7;
   }
 
   .sessionRoundDisplay {

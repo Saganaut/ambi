@@ -146,6 +146,8 @@ public class LiveSessionSnapshotService {
                 currentSlideId,
                 currentSlide,
                 roundState.roundStartedAt(),
+                roundState.deadline(),
+                roundState.pausedAt(),
                 optionTally,
                 qAndAQuestions,
                 rosterViews,

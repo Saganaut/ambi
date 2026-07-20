@@ -24,7 +24,7 @@ class RedisJsonCodecTest {
     @Test
     void instantRoundTripsAsIso8601() {
         Instant startedAt = Instant.parse("2026-05-30T12:00:00Z");
-        LiveRoundState state = new LiveRoundState("public-1", RoundPhase.SUBMIT, "slide-1", startedAt);
+        LiveRoundState state = new LiveRoundState("public-1", RoundPhase.SUBMIT, "slide-1", startedAt, null, null, 0L);
 
         String json = codec.serialize(state);
 

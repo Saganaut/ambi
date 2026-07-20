@@ -42,3 +42,16 @@
 - ParticipantRepository
 - AnswerRepository
 - RoundResultRepository
+
+## Round timers (ADR 002)
+
+- Rounds get full auto-close timers, not just a display countdown — see
+  [ADR 002](../../../../../../../../z-docs/decisions/002-live-session-round-timers.md).
+- `LiveRoundState` (in `redis/`) carries `durationMs`/`pausedAt`/`accumulatedPauseMs`;
+  an untimed slide leaves `durationMs` null and keeps today's host-driven close.
+- `DeadlineScheduler.java` is the single leader-elected poller that drains the
+  Redis deadline ZSET (`redis/DeadlineStore.java` / `redis/SessionDeadline.java`)
+  and dispatches into the same locked `closeSubmissions`/`hostPresenceLost`/
+  `hostGraceExpired` transitions a host action uses.
+- The host-disconnect policy (auto-pause a timed round, then cancel after a
+  grace window) rides the same scheduler.

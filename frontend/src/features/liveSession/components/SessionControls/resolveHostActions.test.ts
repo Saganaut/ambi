@@ -11,6 +11,8 @@ const none: HostActions = {
   canRevealResults: false,
   canAdvance: false,
   canRestart: false,
+  canPauseTimer: false,
+  canResumeTimer: false,
 };
 
 describe("resolveHostActions", () => {
@@ -95,6 +97,36 @@ describe("resolveHostActions", () => {
       expect(
         resolveHostActions("IN_PROGRESS", phase, false, true).canRestart,
       ).toBe(false);
+    }
+  });
+
+  // ── Timer control (ADR 002) ──────────────────────────────────────────────
+
+  it("offers pause only on a running timed round, resume only on a paused one", () => {
+    const running = resolveHostActions("IN_PROGRESS", "SUBMIT", false, true, true, false);
+    expect(running.canPauseTimer).toBe(true);
+    expect(running.canResumeTimer).toBe(false);
+
+    const paused = resolveHostActions("IN_PROGRESS", "SUBMIT", false, true, true, true);
+    expect(paused.canPauseTimer).toBe(false);
+    expect(paused.canResumeTimer).toBe(true);
+  });
+
+  it("offers no timer control on an untimed round", () => {
+    const actions = resolveHostActions("IN_PROGRESS", "SUBMIT", false, true, false, false);
+    expect(actions.canPauseTimer).toBe(false);
+    expect(actions.canResumeTimer).toBe(false);
+  });
+
+  it("offers no timer control once submissions are closed", () => {
+    for (const phase of [
+      "LOCKED",
+      "REVEAL_RESPONSES",
+      "REVEAL_RESULTS",
+    ] as RoundPhase[]) {
+      const actions = resolveHostActions("IN_PROGRESS", phase, false, true, true, false);
+      expect(actions.canPauseTimer).toBe(false);
+      expect(actions.canResumeTimer).toBe(false);
     }
   });
 });

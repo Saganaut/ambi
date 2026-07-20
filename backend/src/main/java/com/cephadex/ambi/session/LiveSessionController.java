@@ -211,6 +211,30 @@ public class LiveSessionController {
     }
 
     /**
+     * Pauses the open timed round's auto-close countdown (host only). Submissions
+     * stay open; subscribers learn of the freeze via {@code TimerPaused}.
+     */
+    @PostMapping("/{id}/rounds/{slideId}/pause-timer")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void pauseTimer(
+            @PathVariable String id, @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        hostService.pauseTimer(id, slideId, principal);
+    }
+
+    /**
+     * Resumes a paused round timer (host only); the recomputed deadline reaches
+     * subscribers via {@code TimerResumed}.
+     */
+    @PostMapping("/{id}/rounds/{slideId}/resume-timer")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void resumeTimer(
+            @PathVariable String id, @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        hostService.resumeTimer(id, slideId, principal);
+    }
+
+    /**
      * Types the host's answer next to a Q&amp;A question (host only). A blank body
      * clears it. The updated question list reaches subscribers as
      * {@code QAndAUpdated} over the session topic, not in this response.

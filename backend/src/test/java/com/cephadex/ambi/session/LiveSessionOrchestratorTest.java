@@ -59,6 +59,7 @@ import com.cephadex.ambi.session.event.LiveSessionStarted;
 import com.cephadex.ambi.session.event.ParticipantJoined;
 import com.cephadex.ambi.session.event.ParticipantLeft;
 import com.cephadex.ambi.session.event.ParticipantReconnected;
+import com.cephadex.ambi.session.event.PresenceChanged;
 import com.cephadex.ambi.session.event.QAndAUpdated;
 import com.cephadex.ambi.session.event.ResponsesRevealed;
 import com.cephadex.ambi.session.event.ResultsRevealed;
@@ -66,6 +67,8 @@ import com.cephadex.ambi.session.event.RoundStarted;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SubmissionsLocked;
 import com.cephadex.ambi.session.event.TallyUpdated;
+import com.cephadex.ambi.session.event.TimerPaused;
+import com.cephadex.ambi.session.event.TimerResumed;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -73,13 +76,16 @@ import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
+import com.cephadex.ambi.session.redis.DeadlineStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
 import com.cephadex.ambi.common.redis.RedisJsonCodec;
+import com.cephadex.ambi.session.redis.SessionDeadline;
 import com.cephadex.ambi.session.redis.SessionLocks;
+import com.cephadex.ambi.session.redis.SessionRedisProperties;
 import com.cephadex.ambi.session.redis.TallyStore;
 import com.cephadex.ambi.session.roundResult.RoundResult;
 import com.cephadex.ambi.session.roundResult.RoundResultProjector;
@@ -107,6 +113,7 @@ class LiveSessionOrchestratorTest {
     private ImageUrlResolver imageUrls;
     private S3StorageService storage;
     private RedisJsonCodec codec;
+    private DeadlineStore deadlines;
     private LiveSessionOrchestrator orchestrator;
 
     @BeforeEach
@@ -124,6 +131,7 @@ class LiveSessionOrchestratorTest {
         imageUrls = mock(ImageUrlResolver.class);
         storage = mock(S3StorageService.class);
         codec = mock(RedisJsonCodec.class);
+        deadlines = mock(DeadlineStore.class);
 
         // Run the locked action inline — both the Runnable and Supplier overloads.
         doAnswer(inv -> {
@@ -134,11 +142,12 @@ class LiveSessionOrchestratorTest {
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
-                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage, codec);
+                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage, codec,
+                deadlines, new SessionRedisProperties());
     }
 
     private void stubPhase(RoundPhase phase) {
-        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(PUB, phase, SLIDE, Instant.now())));
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(PUB, phase, SLIDE, Instant.now(), null, null, 0L)));
     }
 
     private LiveRoundState savedState() {
@@ -809,7 +818,7 @@ class LiveSessionOrchestratorTest {
     @Test
     void startRoundRejectsWhenAnotherRoundStillOpen() {
         when(roundStateStore.load(SID)).thenReturn(
-                Optional.of(new LiveRoundState(PUB, RoundPhase.SUBMIT, "other-slide", Instant.now())));
+                Optional.of(new LiveRoundState(PUB, RoundPhase.SUBMIT, "other-slide", Instant.now(), null, null, 0L)));
         Slide slide = new Slide();
         slide.setId(SLIDE);
         Deck deck = mock(Deck.class);
@@ -844,7 +853,7 @@ class LiveSessionOrchestratorTest {
         Slide only = slideWithId(SLIDE);
         LiveSession session = navigableSession(List.of(only));
         when(roundStateStore.load(SID)).thenReturn(
-                Optional.of(new LiveRoundState(PUB, RoundPhase.REVEAL_RESULTS, SLIDE, Instant.now())));
+                Optional.of(new LiveRoundState(PUB, RoundPhase.REVEAL_RESULTS, SLIDE, Instant.now(), null, null, 0L)));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         assertThat(orchestrator.advance(SID)).isNull();
@@ -904,7 +913,7 @@ class LiveSessionOrchestratorTest {
     void heartbeatDebouncesWithinWindow() {
         when(presenceStore.find(SID, "p-1")).thenReturn(Optional.of(Presence.online(Instant.now())));
 
-        orchestrator.heartbeat(SID, "p-1");
+        orchestrator.heartbeat(SID, "p-1", false);
 
         verify(presenceStore, never()).save(any(), any(), any());
     }
@@ -914,8 +923,216 @@ class LiveSessionOrchestratorTest {
         when(presenceStore.find(SID, "p-1")).thenReturn(
                 Optional.of(new Presence(ConnectionStatus.ONLINE, Instant.now().minusSeconds(5))));
 
-        orchestrator.heartbeat(SID, "p-1");
+        orchestrator.heartbeat(SID, "p-1", false);
 
         verify(presenceStore).save(eq(SID), eq("p-1"), any());
+    }
+
+    // ── Round timers (ADR 002) ───────────────────────────────────────────────
+
+    /** Like {@link #givenSlideWithMode} but with a countdown, so the round opens timed. */
+    private void givenTimedSlide(int countdownSeconds) {
+        Slide slide = new Slide();
+        slide.setId(SLIDE);
+        slide.setSettings(new SlideSettings(null,
+                new AnswerSettings(ResultsDisplayMode.MANUAL, false, false, false, countdownSeconds, false, 1)));
+
+        LiveSession session = mock(LiveSession.class);
+        Deck deck = mock(Deck.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(session.getId()).thenReturn(SID);
+        when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+    }
+
+    private void stubTimedOpenRound(Instant startedAt, Instant pausedAt, long accumulatedPauseMs) {
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.SUBMIT, SLIDE, startedAt, 30_000L, pausedAt, accumulatedPauseMs)));
+    }
+
+    @Test
+    void timedRoundOpensWithScheduledCloseDeadline() {
+        givenTimedSlide(30);
+
+        orchestrator.startRound(SID, SLIDE);
+
+        LiveRoundState saved = savedState();
+        assertThat(saved.durationMs()).isEqualTo(30_000L);
+        verify(deadlines).schedule(SessionDeadline.closeRound(SID, SLIDE), saved.deadline());
+        RoundStarted event = (RoundStarted) publishedEvent();
+        assertThat(event.deadline()).isEqualTo(saved.deadline());
+    }
+
+    @Test
+    void untimedRoundSchedulesNothing() {
+        givenSlideWithMode(ResultsDisplayMode.MANUAL);
+
+        orchestrator.startRound(SID, SLIDE);
+
+        assertThat(savedState().durationMs()).isNull();
+        verify(deadlines, never()).schedule(any(), any());
+        assertThat(((RoundStarted) publishedEvent()).deadline()).isNull();
+    }
+
+    @Test
+    void closeCancelsThePendingDeadline() {
+        stubPhase(RoundPhase.SUBMIT);
+        stubScorableSession();
+
+        orchestrator.closeSubmissions(SID, SLIDE);
+
+        verify(deadlines).cancel(SessionDeadline.closeRound(SID, SLIDE));
+    }
+
+    @Test
+    void staleCloseForAnotherSlideIsIgnored() {
+        // The timer fired after the host had already moved on to another slide.
+        stubPhase(RoundPhase.SUBMIT);
+
+        orchestrator.closeSubmissions(SID, "some-old-slide");
+
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+        verify(deadlines, never()).cancel(any());
+    }
+
+    @Test
+    void pauseStampsStateCancelsDeadlineAndPublishes() {
+        Instant startedAt = Instant.now().minusSeconds(10);
+        stubTimedOpenRound(startedAt, null, 0L);
+
+        orchestrator.pauseTimer(SID, SLIDE);
+
+        LiveRoundState saved = savedState();
+        assertThat(saved.isPaused()).isTrue();
+        verify(deadlines).cancel(SessionDeadline.closeRound(SID, SLIDE));
+        TimerPaused event = (TimerPaused) publishedEvent();
+        assertThat(event.slideId()).isEqualTo(SLIDE);
+        assertThat(event.pausedAt()).isEqualTo(saved.pausedAt());
+    }
+
+    @Test
+    void pauseOnUntimedRoundIsRejected() {
+        stubPhase(RoundPhase.SUBMIT); // open but untimed
+
+        assertThatThrownBy(() -> orchestrator.pauseTimer(SID, SLIDE))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("timer");
+        verify(roundStateStore, never()).save(any(), any());
+    }
+
+    @Test
+    void resumeFoldsPauseReschedulesAndPublishes() {
+        Instant startedAt = Instant.now().minusSeconds(20);
+        stubTimedOpenRound(startedAt, Instant.now().minusSeconds(5), 0L);
+
+        orchestrator.resumeTimer(SID, SLIDE);
+
+        LiveRoundState saved = savedState();
+        assertThat(saved.isPaused()).isFalse();
+        assertThat(saved.accumulatedPauseMs()).isGreaterThanOrEqualTo(5_000L);
+        verify(deadlines).schedule(SessionDeadline.closeRound(SID, SLIDE), saved.deadline());
+        TimerResumed event = (TimerResumed) publishedEvent();
+        assertThat(event.deadline()).isEqualTo(saved.deadline());
+    }
+
+    @Test
+    void resumeWhenNotPausedIsIdempotent() {
+        stubTimedOpenRound(Instant.now().minusSeconds(10), null, 0L);
+
+        orchestrator.resumeTimer(SID, SLIDE);
+
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void hostHeartbeatArmsLivenessAndCallsOffGrace() {
+        when(presenceStore.find(SID, "host-1")).thenReturn(Optional.empty());
+
+        orchestrator.heartbeat(SID, "host-1", true);
+
+        verify(deadlines).schedule(eq(SessionDeadline.hostAway(SID)), any(Instant.class));
+        verify(deadlines).cancel(SessionDeadline.graceCancel(SID));
+    }
+
+    private LiveSession hostSession(String hostId) {
+        LiveSession session = mock(LiveSession.class);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(session.getHostParticipantId()).thenReturn(hostId);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        return session;
+    }
+
+    @Test
+    void hostPresenceLossAutoPausesAndStartsGrace() {
+        hostSession("host-1");
+        when(presenceStore.find(SID, "host-1")).thenReturn(
+                Optional.of(new Presence(ConnectionStatus.ONLINE, Instant.now().minusSeconds(120))));
+        stubTimedOpenRound(Instant.now().minusSeconds(10), null, 0L);
+
+        orchestrator.hostPresenceLost(SID);
+
+        // The open timed round auto-paused and its close deadline was pulled.
+        assertThat(savedState().isPaused()).isTrue();
+        verify(deadlines).cancel(SessionDeadline.closeRound(SID, SLIDE));
+        // The host is broadcast as disconnected and the grace countdown armed.
+        ArgumentCaptor<Presence> presence = ArgumentCaptor.forClass(Presence.class);
+        verify(presenceStore).save(eq(SID), eq("host-1"), presence.capture());
+        assertThat(presence.getValue().status()).isEqualTo(ConnectionStatus.DISCONNECTED);
+        verify(deadlines).schedule(eq(SessionDeadline.graceCancel(SID)), any(Instant.class));
+        ArgumentCaptor<SessionEvent> events = ArgumentCaptor.forClass(SessionEvent.class);
+        verify(publisher, times(2)).publish(eq(PUB), events.capture());
+        assertThat(events.getAllValues().get(0)).isInstanceOf(TimerPaused.class);
+        assertThat(events.getAllValues().get(1)).isInstanceOf(PresenceChanged.class);
+    }
+
+    @Test
+    void hostPresenceLossWithFreshBeatJustRearms() {
+        hostSession("host-1");
+        Instant lastSeen = Instant.now().minusSeconds(2);
+        when(presenceStore.find(SID, "host-1")).thenReturn(
+                Optional.of(new Presence(ConnectionStatus.ONLINE, lastSeen)));
+
+        orchestrator.hostPresenceLost(SID);
+
+        verify(deadlines).schedule(eq(SessionDeadline.hostAway(SID)), any(Instant.class));
+        verify(deadlines, never()).schedule(eq(SessionDeadline.graceCancel(SID)), any(Instant.class));
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void hostGraceExpiryCancelsTheSession() {
+        LiveSession session = hostSession("host-1");
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of());
+        when(session.getDeck()).thenReturn(deck);
+        when(presenceStore.find(SID, "host-1")).thenReturn(
+                Optional.of(new Presence(ConnectionStatus.DISCONNECTED, Instant.now().minusSeconds(300))));
+
+        orchestrator.hostGraceExpired(SID);
+
+        verify(session).cancel();
+        verify(repo).save(session);
+        verify(deadlines).cancel(SessionDeadline.hostAway(SID));
+        verify(deadlines).cancel(SessionDeadline.graceCancel(SID));
+        assertThat(publishedEvent()).isInstanceOf(LiveSessionCancelled.class);
+    }
+
+    @Test
+    void hostGraceExpiryWithReturnedHostRearmsInstead() {
+        hostSession("host-1");
+        when(presenceStore.find(SID, "host-1")).thenReturn(
+                Optional.of(new Presence(ConnectionStatus.ONLINE, Instant.now().minusSeconds(1))));
+
+        orchestrator.hostGraceExpired(SID);
+
+        verify(deadlines).schedule(eq(SessionDeadline.hostAway(SID)), any(Instant.class));
+        verify(publisher, never()).publish(any(), any());
+        verify(repo, never()).save(any(LiveSession.class));
     }
 }

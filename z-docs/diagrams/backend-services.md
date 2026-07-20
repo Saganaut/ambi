@@ -46,6 +46,7 @@ flowchart LR
         LPS["LiveSessionPresenceService"]
         LSS["LiveSessionSnapshotService"]
         ORCH["LiveSessionOrchestrator"]
+        SCHED["DeadlineScheduler<br/>@Scheduled poll, leader-elected"]
         S3["S3StorageService"]
         IUR["ImageUrlResolver"]
     end
@@ -88,6 +89,8 @@ flowchart LR
     ORCH --> MONGO
     ORCH --> REDIS
     LLS --> DS
+    SCHED -->|leader-only: drain deadline ZSET, dispatch| ORCH
+    SCHED --> REDIS
 ```
 
 ## Authorization model

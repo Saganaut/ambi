@@ -12,11 +12,14 @@ fans out over one Redis pub/sub channel and is relayed to STOMP subscribers.
 
 Key classes: `LiveSessionController`, `LiveSessionLobbyService`,
 `LiveSessionAnswerService`, `LiveSessionHostService` (owns
-close/reveal/restart/advance/goTo), `LiveSessionSnapshotService`,
-`LiveSessionPresenceService`, `LiveSessionOrchestrator`, `SessionLocks`,
-`TallyStore`, `AnswerStore`, `LiveRoundStateStore`, `PresenceStore`,
-`QAndAHostAnswerStore`, `RedisEventPublisher`, `LiveSessionStompRelay`,
-`SubscribeAuthInterceptor`.
+close/reveal/restart/advance/goTo/pause-timer/resume-timer),
+`LiveSessionSnapshotService`, `LiveSessionPresenceService`,
+`LiveSessionOrchestrator`, `SessionLocks`, `TallyStore`, `AnswerStore`,
+`LiveRoundStateStore`, `PresenceStore`, `QAndAHostAnswerStore`,
+`RedisEventPublisher`, `LiveSessionStompRelay`, `SubscribeAuthInterceptor`,
+`DeadlineScheduler` / `DeadlineStore` (the round-timer auto-close and
+host-disconnect poller — see [ADR 002](../decisions/002-live-session-round-timers.md)
+and [live-session-flow](../live-session-flow.md#round-timer-auto-close-adr-002)).
 
 ## Session lifecycle
 
@@ -57,7 +60,12 @@ stateDiagram-v2
 
     note right of SUBMIT
         acceptsSubmissions() = true
-        for SUBMIT and SUBMIT_LIVE only
+        for SUBMIT and SUBMIT_LIVE only.
+        A timed round (durationMs set) auto-closes
+        via closeSubmissions when its deadline fires
+        (ADR 002) — same transition a host click uses.
+        pause/resumeTimer freeze/unfreeze the countdown
+        without changing phase.
     end note
 
     note right of REVEAL_RESULTS
@@ -149,14 +157,21 @@ flowchart LR
         ANS[["answers<br/>ambi:session:answers:{sid}:{slideId} · HSET"]]
         QANDA[["qa-host-answers<br/>ambi:session:qa-host-answers:{sid}:{slideId} · HSET, never flushed to Mongo"]]
         PRES[["presence<br/>ambi:session:presence:{sid} · HSET"]]
+        DEAD[["deadlines (ADR 002)<br/>ambi:session:deadlines · global ZSET, no TTL"]]
+        LEADER[["deadline-leader (ADR 002)<br/>ambi:session:deadline-leader · SET NX PX · 15s lease"]]
         CHAN(("pub/sub<br/>ambi:session:events"))
     end
+    SCHED["DeadlineScheduler<br/>(leader only)"]
     ORCH -->|"withLock (transitions)"| LOCK
     ORCH -->|read/write| STATE
     ORCH -->|"lock-free"| TALLY
     ORCH -->|"lock-free"| ANS
     ORCH -->|"lock-free"| QANDA
     ORCH --> PRES
+    ORCH -->|schedule/cancel| DEAD
+    SCHED -->|claim/renew| LEADER
+    SCHED -->|pop due (Lua)| DEAD
+    SCHED -->|"closeSubmissions ·<br/>hostPresenceLost · hostGraceExpired"| ORCH
     ORCH -->|publish| CHAN
 ```
 
@@ -169,13 +184,15 @@ flowchart LR
 | `ParticipantLeft` | leaves roster | yes |
 | `ParticipantReconnected` | rejoins an existing session | **no** |
 | `ParticipantRemoved` | defined, but **never published** (dead) | — |
-| `PresenceChanged` | defined, but **never published** (dead) | — |
-| `RoundStarted` | round opens (hidden) | yes |
-| `LiveResultsShown` | opened live / mid-round go-live | yes |
+| `PresenceChanged` | host presence lost (ADR 002 `hostPresenceLost` → `DISCONNECTED`) | yes |
+| `RoundStarted` | round opens (hidden); carries `deadline` for a timed round (ADR 002) | yes |
+| `LiveResultsShown` | opened live / mid-round go-live; carries `deadline` | yes |
 | `TallyUpdated` | answer submitted | **no** |
 | `QAndAUpdated` | Q&A question asked, or host answered/cleared one | **no** |
 | `SubmissionsLocked` | submissions closed (hidden) | yes |
 | `ResponsesRevealed` | responses shown | yes |
 | `ResultsRevealed` | scored reveal | yes |
-| `RoundRestarted` | round restarted | yes |
-| `LiveSessionEnded` / `Cancelled` | session terminal | yes |
+| `RoundRestarted` | round restarted; carries the fresh `deadline` | yes |
+| `TimerPaused` | round timer paused (host action or host-disconnect auto-pause, ADR 002) | yes |
+| `TimerResumed` | round timer resumed, carrying the recomputed `deadline` (ADR 002) | yes |
+| `LiveSessionEnded` / `Cancelled` | session terminal (a disconnected host's expired grace also cancels, ADR 002) | yes |

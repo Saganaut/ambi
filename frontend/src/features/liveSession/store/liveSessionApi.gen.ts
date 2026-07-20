@@ -38,6 +38,12 @@ const injectedRtkApi = api.injectEndpoints({
         method: "POST",
       }),
     }),
+    resumeTimer: build.mutation<ResumeTimerApiResponse, ResumeTimerApiArg>({
+      query: (queryArg) => ({
+        url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/resume-timer`,
+        method: "POST",
+      }),
+    }),
     restartRound: build.mutation<RestartRoundApiResponse, RestartRoundApiArg>({
       query: (queryArg) => ({
         url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/restart`,
@@ -52,6 +58,12 @@ const injectedRtkApi = api.injectEndpoints({
         url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/questions/${queryArg.questionId}/host-answer`,
         method: "POST",
         body: queryArg.hostAnswerRequest,
+      }),
+    }),
+    pauseTimer: build.mutation<PauseTimerApiResponse, PauseTimerApiArg>({
+      query: (queryArg) => ({
+        url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/pause-timer`,
+        method: "POST",
       }),
     }),
     closeRound: build.mutation<CloseRoundApiResponse, CloseRoundApiArg>({
@@ -150,6 +162,11 @@ export type RevealResponsesApiArg = {
   id: string;
   slideId: string;
 };
+export type ResumeTimerApiResponse = unknown;
+export type ResumeTimerApiArg = {
+  id: string;
+  slideId: string;
+};
 export type RestartRoundApiResponse = unknown;
 export type RestartRoundApiArg = {
   id: string;
@@ -161,6 +178,11 @@ export type AnswerQuestionApiArg = {
   slideId: string;
   questionId: string;
   hostAnswerRequest: HostAnswerRequest;
+};
+export type PauseTimerApiResponse = unknown;
+export type PauseTimerApiArg = {
+  id: string;
+  slideId: string;
 };
 export type CloseRoundApiResponse = unknown;
 export type CloseRoundApiArg = {
@@ -519,6 +541,8 @@ export type SessionSnapshotResponse = {
   currentSlideId?: string;
   currentSlide?: SlideView;
   currentRoundStartedAt?: string;
+  currentRoundDeadline?: string;
+  currentRoundPausedAt?: string;
   optionTally?: {
     [key: string]: number;
   };
@@ -536,8 +560,10 @@ export const {
   useGoToRoundMutation,
   useRevealResultsMutation,
   useRevealResponsesMutation,
+  useResumeTimerMutation,
   useRestartRoundMutation,
   useAnswerQuestionMutation,
+  usePauseTimerMutation,
   useCloseRoundMutation,
   useReconnectMutation,
   useLeaveMutation,
