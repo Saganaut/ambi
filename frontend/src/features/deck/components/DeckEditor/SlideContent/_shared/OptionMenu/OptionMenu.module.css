@@ -1,37 +1,8 @@
-/* OptionMenu — the per-option dropdown opened when the option's label field
-   takes focus (OptionControls/Menu is the controller).
-   Owns:
-     - the absolute anchor wrap below the anchor (plus the end-aligned
-       variant for anchors near the canvas' right edge)
-     - the menu column: color swatch strip, divider, action items
-   The floating chrome (surface, border, shadow) comes from the shared
-   Popover primitive; this file only lays out the menu-specific pieces. */
-
-.menuWrap {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  right: auto;
-  z-index: var(--z-dropdown);
-  opacity: 1;
-  transition: opacity var(--duration-base) ease-in-out;
-
-  /* End-aligned variant: opens leftward from the anchor's midline. Composers
-     whose anchor sits near the canvas' right edge (chart columns, absolutely
-     positioned chart labels) request this; the midline (rather than the right
-     edge) keeps the menu inside the canvas even when the anchor itself is
-     centred on the chart's last data point. */
-  &.alignEnd {
-    left: auto;
-    right: 50%;
-  }
-}
-
-@starting-style {
-  .menuWrap {
-    opacity: 0;
-  }
-}
+/* OptionMenu — the menu column for the per-option dropdown (color swatch
+   strip, divider, action items), consumed by `OptionMenuContent`. Anchoring,
+   positioning, and entry animation are the host `FloatingPopover`'s job; the
+   floating chrome (surface, border, shadow) comes from the shared Popover
+   primitive. This file only lays out the menu-specific pieces. */
 
 .menu {
   width: 252px;

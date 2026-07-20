@@ -24,6 +24,8 @@ import { useSlideEditor } from "./useSlideEditor";
 const MIN_RANKING_ITEMS = 2;
 /** … and is capped at eight so the shuffled play-time list stays legible. */
 const MAX_RANKING_ITEMS = 8;
+/** `maxLength` for item label inputs (matches the other editors). */
+const RANKING_LABEL_MAX = 80;
 
 /** Flattened, UI-facing view of the active Ranking slide. */
 interface RankingQuestionView {
@@ -180,5 +182,5 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
   };
 };
 
-export { MAX_RANKING_ITEMS, MIN_RANKING_ITEMS, useRankingEditor };
+export { MAX_RANKING_ITEMS, MIN_RANKING_ITEMS, RANKING_LABEL_MAX, useRankingEditor };
 export type { RankingQuestionView, UseRankingEditorResult };

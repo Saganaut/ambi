@@ -1,12 +1,15 @@
 /**
  * Single-row editor for a Ranking item: a palette-colored index badge, the
- * label field, and an image thumbnail when one is set. Focusing the label
- * field opens the row's popover menu (color, image upload/clear, delete) — the
- * same focus-opened pattern as MCQ's option menu and `AxisItemEditable`. A
- * controlled row: the label mirror lives here while structural ops (schedule /
- * flush / remove / color / image) come in as props from the one
- * `useRankingEditor` in `RankingSlideContent`, so every write funnels through a
- * single draft + debounce buffer.
+ * label field with its popover menu (the shared `ItemField` — color, image
+ * upload/clear, delete), and an image thumbnail when one is set. Focusing the
+ * label field opens the row's menu — the same focus-opened pattern as MCQ's
+ * option menu and `AxisItemEditable`; `ItemField` owns the label mirror,
+ * positioning, and dismissal. Ranking has no kind-specific primary action
+ * (the correct order is the drag order, so there is nothing to toggle), so the
+ * menu omits the leading action row. Structural ops (schedule / flush / remove
+ * / color / image) come in as props from the one `useRankingEditor` in
+ * `RankingSlideContent`, so every write funnels through a single draft +
+ * debounce buffer.
  *
  * The row is drag-sortable via a dedicated grip handle (`handleRef`) rather than
  * the whole card, so dragging to reorder never fights with typing into the
@@ -15,14 +18,12 @@
  */
 import { Bars2Icon } from "@heroicons/react/24/outline";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { useState } from "react";
 
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { Input } from "@components/Forms/Input/Input/Input";
+import { RANKING_LABEL_MAX } from "@deck/hooks/useRankingEditor";
 import type { AppImage, RankItem } from "@deck/store/deckApi.gen";
 import { resolveImageUrl } from "@utils/image";
-import { ItemCard } from "../_shared";
-import { RankItemMenu } from "./RankItemMenu";
+import { ItemCard, ItemField } from "../_shared";
 import styles from "./RankingSlideContent.module.css";
 
 interface RankingItemEditableProps {
@@ -59,18 +60,7 @@ const RankingItemEditable = ({
   const itemId = item.id ?? "";
   const { ref, handleRef, isDragging } = useSortable({ id: itemId, index: sortIndex });
 
-  const [label, setLabel] = useState(item.label ?? "");
-  const [syncedFromId, setSyncedFromId] = useState(item.id);
-
-  // Resync the local mirror when this row is reused for a different item
-  // ("derive state during render" — safe when the value differs).
-  if (syncedFromId !== item.id) {
-    setSyncedFromId(item.id);
-    setLabel(item.label ?? "");
-  }
-
   const displayIndex = sortIndex + 1;
-  const fieldId = `rank-item-label-${itemId}`;
   const thumbnailSrc = resolveImageUrl(item.image, "SM", itemId, 200, 200, false);
 
   return (
@@ -90,34 +80,21 @@ const RankingItemEditable = ({
         }
       >
         <div className={styles.itemFields}>
-          <Input
-            type="text"
-            fullWidth
-            withPadding={false}
-            id={fieldId}
-            className={styles.labelField}
-            value={label}
-            placeholder={`Item ${displayIndex.toString()}`}
-            onChange={(e) => {
-              const next = e.target.value;
-              setLabel(next);
-              onScheduleLabel({ ...item, label: next });
-            }}
-            onFocus={() => {
-              onMenuOpenChange(true);
-            }}
-            onBlur={onFlush}
-            aria-haspopup="dialog"
-            aria-expanded={menuOpen}
-          />
-          <RankItemMenu
-            item={item}
+          <ItemField
+            itemId={item.id}
+            label={item.label}
+            image={item.image}
             displayIndex={displayIndex}
-            fieldId={fieldId}
+            placeholder={`Item ${displayIndex.toString()}`}
+            maxLength={RANKING_LABEL_MAX}
             color={color}
             open={menuOpen}
             onOpenChange={onMenuOpenChange}
             canRemove={canRemove}
+            onScheduleLabel={(label) => {
+              onScheduleLabel({ ...item, label });
+            }}
+            onFlush={onFlush}
             onSetColor={onSetColor}
             onSetImage={onSetImage}
             onRemove={onRemove}
