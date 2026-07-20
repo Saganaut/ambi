@@ -13,9 +13,6 @@
 // backend endpoints or schema fields don't exist yet. Wire them up once the
 // corresponding API lands and is regenerated into `AmbiApi.ts`:
 //
-//  • Live session / "Start" + "Quick start": `useLiveSession.present()` is a
-//    console stub — there's no create-session endpoint. So `isStarting` is
-//    always false and `startError` always null; nothing drives them yet.
 //  • Analytics: no analytics endpoints are generated. `canViewAnalytics` is
 //    derived from `deck.permissions.canEdit` as a best guess. The backend also
 //    gates analytics on non-system decks — there's no `isSystem` flag on
@@ -88,11 +85,11 @@ interface UseDeckEditorResult {
   canEdit: boolean;
   /** See TODO header — derived from `canEdit`, missing the system-deck rule. */
   canViewAnalytics: boolean;
-  /** Live-session "Start". Stubbed — see TODO header. */
+  /** Live-session "Start": host the deck as a live session and open its page. */
   present: () => void;
-  /** Always false until the live-session flow exists. */
+  /** True while the create-session request behind `present` is in flight. */
   isStarting: boolean;
-  /** Always null until the live-session flow exists. */
+  /** A user-readable message if the last `present` failed, else null. */
   startError: string | null;
   share: () => void;
   schedule: () => void;
@@ -115,7 +112,7 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
 
   const { deck, isLoading: deckLoading, error } = useDeckQuery(deckId);
   const { rename } = useDeckMutate(deckId);
-  const { present: livePresent } = useLiveSession();
+  const { present: livePresent, isStarting, startError } = useLiveSession();
   const {
     slides,
     isLoading: slidesLoading,
@@ -215,8 +212,10 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   const canViewAnalytics = canEdit;
 
   const present = () => {
-    // Live-session "Start" — stubbed via useLiveSession until the flow exists.
-    livePresent(deckId);
+    // Live-session "Start": create the session and navigate to it. The in-flight
+    // and failure state is surfaced as `isStarting` / `startError` (below) by
+    // `useLiveSession`, so this handler just fires the flow.
+    void livePresent(deckId);
   };
 
   const share = () => {
@@ -255,8 +254,8 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
     canEdit,
     canViewAnalytics,
     present,
-    isStarting: false,
-    startError: null,
+    isStarting,
+    startError,
     share,
     schedule,
     preview,
