@@ -25,14 +25,6 @@
     left: auto;
     right: 50%;
   }
-
-  /* TODO: DEPRECATED REMOVE Flipped variant: opens above the anchor when useFlipToFit measures that
-     the default downward position would clip (chart labels at the canvas
-     bottom, cards near the viewport edge). */
-  &.dropUp {
-    top: auto;
-    bottom: calc(100% + var(--space-2));
-  }
 }
 
 @starting-style {
