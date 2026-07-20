@@ -24,3 +24,4 @@ Reachability is enforced by `tools/doc-lint.js`: every `.md` file under the repo
 
 - [Glossary](glossary.md) — Domain terms (deck, element, interactive session, organization, theme, slide, MCQ, …).
 - [Live Session — Open Decisions](live-session-open-decisions.md) — Pre-implementation review of the live-session feature: unresolved design decisions (transport, identity, scoring, persistence) with suggestions.
+- [Security Audit — 2026-07-12](security-report-2026-07-12.md) — Full-stack read-only security audit (auth, injection, SSRF/media, secrets/infra, frontend, dependencies) with prioritized findings and remediation order.
