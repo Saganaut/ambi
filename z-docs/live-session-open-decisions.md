@@ -17,9 +17,15 @@ into `decisions/`.
 **As of 2026-07-12, the transport/orchestration spine, the target method
 surface, grading, scoring, and most of the persistence/correctness items below
 are built.** Items are marked ✅ RESOLVED in place with a one-line as-built note;
-the decision history is kept rather than deleted. Genuinely open items (timers,
-game-type scope beyond what's graded, deception/voting, capacity limits,
-`SessionLifecycleProjector`) remain unmarked.
+the decision history is kept rather than deleted.
+
+**As of 2026-07-20, every remaining item is decided** (decision review with the
+project owner): timers are adopted as auto-close
+([ADR 002](decisions/002-live-session-round-timers.md)), voting stays
+consciously deferred, and the rest are resolved as-built, implemented, or
+accepted with the residual work carded on the
+[Ambi Dev board](https://trello.com/b/nH50o6jt/ambi-dev). Nothing in this
+document is still an open question — it is now purely a decision log.
 
 ---
 
@@ -128,6 +134,13 @@ one-class change.
 
 ### A3. Timers / `DeadlineScheduler`
 
+> ✅ **RESOLVED (2026-07-20) — auto-close timers adopted**, going beyond the
+> soft-timer suggestion below: see
+> [ADR 002](decisions/002-live-session-round-timers.md) for the full decision
+> (`durationMs`/`pausedAt`/`accumulatedPauseMs` on `LiveRoundState`, Redis ZSET
+> deadline poll, pause/resume host ops, host-disconnect grace via the same
+> scheduler). Implementation is carded on the board.
+
 Stubbed in the orchestrator; `Round.pauseTimer/resumeTimer` are stubs.
 `LiveRoundState` has `roundStartedAt` but **no deadline, duration, or
 paused-accumulator**.
@@ -204,6 +217,11 @@ Lexorank rules as the deck editor.
 
 ### C1. Reuse vs per-session participant
 
+> ✅ **RESOLVED (2026-07-20, as suggested).** One participant document per
+> (session, user) — `join` creates a fresh `Participant` every time and nothing
+> reuses instances across sessions. The dead reuse seams (`resetParticipant()`,
+> `ParticipantRepository.findByUserId`) and the class-javadoc TODO were deleted.
+
 Explicit TODO in `Participant.java`. `findByUserId` + `resetParticipant()` imply
 **reuse**; the per-session model implies fresh instances.
 
@@ -213,6 +231,13 @@ forces `resetParticipant()` semantics. Drop `resetParticipant()` for v1. This
 makes per-session stats, bans, and scores immutable history.
 
 ### C2. The `userId`-stripping contradiction
+
+> ✅ **RESOLVED (2026-07-20, as suggested).** `userId` stays on the stored
+> document and is stripped only on the wire; `ParticipantResolver` maps the
+> authenticated caller to their roster participant server-side, and `reconnect`
+> re-verifies roster membership. Residual: the **guest-player flow** (guest
+> route access + guest reconnect end-to-end) is incomplete and carded on the
+> board as its own feature — the identity model itself is settled.
 
 For this we we want to add a findByParticipantId method
 
@@ -237,6 +262,11 @@ trust a client-supplied `participantId` without the token/user match.
 > its *reconnection re-identification* purpose — not for subscribe authorization.
 
 ### C3. Live source of truth for the roster + scores
+
+> ✅ **RESOLVED (2026-07-20, as-built matches the suggestion).**
+> `LiveSession.roster` (Mongo) is authoritative membership, `PresenceStore`
+> (Redis) is volatile liveness, and scores mutate on the `Participant` document
+> at round close inside the lock. No Redis participant blob was added.
 
 README says `Participant` "lives in Redis for the duration," but there is **no
 participant store in Redis** — only `PresenceStore`. Today: `roster` holds ids,
@@ -305,6 +335,11 @@ the stale comment. Treat this as a quick win (see punch list).
 > Text); map/coordinate answers (Matching, Grid, Scales, PlaceOnImage,
 > Allocation, Ranking) grade correctly but aren't tallied as an option-count bar.
 > Drawing/Q&A/FollowUp remain non-scorable display types, deferred with D3.
+>
+> **Residuals accepted (2026-07-20):** the partial-credit score modes
+> (`CLOSEST`/`NEAREST`/`DISTANCE`/`PARTIAL`) and live-tally rendering for the
+> map/coordinate answer kinds are consciously out of v1 scope, each captured as
+> its own Backlog card.
 
 There are ~13 `AnswerPayload` types (Allocation, Drawing, Grid, Matching,
 Ranking, Scales, PlaceOnImage, …) but only MCQ is rendered in `describeChoice`.
@@ -317,6 +352,11 @@ subtype (pattern-match switch over the sealed payload hierarchy), not growing
 open-ended/creative types (Drawing, free text) until voting exists (D3).
 
 ### D3. Best-answer & deception are hard-coded off
+
+> ✅ **RESOLVED (2026-07-20) — consciously deferred, as suggested.** Voting
+> stays past v1; the evaluation seams (`bestAnswer`, `deceivedCount`) remain in
+> place. The design sketch below (`RoundPhase.VOTE`, a `VoteStore`, evaluator
+> fold-in) is captured on a Backlog card for when it's picked up.
 
 **Still open.** `AnswerEvaluation.bestAnswer=false`, `deceivedCount=0` remain
 hard-coded in `RoundEvaluator.evaluate`; `Round.submitVote` is still a stub.
@@ -354,7 +394,12 @@ edit. Quick win.
 
 ### D5. Tally double-bookkeeping
 
-> ✅ **Partially resolved — `TallyStore` is now incremented.**
+> ✅ **RESOLVED (2026-07-20).** The live-vs-durable duplication is accepted as
+> final: `TallyStore` serves the pre-reveal bar, `RoundResult.optionCounts` is
+> the durable record, and both derive keys from the shared `AnswerTallyKeys`.
+> No further investigation planned unless the two measurably disagree.
+>
+> Earlier status — `TallyStore` is now incremented.
 > `LiveSessionOrchestrator.submitAnswer` calls `tallyStore.increment` (and
 > `decrement` to back out a superseded choice) via the shared `AnswerTallyKeys`
 > helper, so submit-time and scoring-time key derivation agree (the "shared
@@ -407,10 +452,11 @@ Mongo at **round close**, inside the lock, before scoring. Quick win.
 > (invoked from both `closeSubmissions` and `revealResults`) — it saves the
 > flushed answers, the mutated participants, and the `RoundResult` together, and
 > the score-once guard (F2) keeps re-running a close from double-applying.
-> **`SessionLifecycleProjector` is still genuinely unbuilt** — no such class
-> exists; `LiveSession` lifecycle/roster persistence happens via direct
-> `repo.save(session)` calls inside `LiveSessionOrchestrator` rather than through
-> a dedicated projector. This half of E2 stays open.
+> **`SessionLifecycleProjector`: closed as-built (2026-07-20).** It will not be
+> built — the orchestrator already funnels every lifecycle/roster save through
+> its locked transition methods, so a separate projector would add indirection
+> without new behavior. Direct `repo.save(session)` inside the orchestrator is
+> the accepted design.
 
 README names `RoundResultProjector` and `SessionLifecycleProjector`; neither is
 built. Nothing calls `recordPhase()`, `showResults()`, participant saves, or the
@@ -426,6 +472,12 @@ Redis `clear()` methods.
 Keep them idempotent (re-running a close shouldn't double-apply — see F2).
 
 ### E3. Recovery story
+
+> ✅ **RESOLVED (2026-07-20, as suggested).** The bounded loss window is
+> **accepted and documented**: if Redis is lost mid-round, recovery rebuilds
+> `LiveRoundState`/roster from the last Mongo snapshot and the open round
+> restarts — its in-flight answers are gone. Everything already flushed at a
+> round close is durable. No continuous answer flushing will be built.
 
 README claims Redis-failure recovery from Mongo, but mid-round answers live
 **only** in Redis (flush is at round boundaries).
@@ -487,6 +539,11 @@ double-award participant points. If we later need restart history, add an
 
 ### F3. Deck snapshot size
 
+> ✅ **RESOLVED (2026-07-20, as suggested).** Full snapshot kept; images are S3
+> references. `LiveSessionOrchestrator.createSession` now logs a warning when
+> the serialized snapshot exceeds 8MB (`SNAPSHOT_WARN_BYTES`) — best-effort
+> sizing that never fails session creation.
+
 The *entire* `Deck` is frozen into the `LiveSession` document (16MB Mongo limit).
 Images are S3 refs (`AppImage`), so likely fine.
 
@@ -514,6 +571,16 @@ different slide; `endRound` no-ops if already in REVEAL. Combined with F2's
 idempotent scoring, double-clicks become safe.
 
 ### F5. Capacity & abuse
+
+> ✅ **RESOLVED (2026-07-20).** As-built and decided: **heartbeat debounce** was
+> already in (~1/sec, F5); **max roster size is now enforced** — `join` runs
+> under the session lock and rejects with `SESSION_FULL` past the deck's
+> `AudienceSettings.maxParticipants` (default 200 when unset); the
+> **host-disconnect policy** (auto-pause + grace timer before `cancel()`) is
+> adopted and rides the DeadlineScheduler from
+> [ADR 002](decisions/002-live-session-round-timers.md). Submit rate limiting
+> beyond the existing single-answer/cap rules was **not** adopted. Host
+> migration stays deferred.
 
 No max participants, no concurrent-session cap, no rate limits on submit/
 heartbeat, no host-disconnect policy. `AudienceSettings`/`ConnectionStatus` hint

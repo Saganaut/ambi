@@ -5,6 +5,7 @@ Short Architecture Decision Records (ADRs): "we chose X over Y because Z". One f
 ## Index
 
 - [001 — Observability & logging stack](001-observability-stack.md) — hybrid CloudWatch (logs/metrics) + Sentry (errors/RUM, deferred), structured JSON, `X-Request-Id`→`traceId` correlation, LocalStack for local parity.
+- [002 — Auto-close round timers for live sessions](002-live-session-round-timers.md) — timed rounds auto-close via a Redis ZSET deadline poll (`DeadlineScheduler`); `LiveRoundState` gains `durationMs`/`pausedAt`/`accumulatedPauseMs`; host-disconnect grace rides the same scheduler.
 
 ## Template
 

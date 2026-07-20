@@ -36,6 +36,7 @@ import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
+import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
@@ -77,6 +78,7 @@ import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
+import com.cephadex.ambi.common.redis.RedisJsonCodec;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.TallyStore;
 import com.cephadex.ambi.session.roundResult.RoundResult;
@@ -104,6 +106,7 @@ class LiveSessionOrchestratorTest {
     private RoundResultProjector roundResults;
     private ImageUrlResolver imageUrls;
     private S3StorageService storage;
+    private RedisJsonCodec codec;
     private LiveSessionOrchestrator orchestrator;
 
     @BeforeEach
@@ -120,6 +123,7 @@ class LiveSessionOrchestratorTest {
         roundResults = mock(RoundResultProjector.class);
         imageUrls = mock(ImageUrlResolver.class);
         storage = mock(S3StorageService.class);
+        codec = mock(RedisJsonCodec.class);
 
         // Run the locked action inline — both the Runnable and Supplier overloads.
         doAnswer(inv -> {
@@ -130,7 +134,7 @@ class LiveSessionOrchestratorTest {
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
-                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage);
+                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage, codec);
     }
 
     private void stubPhase(RoundPhase phase) {
@@ -584,6 +588,7 @@ class LiveSessionOrchestratorTest {
         when(session.getPublicId()).thenReturn(PUB);
         when(session.getRoster()).thenReturn(List.of("host", "p-new"));
         when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         LiveSessionOrchestrator.JoinResult result = orchestrator.join("ROOM", "user-9", "Niner", null, null);
 
@@ -591,6 +596,40 @@ class LiveSessionOrchestratorTest {
         verify(session).addParticipant(result.participant().getParticipantId());
         verify(presenceStore).save(eq(SID), eq(result.participant().getParticipantId()), any());
         assertThat(publishedEvent()).isInstanceOf(ParticipantJoined.class);
+    }
+
+    @Test
+    void joinRejectsWhenRosterAtDeckCap() {
+        Deck deck = mock(Deck.class);
+        when(deck.getSettings()).thenReturn(new Settings.DeckSettings(null, null,
+                new Settings.AudienceSettings(2, false, false, false, false, false, true), null));
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(false);
+        when(session.getId()).thenReturn(SID);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.participantCount()).thenReturn(2);
+        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("participant limit");
+        verify(participants, never()).save(any(Participant.class));
+        verify(session, never()).addParticipant(anyString());
+    }
+
+    @Test
+    void joinAppliesDefaultCapWhenDeckHasNoAudienceSettings() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(false);
+        when(session.getId()).thenReturn(SID);
+        when(session.participantCount()).thenReturn(200);
+        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isInstanceOf(ConflictException.class);
+        verify(session, never()).addParticipant(anyString());
     }
 
     @Test

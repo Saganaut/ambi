@@ -1,5 +1,6 @@
 package com.cephadex.ambi.session;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
+import com.cephadex.ambi.common.redis.RedisJsonCodec;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageKeys;
@@ -103,8 +105,10 @@ public class LiveSessionOrchestrator {
     private final RoundResultProjector roundResults;
     private final ImageUrlResolver imageUrls;
     private final S3StorageService storage;
-    // DeadlineScheduler (round/submission timers, A3) is still deferred; pause
-    // support is a LiveRoundState record change to decide before it lands.
+    private final RedisJsonCodec codec;
+    // DeadlineScheduler (auto-close round timers, A3 — decided 2026-07-20, see
+    // ADR 002): durationMs/pausedAt/accumulatedPauseMs on LiveRoundState plus a
+    // Redis ZSET deadline poll land with that feature's card.
 
     /**
      * Server-side debounce for {@link #heartbeat}: a beat landing within this window
@@ -118,10 +122,25 @@ public class LiveSessionOrchestrator {
     private static final Settings.PointSettings NO_POINTS =
             new Settings.PointSettings(0, 0, 0, 0, Map.of(), false);
 
+    /**
+     * Roster cap when the deck's {@link Settings.AudienceSettings#maxParticipants()}
+     * is unset (F5). Generous enough for any classroom/party run; a deck that needs
+     * more sets its own limit.
+     */
+    private static final int DEFAULT_MAX_PARTICIPANTS = 200;
+
+    /**
+     * Snapshot-size warning threshold (F3): half of Mongo's 16MB document limit.
+     * The deck snapshot is the only unbounded part of the session document, so a
+     * snapshot past this size deserves a log line long before the hard limit bites.
+     */
+    private static final int SNAPSHOT_WARN_BYTES = 8 * 1024 * 1024;
+
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
             PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers, EventPublisher publisher,
-            RoundResultProjector roundResults, ImageUrlResolver imageUrls, S3StorageService storage) {
+            RoundResultProjector roundResults, ImageUrlResolver imageUrls, S3StorageService storage,
+            RedisJsonCodec codec) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
@@ -134,6 +153,7 @@ public class LiveSessionOrchestrator {
         this.roundResults = roundResults;
         this.imageUrls = imageUrls;
         this.storage = storage;
+        this.codec = codec;
     }
 
     /**
@@ -171,7 +191,27 @@ public class LiveSessionOrchestrator {
 
         LiveSession session = saveWithUniqueRoomCode(LiveSession.create(host.getParticipantId(), deck));
         roundStateStore.save(session.getId(), LiveRoundState.idle(session.getPublicId()));
+        warnIfSnapshotLarge(session);
         return session;
+    }
+
+    /**
+     * F3 guard: logs when the deck snapshot serializes past
+     * {@link #SNAPSHOT_WARN_BYTES}, the early signal before a run ever nears
+     * Mongo's 16MB document limit. Best-effort — sizing must never fail a
+     * successfully created session.
+     */
+    private void warnIfSnapshotLarge(LiveSession session) {
+        try {
+            String json = codec.serialize(session.getDeck());
+            int bytes = json == null ? 0 : json.getBytes(StandardCharsets.UTF_8).length;
+            if (bytes > SNAPSHOT_WARN_BYTES) {
+                log.warn("Deck snapshot for session {} serializes to {} bytes — approaching Mongo's 16MB document limit",
+                        session.getId(), bytes);
+            }
+        } catch (RuntimeException e) {
+            log.debug("Could not size the deck snapshot for session {}", session.getId(), e);
+        }
     }
 
     /**
@@ -234,27 +274,57 @@ public class LiveSessionOrchestrator {
      * roster, seeds presence, persists, and publishes the roster change. An unknown
      * or terminal room code is masked as a 404 (the code is a guessable key).
      *
+     * <p>The roster mutation runs under the session lock so two concurrent joins
+     * can't lose an update or race past the roster cap (F5): a session at the
+     * deck's {@link Settings.AudienceSettings#maxParticipants()} (or
+     * {@link #DEFAULT_MAX_PARTICIPANTS} when unset) rejects further joins.
+     *
      * @param roomCode    the human-typed room code (also the link-join code)
      * @param userId      the joining user's id (a minted guest id for guests)
      * @param displayName required display name shown to other players
      * @param avatar      optional avatar
      * @param colorTag    optional color tag
      * @return the joined session (for its publicId) and the new participant
+     * @throws ConflictException if the session is already at its participant limit
      */
     public JoinResult join(String roomCode, String userId, String displayName, Avatar avatar, String colorTag) {
-        LiveSession session = repo.findByRoomCode(roomCode)
-                .filter(found -> !found.isTerminal())
+        LiveSession found = repo.findByRoomCode(roomCode)
+                .filter(candidate -> !candidate.isTerminal())
                 .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
 
         Participant participant = Participant.join(userId, displayName, avatar, colorTag);
-        participants.save(participant);
 
-        session.addParticipant(participant.getParticipantId());
-        repo.save(session);
-        presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
+        return locks.withLock(found.getId(), () -> {
+            LiveSession session = requireSession(found.getId());
+            if (session.isTerminal()) {
+                throw new NotFoundException("SESSION_NOT_FOUND", "session not found");
+            }
+            if (session.participantCount() >= maxParticipants(session)) {
+                throw new ConflictException("SESSION_FULL",
+                        "this session has reached its participant limit");
+            }
+            participants.save(participant);
+            session.addParticipant(participant.getParticipantId());
+            repo.save(session);
+            presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
 
-        publisher.publish(session.getPublicId(), SessionEvents.participantJoined(participant, session.getRoster()));
-        return new JoinResult(session, participant);
+            publisher.publish(session.getPublicId(),
+                    SessionEvents.participantJoined(participant, session.getRoster()));
+            return new JoinResult(session, participant);
+        });
+    }
+
+    /**
+     * The roster cap in effect for a session: the deck's
+     * {@code AudienceSettings.maxParticipants} when set (&gt; 0), else
+     * {@link #DEFAULT_MAX_PARTICIPANTS}.
+     */
+    private int maxParticipants(LiveSession session) {
+        Settings.DeckSettings settings = session.getDeck() == null ? null : session.getDeck().getSettings();
+        Settings.AudienceSettings audience = settings == null ? null : settings.audienceSettings();
+        return audience != null && audience.maxParticipants() > 0
+                ? audience.maxParticipants()
+                : DEFAULT_MAX_PARTICIPANTS;
     }
 
     /**

@@ -18,10 +18,13 @@ import lombok.Getter;
  * Domain aggregate for a single player in a live session.
  *
  * <p>
- * A {@code Participant} lives in Redis for the duration of a live round and is
- * flushed to MongoDB at the end of each round via mass-publish methods. The
- * {@link #userId} should always be stripped while a session is live; anything
- * that references a player during play (answers, round results, …) must use the
+ * One participant document exists per (session, user) — a fresh instance is
+ * created at every join and never reused across sessions (open-decisions C1), so
+ * per-session scores and bans are immutable history. The document is the durable
+ * Mongo record; volatile connection state lives in the Redis {@code PresenceStore}
+ * (C3). The {@link #userId} stays on the stored document for server-side
+ * re-identification and is stripped only on the wire (C2); anything that
+ * references a player during play (answers, round results, …) uses the
  * {@link #participantId} instead.
  * </p>
  *
@@ -29,12 +32,6 @@ import lombok.Getter;
  * Construction is funneled through {@link #join}: call it once to create the
  * player the first time, then let MongoDB and Jackson rehydrate the object on
  * subsequent reads. The no-arg constructor exists only for that deserialization.
- * </p>
- *
- * <p>
- * <strong>TODO:</strong> decide whether a participant is reused across sessions
- * (see {@link #resetParticipant()}) or whether one instance is created per
- * session.
  * </p>
  **/
 
@@ -136,33 +133,6 @@ public class Participant {
     /** Marks the participant as {@link ConnectionStatus#DISCONNECTED}. */
     public void markDisconnected() {
         this.connectionStatus = ConnectionStatus.DISCONNECTED;
-    }
-
-    /**
-     * Resets an existing participant for reuse in a new session instead of
-     * creating a fresh one.
-     *
-     * <p>
-     * Clears the score, lifts any ban, and re-stamps the join/last-seen
-     * timestamps as if the player had just joined. Identity ({@link #participantId},
-     * {@link #userId}) and profile ({@link #displayName}, {@link #avatar},
-     * {@link #colorTag}) are preserved.
-     * </p>
-     *
-     * <p>
-     * Only relevant if participant objects are reused across sessions, which is
-     * still TBD.
-     * </p>
-     */
-    public void resetParticipant() {
-        // This is used only if we are re-using participant objects which is TBD
-        // If a user already has a participant entry instead of creating a new one we
-        // reset the existing one
-        this.score = new ParticipantScore();
-        this.banned = false;
-        this.joinedAt = Instant.now();
-        this.lastSeenAt = Instant.now();
-        this.connectionStatus = ConnectionStatus.ONLINE;
     }
 
     /**
