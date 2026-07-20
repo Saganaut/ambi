@@ -38,6 +38,8 @@ import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.RichTextContent;
+import com.cephadex.ambi.presentation.slide.content.RichTextSanitizer;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.TitleContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
@@ -64,7 +66,7 @@ class DeckServiceTest {
         deckRepository = mock(DeckRepository.class);
         userService = mock(UserService.class);
         deckService = new DeckService(deckRepository, new OrgRoleResolver(userService),
-                new SlideRankService(), new DeckDefaultsProperties());
+                new SlideRankService(), new DeckDefaultsProperties(), new RichTextSanitizer());
         owner = principal("owner-1");
         // Echo back whatever the service saves — tests inspect the in-flight deck.
         when(deckRepository.save(any(Deck.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -97,7 +99,7 @@ class DeckServiceTest {
         props.getAnswer().setCountdownTime(45);
         props.getPoints().setPoints(500);
         DeckService service = new DeckService(deckRepository, new OrgRoleResolver(userService),
-                new SlideRankService(), props);
+                new SlideRankService(), props, new RichTextSanitizer());
 
         Deck created = service.create("deck-1", owner);
 
@@ -129,6 +131,38 @@ class DeckServiceTest {
         Slide added = deckService.addSlide("deck-1", slide("s1"), owner);
 
         assertThat(added.getSortOrder()).isEqualTo(new SlideRankService().initial());
+    }
+
+    @Test
+    void addSlideSanitizesRichTextBodyOnWrite() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide dirty = slide("s1");
+        dirty.setContent(new RichTextContent(
+                "<p onclick=\"evil()\">hi</p><script>alert(1)</script>", null, null));
+
+        Slide added = deckService.addSlide("deck-1", dirty, owner);
+
+        // The persisted body is allowlist-cleaned, not the raw editor string.
+        assertThat(added.getContent()).isInstanceOfSatisfying(RichTextContent.class,
+                rich -> assertThat(rich.body()).isEqualTo("<p>hi</p>"));
+        assertThat(deck.findSlide("s1").orElseThrow().getContent())
+                .isInstanceOfSatisfying(RichTextContent.class,
+                        rich -> assertThat(rich.body()).isEqualTo("<p>hi</p>"));
+    }
+
+    @Test
+    void updateSlideSanitizesRichTextBodyOnWrite() {
+        Deck deck = deckWithMcq("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("s1");
+        changes.setContent(new RichTextContent(
+                "<img src=x onerror=alert(1)><p>ok</p>", null, null));
+
+        Slide updated = deckService.updateSlide("deck-1", "s1", changes, owner);
+
+        assertThat(updated.getContent()).isInstanceOfSatisfying(RichTextContent.class,
+                rich -> assertThat(rich.body()).isEqualTo("<p>ok</p>"));
     }
 
     @Test

@@ -36,6 +36,7 @@ import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
+import com.cephadex.ambi.presentation.slide.content.RichTextSanitizer;
 import com.cephadex.ambi.presentation.slide.content.ScorableContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
@@ -56,13 +57,16 @@ public class DeckService {
     private final OrgRoleResolver orgRoles;
     private final SlideRankService rankService;
     private final DeckDefaultsProperties deckDefaults;
+    private final RichTextSanitizer richTextSanitizer;
 
     public DeckService(DeckRepository deckRepository, OrgRoleResolver orgRoles,
-            SlideRankService rankService, DeckDefaultsProperties deckDefaults) {
+            SlideRankService rankService, DeckDefaultsProperties deckDefaults,
+            RichTextSanitizer richTextSanitizer) {
         this.deckRepository = deckRepository;
         this.orgRoles = orgRoles;
         this.rankService = rankService;
         this.deckDefaults = deckDefaults;
+        this.richTextSanitizer = richTextSanitizer;
     }
 
     // ── Create ──────────────────────────────────────────────────────────────
@@ -177,6 +181,10 @@ public class DeckService {
         }
         slide.setCreatedByUserId(userId);
         slide.setLastEditedByUserId(userId);
+        // Defense-in-depth at the storage boundary: allowlist-sanitize any
+        // editor-authored HTML before it is persisted, so the stored body is
+        // safe regardless of ingestion route (see RichTextSanitizer).
+        slide.setContent(richTextSanitizer.sanitize(slide.getContent()));
         // Ordering is server-owned: key any legacy slides, then append past the
         // current last. Any client-supplied sortOrder is ignored on purpose.
         deck.backfillRanks(rankService);
@@ -258,7 +266,8 @@ public class DeckService {
         // cleared on delete — an update can never rewrite the link.
         // sortOrder is server-owned and unchanged here — reordering goes through
         // moveSlide, so an update never lets the client jump a slide's position.
-        slide.setContent(changes.getContent());
+        // Sanitize editor-authored HTML at the storage boundary (see addSlide).
+        slide.setContent(richTextSanitizer.sanitize(changes.getContent()));
         slide.setLastEditedByUserId(principal.userId());
 
         deck.backfillRanks(rankService);

@@ -13,7 +13,7 @@
 | # | Severity | Area | Finding |
 |---|----------|------|---------|
 | 1 | **High** | Config/Infra | Mongo-Express admin GUI exposed with auth disabled, port on all interfaces |
-| 2 | **High** | Frontend + Backend | Cross-user stored XSS: host-authored slide HTML rendered raw to every live-session participant; no sanitizer anywhere |
+| 2 | **High** | Frontend + Backend | Cross-user stored XSS: host-authored slide HTML rendered raw to every live-session participant; no sanitizer anywhere — ✅ RESOLVED (client + server) |
 | 3 | **High** | Frontend | Open redirect on post-registration navigation (`returnUrl` unvalidated) |
 | 4 | **Medium** | Auth | Fail-open default Spring profile (`DEV`) exposes `POST /api/dev/login` + Swagger on a mis-provisioned prod |
 | 5 | **Medium** | Auth | JWT signing key falls back to a committed default; no fail-fast in PROD |
@@ -55,6 +55,8 @@ mongo-express:
 This crosses a trust boundary: `SessionHeader.tsx:14` renders `currentSlide?.title` via `RichTextDisplay`, and `currentSlide` is streamed over STOMP to **every participant** in a live session. So HTML authored by a deck host is rendered raw in every other participant's browser — `<img src=x onerror=...>`, `<svg onload=...>`, or `<a href="javascript:...">` all execute as authored (only literal `<script>` tags are inert via this API).
 
 **Remediation:** add DOMPurify (or an allowlist sanitizer) and run it on `value` immediately before `dangerouslySetInnerHTML`, independent of what produced the string. **Additionally** sanitize/bound slide HTML server-side on write (`RichTextContent.body`) — defense must not rely solely on "the editor produced it." Resolve the two `TODO`s rather than leaving the assumption unverified.
+
+**Resolution (both halves): ✅ RESOLVED.** Client half (`dfd7690`): `RichTextDisplay` now sanitizes its `value` with DOMPurify (`frontend/src/shared/utils/sanitizeHtml.ts`) immediately before `dangerouslySetInnerHTML`, and both `TODO`s are gone. Server half: `DeckService.addSlide`/`updateSlide` run `RichTextContent.body` through the backend `RichTextSanitizer` (OWASP Java HTML Sanitizer) on every write, so persisted markup is allowlist-clean at the storage boundary regardless of ingestion route (direct API `PUT`, future import). Both sanitizers share one allowlist — formatting/lists/headings/links, inline `style` constrained to `color`/`font-size`, unsafe URL schemes stripped, and `rel="noopener noreferrer"` forced on links (reverse-tabnabbing defense).
 
 ### 3. Open redirect on post-registration navigation
 

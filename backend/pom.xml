@@ -102,6 +102,15 @@
 			<artifactId>scrimage-webp</artifactId>
 			<version>${scrimage.version}</version>
 		</dependency>
+		<!-- OWASP Java HTML Sanitizer: allowlist-based HTML cleaning applied to
+		     stored rich-text (RichTextContent.body) on the write path, so persisted
+		     markup is safe regardless of ingestion route. The frontend's DOMPurify
+		     render-boundary pass is the mirror of this; see RichTextSanitizer. -->
+		<dependency>
+			<groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+			<artifactId>owasp-java-html-sanitizer</artifactId>
+			<version>20240325.1</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security-test</artifactId>
