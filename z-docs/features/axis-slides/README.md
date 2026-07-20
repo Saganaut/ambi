@@ -314,10 +314,11 @@ Place-on-Image's target rows reach it via the shared
 (`OptionControls/OptionField.tsx`) and Match/Grid
 (`_shared/PhraseOrImageCard/PhraseOrImageCard.tsx`) render
 `FloatingPopover`/`OptionMenuContent` directly rather than through
-`ItemField`. The legacy `_shared/OptionMenu/OptionMenu.tsx` shell (manual
-outside-pointerdown/Escape dismissal, static start/end alignment) is no
-longer on any of those paths; it remains in use only by Ranking
-(`RankItemMenu.tsx`), which hasn't migrated yet.
+`ItemField`. Ranking (`RankingSlideContent/RankingItemEditable.tsx`) also
+reaches it through the shared `ItemField`, like Axis. The legacy
+`_shared/OptionMenu/OptionMenu.tsx` shell (manual outside-pointerdown/Escape
+dismissal, static start/end alignment) has been removed now that every kind
+is on the `FloatingPopover` path.
 
 ### Registration
 
