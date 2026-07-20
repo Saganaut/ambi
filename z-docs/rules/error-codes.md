@@ -85,6 +85,7 @@ Role/relationship violation:
 | `ROUND_ALREADY_OPEN` | Round is already open |
 | `PARENT_ROUND_NOT_SCORED` | A follow-up round's parent round isn't scored yet |
 | `SESSION_ALREADY_TERMINAL` | Session has already ended |
+| `SESSION_FULL` | Session's roster is at its cap (deck `AudienceSettings.maxParticipants`, default 200) |
 | `ROOM_CODE_UNAVAILABLE` | Requested room code is already in use |
 | `SESSION_LOCKED` | Session is locked by a concurrent operation (Redis lock contention) |
 | `REGISTRATION_RACE` | Concurrent registration attempts collided |

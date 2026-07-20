@@ -203,6 +203,8 @@ public class LiveSessionOrchestrator {
      */
     private void warnIfSnapshotLarge(LiveSession session) {
         try {
+            // RedisJsonCodec is nominally the Redis-value codec; it's reused here
+            // purely as a configured mapper to estimate the Mongo document's size.
             String json = codec.serialize(session.getDeck());
             int bytes = json == null ? 0 : json.getBytes(StandardCharsets.UTF_8).length;
             if (bytes > SNAPSHOT_WARN_BYTES) {

@@ -545,6 +545,18 @@ class LiveSessionOrchestratorTest {
     }
 
     @Test
+    void createSessionSurvivesSnapshotSizingFailure() {
+        Deck deck = mock(Deck.class);
+        when(repo.save(any(LiveSession.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(codec.serialize(deck)).thenThrow(new RuntimeException("unserializable"));
+
+        LiveSession session = orchestrator.createSession("user-1", "Host", null, deck);
+
+        assertThat(session).isNotNull();
+        verify(repo).save(any(LiveSession.class));
+    }
+
+    @Test
     void createSessionRetriesOnRoomCodeCollision() {
         Deck deck = mock(Deck.class);
         when(repo.save(any(LiveSession.class)))
