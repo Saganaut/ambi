@@ -2,6 +2,10 @@ package com.cephadex.ambi.presentation.slide.content;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.presentation.slide.enums.HorizontalAlign;
@@ -81,18 +85,26 @@ class RichTextSanitizerTest {
 
     @Test
     void forcesSafeRelOnTargetedLinks() {
-        assertThat(sanitizer.sanitize(
-                "<a href=\"https://example.com\" target=\"_blank\">link</a>"))
-                .contains("target=\"_blank\"")
-                .contains("rel=\"noopener noreferrer\"");
+        String out = sanitizer.sanitize(
+                "<a href=\"https://example.com\" target=\"_blank\">link</a>");
+        assertThat(out).contains("target=\"_blank\"");
+        // The two rel tokens must both be present; the sanitizer library does not
+        // guarantee their order, so compare the set rather than an exact string.
+        assertThat(relTokens(out)).containsExactlyInAnyOrder("noopener", "noreferrer");
     }
 
     @Test
     void overridesAttackerSuppliedRel() {
-        assertThat(sanitizer.sanitize(
-                "<a href=\"https://e.com\" target=\"_blank\" rel=\"opener\">l</a>"))
-                .contains("rel=\"noopener noreferrer\"")
-                .doesNotContain("rel=\"opener\"");
+        String out = sanitizer.sanitize(
+                "<a href=\"https://e.com\" target=\"_blank\" rel=\"opener\">l</a>");
+        // The attacker's rel is dropped entirely and replaced by the safe pair.
+        assertThat(relTokens(out)).containsExactlyInAnyOrder("noopener", "noreferrer");
+    }
+
+    /** The whitespace-separated tokens of the first {@code rel="…"}, or empty. */
+    private static List<String> relTokens(String html) {
+        Matcher m = Pattern.compile("rel=\"([^\"]*)\"").matcher(html);
+        return m.find() ? List.of(m.group(1).trim().split("\\s+")) : List.of();
     }
 
     // ── Legitimate formatting survives ──────────────────────────────────────

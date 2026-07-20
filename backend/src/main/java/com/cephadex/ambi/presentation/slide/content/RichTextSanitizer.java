@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  * persisted {@code body} can never carry scripts, event handlers, unsafe URL
  * schemes, or layout-hijacking CSS regardless of how it was ingested.
  *
- * <p>The policy mirrors the frontend allowlist (which mirrors the TipTap schema:
+ * <p>The policy follows the frontend allowlist (which mirrors the TipTap schema:
  * StarterKit + TextStyle + Color + FontSize + Link):
  * <ul>
  *   <li>Block/inline formatting, lists, headings, links, and {@code hr}.</li>
@@ -30,10 +30,15 @@ import org.springframework.stereotype.Component;
  *       ({@code url(...)}, {@code expression(...)}).</li>
  *   <li>Standard URL protocols only ({@code http}, {@code https}, {@code mailto}),
  *       so {@code javascript:} and other unsafe schemes are stripped.</li>
- *   <li>{@code rel="noopener noreferrer"} forced on every link, overriding any
- *       author-supplied {@code rel}, so a {@code target="_blank"} link rendered
+ *   <li>{@code noopener} and {@code noreferrer} rel tokens forced on <em>every</em>
+ *       link, overriding any author-supplied {@code rel}, so a link rendered
  *       cross-user cannot hand the destination a {@code window.opener} handle
- *       (reverse tabnabbing).</li>
+ *       (reverse tabnabbing). This is deliberately stricter than the client,
+ *       which forces the rel only on links that carry a {@code target}: the
+ *       OWASP builder applies {@link HtmlPolicyBuilder#requireRelsOnLinks} to all
+ *       links, and a safe {@code rel} on a same-tab link is harmless. The token
+ *       order the library emits is not contractual, so callers must not depend on
+ *       it.</li>
  * </ul>
  *
  * <p>The {@link PolicyFactory} is immutable and thread-safe, built once and
