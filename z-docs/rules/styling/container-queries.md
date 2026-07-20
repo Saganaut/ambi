@@ -1,6 +1,6 @@
 # Layout & Container Queries
 
-**Rule:** Responsive behavior comes from **container queries**, not viewport media queries — a component adapts to the space *it* is given, so the same component works in a wide board, a narrow sidebar, or a design-system demo cell.
+**Rule:** Responsive behavior comes from **container queries**, not viewport media queries — a component adapts to the space *it* is given, so the same component works in a wide board, a narrow sidebar, or a component-gallery cell.
 
 Full explanation, examples, and pitfalls: [frontend/STYLES.md §12](../../../frontend/STYLES.md). The reusable `Container` component (`frontend/src/components/Containers/Container.tsx`) is the component-level primitive (it requires a `name`, defaults to `inline-size`); `Kpi.module.css` is the reference example.
 
