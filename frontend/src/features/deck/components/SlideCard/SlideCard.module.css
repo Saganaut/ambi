@@ -1,7 +1,8 @@
-/* Slide card (DS "Slide Card", row variant). Inactive rows sit on the surface
+/* Slide card (DS "Slide Card"). Row variant: inactive rows sit on the surface
    tint with a soft sm shadow; the active row lifts to the canvas colour with
    the md shadow. The sm size steps every manifest slot down one notch for the
-   follow-up rows attached under a parent slide. */
+   follow-up rows attached under a parent slide. Tile variant (the .tile block
+   after the per-type tints): descriptive picker card on the canvas colour. */
 .slideCard {
   --background-color: var(--bg-surface);
   --card-shadow: var(--shadow-sm);
@@ -11,6 +12,7 @@
   --icon-box-size: var(--space-10);
   --icon-size: var(--space-5);
   --title-font-size: var(--font-size-sm);
+  --title-font-weight: 500;
 
   /* Per-type icon-box tint: a light wash behind a solid glyph of the same
      palette family (per the DS Slide Card rows in the Compact Index Card).
@@ -24,9 +26,11 @@
   gap: var(--gap);
   width: 100%;
   padding: var(--padding);
+  border: none;
   border-radius: var(--radius);
   background-color: var(--background-color);
   box-shadow: var(--card-shadow);
+  font: inherit;
   text-align: left;
   cursor: pointer;
   transition:
@@ -112,6 +116,25 @@
     --icon-box-fg: var(--lavender-500);
   }
 
+  /* Tile variant (DS "Slide Card" Variant=tile) — the NewSlideModal picker
+     card on the canvas colour with the xs shadow. The DS tile icons are a
+     uniform cyan wash behind a brand-purple glyph, so this deliberately
+     overrides the per-type row tints (and is declared after them to win the
+     source-order tie). */
+  &.tile {
+    --background-color: var(--bg-canvas);
+    --card-shadow: var(--shadow-xs);
+    --icon-box-size: var(--space-8);
+    --icon-size: var(--space-4);
+    --icon-box-bg: var(--cyan-200);
+    --icon-box-fg: var(--role-primary);
+    --title-font-weight: 600;
+
+    &:hover {
+      --card-shadow: var(--shadow-sm);
+    }
+  }
+
   .index {
     flex-shrink: 0;
     min-width: var(--space-4);
@@ -160,7 +183,15 @@
     overflow: hidden;
     color: var(--text-primary);
     font-size: var(--title-font-size);
-    font-weight: 500;
+    font-weight: var(--title-font-weight);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .description {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
     text-overflow: ellipsis;
     white-space: nowrap;
   }

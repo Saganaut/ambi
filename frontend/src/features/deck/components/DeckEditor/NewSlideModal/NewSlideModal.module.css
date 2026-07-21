@@ -1,16 +1,41 @@
+/* New Slide picker body (Figma "New Slide Modal"). Two eyebrow-headed
+   sections of two-up Slide Card tiles; the shared Modal supplies the shell
+   (title bar, close button, body padding). */
 .newSlideModalBody {
-  > div {
-    padding-bottom: var(--space-3);
+  display: flex;
+  width: min(84vw, 672px);
+  flex-direction: column;
+  gap: var(--space-5);
 
-    h2 {
-      padding: var(--space-3);
-    }
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
 
-    .grid {
-      width: min(90vw, 640px);
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: var(--space-3);
+  /* Eyebrow heading with a trailing hairline rule. */
+  .sectionHeading {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
+    &::after {
+      content: "";
+      flex: 1;
+      height: 2px;
+      background-color: var(--border-subtle);
     }
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-5) var(--space-4);
   }
 }

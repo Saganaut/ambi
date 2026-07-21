@@ -1,100 +1,86 @@
 /**
  * Modal body that lets the user pick which element kind to add to the deck.
  *
- * Renders the existing `SlideTypeGraphics` as clickable tiles. Clicking a tile
- * immediately invokes `onPick` (which closes the modal and creates the element
- * via the deck-dashboard hook). No two-step "select + confirm" — the click is
- * the commit.
+ * Two eyebrow-headed sections (Interactive / Presentation) of descriptive DS
+ * Slide Card tiles — icon + name + one-line blurb, per the Figma New Slide
+ * Modal. Clicking a tile immediately invokes `onPick` (which closes the modal
+ * and creates the element via the deck-dashboard hook). No two-step
+ * "select + confirm" — the click is the commit.
  */
 
 import { SlideType } from "@deck/store/deckEnums.gen";
-import { SelectableTile } from "@ui/SelectableTile/SelectableTile";
-import { slideTypeGraphics } from "../../Slides/SlideTypeGraphics/slideTypeGraphics";
+import { SlideCard } from "../../SlideCard/SlideCard";
 import styles from "./NewSlideModal.module.css";
 
 interface NewSlideModalProps {
   onPick: (slideType: SlideType) => void;
 }
 
-const SLIDE_TYPE_LABELS: Omit<Record<SlideType, string>, "TITLE"> = {
-  // TITLE: "Title", omitting title now as it is not necessary
-  CONTENT: "Content",
-  MCQ: "Multiple Choice",
-  TEXT: "Text Answer",
-  NUMBER: "Number Answer",
-  RANKING: "Ranking",
-  SCALES: "Scales",
-  Q_AND_A: "Q & A",
-  GRID: "Grid",
-  AXIS: "Axis",
-  PLACE_ON_IMAGE: "Place on Image",
-  ALLOCATION: "Allocation",
-  MATCHING: "Matching",
-  DRAWING: "Drawing",
-  MEDIA: "Media",
-  INSTRUCTION: "Instructions",
-  FOLLOW_UP: "Follow Up",
-};
+interface SlideTypeOption {
+  slideType: SlideType;
+  label: string;
+  description: string;
+}
 
-//   - FOLLOW_UP — never created standalone; attached to a parent slide via its Add follow-up slide" action.
-const HIDDEN_SLIDE_TYPES: ReadonlySet<SlideType> = new Set(["FOLLOW_UP"]);
+// Ordered as laid out in the design. TITLE (retired) and FOLLOW_UP (only
+// created via a parent slide's "Add follow-up slide" action) are not offered.
+const INTERACTIVE_SLIDE_TYPES: SlideTypeOption[] = [
+  { slideType: "MCQ", label: "Multiple Choice", description: "Pick the right answer from options" },
+  { slideType: "TEXT", label: "Text Answer", description: "Type a short free-text answer" },
+  { slideType: "NUMBER", label: "Number Answer", description: "Closest number to the target wins" },
+  { slideType: "RANKING", label: "Ranking", description: "Put items in the correct order" },
+  { slideType: "SCALES", label: "Scales", description: "Rate statements along a scale" },
+  { slideType: "Q_AND_A", label: "Q & A", description: "Collect and answer questions" },
+  { slideType: "GRID", label: "Grid", description: "Sort items into the right cells" },
+  { slideType: "AXIS", label: "Axis", description: "Place items on a 2-D plane" },
+  {
+    slideType: "PLACE_ON_IMAGE",
+    label: "Place on Image",
+    description: "Pin the right spot on a picture",
+  },
+  { slideType: "ALLOCATION", label: "Allocation", description: "Split points across the options" },
+  { slideType: "MATCHING", label: "Matching", description: "Pair up related items" },
+  { slideType: "DRAWING", label: "Drawing", description: "Sketch your answer freehand" },
+];
 
-const NON_SCORABLE_SLIDE_TYPE_KEYS = ["CONTENT", "INSTRUCTION", "MEDIA", "TITLE"];
+const PRESENTATION_SLIDE_TYPES: SlideTypeOption[] = [
+  { slideType: "CONTENT", label: "Content", description: "Rich text and images, no scoring" },
+  { slideType: "MEDIA", label: "Media", description: "A full-slide image or video" },
+  { slideType: "INSTRUCTION", label: "Instructions", description: "Explain what happens next" },
+];
 
-// Seperate into Scorable and Non-Scorable slides
-const SCORABLE_SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
-  (slideType) =>
-    !HIDDEN_SLIDE_TYPES.has(slideType) && !NON_SCORABLE_SLIDE_TYPE_KEYS.includes(slideType),
-);
+interface SlideTypeSectionProps {
+  heading: string;
+  options: SlideTypeOption[];
+  onPick: (slideType: SlideType) => void;
+}
 
-const NON_SCORABLE_SLIDE_TYPES = (Object.keys(slideTypeGraphics) as SlideType[]).filter(
-  (slideType) =>
-    !HIDDEN_SLIDE_TYPES.has(slideType) &&
-    NON_SCORABLE_SLIDE_TYPE_KEYS.includes(slideType) &&
-    slideType !== "TITLE",
+const SlideTypeSection = ({ heading, options, onPick }: SlideTypeSectionProps) => (
+  <section className={styles.section}>
+    <h3 className={styles.sectionHeading}>{heading}</h3>
+    <div className={styles.grid}>
+      {options.map(({ slideType, label, description }) => (
+        <SlideCard
+          key={slideType}
+          as="button"
+          variant="tile"
+          slideType={slideType}
+          title={label}
+          description={description}
+          onClick={() => {
+            onPick(slideType);
+          }}
+        />
+      ))}
+    </div>
+  </section>
 );
 
 const NewSlideModal = ({ onPick }: NewSlideModalProps) => {
   return (
     <div className={styles.newSlideModalBody}>
-      <div>
-        <h2>Interactive Slides</h2>
-        <div className={styles.grid}>
-          {SCORABLE_SLIDE_TYPES.map((slideType) => {
-            const Graphic = slideTypeGraphics[slideType];
-            return (
-              <SelectableTile
-                key={slideType}
-                size="sm"
-                media={<Graphic />}
-                title={SLIDE_TYPE_LABELS[slideType as Exclude<SlideType, "TITLE">]}
-                onClick={() => {
-                  onPick(slideType);
-                }}
-              />
-            );
-          })}
-        </div>
-        <div>
-          <h2>Presentation Slides</h2>
-          <div className={styles.grid}>
-            {NON_SCORABLE_SLIDE_TYPES.map((slideType) => {
-              const Graphic = slideTypeGraphics[slideType];
-              return (
-                <SelectableTile
-                  key={slideType}
-                  size="sm"
-                  media={<Graphic />}
-                  title={SLIDE_TYPE_LABELS[slideType as Exclude<SlideType, "TITLE">]}
-                  onClick={() => {
-                    onPick(slideType);
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <SlideTypeSection heading="Interactive" options={INTERACTIVE_SLIDE_TYPES} onPick={onPick} />
+      <SlideTypeSection heading="Presentation" options={PRESENTATION_SLIDE_TYPES} onPick={onPick} />
     </div>
   );
 };
