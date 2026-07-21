@@ -30,9 +30,9 @@
 
 /* Figma pairs the bg-secondary fill with body text ("Body on sibling"), not
    Btn primary's heading color — override the slot vars only so the hover /
-   disabled states keep working. The tripled class outranks `.btn.primary`
+   disabled states keep working. The descendant chain outranks `.btn.primary`
    (0,3,0 vs 0,2,0) regardless of stylesheet injection order. */
-.providerBtn.providerBtn.providerBtn {
+.container .providers .providerBtn {
   --color: var(--text-secondary);
   --min-height: var(--space-14);
 

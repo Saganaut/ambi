@@ -128,7 +128,6 @@ const LoginModal = ({ message, returnUrl }: LoginModalProps) => {
             className={styles.providerBtn}
             icon={<Glyph />}
             disabled={!enabled}
-            title={enabled ? undefined : "Coming soon"}
             onClick={() => {
               handleLogin(id);
             }}>
