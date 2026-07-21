@@ -58,10 +58,11 @@ interface GuardLocation {
 /** Redirect target for a session that isn't allowed past a registered gate. */
 function bounce(auth: CurrentUserState, location: GuardLocation): never {
   // An OAuth'd-but-unregistered principal has exactly one place to go: finish
-  // signing up. Everyone else lands on the public home with the login prompt
-  // armed and the blocked path preserved as returnUrl.
+  // signing up — carrying the blocked path so registration returns them here.
+  // Everyone else lands on the public home with the login prompt armed and the
+  // blocked path preserved as returnUrl.
   if (auth.state === "preRegistration") {
-    throw redirect({ to: "/register" });
+    throw redirect({ to: "/register", search: { returnUrl: location.href } });
   }
   throw redirect({
     to: "/",
@@ -101,9 +102,10 @@ export function requireLevel(
 
 /**
  * Gate the registration screen: only a PRE_REGISTRATION session (OAuth'd, no
- * account yet) belongs there. An already-registered user is sent home; a
- * visitor/guest is sent home with the login prompt (they must authenticate via
- * a provider before there's anything to register). Passes through while loading.
+ * account yet) belongs there. An already-registered user is sent straight to
+ * their workspace; a visitor/guest is sent home with the login prompt (they
+ * must authenticate via a provider before there's anything to register).
+ * Passes through while loading.
  */
 export function requirePreRegistration(
   auth: CurrentUserState,
@@ -111,7 +113,7 @@ export function requirePreRegistration(
 ): void {
   if (auth.state === "loading") return;
   if (auth.state === "preRegistration") return;
-  if (auth.state === "registered") throw redirect({ to: "/" });
+  if (auth.state === "registered") throw redirect({ to: "/decks" });
   throw redirect({
     to: "/",
     search: { authPrompt: true, returnUrl: location.href },

@@ -166,7 +166,7 @@ class GoogleOAuth2SuccessHandlerTest {
     }
 
     @Test
-    void writesAccessAndRefreshCookiesAndRedirectsToFrontend() throws Exception {
+    void writesAccessAndRefreshCookiesAndRedirectsPreRegistrationToRegister() throws Exception {
         when(userService.findByProviderAndSubject(any(), any())).thenReturn(Optional.empty());
 
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -175,12 +175,12 @@ class GoogleOAuth2SuccessHandlerTest {
         List<String> setCookie = response.getHeaders("Set-Cookie");
         assertThat(setCookie).anyMatch(c -> c.startsWith("AMBI_AT=acc"));
         assertThat(setCookie).anyMatch(c -> c.startsWith("AMBI_RT=ref"));
-        // No returnUrl cookie present in this request → redirect to root of frontend origin.
-        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/");
+        // No returnUrl cookie and no account yet → straight to registration.
+        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/register");
     }
 
     @Test
-    void consumesReturnUrlCookieAndClearsItOnResponse() throws Exception {
+    void preRegistrationKeepsReturnUrlAsRegisterSearchParamAndClearsCookie() throws Exception {
         when(userService.findByProviderAndSubject(any(), any())).thenReturn(Optional.empty());
 
         MockHttpServletRequest request = oauthCallbackRequest();
@@ -189,7 +189,9 @@ class GoogleOAuth2SuccessHandlerTest {
 
         handler.onAuthenticationSuccess(request, response, oauthToken());
 
-        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/decks/abc");
+        // The blocked destination survives registration as an encoded search param.
+        assertThat(response.getRedirectedUrl())
+                .isEqualTo("http://localhost:5173/register?returnUrl=%2Fdecks%2Fabc");
         // The clear-cookie Set-Cookie is the one with Max-Age=0.
         assertThat(response.getHeaders("Set-Cookie"))
                 .anyMatch(c -> c.startsWith(OAuthReturnUrlCaptureFilter.COOKIE_NAME + "=")
@@ -197,8 +199,35 @@ class GoogleOAuth2SuccessHandlerTest {
     }
 
     @Test
-    void unsafeReturnUrlInCookieIsCoercedToRoot() throws Exception {
-        // Defense-in-depth: even if something gets into the cookie, sanitize wins.
+    void registeredUserWithoutReturnUrlLandsOnWorkspace() throws Exception {
+        when(userService.findByProviderAndSubject(AuthProvider.GOOGLE, SUB))
+                .thenReturn(Optional.of(registeredUser("u-1", UserLevel.USER, false)));
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        handler.onAuthenticationSuccess(oauthCallbackRequest(), response, oauthToken());
+
+        // Returning user has no use for the marketing page — send them to /decks.
+        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/decks");
+    }
+
+    @Test
+    void registeredUserWithDeepReturnUrlPassesThroughUntouched() throws Exception {
+        when(userService.findByProviderAndSubject(AuthProvider.GOOGLE, SUB))
+                .thenReturn(Optional.of(registeredUser("u-1", UserLevel.USER, false)));
+
+        MockHttpServletRequest request = oauthCallbackRequest();
+        request.setCookies(new Cookie(OAuthReturnUrlCaptureFilter.COOKIE_NAME, "/decks/abc/edit"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationSuccess(request, response, oauthToken());
+
+        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/decks/abc/edit");
+    }
+
+    @Test
+    void unsafeReturnUrlInCookieIsCoercedToStateDefault() throws Exception {
+        // Defense-in-depth: even if something gets into the cookie, sanitize wins
+        // and the state-aware default (register, for PRE_REGISTRATION) applies.
         when(userService.findByProviderAndSubject(any(), any())).thenReturn(Optional.empty());
 
         MockHttpServletRequest request = oauthCallbackRequest();
@@ -207,7 +236,7 @@ class GoogleOAuth2SuccessHandlerTest {
 
         handler.onAuthenticationSuccess(request, response, oauthToken());
 
-        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/");
+        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/register");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

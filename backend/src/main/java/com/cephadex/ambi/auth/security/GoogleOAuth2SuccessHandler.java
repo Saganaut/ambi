@@ -2,6 +2,8 @@ package com.cephadex.ambi.auth.security;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -43,15 +45,18 @@ import jakarta.servlet.http.HttpServletResponse;
  *       {@code userLevel=USER}. Mongo {@code _id} and {@code username} survive
  *       — no {@code ?guestId=} parameter ever participates.</li>
  *   <li><b>Anything else, no existing User</b> — issue a {@code PRE_REGISTRATION}
- *       session holding the OAuth claims (provider, sub, email) only. The
- *       frontend reads {@code needsRegistration=true} on {@code /me} and routes
- *       to the registration screen.</li>
+ *       session holding the OAuth claims (provider, sub, email) only.</li>
  * </ol>
  *
  * <p>Always rotates the session id (Inv 4) and re-validates the
  * {@code returnUrl} cookie stashed by
  * {@link OAuthReturnUrlCaptureFilter} (Inv 2) before redirecting to the
- * frontend.
+ * frontend. The redirect target is state-aware ({@link #resolveTarget}): a
+ * {@code PRE_REGISTRATION} session always lands on the registration screen
+ * (original returnUrl preserved as its post-register destination), a
+ * {@code REGISTERED} one on its returnUrl — or the workspace when none was
+ * requested. The frontend guards remain as a backstop, reading
+ * {@code needsRegistration} from {@code /me}.
  *
  * <p>This handler reads the pre-OAuth identity from the {@code AMBI_AT} cookie
  * directly rather than from {@code SecurityContextHolder}: the OAuth2 login
@@ -67,6 +72,14 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     /** The {@code OAuth2User} attribute keys we depend on (Google's OIDC claims). */
     private static final String CLAIM_SUB = "sub";
     private static final String CLAIM_EMAIL = "email";
+
+    /**
+     * SPA routes the state-aware redirect targets (frontend
+     * {@code src/routes/register.tsx} and {@code src/routes/_authenticated/decks}
+     * — keep in sync if those routes move).
+     */
+    private static final String REGISTER_PATH = "/register";
+    private static final String WORKSPACE_PATH = "/decks";
 
     /** Maps a Spring Security registration id to our internal {@link AuthProvider}. */
     private static final Map<String, AuthProvider> PROVIDER_BY_REGISTRATION_ID = Map.of(
@@ -121,7 +134,31 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie(tokens.refreshToken(), secure, false).toString());
 
         String target = consumeReturnUrl(request, response, secure);
-        response.sendRedirect(buildFrontendUrl(target));
+        response.sendRedirect(buildFrontendUrl(resolveTarget(seed.state(), target)));
+    }
+
+    /**
+     * Picks the post-OAuth landing page from the session state so the redirect
+     * itself enforces the flow, rather than relying on whichever SPA page the
+     * returnUrl happens to hit having a guard:
+     *
+     * <ul>
+     *   <li>{@code PRE_REGISTRATION} → the registration screen, carrying the
+     *       original returnUrl (if any) as its post-register destination;</li>
+     *   <li>{@code REGISTERED} with the default {@code /} returnUrl → the
+     *       workspace, not the marketing page;</li>
+     *   <li>{@code REGISTERED} with a deep returnUrl → that path, untouched.</li>
+     * </ul>
+     */
+    private static String resolveTarget(IdentityState state, String returnUrl) {
+        boolean isDefault = ReturnUrlValidator.DEFAULT.equals(returnUrl);
+        if (state == IdentityState.PRE_REGISTRATION) {
+            if (isDefault) {
+                return REGISTER_PATH;
+            }
+            return REGISTER_PATH + "?returnUrl=" + URLEncoder.encode(returnUrl, StandardCharsets.UTF_8);
+        }
+        return isDefault ? WORKSPACE_PATH : returnUrl;
     }
 
     // ── branching ────────────────────────────────────────────────────────────

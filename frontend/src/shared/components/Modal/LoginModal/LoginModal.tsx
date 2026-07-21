@@ -15,6 +15,7 @@
  * listed as disabled placeholders (`enabled: false`).
  */
 import { apiBaseUrl } from "@store/emptyApi";
+import { toLocalReturnUrl } from "@utils/returnUrl";
 import { Btn } from "@ui/Buttons/Btn";
 import styles from "./LoginModal.module.css";
 
@@ -99,14 +100,12 @@ const PROVIDERS = [
   },
 ] as const;
 
-// Collapse a returnUrl to a backend-acceptable relative path. The validator
-// rejects absolute URLs and protocol-relative `//host`, so fall back to the
-// current path+search+hash when the supplied value isn't a clean local path.
+// Collapse a returnUrl to a backend-acceptable relative path, falling back to
+// the current path+search+hash when the supplied value isn't a clean local
+// path (the backend ReturnUrlValidator would coerce anything else to "/").
 const toRelativeReturnUrl = (returnUrl?: string): string => {
-  if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
-    return returnUrl;
-  }
   return (
+    toLocalReturnUrl(returnUrl) ??
     window.location.pathname + window.location.search + window.location.hash
   );
 };

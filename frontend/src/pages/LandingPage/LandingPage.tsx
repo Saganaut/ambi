@@ -39,13 +39,17 @@ const LandingPage = () => {
   const hasPromptedRef = useRef(false);
 
   // "/" is the public home, but a registered user has no use for the marketing
-  // page — send them straight to their workspace. Visitors and guests stay and
-  // see the product below. This also means logging in from home (returnUrl="/")
-  // resolves to /decks once the session flips to registered, while a deep
-  // protected path is preserved as-is.
+  // page — send them straight to their workspace — and a preRegistration
+  // session's only destination is finishing sign-up. Visitors and guests stay
+  // and see the product below. The backend's OAuth success redirect already
+  // routes both states server-side; this is the client backstop for direct
+  // navigation to "/".
   useEffect(() => {
-    if (userState.state !== "registered") return;
-    void navigate({ to: "/decks", replace: true });
+    if (userState.state === "registered") {
+      void navigate({ to: "/decks", replace: true });
+    } else if (userState.state === "preRegistration") {
+      void navigate({ to: "/register", replace: true });
+    }
   }, [userState.state, navigate]);
 
   // The /_authenticated gate bounces unauthenticated users here with
@@ -78,10 +82,14 @@ const LandingPage = () => {
     navigate,
   ]);
 
-  // Render nothing while the session resolves or while a registered user is
-  // being redirected — avoids flashing the marketing page at someone who's
-  // about to land on /decks.
-  if (userState.state === "loading" || userState.state === "registered") {
+  // Render nothing while the session resolves or while a redirect from the
+  // effect above is pending — avoids flashing the marketing page at someone
+  // who's about to land on /decks or /register.
+  if (
+    userState.state === "loading" ||
+    userState.state === "registered" ||
+    userState.state === "preRegistration"
+  ) {
     return null;
   }
 

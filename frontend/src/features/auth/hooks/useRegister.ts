@@ -125,7 +125,10 @@ const useRegister = ({ returnUrl }: RegisterSearch): UseRegisterResult => {
       }).unwrap();
       // Full navigation so `/api/auth/me` is refetched cold and the session
       // flips to REGISTERED across the app (mirrors the logout/guest reload).
-      window.location.assign(returnUrl ?? "/");
+      // A fresh registrant with no blocked destination belongs in their
+      // workspace, not on the marketing page. `returnUrl` is sanitized to a
+      // local path by the /register route's validateSearch.
+      window.location.assign(returnUrl ?? "/decks");
     } catch (err) {
       const status = (err as { status?: number }).status;
       const message = extractErrorMessage(
