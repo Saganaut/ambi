@@ -12,10 +12,13 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 
 /**
- * Verifies the two things this codec adds over a bare Jackson mapper: {@code Instant}
- * fields serialize as ISO-8601 text (not epoch numbers) and round-trip, and the
+ * Verifies what this codec adds over a bare Jackson mapper: {@code Instant}
+ * fields serialize as ISO-8601 text (not epoch numbers) and round-trip; the
  * polymorphic {@link AnswerPayload} hierarchy carries its {@code answerType}
- * discriminator so it deserializes back to the right concrete subtype.
+ * discriminator so it deserializes back to the right concrete subtype; and the
+ * two-tier evolution policy — the default read stays strict about primitives
+ * missing from stored JSON, while {@code deserializeLenient} zero-fills them
+ * for types (e.g. {@link LiveRoundState}) whose blobs outlive a deploy.
  */
 class RedisJsonCodecTest {
 
@@ -33,20 +36,29 @@ class RedisJsonCodecTest {
         assertThat(codec.deserialize(json, LiveRoundState.class)).isEqualTo(state);
     }
 
-    @Test
-    void legacyBlobWithoutTimerFieldsStillDeserializes() {
-        // A LiveRoundState stored before the ADR 002 timer fields existed (or
-        // before autoPaused) can sit in Redis for up to 6h across a deploy; the
-        // newer reader must zero-fill the absent primitives, not fail the read.
-        String legacy = "{\"publicId\":\"public-1\",\"phase\":\"SUBMIT\","
-                + "\"currentSlideId\":\"slide-1\",\"roundStartedAt\":\"2026-05-30T12:00:00Z\"}";
+    /** A LiveRoundState blob predating the ADR 002 timer fields (and autoPaused). */
+    private static final String LEGACY_ROUND_STATE = "{\"publicId\":\"public-1\",\"phase\":\"SUBMIT\","
+            + "\"currentSlideId\":\"slide-1\",\"roundStartedAt\":\"2026-05-30T12:00:00Z\"}";
 
-        LiveRoundState state = codec.deserialize(legacy, LiveRoundState.class);
+    @Test
+    void lenientReadZeroFillsPrimitivesAbsentFromLegacyBlobs() {
+        // Such a blob can sit in Redis for up to 6h across a deploy; the newer
+        // reader must zero-fill the absent primitives, not fail the read.
+        LiveRoundState state = codec.deserializeLenient(LEGACY_ROUND_STATE, LiveRoundState.class);
 
         assertThat(state.durationMs()).isNull();
         assertThat(state.pausedAt()).isNull();
         assertThat(state.accumulatedPauseMs()).isZero();
         assertThat(state.autoPaused()).isFalse();
+    }
+
+    @Test
+    void defaultReadStaysStrictAboutAbsentPrimitives() {
+        // The strict default guards types where zero is a real value (e.g. a
+        // NumberAnswer) — a missing primitive must fail loudly, not score as 0.
+        org.assertj.core.api.Assertions
+                .assertThatThrownBy(() -> codec.deserialize(LEGACY_ROUND_STATE, LiveRoundState.class))
+                .isInstanceOf(RedisCodecException.class);
     }
 
     @Test

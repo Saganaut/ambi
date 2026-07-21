@@ -36,7 +36,10 @@ public class LiveRoundStateStore {
         if (json == null) {
             return Optional.empty();
         }
-        return Optional.of(codec.deserialize(json, LiveRoundState.class));
+        // Lenient: a blob written before a later-added primitive field (the ADR
+        // 002 accumulatedPauseMs/autoPaused) may outlive a deploy; zero/false is
+        // the correct "absent" default for every primitive on this record.
+        return Optional.of(codec.deserializeLenient(json, LiveRoundState.class));
     }
 
     /** Writes the session's state, (re)setting the configured TTL backstop. */

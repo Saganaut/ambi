@@ -14,9 +14,14 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>Owns its own <strong>Jackson 3</strong> ({@code tools.jackson}) mapper rather
  * than injecting Spring's web bean, so its config is independent of the HTTP
- * layer's: it tolerates unknown properties (a newer writer, older reader) and
- * absent primitive fields (an older blob, newer reader) for schema evolution in
- * both directions — see below — which the strict web mapper should not. Jackson 3 auto-registers {@code java.time}
+ * layer's: it tolerates unknown properties for forward compatibility (see below),
+ * which the strict web mapper should not. The reverse direction — an older
+ * stored blob read by a newer schema that added primitive fields — is
+ * deliberately <em>not</em> tolerated by default: zero-filling an absent
+ * primitive is only safe when zero genuinely means "absent" (a never-paused
+ * round), and would silently mask corruption for types like a numeric answer
+ * where {@code 0.0} is a real value. Types that evolve in place opt in per
+ * call via {@link #deserializeLenient}. Jackson 3 auto-registers {@code java.time}
  * support, so {@link java.time.Instant} and friends round-trip as ISO-8601 text
  * with no module to register; we still set {@code WRITE_DATES_AS_TIMESTAMPS=false}
  * explicitly to pin that behaviour. The sealed
@@ -34,11 +39,6 @@ public class RedisJsonCodec {
             // Tolerate forward-compatible records: a newer writer may add fields
             // an older reader doesn't know yet.
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            // …and backward-compatible ones: a newer reader must accept older
-            // stored JSON that predates a primitive field (e.g. LiveRoundState's
-            // accumulatedPauseMs/autoPaused, live for up to 6h across a deploy),
-            // zero-filling it instead of failing the read.
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
             .build();
 
     /** Serializes {@code value} to a JSON string, or throws {@link RedisCodecException}. */
@@ -54,6 +54,25 @@ public class RedisJsonCodec {
     public <T> T deserialize(String json, Class<T> type) {
         try {
             return mapper.readValue(json, type);
+        } catch (Exception e) {
+            throw new RedisCodecException("Failed to deserialize Redis value into " + type.getSimpleName(), e);
+        }
+    }
+
+    /**
+     * Like {@link #deserialize(String, Class)}, but additionally zero-fills
+     * primitive fields absent from the stored JSON. For types that evolve in
+     * place and whose blobs outlive a deploy — e.g. a {@code LiveRoundState}
+     * written before the ADR 002 timer fields existed can sit in Redis for up
+     * to 6h — where a zero/false default genuinely means "absent". Only use
+     * this when that holds for <em>every</em> primitive on the type; otherwise
+     * a missing field would masquerade as a real zero (see the class doc).
+     */
+    public <T> T deserializeLenient(String json, Class<T> type) {
+        try {
+            return mapper.readerFor(type)
+                    .without(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                    .readValue(json);
         } catch (Exception e) {
             throw new RedisCodecException("Failed to deserialize Redis value into " + type.getSimpleName(), e);
         }
