@@ -1,20 +1,22 @@
 /* Shared deck card primitive used by MyDecks, Explore, and Favorites.
-   Three variants ("full", "discovery", "compact") share the same cover +
-   favorite-heart top section and only differ in the body blocks they show. */
+   Ambi DS "Deck Card": full-bleed cover with an overlaid status badge, then a
+   padded body. Three variants ("full", "discovery", "compact") share the
+   cover + body shell and only differ in the body blocks they show. */
 
 .card {
   background: var(--bg-surface);
-  border: var(--border-size-sm) solid var(--border-default);
+  border: var(--border-size-sm) solid transparent;
   border-radius: var(--radius-lg);
-  padding: var(--space-3);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
   overflow: hidden;
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  transition: border-color var(--duration-fast) ease-in-out;
+  transition:
+    border-color var(--duration-fast) ease-in-out,
+    background-color var(--duration-fast) ease-in-out;
 
   &:hover {
     border-color: var(--border-focus);
@@ -30,9 +32,14 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: var(--radius-lg);
   background: var(--bg-subtle);
   display: block;
+}
+
+.coverBadge {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
 }
 
 .heart {
@@ -41,6 +48,14 @@
   right: var(--space-1);
   background-color: var(--bg-surface-raised);
   border-radius: var(--radius-full);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  flex: 1;
 }
 
 .name {
@@ -53,6 +68,12 @@
   color: var(--text-secondary);
 }
 
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .desc {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
@@ -62,12 +83,6 @@
   line-clamp: 2;
   overflow: hidden;
   flex: 1;
-}
-
-.statusRow {
-  display: flex;
-  gap: var(--space-1);
-  flex-wrap: wrap;
 }
 
 .discovery {
@@ -98,7 +113,8 @@
 
 .actions {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-2);
-  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: var(--space-1);
 }

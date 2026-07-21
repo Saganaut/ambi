@@ -1,7 +1,14 @@
-// Lists user-owned content decks and all system decks, with create/edit/delete actions.
+// Deck card wired with its per-deck actions (Ambi DS "Deck Card" actions row:
+// present, edit, delete) and the right-click context menu.
+// Heroicons here are the sanctioned placeholders (see icons-rules.md §7): the
+// designer-shipped eye/edit/delete SVGs hard-code colors or are fill-based,
+// which the stroke-oriented Btn/IconBtn CSS can't render.
+import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+
+import styles from "./MyDecksPage.module.css";
 import { DeckResponse } from "@deck/store/deckApi.gen";
 import { Btn } from "@ui/Buttons/Btn";
-import { DeckActionButton } from "@deck/components/DeckActionButton/DeckActionButton";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { DeckCard } from "@deck/components/DeckCard/DeckCard";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 
@@ -26,7 +33,7 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
         <DeckCard
           deck={deck}
           variant='full'
-          onClick={void openDeckInEditor}
+          onClick={openDeckInEditor}
           onMouseEnter={prefetchEditor.onMouseEnter}
           onFocus={prefetchEditor.onFocus}
           onContextMenu={(e) => {
@@ -36,24 +43,49 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
           actions={
             deck.id ? (
               <>
-                <DeckActionButton deckId={deck.id} size='sm' />
+                <IconBtn
+                  size='sm'
+                  variant='secondary'
+                  aria-label='Present deck'
+                  icon={<EyeIcon aria-hidden='true' />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    present();
+                  }}
+                />
+                <span className={styles.actionsSpacer} />
                 {deck.permissions.canEdit && (
                   <>
                     <Link
                       to='/decks/$deckId/edit'
                       params={{ deckId: deck.id }}
                       search={{ slideId: undefined }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
                       viewTransition>
-                      <Btn size='sm'>Edit</Btn>
+                      <Btn
+                        size='sm'
+                        variant='secondary'
+                        icon={
+                          <PencilIcon
+                            className={styles.btnIcon}
+                            aria-hidden='true'
+                          />
+                        }>
+                        Edit
+                      </Btn>
                     </Link>
-                    <Btn
+                    <IconBtn
                       size='sm'
                       variant='error'
-                      onClick={() => {
+                      aria-label='Delete deck'
+                      icon={<TrashIcon aria-hidden='true' />}
+                      onClick={(e) => {
+                        e.stopPropagation();
                         void openDeleteDeckModal();
-                      }}>
-                      Delete
-                    </Btn>
+                      }}
+                    />
                   </>
                 )}
               </>

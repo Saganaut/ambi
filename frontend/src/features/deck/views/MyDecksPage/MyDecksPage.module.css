@@ -1,4 +1,7 @@
-/* My Decks page: list of user-owned decks + system decks, with create/edit/delete actions. */
+/* My Decks page (Ambi DS "MyDecksPage / 1440"): header with title block,
+   search and create action; publish-status tabs with counts; deck grid with
+   the dashed "New Deck" tile. One module for every component in this
+   directory. */
 
 .page {
   align-self: center;
@@ -7,69 +10,121 @@
   padding: var(--gutter-lg) var(--gutter-sm);
 }
 
+.myDecks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-md);
+}
+
+/* ─── Header ───────────────────────────────────────────────── */
+
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--stack-md);
   gap: var(--space-4);
   flex-wrap: wrap;
+
+  /* Input's container defaults to 100% width; pin the search field to the
+     design's fixed width so it sits inline in the header row. */
+  .search {
+    width: 300px;
+    flex: 0 0 auto;
+  }
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-right: auto;
 }
 
 .title {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-xl);
   font-weight: 700;
   margin: 0;
 }
 
-.section {
-  margin-bottom: var(--stack-lg);
-}
-
-.sectionTitle {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  margin: 0 0 var(--space-3);
-  color: var(--text-secondary);
-}
-
-.tabs {
-  display: inline-flex;
-  gap: var(--space-1);
-  margin-bottom: var(--space-3);
-  border-bottom: var(--border-size-sm) solid var(--border-subtle);
-}
-
-.tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  border: none;
-  border-bottom: var(--border-size-md) solid transparent;
-  color: var(--text-secondary);
+.subtitle {
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
-.tabActive {
-  color: var(--text-primary);
-  border-bottom-color: var(--border-focus);
-}
+/* ─── Tabs ─────────────────────────────────────────────────── */
 
 .tabCount {
   font-size: var(--font-size-xs);
   font-weight: 500;
-  padding: 0 var(--space-1);
+  padding: 0 var(--space-2);
   border-radius: var(--radius-full);
   background-color: var(--bg-subtle);
   color: var(--text-muted);
 }
 
-.empty {
-  color: var(--text-secondary);
+/* ─── Deck grid ────────────────────────────────────────────── */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ─── New Deck tile ────────────────────────────────────────── */
+
+.newDeckCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 354px;
+  background-color: var(--bg-subtle);
+  border: var(--border-size-sm) dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease-in-out;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--border-focus);
+  }
+}
+
+.newDeckPlus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-14);
+  height: var(--space-14);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-primary);
+  color: var(--text-on-brand);
+
+  svg {
+    width: var(--space-6);
+    height: var(--space-6);
+  }
+}
+
+.newDeckTitle {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.newDeckHint {
   font-size: var(--font-size-sm);
-  padding: var(--space-4) 0;
+  color: var(--text-secondary);
+}
+
+/* ─── Card actions & button icons ──────────────────────────── */
+
+.actionsSpacer {
+  flex: 1 1 auto;
+}
+
+.btnIcon {
+  width: var(--space-5);
+  height: var(--space-5);
 }
