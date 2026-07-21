@@ -113,11 +113,31 @@ const seedHue = (seed: string): number => {
   return hash;
 };
 
+/** HSL → `#rrggbb`. The placeholder embeds its colours in an SVG data URI, and
+ *  `encodeURIComponent` leaves parentheses unescaped — so an `hsl(…)` literal
+ *  would survive into the URI and be truncated at the first `)` by any unquoted
+ *  CSS `url(…)` consumer. Hex carries no parens, so it is always safe there. */
+const hslToHex = (hue: number, sat: number, light: number): string => {
+  const s = sat / 100;
+  const l = light / 100;
+  const a = s * Math.min(l, 1 - l);
+  const channel = (n: number): string => {
+    const k = (n + hue / 30) % 12;
+    const value = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(255 * value)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${channel(0)}${channel(8)}${channel(4)}`;
+};
+
 /**
  * A first-party placeholder used when an image slot is empty: an inline SVG
  * data URI (no network request, no external dependency) — a soft, seed-tinted
  * panel with a centred photo glyph. Seeding keeps each slot's tint stable and
  * gives a wall of empty cards gentle variety, the way Lorem Picsum did before.
+ * The serialized SVG deliberately contains no parentheses, so the data URI is
+ * safe to drop into an unquoted CSS `url(…)`.
  */
 export const placeholderImageUrl = (
   seed: string,
@@ -125,16 +145,17 @@ export const placeholderImageUrl = (
   h: number = PLACEHOLDER_H,
 ): string => {
   const hue = seedHue(seed);
-  const bg = `hsl(${hue} 22% 90%)`;
-  const fg = `hsl(${hue} 16% 60%)`;
+  const bg = hslToHex(hue, 22, 90);
+  const fg = hslToHex(hue, 16, 60);
   const glyph = Math.round(Math.min(w, h) * 0.34);
   const gx = Math.round((w - glyph) / 2);
   const gy = Math.round((h - glyph) / 2);
-  // heroicons `photo` (outline), stroked; nested <svg> re-scales its 24-unit
-  // viewBox to the centred glyph box regardless of the panel's aspect ratio.
+  // Glyph hand-simplified from heroicons `photo` (outline), stroked; the nested
+  // <svg> re-scales its 24-unit viewBox to the centred glyph box regardless of
+  // the panel's aspect ratio.
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +
-    `viewBox="0 0 ${w} ${h}" role="img" aria-hidden="true">` +
+    `viewBox="0 0 ${w} ${h}" aria-hidden="true">` +
     `<rect width="100%" height="100%" fill="${bg}"/>` +
     `<svg x="${gx}" y="${gy}" width="${glyph}" height="${glyph}" viewBox="0 0 24 24" ` +
     `fill="none" stroke="${fg}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">` +
