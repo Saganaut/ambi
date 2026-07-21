@@ -11,9 +11,11 @@
  * is promoted in place from its session cookie, not a query param. The backend
  * redirects back to the SPA at `returnUrl` with the session cookies set.
  * Additional providers plug in as another entry in PROVIDERS — keep them
- * visually consistent.
+ * visually consistent. Providers without a backend integration yet stay
+ * listed as disabled placeholders (`enabled: false`).
  */
 import { apiBaseUrl } from "@store/emptyApi";
+import { Btn } from "@ui/Buttons/Btn";
 import styles from "./LoginModal.module.css";
 
 interface LoginModalProps {
@@ -77,9 +79,24 @@ const MicrosoftGlyph = () => (
 );
 
 const PROVIDERS = [
-  { id: "google", label: "Continue with Google", Glyph: GoogleGlyph },
-  { id: "discord", label: "Continue with Discord", Glyph: DiscordGlyph },
-  { id: "microsoft", label: "Continue with Microsoft", Glyph: MicrosoftGlyph },
+  {
+    id: "google",
+    label: "Continue with Google",
+    Glyph: GoogleGlyph,
+    enabled: true,
+  },
+  {
+    id: "discord",
+    label: "Continue with Discord",
+    Glyph: DiscordGlyph,
+    enabled: false,
+  },
+  {
+    id: "microsoft",
+    label: "Continue with Microsoft",
+    Glyph: MicrosoftGlyph,
+    enabled: false,
+  },
 ] as const;
 
 // Collapse a returnUrl to a backend-acceptable relative path. The validator
@@ -103,21 +120,20 @@ const LoginModal = ({ message, returnUrl }: LoginModalProps) => {
 
   return (
     <div className={styles.container}>
-      <p className={styles.message}>{message ?? "Sign in to continue."}</p>
+      {message != null && <p className={styles.message}>{message}</p>}
       <div className={styles.providers}>
-        {PROVIDERS.map(({ id, label, Glyph }) => (
-          <button
+        {PROVIDERS.map(({ id, label, Glyph, enabled }) => (
+          <Btn
             key={id}
-            type='button'
             className={styles.providerBtn}
+            icon={<Glyph />}
+            disabled={!enabled}
+            title={enabled ? undefined : "Coming soon"}
             onClick={() => {
               handleLogin(id);
             }}>
-            <span className={styles.providerIcon} aria-hidden='true'>
-              <Glyph />
-            </span>
-            <span>{label}</span>
-          </button>
+            {label}
+          </Btn>
         ))}
       </div>
     </div>

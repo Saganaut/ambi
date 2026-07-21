@@ -6,12 +6,13 @@
 .modal {
   --radius: var(--radius-lg);
   --color: var(--text-primary);
-  --background-color: var(--bg-secondary);
+  --background-color: var(--bg-surface-raised);
   --border-color: var(--border-default);
 
   background-color: var(--background-color);
   color: var(--color);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
   padding: var(--space-4);
 
   /* Size to the content body (each modal sets its own width) and center via

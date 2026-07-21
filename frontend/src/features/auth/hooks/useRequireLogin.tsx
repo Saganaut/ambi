@@ -44,7 +44,7 @@ export function useRequireLogin(
   const openLoginModal = useCallback(
     (options?: OpenLoginModalOptions) => {
       openModal({
-        title: "Sign in",
+        title: "Sign in required",
         content: (
           <LoginModal
             message={options?.message}
