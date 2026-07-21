@@ -10,7 +10,7 @@
  */
 import type { HTMLAttributes, ReactNode } from "react";
 import { SlideType } from "@deck/store/deckEnums.gen";
-import { SlideTypeGraphicSvg } from "../Slides/SlideTypeGraphics/SlideTypeGraphic";
+import { slideTypeIcons } from "./slideTypeIcons";
 import styles from "./SlideCard.module.css";
 
 interface SlideCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -37,12 +37,13 @@ const SlideCard = ({
   const composed = [styles.slideCard, styles[size], active ? styles.active : "", className]
     .filter(Boolean)
     .join(" ");
+  const TypeIcon = slideTypeIcons[slideType];
 
   return (
-    <div className={composed} {...rest}>
+    <div className={composed} data-slide-type={slideType} {...rest}>
       {index != null && <div className={styles.index}>{index}</div>}
       <div className={styles.iconBox}>
-        <SlideTypeGraphicSvg slideType={slideType} size="xs" className={styles.typeIcon} />
+        <TypeIcon className={styles.typeIcon} aria-hidden="true" />
       </div>
       <div className={styles.text}>
         <div className={styles.typeLabel}>{typeLabel ?? slideType.replaceAll("_", " ")}</div>

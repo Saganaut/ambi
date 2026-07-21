@@ -9,7 +9,15 @@
   --gap: var(--gap-md);
   --radius: var(--radius-lg);
   --icon-box-size: var(--space-10);
+  --icon-size: var(--space-5);
   --title-font-size: var(--font-size-sm);
+
+  /* Per-type icon-box tint: a light wash behind a solid glyph of the same
+     palette family (per the DS Slide Card rows in the Compact Index Card).
+     The design only ships tints for six types; the rest extend the scheme,
+     reusing families. Defaults below cover an unknown type. */
+  --icon-box-bg: var(--bg-secondary);
+  --icon-box-fg: var(--text-accent);
 
   display: flex;
   align-items: center;
@@ -39,7 +47,69 @@
     --gap: var(--gap-sm);
     --radius: var(--radius-md);
     --icon-box-size: var(--space-8);
+    --icon-size: var(--space-4);
     --title-font-size: var(--font-size-xs);
+  }
+
+  &[data-slide-type="MCQ"] {
+    --icon-box-bg: var(--cyan-200);
+    --icon-box-fg: var(--cyan-700);
+  }
+
+  &[data-slide-type="NUMBER"],
+  &[data-slide-type="TITLE"] {
+    --icon-box-bg: var(--violet-200);
+    --icon-box-fg: var(--violet-500);
+  }
+
+  &[data-slide-type="GRID"],
+  &[data-slide-type="FOLLOW_UP"] {
+    --icon-box-bg: var(--orange-200);
+    --icon-box-fg: var(--orange-600);
+  }
+
+  &[data-slide-type="AXIS"],
+  &[data-slide-type="CONTENT"] {
+    --icon-box-bg: var(--blue-200);
+    --icon-box-fg: var(--blue-500);
+  }
+
+  &[data-slide-type="SCALES"],
+  &[data-slide-type="ALLOCATION"] {
+    --icon-box-bg: var(--green-200);
+    --icon-box-fg: var(--green-600);
+  }
+
+  &[data-slide-type="MATCHING"] {
+    --icon-box-bg: var(--fuchsia-200);
+    --icon-box-fg: var(--fuchsia-500);
+  }
+
+  &[data-slide-type="DRAWING"],
+  &[data-slide-type="MEDIA"] {
+    --icon-box-bg: var(--mulberry-200);
+    --icon-box-fg: var(--mulberry-500);
+  }
+
+  &[data-slide-type="RANKING"] {
+    --icon-box-bg: var(--yellow-200);
+    --icon-box-fg: var(--yellow-700);
+  }
+
+  &[data-slide-type="Q_AND_A"],
+  &[data-slide-type="INSTRUCTION"] {
+    --icon-box-bg: var(--turqoise-200);
+    --icon-box-fg: var(--turqoise-500);
+  }
+
+  &[data-slide-type="TEXT"] {
+    --icon-box-bg: var(--red-200);
+    --icon-box-fg: var(--red-500);
+  }
+
+  &[data-slide-type="PLACE_ON_IMAGE"] {
+    --icon-box-bg: var(--lavender-200);
+    --icon-box-fg: var(--lavender-500);
   }
 
   .index {
@@ -59,14 +129,14 @@
     width: var(--icon-box-size);
     height: var(--icon-box-size);
     border-radius: var(--radius-md);
-    background-color: var(--bg-secondary);
+    background-color: var(--icon-box-bg);
     box-shadow: var(--shadow-xs);
+    color: var(--icon-box-fg);
   }
 
-  /* SlideTypeGraphicSvg sizes itself via --size on its wrapper; step it down
-     inside the sm card so the graphic keeps the same inset as the md box. */
-  &.sm .iconBox .typeIcon {
-    --size: var(--space-5);
+  .typeIcon {
+    width: var(--icon-size);
+    height: var(--icon-size);
   }
 
   .text {
