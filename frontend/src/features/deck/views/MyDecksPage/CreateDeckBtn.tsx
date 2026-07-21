@@ -1,3 +1,5 @@
+// Header "New Deck" button (Ambi DS brand button with plus icon): creates an
+// empty deck and navigates straight to its editor.
 import { PlusIcon } from "@heroicons/react/24/outline";
 
 import styles from "./MyDecksPage.module.css";

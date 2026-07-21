@@ -1,3 +1,6 @@
+// Shared deck card primitive (Ambi DS "Deck Card"): full-bleed cover with the
+// publish-status badge overlaid, then a padded body whose blocks vary by
+// variant — "full" (My Decks), "discovery" (Explore), "compact" (lists).
 import type { MouseEvent, ReactNode } from "react";
 
 import styles from "./DeckCard.module.css";
