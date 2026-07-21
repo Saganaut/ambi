@@ -133,6 +133,13 @@
     &:hover {
       --card-shadow: var(--shadow-sm);
     }
+
+    /* Tiles render as native buttons, and the global reset strips the UA
+       outline — restore a visible keyboard-focus ring. */
+    &:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
   }
 
   .index {

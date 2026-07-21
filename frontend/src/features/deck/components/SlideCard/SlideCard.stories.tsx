@@ -27,6 +27,16 @@ export const FollowUpSize: Story = {
   args: { size: "sm", index: "1a", slideType: "FOLLOW_UP" },
 };
 
+export const Tile: Story = {
+  args: {
+    variant: "tile",
+    as: "button",
+    title: "Multiple Choice",
+    description: "Pick the right answer from options",
+    index: undefined,
+  },
+};
+
 export const AllTypes: Story = {
   render: (args) => (
     <div
