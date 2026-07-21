@@ -35,6 +35,7 @@
 
 - EventPublisher
 - AnswerStore
+- VoteStore
 - SessionLocks
 - PresenceStore
 - TallyStore

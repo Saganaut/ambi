@@ -50,6 +50,8 @@ import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
 import com.cephadex.ambi.session.redis.TallyStore;
+import com.cephadex.ambi.session.redis.VoteOption;
+import com.cephadex.ambi.session.redis.VoteStore;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 class LiveSessionSnapshotServiceTest {
@@ -63,6 +65,7 @@ class LiveSessionSnapshotServiceTest {
     private TallyStore tallyStore;
     private PresenceStore presenceStore;
     private AnswerStore answerStore;
+    private VoteStore voteStore;
     private QAndAHostAnswerStore qandaHostAnswers;
     private LiveSessionSnapshotService service;
 
@@ -80,9 +83,10 @@ class LiveSessionSnapshotServiceTest {
         tallyStore = mock(TallyStore.class);
         presenceStore = mock(PresenceStore.class);
         answerStore = mock(AnswerStore.class);
+        voteStore = mock(VoteStore.class);
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         service = new LiveSessionSnapshotService(sessions, participants, participantResolver,
-                roundStateStore, tallyStore, presenceStore, answerStore, qandaHostAnswers,
+                roundStateStore, tallyStore, presenceStore, answerStore, voteStore, qandaHostAnswers,
                 mock(ImageUrlResolver.class));
 
         caller = new AmbiPrincipal(IdentityState.GUEST, "user-1", "pub-user", UserLevel.GUEST,
@@ -170,6 +174,48 @@ class LiveSessionSnapshotServiceTest {
         assertThat(snap.currentSlide().answerSettings().maxSelections()).isEqualTo(2);
         assertThat(snap.currentRoundStartedAt()).isEqualTo(startedAt);
         assertThat(snap.optionTally()).containsEntry("opt-a", 3).containsEntry("opt-b", 1);
+    }
+
+    @Test
+    void voteRoundSnapshotCarriesAnonymousOptionsAndTheViewersVote() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.VOTE, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+        when(voteStore.options(SID, "slide-1")).thenReturn(Map.of(
+                "opt-b", new VoteOption("player-2", "a plausible lie", null),
+                "opt-a", new VoteOption("host-1", "the truth", null)));
+        when(voteStore.voteOf(SID, "slide-1", "host-1")).thenReturn(Optional.of("opt-b"));
+        when(voteStore.count(SID, "slide-1")).thenReturn(1L);
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.phase()).isEqualTo(RoundPhase.VOTE);
+        // Options are sorted by their opaque ids and never name an author.
+        assertThat(snap.voteOptions()).extracting("optionId").containsExactly("opt-a", "opt-b");
+        assertThat(snap.voteOptions()).extracting("text").containsExactly("the truth", "a plausible lie");
+        assertThat(snap.myVoteOptionId()).isEqualTo("opt-b");
+        assertThat(snap.votesCast()).isEqualTo(1);
+    }
+
+    @Test
+    void nonVoteRoundSnapshotCarriesNoVoteFields() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.voteOptions()).isNull();
+        assertThat(snap.myVoteOptionId()).isNull();
+        assertThat(snap.votesCast()).isNull();
     }
 
     @Test

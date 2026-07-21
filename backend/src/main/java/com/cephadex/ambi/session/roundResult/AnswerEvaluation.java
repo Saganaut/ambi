@@ -31,11 +31,11 @@ package com.cephadex.ambi.session.roundResult;
  * @param correct        whether the answer was graded correct
  * @param fastestCorrect fastest among the correct answers this round (at most
  *                       one true)
- * @param bestAnswer     host/peer-selected "best answer" (deception-style
- *                       games);
- *                       SEAM — see {@link RoundEvaluator}
- * @param deceivedCount  how many participants this answer deceived (deception
- *                       games); SEAM
+ * @param bestAnswer     voted the round's best answer during its VOTE phase
+ *                       (deception-style games; at most one true, and only when
+ *                       votes were cast — see {@link RoundEvaluator})
+ * @param deceivedCount  how many voters this answer deceived: the votes it drew
+ *                       while grading incorrect (deception games)
  * @param responseTimeMs time from round start to submission, in milliseconds
  */
 public record AnswerEvaluation(

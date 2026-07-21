@@ -1,7 +1,9 @@
 /**
- * Question stage component covering 3 moments via `mode`:
+ * Question stage component covering 4 moments via `mode`:
  * - prompt: Shows question. Interactive for participant; read-only for host/projector.
  * - liveResults: Shows response tally/live updates; correct answer hidden.
+ * - vote: Best-answer voting (D3) — the anonymised submissions replace the
+ *   per-kind content for every question kind.
  * - results: Shows final distribution + highlights correct answer.
  * * Shared header (title + instructions). Body switches on `contentType`
  * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing built; others fallback to
@@ -16,6 +18,7 @@ import { MatchingBoardContent } from "../content/MatchingBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
 import { QAndABoardContent } from "../content/QAndABoardContent";
 import { ScalesBoardContent } from "../content/ScalesBoardContent";
+import { VoteBoardContent } from "../content/VoteBoardContent";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import styles from "./BoardQuestion.module.css";
 
@@ -38,6 +41,11 @@ const BoardQuestion = ({ slide, mode, interactive }: BoardQuestionProps) => (
 );
 
 const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: boolean) => {
+  // Voting replaces the per-kind surface: whatever kind was answered, the vote
+  // moment shows the same anonymised option cards.
+  if (mode === "vote") {
+    return <VoteBoardContent slide={slide} interactive={interactive} />;
+  }
   switch (slide.contentType) {
     case "MCQ":
       return <McqBoardContent slide={slide} mode={mode} interactive={interactive} />;

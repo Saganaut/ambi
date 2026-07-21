@@ -70,6 +70,7 @@ describe("resolveBoardStage", () => {
     ["SUBMIT", "prompt"],
     ["LOCKED", "prompt"],
     ["SUBMIT_LIVE", "liveResults"],
+    ["VOTE", "vote"],
     ["REVEAL_RESPONSES", "liveResults"],
     ["REVEAL_RESULTS", "results"],
   ];
@@ -80,13 +81,13 @@ describe("resolveBoardStage", () => {
     if (stage.type === "question") expect(stage.mode).toBe(mode);
   });
 
-  it("is interactive only while the round accepts answers", () => {
-    // Participant, open phases → interactive.
-    for (const phase of ["SUBMIT", "SUBMIT_LIVE"] as RoundPhase[]) {
+  it("is interactive only while the round accepts answers or votes", () => {
+    // Participant, input-accepting phases (answering, or voting) → interactive.
+    for (const phase of ["SUBMIT", "SUBMIT_LIVE", "VOTE"] as RoundPhase[]) {
       const stage = resolveBoardStage(baseState({ phase, viewerIsHost: false }));
       if (stage.type === "question") expect(stage.interactive).toBe(true);
     }
-    // Closed phases → never interactive.
+    // Closed non-voting phases → never interactive.
     for (const phase of [
       "LOCKED",
       "REVEAL_RESPONSES",

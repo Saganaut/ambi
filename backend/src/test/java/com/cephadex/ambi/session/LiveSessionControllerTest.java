@@ -104,6 +104,26 @@ class LiveSessionControllerTest {
         verify(answerService, never()).submit(any(), any(), any());
     }
 
+    @Test
+    void submitVoteDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/votes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slideId\":\"slide-1\",\"optionId\":\"opt-1\"}"))
+                .andExpect(status().isAccepted());
+
+        verify(answerService).submitVote(eq("sess-1"), any(), any());
+    }
+
+    @Test
+    void blankVoteOptionIdIsRejected() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/votes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slideId\":\"slide-1\",\"optionId\":\"\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(answerService, never()).submitVote(any(), any(), any());
+    }
+
     // ── Drawing upload ───────────────────────────────────────────────────────
 
     @Test
@@ -130,7 +150,7 @@ class LiveSessionControllerTest {
         when(snapshotService.getSnapshot(eq("sess-1"), any()))
                 .thenReturn(new SessionSnapshotResponse("sess-1", "pub-1", "ROOMCODE",
                         LiveSessionLifecycle.LOBBY, RoundPhase.SUBMIT, null, null, null, null, null, null, null,
-                        List.of(), List.of(), "part-1", true, true, false));
+                        null, null, null, List.of(), List.of(), "part-1", true, true, false));
 
         mockMvc.perform(get("/api/liveSessions/sess-1"))
                 .andExpect(status().isOk())
@@ -214,6 +234,14 @@ class LiveSessionControllerTest {
                 .andExpect(status().isAccepted());
 
         verify(hostService).closeSubmissions(eq("sess-1"), eq("slide-2"), any());
+    }
+
+    @Test
+    void openVotingDelegatesAndReturns202() throws Exception {
+        mockMvc.perform(post("/api/liveSessions/sess-1/rounds/slide-2/open-voting"))
+                .andExpect(status().isAccepted());
+
+        verify(hostService).openVoting(eq("sess-1"), eq("slide-2"), any());
     }
 
     @Test

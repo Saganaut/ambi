@@ -18,6 +18,7 @@ import type {
   ScoreboardEntry,
   SessionSnapshotResponse,
   SlideView,
+  VoteOptionView,
 } from "./liveSessionApi.gen";
 
 // Enum aliases reused from the generated schema (the snapshot references the same
@@ -46,7 +47,7 @@ export interface ParticipantOutcome {
   responseTimeMs: number;
 }
 
-// ── The 18 event members ────────────────────────────────────────────────────
+// ── The 20 event members ────────────────────────────────────────────────────
 
 export interface LiveSessionStarted {
   type: "LiveSessionStarted";
@@ -135,6 +136,28 @@ export interface ResponsesRevealed {
 }
 
 /**
+ * The round entered VOTE: submissions closed (unscored — scoring waits for the
+ * votes) and best-answer voting opened on the carried options (D3). Option ids
+ * are opaque server-minted handles — the option→author mapping never reaches
+ * the client, so a deception round can't be de-anonymised.
+ */
+export interface VotingOpened {
+  type: "VotingOpened";
+  slideId: string;
+  options: VoteOptionView[];
+}
+
+/**
+ * A vote landed (or changed) in the open voting round. Deliberately carries
+ * only the running count — per-option tallies would sway voters still deciding.
+ */
+export interface VoteCast {
+  type: "VoteCast";
+  slideId: string;
+  votesCast: number;
+}
+
+/**
  * One participant's submitted drawing, carried by {@link ResultsRevealed} for
  * a Drawing round. Event-only, hand-typed to mirror the backend
  * `DrawingSubmissionView`; `imageUrl` arrives presigned.
@@ -210,6 +233,8 @@ export type SessionEvent =
   | TallyUpdated
   | QAndAUpdated
   | SubmissionsLocked
+  | VotingOpened
+  | VoteCast
   | ResponsesRevealed
   | ResultsRevealed
   | RoundRestarted

@@ -10,6 +10,7 @@ import {
   connectionChanged,
   eventReceived,
   liveSessionReducer,
+  myVoteRecorded,
   reset,
   seed,
   type LiveSessionState,
@@ -109,6 +110,92 @@ describe("liveSessionSlice", () => {
     expect(state.results?.correctOption).toBe("opt-a");
     expect(state.results?.terminal).toBe(true);
     expect(state.scoreboard).toHaveLength(1);
+  });
+
+  it("drives a voting round: options in, count up, cleared on the next round", () => {
+    const openRound = eventReceived({
+      type: "RoundStarted",
+      slideId: "slide-1",
+      slide: { id: "slide-1", title: "Q1", contentType: "TEXT" },
+      roundStartedAt: "2026-07-01T10:00:00Z",
+      deadline: null,
+    });
+    const state = play(
+      seed(lobbySnapshot),
+      openRound,
+      eventReceived({
+        type: "VotingOpened",
+        slideId: "slide-1",
+        options: [
+          { optionId: "opt-a", text: "the truth" },
+          { optionId: "opt-b", text: "a plausible lie" },
+        ],
+      }),
+      eventReceived({ type: "VoteCast", slideId: "slide-1", votesCast: 2 }),
+      myVoteRecorded("opt-b"),
+    );
+
+    expect(state.phase).toBe("VOTE");
+    expect(state.voteOptions.map((o) => o.optionId)).toEqual(["opt-a", "opt-b"]);
+    expect(state.votesCast).toBe(2);
+    expect(state.myVoteOptionId).toBe("opt-b");
+
+    // A fresh round supersedes the voting sub-state entirely.
+    const next = liveSessionReducer(
+      state,
+      eventReceived({
+        type: "RoundStarted",
+        slideId: "slide-2",
+        slide: { id: "slide-2", title: "Q2", contentType: "TEXT" },
+        roundStartedAt: "2026-07-01T10:05:00Z",
+        deadline: null,
+      }),
+    );
+    expect(next.voteOptions).toEqual([]);
+    expect(next.myVoteOptionId).toBeNull();
+    expect(next.votesCast).toBe(0);
+  });
+
+  it("ignores voting events addressed to a slide that is no longer current", () => {
+    const state = play(
+      seed(lobbySnapshot),
+      eventReceived({
+        type: "RoundStarted",
+        slideId: "slide-1",
+        slide: { id: "slide-1", title: "Q1", contentType: "TEXT" },
+        roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: null,
+      }),
+      eventReceived({
+        type: "VotingOpened",
+        slideId: "slide-OLD",
+        options: [{ optionId: "stale", text: "stale" }],
+      }),
+      eventReceived({ type: "VoteCast", slideId: "slide-OLD", votesCast: 9 }),
+    );
+
+    expect(state.phase).toBe("SUBMIT");
+    expect(state.voteOptions).toEqual([]);
+    expect(state.votesCast).toBe(0);
+  });
+
+  it("seeds the voting sub-state from a mid-vote snapshot", () => {
+    const state = play(
+      seed({
+        ...lobbySnapshot,
+        status: "IN_PROGRESS",
+        phase: "VOTE",
+        currentSlideId: "slide-1",
+        voteOptions: [{ optionId: "opt-a", text: "the truth" }],
+        myVoteOptionId: "opt-a",
+        votesCast: 3,
+      }),
+    );
+
+    expect(state.phase).toBe("VOTE");
+    expect(state.voteOptions).toHaveLength(1);
+    expect(state.myVoteOptionId).toBe("opt-a");
+    expect(state.votesCast).toBe(3);
   });
 
   it("ignores a tally addressed to a slide that is no longer current", () => {

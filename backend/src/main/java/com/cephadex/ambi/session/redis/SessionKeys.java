@@ -49,6 +49,23 @@ public class SessionKeys {
     }
 
     /**
+     * Key for a voting round's cast-votes hash (one field per voter). Keyed by
+     * {@code sessionId + slideId}, the same round identity as {@link #answersKey}.
+     */
+    public String votesKey(String sessionId, String slideId) {
+        return props.getVotes().getNamespace() + ":" + sessionId + ":" + slideId;
+    }
+
+    /**
+     * Key for a voting round's minted vote-options hash (one field per opaque
+     * option id, valued with the {@link VoteOption} the id stands for). Same round
+     * identity as {@link #votesKey}, suffixed so the two hashes can't collide.
+     */
+    public String voteOptionsKey(String sessionId, String slideId) {
+        return props.getVotes().getNamespace() + ":" + sessionId + ":" + slideId + ":options";
+    }
+
+    /**
      * Key for a Q&amp;A round's host-answer hash (one field per question id).
      * Keyed by {@code sessionId + slideId}, the same round identity as
      * {@link #answersKey}.

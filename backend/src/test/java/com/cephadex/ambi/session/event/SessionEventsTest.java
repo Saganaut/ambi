@@ -28,9 +28,11 @@ import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 import com.cephadex.ambi.session.event.dto.SlideView;
+import com.cephadex.ambi.session.event.dto.VoteOptionView;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.redis.LiveRoundState;
+import com.cephadex.ambi.session.redis.VoteOption;
 import com.cephadex.ambi.user.Avatar;
 
 /**
@@ -215,6 +217,28 @@ class SessionEventsTest {
 
         assertThat(json).contains("SubmissionsLocked").contains("slide-1");
         assertThat(json).doesNotContain("optionCounts");
+    }
+
+    @Test
+    void votingOpenedCarriesOpaqueOptionsButNeverTheAuthor() {
+        // The deception guarantee: the wire options must not let a client map an
+        // option back to the participant who wrote it.
+        List<VoteOptionView> options = VoteOptionView.from(
+                Map.of("opt-1", new VoteOption("participant-secret-9", "a plausible lie", null)));
+
+        String json = codec.serialize(SessionEvents.votingOpened("slide-1", options));
+
+        assertThat(json).contains("VotingOpened").contains("opt-1").contains("a plausible lie");
+        assertThat(json).doesNotContain("participant-secret-9");
+    }
+
+    @Test
+    void voteCastCarriesOnlyTheRunningCount() {
+        // Per-option tallies would sway voters still deciding — only the count travels.
+        String json = codec.serialize(SessionEvents.voteCast("slide-1", 4));
+
+        assertThat(json).contains("VoteCast").contains("\"votesCast\":4");
+        assertThat(json).doesNotContain("optionCounts").doesNotContain("optionId");
     }
 
     @Test

@@ -16,9 +16,11 @@ import type { LiveSessionState } from "../../store/liveSessionSlice";
  *                   question, interactive only on a participant's own device.
  *   - liveResults — the response tally is visible while answering / responses
  *                   revealed, but the correct answer is not yet disclosed.
+ *   - vote        — best-answer voting (D3): the anonymised submissions are up
+ *                   for votes; interactive on a participant's own device.
  *   - results     — results revealed: distribution + correct-answer highlight.
  */
-export type BoardQuestionMode = "prompt" | "liveResults" | "results";
+export type BoardQuestionMode = "prompt" | "liveResults" | "vote" | "results";
 
 // TEMP (MCQ bring-up): the host normally watches a read-only projected board
 // while participants answer on their own devices. While we wire up answering we
@@ -36,6 +38,19 @@ const DISPLAY_CONTENT_TYPES: SlideView["contentType"][] = ["TITLE", "MEDIA"];
 /** Whether a slide is display-only (no submit/close/reveal cycle). */
 export const isDisplaySlide = (slide: SlideView): boolean =>
   DISPLAY_CONTENT_TYPES.includes(slide.contentType);
+
+// The free-form kinds whose submissions the backend can mint vote options from
+// (D3) — mirrors LiveSessionOrchestrator.votableOption.
+const VOTABLE_CONTENT_TYPES: SlideView["contentType"][] = [
+  "TEXT",
+  "FOLLOW_UP",
+  "NUMBER",
+  "DRAWING",
+];
+
+/** Whether a slide's kind supports best-answer voting (D3). */
+export const isVotableSlide = (slide: SlideView): boolean =>
+  VOTABLE_CONTENT_TYPES.includes(slide.contentType);
 
 export type BoardStage =
   | { type: "lobby" }
@@ -57,6 +72,8 @@ const modeForPhase = (phase: RoundPhase | null): BoardQuestionMode => {
     case "SUBMIT_LIVE":
     case "REVEAL_RESPONSES":
       return "liveResults";
+    case "VOTE":
+      return "vote";
     case "REVEAL_RESULTS":
       return "results";
     default:
@@ -69,6 +86,10 @@ const modeForPhase = (phase: RoundPhase | null): BoardQuestionMode => {
 /** Whether the round is still open for this device to answer. */
 const acceptingAnswers = (phase: RoundPhase | null): boolean =>
   phase === "SUBMIT" || phase === "SUBMIT_LIVE";
+
+/** Whether this device may interact with the board (answering, or voting). */
+const acceptingInput = (phase: RoundPhase | null): boolean =>
+  acceptingAnswers(phase) || phase === "VOTE";
 
 /**
  * Resolve the board stage from the live read model. `viewerIsHost` differentiates
@@ -96,6 +117,6 @@ export const resolveBoardStage = (state: LiveSessionState): BoardStage => {
     slide: currentSlide,
     mode: modeForPhase(phase),
     interactive:
-      (HOST_CAN_PARTICIPATE || !viewerIsHost) && acceptingAnswers(phase),
+      (HOST_CAN_PARTICIPATE || !viewerIsHost) && acceptingInput(phase),
   };
 };

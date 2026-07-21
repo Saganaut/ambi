@@ -84,8 +84,12 @@ Decisions locked this session and reflected in code:
 | `advance(sessionId) → Slide` | server-owned next slide (Lexorank + parent→child), open round, signal terminal | B3 |
 | `goTo(sessionId, slideId)` | validate slideId against snapshot, open round | B3 |
 
-Reserved (deferred): `submitVote` + `RoundPhase.VOTE` (D3); `pauseTimer`/
-`resumeTimer` + `DeadlineScheduler` (A3, decide pause field first).
+| `openVoting(sessionId, slideId)` | SUBMIT/SUBMIT_LIVE → VOTE, closes unscored, mints anonymised vote options into `VoteStore` | D3 |
+| `submitVote(sessionId, slideId, participantId, optionId)` | `VoteStore.castVote` (re-vote overwrites; no self-votes), publish running count | D3 |
+
+Everything once reserved here is built: `pauseTimer`/`resumeTimer` +
+`DeadlineScheduler` landed with ADR 002 (A3), and `submitVote` +
+`RoundPhase.VOTE` landed with best-answer voting (D3).
 
 ---
 
@@ -336,7 +340,8 @@ the stale comment. Treat this as a quick win (see punch list).
 > tally-key renderer) still only renders the scalar-keyed types (MCQ, Number,
 > Text); map/coordinate answers (Matching, Grid, Scales, PlaceOnImage,
 > Allocation, Ranking) grade correctly but aren't tallied as an option-count bar.
-> Drawing/Q&A/FollowUp remain non-scorable display types, deferred with D3.
+> Drawing/Q&A/FollowUp still never grade `correct` against a static key, but
+> Drawing/FollowUp (and free text) now score through best-answer voting (D3).
 >
 > **Residuals accepted (2026-07-20):** the partial-credit score modes
 > (`CLOSEST`/`NEAREST`/`DISTANCE`/`PARTIAL`) and live-tally rendering for the
@@ -355,26 +360,34 @@ open-ended/creative types (Drawing, free text) until voting exists (D3).
 
 ### D3. Best-answer & deception are hard-coded off
 
-> ✅ **RESOLVED (2026-07-20) — consciously deferred, as suggested.** Voting
-> stays past v1; the evaluation seams (`bestAnswer`, `deceivedCount`) remain in
-> place. The design sketch below (`RoundPhase.VOTE`, a `VoteStore`, evaluator
-> fold-in) is captured on a Backlog card for when it's picked up.
+> ✅ **RESOLVED (2026-07-21) — built, per the design sketch below.**
+> `RoundPhase.VOTE` exists (`SUBMIT/SUBMIT_LIVE → VOTE → REVEAL_RESULTS`), a
+> Redis `VoteStore` mirrors `AnswerStore` (one cast-votes hash + one
+> options-mapping hash per round), and `RoundEvaluator.evaluate` folds the vote
+> tallies into `bestAnswer` (top-voted; tie → faster submission) and
+> `deceivedCount` (votes drawn by an incorrect answer). Key decisions:
+>
+> - **Voting opens only from an open round** (`openVoting`, host-only): a
+>   normal close scores immediately, so a VOTE round instead defers scoring to
+>   the `revealResults` transition, where the final tallies are in hand.
+>   Scoring still runs exactly once. On a timed round the host must open
+>   voting before the auto-close fires (opening voting cancels the timer).
+> - **Opaque option ids.** Votable submissions (free text, follow-up, number,
+>   drawing) are minted random option ids at voting open; the id→author
+>   mapping lives only server-side, so a deception round's client can never
+>   map an option back to its author. `VoteCast` broadcasts only the running
+>   count — per-option tallies would sway voters still deciding.
+> - **No self-votes; a re-vote overwrites** (last vote while voting is open
+>   wins), mirroring the answer-overwrite model.
+>
+> Earlier status (2026-07-20) — consciously deferred with the seams
+> (`bestAnswer`, `deceivedCount`) reserved, which is exactly where the
+> implementation later plugged in.
 
-**Still open.** `AnswerEvaluation.bestAnswer=false`, `deceivedCount=0` remain
-hard-coded in `RoundEvaluator.evaluate`; `Round.submitVote` is still a stub.
-`RoundPhase` has grown since this was written — it's now `SUBMIT`,
-`SUBMIT_LIVE`, `LOCKED`, `REVEAL_RESPONSES`, `REVEAL_RESULTS` — but there is
-still **no `VOTE` phase**, so the suggestion below stands.
-
-`AnswerEvaluation.bestAnswer=false`, `deceivedCount=0`; `Round.submitVote` is a
-stub; `RoundPhase` has only `SUBMIT`/`REVEAL` — **no VOTE phase**.
-
-**Suggestion:** **Defer deception/best-answer past v1**, but reserve the seam now:
-the evaluation already carries `bestAnswer`/`deceivedCount`, so leave them. When
-adopted, add `RoundPhase.VOTE` (SUBMIT → VOTE → REVEAL), a `VoteStore`
-(Redis hash, like answers), and fold vote tallies into `RoundEvaluator`. Decide
-the enum addition consciously — adding a phase later touches the orchestrator and
-every phase switch.
+**Suggestion (implemented):** add `RoundPhase.VOTE` (SUBMIT → VOTE → REVEAL), a
+`VoteStore` (Redis hash, like answers), and fold vote tallies into
+`RoundEvaluator`. Decide the enum addition consciously — adding a phase later
+touches the orchestrator and every phase switch.
 
 ### D4. `streakBonuses` shape mismatch
 
@@ -598,8 +611,8 @@ as config with conservative defaults.
 
 ## Recommended ordering (what unblocks the most)
 
-> Historical — kept for context. **A1/A2, C4/F1, and B1 are done** (see above);
-> the only item below still genuinely open is the D2/D3 VOTE-phase scope.
+> Historical — kept for context. **A1/A2, C4/F1, B1, and the D2/D3 VOTE-phase
+> scope are all done** (see above); nothing below remains open.
 
 1. **A1/A2** transport + fan-out — defines every DTO and the orchestrator's
    notify seam.

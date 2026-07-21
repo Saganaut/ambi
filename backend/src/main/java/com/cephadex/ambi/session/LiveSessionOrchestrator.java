@@ -34,13 +34,17 @@ import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerTallyKeys;
+import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
+import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
+import com.cephadex.ambi.session.answer.payload.TextAnswer;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
+import com.cephadex.ambi.session.event.dto.VoteOptionView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -58,6 +62,8 @@ import com.cephadex.ambi.session.redis.SessionDeadline;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.SessionRedisProperties;
 import com.cephadex.ambi.session.redis.TallyStore;
+import com.cephadex.ambi.session.redis.VoteOption;
+import com.cephadex.ambi.session.redis.VoteStore;
 import com.cephadex.ambi.session.roundResult.RoundResult;
 import com.cephadex.ambi.session.roundResult.RoundResultProjector;
 import com.cephadex.ambi.session.roundResult.RoundScorer;
@@ -84,15 +90,18 @@ import com.cephadex.ambi.user.Avatar;
  * shows the combined {@code REVEAL_RESULTS}; a parent is never taken straight to
  * results. Whether a round is a follow-up is resolved statelessly from
  * {@link Slide#getParentId()} on the open slide — nothing extra is carried in
- * {@link LiveRoundState}.
+ * {@link LiveRoundState}. A best-answer/deception round instead runs
+ * {@code SUBMIT → VOTE → REVEAL_RESULTS} (D3): {@link #openVoting} closes
+ * submissions <em>without scoring</em> and collects votes, which fold into the
+ * scoring that then runs on the reveal transition.
  *
  * <p><strong>Status:</strong> the full orchestrator surface is wired — session
  * lifecycle, roster, presence/reconnect, the round lifecycle (open → close+score →
- * reveal), server-owned navigation, and the auto-close round timers of ADR 002
- * (deadlines in a Redis ZSET drained by {@link DeadlineScheduler}, pause/resume,
- * and the host-disconnect grace policy). Deferred seams (best-answer/deception
- * voting, combined follow-up reveal) are noted at their call sites and in the
- * deferred block near the end.
+ * reveal), best-answer/deception voting (D3), server-owned navigation, and the
+ * auto-close round timers of ADR 002 (deadlines in a Redis ZSET drained by
+ * {@link DeadlineScheduler}, pause/resume, and the host-disconnect grace policy).
+ * The one remaining deferred seam (combined follow-up reveal, B3) is noted at its
+ * call site in {@link #revealResults}.
  */
 @Service
 public class LiveSessionOrchestrator {
@@ -105,6 +114,7 @@ public class LiveSessionOrchestrator {
     private final LiveRoundStateStore roundStateStore;
     private final AnswerStore answerStore;
     private final TallyStore tallyStore;
+    private final VoteStore voteStore;
     private final PresenceStore presenceStore;
     private final QAndAHostAnswerStore qandaHostAnswers;
     private final EventPublisher publisher;
@@ -143,15 +153,17 @@ public class LiveSessionOrchestrator {
 
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
-            PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers, EventPublisher publisher,
-            RoundResultProjector roundResults, ImageUrlResolver imageUrls, S3StorageService storage,
-            RedisJsonCodec codec, DeadlineStore deadlines, SessionRedisProperties redisProps) {
+            VoteStore voteStore, PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers,
+            EventPublisher publisher, RoundResultProjector roundResults, ImageUrlResolver imageUrls,
+            S3StorageService storage, RedisJsonCodec codec, DeadlineStore deadlines,
+            SessionRedisProperties redisProps) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
         this.roundStateStore = roundStateStore;
         this.answerStore = answerStore;
         this.tallyStore = tallyStore;
+        this.voteStore = voteStore;
         this.presenceStore = presenceStore;
         this.qandaHostAnswers = qandaHostAnswers;
         this.publisher = publisher;
@@ -776,9 +788,123 @@ public class LiveSessionOrchestrator {
     }
 
     /**
+     * Closes submissions on the current round <strong>without scoring it</strong>
+     * and opens best-answer voting on the anonymised submissions (D3):
+     * {@code SUBMIT/SUBMIT_LIVE → VOTE}. Scoring must wait for the votes — the
+     * round is scored on the {@code VOTE → REVEAL_RESULTS} transition
+     * ({@link #revealResults}), where the tallies fold into
+     * {@code bestAnswer}/{@code deceivedCount}. Because a round closed the normal
+     * way is scored immediately, voting can only open <em>from an open round</em>;
+     * on a timed round the host must open voting before the auto-close fires.
+     * Idempotent if voting is already open.
+     *
+     * <p>Each votable submission is minted an opaque option id; the id→author
+     * mapping stays in {@link VoteStore}, and the published
+     * {@link VoteOptionView}s carry only the id and an anonymous preview (text, or
+     * a presigned drawing URL), so clients can't tell whose answer an option is.
+     * Cancels any pending auto-close deadline — voting supersedes the timer.
+     *
+     * @throws ConflictException if no round is open for {@code slideId}, it has
+     *                           already closed (and thus scored), or no submission
+     *                           can be voted on
+     */
+    public void openVoting(String sessionId, String slideId) {
+        locks.withLock(sessionId, () -> {
+            LiveRoundState current = roundStateStore.load(sessionId).orElse(null);
+            if (current == null || !slideId.equals(current.currentSlideId())) {
+                throw new ConflictException("ROUND_NOT_OPEN", "this slide has no open round");
+            }
+            if (current.phase().acceptsVotes()) {
+                return; // voting already open — idempotent
+            }
+            if (current.phase().isClosed()) {
+                throw new ConflictException("ROUND_ALREADY_CLOSED",
+                        "voting must open while submissions are open — this round is already scored");
+            }
+
+            Map<String, VoteOption> options = new HashMap<>();
+            for (Answer answer : answerStore.answers(sessionId, slideId)) {
+                VoteOption option = votableOption(answer);
+                if (option != null) {
+                    options.put(UUID.randomUUID().toString(), option);
+                }
+            }
+            if (options.isEmpty()) {
+                throw new ConflictException("NO_VOTABLE_SUBMISSIONS",
+                        "no submission of this round can be voted on");
+            }
+            voteStore.clear(sessionId, slideId);
+            voteStore.saveOptions(sessionId, slideId, options);
+
+            roundStateStore.save(sessionId, current.withPhase(RoundPhase.VOTE));
+            deadlines.cancel(SessionDeadline.closeRound(sessionId, slideId));
+
+            if (current.publicId() != null) {
+                publisher.publish(current.publicId(),
+                        SessionEvents.votingOpened(slideId, VoteOptionView.from(options)));
+            }
+        });
+    }
+
+    /**
+     * Records {@code participantId}'s vote for the open voting round: resolves the
+     * opaque option id through the server-side mapping, rejects self-votes, and
+     * writes to {@link VoteStore} (a re-vote overwrites — last vote while voting
+     * is open wins). Lock-free per vote by design, like {@link #submitAnswer}:
+     * each is a single voter-keyed write. Publishes {@code VoteCast} with the
+     * running number of votes cast — never per-option counts, which would sway
+     * voters still deciding.
+     *
+     * @throws ConflictException   if no voting is open for {@code slideId}, or the
+     *                             vote targets the caller's own submission
+     * @throws NotFoundException   if {@code optionId} isn't one of the round's
+     *                             minted options
+     */
+    public void submitVote(String sessionId, String slideId, String participantId, String optionId) {
+        LiveRoundState state = roundStateStore.load(sessionId).orElse(null);
+        if (state == null || !slideId.equals(state.currentSlideId()) || !state.phase().acceptsVotes()) {
+            throw new ConflictException("VOTING_NOT_OPEN", "this slide is not collecting votes");
+        }
+        VoteOption option = voteStore.options(sessionId, slideId).get(optionId);
+        if (option == null) {
+            throw new NotFoundException("VOTE_OPTION_NOT_FOUND", "no such option in this round");
+        }
+        if (participantId.equals(option.authorParticipantId())) {
+            throw new ConflictException("CANNOT_VOTE_FOR_OWN_ANSWER", "you cannot vote for your own answer");
+        }
+        voteStore.castVote(sessionId, slideId, participantId, optionId);
+
+        if (state.publicId() != null) {
+            publisher.publish(state.publicId(),
+                    SessionEvents.voteCast(slideId, (int) voteStore.count(sessionId, slideId)));
+        }
+    }
+
+    /**
+     * The votable rendering of a submission, or {@code null} for the answer kinds
+     * voting doesn't apply to. Votable are the free-form/creative payloads voting
+     * exists to score (D3): free text, follow-up prompts, numbers, and drawings
+     * (as a presigned image, LG like the results gallery — vote screens project).
+     */
+    private VoteOption votableOption(Answer answer) {
+        return switch (answer.getPayload()) {
+            case TextAnswer text -> new VoteOption(answer.getParticipantId(), text.text(), null);
+            case FollowUpAnswer followUp -> new VoteOption(answer.getParticipantId(), followUp.text(), null);
+            case NumberAnswer number -> new VoteOption(answer.getParticipantId(),
+                    String.valueOf(number.value()), null);
+            case DrawingAnswer drawing -> drawing.image() == null ? null
+                    : new VoteOption(answer.getParticipantId(), null,
+                            imageUrls.displayUrl(drawing.image(), ImageSizeOptions.LG));
+            default -> null;
+        };
+    }
+
+    /**
      * Flushes the round's in-flight answers, scores them (grading + point awards
      * mutate the roster in memory), and persists the record + participants. Called
-     * inside the session lock on the close transition.
+     * inside the session lock on the close transition — or on the results reveal
+     * for a round that went through voting, so the vote tallies read here are
+     * final (D3).
      */
     private void scoreAndPersistRound(String sessionId, String slideId, Instant roundStartedAt) {
         LiveSession session = requireSession(sessionId);
@@ -791,9 +917,30 @@ public class LiveSessionOrchestrator {
         }
         Settings.PointSettings points = resolvePoints(session, slide);
         RoundResult result = RoundScorer.score(
-                sessionId, slide, flushed, byId, points, roundStartedAt, Instant.now());
+                sessionId, slide, flushed, byId, points, votesReceived(sessionId, slideId),
+                roundStartedAt, Instant.now());
         // byId values are the same objects as `roster`, so scoring mutated them.
         roundResults.persist(result, roster, flushed);
+    }
+
+    /**
+     * The round's best-answer votes aggregated per answer <em>author</em> (the
+     * shape {@link RoundScorer} folds into scoring), resolved through the
+     * server-side option mapping. Empty for a round that never opened voting.
+     */
+    private Map<String, Integer> votesReceived(String sessionId, String slideId) {
+        Map<String, VoteOption> options = voteStore.options(sessionId, slideId);
+        if (options.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Integer> byAuthor = new HashMap<>();
+        for (String optionId : voteStore.votes(sessionId, slideId).values()) {
+            VoteOption option = options.get(optionId);
+            if (option != null) {
+                byAuthor.merge(option.authorParticipantId(), 1, (a, b) -> a + b);
+            }
+        }
+        return byAuthor;
     }
 
     /**
@@ -851,13 +998,15 @@ public class LiveSessionOrchestrator {
     public void revealResults(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
             // Revealing results also closes an open round: score it once here, on
-            // the open→closed transition. Saving REVEAL_RESULTS before scoring keeps
+            // the transition out of the two not-yet-scored states — open, or VOTE
+            // (a voting round defers scoring past the close so the final vote
+            // tallies can fold in — D3). Saving REVEAL_RESULTS before scoring keeps
             // the answer key from ever showing while submissions are still open. A
             // round already closed at its own close is not re-scored (score-once).
-            boolean wasOpen = !current.phase().isClosed();
+            boolean unscored = !current.phase().isClosed() || current.phase().acceptsVotes();
             roundStateStore.save(sessionId, current.withPhase(RoundPhase.REVEAL_RESULTS));
             deadlines.cancel(SessionDeadline.closeRound(sessionId, slideId)); // revealing also consumes the timer
-            if (wasOpen) {
+            if (unscored) {
                 scoreAndPersistRound(sessionId, slideId, current.roundStartedAt());
             }
 
@@ -1035,6 +1184,7 @@ public class LiveSessionOrchestrator {
         LiveRoundState current = roundStateStore.load(sessionId)
                 .orElseGet(() -> LiveRoundState.idle(session.getPublicId()));
         tallyStore.clear(sessionId, slideId);
+        voteStore.clear(sessionId, slideId);
         if (restart) {
             answerStore.clear(sessionId, slideId);
             qandaHostAnswers.clear(sessionId, slideId);
@@ -1069,14 +1219,16 @@ public class LiveSessionOrchestrator {
     }
 
     /**
-     * F4 guard: rejects opening a <em>different</em> slide while the current round is
-     * still accepting submissions. Same-slide re-open and opening after a round has
-     * closed both pass. Must be called under the session lock.
+     * F4 guard: rejects opening a <em>different</em> slide while the current round
+     * is still accepting submissions or votes (a voting round is unscored — jumping
+     * away would silently drop its votes; reveal its results first). Same-slide
+     * re-open and opening after a round has closed both pass. Must be called under
+     * the session lock.
      */
     private void requireRoundOpenable(String sessionId, String slideId) {
         roundStateStore.load(sessionId).ifPresent(current -> {
             if (current.currentSlideId() != null
-                    && current.phase().acceptsSubmissions()
+                    && (current.phase().acceptsSubmissions() || current.phase().acceptsVotes())
                     && !slideId.equals(current.currentSlideId())) {
                 throw new ConflictException("ROUND_ALREADY_OPEN",
                         "a round is already open on another slide");
@@ -1186,9 +1338,6 @@ public class LiveSessionOrchestrator {
         return !ordered.isEmpty() && slideId.equals(ordered.get(ordered.size() - 1).getId());
     }
 
-    // ── Deferred past v1 (seams reserved) ────────────────────────────────────
-    // - submitVote(...) + RoundPhase.VOTE — best-answer/deception voting (D3).
-
     // ── Lifecycle helpers ────────────────────────────────────────────────────
 
     private LiveSession requireSession(String sessionId) {
@@ -1253,6 +1402,7 @@ public class LiveSessionOrchestrator {
         for (Slide slide : session.getDeck().getSlides()) {
             answerStore.clear(sessionId, slide.getId());
             tallyStore.clear(sessionId, slide.getId());
+            voteStore.clear(sessionId, slide.getId());
             qandaHostAnswers.clear(sessionId, slide.getId());
         }
     }

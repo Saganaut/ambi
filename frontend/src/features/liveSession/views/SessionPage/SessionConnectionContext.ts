@@ -24,6 +24,8 @@ export interface SessionConnection {
   sendStart: () => void;
   /** Participant: submit this device's answer for the given slide. */
   sendAnswer: (slideId: string, payload: SessionAnswerPayload) => void;
+  /** Participant: cast (or change) this device's best-answer vote (D3). */
+  sendVote: (slideId: string, optionId: string) => void;
   /** Participant: store a rendered drawing PNG; resolves with the stored
    *  image to submit inside a DrawingAnswer via {@link sendAnswer}. */
   uploadDrawing: (file: File) => Promise<UploadDrawingApiResponse>;
@@ -31,6 +33,9 @@ export interface SessionConnection {
   sendRevealResponses: (slideId: string) => void;
   /** Host: close submissions for the round (locks + scores it). */
   sendCloseRound: (slideId: string) => void;
+  /** Host: close submissions unscored and open best-answer voting (D3);
+   *  scoring waits for the results reveal so the votes count. */
+  sendOpenVoting: (slideId: string) => void;
   /**
    * Host: reveal the results (correct answer + scores). The backend requires the
    * round to be closed first — see {@link sendCloseRound}.

@@ -72,40 +72,73 @@ public final class RoundEvaluator {
     private RoundEvaluator() {
     }
 
+    /** Evaluates a round without best-answer voting (no vote tallies to fold in). */
     public static List<AnswerEvaluation> evaluate(Slide slide, List<Answer> answers, Instant roundStartedAt) {
+        return evaluate(slide, answers, roundStartedAt, Map.of());
+    }
+
+    /**
+     * Evaluates a round, folding in the best-answer votes collected during a VOTE
+     * phase (D3). {@code votesReceived} maps each answer's <em>author</em> to how
+     * many votes their submission drew (empty when the round wasn't voted on):
+     * <ul>
+     * <li>{@code bestAnswer} — the top-voted answer; a tie goes to the faster
+     * submission (mirroring the fastest-correct rule), then the lower participant
+     * id so the flag is deterministic. At most one evaluation is flagged, and none
+     * when no votes were cast.</li>
+     * <li>{@code deceivedCount} — the votes drawn by an answer that graded
+     * <em>incorrect</em>: every such vote is a deceived voter. Votes for a correct
+     * answer deceive nobody; on the creative types where nothing grades correct
+     * (Drawing, free text), whether those votes pay is the deck's call via
+     * {@code deceptionPoints}.</li>
+     * </ul>
+     */
+    public static List<AnswerEvaluation> evaluate(Slide slide, List<Answer> answers, Instant roundStartedAt,
+            Map<String, Integer> votesReceived) {
         // Content-independent facts + the correctness grade, in one pass; we track
-        // the fastest correct responder so exactly one evaluation is flagged.
-        record Graded(String participantId, String choice, boolean correct, long responseTimeMs) {
+        // the fastest correct responder and the best-voted answer so exactly one
+        // evaluation carries each flag.
+        record Graded(String participantId, String choice, boolean correct, long responseTimeMs, int votes) {
         }
         List<Graded> graded = new ArrayList<>(answers.size());
 
         String fastest = null;
         long fastestMs = Long.MAX_VALUE;
+        Graded best = null;
 
         for (Answer answer : answers) {
             String pid = new String(answer.getParticipantId());
             long responseTimeMs = responseTime(roundStartedAt, answer.getSubmittedAt());
             boolean correct = isCorrect(slide, answer.getPayload());
             String choice = describeChoice(answer.getPayload());
+            int votes = votesReceived.getOrDefault(pid, 0);
 
-            graded.add(new Graded(pid, choice, correct, responseTimeMs));
+            Graded g = new Graded(pid, choice, correct, responseTimeMs, votes);
+            graded.add(g);
 
             if (correct && responseTimeMs < fastestMs) {
                 fastestMs = responseTimeMs;
                 fastest = pid;
+            }
+            if (votes > 0 && (best == null || votes > best.votes()
+                    || (votes == best.votes() && responseTimeMs < best.responseTimeMs())
+                    || (votes == best.votes() && responseTimeMs == best.responseTimeMs()
+                            && pid.compareTo(best.participantId()) < 0))) {
+                best = g;
             }
         }
 
         List<AnswerEvaluation> evaluations = new ArrayList<>(graded.size());
         for (Graded g : graded) {
             boolean fastestCorrect = g.correct() && g.participantId().equals(fastest);
+            boolean bestAnswer = best != null && g.participantId().equals(best.participantId());
             evaluations.add(new AnswerEvaluation(
                     g.participantId(),
                     g.choice(),
                     g.correct(),
                     fastestCorrect,
-                    false, // bestAnswer — SEAM (see below)
-                    0, // deceivedCount — SEAM (see below)
+                    bestAnswer,
+                    g.correct() ? 0 : g.votes(),
                     g.responseTimeMs()));
         }
         return evaluations;

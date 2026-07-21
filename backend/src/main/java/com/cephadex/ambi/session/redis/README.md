@@ -18,6 +18,7 @@ plain `StringRedisTemplate` ops, namespaced keys, no lock library.
 | [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile control state (phase, current slide, start time, and — ADR 002 — `durationMs`/`pausedAt`/`accumulatedPauseMs`/`autoPaused` for the auto-close timer). |
 | [`TallyStore`](TallyStore.java) | Per-round option counts as a Redis Hash — lock-free `HINCRBY` per submission. |
 | [`AnswerStore`](AnswerStore.java) | Per-round in-flight answers as a Redis Hash (one field per participant; re-submit overwrites), flushed to Mongo at round close. |
+| [`VoteStore`](VoteStore.java) / [`VoteOption`](VoteOption.java) | Per-round best-answer voting (D3): a cast-votes Hash (one field per voter; re-vote overwrites) plus the opaque-option-id → `VoteOption` mapping Hash, which keeps each option's author server-side only. Folds into scoring at reveal; never flushed to Mongo. |
 | [`PresenceStore`](PresenceStore.java) / [`Presence`](Presence.java) | Per-session live participant presence (connection status + last-seen) as a Redis Hash. |
 | [`SessionDeadline`](SessionDeadline.java) | A typed ZSET member (ADR 002) — `close:{sid}:{slideId}`, `hostAway:{sid}`, or `graceCancel:{sid}` — the scheduler-fired transition it represents. |
 | [`DeadlineStore`](DeadlineStore.java) | The global deadline ZSET (ADR 002): `schedule`/`cancel` entries, and the atomic Lua `popDue` the leader drains. |

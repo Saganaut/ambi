@@ -10,7 +10,10 @@
 // Which actions are live for the current phase is decided by `resolveHostActions`;
 // state it reads comes from the read model via `useLiveSessionQuery`; commands go
 // through the session connection (an adapter over the REST command hook).
-import { isDisplaySlide } from "@/features/liveSession/components/SessionBoard/resolveBoardStage";
+import {
+  isDisplaySlide,
+  isVotableSlide,
+} from "@/features/liveSession/components/SessionBoard/resolveBoardStage";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
@@ -37,6 +40,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     sendStart,
     sendRevealResponses,
     sendCloseRound,
+    sendOpenVoting,
     sendRevealResults,
     sendAdvance,
     sendRestartRound,
@@ -77,6 +81,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     hasSlide,
     roundDeadline != null,
     timerPausedAt != null,
+    currentSlide ? isVotableSlide(currentSlide) : false,
   );
 
   const handleEnd = async () => {
@@ -122,6 +127,18 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         >
           Close submissions
         </Btn>
+        {/* Free-form kinds only: close unscored and collect best-answer votes
+            (D3); the round is scored — votes included — at the results reveal. */}
+        {actions.canOpenVoting && (
+          <Btn
+            size="sm"
+            onClick={() => {
+              sendOpenVoting(slideId);
+            }}
+          >
+            Open voting
+          </Btn>
+        )}
         {/* Reveal the result + correct answer (closes an open round first). */}
         <Btn
           size="sm"

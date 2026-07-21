@@ -14,6 +14,7 @@ interface BoardContentPlaceholderProps {
 const MODE_LABEL: Record<BoardQuestionMode, string> = {
   prompt: "answering",
   liveResults: "live results",
+  vote: "voting",
   results: "results",
 };
 

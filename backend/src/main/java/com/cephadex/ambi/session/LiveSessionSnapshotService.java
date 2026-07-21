@@ -18,6 +18,7 @@ import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.SlideView;
+import com.cephadex.ambi.session.event.dto.VoteOptionView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -31,6 +32,7 @@ import com.cephadex.ambi.session.redis.Presence;
 import com.cephadex.ambi.session.redis.PresenceStore;
 import com.cephadex.ambi.session.redis.QAndAHostAnswerStore;
 import com.cephadex.ambi.session.redis.TallyStore;
+import com.cephadex.ambi.session.redis.VoteStore;
 
 /**
  * Assembles the read-model {@link SessionSnapshotResponse} behind {@code GET
@@ -55,13 +57,14 @@ public class LiveSessionSnapshotService {
     private final TallyStore tallyStore;
     private final PresenceStore presenceStore;
     private final AnswerStore answerStore;
+    private final VoteStore voteStore;
     private final QAndAHostAnswerStore qandaHostAnswers;
     private final ImageUrlResolver imageUrls;
 
     public LiveSessionSnapshotService(LiveSessionRepository sessions, ParticipantRepository participants,
             ParticipantResolver participantResolver, LiveRoundStateStore roundStateStore, TallyStore tallyStore,
-            PresenceStore presenceStore, AnswerStore answerStore, QAndAHostAnswerStore qandaHostAnswers,
-            ImageUrlResolver imageUrls) {
+            PresenceStore presenceStore, AnswerStore answerStore, VoteStore voteStore,
+            QAndAHostAnswerStore qandaHostAnswers, ImageUrlResolver imageUrls) {
         this.sessions = sessions;
         this.participants = participants;
         this.participantResolver = participantResolver;
@@ -69,6 +72,7 @@ public class LiveSessionSnapshotService {
         this.tallyStore = tallyStore;
         this.presenceStore = presenceStore;
         this.answerStore = answerStore;
+        this.voteStore = voteStore;
         this.qandaHostAnswers = qandaHostAnswers;
         this.imageUrls = imageUrls;
     }
@@ -110,6 +114,9 @@ public class LiveSessionSnapshotService {
         SlideView currentSlide = null;
         Map<String, Integer> optionTally = null;
         List<QAndAQuestionView> qAndAQuestions = null;
+        List<VoteOptionView> voteOptions = null;
+        String myVoteOptionId = null;
+        Integer votesCast = null;
         if (currentSlideId != null) {
             var slide = session.getDeck().findSlide(currentSlideId).orElse(null);
             if (slide != null) {
@@ -128,6 +135,16 @@ public class LiveSessionSnapshotService {
                 }
             }
             optionTally = tallyStore.tally(sessionId, currentSlideId);
+            if (roundState.phase() != null && roundState.phase().acceptsVotes()) {
+                // Same anonymised views VotingOpened carried, rebuilt from the
+                // server-side option mapping, so a reconnecting voter seeds the
+                // exact list (and their own standing vote) the deltas patch.
+                voteOptions = VoteOptionView.from(voteStore.options(sessionId, currentSlideId));
+                myVoteOptionId = voteStore
+                        .voteOf(sessionId, currentSlideId, viewer.getParticipantId())
+                        .orElse(null);
+                votesCast = (int) voteStore.count(sessionId, currentSlideId);
+            }
         }
 
         RoundPhase phase = roundState.phase() != null ? roundState.phase() : session.getPhase();
@@ -150,6 +167,9 @@ public class LiveSessionSnapshotService {
                 roundState.pausedAt(),
                 optionTally,
                 qAndAQuestions,
+                voteOptions,
+                myVoteOptionId,
+                votesCast,
                 rosterViews,
                 SessionEvents.scoreboard(roster),
                 viewer.getParticipantId(),

@@ -8,6 +8,13 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.createSessionRequest,
       }),
     }),
+    submitVote: build.mutation<SubmitVoteApiResponse, SubmitVoteApiArg>({
+      query: (queryArg) => ({
+        url: `/api/liveSessions/${queryArg.id}/votes`,
+        method: "POST",
+        body: queryArg.submitVoteRequest,
+      }),
+    }),
     start: build.mutation<StartApiResponse, StartApiArg>({
       query: (queryArg) => ({
         url: `/api/liveSessions/${queryArg.id}/start`,
@@ -63,6 +70,12 @@ const injectedRtkApi = api.injectEndpoints({
     pauseTimer: build.mutation<PauseTimerApiResponse, PauseTimerApiArg>({
       query: (queryArg) => ({
         url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/pause-timer`,
+        method: "POST",
+      }),
+    }),
+    openVoting: build.mutation<OpenVotingApiResponse, OpenVotingApiArg>({
+      query: (queryArg) => ({
+        url: `/api/liveSessions/${queryArg.id}/rounds/${queryArg.slideId}/open-voting`,
         method: "POST",
       }),
     }),
@@ -143,6 +156,11 @@ export type CreateApiResponse = /** status 201 Created */ CreateSessionResponse;
 export type CreateApiArg = {
   createSessionRequest: CreateSessionRequest;
 };
+export type SubmitVoteApiResponse = unknown;
+export type SubmitVoteApiArg = {
+  id: string;
+  submitVoteRequest: SubmitVoteRequest;
+};
 export type StartApiResponse = unknown;
 export type StartApiArg = {
   id: string;
@@ -181,6 +199,11 @@ export type AnswerQuestionApiArg = {
 };
 export type PauseTimerApiResponse = unknown;
 export type PauseTimerApiArg = {
+  id: string;
+  slideId: string;
+};
+export type OpenVotingApiResponse = unknown;
+export type OpenVotingApiArg = {
   id: string;
   slideId: string;
 };
@@ -267,6 +290,10 @@ export type CreateSessionResponse = {
 };
 export type CreateSessionRequest = {
   deckId: string;
+};
+export type SubmitVoteRequest = {
+  slideId: string;
+  optionId: string;
 };
 export type HostAnswerRequest = {
   answer?: string;
@@ -506,6 +533,11 @@ export type QAndAQuestionView = {
   askedAt?: string;
   hostAnswer?: string;
 };
+export type VoteOptionView = {
+  optionId?: string;
+  text?: string;
+  imageUrl?: string;
+};
 export type ScoreView = {
   points?: number;
   currentStreak?: number;
@@ -536,6 +568,7 @@ export type SessionSnapshotResponse = {
     | "SUBMIT"
     | "SUBMIT_LIVE"
     | "LOCKED"
+    | "VOTE"
     | "REVEAL_RESPONSES"
     | "REVEAL_RESULTS";
   currentSlideId?: string;
@@ -547,6 +580,9 @@ export type SessionSnapshotResponse = {
     [key: string]: number;
   };
   qAndAQuestions?: QAndAQuestionView[];
+  voteOptions?: VoteOptionView[];
+  myVoteOptionId?: string;
+  votesCast?: number;
   roster?: ParticipantView[];
   scoreboard?: ScoreboardEntry[];
   viewerParticipantId?: string;
@@ -556,6 +592,7 @@ export type SessionSnapshotResponse = {
 };
 export const {
   useCreateMutation,
+  useSubmitVoteMutation,
   useStartMutation,
   useGoToRoundMutation,
   useRevealResultsMutation,
@@ -564,6 +601,7 @@ export const {
   useRestartRoundMutation,
   useAnswerQuestionMutation,
   usePauseTimerMutation,
+  useOpenVotingMutation,
   useCloseRoundMutation,
   useReconnectMutation,
   useLeaveMutation,

@@ -50,6 +50,7 @@ import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
+import com.cephadex.ambi.session.answer.payload.TextAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.LiveResultsShown;
@@ -69,6 +70,8 @@ import com.cephadex.ambi.session.event.SubmissionsLocked;
 import com.cephadex.ambi.session.event.TallyUpdated;
 import com.cephadex.ambi.session.event.TimerPaused;
 import com.cephadex.ambi.session.event.TimerResumed;
+import com.cephadex.ambi.session.event.VoteCast;
+import com.cephadex.ambi.session.event.VotingOpened;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -87,6 +90,8 @@ import com.cephadex.ambi.session.redis.SessionDeadline;
 import com.cephadex.ambi.session.redis.SessionLocks;
 import com.cephadex.ambi.session.redis.SessionRedisProperties;
 import com.cephadex.ambi.session.redis.TallyStore;
+import com.cephadex.ambi.session.redis.VoteOption;
+import com.cephadex.ambi.session.redis.VoteStore;
 import com.cephadex.ambi.session.roundResult.RoundResult;
 import com.cephadex.ambi.session.roundResult.RoundResultProjector;
 
@@ -107,6 +112,7 @@ class LiveSessionOrchestratorTest {
     private LiveRoundStateStore roundStateStore;
     private TallyStore tallyStore;
     private AnswerStore answerStore;
+    private VoteStore voteStore;
     private QAndAHostAnswerStore qandaHostAnswers;
     private EventPublisher publisher;
     private RoundResultProjector roundResults;
@@ -124,6 +130,7 @@ class LiveSessionOrchestratorTest {
         roundStateStore = mock(LiveRoundStateStore.class);
         answerStore = mock(AnswerStore.class);
         tallyStore = mock(TallyStore.class);
+        voteStore = mock(VoteStore.class);
         presenceStore = mock(PresenceStore.class);
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         publisher = mock(EventPublisher.class);
@@ -142,8 +149,8 @@ class LiveSessionOrchestratorTest {
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
-                tallyStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage, codec,
-                deadlines, new SessionRedisProperties());
+                tallyStore, voteStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage,
+                codec, deadlines, new SessionRedisProperties());
     }
 
     private void stubPhase(RoundPhase phase) {
@@ -264,6 +271,147 @@ class LiveSessionOrchestratorTest {
         // Closes + scores the still-open round in the same step, then reveals.
         assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESULTS);
         verify(roundResults).persist(any(), any(), any());
+    }
+
+    // ── openVoting / submitVote (best-answer voting, D3) ─────────────────────
+
+    @Test
+    void openVotingClosesUnscoredMintsAnonymousOptionsAndCancelsTimer() {
+        stubPhase(RoundPhase.SUBMIT);
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(
+                answerFrom("p-2", new TextAnswer("a plausible lie"))));
+
+        orchestrator.openVoting(SID, SLIDE);
+
+        assertThat(savedState().phase()).isEqualTo(RoundPhase.VOTE);
+        // Scoring waits for the votes — nothing persisted on this transition.
+        verify(roundResults, never()).persist(any(), any(), any());
+        verify(deadlines).cancel(SessionDeadline.closeRound(SID, SLIDE));
+
+        // The stored mapping keeps the author; the published options don't.
+        ArgumentCaptor<Map<String, VoteOption>> stored = ArgumentCaptor.captor();
+        verify(voteStore).saveOptions(eq(SID), eq(SLIDE), stored.capture());
+        assertThat(stored.getValue().values())
+                .singleElement()
+                .isEqualTo(new VoteOption("p-2", "a plausible lie", null));
+        VotingOpened event = (VotingOpened) publishedEvent();
+        assertThat(event.options()).singleElement().satisfies(option -> {
+            assertThat(option.text()).isEqualTo("a plausible lie");
+            assertThat(option.optionId()).isNotEqualTo("p-2");
+        });
+    }
+
+    @Test
+    void openVotingIsIdempotentWhileVoting() {
+        stubPhase(RoundPhase.VOTE);
+
+        orchestrator.openVoting(SID, SLIDE);
+
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void openVotingAfterCloseIsRejectedBecauseTheRoundIsScored() {
+        stubPhase(RoundPhase.LOCKED);
+
+        assertThatThrownBy(() -> orchestrator.openVoting(SID, SLIDE))
+                .isInstanceOf(ConflictException.class);
+        verify(roundStateStore, never()).save(any(), any());
+    }
+
+    @Test
+    void openVotingWithoutVotableSubmissionsIsRejected() {
+        stubPhase(RoundPhase.SUBMIT);
+        // An MCQ pick isn't votable — there is nothing creative to judge.
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(
+                answerFrom("p-2", new McqAnswer(Set.of("opt-a")))));
+
+        assertThatThrownBy(() -> orchestrator.openVoting(SID, SLIDE))
+                .isInstanceOf(ConflictException.class);
+        verify(roundStateStore, never()).save(any(), any());
+        verify(voteStore, never()).saveOptions(any(), any(), any());
+    }
+
+    @Test
+    void submitVoteResolvesTheOptionAndPublishesOnlyTheCount() {
+        stubPhase(RoundPhase.VOTE);
+        when(voteStore.options(SID, SLIDE))
+                .thenReturn(Map.of("opt-1", new VoteOption("p-2", "a plausible lie", null)));
+        when(voteStore.count(SID, SLIDE)).thenReturn(1L);
+
+        orchestrator.submitVote(SID, SLIDE, "p-1", "opt-1");
+
+        verify(voteStore).castVote(SID, SLIDE, "p-1", "opt-1");
+        VoteCast event = (VoteCast) publishedEvent();
+        assertThat(event.votesCast()).isEqualTo(1);
+    }
+
+    @Test
+    void submitVoteOutsideTheVotePhaseIsRejected() {
+        stubPhase(RoundPhase.SUBMIT);
+
+        assertThatThrownBy(() -> orchestrator.submitVote(SID, SLIDE, "p-1", "opt-1"))
+                .isInstanceOf(ConflictException.class);
+        verify(voteStore, never()).castVote(any(), any(), any(), any());
+    }
+
+    @Test
+    void submitVoteForOwnAnswerIsRejected() {
+        stubPhase(RoundPhase.VOTE);
+        when(voteStore.options(SID, SLIDE))
+                .thenReturn(Map.of("opt-1", new VoteOption("p-1", "my own lie", null)));
+
+        assertThatThrownBy(() -> orchestrator.submitVote(SID, SLIDE, "p-1", "opt-1"))
+                .isInstanceOf(ConflictException.class);
+        verify(voteStore, never()).castVote(any(), any(), any(), any());
+    }
+
+    @Test
+    void submitVoteForUnknownOptionIsRejected() {
+        stubPhase(RoundPhase.VOTE);
+        when(voteStore.options(SID, SLIDE)).thenReturn(Map.of());
+
+        assertThatThrownBy(() -> orchestrator.submitVote(SID, SLIDE, "p-1", "opt-x"))
+                .isInstanceOf(NotFoundException.class);
+        verify(voteStore, never()).castVote(any(), any(), any(), any());
+    }
+
+    @Test
+    void revealResultsFromVoteScoresTheDeferredRound() {
+        stubPhase(RoundPhase.VOTE);
+        stubScorableSession();
+        when(voteStore.options(SID, SLIDE))
+                .thenReturn(Map.of("opt-1", new VoteOption("p-2", "a plausible lie", null)));
+        when(voteStore.votes(SID, SLIDE)).thenReturn(Map.of("p-1", "opt-1"));
+
+        orchestrator.revealResults(SID, SLIDE);
+
+        // VOTE is closed but unscored — the reveal transition scores it, votes in hand.
+        assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESULTS);
+        verify(roundResults).persist(any(), any(), any());
+    }
+
+    @Test
+    void openingAnotherSlideWhileVotingIsRejected() {
+        stubPhase(RoundPhase.VOTE);
+        Slide other = new Slide();
+        other.setId("slide-2");
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-2")).thenReturn(Optional.of(other));
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        // The votes are unscored until the reveal — jumping away would drop them.
+        assertThatThrownBy(() -> orchestrator.startRound(SID, "slide-2"))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    private static Answer answerFrom(String participantId, AnswerPayload payload) {
+        Answer a = answerWith(payload);
+        a.setParticipantId(participantId);
+        return a;
     }
 
     // ── startRound: honour ResultsDisplayMode ────────────────────────────────

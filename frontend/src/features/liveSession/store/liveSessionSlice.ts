@@ -16,6 +16,7 @@ import type {
   ScoreboardEntry,
   SessionSnapshotResponse,
   SlideView,
+  VoteOptionView,
 } from "./liveSessionApi.gen";
 import type {
   DrawingSubmission,
@@ -72,6 +73,12 @@ export interface LiveSessionState {
   optionCounts: OptionCounts;
   /** The current Q&A round's questions (with host answers); empty otherwise. */
   qAndAQuestions: QAndAQuestionView[];
+  /** The VOTE round's anonymised options (D3); empty outside a VOTE phase. */
+  voteOptions: VoteOptionView[];
+  /** The option the viewer voted for this round; null until they vote. */
+  myVoteOptionId: string | null;
+  /** Running number of votes cast in the VOTE round (never per-option counts). */
+  votesCast: number;
   results: RoundResults | null;
   scoreboard: ScoreboardEntry[];
   finalScoreboard: ScoreboardEntry[] | null;
@@ -101,6 +108,9 @@ const initialState: LiveSessionState = {
   timerPausedAt: null,
   optionCounts: {},
   qAndAQuestions: [],
+  voteOptions: [],
+  myVoteOptionId: null,
+  votesCast: 0,
   results: null,
   scoreboard: [],
   finalScoreboard: null,
@@ -139,6 +149,9 @@ const liveSessionSlice = createSlice({
       state.timerPausedAt = s.currentRoundPausedAt ?? null;
       state.optionCounts = s.optionTally ?? {};
       state.qAndAQuestions = s.qAndAQuestions ?? [];
+      state.voteOptions = s.voteOptions ?? [];
+      state.myVoteOptionId = s.myVoteOptionId ?? null;
+      state.votesCast = s.votesCast ?? 0;
       state.scoreboard = s.scoreboard ?? [];
       state.viewerParticipantId = s.viewerParticipantId ?? null;
       state.showRoomCodeInHeader = s.showRoomCodeInHeader ?? false;
@@ -191,6 +204,7 @@ const liveSessionSlice = createSlice({
           state.timerPausedAt = null;
           state.optionCounts = {};
           state.qAndAQuestions = [];
+          resetVoting(state);
           state.results = null;
           state.phase = "SUBMIT";
           break;
@@ -221,6 +235,18 @@ const liveSessionSlice = createSlice({
           break;
         case "SubmissionsLocked":
           state.phase = "LOCKED";
+          break;
+        case "VotingOpened":
+          if (e.slideId === state.currentSlideId) {
+            resetVoting(state);
+            state.voteOptions = e.options;
+            state.phase = "VOTE";
+          }
+          break;
+        case "VoteCast":
+          if (e.slideId === state.currentSlideId) {
+            state.votesCast = e.votesCast;
+          }
           break;
         case "ResponsesRevealed":
           state.optionCounts = e.optionCounts;
@@ -254,6 +280,7 @@ const liveSessionSlice = createSlice({
           state.phase = e.phase;
           state.optionCounts = {};
           state.qAndAQuestions = [];
+          resetVoting(state);
           state.results = null;
           break;
         case "TimerPaused":
@@ -280,6 +307,14 @@ const liveSessionSlice = createSlice({
       }
     },
 
+    /**
+     * Remember which option the viewer voted for (the vote POST returns no body
+     * and `VoteCast` never identifies the voter, so the client records its own).
+     */
+    myVoteRecorded(state, action: PayloadAction<string>) {
+      state.myVoteOptionId = action.payload;
+    },
+
     /** Reflect the socket's connection status for UI (e.g. a reconnecting banner). */
     connectionChanged(state, action: PayloadAction<ConnectionState>) {
       state.connection = action.payload;
@@ -292,6 +327,13 @@ const liveSessionSlice = createSlice({
   },
 });
 
-export const { seed, eventReceived, connectionChanged, reset } =
+/** Clear the voting sub-state when a round (re)opens or voting starts afresh. */
+function resetVoting(state: LiveSessionState) {
+  state.voteOptions = [];
+  state.myVoteOptionId = null;
+  state.votesCast = 0;
+}
+
+export const { seed, eventReceived, myVoteRecorded, connectionChanged, reset } =
   liveSessionSlice.actions;
 export const liveSessionReducer = liveSessionSlice.reducer;

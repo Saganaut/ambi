@@ -200,6 +200,55 @@ class RoundEvaluatorTest {
         assertThat(eval.choice()).isNull(); // free-form: not tallied
     }
 
+    // ── vote fold-in (best-answer / deception, D3) ───────────────────────────
+
+    @Test
+    void withoutVotesNoBestAnswerIsFlaggedAndNobodyDeceives() {
+        Slide slide = slideWith(new TextContent(Set.of("Frodo"), MatchMode.EXACT, false, true, null));
+
+        List<AnswerEvaluation> evals = RoundEvaluator.evaluate(slide, List.of(
+                answer("p1", new TextAnswer("Frodo"), 100),
+                answer("p2", new TextAnswer("Sam"), 200)), START);
+
+        assertThat(evals).allSatisfy(eval -> {
+            assertThat(eval.bestAnswer()).isFalse();
+            assertThat(eval.deceivedCount()).isZero();
+        });
+    }
+
+    @Test
+    void flagsTheTopVotedAnswerAsBestAndCountsDeceivedVoters() {
+        Slide slide = slideWith(new TextContent(Set.of("Frodo"), MatchMode.EXACT, false, true, null));
+
+        List<AnswerEvaluation> evals = RoundEvaluator.evaluate(slide, List.of(
+                answer("truth", new TextAnswer("Frodo"), 100),
+                answer("liar", new TextAnswer("Sam"), 200),
+                answer("dud", new TextAnswer("Merry"), 300)),
+                START, Map.of("liar", 3, "truth", 2));
+
+        // The top-voted answer is best regardless of correctness; every vote for
+        // an incorrect answer is a deceived voter, votes for the truth deceive nobody.
+        assertThat(evals.get(0).bestAnswer()).isFalse();
+        assertThat(evals.get(0).deceivedCount()).isZero();
+        assertThat(evals.get(1).bestAnswer()).isTrue();
+        assertThat(evals.get(1).deceivedCount()).isEqualTo(3);
+        assertThat(evals.get(2).bestAnswer()).isFalse();
+        assertThat(evals.get(2).deceivedCount()).isZero();
+    }
+
+    @Test
+    void bestAnswerVoteTieGoesToTheFasterSubmission() {
+        Slide slide = slideWith(new TextContent(Set.of(), MatchMode.EXACT, false, true, null));
+
+        List<AnswerEvaluation> evals = RoundEvaluator.evaluate(slide, List.of(
+                answer("slow", new TextAnswer("one"), 500),
+                answer("fast", new TextAnswer("two"), 100)),
+                START, Map.of("slow", 2, "fast", 2));
+
+        assertThat(evals.get(0).bestAnswer()).isFalse();
+        assertThat(evals.get(1).bestAnswer()).isTrue();
+    }
+
     @Test
     void correctKeyRendersMcqAsSortedJoin() {
         assertThat(RoundEvaluator.correctKey(slideWith(mcq(Set.of("b", "a"))))).isEqualTo("a,b");

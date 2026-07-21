@@ -70,6 +70,24 @@ class LiveSessionHostServiceTest {
     }
 
     @Test
+    void openVotingRequiresHostThenDelegates() {
+        asHost(true);
+
+        service.openVoting(SID, SLIDE, caller);
+
+        verify(orchestrator).openVoting(SID, SLIDE);
+    }
+
+    @Test
+    void nonHostCannotOpenVoting() {
+        asHost(false);
+
+        assertThatThrownBy(() -> service.openVoting(SID, SLIDE, caller))
+                .isInstanceOf(ForbiddenException.class);
+        verify(orchestrator, never()).openVoting(any(), any());
+    }
+
+    @Test
     void nonHostIsForbiddenAndDoesNotDelegate() {
         asHost(false);
 

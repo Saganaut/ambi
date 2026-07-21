@@ -48,6 +48,9 @@ public final class RoundScorer {
      *                         {@code participantId},
      *                         so an evaluation can find the player to score
      * @param pointSettings    the resolved point values for this slide/deck
+     * @param votesReceived    best-answer votes drawn per answer author during the
+     *                         round's VOTE phase (empty when the round wasn't
+     *                         voted on — see {@link RoundEvaluator})
      * @param roundStartedAt   when the round opened (for response timing)
      * @param closedAt         when submissions closed
      * @return the assembled, not-yet-persisted {@link RoundResult}
@@ -58,10 +61,11 @@ public final class RoundScorer {
             List<Answer> answers,
             Map<String, Participant> participantsById,
             Settings.PointSettings pointSettings,
+            Map<String, Integer> votesReceived,
             Instant roundStartedAt,
             Instant closedAt) {
 
-        List<AnswerEvaluation> evaluations = RoundEvaluator.evaluate(slide, answers, roundStartedAt);
+        List<AnswerEvaluation> evaluations = RoundEvaluator.evaluate(slide, answers, roundStartedAt, votesReceived);
 
         List<ParticipantOutcome> outcomes = new ArrayList<>(evaluations.size());
         for (AnswerEvaluation eval : evaluations) {

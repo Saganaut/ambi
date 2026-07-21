@@ -20,6 +20,7 @@ import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.session.answer.LiveSessionAnswerService;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
+import com.cephadex.ambi.session.answer.dto.SubmitVoteRequest;
 import com.cephadex.ambi.session.dto.AdvanceResponse;
 import com.cephadex.ambi.session.dto.CreateSessionRequest;
 import com.cephadex.ambi.session.dto.CreateSessionResponse;
@@ -129,6 +130,22 @@ public class LiveSessionController {
     }
 
     /**
+     * Records the caller's best-answer vote for the voting round on session
+     * {@code id} (D3). The option id is the opaque handle carried on
+     * {@code VotingOpened} / the snapshot's {@code voteOptions}. Returns 202
+     * Accepted: the running vote count is delivered to all players over the
+     * session's WebSocket topic ({@code VoteCast}), not in this response body.
+     */
+    @PostMapping("/{id}/votes")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void submitVote(
+            @PathVariable String id,
+            @Valid @RequestBody SubmitVoteRequest body,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        answerService.submitVote(id, body, principal);
+    }
+
+    /**
      * Stores the caller's rendered drawing (a canvas PNG) for a Drawing round on
      * session {@code id}. Returns the stored {@link AppImage} (presigned on this
      * REST path) which the client then submits inside a {@code DrawingAnswer} via
@@ -181,6 +198,19 @@ public class LiveSessionController {
             @PathVariable String id, @PathVariable String slideId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         hostService.closeSubmissions(id, slideId, principal);
+    }
+
+    /**
+     * Closes submissions unscored and opens best-answer voting on the round's
+     * anonymised submissions (host only, D3); scoring waits for the results reveal
+     * so the votes count. Voters receive the options via {@code VotingOpened}.
+     */
+    @PostMapping("/{id}/rounds/{slideId}/open-voting")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void openVoting(
+            @PathVariable String id, @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        hostService.openVoting(id, slideId, principal);
     }
 
     /** Shows the response distribution for a round (host only); never the answer key. */

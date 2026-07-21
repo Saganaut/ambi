@@ -109,6 +109,8 @@ public class SecurityConfig {
                         // through to the USER catch-all below.
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/join").hasRole("GUEST")
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/answers").hasRole("GUEST")
+                        // Best-answer voting (D3) is a player command like answering.
+                        .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/votes").hasRole("GUEST")
                         // Drawing answers upload their rendered PNG first, then submit it.
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/drawings").hasRole("GUEST")
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/leave").hasRole("GUEST")

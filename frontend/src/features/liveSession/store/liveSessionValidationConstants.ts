@@ -37,6 +37,14 @@ export const liveSessionValidation = {
     "slideId": {
       "minLength": 1
     }
+  },
+  "SubmitVoteRequest": {
+    "optionId": {
+      "minLength": 1
+    },
+    "slideId": {
+      "minLength": 1
+    }
   }
 } as const;
 

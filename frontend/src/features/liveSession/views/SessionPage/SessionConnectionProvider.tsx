@@ -18,6 +18,7 @@ import { useSnapshotQuery } from "../../store/liveSessionApi.gen";
 import {
   connectionChanged,
   eventReceived,
+  myVoteRecorded,
   reset,
   seed,
 } from "../../store/liveSessionSlice";
@@ -58,12 +59,23 @@ const SessionConnectionProvider = ({
     sendAnswer: (slideId, payload) => {
       mutate.submitAnswer(sessionId, { slideId, payload });
     },
+    sendVote: (slideId, optionId) => {
+      // Record the accepted vote locally: the POST returns no body and the
+      // VoteCast broadcast never identifies the voter.
+      mutate.submitVote(sessionId, slideId, optionId).then(
+        () => dispatch(myVoteRecorded(optionId)),
+        () => undefined, // rejected vote (closed / own answer) — leave state as-is
+      );
+    },
     uploadDrawing: (file) => mutate.uploadDrawing(sessionId, file),
     sendRevealResponses: (slideId) => {
       mutate.revealResponses(sessionId, slideId);
     },
     sendCloseRound: (slideId) => {
       mutate.closeRound(sessionId, slideId);
+    },
+    sendOpenVoting: (slideId) => {
+      mutate.openVoting(sessionId, slideId);
     },
     sendRevealResults: (slideId) => {
       mutate.revealResults(sessionId, slideId);

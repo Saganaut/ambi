@@ -8,6 +8,7 @@ import { resolveHostActions, type HostActions } from "./resolveHostActions";
 const none: HostActions = {
   canShowResponses: false,
   canClose: false,
+  canOpenVoting: false,
   canRevealResults: false,
   canAdvance: false,
   canRestart: false,
@@ -57,6 +58,7 @@ describe("resolveHostActions", () => {
     ],
     ["SUBMIT_LIVE", { canClose: true, canRevealResults: true, canRestart: true }],
     ["LOCKED", { canRevealResults: true }],
+    ["VOTE", { canRevealResults: true, canRestart: true }],
     ["REVEAL_RESPONSES", { canRevealResults: true }],
     ["REVEAL_RESULTS", { canAdvance: true }],
   ];
@@ -76,6 +78,7 @@ describe("resolveHostActions", () => {
       "SUBMIT",
       "SUBMIT_LIVE",
       "LOCKED",
+      "VOTE",
       "REVEAL_RESPONSES",
     ] as RoundPhase[]) {
       expect(
@@ -89,6 +92,8 @@ describe("resolveHostActions", () => {
   });
 
   it("never offers restart once the round is closed (already scored)", () => {
+    // VOTE is closed but NOT yet scored, so restart stays available there (the
+    // host's escape hatch out of voting); the scored closed phases withhold it.
     for (const phase of [
       "LOCKED",
       "REVEAL_RESPONSES",
@@ -96,6 +101,35 @@ describe("resolveHostActions", () => {
     ] as RoundPhase[]) {
       expect(
         resolveHostActions("IN_PROGRESS", phase, false, true).canRestart,
+      ).toBe(false);
+    }
+    expect(
+      resolveHostActions("IN_PROGRESS", "VOTE", false, true).canRestart,
+    ).toBe(true);
+  });
+
+  // ── Best-answer voting (D3) ──────────────────────────────────────────────
+
+  it("offers open-voting only on an open round of a votable kind", () => {
+    const openVotable = resolveHostActions(
+      "IN_PROGRESS", "SUBMIT", false, true, false, false, true);
+    expect(openVotable.canOpenVoting).toBe(true);
+
+    // A kind that mints no vote options (e.g. MCQ) never offers it.
+    const openUnvotable = resolveHostActions(
+      "IN_PROGRESS", "SUBMIT", false, true, false, false, false);
+    expect(openUnvotable.canOpenVoting).toBe(false);
+
+    // A normal close scores the round, after which the backend rejects voting.
+    for (const phase of [
+      "LOCKED",
+      "VOTE",
+      "REVEAL_RESPONSES",
+      "REVEAL_RESULTS",
+    ] as RoundPhase[]) {
+      expect(
+        resolveHostActions("IN_PROGRESS", phase, false, true, false, false, true)
+          .canOpenVoting,
       ).toBe(false);
     }
   });

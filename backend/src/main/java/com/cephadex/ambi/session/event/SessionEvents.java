@@ -13,6 +13,7 @@ import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 import com.cephadex.ambi.session.event.dto.SlideView;
+import com.cephadex.ambi.session.event.dto.VoteOptionView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantScore;
@@ -108,6 +109,21 @@ public final class SessionEvents {
     /** Submissions closed with nothing revealed (entered LOCKED) — carries no counts. */
     public static SubmissionsLocked submissionsLocked(String slideId) {
         return new SubmissionsLocked(slideId);
+    }
+
+    /**
+     * Best-answer voting opened (entered VOTE): submissions closed unscored and the
+     * anonymised options are up for votes. {@code options} must already be
+     * participant-safe — opaque ids only, built by the orchestrator from the
+     * server-side option mapping (D3).
+     */
+    public static VotingOpened votingOpened(String slideId, List<VoteOptionView> options) {
+        return new VotingOpened(slideId, List.copyOf(options));
+    }
+
+    /** A vote landed (or changed): the running count of votes cast, never per-option tallies. */
+    public static VoteCast voteCast(String slideId, int votesCast) {
+        return new VoteCast(slideId, votesCast);
     }
 
     /** Response distribution shown, closed (entered REVEAL_RESPONSES). */

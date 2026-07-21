@@ -44,6 +44,15 @@ public class LiveSessionHostService {
         orchestrator.closeSubmissions(sessionId, slideId);
     }
 
+    /**
+     * Closes submissions unscored and opens best-answer voting on the anonymised
+     * submissions (D3); scoring waits for the reveal so the votes count. Host only.
+     */
+    public void openVoting(String sessionId, String slideId, AmbiPrincipal principal) {
+        requireHost(sessionId, principal);
+        orchestrator.openVoting(sessionId, slideId);
+    }
+
     /** Shows the response distribution (never the answer key). Host only. */
     public void revealResponses(String sessionId, String slideId, AmbiPrincipal principal) {
         requireHost(sessionId, principal);

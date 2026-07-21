@@ -33,6 +33,7 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Axis
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
+import com.cephadex.ambi.session.answer.dto.SubmitVoteRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
@@ -158,6 +159,31 @@ public class LiveSessionAnswerService {
                 || request.payload() instanceof DrawingAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), effectiveMaxSelections);
+    }
+
+    /**
+     * Records {@code principal}'s best-answer vote for the voting round on
+     * {@code sessionId} (D3), delegating the Redis write to the orchestrator. The
+     * option id is opaque — self-vote and existence checks resolve against the
+     * server-side option mapping in the orchestrator, so there is nothing to
+     * validate against the slide here.
+     *
+     * @throws NotFoundException  if the session doesn't exist, or the option isn't
+     *                            one of the round's (surfaced by the orchestrator)
+     * @throws ConflictException  if the session isn't in progress, voting isn't
+     *                            open, or the vote targets the caller's own answer
+     * @throws ForbiddenException if the caller isn't a (non-banned) roster
+     *                            participant
+     */
+    public void submitVote(String sessionId, SubmitVoteRequest request, AmbiPrincipal principal) {
+        LiveSession session = sessions.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
+        if (!session.isLive()) {
+            throw new ConflictException("SESSION_NOT_LIVE", "session is not in progress");
+        }
+        Participant participant = participantResolver.resolve(session, principal);
+        orchestrator.submitVote(sessionId, request.slideId(), participant.getParticipantId(),
+                request.optionId());
     }
 
     private void validatePayload(String sessionId, String participantId, Slide slide, AnswerPayload payload,

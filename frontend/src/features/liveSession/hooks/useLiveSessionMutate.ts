@@ -21,6 +21,7 @@ import {
   useHeartbeatMutation,
   useJoinMutation,
   useLeaveMutation,
+  useOpenVotingMutation,
   usePauseTimerMutation,
   useReconnectMutation,
   useRestartRoundMutation,
@@ -29,6 +30,7 @@ import {
   useRevealResultsMutation,
   useStartMutation,
   useSubmitAnswerMutation,
+  useSubmitVoteMutation,
   useUploadDrawingMutation,
   type AdvanceApiResponse,
   type CreateApiArg,
@@ -55,6 +57,9 @@ interface UseLiveSessionMutateResult {
     id: string,
     request: SubmitAnswerApiArg["submitAnswerRequest"],
   ) => void;
+  /** Cast (or change) this device's best-answer vote for the voting round;
+   *  resolves so the caller can record the vote locally on success. */
+  submitVote: (id: string, slideId: string, optionId: string) => Promise<void>;
   /** Store a rendered drawing PNG for a Drawing round; resolves with the
    *  stored image to submit inside a DrawingAnswer. */
   uploadDrawing: (id: string, file: File) => Promise<UploadDrawingApiResponse>;
@@ -64,6 +69,8 @@ interface UseLiveSessionMutateResult {
   advance: (id: string) => Promise<AdvanceApiResponse>;
   goToRound: (id: string, slideId: string) => void;
   closeRound: (id: string, slideId: string) => void;
+  /** Host: close submissions unscored and open best-answer voting (D3). */
+  openVoting: (id: string, slideId: string) => void;
   revealResponses: (id: string, slideId: string) => void;
   revealResults: (id: string, slideId: string) => void;
   restartRound: (id: string, slideId: string) => void;
@@ -92,10 +99,12 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
   const [endMutation] = useEndMutation();
   const [cancelMutation] = useCancelMutation();
   const [submitAnswerMutation] = useSubmitAnswerMutation();
+  const [submitVoteMutation] = useSubmitVoteMutation();
   const [uploadDrawingMutation] = useUploadDrawingMutation();
   const [advanceMutation] = useAdvanceMutation();
   const [goToRoundMutation] = useGoToRoundMutation();
   const [closeRoundMutation] = useCloseRoundMutation();
+  const [openVotingMutation] = useOpenVotingMutation();
   const [revealResponsesMutation] = useRevealResponsesMutation();
   const [revealResultsMutation] = useRevealResultsMutation();
   const [restartRoundMutation] = useRestartRoundMutation();
@@ -123,6 +132,14 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     request: SubmitAnswerApiArg["submitAnswerRequest"],
   ) => void submitAnswerMutation({ id, submitAnswerRequest: request });
 
+  const submitVote = (id: string, slideId: string, optionId: string) =>
+    submitVoteMutation({
+      id,
+      submitVoteRequest: { slideId, optionId },
+    })
+      .unwrap()
+      .then(() => undefined);
+
   const uploadDrawing = (id: string, file: File) =>
     uploadDrawingMutation({ id, body: { file } }).unwrap();
 
@@ -131,6 +148,8 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     void goToRoundMutation({ id, slideId });
   const closeRound = (id: string, slideId: string) =>
     void closeRoundMutation({ id, slideId });
+  const openVoting = (id: string, slideId: string) =>
+    void openVotingMutation({ id, slideId });
   const revealResponses = (id: string, slideId: string) =>
     void revealResponsesMutation({ id, slideId });
   const revealResults = (id: string, slideId: string) =>
@@ -165,10 +184,12 @@ const useLiveSessionMutate = (): UseLiveSessionMutateResult => {
     end,
     cancel,
     submitAnswer,
+    submitVote,
     uploadDrawing,
     advance,
     goToRound,
     closeRound,
+    openVoting,
     revealResponses,
     revealResults,
     restartRound,

@@ -8,6 +8,7 @@ import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 import com.cephadex.ambi.session.event.dto.SlideView;
+import com.cephadex.ambi.session.event.dto.VoteOptionView;
 import com.cephadex.ambi.session.liveSession.enums.LiveSessionLifecycle;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 
@@ -37,6 +38,9 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * @param currentRoundPausedAt  when the round timer was paused, or {@code null} while it is running (or untimed)
  * @param optionTally           the open round's live per-option counts, or {@code null} between rounds
  * @param qAndAQuestions        the open Q&amp;A round's questions (with host answers), or {@code null} when the open slide isn't Q&amp;A
+ * @param voteOptions           the voting round's anonymised options (D3), or {@code null} outside a VOTE phase
+ * @param myVoteOptionId        the option the caller has voted for this round, or {@code null} if they haven't (or outside a VOTE phase)
+ * @param votesCast             how many votes have been cast so far, or {@code null} outside a VOTE phase
  * @param roster                every participant, in join order, with live connection status
  * @param scoreboard            current standings, ranked by points
  * @param viewerParticipantId   the calling participant's id (so the client can spot itself)
@@ -57,6 +61,9 @@ public record SessionSnapshotResponse(
         Instant currentRoundPausedAt,
         Map<String, Integer> optionTally,
         List<QAndAQuestionView> qAndAQuestions,
+        List<VoteOptionView> voteOptions,
+        String myVoteOptionId,
+        Integer votesCast,
         List<ParticipantView> roster,
         List<ScoreboardEntry> scoreboard,
         String viewerParticipantId,

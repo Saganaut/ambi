@@ -21,6 +21,7 @@ public class SessionRedisProperties {
     private final RoundState roundState = new RoundState();
     private final Tally tally = new Tally();
     private final Answers answers = new Answers();
+    private final Votes votes = new Votes();
     private final QandaHostAnswers qandaHostAnswers = new QandaHostAnswers();
     private final Presence presence = new Presence();
     private final Events events = new Events();
@@ -76,6 +77,24 @@ public class SessionRedisProperties {
         /**
          * TTL on a round's answer hash — the same abandoned-session backstop as the
          * state TTL. Refreshed on every submit.
+         */
+        private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class Votes {
+        /**
+         * Redis key namespace for a round's best-answer voting (D3). Each voting
+         * round keeps two Hashes: the minted vote options at
+         * {@code <namespace>:<sessionId>:<slideId>:options} (one field per opaque
+         * option id) and the cast votes at {@code <namespace>:<sessionId>:<slideId>}
+         * (one field per voter; re-vote overwrites). Runtime-only — the tallies fold
+         * into scoring at reveal and are never flushed to MongoDB themselves.
+         */
+        private String namespace = "ambi:session:votes";
+        /**
+         * TTL on a round's vote hashes — the same abandoned-session backstop as the
+         * state TTL. Refreshed on every write.
          */
         private Duration ttl = Duration.ofHours(6);
     }
