@@ -48,9 +48,11 @@ const LandingPage = () => {
     if (userState.state === "registered") {
       void navigate({ to: "/decks", replace: true });
     } else if (userState.state === "preRegistration") {
-      void navigate({ to: "/register", replace: true });
+      // Forward any blocked-path returnUrl (from an authPrompt bounce) so it
+      // survives registration; /register's validateSearch sanitizes it.
+      void navigate({ to: "/register", search: { returnUrl }, replace: true });
     }
-  }, [userState.state, navigate]);
+  }, [userState.state, returnUrl, navigate]);
 
   // The /_authenticated gate bounces unauthenticated users here with
   // `?authPrompt=true&returnUrl=<blocked path>`. Surface the sign-in modal
