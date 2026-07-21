@@ -101,7 +101,7 @@ class GalleryControllerTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "hero.png", "image/png", new byte[] { 1, 2, 3 });
 
-        mockMvc.perform(multipart("/api/galleries/g1/images").file(file).param("name", "Hero"))
+        mockMvc.perform(multipart("/api/galleries/g1/images/upload").file(file).param("name", "Hero"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("img-1"))
                 // Raw key passes through here; presigning is the serializer's job.
@@ -120,7 +120,7 @@ class GalleryControllerTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "hero.png", "image/png", new byte[] { 1 });
 
-        mockMvc.perform(multipart("/api/galleries/g1/images").file(file))
+        mockMvc.perform(multipart("/api/galleries/g1/images/upload").file(file))
                 .andExpect(status().isCreated());
 
         ArgumentCaptor<String> name = ArgumentCaptor.forClass(String.class);
