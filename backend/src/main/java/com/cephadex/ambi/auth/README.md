@@ -214,6 +214,17 @@ back to `/`:
 
 Implement once as a shared, unit-tested utility.
 
+**Browser-side caveat:** the recipe above is only safe when the parse step uses
+a strict parser. `java.net.URI` throws on embedded whitespace, but the WHATWG
+`URL` parser (what browsers and `window.location.assign` use) silently strips
+tab/CR/LF **before** parsing — so `"/\t/evil.tld"` passes every character check
+yet navigates to `//evil.tld`. Any JS/browser-side consumer must instead resolve
+the value against the current origin and compare origins
+(`new URL(value, window.location.origin).origin === window.location.origin`) —
+see `frontend/src/shared/utils/returnUrl.ts` (`toLocalReturnUrl`), the shared
+client-side implementation. Do not port the character-prefix recipe to a
+browser context.
+
 ### 3. CSRF protection on every mutating endpoint
 
 Tokens live in cookies and are sent automatically, so CSRF applies:
