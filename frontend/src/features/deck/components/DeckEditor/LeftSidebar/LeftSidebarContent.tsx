@@ -51,57 +51,66 @@ const LeftSidebarContent = () => {
     <Dashboard.StartPanel
       className={`${styles.leftSidebarContent} ${isFullScreen ? styles.isCollapsed : ""} `}
     >
-      <div>
-        <Btn onClick={handleNewSlideClick}>New Slide</Btn>
-      </div>
-      <div className={styles.slideContainer}>
-        {slides.length === 0 ? (
-          <button
-            type="button"
-            className={styles.emptySlide}
-            onClick={handleNewSlideClick}
-            aria-label="Create your first slide"
-          >
-            <span className={styles.emptySlideIcon} aria-hidden="true">
-              <PlusIcon />
-            </span>
-            <span className={styles.emptySlideTitle}>Create your first slide</span>
-            <span className={styles.emptySlideSubtitle}>
-              Pick a question type to add to the deck.
-            </span>
-          </button>
-        ) : (
-          <DragDropProvider
-            onDragEnd={(event) => {
-              handleDragEnd(event);
-            }}
-          >
-            {(() => {
-              // The rail renders *units*: a parent and its attached follow-up
-              // share one sortable wrapper so the pair drags as a block and the
-              // follow-up can't be dragged on its own. The number badge counts
-              // slides (the follow-up shows as "Na"), so track both indexes.
-              let slideNumber = 0;
-              return groupIntoUnits(slides).map((unit, unitIndex) => {
-                slideNumber += 1;
-                const displayNumber = slideNumber;
-                if (unit.followUp) slideNumber += 1;
-                return (
-                  <SlideThumbnail
-                    key={unit.head.id}
-                    slide={unit.head}
-                    followUp={unit.followUp}
-                    canAddFollowUp={canHaveFollowUp(unit.head, slides)}
-                    sortIndex={unitIndex}
-                    displayNumber={displayNumber}
-                    currentQuestionId={slideId}
-                    deckId={deckId}
-                  />
-                );
-              });
-            })()}
-          </DragDropProvider>
-        )}
+      <div className={styles.indexCard}>
+        <Btn
+          className={styles.newSlideBtn}
+          icon={<PlusIcon className={styles.newSlideBtnIcon} />}
+          onClick={handleNewSlideClick}
+        >
+          New Slide
+        </Btn>
+        <div className={styles.listHeader}>
+          {slides.length} {slides.length === 1 ? "slide" : "slides"}
+        </div>
+        <div className={styles.slideContainer}>
+          {slides.length === 0 ? (
+            <button
+              type="button"
+              className={styles.emptySlide}
+              onClick={handleNewSlideClick}
+              aria-label="Create your first slide"
+            >
+              <span className={styles.emptySlideIcon} aria-hidden="true">
+                <PlusIcon />
+              </span>
+              <span className={styles.emptySlideTitle}>Create your first slide</span>
+              <span className={styles.emptySlideSubtitle}>
+                Pick a question type to add to the deck.
+              </span>
+            </button>
+          ) : (
+            <DragDropProvider
+              onDragEnd={(event) => {
+                handleDragEnd(event);
+              }}
+            >
+              {(() => {
+                // The rail renders *units*: a parent and its attached follow-up
+                // share one sortable wrapper so the pair drags as a block and the
+                // follow-up can't be dragged on its own. The number badge counts
+                // slides (the follow-up shows as "Na"), so track both indexes.
+                let slideNumber = 0;
+                return groupIntoUnits(slides).map((unit, unitIndex) => {
+                  slideNumber += 1;
+                  const displayNumber = slideNumber;
+                  if (unit.followUp) slideNumber += 1;
+                  return (
+                    <SlideThumbnail
+                      key={unit.head.id}
+                      slide={unit.head}
+                      followUp={unit.followUp}
+                      canAddFollowUp={canHaveFollowUp(unit.head, slides)}
+                      sortIndex={unitIndex}
+                      displayNumber={displayNumber}
+                      currentQuestionId={slideId}
+                      deckId={deckId}
+                    />
+                  );
+                });
+              })()}
+            </DragDropProvider>
+          )}
+        </div>
       </div>
     </Dashboard.StartPanel>
   );

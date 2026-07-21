@@ -1,8 +1,9 @@
 /**
- * Deck editor left rail unit: slide tile + optional indented follow-up.
+ * Deck editor left rail unit: slide card + optional indented follow-up.
  * Drags as a single block; follow-up is not independently draggable.
  * * Features:
- * - Renders slide preview & handles click selection (writes slideId to route).
+ * - Renders the shared SlideCard row & handles click selection (writes slideId
+ *   to the route).
  * - Right-click dropdown: delete, "Add follow-up" (if eligible).
  * - Delete with follow-up triggers server cascade (requires confirmation dialog).
  * - Self-scrolls into view via HTML id on creation/activation.
@@ -10,13 +11,14 @@
  */
 import { useConfirm } from "@/shared/components/ConfirmDialog/useConfirm";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
+import { RichTextDisplay } from "@components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { SlideResponse } from "@deck/store/deckApi.gen";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useRef } from "react";
+import { SlideCard } from "../../SlideCard/SlideCard";
 import styles from "./LeftSidebarContent.module.css";
-import { SlideThumbnailContent } from "./SlideThumbnailContent";
 
 const slideDisplayName = (slide: SlideResponse): string => {
   const trimmed = slide.title.trim();
@@ -90,14 +92,20 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
   return (
     <div
       id={slide.id}
-      className={`${styles.slideThumbnailWrapper} ${isDragging && styles.isDragging}`}
+      className={`${styles.slideThumbnailWrapper} ${isDragging ? styles.isDragging : ""}`}
       ref={setRefs}
     >
       <DropdownMenu
         position={"top-left"}
         anchorToCursor
         trigger={(toggle) => (
-          <div
+          <SlideCard
+            slideType={slide.content.contentType}
+            title={
+              <RichTextDisplay value={slideDisplayName(slide)} maxLength={20} styled={false} />
+            }
+            index={displayNumber}
+            active={isActive}
             onContextMenu={(e) => {
               e.preventDefault();
               toggle(e);
@@ -105,13 +113,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
             onClick={() => {
               selectSlide(slide.id);
             }}
-            className={`${styles.slideThumbnail} ${isActive && styles.active}`}
-          >
-            <SlideThumbnailContent
-              slideType={slide.content.contentType}
-              title={slideDisplayName(slide)}
-            />
-          </div>
+          />
         )}
       >
         {canAddFollowUp && (
@@ -131,14 +133,24 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
           Delete slide
         </DropdownMenuItem>
       </DropdownMenu>
-      <div className={styles.slideIndex}> {displayNumber} </div>
       {followUp && (
         <div id={followUp.id} className={styles.followUpThumbnailWrapper}>
           <DropdownMenu
             position={"top-left"}
             anchorToCursor
             trigger={(toggle) => (
-              <div
+              <SlideCard
+                slideType={followUp.content.contentType}
+                title={
+                  <RichTextDisplay
+                    value={slideDisplayName(followUp)}
+                    maxLength={20}
+                    styled={false}
+                  />
+                }
+                index={`${displayNumber}a`}
+                active={isFollowUpActive}
+                size="sm"
                 onContextMenu={(e) => {
                   e.preventDefault();
                   toggle(e);
@@ -146,13 +158,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
                 onClick={() => {
                   selectSlide(followUp.id);
                 }}
-                className={`${styles.slideThumbnail} ${styles.followUpThumbnail} ${isFollowUpActive && styles.active}`}
-              >
-                <SlideThumbnailContent
-                  slideType={followUp.content.contentType}
-                  title={slideDisplayName(followUp)}
-                />
-              </div>
+              />
             )}
           >
             <DropdownMenuItem
@@ -163,7 +169,6 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
               Delete follow-up
             </DropdownMenuItem>
           </DropdownMenu>
-          <div className={styles.slideIndex}> {displayNumber}a </div>
         </div>
       )}
     </div>

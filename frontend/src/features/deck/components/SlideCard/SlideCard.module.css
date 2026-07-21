@@ -1,0 +1,108 @@
+/* Slide card (DS "Slide Card", row variant). Inactive rows sit on the surface
+   tint with a soft sm shadow; the active row lifts to the canvas colour with
+   the md shadow. The sm size steps every manifest slot down one notch for the
+   follow-up rows attached under a parent slide. */
+.slideCard {
+  --background-color: var(--bg-surface);
+  --card-shadow: var(--shadow-sm);
+  --padding: var(--p-sm);
+  --gap: var(--gap-md);
+  --radius: var(--radius-lg);
+  --icon-box-size: var(--space-10);
+  --title-font-size: var(--font-size-sm);
+
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  width: 100%;
+  padding: var(--padding);
+  border-radius: var(--radius);
+  background-color: var(--background-color);
+  box-shadow: var(--card-shadow);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    --background-color: var(--bg-canvas);
+  }
+
+  &.active {
+    --background-color: var(--bg-canvas);
+    --card-shadow: var(--shadow-md);
+  }
+
+  &.sm {
+    --padding: var(--p-xs);
+    --gap: var(--gap-sm);
+    --radius: var(--radius-md);
+    --icon-box-size: var(--space-8);
+    --title-font-size: var(--font-size-xs);
+  }
+
+  .index {
+    flex-shrink: 0;
+    min-width: var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .iconBox {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-box-size);
+    height: var(--icon-box-size);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-secondary);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* SlideTypeGraphicSvg sizes itself via --size on its wrapper; step it down
+     inside the sm card so the graphic keeps the same inset as the md box. */
+  &.sm .iconBox .typeIcon {
+    --size: var(--space-5);
+  }
+
+  .text {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-half);
+  }
+
+  .typeLabel {
+    color: var(--text-accent);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .title {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: var(--title-font-size);
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Title content may arrive wrapped (e.g. RichTextDisplay's plain-text div,
+     which sets its own font and pre-wrap); force it onto the card's single
+     truncated line. */
+  .title > * {
+    overflow: hidden;
+    color: inherit;
+    font: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
