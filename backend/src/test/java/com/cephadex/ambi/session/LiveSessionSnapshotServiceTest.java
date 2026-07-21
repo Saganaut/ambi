@@ -157,7 +157,7 @@ class LiveSessionSnapshotServiceTest {
 
         Instant startedAt = Instant.parse("2026-07-01T10:00:00Z");
         when(roundStateStore.load(SID))
-                .thenReturn(Optional.of(new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", startedAt, null, null, 0L)));
+                .thenReturn(Optional.of(new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", startedAt, null, null, 0L, false)));
         when(tallyStore.tally(SID, "slide-1")).thenReturn(Map.of("opt-a", 3, "opt-b", 1));
 
         SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
@@ -181,7 +181,7 @@ class LiveSessionSnapshotServiceTest {
         when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
         when(session.getDeck()).thenReturn(deck);
         when(roundStateStore.load(SID)).thenReturn(Optional.of(
-                new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L)));
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
 
         Answer asked = new Answer();
         asked.setParticipantId("player-2");
@@ -219,7 +219,7 @@ class LiveSessionSnapshotServiceTest {
         when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
         when(session.getDeck()).thenReturn(deck);
         when(roundStateStore.load(SID)).thenReturn(Optional.of(
-                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L)));
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
 
         SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
 
@@ -251,7 +251,7 @@ class LiveSessionSnapshotServiceTest {
         when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
         when(session.getDeck()).thenReturn(deck);
         when(roundStateStore.load(SID)).thenReturn(Optional.of(
-                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L)));
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
 
         SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
 
@@ -278,7 +278,7 @@ class LiveSessionSnapshotServiceTest {
         when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
         when(session.getDeck()).thenReturn(deck);
         when(roundStateStore.load(SID)).thenReturn(Optional.of(
-                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L)));
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
 
         SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
 

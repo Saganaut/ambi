@@ -89,4 +89,20 @@ class LiveRoundStateTest {
         assertThat(closed.durationMs()).isEqualTo(30_000L);
         assertThat(closed.pausedAt()).isEqualTo(T0.plusSeconds(10));
     }
+
+    @Test
+    void hostLossPauseIsFlaggedButADeliberatePauseIsNot() {
+        assertThat(timedRound(30_000L).paused(T0.plusSeconds(10)).autoPaused()).isFalse();
+        assertThat(timedRound(30_000L).pausedByHostLoss(T0.plusSeconds(10)).autoPaused()).isTrue();
+    }
+
+    @Test
+    void resumeClearsTheAutoPauseFlag() {
+        LiveRoundState resumed = timedRound(30_000L)
+                .pausedByHostLoss(T0.plusSeconds(10))
+                .resumed(T0.plusSeconds(25));
+
+        assertThat(resumed.autoPaused()).isFalse();
+        assertThat(resumed.accumulatedPauseMs()).isEqualTo(15_000L);
+    }
 }

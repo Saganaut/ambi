@@ -391,6 +391,7 @@ public class LiveSessionOrchestrator {
         presenceStore.save(sessionId, participantId, Presence.online(now));
         if (session.isHost(participantId)) {
             armHostLiveness(sessionId, now);
+            resumeAutoPausedRound(sessionId);
         }
         publisher.publish(session.getPublicId(), SessionEvents.participantReconnected(participant));
         return participant;
@@ -419,6 +420,7 @@ public class LiveSessionOrchestrator {
         presenceStore.save(sessionId, participantId, Presence.online(now));
         if (host) {
             armHostLiveness(sessionId, now);
+            resumeAutoPausedRound(sessionId);
         }
     }
 
@@ -426,6 +428,9 @@ public class LiveSessionOrchestrator {
      * (Re-)arms the host-liveness deadline off a host presence write (F5 / ADR
      * 002): the {@code HOST_AWAY} entry moves {@code hostOfflineAfter} past the
      * beat, and any pending grace-cancel is called off — the host is back.
+     * Callers on the unlocked presence paths pair this with
+     * {@link #resumeAutoPausedRound}; callers already inside the session lock
+     * use {@link #resumeAutoPausedRoundUnlocked} directly.
      */
     private void armHostLiveness(String sessionId, Instant seenAt) {
         deadlines.schedule(SessionDeadline.hostAway(sessionId),
@@ -434,15 +439,57 @@ public class LiveSessionOrchestrator {
     }
 
     /**
+     * Resumes a round auto-paused by {@link #hostPresenceLost} now that the host
+     * is provably back — the disconnect pause self-heals rather than waiting on
+     * a manual resume. This also repairs the race where an unlocked host beat
+     * lands inside {@code hostPresenceLost}'s locked section and gets clobbered:
+     * the next beat comes through here and undoes the spurious pause. A
+     * deliberate host pause ({@code autoPaused == false}) is never touched.
+     *
+     * <p>Called from the unlocked presence paths, so it takes the session lock
+     * itself (after a cheap lock-free pre-check that skips the overwhelmingly
+     * common no-auto-pause case). A busy lock is skipped, not surfaced — the
+     * next beat retries.
+     */
+    private void resumeAutoPausedRound(String sessionId) {
+        LiveRoundState glance = roundStateStore.load(sessionId).orElse(null);
+        if (glance == null || !glance.autoPaused()) {
+            return;
+        }
+        try {
+            locks.withLock(sessionId, () -> resumeAutoPausedRoundUnlocked(sessionId));
+        } catch (ConflictException busy) {
+            // A concurrent operation holds the session; the next beat will retry.
+        }
+    }
+
+    /** The auto-resume transition itself; the caller must hold the session lock. */
+    private void resumeAutoPausedRoundUnlocked(String sessionId) {
+        LiveRoundState current = roundStateStore.load(sessionId).orElse(null);
+        if (current == null || !current.autoPaused() || !current.isPaused()
+                || current.currentSlideId() == null || !current.phase().acceptsSubmissions()) {
+            return;
+        }
+        LiveRoundState resumed = current.resumed(Instant.now());
+        roundStateStore.save(sessionId, resumed);
+        deadlines.schedule(SessionDeadline.closeRound(sessionId, current.currentSlideId()),
+                resumed.deadline());
+        if (resumed.publicId() != null) {
+            publisher.publish(resumed.publicId(), SessionEvents.timerResumed(resumed));
+        }
+    }
+
+    /**
      * Fired by the {@code DeadlineScheduler} when the host's liveness deadline
      * lapses (F5 / ADR 002). Re-validates presence under the session lock — a
      * fresh beat may have raced the firing, in which case the deadline is simply
-     * re-armed. On a genuine loss: the open timed round auto-pauses (same
-     * transition as {@link #pauseTimer}), the host's presence flips to
-     * {@code DISCONNECTED} and is broadcast, and the grace-cancel countdown
-     * starts. If the host returns before it fires, any presence write calls it
-     * off ({@link #armHostLiveness}); otherwise {@link #hostGraceExpired} cancels
-     * the session.
+     * re-armed. On a genuine loss: the open timed round auto-pauses (flagged
+     * {@code autoPaused}, unlike a deliberate {@link #pauseTimer}), the host's
+     * presence flips to {@code DISCONNECTED} and is broadcast, and the
+     * grace-cancel countdown starts. If the host returns before it fires, any
+     * presence write calls the grace off and auto-resumes the paused round
+     * ({@link #armHostLiveness} + {@link #resumeAutoPausedRound}); otherwise
+     * {@link #hostGraceExpired} cancels the session.
      */
     public void hostPresenceLost(String sessionId) {
         locks.withLock(sessionId, () -> {
@@ -456,15 +503,17 @@ public class LiveSessionOrchestrator {
             Presence presence = presenceStore.find(sessionId, hostId).orElse(null);
             Instant lastSeen = presence == null ? null : presence.lastSeenAt();
             if (lastSeen != null && Duration.between(lastSeen, now).compareTo(offlineAfter) < 0) {
-                // False alarm — a beat raced the firing. Re-arm from the actual beat.
+                // False alarm — a beat raced the firing. Re-arm from the actual beat
+                // and undo any auto-pause a previous episode left behind.
                 armHostLiveness(sessionId, lastSeen);
+                resumeAutoPausedRoundUnlocked(sessionId);
                 return;
             }
 
             LiveRoundState current = roundStateStore.load(sessionId).orElse(null);
             if (current != null && current.currentSlideId() != null && current.phase().acceptsSubmissions()
                     && current.timed() && !current.isPaused()) {
-                LiveRoundState paused = current.paused(now);
+                LiveRoundState paused = current.pausedByHostLoss(now);
                 roundStateStore.save(sessionId, paused);
                 deadlines.cancel(SessionDeadline.closeRound(sessionId, current.currentSlideId()));
                 if (paused.publicId() != null) {
@@ -497,6 +546,7 @@ public class LiveSessionOrchestrator {
             if (lastSeen != null && Duration.between(lastSeen, Instant.now())
                     .compareTo(redisProps.getDeadlines().getHostOfflineAfter()) < 0) {
                 armHostLiveness(sessionId, lastSeen);
+                resumeAutoPausedRoundUnlocked(sessionId);
                 return;
             }
             cancelUnlocked(session, "Host disconnected");

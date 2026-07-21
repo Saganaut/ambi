@@ -11,7 +11,7 @@
 // through it; the effect returns to every client over the socket.
 import { useEffect, useRef, type ReactNode } from "react";
 
-import { useAppDispatch } from "@store/hooks";
+import { useAppDispatch, useAppSelector } from "@store/hooks";
 
 import { useLiveSessionMutate } from "../../hooks/useLiveSessionMutate";
 import { useSnapshotQuery } from "../../store/liveSessionApi.gen";
@@ -93,17 +93,22 @@ const SessionConnectionProvider = ({
     if (snapshot) dispatch(seed(snapshot));
   }, [snapshot, dispatch]);
 
-  // Liveness heartbeat while the page is open (server-debounced). Presence feeds
-  // the roster display, and a host's beats arm the host-disconnect watch that
-  // auto-pauses timed rounds (ADR 002/F5) — so send one immediately, then keep
-  // beating well inside the server's 30s offline threshold. The command adapter
-  // is a fresh closure each render, so the interval calls through a ref instead
-  // of keying the effect on it (which would churn the timer every render).
+  // Liveness heartbeat while the session is live (server-debounced). Presence
+  // feeds the roster display, and a host's beats arm the host-disconnect watch
+  // that auto-pauses timed rounds (ADR 002/F5) — so send one immediately, then
+  // keep beating well inside the server's 30s offline threshold. Stops once the
+  // session goes terminal (the live status comes from the slice, which tracks
+  // the ended/cancelled events the snapshot alone would miss). The command
+  // adapter is a fresh closure each render, so the interval calls through a ref
+  // instead of keying the effect on it (which would churn the timer every
+  // render).
   const heartbeatRef = useRef(mutate.heartbeat);
   heartbeatRef.current = mutate.heartbeat;
-  const seeded = snapshot != null;
+  const liveStatus = useAppSelector((state) => state.liveSession.status);
+  const beating =
+    snapshot != null && liveStatus !== "FINISHED" && liveStatus !== "CANCELLED";
   useEffect(() => {
-    if (!seeded) return;
+    if (!beating) return;
     heartbeatRef.current(sessionId);
     const timer = setInterval(() => {
       heartbeatRef.current(sessionId);
@@ -111,7 +116,7 @@ const SessionConnectionProvider = ({
     return () => {
       clearInterval(timer);
     };
-  }, [seeded, sessionId]);
+  }, [beating, sessionId]);
 
   // Open the socket once the snapshot has given us the topic key (publicId).
   // Keyed on publicId so a snapshot refetch doesn't churn the connection; resets

@@ -34,7 +34,7 @@ flowchart TB
 
     subgraph redis["Redis (volatile live state)"]
         LOCK[["lock<br/>SET NX + Lua release · 10s"]]
-        STATE[["state — LiveRoundState<br/>phase · currentSlideId · startedAt<br/>durationMs · pausedAt · accumulatedPauseMs · 6h"]]
+        STATE[["state — LiveRoundState<br/>phase · currentSlideId · startedAt<br/>durationMs · pausedAt · accumulatedPauseMs · autoPaused · 6h"]]
         TALLY[["tally — HINCRBY per option · 6h"]]
         ANSW[["answers — HSET by participantId · 6h"]]
         PRES[["presence — HSET by participantId · 6h"]]

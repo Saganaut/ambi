@@ -34,7 +34,10 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * {@code roundStartedAt + durationMs + accumulatedPauseMs} ({@link #deadline()}).
  * Pausing stamps {@code pausedAt}; resuming folds the pause into
  * {@code accumulatedPauseMs} and clears the stamp — so while paused,
- * {@code deadline() - pausedAt} is the frozen remaining time.
+ * {@code deadline() - pausedAt} is the frozen remaining time. {@code autoPaused}
+ * distinguishes a host-disconnect auto-pause (which a returning host's presence
+ * write may auto-resume) from a deliberate host pause (which only an explicit
+ * resume ends).
  *
  * @param publicId           the session's public handle (the event topic key); {@code null} for the bare {@link #idle()} fallback
  * @param phase              whether the round is taking submissions or revealing
@@ -43,6 +46,7 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * @param durationMs         the round's timer length, or {@code null} for an untimed (host-driven) round
  * @param pausedAt           when the timer was paused, or {@code null} while it is running
  * @param accumulatedPauseMs total time already spent paused (folded in on each resume)
+ * @param autoPaused         whether the current pause came from host presence loss rather than a host action
  */
 public record LiveRoundState(
         String publicId,
@@ -51,16 +55,17 @@ public record LiveRoundState(
         Instant roundStartedAt,
         Long durationMs,
         Instant pausedAt,
-        long accumulatedPauseMs) {
+        long accumulatedPauseMs,
+        boolean autoPaused) {
 
     /** The state of a session with no round in progress yet, with no public handle bound. */
     public static LiveRoundState idle() {
-        return new LiveRoundState(null, RoundPhase.SUBMIT, null, null, null, null, 0L);
+        return new LiveRoundState(null, RoundPhase.SUBMIT, null, null, null, null, 0L, false);
     }
 
     /** The idle state for a session, carrying its {@code publicId} so later transitions can address events. */
     public static LiveRoundState idle(String publicId) {
-        return new LiveRoundState(publicId, RoundPhase.SUBMIT, null, null, null, null, 0L);
+        return new LiveRoundState(publicId, RoundPhase.SUBMIT, null, null, null, null, 0L, false);
     }
 
     /**
@@ -71,13 +76,13 @@ public record LiveRoundState(
      * Any prior round's pause bookkeeping is reset.
      */
     public LiveRoundState startedRound(String slideId, Instant startedAt, RoundPhase phase, Long durationMs) {
-        return new LiveRoundState(publicId, phase, slideId, startedAt, durationMs, null, 0L);
+        return new LiveRoundState(publicId, phase, slideId, startedAt, durationMs, null, 0L, false);
     }
 
     /** Returns a copy switched to the given phase, leaving slide/timing intact. */
     public LiveRoundState withPhase(RoundPhase newPhase) {
         return new LiveRoundState(publicId, newPhase, currentSlideId, roundStartedAt, durationMs, pausedAt,
-                accumulatedPauseMs);
+                accumulatedPauseMs, autoPaused);
     }
 
     /** Whether the open round has an auto-close timer. */
@@ -104,20 +109,30 @@ public record LiveRoundState(
         return roundStartedAt.plusMillis(durationMs + accumulatedPauseMs);
     }
 
-    /** Returns a copy with the timer paused as of {@code now}. */
+    /** Returns a copy with the timer deliberately paused by the host as of {@code now}. */
     public LiveRoundState paused(Instant now) {
         return new LiveRoundState(publicId, phase, currentSlideId, roundStartedAt, durationMs, now,
-                accumulatedPauseMs);
+                accumulatedPauseMs, false);
+    }
+
+    /**
+     * Returns a copy auto-paused on host presence loss as of {@code now} — same
+     * freeze as {@link #paused}, but flagged so a returning host's presence write
+     * can auto-resume it (a deliberate host pause is never auto-resumed).
+     */
+    public LiveRoundState pausedByHostLoss(Instant now) {
+        return new LiveRoundState(publicId, phase, currentSlideId, roundStartedAt, durationMs, now,
+                accumulatedPauseMs, true);
     }
 
     /**
      * Returns a copy with the timer running again as of {@code now}: the elapsed
      * pause is folded into {@code accumulatedPauseMs} (pushing {@link #deadline()}
-     * out by the same amount) and the pause stamp cleared.
+     * out by the same amount) and the pause stamp + auto-pause flag cleared.
      */
     public LiveRoundState resumed(Instant now) {
         long pauseMs = pausedAt == null ? 0L : Duration.between(pausedAt, now).toMillis();
         return new LiveRoundState(publicId, phase, currentSlideId, roundStartedAt, durationMs, null,
-                accumulatedPauseMs + Math.max(0L, pauseMs));
+                accumulatedPauseMs + Math.max(0L, pauseMs), false);
     }
 }

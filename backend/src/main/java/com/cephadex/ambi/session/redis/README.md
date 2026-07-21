@@ -15,7 +15,7 @@ plain `StringRedisTemplate` ops, namespaced keys, no lock library.
 | --- | --- |
 | [`SessionLocks`](SessionLocks.java) | Per-session mutual exclusion (SET-NX + Lua compare-and-delete). |
 | [`LiveRoundStateStore`](LiveRoundStateStore.java) | Load / save / clear the `LiveRoundState` snapshot. |
-| [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile control state (phase, current slide, start time, and — ADR 002 — `durationMs`/`pausedAt`/`accumulatedPauseMs` for the auto-close timer). |
+| [`LiveRoundState`](LiveRoundState.java) | The Redis-JSON shape of a round's volatile control state (phase, current slide, start time, and — ADR 002 — `durationMs`/`pausedAt`/`accumulatedPauseMs`/`autoPaused` for the auto-close timer). |
 | [`TallyStore`](TallyStore.java) | Per-round option counts as a Redis Hash — lock-free `HINCRBY` per submission. |
 | [`AnswerStore`](AnswerStore.java) | Per-round in-flight answers as a Redis Hash (one field per participant; re-submit overwrites), flushed to Mongo at round close. |
 | [`PresenceStore`](PresenceStore.java) / [`Presence`](Presence.java) | Per-session live participant presence (connection status + last-seen) as a Redis Hash. |

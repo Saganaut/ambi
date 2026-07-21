@@ -10,7 +10,7 @@
   .sessionTimer {
     display: flex;
     align-items: baseline;
-    gap: var(--p-xs);
+    gap: var(--gap-xs);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
   }

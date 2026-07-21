@@ -147,7 +147,7 @@ class LiveSessionOrchestratorTest {
     }
 
     private void stubPhase(RoundPhase phase) {
-        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(PUB, phase, SLIDE, Instant.now(), null, null, 0L)));
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(PUB, phase, SLIDE, Instant.now(), null, null, 0L, false)));
     }
 
     private LiveRoundState savedState() {
@@ -818,7 +818,7 @@ class LiveSessionOrchestratorTest {
     @Test
     void startRoundRejectsWhenAnotherRoundStillOpen() {
         when(roundStateStore.load(SID)).thenReturn(
-                Optional.of(new LiveRoundState(PUB, RoundPhase.SUBMIT, "other-slide", Instant.now(), null, null, 0L)));
+                Optional.of(new LiveRoundState(PUB, RoundPhase.SUBMIT, "other-slide", Instant.now(), null, null, 0L, false)));
         Slide slide = new Slide();
         slide.setId(SLIDE);
         Deck deck = mock(Deck.class);
@@ -853,7 +853,7 @@ class LiveSessionOrchestratorTest {
         Slide only = slideWithId(SLIDE);
         LiveSession session = navigableSession(List.of(only));
         when(roundStateStore.load(SID)).thenReturn(
-                Optional.of(new LiveRoundState(PUB, RoundPhase.REVEAL_RESULTS, SLIDE, Instant.now(), null, null, 0L)));
+                Optional.of(new LiveRoundState(PUB, RoundPhase.REVEAL_RESULTS, SLIDE, Instant.now(), null, null, 0L, false)));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         assertThat(orchestrator.advance(SID)).isNull();
@@ -948,8 +948,13 @@ class LiveSessionOrchestratorTest {
     }
 
     private void stubTimedOpenRound(Instant startedAt, Instant pausedAt, long accumulatedPauseMs) {
+        stubTimedOpenRound(startedAt, pausedAt, accumulatedPauseMs, false);
+    }
+
+    private void stubTimedOpenRound(Instant startedAt, Instant pausedAt, long accumulatedPauseMs,
+            boolean autoPaused) {
         when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
-                PUB, RoundPhase.SUBMIT, SLIDE, startedAt, 30_000L, pausedAt, accumulatedPauseMs)));
+                PUB, RoundPhase.SUBMIT, SLIDE, startedAt, 30_000L, pausedAt, accumulatedPauseMs, autoPaused)));
     }
 
     @Test
@@ -1076,8 +1081,11 @@ class LiveSessionOrchestratorTest {
 
         orchestrator.hostPresenceLost(SID);
 
-        // The open timed round auto-paused and its close deadline was pulled.
-        assertThat(savedState().isPaused()).isTrue();
+        // The open timed round auto-paused (flagged, so a returning host's beat
+        // can undo it) and its close deadline was pulled.
+        LiveRoundState saved = savedState();
+        assertThat(saved.isPaused()).isTrue();
+        assertThat(saved.autoPaused()).isTrue();
         verify(deadlines).cancel(SessionDeadline.closeRound(SID, SLIDE));
         // The host is broadcast as disconnected and the grace countdown armed.
         ArgumentCaptor<Presence> presence = ArgumentCaptor.forClass(Presence.class);
@@ -1101,6 +1109,32 @@ class LiveSessionOrchestratorTest {
 
         verify(deadlines).schedule(eq(SessionDeadline.hostAway(SID)), any(Instant.class));
         verify(deadlines, never()).schedule(eq(SessionDeadline.graceCancel(SID)), any(Instant.class));
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void hostHeartbeatResumesAnAutoPausedRound() {
+        // The disconnect pause self-heals when the host is provably back.
+        when(presenceStore.find(SID, "host-1")).thenReturn(Optional.empty());
+        stubTimedOpenRound(Instant.now().minusSeconds(20), Instant.now().minusSeconds(5), 0L, true);
+
+        orchestrator.heartbeat(SID, "host-1", true);
+
+        LiveRoundState saved = savedState();
+        assertThat(saved.isPaused()).isFalse();
+        assertThat(saved.autoPaused()).isFalse();
+        verify(deadlines).schedule(SessionDeadline.closeRound(SID, SLIDE), saved.deadline());
+        assertThat(publishedEvent()).isInstanceOf(TimerResumed.class);
+    }
+
+    @Test
+    void hostHeartbeatNeverResumesADeliberatePause() {
+        when(presenceStore.find(SID, "host-1")).thenReturn(Optional.empty());
+        stubTimedOpenRound(Instant.now().minusSeconds(20), Instant.now().minusSeconds(5), 0L, false);
+
+        orchestrator.heartbeat(SID, "host-1", true);
+
         verify(roundStateStore, never()).save(any(), any());
         verify(publisher, never()).publish(any(), any());
     }
