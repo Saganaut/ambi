@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
@@ -28,6 +30,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.session.answer.LiveSessionAnswerService;
 import com.cephadex.ambi.session.dto.AdvanceResponse;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
@@ -99,6 +102,27 @@ class LiveSessionControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(answerService, never()).submit(any(), any(), any());
+    }
+
+    // ── Drawing upload ───────────────────────────────────────────────────────
+
+    @Test
+    void uploadDrawingIngestsBytesDelegatesAndReturns201() throws Exception {
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("gallery/draw/original");
+        when(answerService.storeDrawing(eq("sess-1"), any(), eq("image/png"), any()))
+                .thenReturn(stored);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "drawing.png", "image/png", new byte[] { 4, 5, 6 });
+
+        mockMvc.perform(multipart("/api/liveSessions/sess-1/drawings").file(file))
+                .andExpect(status().isCreated())
+                // Raw key passes through here; presigning is the serializer's job.
+                .andExpect(jsonPath("$.srcKey").value("gallery/draw/original"));
+
+        verify(answerService).storeDrawing(eq("sess-1"), any(), eq("image/png"), any());
     }
 
     @Test

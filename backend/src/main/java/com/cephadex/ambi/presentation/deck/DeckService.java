@@ -350,8 +350,9 @@ public class DeckService {
 
     // ── Images ────────────────────────────────────────────────────────────────
     // Cover/background images get a dedicated home so attaching one is a single,
-    // explicit operation — and the future upload pipeline has a route to grow
-    // into — while a metadata/slide edit can never clobber them. PUT sets, the
+    // explicit operation — while a metadata/slide edit can never clobber them.
+    // These take a pre-resolved AppImage: bytes are ingested via the gallery
+    // upload route first, then the resulting AppImage is set here. PUT sets, the
     // clear* methods null the slot. Slides are embedded, so a slide image change
     // saves the whole deck, exactly like updateSlide.
 

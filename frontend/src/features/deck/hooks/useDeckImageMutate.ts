@@ -2,8 +2,10 @@
  * Write boundary for a deck's cover and background images. Each has a dedicated
  * backend endpoint ({@code PUT/DELETE /api/decks/{id}/cover-image} and
  * {@code .../background-image}), separate from the metadata PATCH, so an image
- * change never round-trips — or clobbers — the rest of the deck. The future
- * upload pipeline (multipart / presigned URL) slots onto the same routes.
+ * change never round-trips — or clobbers — the rest of the deck. These routes
+ * take a pre-resolved `AppImage`; raw bytes are uploaded through the gallery
+ * ingest route first (`POST /api/galleries/{id}/images/upload`), then the
+ * returned `AppImage` is PUT here.
  *
  * Write-only by design (see hook-roles.md): to *render* the current image, read
  * `deck.coverImage` / `deck.backgroundImage` from `useDeckQuery`. Cache behaviour

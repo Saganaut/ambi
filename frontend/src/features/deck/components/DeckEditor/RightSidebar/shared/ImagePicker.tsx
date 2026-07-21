@@ -19,7 +19,6 @@ interface ImagePickerProps {
   placeholderText?: string;
   placeholderBackgroundImageUrl?: string;
 }
-//TODO: for production we replace random lorem picsum images with a standard image placeholder
 const ImagePicker = ({
   label,
   image,

@@ -160,11 +160,11 @@ public class DeckController {
 
     // ── Deck images ─────────────────────────────────────────────────────────────
     // A dedicated home for cover/background images (EDIT), separate from the
-    // metadata PATCH so an edit can't clobber an image. The future upload flow
-    // (multipart / presigned URL) adds a POST alongside these PUTs.
+    // metadata PATCH so an edit can't clobber an image. These take a pre-resolved
+    // AppImage by design: raw bytes are ingested via the gallery upload route
+    // (POST /api/galleries/{id}/images/upload), then the returned AppImage is PUT here.
 
     /** Set a deck's cover image (EDIT). */
-    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
     @PutMapping("/{id}/cover-image")
     public DeckResponse setDeckCoverImage(
             @PathVariable String id,
@@ -182,7 +182,6 @@ public class DeckController {
     }
 
     /** Set a deck's background image (EDIT). */
-    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
     @PutMapping("/{id}/background-image")
     public DeckResponse setDeckBackgroundImage(
             @PathVariable String id,
@@ -417,7 +416,6 @@ public class DeckController {
     // Same set/clear split as deck images, scoped to an embedded slide (EDIT).
 
     /** Set a slide's cover image (EDIT). */
-    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
     @PutMapping("/{id}/slides/{slideId}/cover-image")
     public SlideResponse setSlideCoverImage(
             @PathVariable String id,
@@ -437,7 +435,6 @@ public class DeckController {
     }
 
     /** Set a slide's background image (EDIT). */
-    // TODO(upload): a multipart POST on this path will ingest bytes and populate the AppImage.
     @PutMapping("/{id}/slides/{slideId}/background-image")
     public SlideResponse setSlideBackgroundImage(
             @PathVariable String id,
