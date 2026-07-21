@@ -960,7 +960,14 @@ public class LiveSessionOrchestrator {
         locks.withLock(sessionId, () -> {
             LiveRoundState current = requireOpenTimedRound(sessionId, slideId);
             if (current.isPaused()) {
-                return; // already paused — idempotent
+                // Already paused. A host pause landing on a disconnect auto-pause
+                // still means something: it converts the pause into a deliberate
+                // one (same freeze, flag cleared) so a later host beat won't
+                // auto-resume a round the host just chose to hold.
+                if (current.autoPaused()) {
+                    roundStateStore.save(sessionId, current.paused(current.pausedAt()));
+                }
+                return;
             }
             LiveRoundState paused = current.paused(Instant.now());
             roundStateStore.save(sessionId, paused);

@@ -34,6 +34,22 @@ class RedisJsonCodecTest {
     }
 
     @Test
+    void legacyBlobWithoutTimerFieldsStillDeserializes() {
+        // A LiveRoundState stored before the ADR 002 timer fields existed (or
+        // before autoPaused) can sit in Redis for up to 6h across a deploy; the
+        // newer reader must zero-fill the absent primitives, not fail the read.
+        String legacy = "{\"publicId\":\"public-1\",\"phase\":\"SUBMIT\","
+                + "\"currentSlideId\":\"slide-1\",\"roundStartedAt\":\"2026-05-30T12:00:00Z\"}";
+
+        LiveRoundState state = codec.deserialize(legacy, LiveRoundState.class);
+
+        assertThat(state.durationMs()).isNull();
+        assertThat(state.pausedAt()).isNull();
+        assertThat(state.accumulatedPauseMs()).isZero();
+        assertThat(state.autoPaused()).isFalse();
+    }
+
+    @Test
     void polymorphicAnswerPayloadKeepsItsDiscriminator() {
         AnswerPayload payload = new McqAnswer(Set.of("opt-a", "opt-b"));
 

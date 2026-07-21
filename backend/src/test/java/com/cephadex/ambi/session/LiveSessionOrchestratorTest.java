@@ -1019,6 +1019,21 @@ class LiveSessionOrchestratorTest {
     }
 
     @Test
+    void manualPauseConvertsAnAutoPauseIntoADeliberateOne() {
+        // The freeze stays, but the flag clears so a later host beat won't
+        // auto-resume a round the host just chose to hold.
+        Instant pausedAt = Instant.now().minusSeconds(5);
+        stubTimedOpenRound(Instant.now().minusSeconds(20), pausedAt, 0L, true);
+
+        orchestrator.pauseTimer(SID, SLIDE);
+
+        LiveRoundState saved = savedState();
+        assertThat(saved.autoPaused()).isFalse();
+        assertThat(saved.pausedAt()).isEqualTo(pausedAt);
+        verify(publisher, never()).publish(any(), any()); // nothing visible changed
+    }
+
+    @Test
     void pauseOnUntimedRoundIsRejected() {
         stubPhase(RoundPhase.SUBMIT); // open but untimed
 
