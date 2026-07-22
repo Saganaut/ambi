@@ -319,7 +319,7 @@
 
 :root {
   /* --- Typography (Expanded Scale) --- */
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", monospace;
+  --font-mono: "Poppins", "IBM Plex Mono", monospace;
   --font-family-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
   --font-heading: system-ui, "Segoe UI", "Roboto", sans-serif;
   --font-sans: "Poppins", system-ui, sans-serif;
