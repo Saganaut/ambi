@@ -25,12 +25,12 @@ export const DEFAULT_PALETTE: Palette = {
   blue: "#1e66f5",
 };
 
-// The roles shown in compact swatch previews (cards + editor preview), in band
-// order. A small, representative slice of the full palette.
+// The roles shown in compact palette previews (theme-card pips + editor
+// preview dots), in display order. The preview surface itself is painted with
+// the palette's `canvas`, so canvas/surface are omitted from the dots.
 export const PALETTE_PREVIEW_ROLES: (keyof Palette)[] = [
-  "canvas",
-  "surface",
   "primary",
   "accent",
+  "accentSecondary",
   "foreground",
 ];

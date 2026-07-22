@@ -11,8 +11,10 @@
 // editor while choosing an image — one dialog throughout.
 import { useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { Badge } from "@ui/Badge/Badge";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
+import { CheckIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useThemes } from "@hooks/useThemes";
 import type { ThemeResponse } from "@features/theme/store/themeApi.gen";
 import { PALETTE_PREVIEW_ROLES } from "@features/theme/palette";
@@ -34,6 +36,11 @@ interface ThemeCardProps {
   onDelete: () => void;
 }
 
+// Compact row card (DS Figma 627-3461): theme-canvas background with the name
+// on the left and the palette as overlapping pips on the right. The card
+// itself is the Apply control; Edit/Delete float in on hover or focus so the
+// resting state stays quiet. Colors come from the theme's own palette via
+// inline styles — the CSS values only back up palette-less specs.
 const ThemeCard = ({
   theme,
   isActive,
@@ -45,49 +52,57 @@ const ThemeCard = ({
   const canManage = theme.permissions.canManage;
 
   return (
-    <div className={`${styles.card} ${isActive ? styles.cardActive : ""}`}>
-      <div className={styles.swatch} aria-hidden='true'>
-        {PALETTE_PREVIEW_ROLES.map((role) => (
-          <div
-            key={role}
-            className={styles.swatchBand}
-            style={{ background: palette?.[role] ?? "transparent" }}
-          />
-        ))}
-      </div>
-      <div className={styles.cardBody}>
-        <p className={styles.cardName} title={theme.name}>
+    <div className={styles.cardWrap}>
+      <button
+        type='button'
+        className={`${styles.card} ${isActive ? styles.cardActive : ""}`}
+        style={{ background: palette?.canvas, color: palette?.foreground }}
+        aria-pressed={isActive}
+        onClick={isActive ? undefined : onApply}>
+        <span className={styles.cardName} title={theme.name}>
           {theme.name}
-        </p>
-        <div className={styles.cardBadges}>
-          {isActive && <Badge label='Active' variant='primary' size='sm' />}
-          {theme.builtIn && (
-            <Badge label='Built-in' variant='secondary' size='sm' />
-          )}
-          {theme.ownership?.type === "ORGANIZATION" && (
-            <Badge label='Org' variant='info' size='sm' />
-          )}
-        </div>
-      </div>
-      <div className={styles.cardActions}>
-        <Btn
-          size='sm'
-          onClick={onApply}
-          disabled={isActive}
-          variant={isActive ? "disabled" : "primary"}>
-          {isActive ? "Applied" : "Apply"}
-        </Btn>
-        {canManage && (
-          <Btn size='sm' variant='secondary' fill='bordered' onClick={onEdit}>
-            Edit
-          </Btn>
+        </span>
+        {theme.ownership?.type === "ORGANIZATION" && (
+          <Badge label='Org' variant='info' size='sm' />
         )}
-        {canManage && (
-          <Btn size='sm' variant='error' fill='ghost' onClick={onDelete}>
-            Delete
-          </Btn>
+        <span className={styles.pips} aria-hidden='true'>
+          {PALETTE_PREVIEW_ROLES.map((role) => (
+            <span
+              key={role}
+              className={styles.pip}
+              style={{
+                background: palette?.[role] ?? "transparent",
+                borderColor: palette?.canvas ?? "transparent",
+              }}
+            />
+          ))}
+        </span>
+        {isActive && (
+          <span className={styles.activeBadge}>
+            <CheckIcon aria-hidden='true' />
+          </span>
         )}
-      </div>
+      </button>
+      {canManage && (
+        <span className={styles.cardManage}>
+          <IconBtn
+            size='sm'
+            variant='secondary'
+            fill='ghost'
+            icon={<PencilIcon aria-hidden='true' />}
+            aria-label={`Edit ${theme.name ?? "theme"}`}
+            onClick={onEdit}
+          />
+          <IconBtn
+            size='sm'
+            variant='error'
+            fill='ghost'
+            icon={<TrashIcon aria-hidden='true' />}
+            aria-label={`Delete ${theme.name ?? "theme"}`}
+            onClick={onDelete}
+          />
+        </span>
+      )}
     </div>
   );
 };
