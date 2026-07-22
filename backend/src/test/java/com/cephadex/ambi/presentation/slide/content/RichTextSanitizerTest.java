@@ -81,6 +81,79 @@ class RichTextSanitizerTest {
                 .doesNotContain("expression");
     }
 
+    // ── Every color form the editor emits survives storage ──────────────────
+
+    @Test
+    void keepsEveryEditorColorForm() {
+        // TipTap serializes a picked hex back as rgb(...) (browser style
+        // normalization) and theme swatches persist live var(--role-*) refs, so
+        // hex alone is not enough. The sanitizer re-spaces function arguments
+        // (`rgb( 0 , 0 , 0 )`); comparing with whitespace removed asserts the
+        // value survives without pinning the library's cosmetic formatting.
+        List<String> values = List.of(
+                "#e53e3e",
+                "red",
+                "rgb(229, 62, 62)",
+                "rgba(10, 20, 30, 0.5)",
+                "rgb(0 0 0 / 0.5)",
+                "hsl(120, 50%, 50%)",
+                "hsla(120, 50%, 50%, 0.4)",
+                "hsl(120deg 50% 50%)",
+                "oklch(0.7 0.04 260)",
+                "oklch(70% 0.04 260deg / 50%)",
+                "oklch(0.7 0.04 none)",
+                "var(--role-primary)");
+        for (String value : values) {
+            String out = sanitizer.sanitize("<span style=\"color: " + value + "\">x</span>");
+            assertThat(out.replaceAll("\\s+", ""))
+                    .as("color value <%s> must survive sanitization", value)
+                    .contains("color:" + value.replaceAll("\\s+", ""));
+        }
+    }
+
+    @Test
+    void keepsEveryThemeRoleVarReference() {
+        // The var() allowlist is derived from the Palette record; this pins the
+        // resulting names to the frontend's ROLE_VARS table (applyPalette.ts) so
+        // a rename or mapping drift on either side fails here.
+        List<String> roles = List.of(
+                "--role-canvas", "--role-surface", "--role-surface-raised",
+                "--role-subtle", "--role-foreground", "--role-muted-foreground",
+                "--role-primary", "--role-on-primary", "--role-accent",
+                "--role-accent-secondary", "--role-border", "--role-border-subtle",
+                "--role-red", "--role-green", "--role-yellow", "--role-blue");
+        for (String role : roles) {
+            String out = sanitizer.sanitize("<span style=\"color: var(" + role + ")\">x</span>");
+            assertThat(out)
+                    .as("theme role var(%s) must survive sanitization", role)
+                    .contains(role);
+        }
+    }
+
+    @Test
+    void stripsNonRoleVarReferences() {
+        // var() may only reference theme role custom properties — an arbitrary
+        // custom property could read whatever the surrounding page defines.
+        assertThat(sanitizer.sanitize("<span style=\"color: var(--evil)\">x</span>"))
+                .doesNotContain("--evil");
+        // A fallback value rides along after the allowlisted ident; the library
+        // validates each token, so the role survives and the fallback is dropped.
+        assertThat(sanitizer.sanitize(
+                "<span style=\"color: var(--role-primary, red)\">x</span>"))
+                .contains("--role-primary")
+                .doesNotContain("red");
+    }
+
+    @Test
+    void stripsFunctionValueSmugglingInColor() {
+        // Nested functions inside an allowed color function must not survive:
+        // the argument schema admits only quantities and separators.
+        assertThat(sanitizer.sanitize("<span style=\"color: rgb(url(http://evil))\">x</span>"))
+                .doesNotContain("url");
+        assertThat(sanitizer.sanitize("<span style=\"color: oklch(expression(alert(1)))\">x</span>"))
+                .doesNotContain("expression");
+    }
+
     // ── Links: forced safe rel, preserved target ────────────────────────────
 
     @Test
