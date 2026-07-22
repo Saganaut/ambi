@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Route as IndexRoute } from "../../routes/index";
 
 import styles from "./LandingPage.module.css";
+import { HeroDotGrid } from "./HeroDotGrid/HeroDotGrid";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 import { useRequireLogin } from "@auth/hooks/useRequireLogin";
 
@@ -99,18 +100,23 @@ const LandingPage = () => {
     <>
       <section className={styles.hero}>
         <div className={styles.heroGlow} />
-        <p className={styles.eyebrow}>competitive brain training</p>
-        <h1 className={styles.heroTitle}>Ambi</h1>
-        <p className={styles.heroTagline}>
-          Train your mind. Beat the clock. Own the leaderboard.
-        </p>
-        <div className={styles.heroActions}>
-          <Link to='/' viewTransition className={styles.btnPrimary}>
-            Play Now
-          </Link>
-          <Link to='/about' viewTransition className={styles.btnSecondary}>
-            Learn More
-          </Link>
+        <div className={styles.heroInner}>
+          <div className={styles.heroCopy}>
+            <p className={styles.eyebrow}>competitive brain training</p>
+            <h1 className={styles.heroTitle}>Ambi</h1>
+            <p className={styles.heroTagline}>
+              Train your mind. Beat the clock. Own the leaderboard.
+            </p>
+            <div className={styles.heroActions}>
+              <Link to='/' viewTransition className={styles.btnPrimary}>
+                Play Now
+              </Link>
+              <Link to='/about' viewTransition className={styles.btnSecondary}>
+                Learn More
+              </Link>
+            </div>
+          </div>
+          <HeroDotGrid />
         </div>
       </section>
 

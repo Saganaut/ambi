@@ -1,0 +1,66 @@
+/* ── Hero dot grid ─────────────────────────────────────────────────
+   Decorative palette wave from the brand identity sheet. Dot size and
+   gap are fluid against the `hero` container (cqi), so the grid scales
+   with the space the hero gives it. Animation is transform/opacity
+   only, so 81 dots stay on the compositor. */
+
+.grid {
+  --dot-size: clamp(0.625rem, 1.8cqi, 1.125rem);
+  --dot-gap: clamp(0.5rem, 1.3cqi, 0.875rem);
+
+  display: grid;
+  grid-template-columns: repeat(9, var(--dot-size));
+  gap: var(--dot-gap);
+  pointer-events: none;
+  animation: grid-in var(--duration-slow) var(--ease-out) 200ms both;
+}
+
+@keyframes grid-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dot {
+  /* Fallbacks for the per-dot vars set inline by HeroDotGrid.tsx */
+  --dot-color: var(--grey-500);
+  --dot-delay: 0ms;
+
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--radius-sm);
+  background: var(--dot-color);
+  box-shadow: 0 0 12px oklch(from var(--dot-color) l c h / 25%);
+  opacity: 0.55;
+  animation: dot-wave 3.8s ease-in-out infinite;
+  animation-delay: var(--dot-delay);
+}
+
+/* Peak early, rest for the remainder — with delays keyed to row + column
+   the peaks read as one diagonal wave crossing the grid, then a pause. */
+@keyframes dot-wave {
+  0%,
+  24%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+
+  10% {
+    opacity: 1;
+    transform: scale(1.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+    opacity: 0.8;
+  }
+}

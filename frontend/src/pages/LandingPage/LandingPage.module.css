@@ -11,6 +11,14 @@
   padding: var(--space-12) var(--space-6);
   overflow: hidden;
   background-color: var(--bg-canvas);
+
+  /* Query container for the hero's own responsive layout (the public pages
+     render outside the dashboard's `display` container). Safe: a stretched
+     block section, so the width is layout-owned, and the only absolute
+     descendant (.heroGlow) already resolves against .hero via position:
+     relative. */
+  container-type: inline-size;
+  container-name: hero;
 }
 
 .hero::before {
@@ -37,6 +45,35 @@
   );
   pointer-events: none;
   animation: pulse 4s ease-in-out infinite;
+}
+
+/* Two-column hero (copy left, palette grid right), stacking to a single
+   centered column when the `display` layout container narrows. */
+.heroInner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-16);
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+@container hero (width < 60rem) {
+  .heroInner {
+    flex-direction: column;
+    gap: var(--space-12);
+  }
+
+  .heroCopy {
+    align-items: center;
+    text-align: center;
+  }
 }
 
 .eyebrow {
@@ -82,7 +119,7 @@
   font-size: clamp(var(--font-size-base), 2.5vw, var(--font-size-lg));
   color: var(--text-secondary);
   max-width: 540px;
-  margin: 0 auto var(--space-8);
+  margin: 0 0 var(--space-8);
   line-height: 1.6;
   animation: fade-up var(--duration-slow) var(--ease-out) 200ms both;
 }
@@ -92,7 +129,6 @@
   display: flex;
   gap: var(--space-4);
   flex-wrap: wrap;
-  justify-content: center;
   animation: fade-up var(--duration-slow) var(--ease-out) 300ms both;
 }
 
