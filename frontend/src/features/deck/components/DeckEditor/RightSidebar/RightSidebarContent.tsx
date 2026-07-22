@@ -5,7 +5,7 @@ import { close, open } from "@deck/store/panelSlice.ts";
 import {
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
-  PencilIcon,
+  PencilSquareIcon,
   ShareIcon,
   TrophyIcon,
   UsersIcon,
@@ -13,14 +13,25 @@ import {
 import { useFullScreen } from "@hooks/useFullScreen";
 import DeckIcon from "@shared/assets/icons/content/deck-icon.svg?react";
 import { getRouteApi } from "@tanstack/react-router";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { type ReactNode } from "react";
 import { useSelector } from "react-redux";
 
 import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
 import styles from "./RightSidebarContent.module.css";
 import { PANEL_TITLES } from "./data";
+import { SideMenuButton } from "./SideMenuButton/SideMenuButton";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
+
+// Panels that need a selected slide, in rail order.
+const SLIDE_PANELS: { key: PanelKey; icon: ReactNode }[] = [
+  { key: "edit", icon: <PencilSquareIcon /> },
+  { key: "answers", icon: <CheckCircleIcon /> },
+  { key: "quiz", icon: <TrophyIcon /> },
+  { key: "discussion", icon: <ChatBubbleLeftRightIcon /> },
+  { key: "participants", icon: <UsersIcon /> },
+  { key: "sharing", icon: <ShareIcon /> },
+];
 
 const RightSidebarContent = () => {
   const { isFullScreen } = useFullScreen();
@@ -42,96 +53,27 @@ const RightSidebarContent = () => {
       className={`${styles.rightSidebarContent} ${isFullScreen ? styles.isCollapsed : ""}`}
     >
       <div className={styles.iconStrip} role="toolbar" aria-label="Deck panels">
-        <IconBtn
-          fill="bordered"
-          shape="round"
-          size="md"
-          aria-label={PANEL_TITLES.deck}
-          aria-pressed={panelKey === "deck"}
-          className={panelKey === "deck" ? styles.active : undefined}
+        <SideMenuButton
+          label={PANEL_TITLES.deck}
           icon={<DeckIcon />}
+          active={panelKey === "deck"}
           onClick={() => {
             toggle("deck");
           }}
         />
 
-        {slideId && (
-          <>
-            <IconBtn
-              fill="bordered"
-              shape="round"
-              size="md"
-              aria-label={PANEL_TITLES.edit}
-              aria-pressed={panelKey === "edit"}
-              className={panelKey === "edit" ? styles.active : undefined}
-              icon={<PencilIcon />}
+        {slideId &&
+          SLIDE_PANELS.map(({ key, icon }) => (
+            <SideMenuButton
+              key={key}
+              label={PANEL_TITLES[key]}
+              icon={icon}
+              active={panelKey === key}
               onClick={() => {
-                toggle("edit");
+                toggle(key);
               }}
             />
-            <IconBtn
-              fill="bordered"
-              shape="round"
-              size="md"
-              aria-label={PANEL_TITLES.answers}
-              aria-pressed={panelKey === "answers"}
-              className={panelKey === "answers" ? styles.active : undefined}
-              icon={<CheckCircleIcon />}
-              onClick={() => {
-                toggle("answers");
-              }}
-            />
-            <IconBtn
-              fill="bordered"
-              shape="round"
-              size="md"
-              aria-label={PANEL_TITLES.quiz}
-              aria-pressed={panelKey === "quiz"}
-              className={panelKey === "quiz" ? styles.active : undefined}
-              icon={<TrophyIcon />}
-              onClick={() => {
-                toggle("quiz");
-              }}
-            />
-
-            <IconBtn
-              fill="bordered"
-              shape="round"
-              size="md"
-              aria-label={PANEL_TITLES.discussion}
-              aria-pressed={panelKey === "discussion"}
-              className={panelKey === "discussion" ? styles.active : undefined}
-              icon={<ChatBubbleLeftRightIcon />}
-              onClick={() => {
-                toggle("discussion");
-              }}
-            />
-            <IconBtn
-              fill="bordered"
-              shape="round"
-              size="md"
-              aria-label={PANEL_TITLES.participants}
-              aria-pressed={panelKey === "participants"}
-              className={panelKey === "participants" ? styles.active : undefined}
-              icon={<UsersIcon />}
-              onClick={() => {
-                toggle("participants");
-              }}
-            />
-            <IconBtn
-              fill="bordered"
-              shape="round"
-              size="md"
-              aria-label={PANEL_TITLES.sharing}
-              aria-pressed={panelKey === "sharing"}
-              className={panelKey === "sharing" ? styles.active : undefined}
-              icon={<ShareIcon />}
-              onClick={() => {
-                toggle("sharing");
-              }}
-            />
-          </>
-        )}
+          ))}
       </div>
     </Dashboard.EndPanel>
   );

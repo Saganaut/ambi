@@ -11,7 +11,6 @@
   padding: var(--space-3);
   height: 100%;
   background-color: var(--bg-canvas);
-  border-left: var(--border-size-sm) solid var(--edge-canvas);
   transition: padding var(--duration-base) ease-in-out;
 
   &.isCollapsed {
@@ -20,17 +19,17 @@
   }
 }
 
+/* Raised card treatment from the DS SideMenu / Rail spec (Figma 637-3112). */
 .iconStrip {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-md);
+  padding: var(--space-3);
+  background-color: var(--bg-surface-raised);
+  border: 1px solid var(--edge-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   z-index: 2;
-}
-
-.active {
-  background-color: var(--bg-subtle);
-  border-color: var(--action-active);
-  color: var(--action-active);
 }
 
 .drawer {
