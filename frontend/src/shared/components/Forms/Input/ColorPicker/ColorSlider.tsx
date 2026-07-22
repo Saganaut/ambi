@@ -4,7 +4,7 @@
 // ←/→ (Shift steps by 10× the base step), Home/End for the extremes.
 import { hsvaToHex, hueToPureHex, type Hsva } from "./colorConversion";
 import { usePointerDrag } from "./usePointerDrag";
-import styles from "./ColorPickerNew.module.css";
+import styles from "./ColorPicker.module.css";
 
 interface ColorSliderProps {
   kind: "hue" | "alpha";

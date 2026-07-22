@@ -10,7 +10,7 @@ import {
   usePromoteBackgroundColorToDeckMutation,
   usePromoteBackgroundImageToDeckMutation,
 } from "@deck/store/deckApi.gen";
-import { ColorPickerNew } from "@shared/components/Forms/Input/ColorPicker/ColorPickerNew/ColorPickerNew";
+import { ColorPicker } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
 import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { addRecentColor, useRecentColors } from "@shared/hooks/useRecentColors";
@@ -149,7 +149,7 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
   return (
     <section className={styles.section}>
-      <ColorPickerNew
+      <ColorPicker
         value={effectiveColor}
         colorSwatch={[...BACKGROUND_COLOR_CHOICES]}
         recentlyUsedColorSwatch={recentColors}

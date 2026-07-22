@@ -9,8 +9,8 @@
  * Theme row offers the curated theme roles as starting points, and commits
  * are recorded in the app-wide recent-colors list.
  */
-import { ColorPickerPanel } from "@components/Forms/Input/ColorPicker/ColorPickerNew/ColorPickerPanel";
-import type { ColorValue } from "@components/Forms/Input/ColorPicker/ColorPickerNew/ColorPickerPanel";
+import { ColorPickerPanel } from "@components/Forms/Input/ColorPicker/ColorPickerPanel";
+import type { ColorValue } from "@components/Forms/Input/ColorPicker/ColorPickerPanel";
 import { addRecentColor, useRecentColors } from "@hooks/useRecentColors";
 import { useModal } from "@hooks/useModal";
 import { THEME_COLOR_ROLES } from "@utils/roleColors";

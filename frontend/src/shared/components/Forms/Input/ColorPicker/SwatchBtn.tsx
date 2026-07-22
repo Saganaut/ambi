@@ -4,7 +4,7 @@
 // pick callback hands back the button element too, so the panel can read the
 // *resolved* color off the DOM when it needs a concrete value to edit.
 import type { ColorValue } from "./colorConversion";
-import styles from "./ColorPickerNew.module.css";
+import styles from "./ColorPicker.module.css";
 
 interface SwatchBtnProps {
   color: ColorValue;

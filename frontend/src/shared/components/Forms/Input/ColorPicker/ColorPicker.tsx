@@ -1,51 +1,115 @@
-// Hue picker UI backed by @uiw/react-color-block. The theme system stores
-// only a hue angle (0–360°) and feeds it into oklch CSS variables, so this
-// wrapper translates between Block's hex API and our hue value.
-import Block from "@uiw/react-color-block";
-import type { ColorResult } from "@uiw/color-convert";
-import { hsvaToHex } from "@uiw/color-convert";
+// The DS color picker (Figma 604-3249 / 603-2718). This file is the popover
+// form: a trigger anchoring a FloatingPopover with a callout tail, containing
+// ColorPickerPanel (which is also usable standalone — e.g. inside a modal or
+// an existing popover).
+import { Placement } from "@floating-ui/react";
+import { HTMLProps, ReactNode } from "react";
+
+import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
+import { ColorPickerPanel } from "./ColorPickerPanel";
+import type { ColorValue, PickerView } from "./ColorPickerPanel";
 import styles from "./ColorPicker.module.css";
 
-// Named hue stops aligned with the design system palette. Saturation/value
-// are fixed so the swatches read as vivid, even-weight color chips.
-const SWATCH_S = 75;
-const SWATCH_V = 90;
-const PALETTE_HUES = [
-  0, 30, 60, 95, 140, 170, 200, 230, 260, 290, 320, 350,
-];
-
-const hueToHex = (hue: number) =>
-  hsvaToHex({ h: hue, s: SWATCH_S, v: SWATCH_V, a: 1 });
-
-const PALETTE_HEXES = PALETTE_HUES.map(hueToHex);
-
 interface ColorPickerProps {
-  label: string;
-  value: number;
-  onChange: (hue: number) => void;
+  /** * The currently selected color (hex, oklch, or a var(--role-*) theme ref).
+   * Highlights the matching swatch and seeds the custom view.
+   */
+  value?: string;
+
+  /** * Color strings to display as quick-select swatches — the theme palette
+   * plus any fixed choices. Also shown as the "Theme" row of the custom view.
+   */
+  colorSwatch: ColorValue[];
+
+  /** * Recently used colors, newest first. The caller owns persistence. */
+  recentlyUsedColorSwatch?: ColorValue[];
+
+  /** * Fired when a user commits a color (a swatch pick, or Apply in the
+   * custom view). Swatch values pass through verbatim; the custom view
+   * emits hex (#rrggbb, or #rrggbbaa when translucent).
+   */
+  onChange: (color: ColorValue) => void;
+
+  /** * Fired when a user hovers a swatch. Ideal for live previews elsewhere. */
+  onHover?: (color: ColorValue) => void;
+
+  /** * When provided, the swatch grid leads with a clear (slash) swatch. */
+  onClear?: () => void;
+
+  /** * Heading of the swatch view, e.g. "Text color". Also labels the dialog. */
+  label?: string;
+
+  /** * The element that anchors and toggles the popover. */
+  renderTrigger: (props: HTMLProps<HTMLElement>) => ReactNode;
+
+  /** * Which view the popover opens on. Defaults to the swatch grid. */
+  initialView?: PickerView;
+
+  /** * Floating-UI placement for the popover. Defaults to 'bottom'. */
+  placement?: Placement;
+
+  /** * Optional class name for the panel. */
+  className?: string;
+
+  /**
+   * Optional: Allows controlling the open/close state of the picker from the parent.
+   */
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
+
+  /**
+   * Forwarded to FloatingPopover. Turn off when the picker is opened from a
+   * toolbar floating over a focused editor, so opening/closing it never moves
+   * focus itself (the editor keeps the caret). Defaults to true.
+   */
+  manageFocus?: boolean;
 }
 
-const ColorPicker = ({ label, value, onChange }: ColorPickerProps) => {
-  const currentHex = hueToHex(value);
-
-  const handleChange = (color: ColorResult) => {
-    onChange(Math.round(color.hsv.h));
-  };
-
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <span className={styles.label}>{label}</span>
-        <span className={styles.degrees}>{value}°</span>
+const ColorPicker = ({
+  value,
+  colorSwatch,
+  recentlyUsedColorSwatch,
+  onChange,
+  onHover,
+  onClear,
+  label,
+  renderTrigger,
+  initialView,
+  placement = "bottom",
+  className,
+  isOpen,
+  onOpenChange,
+  manageFocus = true,
+}: ColorPickerProps) => (
+  <FloatingPopover
+    placement={placement}
+    open={isOpen}
+    onOpenChange={onOpenChange}
+    manageFocus={manageFocus}
+    renderTrigger={renderTrigger}
+    showArrow
+    arrowClassName={styles.tail}
+    offsetAmount={12}
+    aria-label={label ?? "Color picker"}>
+    {({ ctx }) => (
+      <div style={ctx.styles}>
+        <ColorPickerPanel
+          value={value}
+          colorSwatch={colorSwatch}
+          recentlyUsedColorSwatch={recentlyUsedColorSwatch}
+          label={label}
+          initialView={initialView}
+          className={className}
+          onChange={onChange}
+          onHover={onHover}
+          onClear={onClear}
+          onClose={ctx.close}
+        />
       </div>
-      <Block
-        className={styles.block}
-        color={currentHex}
-        colors={PALETTE_HEXES}
-        onChange={handleChange}
-      />
-    </div>
-  );
-};
+    )}
+  </FloatingPopover>
+);
 
 export { ColorPicker };
+export type { ColorPickerProps };
+export type { ColorString, ColorValue, PickerView } from "./ColorPickerPanel";

@@ -6,8 +6,8 @@
 // quota) silently degrade to in-memory-only.
 import { useSyncExternalStore } from "react";
 
-import type { ColorValue } from "@components/Forms/Input/ColorPicker/ColorPickerNew/ColorPickerNew";
-import { isColorValue } from "@components/Forms/Input/ColorPicker/ColorPickerNew/colorConversion";
+import type { ColorValue } from "@components/Forms/Input/ColorPicker/ColorPicker";
+import { isColorValue } from "@components/Forms/Input/ColorPicker/colorConversion";
 
 // Key naming follows useTheme's "ambi-theme-spec".
 const STORAGE_KEY = "ambi-recent-colors";

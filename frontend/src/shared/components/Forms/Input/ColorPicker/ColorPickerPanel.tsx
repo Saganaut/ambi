@@ -1,5 +1,5 @@
 // The color picker's panel content, usable standalone or inside the
-// FloatingPopover wrapper (ColorPickerNew). Two views, per the DS design
+// FloatingPopover wrapper (ColorPicker). Two views, per the DS design
 // (Figma 604-3249 / 603-2718):
 //
 // - "swatches" — a grid of quick-pick swatches (optional clear slash, the
@@ -28,7 +28,7 @@ import {
   type ColorValue,
   type Hsva,
 } from "./colorConversion";
-import styles from "./ColorPickerNew.module.css";
+import styles from "./ColorPicker.module.css";
 
 type PickerView = "swatches" | "custom";
 

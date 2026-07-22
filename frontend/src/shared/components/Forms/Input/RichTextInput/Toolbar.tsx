@@ -21,9 +21,9 @@ import { Input } from "@components/Forms/Input/Input/Input";
 import { addRecentColor, useRecentColors } from "@hooks/useRecentColors";
 import { THEME_COLOR_ROLES } from "@utils/roleColors";
 import {
-  ColorPickerNew,
+  ColorPicker,
   type ColorValue,
-} from "../ColorPicker/ColorPickerNew/ColorPickerNew";
+} from "../ColorPicker/ColorPicker";
 import { useLinkEditor } from "./useRichTextInput";
 import styles from "./RichTextInput.module.css";
 
@@ -289,7 +289,7 @@ const Toolbar = ({
 
       <ToolbarDivider />
 
-      <ColorPickerNew
+      <ColorPicker
         value={currentColor || undefined}
         colorSwatch={COLOR_SWATCHES}
         recentlyUsedColorSwatch={recent}

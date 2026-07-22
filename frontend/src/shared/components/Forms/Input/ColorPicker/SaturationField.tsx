@@ -3,7 +3,7 @@
 // keys (←/→ saturation, ↑/↓ value; Shift steps by 10).
 import { hueToPureHex, type Hsva } from "./colorConversion";
 import { usePointerDrag } from "./usePointerDrag";
-import styles from "./ColorPickerNew.module.css";
+import styles from "./ColorPicker.module.css";
 
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 
