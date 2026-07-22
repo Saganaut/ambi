@@ -18,6 +18,10 @@ Every completed feature change follows the same three steps — do not skip the 
 
 A "feature change" is any self-contained unit of functional work. Trivial, non-functional edits (a typo fix, a comment) don't require the full loop — use judgement.
 
+### Task tracking
+
+Work is tracked on the **Ambi Dev** Trello board: <https://trello.com/b/nH50o6jt/ambi-dev> (Backlog → To Do → In Progress → Done, with P0–P3 priority labels). **Every task needs a card** — if the user didn't hand you one, create it yourself (in the right list, with a description of the task's goals) before starting work. Move a card to **In Progress** when you pick it up; when the commit + review loop passes, add a comment summarizing what was done and the landing commit hash, then move the card to **Done**. Agents drive the board via the Trello REST API — see the [Using the Trello board](z-docs/runbooks/using-the-trello-board.md) runbook for credential setup, card commands, and the full ticket-lifecycle rules.
+
 ---
 
 ## Project Layout

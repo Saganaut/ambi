@@ -8,6 +8,7 @@ Operational procedures: how to do a specific task in this project from a cold st
 - [Using RedisInsight](using-redis-insight.md) — inspect session keys, check guest TTLs, monitor pub/sub, run raw Redis commands, flush data for a clean state.
 - [Using the observability stack](using-the-observability-stack.md) — emit correlated logs front & back, run prod JSON logging locally, follow the `X-Request-Id`→`traceId` thread, exercise LocalStack CloudWatch.
 - [Dev login & app screenshots](dev-login-and-screenshots.md) — log in as the DEV-only `devuser` via `POST /api/dev/login` (no frontend route), capture headless screenshots, or authenticate your own browser for manual clicking.
+- [Using the Trello board](using-the-trello-board.md) — track work on the Ambi Dev board via the Trello REST API: credential setup, list/label structure, and create/move/comment/archive card commands.
 
 ## What belongs here
 

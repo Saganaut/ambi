@@ -18,3 +18,4 @@ Rules for the React + TypeScript frontend under `frontend/`. Styling and icons h
 13. **Hook roles & naming** — Every hook is one of three kinds, legible from its name: read-only `use<Entity>Query`, write-only `use<Entity><Slice>Mutate`, or composing `use<Workflow>` view-model (CQRS over the RTK Query cache). — [details](frontend/hook-roles.md)
     - Methods returned by hooks use plain verbs (`present`, `share`, `schedule`). Reserve `handle*` exclusively for methods whose signature takes a framework event object (e.g. `handleDragEnd(event: DragEndEvent)`). Debounced-write surfaces follow `commit` (immediate) / `schedule*` (debounced) / `flush` (fire pending) / `cancel` (discard pending).
 14. **Document exceptions** — Any exception to these rules must be documented.
+15. **Figma references** — Match the live **Ambi-DS** Figma file for anything design-related; it's the source of truth, not screenshots or memory. — [details](frontend/figma-references.md)

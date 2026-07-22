@@ -1,6 +1,6 @@
 # Named Color Combinations & Button Variants
 
-**Rule:** Text/background pairings and button styling come from a fixed catalog. Anything not on these lists is outside the system. Live catalog: the Figma design-system library.
+**Rule:** Text/background pairings and button styling come from a fixed catalog. Anything not on these lists is outside the system. Live catalog: the Figma design-system library — see [figma-references.md](../frontend/figma-references.md) for the page link.
 
 ## Named text + background combinations
 
