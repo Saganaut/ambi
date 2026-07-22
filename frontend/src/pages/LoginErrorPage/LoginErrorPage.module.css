@@ -1,0 +1,48 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 4rem);
+  padding: var(--space-12) var(--space-6);
+  background-color: var(--bg-canvas);
+}
+
+/* Action styles mirror ErrorDisplay's default action pair (error-accented
+   primary + neutral bordered secondary) so the page reads like the other
+   error screens. */
+.retryBtn {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  border: var(--border-size-sm) solid var(--border-error);
+  background: var(--bg-error);
+  color: var(--text-error);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.retryBtn:hover {
+  background: oklch(from var(--bg-error) calc(l + 0.05) c h);
+  border-color: oklch(from var(--border-error) calc(l + 0.05) c h);
+}
+
+.homeLink {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  border: var(--border-size-sm) solid var(--border-default);
+  background: transparent;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.homeLink:hover {
+  border-color: var(--border-error);
+  color: var(--text-error);
+}

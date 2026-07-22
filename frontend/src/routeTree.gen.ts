@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as LoginErrorRouteImport } from './routes/login-error'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -40,6 +41,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginErrorRoute = LoginErrorRouteImport.update({
+  id: '/login-error',
+  path: '/login-error',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JoinRoute = JoinRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/join': typeof JoinRoute
+  '/login-error': typeof LoginErrorRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/join': typeof JoinRoute
+  '/login-error': typeof LoginErrorRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
   '/join': typeof JoinRoute
+  '/login-error': typeof LoginErrorRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/join'
+    | '/login-error'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/join'
+    | '/login-error'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/join'
+    | '/login-error'
     | '/pricing'
     | '/register'
     | '/terms-and-conditions'
@@ -237,6 +249,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AboutRoute: typeof AboutRoute
   JoinRoute: typeof JoinRoute
+  LoginErrorRoute: typeof LoginErrorRoute
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login-error': {
+      id: '/login-error'
+      path: '/login-error'
+      fullPath: '/login-error'
+      preLoaderRoute: typeof LoginErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/join': {
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AboutRoute: AboutRoute,
   JoinRoute: JoinRoute,
+  LoginErrorRoute: LoginErrorRoute,
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
