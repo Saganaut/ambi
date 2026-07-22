@@ -1,6 +1,6 @@
 /* Slide-specific styles for the Drawing editor. Palette row uses tile swatches
-   with a small remove pill on hover; the native color input sits invisibly on
-   top so clicking the tile opens the picker. */
+   with a small remove pill on hover; each tile is a button that opens the DS
+   color-picker popover. */
 
 .paletteRow {
   display: flex;
@@ -22,6 +22,12 @@
   border-radius: var(--radius-md);
   border: var(--border-size-sm) solid var(--edge-surface);
   cursor: pointer;
+
+  /* The global reset strips button outlines, so restore keyboard focus. */
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
 }
 
 .swatchRemove {

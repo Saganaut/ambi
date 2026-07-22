@@ -26,6 +26,9 @@ interface PaletteEditorProps {
 
 const DEFAULT_COLOR = "#6019FF";
 
+/** Quick-pick swatch set offered by every swatch's picker. */
+const PALETTE_SWATCHES: ColorValue[] = [...DEFAULT_DRAWING_PALETTE];
+
 const isConcreteColor = (color: ColorValue): color is ColorString =>
   !color.startsWith("var(");
 
@@ -51,7 +54,7 @@ const PaletteEditor = ({ palette, canAdd = true, onCommit }: PaletteEditorProps)
         <div key={`${color}-${idx.toString()}`} className={styles.swatch}>
           <ColorPicker
             value={color}
-            colorSwatch={[...DEFAULT_DRAWING_PALETTE]}
+            colorSwatch={PALETTE_SWATCHES}
             recentlyUsedColorSwatch={recentColors}
             label={`Palette color ${(idx + 1).toString()}`}
             onChange={(next) => {
