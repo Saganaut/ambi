@@ -22,22 +22,24 @@
   }
 }
 
+/* DS dropzone (Figma 125-288): open dashed outline on the page surface —
+   no fill of its own — with a centred icon + text stack. */
 .dropZone {
   width: 300px;
   min-height: 100px;
   border: var(--border-size-sm) dashed var(--border-subtle);
-  border-radius: var(--radius-md);
-  background-color: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  background-color: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--gap-md);
   padding: var(--space-4);
   cursor: pointer;
   transition:
-    border-color 300ms ease-in-out,
-    background-color 300ms ease-in-out;
+    border-color var(--duration-base) ease-in-out,
+    background-color var(--duration-base) ease-in-out;
 
   input[type="file"] {
     display: none;
@@ -56,18 +58,32 @@
   }
 
   .dropZoneIcon {
-    width: 1.875rem;
-    height: 1.875rem;
-    color: var(--bg-brand);
+    width: var(--space-8);
+    height: var(--space-8);
+    color: var(--text-secondary);
     pointer-events: none;
   }
 
   .dropZoneText {
     font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--bg-brand);
+    font-weight: 500;
+    color: var(--text-secondary);
     pointer-events: none;
     text-align: center;
+  }
+
+  .dropZoneBrowse {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    pointer-events: none;
+    text-align: center;
+
+    /* Brand-violet link per the DS — --bg-primary is the semantic alias of
+       the theme's primary role. */
+    .browseLink {
+      color: var(--bg-primary);
+      text-decoration: underline;
+    }
   }
 
   .dropZoneHint {

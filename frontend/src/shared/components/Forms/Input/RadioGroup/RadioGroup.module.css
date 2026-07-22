@@ -1,21 +1,24 @@
-/* RadioGroup — vertical stack of radios under a single fieldset legend.
-   Trims the per-radio bottom padding so the options sit tighter inside the
-   group than they would standalone. */
+/* RadioGroup — vertical stack of radios under a single fieldset legend,
+   presented as a padded canvas card (Figma 637-3141). Trims the per-radio
+   bottom padding so the options sit tighter inside the group than they
+   would standalone. */
 
 .radioGroupContainer {
   border: none;
-  padding: 0;
   margin: 0;
-  padding-bottom: var(--space-6);
+  padding: var(--space-4);
+  background-color: var(--bg-canvas);
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
 .radioGroupLegend {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  color: var(--text-secondary);
+  text-transform: uppercase;
+  color: var(--text-muted);
   padding-bottom: var(--space-2);
 }
 

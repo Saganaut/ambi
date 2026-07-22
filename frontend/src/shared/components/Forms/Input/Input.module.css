@@ -39,6 +39,9 @@ input[type="radio"] {
 
   label {
     padding-left: var(--space-1);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
   }
 
   /* fullWidth lets a host (e.g. an MCQ option card or a tight inspector cell)
@@ -61,15 +64,52 @@ input[type="radio"] {
     padding-bottom: 0;
   }
 
+  /* DS field chrome (Figma 260-1552): flat surface lifted by --shadow-xs
+     instead of an ink border. The transparent border keeps layout stable
+     when a state (focus / error via --border-color) tints it in. */
   input {
-    border: var(--border-size-sm) solid
-      var(--border-color, var(--border-default));
+    border: var(--border-size-sm) solid var(--border-color, transparent);
     border-radius: var(--radius-md);
+    background-color: var(--bg-canvas);
+    box-shadow: var(--shadow-xs);
+    font-size: var(--font-size-sm);
     display: flex;
     width: 100%;
+    transition:
+      color var(--duration-base) ease-in-out,
+      border-color var(--duration-base) ease-in-out,
+      box-shadow var(--duration-base) ease-in-out;
 
+    &::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Declared before the state rules below so a borderless field still
+       gets the focus tint (equal specificity — source order decides). */
     &.noBorders {
       border-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+    }
+
+    &:hover:not(:disabled, :focus, .noBorders) {
+      box-shadow: var(--shadow-hover);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      color: var(--text-primary);
+    }
+
+    &:focus:not(.noBorders) {
+      box-shadow: var(--shadow-focus);
+    }
+
+    &:disabled {
+      background-color: var(--bg-disabled);
+      color: var(--text-disabled);
+      cursor: not-allowed;
     }
   }
 }

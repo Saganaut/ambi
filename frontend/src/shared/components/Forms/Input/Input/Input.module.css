@@ -7,24 +7,27 @@
   display: flex;
   width: 100%;
 
+  /* Variants feed the shared chrome's --border-color slot instead of setting
+     border-color directly, so the :focus tint still wins on a focused field. */
   input {
     color: var(--text-secondary);
 
     &.error {
-      border-color: var(--border-error);
+      --border-color: var(--border-error);
+
       color: var(--text-error);
     }
 
     &.success {
-      border-color: var(--border-success);
+      --border-color: var(--border-success);
     }
 
     &.warning {
-      border-color: var(--border-warning);
+      --border-color: var(--border-warning);
     }
 
     &.info {
-      border-color: var(--border-info);
+      --border-color: var(--border-info);
     }
   }
 

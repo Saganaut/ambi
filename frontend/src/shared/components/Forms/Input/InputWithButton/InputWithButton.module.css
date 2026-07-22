@@ -1,23 +1,20 @@
-/* InputWithButton — text input fused with a flush action button.
-   The two children share a single border so the seam disappears: the input
-   loses its right border + radius, the button loses its left radius. */
+/* InputWithButton — text input paired with an action button (Figma 637-3143).
+   The two sit side by side as separate DS surfaces: the input keeps the
+   shared field chrome, the button keeps its default Btn treatment. */
 
 .inputWithButton {
   position: relative;
   display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
 
   input {
-    width: 240px;
+    width: 200px;
     color: var(--text-secondary);
-    border-right: none;
-    border-radius: var(--radius-md) 0 0 var(--radius-md);
   }
 
   button {
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
     white-space: nowrap;
-    font-size: var(--font-size-sm);
-    padding: var(--p-sm);
   }
 
   .message {

@@ -11,41 +11,56 @@
 .textarea {
   position: relative;
 
+  /* DS field chrome (Figma 193-506): flat canvas surface lifted by
+     --shadow-xs; the transparent border keeps layout stable when the
+     focus tint swaps in. Mirrors the single-line Input in ../Input.module.css. */
   textarea {
     width: 300px;
     min-height: 2.5rem;
     color: var(--text-secondary);
-    border: var(--border-size-sm) solid var(--border-default);
+    border: var(--border-size-sm) solid transparent;
     border-radius: var(--radius-md);
     padding: var(--p-sm);
-    background-color: transparent;
+    background-color: var(--bg-canvas);
+    box-shadow: var(--shadow-xs);
     font-family: var(--font-mono);
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     resize: none;
     field-sizing: content;
     transition:
-      color 300ms ease-in-out,
-      border-color 300ms ease-in-out;
+      color var(--duration-base) ease-in-out,
+      border-color var(--duration-base) ease-in-out,
+      box-shadow var(--duration-base) ease-in-out;
 
-    &:hover {
-      border-color: var(--action-hover);
+    &::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Declared before the state rules below so a borderless field still
+       gets the focus tint (equal specificity — source order decides). */
+    &.noBorders {
+      background-color: transparent;
+      box-shadow: none;
+    }
+
+    &:hover:not(:disabled, :focus, .noBorders) {
+      box-shadow: var(--shadow-hover);
     }
 
     &:focus {
       outline: none;
       border-color: var(--border-focus);
+      color: var(--text-primary);
     }
 
-    &.noBorders {
-      border-color: transparent;
+    &:focus:not(.noBorders) {
+      box-shadow: var(--shadow-focus);
+    }
 
-      &:hover {
-        border-color: var(--action-hover);
-      }
-
-      &:focus {
-        border-color: var(--border-focus);
-      }
+    &:disabled {
+      background-color: var(--bg-disabled);
+      color: var(--text-disabled);
+      cursor: not-allowed;
     }
 
     /* Opt-out of auto-grow: textarea fills its container instead.

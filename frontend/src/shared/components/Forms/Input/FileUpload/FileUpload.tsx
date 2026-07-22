@@ -66,8 +66,13 @@ const FileUpload = ({
         />
         <PhotoIcon className={styles.dropZoneIcon} aria-hidden='true' />
         <span className={styles.dropZoneText}>
-          {isDragging ? "Drop files here" : "Drag & drop or click to upload"}
+          {isDragging ? "Drop files here" : "Drag & drop files"}
         </span>
+        {!isDragging && (
+          <span className={styles.dropZoneBrowse}>
+            or <span className={styles.browseLink}>browse files</span>
+          </span>
+        )}
         {infoMessage != null && (
           <span className={styles.dropZoneHint}>{infoMessage}</span>
         )}

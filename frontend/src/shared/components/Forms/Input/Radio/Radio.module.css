@@ -40,35 +40,36 @@
   flex-direction: row-reverse;
 }
 
+/* DS circle (Figma 260-1580): borderless 20px disc lifted by --shadow-xs;
+   selected drops a 10px brand dot in the centre, disabled greys the fill. */
 .radioControl {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border: var(--border-size-sm) solid var(--border-default);
+  width: 20px;
+  height: 20px;
   border-radius: var(--radius-full);
-  background-color: transparent;
+  background-color: var(--bg-canvas);
+  box-shadow: var(--shadow-xs);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color var(--duration-base) var(--ease-out);
-}
-
-.radioContainer:has(.radioInput:checked) .radioControl {
-  border-color: var(--action-active);
+  transition: background-color var(--duration-base) var(--ease-out);
 }
 
 .radioContainer:has(.radioInput:checked) .radioControl::after {
   content: "";
   display: block;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: var(--radius-full);
-  background-color: var(--action-active);
+  background-color: var(--bg-primary);
 }
 
 .radioContainer:has(.radioInput:disabled) .radioWrap {
   cursor: not-allowed;
-  opacity: 0.4;
+}
+
+.radioContainer:has(.radioInput:disabled) .radioControl {
+  background-color: var(--bg-disabled);
 }
 
 .radioContainer:has(.radioInput:focus-visible) .radioControl {
@@ -78,6 +79,11 @@
 
 .radioLabelText {
   font-size: var(--font-size-sm);
+  font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+.radioContainer:has(.radioInput:disabled) .radioLabelText {
+  color: var(--text-disabled);
 }

@@ -6,16 +6,20 @@
   .field {
     /* manifest defaults (md) — flipped by the nested size classes below */
     --input-padding: var(--space-2) var(--space-3);
-    --font-size: var(--font-size-base);
-    --stepper-width: var(--space-8);
+    --font-size: var(--font-size-sm);
+    --stepper-width: var(--space-10);
     --icon-size: var(--space-4);
 
+    /* DS control (Figma 482-2326): raised surface lifted by --shadow-xs;
+       the transparent border keeps layout stable when the error tint
+       swaps in via --border-color. */
     display: flex;
     align-items: stretch;
     width: 100%;
-    border: var(--border-size-sm) solid var(--border-color, var(--border-default));
+    border: var(--border-size-sm) solid var(--border-color, transparent);
     border-radius: var(--radius-md);
-    background: var(--bg-canvas);
+    background: var(--bg-surface-raised);
+    box-shadow: var(--shadow-xs);
     overflow: hidden;
 
     &.sm {
@@ -27,8 +31,8 @@
 
     &.md {
       --input-padding: var(--space-2) var(--space-3);
-      --font-size: var(--font-size-base);
-      --stepper-width: var(--space-8);
+      --font-size: var(--font-size-sm);
+      --stepper-width: var(--space-10);
       --icon-size: var(--space-4);
     }
 
@@ -45,7 +49,7 @@
     }
 
     &.error {
-      border-color: var(--border-error);
+      --border-color: var(--border-error);
     }
 
     input.input {
@@ -60,7 +64,8 @@
       font-size: var(--font-size);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
-      color: var(--role-primary);
+      text-align: center;
+      color: var(--text-secondary);
 
       &::-webkit-outer-spin-button,
       &::-webkit-inner-spin-button {
@@ -73,12 +78,14 @@
       }
     }
 
+    /* Hairline dividers (not lifted surfaces) separate the value box from
+       the stepper and the two step buttons — a true-divider border case. */
     .stepper {
       flex: 0 0 auto;
       display: flex;
       flex-direction: column;
       width: var(--stepper-width);
-      border-left: var(--border-size-sm) solid var(--border-default);
+      border-left: 1px solid var(--border-subtle);
 
       .stepBtn {
         flex: 1 1 0;
@@ -102,12 +109,12 @@
 
         &.stepUp,
         &.stepDown {
-          background: var(--bg-canvas);
+          background: var(--bg-surface-raised);
           color: var(--text-primary);
         }
 
         &.stepUp {
-          border-bottom: var(--border-size-sm) solid var(--border-default);
+          border-bottom: 1px solid var(--border-subtle);
         }
 
         &.stepUp:not(:disabled):hover,

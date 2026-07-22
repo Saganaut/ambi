@@ -465,6 +465,11 @@
   /* derives from the theme's primary so per-deck themes recolor it.            */
   --shadow-hover: 0 1px 1.5px oklch(from var(--role-primary) l c h / 25%);
 
+  /* Brand-tinted focus glow (DS shadow/focus) — same geometry as shadow/hover  */
+
+  /* at a stronger alpha; pairs with --border-focus on focused form fields.     */
+  --shadow-focus: 0 1px 1.5px oklch(from var(--role-primary) l c h / 45%);
+
   /* --- Z-Index Layering (Prevents "z-index: 999999" chaos) --- */
   --z-negative: -1;
   --z-base: 1;

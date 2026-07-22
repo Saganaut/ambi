@@ -41,11 +41,13 @@
   justify-content: space-between;
 }
 
+/* DS track (Figma 260-1591): off rests on the subtle wash, on fills with the
+   brand primary, disabled greys out; the raised knob carries --shadow-xs. */
 .toggleTrack {
   position: relative;
   width: 44px;
   height: 24px;
-  background-color: var(--bg-disabled);
+  background-color: var(--bg-subtle);
   border-radius: var(--radius-full);
   flex-shrink: 0;
   transition: background-color var(--duration-base) var(--ease-out);
@@ -57,14 +59,14 @@
   left: 2px;
   width: 20px;
   height: 20px;
-  background-color: var(--white-100);
+  background-color: var(--bg-surface-raised);
   border-radius: var(--radius-full);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
   transition: transform var(--duration-base) var(--ease-out);
 }
 
 .toggleContainer:has(.toggleInput:checked) .toggleTrack {
-  background-color: var(--text-success);
+  background-color: var(--bg-primary);
 }
 
 .toggleContainer:has(.toggleInput:checked) .toggleThumb {
@@ -73,7 +75,10 @@
 
 .toggleContainer:has(.toggleInput:disabled) .toggleWrap {
   cursor: not-allowed;
-  opacity: 0.4;
+}
+
+.toggleContainer:has(.toggleInput:disabled) .toggleTrack {
+  background-color: var(--bg-disabled);
 }
 
 .toggleContainer:has(.toggleInput:focus-visible) .toggleTrack {
@@ -83,7 +88,12 @@
 
 .toggleLabelText {
   font-size: var(--font-size-sm);
+  font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
   text-align: start;
+}
+
+.toggleContainer:has(.toggleInput:disabled) .toggleLabelText {
+  color: var(--text-disabled);
 }

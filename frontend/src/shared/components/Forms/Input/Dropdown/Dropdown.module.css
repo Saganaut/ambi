@@ -18,18 +18,34 @@
   }
 }
 
-.dropdownTrigger {
+/* Trigger reads as a DS field (Figma 260-1606), not as the Btn's filled
+   pill: canvas surface, --shadow-xs lift, field-sized padding/type. Direct
+   properties nested under .dropdown out-specify the Btn base so this wins
+   regardless of module order; the transparent Btn border tints to the
+   focus colour while the menu is open. */
+.dropdown .dropdownTrigger {
   display: flex;
   width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  padding: var(--p-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
   text-align: left;
+  background-color: var(--bg-canvas);
+  box-shadow: var(--shadow-xs);
   color: var(--text-secondary);
   font-weight: normal;
 
   &:hover {
-    border-color: var(--action-hover);
+    background-color: var(--bg-canvas);
+    box-shadow: var(--shadow-hover);
+    color: var(--text-secondary);
+  }
+
+  &[aria-expanded="true"] {
+    border-color: var(--border-focus);
   }
 }
 
@@ -38,9 +54,12 @@
 }
 
 .chevron {
-  width: 16px;
-  height: 16px;
-  stroke: var(--text-secondary);
+  width: 18px;
+  height: 18px;
+
+  /* Brand-violet glyph per the DS — --bg-primary is the semantic alias of
+     the theme's primary role. */
+  stroke: var(--bg-primary);
   flex-shrink: 0;
   transition: transform var(--duration-base) var(--ease-out);
 }
@@ -54,12 +73,11 @@
   top: calc(100% + var(--space-1));
   left: 0;
   width: 100%;
-  background-color: var(--bg-surface);
-  border: var(--border-size-sm) solid var(--border-default);
+  background-color: var(--bg-surface-raised);
   border-radius: var(--radius-md);
   z-index: var(--z-dropdown);
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 /* compact — for label-left settings rows: the trigger hugs its content instead
@@ -68,18 +86,6 @@
 .dropdown.compact {
   width: max-content;
   flex-shrink: 0;
-
-  /* In a settings row the trigger reads as a bordered field like the sibling
-     inputs, not as the Btn's filled pill. Restate the hover tint because this
-     override out-specifies the base trigger's :hover rule. */
-  .dropdownTrigger {
-    background-color: transparent;
-    border-color: var(--border-default);
-
-    &:hover {
-      border-color: var(--action-hover);
-    }
-  }
 
   .dropdownPanel {
     width: max-content;
@@ -133,8 +139,8 @@
   }
 
   &.selected {
+    background-color: var(--bg-secondary);
     color: var(--text-primary);
-    font-weight: 600;
   }
 }
 
