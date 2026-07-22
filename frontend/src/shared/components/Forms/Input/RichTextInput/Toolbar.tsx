@@ -341,7 +341,10 @@ const Toolbar = ({
             aria-label='Text size'
             className={`${styles.trigger} ${styles.sizeTrigger}`}
             onMouseDown={preventFocusSteal}>
-            {activeSize?.letter ?? "M"}
+            {/* Unset text has no fontSize mark (it renders at the base size,
+                which matches none of the choices), so show a neutral glyph
+                rather than claiming a specific size. */}
+            {activeSize?.letter ?? "Aa"}
             <ChevronDownIcon className={styles.chevron} aria-hidden='true' />
           </button>
         )}>
