@@ -13,6 +13,7 @@
  * slide and its settings — so they are absent here entirely.
  */
 import { nanoid } from "nanoid";
+import type { ColorString } from "@components/Forms/Input/ColorPicker/ColorPicker";
 import {
   AxisItem,
   GridItem,
@@ -44,9 +45,12 @@ export const isScorableSlideType = (slideType: SlideType): boolean =>
 
 /**
  * Starting stroke colors for a new Drawing slide — a compact, high-contrast
- * set the author can freely edit in the palette editor.
+ * set the author can freely edit in the palette editor. Typed as concrete
+ * {@link ColorString}s so the palette editor can offer them as DS color-picker
+ * swatches; palette entries must stay concrete (no `var(--role-*)` refs) —
+ * they feed the player canvas's `strokeStyle` and the wire.
  */
-export const DEFAULT_DRAWING_PALETTE: readonly string[] = [
+export const DEFAULT_DRAWING_PALETTE: readonly ColorString[] = [
   "#1A1A1A",
   "#E5484D",
   "#FFB224",

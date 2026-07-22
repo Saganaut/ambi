@@ -171,10 +171,6 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           <PaletteEditor
             palette={palette}
             canAdd={editor.canAddPaletteColor}
-            onChange={(next) => {
-              setPalette(next);
-              editor.schedulePalette(next);
-            }}
             onCommit={(next) => {
               setPalette(next);
               editor.commitPalette(next);

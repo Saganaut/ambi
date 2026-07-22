@@ -63,9 +63,7 @@ interface UseDrawingEditorResult {
 
   /** ── Canvas configuration ────────────────────────────────────────────── */
   canAddPaletteColor: boolean;
-  /** Debounced palette edit (live color-picker drags). */
-  schedulePalette: (palette: string[]) => void;
-  /** Structural palette edit (add/remove/picker close). Immediate. */
+  /** Palette edit (color pick / add / remove). Immediate. */
   commitPalette: (palette: string[]) => void;
   /** Enable/disable a tool. PEN can never be removed. Immediate. */
   setToolEnabled: (tool: Tool, enabled: boolean) => void;
@@ -124,10 +122,6 @@ const useDrawingEditor = (deckId: string, slideId: string): UseDrawingEditorResu
 
   const canAddPaletteColor = (question?.palette.length ?? 0) < MAX_DRAWING_PALETTE;
 
-  const schedulePalette = (palette: string[]) => {
-    editor.updateSlideContent({ palette });
-  };
-
   const commitPalette = (palette: string[]) => {
     editor.updateSlideContent({ palette: palette.slice(0, MAX_DRAWING_PALETTE) });
     editor.flush();
@@ -153,7 +147,6 @@ const useDrawingEditor = (deckId: string, slideId: string): UseDrawingEditorResu
     saveDrawnPrompt,
     setPromptPlacement,
     canAddPaletteColor,
-    schedulePalette,
     commitPalette,
     setToolEnabled,
   };
