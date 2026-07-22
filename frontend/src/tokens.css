@@ -79,7 +79,7 @@
   --fuchsia-600: oklch(63% 0.13 320deg);
   --fuchsia-700: oklch(39% 0.08 320deg);
   --fuchsia-800: oklch(28% 0.06 320deg);
-  --fuchsia-900: oklch(22% 0.05 320deg);
+  --fuchsia-900: oklch(23% 0.05 320deg);
   --mulberry-200: oklch(93% 0.04 350deg);
   --mulberry-300: oklch(89% 0.06 350deg);
   --mulberry-400: oklch(78% 0.13 350deg);
@@ -186,17 +186,17 @@
   /* swapping these 16 values + the data-appearance flag.                        */
 
   --role-canvas: var(--white-100);
-  --role-surface: var(--concrete-300);
+  --role-surface: var(--tolopea-100);
   --role-surface-raised: var(--white-100);
-  --role-subtle: var(--concrete-400);
-  --role-foreground: var(--violet-800);
-  --role-muted-foreground: var(--grey-600);
+  --role-subtle: var(--violet-200);
+  --role-foreground: var(--tolopea-900);
+  --role-muted-foreground: var(--white-700);
   --role-primary: var(--violet-500);
-  --role-on-primary: var(--concrete-200);
-  --role-accent: var(--cyan-700);
+  --role-on-primary: var(--violet-100);
+  --role-accent: var(--cyan-500);
   --role-accent-secondary: var(--orange-500);
-  --role-border: var(--violet-700);
-  --role-border-subtle: var(--ultraviolet-200);
+  --role-border: var(--violet-800);
+  --role-border-subtle: var(--violet-200);
   --role-red: var(--red-500);
   --role-green: var(--green-500);
   --role-yellow: var(--yellow-500);
@@ -319,10 +319,10 @@
 
 :root {
   /* --- Typography (Expanded Scale) --- */
-  --font-mono: "Poppins", "IBM Plex Mono", monospace;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", monospace;
   --font-family-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
   --font-heading: system-ui, "Segoe UI", "Roboto", sans-serif;
-  --font-sans: ui-monospace, "Consolas", monospace;
+  --font-sans: "Poppins", system-ui, sans-serif;
   --font-size-xs: 0.75rem; /* 12px */
   --font-size-sm: 0.875rem; /* 14px */
   --font-size-base: 1rem; /* 16px */
