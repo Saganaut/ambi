@@ -78,10 +78,8 @@
     pointer-events: none;
     text-align: center;
 
-    /* Brand-violet link per the DS — --bg-primary is the semantic alias of
-       the theme's primary role. */
     .browseLink {
-      color: var(--bg-primary);
+      color: var(--text-brand);
       text-decoration: underline;
     }
   }

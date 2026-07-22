@@ -72,6 +72,10 @@
   background-color: var(--bg-disabled);
 }
 
+.radioContainer:has(.radioInput:disabled) .radioControl::after {
+  background-color: var(--text-disabled);
+}
+
 .radioContainer:has(.radioInput:focus-visible) .radioControl {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;

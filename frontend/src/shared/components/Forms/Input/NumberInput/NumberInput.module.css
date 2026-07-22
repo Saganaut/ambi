@@ -1,3 +1,7 @@
+/* NumberInput — DS numeric control (Figma 482-2326): a raised surface lifted
+   by --shadow-xs holding a centred bold value box and a two-button stepper,
+   separated by hairline --border-subtle dividers. */
+
 .wrapper {
   position: relative;
   display: flex;
@@ -132,7 +136,6 @@
     &.compact .input {
       width: var(--space-16);
       flex: 0 0 auto;
-      text-align: center;
     }
   }
 

@@ -273,6 +273,7 @@
   --text-secondary: var(--role-muted-foreground);
   --text-muted: color-mix(in oklab, var(--role-muted-foreground) 60%, var(--role-canvas));
   --text-accent: var(--role-accent);
+  --text-brand: var(--role-primary);
   --text-on-brand: var(--role-on-primary);
   --text-disabled: color-mix(in oklab, var(--role-muted-foreground) 55%, var(--role-canvas));
 

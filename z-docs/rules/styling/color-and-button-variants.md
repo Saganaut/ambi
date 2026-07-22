@@ -25,6 +25,8 @@ Every legal pairing of a text role with a background. Tokens live in `frontend/s
 | Heading on subtle         | `--bg-subtle`         | `--text-primary`   | `--edge-subtle`         |
 | Body on subtle            | `--bg-subtle`         | `--text-secondary` | `--edge-subtle`         |
 | Link on subtle            | `--bg-subtle`         | `--text-accent`    | `--edge-subtle`         |
+| Brand glyph on canvas     | `--bg-canvas`         | `--text-brand`     | `--edge-canvas`         |
+| Brand glyph on surface    | `--bg-surface`        | `--text-brand`     | `--edge-surface`        |
 
 ### Brand surfaces
 

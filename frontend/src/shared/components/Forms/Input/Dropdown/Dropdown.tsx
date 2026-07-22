@@ -128,6 +128,9 @@ const Dropdown = ({
                   }}
                   placeholder='Search...'
                   aria-label='Search options'
+                  // The panel is already a raised surface — opt the search
+                  // box out of the shared field chrome (bg/shadow).
+                  className={shared.noBorders}
                   autoFocus
                 />
               </div>
