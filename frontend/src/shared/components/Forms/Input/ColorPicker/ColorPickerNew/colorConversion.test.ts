@@ -4,6 +4,7 @@ import {
   hsvaToHex,
   hsvToRgb,
   hueToPureHex,
+  isColorValue,
   oklchToHsva,
   parseColor,
   rgbToHsv,
@@ -94,6 +95,22 @@ describe("oklchToHsva", () => {
   it("rejects malformed input", () => {
     expect(oklchToHsva("oklch()")).toBeNull();
     expect(oklchToHsva("#ff0000")).toBeNull();
+  });
+});
+
+describe("isColorValue", () => {
+  it("accepts hex, oklch, and theme var() strings", () => {
+    expect(isColorValue("#3182ce")).toBe(true);
+    expect(isColorValue("oklch(0.65 0.18 260)")).toBe(true);
+    expect(isColorValue("var(--role-accent)")).toBe(true);
+  });
+
+  it("rejects non-strings and non-color strings", () => {
+    expect(isColorValue(42)).toBe(false);
+    expect(isColorValue(null)).toBe(false);
+    expect(isColorValue(undefined)).toBe(false);
+    expect(isColorValue("red")).toBe(false);
+    expect(isColorValue("")).toBe(false);
   });
 });
 
