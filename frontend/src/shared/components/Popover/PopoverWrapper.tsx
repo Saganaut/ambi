@@ -4,10 +4,12 @@
  *  **/
 
 import {
+  FloatingArrow,
   FloatingFocusManager,
   FloatingList,
   FloatingPortal,
   Placement,
+  arrow,
   autoUpdate,
   flip,
   offset,
@@ -69,9 +71,19 @@ interface FloatingPopoverProps {
    * in the field on open, and the arrow keys step into the menu on demand.
    */
   listNavigation?: boolean;
+  /**
+   * Render a callout tail (arrow) pointing at the trigger. Styling is up to
+   * the consumer via `arrowClassName` (set the svg `fill` to the popover's
+   * surface color). Remember to include the tail height in `offsetAmount`.
+   */
+  showArrow?: boolean;
+  arrowClassName?: string;
   "aria-label"?: string;
   "aria-labelledby"?: string;
 }
+
+const ARROW_WIDTH = 18;
+const ARROW_HEIGHT = 10;
 
 export const FloatingPopover = ({
   children,
@@ -84,6 +96,8 @@ export const FloatingPopover = ({
   openOn = "click",
   manageFocus = true,
   listNavigation = false,
+  showArrow = false,
+  arrowClassName,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledby,
 }: FloatingPopoverProps) => {
@@ -96,6 +110,7 @@ export const FloatingPopover = ({
     onOpenChange?.(next);
   };
 
+  const arrowRef = useRef<SVGSVGElement | null>(null);
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
     onOpenChange: setIsOpen,
@@ -105,6 +120,7 @@ export const FloatingPopover = ({
       offset(offsetAmount),
       flip({ fallbackAxisSideDirection: "end" }),
       shift({ padding: 8 }),
+      ...(showArrow ? [arrow({ element: arrowRef })] : []),
     ],
   });
   const { isMounted, styles: transitionStyles } = useTransitionStyles(context);
@@ -166,6 +182,16 @@ export const FloatingPopover = ({
               style={{ ...floatingStyles, zIndex }}
               {...getFloatingProps()}
             >
+              {showArrow && (
+                <FloatingArrow
+                  ref={arrowRef}
+                  context={context}
+                  width={ARROW_WIDTH}
+                  height={ARROW_HEIGHT}
+                  tipRadius={2}
+                  className={arrowClassName}
+                />
+              )}
               {/* Children may be a function so they can read `ctx` (close, transition
                   styles, and — when opted in — the list-navigation handles). List
                   items register through `FloatingList`, so wrap when enabled. */}

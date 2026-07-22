@@ -22,4 +22,4 @@ When the app needs to show or derive a color value — rather than pass a stored
 ## Not yet enforced everywhere
 
 - The backend stores `color` as a plain `String` (`RankItem`, `GridItem`, `AxisItem`, `MatchItem` in `SlideContentTypes.java`) — no format is enforced at the type level. This is a frontend-authored convention, not a backend-validated one.
-- `ColorPickerNew.tsx` (`frontend/src/shared/components/Forms/Input/ColorPicker/`) is a work-in-progress component (`TODO: Move this to real color picker component when done`) that formalizes the two-format contract as a type — `type ColorString = HEX | OKLCH` — but isn't wired into the app yet.
+- `ColorPickerNew` (`frontend/src/shared/components/Forms/Input/ColorPicker/ColorPickerNew/`) — the DS color picker meant to replace the `@uiw`-based pickers — formalizes the contract as types (`colorConversion.ts`: `ColorString = HEX | OKLCH`, plus `var(--role-*)` refs as `ThemeVarColor`) and emits hex from its custom view, but isn't wired into the app yet.
