@@ -228,6 +228,9 @@
   height: 14px;
   cursor: pointer;
   touch-action: none;
+
+  /* Deliberate 1px (not --border-size-sm): the Figma spec draws a hairline
+     on this 14px track, and the 2px token would visibly swallow it. */
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
 

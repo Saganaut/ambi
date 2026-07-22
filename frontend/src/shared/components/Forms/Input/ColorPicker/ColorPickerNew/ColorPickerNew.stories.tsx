@@ -5,6 +5,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { fn } from "storybook/test";
 
+import { THEME_COLOR_ROLES } from "@utils/roleColors";
 import { ColorPickerNew, type ColorValue } from "./ColorPickerNew";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 
@@ -106,6 +107,16 @@ export const WithClear: Story = {
 // Opens directly on the custom color view.
 export const OpensOnCustomView: Story = {
   args: { initialView: "custom" },
+};
+
+// Production-shaped palette: live var(--role-*) theme refs (roleColors.ts).
+// Swatch picks pass the var ref through verbatim so the stored color keeps
+// tracking the active theme; loading one into the custom view resolves it
+// to a concrete color via the swatch's painted ::after dot.
+export const ThemeRoleSwatches: Story = {
+  args: {
+    colorSwatch: THEME_COLOR_ROLES.map((r) => r.cssVar as ColorValue),
+  },
 };
 
 // The bare panel, usable outside the popover (e.g. inside a modal).

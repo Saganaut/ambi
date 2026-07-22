@@ -72,15 +72,14 @@ const ColorPickerPanel = ({
   initialView = "swatches",
   className,
 }: ColorPickerPanelProps) => {
+  // The custom view's starting point, derived from the incoming value.
+  const seed = (value != null ? parseColor(value) : null) ?? FALLBACK_HSVA;
+
   const [view, setView] = useState<PickerView>(initialView);
-  const [hsva, setHsva] = useState<Hsva>(
-    () => (value != null ? parseColor(value) : null) ?? FALLBACK_HSVA,
-  );
+  const [hsva, setHsva] = useState<Hsva>(seed);
   // The hex field mirrors the picker but tolerates in-progress typing; only
   // a well-formed 6/8-digit hex is folded back into the picker state.
-  const [hexField, setHexField] = useState<string>(() => hsvaToHex(
-    (value != null ? parseColor(value) : null) ?? FALLBACK_HSVA,
-  ));
+  const [hexField, setHexField] = useState<string>(() => hsvaToHex(seed));
 
   const updateColor = (next: Hsva) => {
     setHsva(next);
@@ -93,11 +92,24 @@ const ColorPickerPanel = ({
   };
 
   // Load a swatch into the editor. Theme var(--role-*) strings can't be
-  // parsed, so fall back to the resolved color painted on the button.
+  // parsed, so fall back to the resolved color the cascade painted on the
+  // swatch — which lives on its ::after dot, not the host button.
   const loadSwatch = (color: string, element: HTMLButtonElement) => {
     const parsed =
-      parseColor(color) ?? parseColor(getComputedStyle(element).backgroundColor);
+      parseColor(color) ??
+      parseColor(getComputedStyle(element, "::after").backgroundColor);
     if (parsed) updateColor(parsed);
+  };
+
+  // Discard in-progress edits: close when the popover owns us; standalone,
+  // reset to the seed and return to the swatch grid when one exists.
+  const cancelEdit = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    updateColor(seed);
+    if (initialView === "swatches") setView("swatches");
   };
 
   const handleHexInput = (raw: string) => {
@@ -253,7 +265,7 @@ const ColorPickerPanel = ({
       )}
 
       <div className={styles.footer}>
-        <Btn variant='error' size='xs' onClick={onClose}>
+        <Btn variant='error' size='xs' onClick={cancelEdit}>
           Cancel
         </Btn>
         <Btn

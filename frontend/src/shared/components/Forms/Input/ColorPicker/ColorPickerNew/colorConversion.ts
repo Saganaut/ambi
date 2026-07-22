@@ -171,10 +171,15 @@ export function oklchToHsva(value: string): Hsva | null {
 const RGB_RX =
   /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,/]+([\d.]+%?))?\s*\)$/i;
 
+// color(srgb r g b / a) with channels 0-1 — the other serialization browsers
+// use for computed colors that started life outside legacy sRGB syntax.
+const COLOR_SRGB_RX =
+  /^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i;
+
 /**
  * Best-effort parse of a color string — hex, oklch(...), or a serialized
- * rgb()/rgba() computed value. Returns null for anything unresolvable
- * (e.g. a live var(--role-*) reference).
+ * rgb()/rgba()/color(srgb …) computed value. Returns null for anything
+ * unresolvable (e.g. a live var(--role-*) reference).
  */
 export function parseColor(value: string): Hsva | null {
   const trimmed = value.trim();
@@ -185,6 +190,18 @@ export function parseColor(value: string): Hsva | null {
     const a = rgb[4] != null ? parseNumberOrPercent(rgb[4], 1) : 1;
     return {
       ...rgbToHsv(Number(rgb[1]), Number(rgb[2]), Number(rgb[3])),
+      a: clamp(a, 0, 1),
+    };
+  }
+  const srgb = COLOR_SRGB_RX.exec(trimmed);
+  if (srgb) {
+    const a = srgb[4] != null ? parseNumberOrPercent(srgb[4], 1) : 1;
+    return {
+      ...rgbToHsv(
+        Math.round(clamp(Number(srgb[1]), 0, 1) * 255),
+        Math.round(clamp(Number(srgb[2]), 0, 1) * 255),
+        Math.round(clamp(Number(srgb[3]), 0, 1) * 255),
+      ),
       a: clamp(a, 0, 1),
     };
   }
