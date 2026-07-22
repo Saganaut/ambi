@@ -23,8 +23,9 @@ import { useDeckImageMutate } from "@/features/deck/hooks/useDeckImageMutate";
 import { useGetThemeQuery } from "@/features/theme/store/themeApi.gen";
 import { ThemeModal } from "@/shared/components/Theme/ThemeModal/ThemeModal";
 import { Btn } from "@/shared/components/UIElements/Buttons/Btn";
+import { ColorOptionBtn } from "@ui/Buttons/ColorOptionBtn";
 import { useModal } from "@/shared/hooks/useModal";
-import { ThemeColorSwatches } from "@/shared/components/Forms/Input/ColorPicker/ThemeColorSwatches";
+import { THEME_COLOR_ROLES } from "@utils/roleColors";
 import { Reviews } from "./Reviews";
 
 const TAGS_FACETS = deckValidation.SetTagsRequest.tags;
@@ -81,9 +82,20 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
       <p className={styles.empty}>
         {themeId ? (activeTheme?.name ?? "Custom theme") : "No theme applied."}
       </p>
-      {themeId && <div className={styles.themeColors}><ThemeColorSwatches
-        preventFocusSteal
-      /></div>}
+      {/* Read-only preview of the applied theme's palette roles; each swatch
+          paints itself from the live var(--role-*) cascade. */}
+      {themeId && (
+        <div className={styles.themeColors}>
+          {THEME_COLOR_ROLES.map((role) => (
+            <ColorOptionBtn
+              key={role.role}
+              label={role.label}
+              color={role.cssVar}
+              preventFocusSteal
+            />
+          ))}
+        </div>
+      )}
       <Btn type='button' className={styles.newBtn} onClick={openThemeModal}>
         {themeId ? "Change theme" : "Choose theme"}
       </Btn>

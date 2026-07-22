@@ -57,6 +57,9 @@ interface ColorPickerPanelProps {
   onClose?: () => void;
   /** Which view to open on. Defaults to the swatch grid. */
   initialView?: PickerView;
+  /** Hide the custom view's own heading/close row — for hosts (e.g. the app
+   *  modal) whose chrome already provides a title and close control. */
+  showHeader?: boolean;
   className?: string;
 }
 
@@ -70,6 +73,7 @@ const ColorPickerPanel = ({
   onClear,
   onClose,
   initialView = "swatches",
+  showHeader = true,
   className,
 }: ColorPickerPanelProps) => {
   // The custom view's starting point, derived from the incoming value.
@@ -164,30 +168,32 @@ const ColorPickerPanel = ({
 
   return (
     <div className={[styles.panel, styles.customPanel, className].filter(Boolean).join(" ")}>
-      <div className={styles.customHeader}>
-        {initialView === "swatches" ? (
-          <button
-            type='button'
-            className={styles.backBtn}
-            onClick={() => {
-              setView("swatches");
-            }}>
-            <ChevronLeftIcon aria-hidden='true' />
-            Custom color
-          </button>
-        ) : (
-          <span className={styles.heading}>Custom color</span>
-        )}
-        {onClose && (
-          <IconBtn
-            fill='ghost'
-            size='xs'
-            icon={<XMarkIcon />}
-            aria-label='Close color picker'
-            onClick={onClose}
-          />
-        )}
-      </div>
+      {showHeader && (
+        <div className={styles.customHeader}>
+          {initialView === "swatches" ? (
+            <button
+              type='button'
+              className={styles.backBtn}
+              onClick={() => {
+                setView("swatches");
+              }}>
+              <ChevronLeftIcon aria-hidden='true' />
+              Custom color
+            </button>
+          ) : (
+            <span className={styles.heading}>Custom color</span>
+          )}
+          {onClose && (
+            <IconBtn
+              fill='ghost'
+              size='xs'
+              icon={<XMarkIcon />}
+              aria-label='Close color picker'
+              onClick={onClose}
+            />
+          )}
+        </div>
+      )}
 
       <SaturationField
         hsva={hsva}

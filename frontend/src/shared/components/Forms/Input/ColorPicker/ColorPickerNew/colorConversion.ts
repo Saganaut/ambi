@@ -176,6 +176,14 @@ const RGB_RX =
 const COLOR_SRGB_RX =
   /^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i;
 
+/** Narrows an untrusted value (e.g. read back from localStorage) to ColorValue. */
+export function isColorValue(value: unknown): value is ColorValue {
+  return (
+    typeof value === "string" &&
+    (value.startsWith("#") || /^oklch\(/i.test(value) || value.startsWith("var(--"))
+  );
+}
+
 /**
  * Best-effort parse of a color string — hex, oklch(...), or a serialized
  * rgb()/rgba()/color(srgb …) computed value. Returns null for anything

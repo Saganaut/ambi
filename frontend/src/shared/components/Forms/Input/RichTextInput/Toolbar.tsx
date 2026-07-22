@@ -18,6 +18,7 @@ import { useState, type HTMLProps, type MouseEvent, type ReactNode } from "react
 import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import { Btn } from "@ui/Buttons/Btn";
 import { Input } from "@components/Forms/Input/Input/Input";
+import { addRecentColor, useRecentColors } from "@hooks/useRecentColors";
 import { THEME_COLOR_ROLES } from "@utils/roleColors";
 import {
   ColorPickerNew,
@@ -56,10 +57,6 @@ const COLOR_SWATCHES: ColorValue[] = [
   "#ffffff",
   ...THEME_COLOR_ROLES.map((r) => r.cssVar as ColorValue),
 ];
-
-// Session-scoped "recently used" colors, newest first, shared by every editor
-// instance (the color picker's Recent row). Deliberately not persisted.
-let recentColors: ColorValue[] = [];
 
 const H_ALIGNS: { value: HorizontalAlign; label: string }[] = [
   { value: "left", label: "Align left" },
@@ -159,8 +156,8 @@ const Toolbar = ({
   onVerticalAlignChange,
 }: ToolbarProps) => {
   const [openMenu, setOpenMenu] = useState<SubMenu>(null);
-  // Mirrors the module-level store so applying a color re-renders the panel.
-  const [recent, setRecent] = useState<ColorValue[]>(recentColors);
+  // App-wide recents (persisted) — feeds the color picker's Recent row.
+  const recent = useRecentColors();
 
   const linkOpen = openMenu === "link";
   const {
@@ -200,8 +197,7 @@ const Toolbar = ({
 
   const applyColor = (color: ColorValue) => {
     editor.chain().focus().setColor(color).run();
-    recentColors = [color, ...recentColors.filter((c) => c !== color)].slice(0, 8);
-    setRecent(recentColors);
+    addRecentColor(color);
   };
 
   return (

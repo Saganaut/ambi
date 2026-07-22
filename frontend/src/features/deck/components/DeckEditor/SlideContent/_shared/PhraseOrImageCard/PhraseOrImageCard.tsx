@@ -27,14 +27,13 @@ import { useState, type CSSProperties, type HTMLProps, type ReactNode } from "re
 import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
 import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { useFitText } from "@hooks/useFitText";
-import { useModal } from "@hooks/useModal";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, isImageEmpty, resolveImageUrl } from "@utils/image";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
+import { useCustomColorModal } from "../OptionMenu/useCustomColorModal";
 import styles from "./PhraseOrImageCard.module.css";
 
 /** The slice of an item a card edits — Matching cards and Grid items fit. */
@@ -92,7 +91,7 @@ const PhraseOrImageCard = ({
 }: PhraseOrImageCardProps) => {
   const itemId = item.id ?? "";
   const fieldId = `phrase-image-card-${itemId}`;
-  const { openModal, closeModal } = useModal();
+  const openCustomColorModal = useCustomColorModal();
 
   const [label, setLabel] = useState(item.label ?? "");
   // "Flipped to image but nothing uploaded yet" — pure UI state; the card
@@ -151,18 +150,7 @@ const PhraseOrImageCard = ({
 
   const handleCustomColor = () => {
     onMenuOpenChange(false);
-    openModal({
-      title: "Custom color",
-      content: (
-        <CustomColorPicker
-          initialColor={color}
-          onApply={(hex) => {
-            onSetColor(hex);
-            closeModal();
-          }}
-        />
-      ),
-    });
+    openCustomColorModal(color, onSetColor);
   };
 
   const handleClearImage = () => {

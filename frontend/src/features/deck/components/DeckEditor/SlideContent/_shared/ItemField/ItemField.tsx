@@ -22,13 +22,12 @@ import { useState, type HTMLProps } from "react";
 import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
 import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
 import { Input } from "@components/Forms/Input/Input/Input";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { useModal } from "@hooks/useModal";
 import { emptyImage, isImageEmpty } from "@utils/image";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
 import type { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
+import { useCustomColorModal } from "../OptionMenu/useCustomColorModal";
 import styles from "./ItemField.module.css";
 
 interface ItemFieldProps {
@@ -78,7 +77,7 @@ const ItemField = ({
   onRemove,
   openPicker,
 }: ItemFieldProps) => {
-  const { openModal, closeModal } = useModal();
+  const openCustomColorModal = useCustomColorModal();
 
   // Local mirror keeps typing responsive; resync when the bound row changes.
   const [label, setLabel] = useState(boundLabel ?? "");
@@ -97,18 +96,7 @@ const ItemField = ({
 
   const handleCustomColor = () => {
     onOpenChange(false);
-    openModal({
-      title: "Custom color",
-      content: (
-        <CustomColorPicker
-          initialColor={color}
-          onApply={(hex) => {
-            onSetColor(hex);
-            closeModal();
-          }}
-        />
-      ),
-    });
+    openCustomColorModal(color, onSetColor);
   };
 
   const handleUploadImage = () => {

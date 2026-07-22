@@ -21,12 +21,11 @@ import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext
 import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
-import { CustomColorPicker } from "@components/Forms/Input/ColorPicker/CustomColorPicker";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { useModal } from "@hooks/useModal";
 import type { HTMLProps } from "react";
 import { resolveOptionColor } from "../McqOptionEditable/optionColor";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
+import { useCustomColorModal } from "../OptionMenu/useCustomColorModal";
 import { Label } from "./Label";
 import styles from "./OptionControls.module.css";
 
@@ -66,7 +65,7 @@ const OptionField = ({
   flush,
   openPicker,
 }: OptionFieldProps) => {
-  const { openModal, closeModal } = useModal();
+  const openCustomColorModal = useCustomColorModal();
 
   const color = resolveOptionColor(option.color, paletteIndex);
   const hasImage = !isImageEmpty(option.image);
@@ -83,18 +82,7 @@ const OptionField = ({
 
   const handleCustomColor = () => {
     onOpenChange(false);
-    openModal({
-      title: "Custom color",
-      content: (
-        <CustomColorPicker
-          initialColor={color}
-          onApply={(hex) => {
-            onSetColor(hex);
-            closeModal();
-          }}
-        />
-      ),
-    });
+    openCustomColorModal(color, onSetColor);
   };
 
   const handleUploadImage = () => {

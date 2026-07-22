@@ -10,11 +10,14 @@ import {
   usePromoteBackgroundColorToDeckMutation,
   usePromoteBackgroundImageToDeckMutation,
 } from "@deck/store/deckApi.gen";
-import { BackgroundColorPicker } from "@shared/components/Forms/Input/ColorPicker/BackgroundColorPicker";
+import { ColorPickerNew } from "@shared/components/Forms/Input/ColorPicker/ColorPickerNew/ColorPickerNew";
 import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
+import { addRecentColor, useRecentColors } from "@shared/hooks/useRecentColors";
 import { Btn } from "@ui/Buttons/Btn";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
+import { BACKGROUND_COLOR_CHOICES } from "@utils/color";
+import type { CSSProperties, HTMLProps } from "react";
 import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSection";
 import { ImagePicker } from "../shared/ImagePicker";
 import settingsPanel from "../shared/SettingsPanel.module.css";
@@ -133,6 +136,7 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
   const { deck } = useDeckQuery(deckId);
   const [promoteBackgroundColor] = usePromoteBackgroundColorToDeckMutation();
+  const recentColors = useRecentColors();
 
   if (!slide) return null;
 
@@ -145,15 +149,34 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
 
   return (
     <section className={styles.section}>
-      <BackgroundColorPicker
-        label="Background color"
+      <ColorPickerNew
         value={effectiveColor}
-        onChange={(hex) => {
-          setSlideColor(id, hex);
+        colorSwatch={[...BACKGROUND_COLOR_CHOICES]}
+        recentlyUsedColorSwatch={recentColors}
+        label="Background color"
+        onChange={(color) => {
+          setSlideColor(id, color);
+          addRecentColor(color);
         }}
         // Clearing is "reset to deck" — only offered once the slide has its own
         // color to drop.
         onClear={ownColor != null ? () => clearSlideColor(id) : undefined}
+        renderTrigger={(triggerProps) => (
+          // triggerProps carries floating-ui's callback ref (typed for a
+          // generic HTMLElement); it attaches fine to a button at runtime.
+          <button
+            {...(triggerProps as HTMLProps<HTMLButtonElement>)}
+            type="button"
+            className={styles.colorTrigger}
+          >
+            <span>Background color</span>
+            <span
+              className={styles.colorTriggerSwatch}
+              style={{ "--trigger-swatch": effectiveColor ?? "transparent" } as CSSProperties}
+              aria-hidden="true"
+            />
+          </button>
+        )}
       />
       {ownColor != null && (
         <div className={settingsPanel.footer}>
