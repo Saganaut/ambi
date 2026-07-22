@@ -58,6 +58,13 @@ interface ColorPickerProps {
    */
   isOpen?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
+
+  /**
+   * Forwarded to FloatingPopover. Turn off when the picker is opened from a
+   * toolbar floating over a focused editor, so opening/closing it never moves
+   * focus itself (the editor keeps the caret). Defaults to true.
+   */
+  manageFocus?: boolean;
 }
 
 const ColorPickerNew = ({
@@ -74,11 +81,13 @@ const ColorPickerNew = ({
   className,
   isOpen,
   onOpenChange,
+  manageFocus = true,
 }: ColorPickerProps) => (
   <FloatingPopover
     placement={placement}
     open={isOpen}
     onOpenChange={onOpenChange}
+    manageFocus={manageFocus}
     renderTrigger={renderTrigger}
     showArrow
     arrowClassName={styles.tail}

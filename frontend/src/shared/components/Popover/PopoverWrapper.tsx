@@ -7,7 +7,9 @@ import {
   FloatingArrow,
   FloatingFocusManager,
   FloatingList,
+  FloatingNode,
   FloatingPortal,
+  FloatingTree,
   Placement,
   arrow,
   autoUpdate,
@@ -17,6 +19,8 @@ import {
   useClick,
   useDismiss,
   useFloating,
+  useFloatingNodeId,
+  useFloatingParentNodeId,
   useInteractions,
   useListNavigation,
   useRole,
@@ -85,7 +89,27 @@ interface FloatingPopoverProps {
 const ARROW_WIDTH = 18;
 const ARROW_HEIGHT = 10;
 
-export const FloatingPopover = ({
+/**
+ * Popovers can nest: a trigger rendered inside one popover's floating content
+ * may open another (e.g. a toolbar opening a color picker). Dismissal only
+ * understands that relationship through a shared FloatingTree — without one,
+ * pressing inside a nested popover's portal reads as an outside press and
+ * closes the parent. The outermost popover creates the tree; nested ones
+ * (detected via the parent-node context) join it.
+ */
+export const FloatingPopover = (props: FloatingPopoverProps) => {
+  const parentId = useFloatingParentNodeId();
+  if (parentId === null) {
+    return (
+      <FloatingTree>
+        <FloatingPopoverImpl {...props} />
+      </FloatingTree>
+    );
+  }
+  return <FloatingPopoverImpl {...props} />;
+};
+
+const FloatingPopoverImpl = ({
   children,
   placement = "bottom",
   offsetAmount = 8,
@@ -111,7 +135,9 @@ export const FloatingPopover = ({
   };
 
   const arrowRef = useRef<SVGSVGElement | null>(null);
+  const nodeId = useFloatingNodeId();
   const { refs, floatingStyles, context } = useFloating({
+    nodeId,
     open: isOpen,
     onOpenChange: setIsOpen,
     placement,
@@ -169,7 +195,7 @@ export const FloatingPopover = ({
         })
       : children;
   return (
-    <>
+    <FloatingNode id={nodeId}>
       {renderTrigger(triggerProps)}
 
       {isMounted && (
@@ -204,6 +230,6 @@ export const FloatingPopover = ({
           </FloatingFocusManager>
         </FloatingPortal>
       )}
-    </>
+    </FloatingNode>
   );
 };

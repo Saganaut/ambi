@@ -1,46 +1,29 @@
 /**
  * Rich text input — TipTap-backed editable surface that looks like a text
- * input by default. Clicking inside opens a floating toolbar (bold / strike /
- * underline / link / color / font-size). The toolbar closes on outside
- * pointerdown or Escape — same pattern the rest of the app's popovers use
- * (see McqOptionEditable).
+ * input by default. Focusing the editor opens the floating DS toolbar pill
+ * (see Toolbar.tsx); it closes on outside press or Escape.
  *
- * Positioning uses CSS Anchor Positioning (`anchor-name` on the surface,
- * `position-anchor` + `anchor()` on the toolbar) so the toolbar sits above
- * the input regardless of where the input lives in the page flow. No portal,
- * no floating-ui — the toolbar is a DOM sibling of the editor inside the
- * wrapper.
- *
- * Toolbar buttons use `preventFocusSteal` so clicking them doesn't blur the
- * ProseMirror editor; the link <input> is a real focusable element, so the
- * blur handler in useRichTextEditor ignores focus moves that land inside the
- * wrapper.
+ * The toolbar is a FloatingPopover anchored to the editor surface
+ * (`openOn="controlled"`, driven by editor focus) with focus management off,
+ * so opening it never pulls the caret out of the editor. Its sub-popovers
+ * (color picker, size menu, link editor) nest inside the same popover tree.
  *
  * The `value` / `onChange` API mirrors the rest of the form primitives: HTML
  * string in, HTML string out on every edit. Consumers can persist that string
  * directly to the backend (e.g. Slide.body).
  */
-import { EditorContent, type Editor } from "@tiptap/react";
+import { EditorContent } from "@tiptap/react";
 import {
   useEffect,
-  useId,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
-import { useClickOutside } from "@/shared/hooks/useClickOutside";
+import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import styles from "./RichTextInput.module.css";
-import {
-  Popover,
-  PopoverRow,
-  PopoverButton,
-  PopoverDivider,
-  PopoverGroupLabel,
-} from "../Popover/Popover";
-import { useRichTextEditor, useLinkEditor } from "./useRichTextInput";
-import { ColorOptionBtn } from "@ui/Buttons/ColorOptionBtn";
-import { ThemeColorSwatches } from "../ColorPicker/ThemeColorSwatches";
+import { Toolbar, type HorizontalAlign, type VerticalAlign } from "./Toolbar";
+import { useRichTextEditor } from "./useRichTextInput";
 
 interface RichTextInputHandle {
   /** Blur the underlying editor and close the toolbar. Used by parents that
@@ -87,365 +70,6 @@ interface RichTextInputProps {
   maxPx?: number;
 }
 
-// The full basic-color set, shown in the "More colors" panel.
-const COLOR_CHOICES: { label: string; value: string }[] = [
-  { label: "Default", value: "" },
-  { label: "Black", value: "#000000" },
-  { label: "White", value: "#ffffff" },
-  { label: "Red", value: "#e53e3e" },
-  { label: "Orange", value: "#dd6b20" },
-  { label: "Green", value: "#38a169" },
-  { label: "Blue", value: "#3182ce" },
-  { label: "Purple", value: "#805ad5" },
-];
-
-// The compact set always shown inline in the toolbar — black + white are always
-// here per design, plus default (clear) and three common colors. The rest live
-// behind the "More colors" button.
-const QUICK_COLOR_CHOICES: { label: string; value: string }[] = [
-  { label: "Default", value: "" },
-  { label: "Black", value: "#000000" },
-  { label: "White", value: "#ffffff" },
-  { label: "Red", value: "#e53e3e" },
-  { label: "Green", value: "#38a169" },
-  { label: "Blue", value: "#3182ce" },
-];
-
-// Swatch for the "More colors" toggle — a rainbow so it reads as "open the
-// palette", not a single color.
-const MORE_COLORS_SWATCH =
-  "conic-gradient(from 90deg, #e53e3e, #dd6b20, #38a169, #3182ce, #805ad5, #e53e3e)";
-
-// Widely-spaced steps so the sizes read as clearly distinct (14 / 20 / 30 / 44
-// px). These are the only size controls — there are no heading levels.
-const SIZE_CHOICES: { label: string; value: string }[] = [
-  { label: "S", value: "0.875rem" },
-  { label: "M", value: "1.25rem" },
-  { label: "L", value: "1.875rem" },
-  { label: "XL", value: "2.75rem" },
-];
-
-/** Whole-box alignment of the content within the editor. Semantic (not backend)
- *  values — the consumer maps these to whatever it persists. */
-type HorizontalAlign = "left" | "center" | "right";
-type VerticalAlign = "top" | "middle" | "bottom";
-
-const H_ALIGNS: { value: HorizontalAlign; label: string }[] = [
-  { value: "left", label: "Align left" },
-  { value: "center", label: "Align center" },
-  { value: "right", label: "Align right" },
-];
-const V_ALIGNS: { value: VerticalAlign; label: string }[] = [
-  { value: "top", label: "Align top" },
-  { value: "middle", label: "Align middle" },
-  { value: "bottom", label: "Align bottom" },
-];
-
-// Inline align glyph — the toolbar is text/glyph based and Heroicons has no
-// alignment set. Horizontal draws ragged "text" lines anchored left/center/right
-// (index 0/1/2); vertical draws full-width lines grouped at top/middle/bottom.
-const ALIGN_LINE_WIDTHS = [10, 7, 9, 6];
-const AlignGlyph = ({ axis, index }: { axis: "h" | "v"; index: 0 | 1 | 2 }) => {
-  const lines = ALIGN_LINE_WIDTHS.map((width, lineIndex) => {
-    if (axis === "h") {
-      const y = 3.5 + lineIndex * 3;
-      const x1 = index === 0 ? 3 : index === 2 ? 13 - width : 8 - width / 2;
-      return { x1, y, x2: x1 + width };
-    }
-    const yOffset = index === 0 ? 0 : index === 2 ? 4.5 : 2.25;
-    const y = 3 + yOffset + lineIndex * 2;
-    return { x1: 3, y, x2: 13 };
-  });
-  return (
-    <svg
-      width='16'
-      height='16'
-      viewBox='0 0 16 16'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='1.4'
-      strokeLinecap='round'
-      aria-hidden='true'>
-      {lines.map((line) => (
-        <line
-          key={`${line.y}-${line.x1}`}
-          x1={line.x1}
-          y1={line.y}
-          x2={line.x2}
-          y2={line.y}
-        />
-      ))}
-    </svg>
-  );
-};
-
-interface ToolbarProps {
-  editor: Editor;
-  linkOpen: boolean;
-  setLinkOpen: (v: boolean) => void;
-  /** Show the richer block controls (lists). Off for the compact input variant
-   *  used by prompt/inline fields. */
-  showBlockControls: boolean;
-  /** Whole-box alignment state + setters. Present only when the consumer opts
-   *  into alignment (the block/content usage); absent hides the align controls. */
-  horizontalAlign?: HorizontalAlign;
-  verticalAlign?: VerticalAlign;
-  onHorizontalAlignChange?: (value: HorizontalAlign) => void;
-  onVerticalAlignChange?: (value: VerticalAlign) => void;
-}
-
-const Toolbar = ({
-  editor,
-  linkOpen,
-  setLinkOpen,
-  showBlockControls,
-  horizontalAlign = "left",
-  verticalAlign = "top",
-  onHorizontalAlignChange,
-  onVerticalAlignChange,
-}: ToolbarProps) => {
-  const {
-    linkUrl,
-    setLinkUrl,
-    linkInputRef,
-    applyLink,
-    removeLink,
-    toggleLinkEditor,
-  } = useLinkEditor({ editor, linkOpen, setLinkOpen });
-
-  // "More colors" sub-panel. Mutually exclusive with the link editor so the two
-  // don't stack below the toolbar.
-  const [colorMenuOpen, setColorMenuOpen] = useState(false);
-
-  const applyColor = (value: string) => {
-    if (value === "") editor.chain().focus().unsetColor().run();
-    else editor.chain().focus().setColor(value).run();
-  };
-
-  return (
-    <>
-      <Popover role='toolbar' ariaLabel='Text formatting'>
-        <PopoverRow>
-          <PopoverButton
-            ariaLabel='Bold'
-            isActive={editor.isActive("bold")}
-            preventFocusSteal
-            onClick={() => editor.chain().focus().toggleBold().run()}>
-            <strong>B</strong>
-          </PopoverButton>
-          <PopoverButton
-            ariaLabel='Underline'
-            isActive={editor.isActive("underline")}
-            preventFocusSteal
-            onClick={() => editor.chain().focus().toggleUnderline().run()}>
-            <u>U</u>
-          </PopoverButton>
-          <PopoverButton
-            ariaLabel='Strikethrough'
-            isActive={editor.isActive("strike")}
-            preventFocusSteal
-            onClick={() => editor.chain().focus().toggleStrike().run()}>
-            <s>S</s>
-          </PopoverButton>
-          <PopoverButton
-            ariaLabel={linkOpen ? "Close link editor" : "Insert link"}
-            isActive={editor.isActive("link") || linkOpen}
-            preventFocusSteal
-            onClick={() => {
-              setColorMenuOpen(false);
-              toggleLinkEditor();
-            }}>
-            <span aria-hidden='true'>🔗</span>
-          </PopoverButton>
-
-          <PopoverDivider />
-
-          {/* Compact inline color set; the rest (+ theme colors) live behind
-              the "More colors" button. */}
-          {QUICK_COLOR_CHOICES.map((color) => (
-            <ColorOptionBtn
-              key={color.label}
-              label={color.label}
-              color={color.value}
-              preventFocusSteal
-              onClick={() => {
-                applyColor(color.value);
-              }}
-            />
-          ))}
-          <ColorOptionBtn
-            label='More colors'
-            ariaLabel={colorMenuOpen ? "Close color menu" : "More colors"}
-            color={MORE_COLORS_SWATCH}
-            preventFocusSteal
-            onClick={() => {
-              setLinkOpen(false);
-              setColorMenuOpen((o) => !o);
-            }}
-          />
-
-          <PopoverDivider />
-
-          {SIZE_CHOICES.map((size) => (
-            <PopoverButton
-              key={size.label}
-              ariaLabel={`Set font size ${size.label}`}
-              isActive={editor.isActive("textStyle", { fontSize: size.value })}
-              preventFocusSteal
-              onClick={() =>
-                editor.chain().focus().setFontSize(size.value).run()
-              }>
-              {size.label}
-            </PopoverButton>
-          ))}
-
-          {showBlockControls && (
-            <>
-              <PopoverDivider />
-              <PopoverButton
-                ariaLabel='Bullet list'
-                isActive={editor.isActive("bulletList")}
-                preventFocusSteal
-                onClick={() =>
-                  editor.chain().focus().toggleBulletList().run()
-                }>
-                <span aria-hidden='true'>•</span>
-              </PopoverButton>
-              <PopoverButton
-                ariaLabel='Numbered list'
-                isActive={editor.isActive("orderedList")}
-                preventFocusSteal
-                onClick={() =>
-                  editor.chain().focus().toggleOrderedList().run()
-                }>
-                <span aria-hidden='true'>1.</span>
-              </PopoverButton>
-
-              {onHorizontalAlignChange && (
-                <>
-                  <PopoverDivider />
-                  {H_ALIGNS.map(({ value, label }, alignIndex) => (
-                    <PopoverButton
-                      key={value}
-                      ariaLabel={label}
-                      isActive={horizontalAlign === value}
-                      preventFocusSteal
-                      onClick={() => onHorizontalAlignChange(value)}>
-                      <AlignGlyph axis='h' index={alignIndex as 0 | 1 | 2} />
-                    </PopoverButton>
-                  ))}
-                </>
-              )}
-
-              {onVerticalAlignChange && (
-                <>
-                  <PopoverDivider />
-                  {V_ALIGNS.map(({ value, label }, alignIndex) => (
-                    <PopoverButton
-                      key={value}
-                      ariaLabel={label}
-                      isActive={verticalAlign === value}
-                      preventFocusSteal
-                      onClick={() => onVerticalAlignChange(value)}>
-                      <AlignGlyph axis='v' index={alignIndex as 0 | 1 | 2} />
-                    </PopoverButton>
-                  ))}
-                </>
-              )}
-            </>
-          )}
-        </PopoverRow>
-      </Popover>
-
-      {colorMenuOpen && (
-        <Popover
-          className={styles.colorPopover}
-          role='dialog'
-          ariaLabel='More colors'>
-          <PopoverGroupLabel>Basic</PopoverGroupLabel>
-          <PopoverRow>
-            {COLOR_CHOICES.map((color) => (
-              <ColorOptionBtn
-                key={color.label}
-                label={color.label}
-                color={color.value}
-                preventFocusSteal
-                onClick={() => {
-                  applyColor(color.value);
-                  setColorMenuOpen(false);
-                }}
-              />
-            ))}
-          </PopoverRow>
-          <PopoverDivider />
-          <PopoverGroupLabel>Theme</PopoverGroupLabel>
-          <PopoverRow>
-            {/* Active theme's palette colors — stored as live var(--role-*)
-                refs so the text tracks the deck/global theme. */}
-            <ThemeColorSwatches
-              preventFocusSteal
-              onPick={(value) => {
-                applyColor(value);
-                setColorMenuOpen(false);
-              }}
-            />
-          </PopoverRow>
-        </Popover>
-      )}
-
-      {linkOpen && (
-        <Popover
-          className={styles.linkPopover}
-          role='dialog'
-          ariaLabel='Edit link'>
-          <PopoverRow>
-            <input
-              ref={linkInputRef}
-              type='url'
-              aria-label='Link URL'
-              className={styles.linkInput}
-              placeholder='https://example.com'
-              value={linkUrl}
-              onChange={(e) => {
-                setLinkUrl(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  applyLink();
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  setLinkOpen(false);
-                }
-              }}
-            />
-            <button
-              type='button'
-              className={styles.linkApply}
-              onMouseDown={(e) => {
-                e.preventDefault();
-              }}
-              onClick={applyLink}>
-              Apply
-            </button>
-            {editor.isActive("link") && (
-              <button
-                type='button'
-                className={styles.linkRemove}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
-                onClick={removeLink}>
-                Remove
-              </button>
-            )}
-          </PopoverRow>
-        </Popover>
-      )}
-    </>
-  );
-};
-
 const RichTextInput = ({
   value,
   onChange,
@@ -467,18 +91,11 @@ const RichTextInput = ({
 }: RichTextInputProps) => {
   const isBlock = variant === "block";
   const wrapperRef = useRef<HTMLDivElement>(null);
+  // The toolbar pill element; useRichTextEditor's blur handler walks up from
+  // it to the floating-ui portal node to tell "focus moved into the popup
+  // stack" apart from "focus left the editor".
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const [toolbarOpen, setToolbarOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-
-  // Per-instance CSS anchor name. The floating toolbar uses CSS Anchor
-  // Positioning to sit above the editor surface, but `anchor-name` is a
-  // single shared identifier — every RichTextInput on the page declaring
-  // the same `--rte` name collapses to one anchor, so every toolbar
-  // positions against whichever surface wins, and toggling one editor
-  // shifts another's toolbar. `useId` gives each instance its own name.
-  // `useId` returns identifiers like `:r0:`; strip the colons since they
-  // aren't valid in CSS custom-property names.
-  const anchorName = `--rte-${useId().replace(/:/g, "")}`;
 
   const editor = useRichTextEditor({
     value,
@@ -488,10 +105,12 @@ const RichTextInput = ({
     id,
     editorClassName: styles.editor,
     wrapperRef,
+    popupRef: toolbarRef,
   });
 
   // Open the toolbar whenever the editor takes focus. Subsequent focus events
-  // are a no-op against the already-true state.
+  // are a no-op against the already-true state. Closing (outside press,
+  // Escape) is handled by the popover's dismiss interaction.
   useEffect(() => {
     const handleFocus = () => {
       setToolbarOpen(true);
@@ -547,26 +166,9 @@ const RichTextInput = ({
     };
   }, [editor, value, minPx, maxPx]);
 
-  useClickOutside(wrapperRef, () => { setToolbarOpen(false); setLinkOpen(false); }, toolbarOpen);
-
-  useEffect(() => {
-    if (!toolbarOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setToolbarOpen(false);
-        setLinkOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [toolbarOpen]);
-
   useImperativeHandle(ref, () => ({
     blur: () => {
       editor.commands.blur();
-      setLinkOpen(false);
       setToolbarOpen(false);
     },
   }));
@@ -582,31 +184,39 @@ const RichTextInput = ({
           {label}
         </label>
       )}
-      <div
-        className={[
-          styles.surface,
-          isBlock && styles.surfaceBlock,
-          !isBordered && styles.noBorders,
-          showContrastPlate && styles.contrastPlate,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        // Whole-box alignment is applied to the editor via these attributes
-        // (see the .surfaceBlock[data-halign|data-valign] rules) rather than
-        // living in the content HTML, which stays purely the rich text.
-        data-halign={isBlock ? horizontalAlign : undefined}
-        data-valign={isBlock ? verticalAlign : undefined}
-        style={{ anchorName }}>
-        {toolbarOpen && (
+      <FloatingPopover
+        placement='top-start'
+        openOn='controlled'
+        manageFocus={false}
+        open={toolbarOpen}
+        onOpenChange={setToolbarOpen}
+        aria-label='Text formatting'
+        renderTrigger={(triggerProps) => (
           <div
-            className={[styles.floatingToolbar, isBlock && styles.floatingToolbarBlock]
+            {...(triggerProps as React.HTMLProps<HTMLDivElement>)}
+            className={[
+              styles.surface,
+              isBlock && styles.surfaceBlock,
+              !isBordered && styles.noBorders,
+              showContrastPlate && styles.contrastPlate,
+            ]
               .filter(Boolean)
               .join(" ")}
-            style={{ positionAnchor: anchorName }}>
+            // Whole-box alignment is applied to the editor via these attributes
+            // (see the .surfaceBlock[data-halign|data-valign] rules) rather than
+            // living in the content HTML, which stays purely the rich text.
+            data-halign={isBlock ? horizontalAlign : undefined}
+            data-valign={isBlock ? verticalAlign : undefined}>
+            <EditorContent
+              editor={editor}
+              className={isBlock ? styles.editorHost : undefined}
+            />
+          </div>
+        )}>
+        {({ ctx }) => (
+          <div ref={toolbarRef} style={ctx.styles}>
             <Toolbar
               editor={editor}
-              linkOpen={linkOpen}
-              setLinkOpen={setLinkOpen}
               showBlockControls={isBlock}
               horizontalAlign={horizontalAlign}
               verticalAlign={verticalAlign}
@@ -615,11 +225,7 @@ const RichTextInput = ({
             />
           </div>
         )}
-        <EditorContent
-          editor={editor}
-          className={isBlock ? styles.editorHost : undefined}
-        />
-      </div>
+      </FloatingPopover>
     </div>
   );
 };

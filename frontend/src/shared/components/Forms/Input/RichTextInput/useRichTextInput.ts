@@ -16,9 +16,14 @@ interface UseRichTextEditorArgs {
   id?: string;
   editorClassName: string;
   /** Ref to the wrapping element so onBlur can ignore focus moves that land
-   *  inside the toolbar (e.g. the link <input>). The ref is read at fire time,
-   *  so its `current` doesn't need to be a dep. */
+   *  inside the editor's own chrome. The ref is read at fire time, so its
+   *  `current` doesn't need to be a dep. */
   wrapperRef: React.RefObject<HTMLElement | null>;
+  /** Ref to the floating toolbar's content. The toolbar (and every popover
+   *  opened from it) renders in a floating-ui portal outside the wrapper;
+   *  nested portals mount inside the toolbar's portal node, so walking up to
+   *  that node lets one containment check cover the whole popup stack. */
+  popupRef: React.RefObject<HTMLElement | null>;
 }
 
 const useRichTextEditor = ({
@@ -29,6 +34,7 @@ const useRichTextEditor = ({
   id,
   editorClassName,
   wrapperRef,
+  popupRef,
 }: UseRichTextEditorArgs) => {
   const editor = useEditor({
     extensions: [
@@ -73,21 +79,27 @@ const useRichTextEditor = ({
     }
   }, [editor, value]);
 
-  // Fire the consumer's onBlur only when focus has left the wrapper entirely —
-  // clicking a toolbar button or focusing the link input shouldn't trigger a
-  // flush.
+  // Fire the consumer's onBlur only when focus has left the editor and its
+  // popup stack entirely — focusing the link input or the color picker's hex
+  // field shouldn't trigger a flush.
   useEffect(() => {
     if (!onBlur) return;
     const handler = ({ event }: { event: FocusEvent }) => {
       const next = event.relatedTarget as Node | null;
-      if (next && wrapperRef.current?.contains(next)) return;
+      if (next) {
+        if (wrapperRef.current?.contains(next)) return;
+        // The toolbar's portal node (floating-ui marks it with this data
+        // attribute) also hosts the nested popovers' portals.
+        const portalRoot = popupRef.current?.closest("[data-floating-ui-portal]");
+        if (portalRoot?.contains(next)) return;
+      }
       onBlur();
     };
     editor.on("blur", handler);
     return () => {
       editor.off("blur", handler);
     };
-  }, [editor, onBlur, wrapperRef]);
+  }, [editor, onBlur, wrapperRef, popupRef]);
 
   return editor;
 };
@@ -137,21 +149,13 @@ const useLinkEditor = ({
     setLinkOpen(false);
   };
 
-  const toggleLinkEditor = () => {
-    if (linkOpen) {
-      setLinkOpen(false);
-      return;
-    }
-    openLinkEditor();
-  };
-
   return {
     linkUrl,
     setLinkUrl,
     linkInputRef,
     applyLink,
     removeLink,
-    toggleLinkEditor,
+    openLinkEditor,
   };
 };
 
