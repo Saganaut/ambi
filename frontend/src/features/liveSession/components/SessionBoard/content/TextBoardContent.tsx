@@ -5,7 +5,9 @@
 //                   never live-tallied, so there is no shared feed — the surface
 //                   stays editable and re-sending overwrites the prior answer
 //                   (last write before the round closes wins). Host/projector
-//                   sees an "answer on your own device" note instead.
+//                   sees an "answer on your own device" note instead — or, once
+//                   the round stops accepting submissions (`mode` stays "prompt"
+//                   for a LOCKED round), an answers-are-in note.
 //   - liveResults → still answerable (same overwrite semantics); responses stay
 //                   hidden until the host reveals results, so no data is shown —
 //                   a note says so rather than faking an empty feed.
@@ -53,7 +55,10 @@ const TextBoardContent = ({ slide, mode, interactive }: TextBoardContentProps) =
   // Free text isn't live-tallied, so the only responses ever available arrive
   // with the revealed round result. There is no server-tracked "my answer", so
   // the submitted flag is round-local: cleared whenever the round changes.
-  const { results } = useLiveSessionQuery();
+  // `mode` stays "prompt" for a LOCKED round; the phase tells closed-but-not-
+  // revealed apart from a host projection of an open round.
+  const { phase, results } = useLiveSessionQuery();
+  const accepting = phase === "SUBMIT" || phase === "SUBMIT_LIVE";
   const revealed = results?.slideId === slideId ? results : null;
 
   // Compose + submitted state are round-local: reset when the round changes.
@@ -182,11 +187,16 @@ const TextBoardContent = ({ slide, mode, interactive }: TextBoardContentProps) =
   }
 
   if (!interactive) {
-    // Host/projector: free text is typed on each participant's own device, and
-    // nothing is shown here until results are revealed.
+    // Host/projector (and everyone once the round closes): free text is typed
+    // on each participant's own device, and nothing is shown here until
+    // results are revealed.
     return (
       <div className={styles.textBoardContent}>
-        <p className={styles.note}>Type your answer on your own device.</p>
+        <p className={styles.note}>
+          {accepting
+            ? "Type your answer on your own device."
+            : "Answers are in — this round is closed."}
+        </p>
       </div>
     );
   }

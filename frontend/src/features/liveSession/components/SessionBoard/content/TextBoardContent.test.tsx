@@ -14,6 +14,7 @@ import type { BoardQuestionMode } from "../resolveBoardStage";
 const h = vi.hoisted(() => ({
   sendAnswer: vi.fn(),
   query: {
+    phase: "SUBMIT" as string,
     results: null as unknown,
   },
 }));
@@ -76,6 +77,7 @@ const renderContent = (
 describe("TextBoardContent composing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    h.query.phase = "SUBMIT";
     h.query.results = null;
   });
 
@@ -127,6 +129,23 @@ describe("TextBoardContent composing", () => {
     expect(
       screen.getByText("Type your answer on your own device."),
     ).toBeInTheDocument();
+  });
+
+  it("notes the round is closed once submissions stop", () => {
+    // A LOCKED round keeps mode "prompt" but no longer accepts input; the
+    // device instruction would be stale, so the note flips to answers-are-in.
+    h.query.phase = "LOCKED";
+    renderContent("prompt", false);
+    expect(
+      screen.getByText("Answers are in — this round is closed."),
+    ).toBeInTheDocument();
+
+    // Same once responses are revealed (mode "liveResults", closed round).
+    h.query.phase = "REVEAL_RESPONSES";
+    renderContent("liveResults", false);
+    expect(
+      screen.getAllByText("Answers are in — this round is closed."),
+    ).toHaveLength(2);
   });
 
   it("notes that answers stay hidden during liveResults", () => {
