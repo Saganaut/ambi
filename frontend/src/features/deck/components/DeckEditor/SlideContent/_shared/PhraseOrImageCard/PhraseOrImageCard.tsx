@@ -32,8 +32,8 @@ import type { AppImage } from "@deck/store/deckApi.gen";
 import { useFitText } from "@hooks/useFitText";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, isImageEmpty, resolveImageUrl } from "@utils/image";
+import { CustomColorPanel } from "../OptionMenu/CustomColorPanel";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
-import { useCustomColorModal } from "../OptionMenu/useCustomColorModal";
 import styles from "./PhraseOrImageCard.module.css";
 
 /** The slice of an item a card edits — Matching cards and Grid items fit. */
@@ -91,7 +91,9 @@ const PhraseOrImageCard = ({
 }: PhraseOrImageCardProps) => {
   const itemId = item.id ?? "";
   const fieldId = `phrase-image-card-${itemId}`;
-  const openCustomColorModal = useCustomColorModal();
+
+  // Whether the popover shows the custom-color view instead of the menu.
+  const [customColorOpen, setCustomColorOpen] = useState(false);
 
   const [label, setLabel] = useState(item.label ?? "");
   // "Flipped to image but nothing uploaded yet" — pure UI state; the card
@@ -123,6 +125,13 @@ const PhraseOrImageCard = ({
     }
   };
 
+  // Route open-state changes so closing (dismissal included) always lands
+  // back on the menu view the next time the popover opens.
+  const handleMenuOpenChange = (next: boolean) => {
+    if (!next) setCustomColorOpen(false);
+    onMenuOpenChange(next);
+  };
+
   const handlePickImage = () => {
     onMenuOpenChange(false);
     openPicker(
@@ -149,8 +158,7 @@ const PhraseOrImageCard = ({
   };
 
   const handleCustomColor = () => {
-    onMenuOpenChange(false);
-    openCustomColorModal(color, onSetColor);
+    setCustomColorOpen(true);
   };
 
   const handleClearImage = () => {
@@ -170,7 +178,7 @@ const PhraseOrImageCard = ({
         manageFocus={false}
         listNavigation
         open={menuOpen}
-        onOpenChange={onMenuOpenChange}
+        onOpenChange={handleMenuOpenChange}
         placement="bottom-start"
         offsetAmount={8}
         zIndex={100}
@@ -229,25 +237,38 @@ const PhraseOrImageCard = ({
       >
         {({ ctx }) => (
           <div style={ctx.styles}>
-            <PopoverNavContext value={ctx.listNav ?? null}>
-              <OptionMenuContent
-                displayIndex={displayIndex}
-                currentColor={color}
-                canRemove={canRemove}
-                hasImage={hasImage}
-                primaryAction={{
-                  label: isImageCard ? "Use a phrase" : "Use an image",
-                  icon: ArrowsRightLeftIcon,
-                  pressed: isImageCard,
-                  onSelect: handleMenuFlip,
+            {customColorOpen ? (
+              <CustomColorPanel
+                value={color}
+                onPick={onSetColor}
+                onBack={() => {
+                  setCustomColorOpen(false);
                 }}
-                onPickColor={handlePickColor}
-                onCustomColor={handleCustomColor}
-                onUploadImage={handlePickImage}
-                onClearImage={handleClearImage}
-                onRemove={handleRemove}
+                onClose={() => {
+                  handleMenuOpenChange(false);
+                }}
               />
-            </PopoverNavContext>
+            ) : (
+              <PopoverNavContext value={ctx.listNav ?? null}>
+                <OptionMenuContent
+                  displayIndex={displayIndex}
+                  currentColor={color}
+                  canRemove={canRemove}
+                  hasImage={hasImage}
+                  primaryAction={{
+                    label: isImageCard ? "Use a phrase" : "Use an image",
+                    icon: ArrowsRightLeftIcon,
+                    pressed: isImageCard,
+                    onSelect: handleMenuFlip,
+                  }}
+                  onPickColor={handlePickColor}
+                  onCustomColor={handleCustomColor}
+                  onUploadImage={handlePickImage}
+                  onClearImage={handleClearImage}
+                  onRemove={handleRemove}
+                />
+              </PopoverNavContext>
+            )}
           </div>
         )}
       </FloatingPopover>

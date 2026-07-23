@@ -14,8 +14,10 @@
  * `OptionMenuContent` via `PopoverNavContext`).
  *
  * The menu body is the shared `OptionMenuContent` (palette + custom color,
- * image upload/clear, delete); the kind-specific leading action comes in as
- * `primaryAction` (e.g. Axis's set/clear-target toggle) and may be omitted.
+ * image upload/clear, delete); the custom-color path swaps the popover body
+ * to the shared `CustomColorPanel` (back returns to the menu). The
+ * kind-specific leading action comes in as `primaryAction` (e.g. Axis's
+ * set/clear-target toggle) and may be omitted.
  */
 import { useState, type HTMLProps } from "react";
 
@@ -25,9 +27,9 @@ import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { Input } from "@components/Forms/Input/Input/Input";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { emptyImage, isImageEmpty } from "@utils/image";
+import { CustomColorPanel } from "../OptionMenu/CustomColorPanel";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
 import type { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
-import { useCustomColorModal } from "../OptionMenu/useCustomColorModal";
 import styles from "./ItemField.module.css";
 
 interface ItemFieldProps {
@@ -77,7 +79,8 @@ const ItemField = ({
   onRemove,
   openPicker,
 }: ItemFieldProps) => {
-  const openCustomColorModal = useCustomColorModal();
+  // Whether the popover shows the custom-color view instead of the menu.
+  const [customColorOpen, setCustomColorOpen] = useState(false);
 
   // Local mirror keeps typing responsive; resync when the bound row changes.
   const [label, setLabel] = useState(boundLabel ?? "");
@@ -89,14 +92,20 @@ const ItemField = ({
 
   const fieldId = `item-label-${itemId ?? ""}`;
 
+  // Route open-state changes so closing (dismissal included) always lands
+  // back on the menu view the next time the popover opens.
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setCustomColorOpen(false);
+    onOpenChange(next);
+  };
+
   const handlePickColor = (next: string) => {
     onOpenChange(false);
     onSetColor(next);
   };
 
   const handleCustomColor = () => {
-    onOpenChange(false);
-    openCustomColorModal(color, onSetColor);
+    setCustomColorOpen(true);
   };
 
   const handleUploadImage = () => {
@@ -130,7 +139,7 @@ const ItemField = ({
       manageFocus={false}
       listNavigation
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       placement="bottom-start"
       offsetAmount={8}
       zIndex={100}
@@ -164,20 +173,33 @@ const ItemField = ({
     >
       {({ ctx }) => (
         <div style={ctx.styles}>
-          <PopoverNavContext value={ctx.listNav ?? null}>
-            <OptionMenuContent
-              displayIndex={displayIndex.toString()}
-              currentColor={color}
-              canRemove={canRemove}
-              hasImage={!isImageEmpty(image)}
-              primaryAction={primaryAction}
-              onPickColor={handlePickColor}
-              onCustomColor={handleCustomColor}
-              onUploadImage={handleUploadImage}
-              onClearImage={handleClearImage}
-              onRemove={handleRemove}
+          {customColorOpen ? (
+            <CustomColorPanel
+              value={color}
+              onPick={onSetColor}
+              onBack={() => {
+                setCustomColorOpen(false);
+              }}
+              onClose={() => {
+                handleOpenChange(false);
+              }}
             />
-          </PopoverNavContext>
+          ) : (
+            <PopoverNavContext value={ctx.listNav ?? null}>
+              <OptionMenuContent
+                displayIndex={displayIndex.toString()}
+                currentColor={color}
+                canRemove={canRemove}
+                hasImage={!isImageEmpty(image)}
+                primaryAction={primaryAction}
+                onPickColor={handlePickColor}
+                onCustomColor={handleCustomColor}
+                onUploadImage={handleUploadImage}
+                onClearImage={handleClearImage}
+                onRemove={handleRemove}
+              />
+            </PopoverNavContext>
+          )}
         </div>
       )}
     </FloatingPopover>

@@ -12,8 +12,9 @@
 // closes). `ctx.listNav` carries floating-ui's item handles down to the shared
 // `OptionMenuContent` via `PopoverNavContext`.
 //
-// The menu body is the shared `OptionMenuContent`; the custom-color path hands
-// off to the shared modal and image upload to the gallery picker.
+// The menu body is the shared `OptionMenuContent`; the custom-color path swaps
+// the popover body to the shared `CustomColorPanel` (back returns to the menu)
+// and image upload hands off to the gallery picker.
 import { CheckIcon } from "@heroicons/react/24/outline";
 import { emptyImage, isImageEmpty } from "@utils/image";
 
@@ -22,10 +23,10 @@ import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import type { HTMLProps } from "react";
+import { useState, type HTMLProps } from "react";
 import { resolveOptionColor } from "../McqOptionEditable/optionColor";
+import { CustomColorPanel } from "../OptionMenu/CustomColorPanel";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
-import { useCustomColorModal } from "../OptionMenu/useCustomColorModal";
 import { Label } from "./Label";
 import styles from "./OptionControls.module.css";
 
@@ -65,10 +66,18 @@ const OptionField = ({
   flush,
   openPicker,
 }: OptionFieldProps) => {
-  const openCustomColorModal = useCustomColorModal();
+  // Whether the popover shows the custom-color view instead of the menu.
+  const [customColorOpen, setCustomColorOpen] = useState(false);
 
   const color = resolveOptionColor(option.color, paletteIndex);
   const hasImage = !isImageEmpty(option.image);
+
+  // Route open-state changes so closing (dismissal included) always lands
+  // back on the menu view the next time the popover opens.
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setCustomColorOpen(false);
+    onOpenChange(next);
+  };
 
   const handleToggleCorrect = () => {
     onOpenChange(false);
@@ -81,8 +90,7 @@ const OptionField = ({
   };
 
   const handleCustomColor = () => {
-    onOpenChange(false);
-    openCustomColorModal(color, onSetColor);
+    setCustomColorOpen(true);
   };
 
   const handleUploadImage = () => {
@@ -116,7 +124,7 @@ const OptionField = ({
       manageFocus={false}
       listNavigation
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       placement="bottom-start"
       offsetAmount={8}
       zIndex={100}
@@ -138,25 +146,38 @@ const OptionField = ({
     >
       {({ ctx }) => (
         <div style={ctx.styles}>
-          <PopoverNavContext value={ctx.listNav ?? null}>
-            <OptionMenuContent
-              displayIndex={option.id}
-              currentColor={color}
-              canRemove={canRemove}
-              hasImage={hasImage}
-              primaryAction={{
-                label: isCorrect ? "Mark as wrong" : "Mark as correct",
-                icon: CheckIcon,
-                pressed: isCorrect,
-                onSelect: handleToggleCorrect,
+          {customColorOpen ? (
+            <CustomColorPanel
+              value={color}
+              onPick={onSetColor}
+              onBack={() => {
+                setCustomColorOpen(false);
               }}
-              onPickColor={handlePickColor}
-              onCustomColor={handleCustomColor}
-              onUploadImage={handleUploadImage}
-              onClearImage={handleClearImage}
-              onRemove={handleRemove}
+              onClose={() => {
+                handleOpenChange(false);
+              }}
             />
-          </PopoverNavContext>
+          ) : (
+            <PopoverNavContext value={ctx.listNav ?? null}>
+              <OptionMenuContent
+                displayIndex={option.id}
+                currentColor={color}
+                canRemove={canRemove}
+                hasImage={hasImage}
+                primaryAction={{
+                  label: isCorrect ? "Mark as wrong" : "Mark as correct",
+                  icon: CheckIcon,
+                  pressed: isCorrect,
+                  onSelect: handleToggleCorrect,
+                }}
+                onPickColor={handlePickColor}
+                onCustomColor={handleCustomColor}
+                onUploadImage={handleUploadImage}
+                onClearImage={handleClearImage}
+                onRemove={handleRemove}
+              />
+            </PopoverNavContext>
+          )}
         </div>
       )}
     </FloatingPopover>
