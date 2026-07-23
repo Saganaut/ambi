@@ -32,6 +32,13 @@
 3. **Adapt via containers, not viewport.** A large component tightens its `--gutter-*`/`--stack-*` by flipping its manifest vars in `@container` blocks or via `--gutter-fluid` — the same card must work in the board, a sidebar, or a gallery cell.
 4. **Manifest integration.** Large components expose the standard `--padding` / `--gap` [manifest slots](tokens-and-variables.md) and default them to layout tokens (`--padding: var(--gutter-md)`); size/variant classes flip the slot, not the property.
 
+## Enforcement
+
+`frontend/stylelint.config.mjs` bans `var(--space-*)` in `padding*`, `margin*`, and `gap` properties
+(`declaration-property-value-disallowed-list`, currently *warning* severity while the remaining
+sanctioned one-offs are worked off). Positioned offsets (`top`/`inset-*`), `scroll-margin`, and the
+token definitions in `tokens.css` are outside the rule's property set by design.
+
 ## Reference example
 
 `frontend/src/features/deck/views/MyDecksPage/MyDecksPage.module.css` — page inset `var(--gutter-lg) var(--gutter-sm)`, header-to-body `--stack-md`, section breaks `--stack-lg`, while everything inside the tabs/cards stays on component-tier tokens.

@@ -72,6 +72,23 @@ export default {
       },
     ],
 
+    // Spacing must route through the semantic tiers (--gap-*, --p-*, --stack-*,
+    // --gutter-*); raw --space-* is only for defining those tokens in tokens.css
+    // and for true one-offs (absolute offsets, scroll margins), which live in
+    // properties this rule doesn't cover. Warning severity while the sanctioned
+    // leftovers are worked off; graduates to error once they're resolved.
+    // See z-docs/rules/styling/spacing-hierarchy.md.
+    "declaration-property-value-disallowed-list": [
+      {
+        "/^(padding|margin|gap|row-gap|column-gap)/": [/var\(--space-/],
+      },
+      {
+        severity: "warning",
+        message:
+          "Use semantic spacing tokens (--gap-*, --p-*, --stack-*, --gutter-*) instead of raw --space-* (spacing-hierarchy rule)",
+      },
+    ],
+
     // using lowerCamelCase for compatibility with css modules
     "selector-class-pattern": [
       "^[a-z][a-zA-Z0-9]+$",
