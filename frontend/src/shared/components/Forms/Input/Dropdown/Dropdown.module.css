@@ -160,7 +160,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--gap-xs);
-  padding: var(--p-pill-xs);
+
+  /* (2px, 8px) has no --p-pill-* equivalent — sanctioned one-off on the raw scale */
+  padding: var(--space-half) var(--space-2);
   background-color: var(--bg-subtle);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
