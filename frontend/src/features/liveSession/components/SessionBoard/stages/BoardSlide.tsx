@@ -2,6 +2,7 @@
 // no results, so this is identical for everyone — host, projected screen, or a
 // participant's device. Renders the slide's background colour plus its section
 // eyebrow and title, centred.
+import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import styles from "./BoardSlide.module.css";
 
@@ -21,7 +22,7 @@ const BoardSlide = ({ slide }: BoardSlideProps) => (
     }>
     <div className={styles.content}>
       {slide.section && <p className={styles.eyebrow}>{slide.section}</p>}
-      {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+      {slide.title && <RichTextDisplay value={slide.title} className={styles.title} />}
       {slide.participantInstructions && (
         <p className={styles.body}>{slide.participantInstructions}</p>
       )}

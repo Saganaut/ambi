@@ -9,6 +9,7 @@
  * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing built; others fallback to
  * placeholder).
  */
+import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import type { SlideView } from "../../../store/liveSessionApi.gen";
 import { AxisBoardContent } from "../content/AxisBoardContent";
 import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
@@ -31,7 +32,7 @@ interface BoardQuestionProps {
 const BoardQuestion = ({ slide, mode, interactive }: BoardQuestionProps) => (
   <div className={styles.boardQuestion}>
     <header className={styles.header}>
-      {slide.title && <h2 className={styles.prompt}>{slide.title}</h2>}
+      {slide.title && <RichTextDisplay value={slide.title} className={styles.prompt} />}
       {slide.participantInstructions && (
         <p className={styles.instructions}>{slide.participantInstructions}</p>
       )}
