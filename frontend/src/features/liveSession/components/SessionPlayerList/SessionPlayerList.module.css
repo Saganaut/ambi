@@ -15,8 +15,9 @@
     display: grid;
     grid-template-columns: 3fr 1fr;
     border-radius: var(--radius-sm);
-    /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
-    padding: 0.25rem var(--space-2);
+
+    /* (4px, 8px) has no --p-* equivalent — sanctioned one-off on the raw scale */
+    padding: var(--space-1) var(--space-2);
 
     .name {
       display: flex;

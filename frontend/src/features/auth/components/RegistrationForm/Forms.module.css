@@ -1,5 +1,9 @@
 .registrationFormContainer {
   container-type: inline-size;
+
+  /* Deliberate viewport-relative composition: the auth form floats in the
+     upper third of the screen (20% of the dynamic viewport height), which no
+     fixed-px spacing token can express — sanctioned one-off. */
   /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
   padding-top: 20dvh;
 

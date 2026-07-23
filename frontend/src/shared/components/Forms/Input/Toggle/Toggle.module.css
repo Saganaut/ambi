@@ -7,9 +7,10 @@
   position: relative;
   width: 100%;
 
+  /* One --space-6 step below the control (flush left — no field text inset). */
   .message {
     position: absolute;
-    bottom: -24px;
+    bottom: calc(-1 * var(--space-6));
     left: 0;
   }
 }

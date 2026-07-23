@@ -74,10 +74,11 @@
     }
   }
 
+  /* One --space-6 step below the field, x-aligned with its --p-sm text inset. */
   .message {
     position: absolute;
-    bottom: -24px;
-    left: 10px;
+    bottom: calc(-1 * var(--space-6));
+    left: var(--space-3);
   }
 }
 
