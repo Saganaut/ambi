@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: "📊",
     title: "Answers Become Data",
-    desc: "Every response is a typed, server-scored submission — tallied live and projected into results charts your whole room can see.",
+    desc: "Every response is a typed, server-scored submission — tallied live and projected into live results your whole room can see.",
   },
   {
     icon: "🏆",
@@ -28,7 +28,7 @@ const FEATURES = [
 const STATS = [
   { number: "17", label: "Slide Types" },
   { number: "Live", label: "Server Scoring" },
-  { number: "QR", label: "Instant Join" },
+  { number: "Real-Time", label: "Live Board" },
 ];
 
 const LandingPage = () => {
@@ -110,9 +110,8 @@ const LandingPage = () => {
             <p className={styles.heroTagline}>Present. Engage. Compete.</p>
             <p className={styles.heroBody}>
               Build decks of interactive slides and run them live. Your audience
-              joins from any device by room code or QR, answers in real time,
-              and watches responses, results, and standings unfold on the shared
-              board.
+              joins by room code or QR, answers in real time, and watches
+              responses, results, and standings unfold on the shared board.
             </p>
             <div className={styles.heroActions}>
               <Link to='/' viewTransition className={styles.btnPrimary}>
