@@ -45,6 +45,11 @@ export const liveSessionValidation = {
     "slideId": {
       "minLength": 1
     }
+  },
+  "TextAnswer": {
+    "text": {
+      "maxLength": 500
+    }
   }
 } as const;
 

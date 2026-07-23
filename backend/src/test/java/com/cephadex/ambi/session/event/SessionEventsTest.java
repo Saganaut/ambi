@@ -19,7 +19,9 @@ import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
+import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
@@ -71,6 +73,15 @@ class SessionEventsTest {
                 List.of(new ScaleItem("meal-1", "Breakfast"), new ScaleItem("meal-2", "Elevenses")),
                 Map.of("meal-1", 4.5),
                 0.8));
+        return slide;
+    }
+
+    private static Slide textSlide() {
+        Slide slide = new Slide();
+        slide.setId("slide-text");
+        slide.setTitle("Name the capital");
+        slide.setContent(new TextContent(
+                Set.of("Minas Tirith"), MatchMode.EXACT, true, true, 80));
         return slide;
     }
 
@@ -156,6 +167,39 @@ class SessionEventsTest {
         assertThat(json).doesNotContain("correctValues");
         assertThat(json).doesNotContain("tolerance");
         assertThat(json).doesNotContain("4.5");
+    }
+
+    @Test
+    void slideViewCarriesTextConfigButDropsGradingSecrets() {
+        SlideView view = SlideView.from(textSlide(), null, NO_IMAGES);
+
+        // The participant-safe config travels: the input cap and the display hint.
+        assertThat(view.text()).isNotNull();
+        assertThat(view.text().maxLength()).isEqualTo(80);
+        // A scored short-answer slide is not a word cloud.
+        assertThat(view.text().wordCloud()).isFalse();
+
+        // acceptedAnswers (the answer key) and the match/normalization settings are
+        // grading-only — never on the wire.
+        String json = codec.serialize(view);
+        assertThat(json).doesNotContain("acceptedAnswers");
+        assertThat(json).doesNotContain("Minas Tirith");
+        assertThat(json).doesNotContain("matchMode");
+        assertThat(json).doesNotContain("caseSensitive");
+        assertThat(json).doesNotContain("trimWhitespace");
+    }
+
+    @Test
+    void textViewMarksWordCloudMode() {
+        Slide slide = new Slide();
+        slide.setId("slide-wordcloud");
+        slide.setContent(new TextContent(Set.of(), MatchMode.WORDCLOUD, false, true, null));
+
+        SlideView view = SlideView.from(slide, null, NO_IMAGES);
+
+        // Word-cloud mode flips the board's display hint; an unset cap stays null.
+        assertThat(view.text().wordCloud()).isTrue();
+        assertThat(view.text().maxLength()).isNull();
     }
 
     @Test

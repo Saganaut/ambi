@@ -67,6 +67,8 @@ public final class ValidationConstants {
     public static final int QANDA_QUESTION_MAX = 500;
     /** Length cap on the answer the host types next to a Q&amp;A question. */
     public static final int QANDA_HOST_ANSWER_MAX = 1000;
+    /** Length cap on a participant's free-text / word-cloud answer submission. */
+    public static final int TEXT_ANSWER_MAX = 500;
 
     // ── Reviews ──────────────────────────────────────────────────────────────
     /** Lowest valid star score on a deck review. */

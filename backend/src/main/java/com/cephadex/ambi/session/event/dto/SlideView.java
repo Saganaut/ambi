@@ -14,6 +14,7 @@ import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 /**
@@ -43,7 +44,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * {@link MatchingConfigView} (both card columns with the right column
  * re-ordered, never {@code correctPairs}); a Drawing slide carries
  * {@link DrawingConfigView} (prompt image + placement, palette, tools, never
- * {@code correctImage}); each is {@code null} for every other kind.
+ * {@code correctImage}); a Text slide carries {@link TextConfigView} (the input
+ * cap + a word-cloud display hint, never {@code acceptedAnswers} or the
+ * match/normalization settings); each is {@code null} for every other kind.
  */
 public record SlideView(
         String id,
@@ -60,6 +63,7 @@ public record SlideView(
         ScalesConfigView scales,
         MatchingConfigView matching,
         DrawingConfigView drawing,
+        TextConfigView text,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -80,6 +84,7 @@ public record SlideView(
         ScalesConfigView scales = null;
         MatchingConfigView matching = null;
         DrawingConfigView drawing = null;
+        TextConfigView text = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -104,6 +109,9 @@ public record SlideView(
             if (content instanceof DrawingContent drawingContent) {
                 drawing = DrawingConfigView.from(drawingContent, imageUrl);
             }
+            if (content instanceof TextContent textContent) {
+                text = TextConfigView.from(textContent);
+            }
         }
         return new SlideView(
                 slide.getId(),
@@ -120,6 +128,7 @@ public record SlideView(
                 scales,
                 matching,
                 drawing,
+                text,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

@@ -29,6 +29,7 @@ import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
@@ -42,6 +43,7 @@ import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
+import com.cephadex.ambi.session.answer.payload.TextAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -148,7 +150,7 @@ public class LiveSessionAnswerService {
         }
 
         // `maxSelections` is an MCQ knob (how many options one pick may span). A
-        // grid, axis, scales, matching, or drawing submission is one whole
+        // grid, axis, scales, matching, drawing, or text submission is one whole
         // artifact, so the deck default of 1 must not make the first submission
         // final — these resubmits overwrite (last write before close wins), like
         // a multi-select MCQ change.
@@ -156,7 +158,8 @@ public class LiveSessionAnswerService {
                 || request.payload() instanceof AxisAnswer
                 || request.payload() instanceof ScalesAnswer
                 || request.payload() instanceof MatchingAnswer
-                || request.payload() instanceof DrawingAnswer ? 0 : maxSelections;
+                || request.payload() instanceof DrawingAnswer
+                || request.payload() instanceof TextAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), effectiveMaxSelections);
     }
@@ -212,6 +215,9 @@ public class LiveSessionAnswerService {
         }
         if (content instanceof DrawingContent && payload instanceof DrawingAnswer ans) {
             validateDrawing(sessionId, participantId, ans);
+        }
+        if (content instanceof TextContent text && payload instanceof TextAnswer ans) {
+            validateText(text, ans);
         }
         // Other content types are stored as-is; their tally/validation lands with scoring.
     }
@@ -383,6 +389,28 @@ public class LiveSessionAnswerService {
         }
         if (question.question().length() > ValidationConstants.QANDA_QUESTION_MAX) {
             throw new ValidationException("question is too long");
+        }
+    }
+
+    /**
+     * A text submission (short-answer or word-cloud) must be non-blank, within
+     * the global {@link ValidationConstants#TEXT_ANSWER_MAX} cap (re-checked
+     * defensively behind the {@code @Size} annotation on {@link TextAnswer}),
+     * and within the slide's own {@code maxLength} when the author set one. The
+     * length is measured on the raw submitted string — the same characters the
+     * client counted against the cap.
+     */
+    private void validateText(TextContent content, TextAnswer answer) {
+        String text = answer.text();
+        if (text == null || text.isBlank()) {
+            throw new ValidationException("a text answer must not be empty");
+        }
+        if (text.length() > ValidationConstants.TEXT_ANSWER_MAX) {
+            throw new ValidationException("text answer is too long");
+        }
+        Integer maxLength = content.maxLength();
+        if (maxLength != null && text.length() > maxLength) {
+            throw new ValidationException("text answer exceeds the slide's character limit");
         }
     }
 

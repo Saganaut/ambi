@@ -488,6 +488,10 @@ export type DrawingConfigView = {
   palette?: string[];
   tools?: ("PEN" | "ERASER" | "SHAPES" | "TEXT" | "COLOR_PALETTE")[];
 };
+export type TextConfigView = {
+  maxLength?: number;
+  wordCloud?: boolean;
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -525,6 +529,7 @@ export type SlideView = {
   scales?: ScalesConfigView;
   matching?: MatchingConfigView;
   drawing?: DrawingConfigView;
+  text?: TextConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {

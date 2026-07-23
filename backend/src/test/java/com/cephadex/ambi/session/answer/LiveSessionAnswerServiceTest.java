@@ -43,10 +43,12 @@ import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
@@ -65,6 +67,7 @@ import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
+import com.cephadex.ambi.session.answer.payload.TextAnswer;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -416,6 +419,50 @@ class LiveSessionAnswerServiceTest {
         verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
     }
 
+    // ── Text ─────────────────────────────────────────────────────────────────
+
+    @Test
+    void textAnswerBypassesTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), textContent(80));
+
+        service.submit(SID, request(new TextAnswer("Minas Tirith")), registered);
+
+        // A text answer is one whole artifact; resubmits must overwrite, so the
+        // orchestrator is called with 0 (last-write-wins).
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(TextAnswer.class), eq(0));
+    }
+
+    @Test
+    void textBlankAnswerIsRejected() {
+        givenLiveSession(answerSettings(true, 1), textContent(80));
+
+        assertThatThrownBy(() -> service.submit(SID, request(new TextAnswer("   ")), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void textOverGlobalCapIsRejected() {
+        // No per-slide cap, so only the global TEXT_ANSWER_MAX guards the length.
+        givenLiveSession(answerSettings(true, 1), textContent(null));
+        String tooLong = "x".repeat(ValidationConstants.TEXT_ANSWER_MAX + 1);
+
+        assertThatThrownBy(() -> service.submit(SID, request(new TextAnswer(tooLong)), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void textOverSlideMaxLengthIsRejected() {
+        // The slide caps at 5, below the global cap — the tighter bound wins.
+        givenLiveSession(answerSettings(true, 1), textContent(5));
+
+        assertThatThrownBy(() -> service.submit(SID, request(new TextAnswer("too long")), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
     // ── Drawing ────────────────────────────────────────────────────────────────
 
     /** A key under the fixture participant's own drawing namespace. */
@@ -594,6 +641,12 @@ class LiveSessionAnswerServiceTest {
                 List.of(new ScaleItem("it-1", "One"), new ScaleItem("it-2", "Two")),
                 java.util.Map.of(),
                 1.0);
+    }
+
+    /** A scored short-answer slide with the given per-input cap ({@code null} = unlimited). */
+    private static TextContent textContent(Integer maxLength) {
+        return new TextContent(
+                java.util.Set.of("Minas Tirith"), MatchMode.EXACT, true, true, maxLength);
     }
 
     private static McqContent mcqContent(String... optionIds) {
