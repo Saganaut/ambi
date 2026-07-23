@@ -26,7 +26,8 @@ results, and standings unfold on the shared board. The product is built around t
   discrimination index) point at where the data story is headed.
 - **Competitiveness** — sessions are hosted games as much as presentations: scored rounds with
   timers and phased reveals, a live leaderboard, best-answer voting where the audience picks
-  the winning submission, and prediction follow-ups that score players on guessing the crowd.
+  the winning submission, and prediction follow-ups that ask players to guess the crowd's
+  answer (scoring for predictions is still to come).
 
 Ambi is **not** a learning project, and it is not a brain-training or quiz-drill app. It is
 being built to an **enterprise quality bar**: reviewed commits, enforced conventions, typed
