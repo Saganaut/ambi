@@ -2,23 +2,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-4);
+  gap: var(--stack-sm);
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   background: var(--bg-surface);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-md);
-  padding: var(--space-3);
+  padding: var(--p-square-sm);
 }
 
 .thumb {
@@ -43,7 +43,7 @@
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   display: flex;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   flex-wrap: wrap;
 }
 
@@ -55,6 +55,6 @@
 
 .cardActions {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   margin-top: auto;
 }

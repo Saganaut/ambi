@@ -1,7 +1,7 @@
 .qandaBoardContent {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -9,7 +9,7 @@
   .displayToggle {
     display: flex;
     justify-content: flex-end;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
   }
 
   .empty {
@@ -23,7 +23,7 @@
   .questions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--gap-md);
     flex: 1;
     min-height: 0;
     margin: 0;
@@ -34,7 +34,7 @@
     .question {
       display: flex;
       flex-direction: column;
-      gap: var(--space-2);
+      gap: var(--gap-sm);
       padding: var(--p-md);
       border-radius: var(--radius-md);
       background-color: var(--bg-surface-raised);
@@ -42,7 +42,7 @@
       .questionMain {
         display: flex;
         align-items: baseline;
-        gap: var(--space-3);
+        gap: var(--gap-md);
 
         .asker {
           flex-shrink: 0;
@@ -63,7 +63,7 @@
       .hostAnswer {
         display: flex;
         align-items: baseline;
-        gap: var(--space-2);
+        gap: var(--gap-sm);
         margin: 0;
         padding-inline-start: var(--space-4);
         border-inline-start: var(--border-size-md) solid var(--edge-brand);
@@ -83,7 +83,7 @@
       .answerEditor {
         display: flex;
         flex-direction: column;
-        gap: var(--space-2);
+        gap: var(--gap-sm);
         align-items: flex-start;
       }
     }
@@ -92,7 +92,7 @@
   .echo {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
 
     .echoTitle {
       margin: 0;
@@ -105,7 +105,7 @@
     .echoList {
       display: flex;
       flex-direction: column;
-      gap: var(--space-1);
+      gap: var(--gap-xs);
       margin: 0;
       padding-inline-start: var(--space-5);
       color: var(--text-primary);
@@ -115,7 +115,7 @@
   .compose {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
 
     .capNote {
       margin: 0;
@@ -127,7 +127,7 @@
 
   .composeInput {
     width: 100%;
-    padding: var(--space-3);
+    padding: var(--p-square-sm);
     border: var(--border-size-md) solid var(--edge-subtle);
     border-radius: var(--radius-md);
     background-color: var(--bg-surface-raised);
@@ -145,7 +145,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--space-3);
+    gap: var(--gap-md);
 
     .hint {
       color: var(--text-secondary);

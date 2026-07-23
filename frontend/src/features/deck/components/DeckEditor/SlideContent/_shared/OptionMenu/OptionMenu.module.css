@@ -6,9 +6,9 @@
 
 .menu {
   width: 252px;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   border-radius: var(--radius-lg);
-  padding: var(--space-3);
+  padding: var(--p-square-sm);
 
   .sectionLabel {
     font-size: var(--font-size-xs);
@@ -23,7 +23,7 @@
   .swatchStrip {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
     padding: 0 var(--space-1) var(--space-1);
   }
 
@@ -80,9 +80,9 @@
   .menuItem {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
     width: 100%;
-    padding: var(--space-2);
+    padding: var(--p-square-xs);
     border: none;
     border-radius: var(--radius-sm);
     background: transparent;

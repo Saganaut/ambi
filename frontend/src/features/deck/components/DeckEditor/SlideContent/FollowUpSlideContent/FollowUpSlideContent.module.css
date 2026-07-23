@@ -1,6 +1,6 @@
 .modeBanner {
   align-self: center;
-  padding: var(--space-1) var(--space-3);
+  padding: var(--p-xs);
   border-radius: var(--radius-full, 999px);
   background-color: var(--bg-surface);
   border: var(--border-size-sm) solid var(--border-default);
@@ -16,7 +16,7 @@
 
   display: grid;
   grid-template-columns: repeat(var(--cols), 1fr);
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .ghostOption {

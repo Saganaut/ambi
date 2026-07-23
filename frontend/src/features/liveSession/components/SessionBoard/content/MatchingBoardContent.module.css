@@ -1,7 +1,7 @@
 .matchingBoardContent {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -24,7 +24,7 @@
   .columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-4);
+    gap: var(--gap-lg);
     width: 100%;
     max-width: 44rem;
     margin: 0 auto;
@@ -33,7 +33,7 @@
   .column {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -50,10 +50,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-1);
+    gap: var(--gap-xs);
     width: 100%;
     min-height: 3.5rem;
-    padding: var(--space-2);
+    padding: var(--p-square-xs);
     border: var(--border-size-sm) solid var(--edge-subtle);
     border-left: var(--border-size-lg) solid var(--card-accent);
     border-radius: var(--radius-md);
@@ -109,7 +109,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: var(--space-1);
+    gap: var(--gap-xs);
   }
 
   /* One chip per left card players connected here, in that card's accent. */
@@ -127,7 +127,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
 
     .hint {
       color: var(--text-secondary);

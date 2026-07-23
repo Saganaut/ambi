@@ -14,7 +14,7 @@
     minmax(6rem, auto)
     repeat(var(--grid-cols), minmax(0, 1fr))
     auto;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   align-items: stretch;
 }
 
@@ -43,7 +43,7 @@
 .axisLabelInput {
   flex: 1;
   min-width: 0;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--p-sm);
   border: none;
   background: none;
   color: var(--text-primary);
@@ -100,7 +100,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   border: var(--space-px) dashed var(--border-default);
   border-radius: var(--radius-md);
   background: none;
@@ -114,12 +114,12 @@
 }
 
 .axisAdd {
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
 }
 
 .rowAdd {
   grid-column: 1 / -1;
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
 }
 
 .axisAdd:hover,
@@ -139,9 +139,9 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   min-height: 8rem;
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   border-radius: var(--radius-md);
   background-color: var(--bg-surface);
 }
@@ -157,9 +157,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   flex: 1;
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   border: var(--space-px) dashed var(--border-default);
   border-radius: var(--radius-md);
   background: none;
@@ -179,7 +179,7 @@
   align-items: center;
   justify-content: center;
   align-self: center;
-  padding: var(--space-1);
+  padding: var(--p-square-xxs);
   border: var(--space-px) dashed var(--border-default);
   border-radius: var(--radius-full);
   background: none;
@@ -214,7 +214,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-1);
+  padding: var(--p-square-xxs);
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   cursor: grab;
@@ -250,12 +250,12 @@
 .unplaced {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   margin-top: var(--space-3);
 }
 
 .unplacedItems {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }

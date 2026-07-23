@@ -3,17 +3,17 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: var(--space-6);
+  padding: var(--gutter-md);
   background: var(--bg-canvas);
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-lg);
   width: 100%;
   max-width: 24rem;
-  padding: var(--space-8);
+  padding: var(--gutter-lg);
   border: var(--border-size-sm) solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--bg-surface);

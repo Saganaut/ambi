@@ -12,7 +12,7 @@
   display: grid;
   grid-template-columns: 1fr minmax(0, 1.1fr) 1fr;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 @container (width <= 560px) {
@@ -27,8 +27,8 @@
 
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--gap-sm);
+  padding: var(--p-square-sm);
   border: var(--border-size-sm) solid var(--endpoint-accent);
   border-radius: var(--radius-md);
 
@@ -49,7 +49,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .endpointSide {
@@ -115,7 +115,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   min-width: 0;
   padding: 0 var(--space-1);
 }
@@ -172,7 +172,7 @@
 .toleranceRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
@@ -193,7 +193,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--gap-sm) var(--gap-md);
   width: 100%;
   min-width: 0;
 }
@@ -207,7 +207,7 @@
   display: flex;
   flex: 1 1 14rem;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   min-width: 0;
 }
 
@@ -303,6 +303,6 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   white-space: nowrap;
 }

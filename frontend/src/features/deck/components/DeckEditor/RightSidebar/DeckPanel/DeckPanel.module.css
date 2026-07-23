@@ -4,13 +4,13 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--stack-sm);
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .newBtn {
@@ -42,7 +42,7 @@
 .tagList {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -51,7 +51,7 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
   background: var(--bg-surface-raised);
   border: 1px solid var(--border-default);

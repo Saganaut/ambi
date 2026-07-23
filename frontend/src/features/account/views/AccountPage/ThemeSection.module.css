@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .subsectionTitle {
@@ -19,7 +19,7 @@
 .themeGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 /* ── ThemeCard ── */
@@ -57,10 +57,10 @@
 }
 
 .cardBody {
-  padding: var(--space-3);
+  padding: var(--p-square-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .cardName {
@@ -75,7 +75,7 @@
 .cardMeta {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .badge {
@@ -97,8 +97,8 @@
 
 .cardActions {
   display: flex;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: var(--gap-sm);
+  padding: var(--p-sm);
   border-top: var(--border-size-sm) solid var(--border-subtle);
   flex-wrap: wrap;
 }
@@ -144,19 +144,19 @@
 .editorForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-lg);
 }
 
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .uploadRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .uploadThumb {
@@ -184,7 +184,7 @@
 
 .editorActions {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   justify-content: flex-end;
 }
 
@@ -199,15 +199,15 @@
 .orgList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--stack-sm);
+  margin-bottom: var(--stack-sm);
 }
 
 .orgInfo {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--gap-sm);
+  padding: var(--p-square-sm);
   border: var(--border-size-sm) solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
@@ -229,7 +229,7 @@
 .orgJoinForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .orgDivider {
@@ -259,7 +259,7 @@
 
 .orgRow {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   align-items: flex-start;
 }
 

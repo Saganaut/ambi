@@ -20,7 +20,7 @@
 
 .leaderboardHeader {
   display: flex;
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -32,7 +32,7 @@
 }
 
 .playerList {
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   margin: 0;
   gap: var(--gap-sm);
   display: flex;
@@ -54,7 +54,7 @@
 .playerRow {
   background-color: var(--bg-surface);
   display: flex;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--p-sm);
   border-radius: var(--radius-md);
   gap: var(--gap-sm);
   align-items: center;
@@ -79,6 +79,6 @@
 }
 
 .emptyState {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--p-sm);
   color: var(--text-muted);
 }

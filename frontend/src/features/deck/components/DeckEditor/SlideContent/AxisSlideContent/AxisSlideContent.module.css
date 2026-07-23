@@ -11,7 +11,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: var(--stack-sm);
 }
 
 .planeColumn {
@@ -164,7 +164,7 @@
   position: absolute;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   max-width: 9rem;
   padding: var(--space-half) var(--space-2) var(--space-half) var(--space-1);
   transform: translate(calc(-1 * (var(--space-1) + var(--dot-size) / 2)), -50%);
@@ -218,7 +218,7 @@
 .planeMeta {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   min-width: 0;
 }
 
@@ -241,7 +241,7 @@
 .itemFields {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   flex: 1;
   min-width: 0;
 }
@@ -249,7 +249,7 @@
 .targetFields {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   flex: none;
 
   /* Whole percents only (0–100): keep the X/Y fields narrow so the label
@@ -273,7 +273,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-1);
+  padding: var(--p-square-xxs);
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   cursor: grab;

@@ -1,7 +1,7 @@
 .mediaBlock {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 /* 16:9 responsive frame for the YouTube preview. */
@@ -33,7 +33,7 @@
 
 .imageActions {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .hint {

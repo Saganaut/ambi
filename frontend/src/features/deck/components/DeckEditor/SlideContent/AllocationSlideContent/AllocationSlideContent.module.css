@@ -5,7 +5,7 @@
 .poolBadge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
   background-color: var(--bg-surface-raised);
@@ -27,7 +27,7 @@
 .optionFields {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   flex: 1;
   min-width: 0;
 }
@@ -46,6 +46,6 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   white-space: nowrap;
 }

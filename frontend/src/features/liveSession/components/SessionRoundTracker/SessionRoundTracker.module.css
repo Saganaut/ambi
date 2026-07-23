@@ -1,11 +1,11 @@
 .sessionRoundTracker {
   background-color: var(--bg-surface);
   height: 100%;
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   scrollbar-gutter: stable;
 
   .sessionRoundThumbnail {

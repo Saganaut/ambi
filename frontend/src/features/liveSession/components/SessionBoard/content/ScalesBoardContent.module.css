@@ -1,7 +1,7 @@
 .scalesBoardContent {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -24,7 +24,7 @@
   .statements {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--gap-lg);
     width: 100%;
     max-width: 40rem;
     margin: 0 auto;
@@ -35,7 +35,7 @@
   .statement {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
   }
 
   .statementLabel {
@@ -47,14 +47,14 @@
   .trackRow {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
   }
 
   .trackBody {
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--gap-xs);
     min-width: 0;
   }
 
@@ -99,7 +99,7 @@
      grid/axis board's per-cell heat. */
   .heatStrip {
     display: flex;
-    gap: var(--space-1);
+    gap: var(--gap-xs);
     width: 100%;
     height: var(--space-2);
   }
@@ -118,7 +118,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
 
     .hint {
       color: var(--text-secondary);

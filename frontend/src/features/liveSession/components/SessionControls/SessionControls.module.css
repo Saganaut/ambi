@@ -9,7 +9,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--gap-sm);
     padding: var(--p-md);
 
     /* Pushes the destructive group (End / Restart) to the trailing edge,

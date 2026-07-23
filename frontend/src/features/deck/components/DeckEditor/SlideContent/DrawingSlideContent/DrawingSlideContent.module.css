@@ -5,7 +5,7 @@
 .paletteRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   align-items: center;
 }
 
@@ -70,7 +70,7 @@
   justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   border-radius: var(--radius-md);
   border: var(--border-size-sm) dashed var(--edge-surface);
   background-color: transparent;
@@ -96,7 +96,7 @@
 .imageActions {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   align-items: center;
 }
 
@@ -122,7 +122,7 @@
 .drawModalBody {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   width: min(70vh, 34rem);
   max-width: 100%;
 }
@@ -136,5 +136,5 @@
 .drawModalActions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }

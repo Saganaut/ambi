@@ -7,8 +7,8 @@
 .thread {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--gap-sm);
+  padding: var(--p-square-sm);
   background: var(--bg-surface);
   border: 2px solid var(--edge-subtle);
   border-radius: var(--radius-md);
@@ -22,7 +22,7 @@
 .threadHead {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .collapseToggle {
@@ -77,13 +77,13 @@
 .threadBody {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .comments {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -92,13 +92,13 @@
 .comment {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
 }
 
 .commentHead {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .avatar {
@@ -135,19 +135,19 @@
 .commentActions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .threadActions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .actionBtn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   padding: var(--space-1) var(--space-2);
   background: transparent;
   border: 2px solid transparent;
@@ -175,14 +175,14 @@
 .editor {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 .editorInput {
   width: 100%;
   resize: vertical;
   min-height: 3.5rem;
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   background: var(--bg-subtle);
@@ -199,5 +199,5 @@
 .editorActions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }

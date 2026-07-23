@@ -1,7 +1,7 @@
 .gridBoardContent {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -27,7 +27,7 @@
     display: grid;
     grid-template-columns: auto repeat(var(--grid-cols), 1fr);
     grid-auto-rows: minmax(4rem, auto);
-    gap: var(--space-2);
+    gap: var(--gap-sm);
     flex: 1;
     min-height: 0;
     align-content: start;
@@ -49,8 +49,8 @@
       display: flex;
       flex-wrap: wrap;
       align-content: flex-start;
-      gap: var(--space-2);
-      padding: var(--space-2);
+      gap: var(--gap-sm);
+      padding: var(--p-square-xs);
       border-radius: var(--radius-md);
       background-color: var(--bg-surface-raised);
 
@@ -73,8 +73,8 @@
         z-index: 1;
         display: inline-flex;
         align-items: center;
-        gap: var(--space-1);
-        padding: var(--space-1) var(--space-3);
+        gap: var(--gap-xs);
+        padding: var(--p-xs);
         border: var(--border-size-md) solid var(--chip-accent);
         border-radius: var(--radius-full);
         background-color: var(--bg-surface);
@@ -114,14 +114,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--gap-md);
 
     .bank {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: var(--space-2);
+      gap: var(--gap-sm);
 
       .bankChip {
         /* Fallback for the inline value set from the item's resolved color. */
@@ -129,8 +129,8 @@
 
         display: inline-flex;
         align-items: center;
-        gap: var(--space-1);
-        padding: var(--space-1) var(--space-3);
+        gap: var(--gap-xs);
+        padding: var(--p-xs);
         border: var(--border-size-md) solid var(--chip-accent);
         border-radius: var(--radius-full);
         background-color: var(--bg-surface-raised);

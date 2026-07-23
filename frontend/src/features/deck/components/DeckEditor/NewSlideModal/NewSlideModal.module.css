@@ -10,7 +10,7 @@
   .section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--gap-md);
   }
 
   /* Eyebrow heading with a trailing hairline rule. */

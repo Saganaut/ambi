@@ -4,13 +4,13 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--stack-sm);
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 
   button {
     width: 100%;
@@ -42,7 +42,7 @@
 
     /* The inputs' default label↔control gap is sized for wide forms; in a
        narrow rail it steals room from the label and wraps it early. */
-    gap: var(--space-3);
+    gap: var(--gap-md);
   }
 
   > * + * {
@@ -73,8 +73,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  gap: var(--gap-md);
+  padding: var(--p-sm);
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text-primary);
@@ -110,14 +110,14 @@
 
 .chartPicker {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 
   .chartButton {
     flex: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--space-2);
+    padding: var(--p-square-xs);
     background: var(--bg-surface-raised);
     border: 2px solid transparent;
     border-radius: var(--radius-md);
