@@ -32,7 +32,9 @@ interface BoardQuestionProps {
 const BoardQuestion = ({ slide, mode, interactive }: BoardQuestionProps) => (
   <div className={styles.boardQuestion}>
     <header className={styles.header}>
-      {slide.title && <RichTextDisplay value={slide.title} className={styles.prompt} />}
+      {slide.title && (
+        <RichTextDisplay as="h2" value={slide.title} className={styles.prompt} />
+      )}
       {slide.participantInstructions && (
         <p className={styles.instructions}>{slide.participantInstructions}</p>
       )}

@@ -31,6 +31,10 @@ interface RichTextDisplayProps {
   /** If set, the rendered content is truncated to this many characters of
    *  visible text (tags don't count) with an ellipsis appended. */
   maxLength?: number;
+  /** Wrapper element to render. Defaults to a `div`; pass a heading (`h1`–`h6`)
+   *  when the rich text is a title so it keeps a place in the document outline
+   *  for assistive tech. The sanitized HTML is still injected internally. */
+  as?: React.ElementType;
   className?: string;
 }
 
@@ -122,6 +126,7 @@ const RichTextDisplayInner = ({
   value,
   styled = true,
   maxLength,
+  as: Wrapper = "div",
   className,
 }: RichTextDisplayProps) => {
   // Sanitize once at the boundary; every downstream path (plain-text stripping,
@@ -140,11 +145,11 @@ const RichTextDisplayInner = ({
   }, [styled, safeHtml, maxLength]);
 
   if (!styled) {
-    return <div className={`${styles.plain} ${className ?? ""}`.trim()}>{plainText}</div>;
+    return <Wrapper className={`${styles.plain} ${className ?? ""}`.trim()}>{plainText}</Wrapper>;
   }
 
   return (
-    <div
+    <Wrapper
       className={`${styles.content} ${className ?? ""}`.trim()}
       // eslint-disable-next-line react/no-danger -- styledHtml is DOMPurify-sanitized via sanitizeRichText (allowlist matches the TipTap schema; scripts/handlers/unsafe URLs stripped)
       dangerouslySetInnerHTML={{ __html: styledHtml }}

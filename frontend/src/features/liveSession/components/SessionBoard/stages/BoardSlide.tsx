@@ -22,7 +22,7 @@ const BoardSlide = ({ slide }: BoardSlideProps) => (
     }>
     <div className={styles.content}>
       {slide.section && <p className={styles.eyebrow}>{slide.section}</p>}
-      {slide.title && <RichTextDisplay value={slide.title} className={styles.title} />}
+      {slide.title && <RichTextDisplay as="h1" value={slide.title} className={styles.title} />}
       {slide.participantInstructions && (
         <p className={styles.body}>{slide.participantInstructions}</p>
       )}

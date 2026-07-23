@@ -65,6 +65,29 @@ describe("RichTextDisplay", () => {
     });
   });
 
+  describe("wrapper element (as)", () => {
+    it("renders a div by default", () => {
+      const { container } = render(<RichTextDisplay value="<p>hi</p>" />);
+      expect(container.firstElementChild?.tagName).toBe("DIV");
+    });
+
+    it("renders the requested heading so titles keep a document outline", () => {
+      const { container } = render(<RichTextDisplay as="h2" value="<p>Question?</p>" />);
+      const heading = container.querySelector("h2");
+      expect(heading).not.toBeNull();
+      expect(heading?.textContent).toContain("Question?");
+    });
+
+    it("honours the wrapper element in plain mode too", () => {
+      const { container } = render(
+        <RichTextDisplay as="h1" styled={false} value="<p>Plain title</p>" />,
+      );
+      const heading = container.querySelector("h1");
+      expect(heading).not.toBeNull();
+      expect(heading?.textContent).toContain("Plain title");
+    });
+  });
+
   describe("plain mode", () => {
     it("renders only text content with no markup, even for hostile input", () => {
       const { container } = render(
