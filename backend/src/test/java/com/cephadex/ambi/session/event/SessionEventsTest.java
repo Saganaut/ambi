@@ -121,6 +121,26 @@ class SessionEventsTest {
     }
 
     @Test
+    void slideViewProjectsOptionImageAsPreResolvedUrl() {
+        AppImage image = new AppImage();
+        image.setExternal(true);
+        image.setExternalSrc("https://example.test/gondor.png");
+        Slide slide = new Slide();
+        slide.setId("slide-img");
+        slide.setContent(new McqContent(
+                List.of(
+                        new McqOption("opt-img", McqOptionType.IMAGE, null, image, null),
+                        new McqOption("opt-text", McqOptionType.TEXT, "Osgiliath", null, null)),
+                Set.of("opt-img"),
+                McqDataVisualization.BAR_VERTICAL));
+
+        SlideView view = SlideView.from(slide, null, img -> img == image ? "https://s3/presigned" : null);
+
+        assertThat(view.options()).extracting("imageUrl")
+                .containsExactly("https://s3/presigned", null);
+    }
+
+    @Test
     void slideViewCarriesScalesConfigButDropsAnswerKeyAndTolerance() {
         SlideView view = SlideView.from(scalesSlide(), null, NO_IMAGES);
 

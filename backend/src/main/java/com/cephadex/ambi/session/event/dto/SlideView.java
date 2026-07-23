@@ -84,7 +84,7 @@ public record SlideView(
         if (content != null) {
             contentType = content.contentType();
             if (content instanceof McqContent mcq) {
-                options = mcq.options().stream().map(McqOptionView::from).toList();
+                options = mcq.options().stream().map((var option) -> McqOptionView.from(option, imageUrl)).toList();
             }
             if (content instanceof QAndAContent qanda) {
                 qAndA = QAndAConfigView.from(qanda);

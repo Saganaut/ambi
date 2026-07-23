@@ -54,6 +54,16 @@
         transition: width 0.4s ease;
       }
 
+      .thumbnail {
+        position: relative;
+        z-index: 1;
+        width: var(--space-12);
+        height: var(--space-12);
+        flex-shrink: 0;
+        border-radius: var(--radius-sm);
+        object-fit: cover;
+      }
+
       .label {
         position: relative;
         z-index: 1;

@@ -85,6 +85,7 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
         style={{ "--cols": columns } as React.CSSProperties}>
         {options.map((option) => {
           const id = option.id ?? "";
+          const thumbnailSrc = option.imageUrl ?? null;
           const optionSelected = isSelected(id);
           const isCorrect = revealCorrect && revealedCorrect === id;
           const count = optionCounts[id] ?? 0;
@@ -124,6 +125,9 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
                   style={{ width: `${pct.toString()}%` }}
                   aria-hidden='true'
                 />
+              )}
+              {thumbnailSrc && (
+                <img className={styles.thumbnail} src={thumbnailSrc} alt='' />
               )}
               <span className={styles.label}>{option.text}</span>
               {showResults && (

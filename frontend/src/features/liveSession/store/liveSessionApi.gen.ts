@@ -431,6 +431,7 @@ export type McqOptionView = {
   id?: string;
   optionType?: "TEXT" | "NUMBER" | "IMAGE";
   text?: string;
+  imageUrl?: string;
   color?: string;
 };
 export type QAndAConfigView = {
