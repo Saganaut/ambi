@@ -24,6 +24,7 @@ import { DropdownMenuItem } from "@/shared/components/Menus/DropdownMenu";
 import { useFullScreen } from "@/shared/hooks/useFullScreen";
 
 import { Btn } from "@ui/Buttons/Btn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
 import { SidePanelDrawer } from "../../components/DeckEditor/RightSidebar/SidePanelDrawer/SidePanelDrawer";
 import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
@@ -70,14 +71,13 @@ const DeckEditor = () => {
             >
               Back
             </Btn>
-            <Btn
-              shape={"pill"}
-              size={"md"}
+            <IconBtn
+              shape={"round"}
+              size={"sm"}
               aria-label="Enter fullscreen"
               onClick={toggleFullScreen}
-            >
-              <ArrowsPointingOutIcon className={styles.iconMd} />
-            </Btn>{" "}
+              icon={<ArrowsPointingOutIcon className={styles.iconMd} />}
+            />{" "}
             <Input
               ariaLabel="Deck title"
               value={titleDraft}
