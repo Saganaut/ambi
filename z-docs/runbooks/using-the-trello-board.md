@@ -60,7 +60,7 @@ curl -s "https://api.trello.com/1/members/me?key=$TRELLO_KEY&token=$TRELLO_TOKEN
 
 **Workflow:** new work lands in **Backlog** with a priority label; pull a card into **To Do** when it's
 queued, **In Progress** when you start, **Done** when it's committed *and* reviewed (per the
-[feature workflow](../../AGENTS.md#feature-workflow-commit--review-after-every-feature-change)).
+[feature workflow](../../AGENTS.md#feature-workflow)).
 
 Fetch the current IDs rather than hardcoding them (they're stable but cheap to re-fetch):
 
