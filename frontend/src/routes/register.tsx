@@ -3,6 +3,7 @@ import { RegisterPage } from "@auth/views/RegisterPage/RegisterPage";
 import { requirePreRegistration } from "@auth/guards";
 import { RegisterSearch } from "@auth/hooks/useRegister";
 import { toLocalReturnUrl } from "@utils/returnUrl";
+import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 
 export const Route = createFileRoute("/register")({
   // Identity is read from the PRE_REGISTRATION session (`/api/auth/me`), never
@@ -17,5 +18,9 @@ export const Route = createFileRoute("/register")({
   beforeLoad: ({ context, location }) => {
     requirePreRegistration(context.auth, location);
   },
-  component: RegisterPage,
+  component: () => (
+    <AsyncBoundary boundaryName='RegisterRoute'>
+      <RegisterPage />
+    </AsyncBoundary>
+  ),
 });

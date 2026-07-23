@@ -5,6 +5,8 @@ import { close } from "@deck/store/panelSlice.ts";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { getRouteApi } from "@tanstack/react-router";
 import { useSelector } from "react-redux";
+import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
+import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { AnswerPanel } from "../AnswerPanel/AnswerPanel";
 import { PANEL_TITLES } from "../data";
 import { DeckPanel } from "../DeckPanel/DeckPanel";
@@ -43,22 +45,27 @@ const SidePanelDrawer = () => {
             />
           </div>
           <div className={styles.drawerBody}>
-            {panelKey === "deck" && <DeckPanel deckId={deckId} />}
+            <ErrorBoundary
+              boundaryName="deck-editor-side-panel"
+              fallback={<ErrorFallback message="Something went wrong loading this panel." />}
+            >
+              {panelKey === "deck" && <DeckPanel deckId={deckId} />}
 
-            {slideId && (
-              <>
-                {panelKey === "edit" && <EditSlidePanel deckId={deckId} slideId={slideId} />}
-                {panelKey === "answers" && <AnswerPanel deckId={deckId} slideId={slideId} />}
-                {panelKey === "quiz" && <QuizPanel deckId={deckId} slideId={slideId} />}
-                {panelKey === "discussion" && (
-                  <DeckDiscussionPanel slideId={slideId} deckId={deckId} />
-                )}
-                {panelKey === "participants" && (
-                  <ParticipantsPanel deckId={deckId} slideId={slideId} />
-                )}
-              </>
-            )}
-            {panelKey === "sharing" && <InviteSettingsPanel deckId={deckId} />}
+              {slideId && (
+                <>
+                  {panelKey === "edit" && <EditSlidePanel deckId={deckId} slideId={slideId} />}
+                  {panelKey === "answers" && <AnswerPanel deckId={deckId} slideId={slideId} />}
+                  {panelKey === "quiz" && <QuizPanel deckId={deckId} slideId={slideId} />}
+                  {panelKey === "discussion" && (
+                    <DeckDiscussionPanel slideId={slideId} deckId={deckId} />
+                  )}
+                  {panelKey === "participants" && (
+                    <ParticipantsPanel deckId={deckId} slideId={slideId} />
+                  )}
+                </>
+              )}
+              {panelKey === "sharing" && <InviteSettingsPanel deckId={deckId} />}
+            </ErrorBoundary>
           </div>
         </div>
       </aside>

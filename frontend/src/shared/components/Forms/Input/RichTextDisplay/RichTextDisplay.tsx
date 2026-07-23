@@ -19,6 +19,8 @@
 import { sanitizeRichText } from "@utils/sanitizeHtml";
 import { truncateText } from "@utils/utils";
 import { useMemo } from "react";
+import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
+import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import styles from "./RichTextDisplay.module.css";
 
 interface RichTextDisplayProps {
@@ -116,7 +118,12 @@ const truncateHtml = (html: string, maxLength: number): string => {
   const truncated = copy(doc.body, root);
   return truncated ? `${root.innerHTML}...` : root.innerHTML;
 };
-const RichTextDisplay = ({ value, styled = true, maxLength, className }: RichTextDisplayProps) => {
+const RichTextDisplayInner = ({
+  value,
+  styled = true,
+  maxLength,
+  className,
+}: RichTextDisplayProps) => {
   // Sanitize once at the boundary; every downstream path (plain-text stripping,
   // truncation, direct injection) operates on the allowlisted HTML only.
   const safeHtml = useMemo(() => sanitizeRichText(value), [value]);
@@ -144,5 +151,17 @@ const RichTextDisplay = ({ value, styled = true, maxLength, className }: RichTex
     />
   );
 };
+
+// Wrapped at the export so every caller is protected without changes: the
+// dangerouslySetInnerHTML render and the custom DOM-walking utils above could
+// throw on malformed input despite the sanitize-at-the-boundary step.
+const RichTextDisplay = (props: RichTextDisplayProps) => (
+  <ErrorBoundary
+    boundaryName="rich-text-display"
+    fallback={<ErrorFallback message="Something went wrong rendering this content." />}
+  >
+    <RichTextDisplayInner {...props} />
+  </ErrorBoundary>
+);
 
 export { RichTextDisplay };

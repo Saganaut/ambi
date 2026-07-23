@@ -9,6 +9,8 @@ import { SlideCanvas } from "./SlideCanvas";
 
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
+import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { resolveSlideBackground, resolveSlideBackgroundColor } from "@/shared/utils/deckImages";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { useDeckQuery } from "@deck/hooks/useDeckQuery";
@@ -213,7 +215,12 @@ const SlideDisplay = () => {
         backgroundColor={backgroundColor}
         slideContentImgUrl={slideContentImgUrl}
       >
-        <Suspense fallback={<Loader />}>{renderBody()}</Suspense>
+        <ErrorBoundary
+          boundaryName="slide-display-editor"
+          fallback={<ErrorFallback message="Something went wrong loading this slide's editor." />}
+        >
+          <Suspense fallback={<Loader />}>{renderBody()}</Suspense>
+        </ErrorBoundary>
         <CoverImagePicker
           image={slide.coverImage}
           updateSlidePlacement={updateSlidePlacement}

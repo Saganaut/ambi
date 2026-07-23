@@ -10,6 +10,8 @@
  * the resulting blob (gallery ingest, answer upload, …).
  */
 import { useImperativeHandle, type Ref } from "react";
+import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
+import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { DrawingToolbar } from "./DrawingToolbar";
 import { useDrawingCanvas, type DrawingCanvasHandle } from "./useDrawingCanvas";
 import styles from "./DrawingCanvas.module.css";
@@ -32,7 +34,7 @@ interface DrawingCanvasProps {
   ref?: Ref<DrawingCanvasHandle>;
 }
 
-const DrawingCanvas = ({
+const DrawingCanvasInner = ({
   palette,
   allowEraser = true,
   allowShapes = false,
@@ -100,6 +102,18 @@ const DrawingCanvas = ({
     </div>
   );
 };
+
+// Wrapped at the export so every caller (deck authoring, live-session
+// answers) is protected without changes: canvas 2D + perfect-freehand throws
+// on a malformed stroke shouldn't blank the surrounding surface.
+const DrawingCanvas = (props: DrawingCanvasProps) => (
+  <ErrorBoundary
+    boundaryName="drawing-canvas"
+    fallback={<ErrorFallback message="Something went wrong loading the drawing canvas." />}
+  >
+    <DrawingCanvasInner {...props} />
+  </ErrorBoundary>
+);
 
 export { DrawingCanvas };
 export type { DrawingCanvasHandle, DrawingCanvasProps };

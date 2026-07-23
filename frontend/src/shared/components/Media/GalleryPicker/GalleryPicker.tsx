@@ -16,6 +16,8 @@
 // ratio rather than being clipped to a frame.
 import { useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
+import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
+import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { Tabs, type TabsItem } from "@ui/Tabs/Tabs";
 import {
   useGetMyGalleryQuery,
@@ -86,15 +88,20 @@ const GalleryPicker = ({
 
   return (
     <div className={styles.picker}>
-      <Tabs
-        className={styles.pickerTabs}
-        items={items}
-        value={tab}
-        onChange={(id) => {
-          setTab(id as PickerTab);
-        }}
-        ariaLabel='Image source'
-      />
+      <ErrorBoundary
+        boundaryName="gallery-picker"
+        fallback={<ErrorFallback message="Something went wrong loading the image picker." />}
+      >
+        <Tabs
+          className={styles.pickerTabs}
+          items={items}
+          value={tab}
+          onChange={(id) => {
+            setTab(id as PickerTab);
+          }}
+          ariaLabel='Image source'
+        />
+      </ErrorBoundary>
       <div className={styles.formActions}>
         <Btn onClick={onClose}>Close</Btn>
       </div>

@@ -9,6 +9,7 @@ import type { ChartProps } from "../Chart.types";
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
+import { withChartErrorBoundary } from "../withChartErrorBoundary";
 import styles from "./ParetoChart.module.css";
 
 export type ParetoChartProps = ChartProps;
@@ -17,7 +18,7 @@ const W = 100;
 const H = 60;
 const PAD = 6;
 
-const ParetoChart = ({
+const ParetoChartInner = ({
   renderLabelWithMenu,
   renderMenu,
   data,
@@ -134,5 +135,7 @@ const ParetoChart = ({
     </div>
   );
 };
+
+const ParetoChart = withChartErrorBoundary("pareto", ParetoChartInner);
 
 export { ParetoChart };

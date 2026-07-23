@@ -13,6 +13,8 @@
 // closes the modal.
 import { useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
+import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
+import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { Tabs, type TabsItem } from "@ui/Tabs/Tabs";
 import { AvatarSelector } from "@components/Forms/Input/AvatarSelector/AvatarSelector";
 import {
@@ -114,15 +116,20 @@ const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
 
   return (
     <div className={styles.picker}>
-      <Tabs
-        className={styles.pickerTabs}
-        items={items}
-        value={tab}
-        onChange={(id) => {
-          setTab(id as PickerTab);
-        }}
-        ariaLabel='Avatar source'
-      />
+      <ErrorBoundary
+        boundaryName="avatar-picker"
+        fallback={<ErrorFallback message="Something went wrong loading the avatar picker." />}
+      >
+        <Tabs
+          className={styles.pickerTabs}
+          items={items}
+          value={tab}
+          onChange={(id) => {
+            setTab(id as PickerTab);
+          }}
+          ariaLabel='Avatar source'
+        />
+      </ErrorBoundary>
       <div className={styles.formActions}>
         <Btn onClick={onClose}>Close</Btn>
       </div>

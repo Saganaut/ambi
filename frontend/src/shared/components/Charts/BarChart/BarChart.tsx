@@ -5,6 +5,7 @@ import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
 import type { ChartProps, ChartSegmentRenderProps, MenuAlign } from "../Chart.types";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
+import { withChartErrorBoundary } from "../withChartErrorBoundary";
 import styles from "./BarChart.module.css";
 
 export type BarChartProps = ChartProps;
@@ -83,7 +84,7 @@ const SortableListItem = ({
   );
 };
 
-const BarChart = ({
+const BarChartInner = ({
   renderLabelWithMenu,
   // renderMenu,
   onReorder,
@@ -131,5 +132,7 @@ const BarChart = ({
     </div>
   );
 };
+
+const BarChart = withChartErrorBoundary("bar", BarChartInner);
 
 export { BarChart };

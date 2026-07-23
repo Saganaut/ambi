@@ -3,6 +3,7 @@ import type { ChartProps } from "../Chart.types";
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
+import { withChartErrorBoundary } from "../withChartErrorBoundary";
 import styles from "./LineChart.module.css";
 
 export type LineChartProps = ChartProps;
@@ -11,7 +12,7 @@ const W = 100;
 const H = 60;
 const PAD = 6;
 
-const LineChart = ({
+const LineChartInner = ({
   renderLabelWithMenu,
   renderMenu,
   data,
@@ -119,5 +120,7 @@ const LineChart = ({
     </div>
   );
 };
+
+const LineChart = withChartErrorBoundary("line", LineChartInner);
 
 export { LineChart };

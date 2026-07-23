@@ -1,5 +1,6 @@
 import { DeckViewPage } from "@deck/views/DeckViewPage/DeckViewPage";
 import { createFileRoute } from "@tanstack/react-router";
+import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 
 export const Route = createFileRoute("/_authenticated/decks/$deckId/view")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -8,5 +9,9 @@ export const Route = createFileRoute("/_authenticated/decks/$deckId/view")({
     };
   },
 
-  component: DeckViewPage,
+  component: () => (
+    <AsyncBoundary boundaryName='DeckViewRoute'>
+      <DeckViewPage />
+    </AsyncBoundary>
+  ),
 });

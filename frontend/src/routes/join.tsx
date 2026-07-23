@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SessionJoinPage } from "@features/liveSession/views/SessionJoinPage/SessionJoinPage";
+import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 
 // Public player entry point. The lobby QR / share link points here as
 // `/join?code=<roomCode>`; the code is read from the URL and prefilled into the
@@ -15,6 +16,10 @@ export const Route = createFileRoute("/join")({
   }),
   component: function JoinRoute() {
     const { code } = Route.useSearch();
-    return <SessionJoinPage code={code} />;
+    return (
+      <AsyncBoundary boundaryName='SessionJoinRoute'>
+        <SessionJoinPage code={code} />
+      </AsyncBoundary>
+    );
   },
 });

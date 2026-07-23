@@ -6,6 +6,7 @@ import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.t
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
+import { withChartErrorBoundary } from "../withChartErrorBoundary";
 import styles from "./PieChart.module.css";
 
 // Pie: stroke covers the whole radius (r=25, width=50). Donut: a band.
@@ -68,7 +69,7 @@ const PieChartSegment = ({
   );
 };
 
-const PieChart = ({
+const PieChartInner = ({
   variant = "pie",
   renderLabelWithMenu,
   renderMenu,
@@ -197,5 +198,7 @@ const PieChart = ({
     </div>
   );
 };
+
+const PieChart = withChartErrorBoundary("pie", PieChartInner);
 
 export { PieChart };

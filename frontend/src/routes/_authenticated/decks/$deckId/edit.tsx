@@ -1,5 +1,6 @@
 import { DeckViewPage } from "@features/deck/views/DeckViewPage/DeckViewPage";
 import { createFileRoute } from "@tanstack/react-router";
+import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 
 export const Route = createFileRoute("/_authenticated/decks/$deckId/edit")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -7,5 +8,9 @@ export const Route = createFileRoute("/_authenticated/decks/$deckId/edit")({
       slideId: (search.slideId as string) || undefined,
     };
   },
-  component: DeckViewPage,
+  component: () => (
+    <AsyncBoundary boundaryName='DeckEditRoute'>
+      <DeckViewPage />
+    </AsyncBoundary>
+  ),
 });
