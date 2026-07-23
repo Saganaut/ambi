@@ -99,13 +99,19 @@ const LandingPage = () => {
   return (
     <>
       <section className={styles.hero}>
-        <div className={styles.heroGlow} />
         <div className={styles.heroInner}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>competitive brain training</p>
-            <h1 className={styles.heroTitle}>Ambi</h1>
-            <p className={styles.heroTagline}>
-              Train your mind. Beat the clock. Own the leaderboard.
+            <p className={styles.eyebrow}>
+              competitive brain training&ensp;·&ensp;play anywhere
+            </p>
+            <h1 className={styles.heroTitle}>
+              Ambi<span className={styles.heroTitleDot}>.</span>
+            </h1>
+            <p className={styles.heroTagline}>Train. Compete. Conquer.</p>
+            <p className={styles.heroBody}>
+              Fast-paced mental challenges against players worldwide — daily
+              puzzles, adaptive drills, and a global leaderboard that tracks
+              every streak.
             </p>
             <div className={styles.heroActions}>
               <Link to='/' viewTransition className={styles.btnPrimary}>

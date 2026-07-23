@@ -10,41 +10,13 @@
   text-align: center;
   padding: var(--space-12) var(--space-6);
   overflow: hidden;
-  background-color: var(--bg-canvas);
+  background-color: var(--ultraviolet-800);
 
   /* Query container for the hero's own responsive layout (the public pages
      render outside the dashboard's `display` container). Safe: a stretched
-     block section, so the width is layout-owned, and the only absolute
-     descendant (.heroGlow) already resolves against .hero via position:
-     relative. */
+     block section, so the width is layout-owned. */
   container-type: inline-size;
   container-name: hero;
-}
-
-.hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--border-default) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border-default) 1px, transparent 1px);
-  background-size: 40px 40px;
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.heroGlow {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  border-radius: var(--radius-full);
-  background: radial-gradient(
-    circle,
-    oklch(from var(--red-500) l c h / 15%) 0%,
-    transparent 70%
-  );
-  pointer-events: none;
-  animation: pulse 4s ease-in-out infinite;
 }
 
 /* Two-column hero (copy left, palette grid right), stacking to a single
@@ -80,48 +52,51 @@
   position: relative;
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
-  color: var(--text-muted);
+  font-weight: 500;
+  color: var(--cyan-500);
   letter-spacing: 0.2em;
   text-transform: uppercase;
   margin: 0 0 var(--space-4);
   animation: fade-up var(--duration-slow) var(--ease-out) both;
 }
 
-.eyebrow::before {
-  content: "// ";
-  color: var(--text-muted);
-  opacity: 0.5;
-}
-
 .heroTitle {
   position: relative;
-  font-family: var(--font-heading);
-  font-size: clamp(3rem, 10vw, 6rem);
+  font-family: var(--font-sans);
+  font-size: clamp(3.5rem, 11vw, 9.375rem);
   font-weight: 900;
   line-height: 1;
-  margin: 0 0 var(--space-6);
-  background: linear-gradient(
-    135deg,
-    var(--red-500) 0%,
-    var(--red-400) 40%,
-    var(--yellow-500) 100%
-  );
-  background-clip: text;
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+  color: var(--white-100);
+  margin: 0 0 var(--space-5);
   animation: fade-up var(--duration-slow) var(--ease-out) 100ms both;
+}
+
+.heroTitleDot {
+  color: var(--cyan-500);
 }
 
 .heroTagline {
   position: relative;
-  font-family: var(--font-mono);
-  font-size: clamp(var(--font-size-base), 2.5vw, var(--font-size-lg));
-  color: var(--text-secondary);
-  max-width: 540px;
-  margin: 0 0 var(--space-8);
-  line-height: 1.6;
+  font-family: var(--font-sans);
+  font-size: clamp(var(--font-size-lg), 3.5vw, 2.125rem);
+  font-weight: 300;
+  color: var(--ultraviolet-200);
+  margin: 0 0 var(--space-5);
+  line-height: 1.4;
   animation: fade-up var(--duration-slow) var(--ease-out) 200ms both;
+}
+
+.heroBody {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--ultraviolet-400);
+  max-width: 42.5rem;
+  margin: 0 0 var(--space-8);
+  line-height: 1.7;
+  animation: fade-up var(--duration-slow) var(--ease-out) 250ms both;
 }
 
 .heroActions {
@@ -133,44 +108,44 @@
 }
 
 .btnPrimary {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-base);
   font-weight: 700;
   padding: var(--space-4) var(--space-8);
   border-radius: var(--radius-md);
-  border: var(--border-size-sm) solid var(--red-500);
-  background: var(--red-500);
-  color: var(--bg-canvas);
+  border: var(--border-size-sm) solid var(--cyan-500);
+  background: var(--cyan-500);
+  color: var(--ultraviolet-900);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   text-decoration: none;
-  box-shadow: 0 0 24px oklch(from var(--red-500) l c h / 30%);
+  box-shadow: 0 0 24px oklch(from var(--cyan-500) l c h / 30%);
 }
 
 .btnPrimary:hover {
-  background: var(--red-400);
-  border-color: var(--red-400);
-  box-shadow: 0 0 40px oklch(from var(--red-500) l c h / 50%);
+  background: var(--cyan-400);
+  border-color: var(--cyan-400);
+  box-shadow: 0 0 40px oklch(from var(--cyan-500) l c h / 50%);
   transform: translateY(-2px);
 }
 
 .btnSecondary {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-base);
   font-weight: 700;
   padding: var(--space-4) var(--space-8);
   border-radius: var(--radius-md);
-  border: var(--border-size-sm) solid var(--border-default);
+  border: var(--border-size-sm) solid var(--ultraviolet-500);
   background: transparent;
-  color: var(--text-primary);
+  color: var(--white-100);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   text-decoration: none;
 }
 
 .btnSecondary:hover {
-  border-color: var(--red-500);
-  color: var(--red-500);
+  border-color: var(--cyan-500);
+  color: var(--cyan-500);
   transform: translateY(-2px);
 }
 
@@ -198,16 +173,16 @@
 }
 
 .statNumber {
-  font-family: var(--font-heading);
+  font-family: var(--font-sans);
   font-size: var(--font-size-2xl);
   font-weight: 900;
-  color: var(--red-500);
+  color: var(--violet-500);
   line-height: 1;
   margin-bottom: var(--space-2);
 }
 
 .statLabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   letter-spacing: 0.1em;
@@ -223,7 +198,7 @@
 }
 
 .sectionLabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   letter-spacing: 0.2em;
@@ -243,7 +218,7 @@
 }
 
 .sectionTitle {
-  font-family: var(--font-heading);
+  font-family: var(--font-sans);
   font-size: var(--font-size-xl);
   font-weight: 800;
   color: var(--text-primary);
@@ -274,13 +249,13 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--red-500), var(--yellow-500));
+  background: linear-gradient(90deg, var(--violet-500), var(--cyan-500));
   opacity: 0;
   transition: opacity var(--duration-base) var(--ease-out);
 }
 
 .featureCard:hover {
-  border-color: var(--red-500);
+  border-color: var(--violet-500);
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
 }
@@ -296,7 +271,7 @@
 }
 
 .featureTitle {
-  font-family: var(--font-heading);
+  font-family: var(--font-sans);
   font-size: var(--font-size-md);
   font-weight: 700;
   color: var(--text-primary);
@@ -304,7 +279,7 @@
 }
 
 .featureDesc {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   line-height: 1.7;
@@ -318,8 +293,7 @@
   padding: var(--space-12) var(--space-6);
   text-align: center;
   overflow: hidden;
-  background: var(--bg-surface);
-  border-top: var(--border-size-sm) solid var(--border-default);
+  background: var(--ultraviolet-800);
 }
 
 .cta::before {
@@ -328,7 +302,7 @@
   inset: 0;
   background: radial-gradient(
     ellipse at center,
-    oklch(from var(--red-500) l c h / 8%) 0%,
+    oklch(from var(--violet-500) l c h / 20%) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -336,18 +310,19 @@
 
 .ctaTitle {
   position: relative;
-  font-family: var(--font-heading);
+  font-family: var(--font-sans);
   font-size: clamp(var(--font-size-xl), 5vw, var(--font-size-2xl));
   font-weight: 900;
-  color: var(--text-primary);
+  color: var(--white-100);
   margin: 0 0 var(--space-4);
 }
 
 .ctaSub {
   position: relative;
   font-family: var(--font-mono);
-  font-size: var(--font-size-base);
-  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--ultraviolet-400);
   margin: 0 0 var(--space-8);
 }
 
@@ -368,19 +343,6 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
   }
 }
 
