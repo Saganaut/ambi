@@ -27,8 +27,7 @@
   /* border: var(--border-size-sm) solid var(--border-color); */
   border-radius: var(--radius-lg);
   overflow: hidden;
-
-  /* background-color: var(--bg-color); */
+  background-color: var(--bg-color);
   background-image: var(--background-image);
   background-size: cover;
   background-position: center;

@@ -1,31 +1,8 @@
 // Color utilities shared outside the DS color picker. Conversion math lives
 // in the picker's dependency-free colorConversion.ts; what remains here are
-// the app-level palette constants and display heuristics.
-import type { HEX } from "@components/Forms/Input/ColorPicker/colorConversion";
+// the app-level display heuristics.
 
 const HEX_RX = /^#[0-9a-fA-F]{3,8}$/;
-
-// Muted, low-saturation tones suited to slide / deck *backgrounds* — vivid
-// accent colors overpower content. Soft neutrals, pastels, and a few muted
-// darks (Tailwind 50–300 lights, 600–800 darks). These are just quick-pick
-// swatches; the picker's custom view still accepts any color.
-export const BACKGROUND_COLOR_CHOICES: HEX[] = [
-  "#ffffff",
-  "#f5f5f4",
-  "#e7e5e4",
-  "#d6d3d1",
-  "#fef3c7",
-  "#fed7aa",
-  "#fecaca",
-  "#fbcfe8",
-  "#e9d5ff",
-  "#c7d2fe",
-  "#bfdbfe",
-  "#a5f3fc",
-  "#bbf7d0",
-  "#475569",
-  "#1e293b",
-];
 
 export type ContrastTone = "light" | "dark";
 
