@@ -4,6 +4,6 @@
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 4rem);
-  padding: var(--space-12) var(--space-6);
+  padding: var(--gutter-xl) var(--gutter-md);
   background-color: var(--bg-canvas);
 }

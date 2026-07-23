@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: var(--space-12) var(--space-6);
+  padding: var(--gutter-xl) var(--gutter-md);
   overflow: hidden;
   background-color: var(--ultraviolet-800);
 
@@ -39,7 +39,7 @@
 @container hero (width < 60rem) {
   .heroInner {
     flex-direction: column;
-    gap: var(--space-12);
+    gap: var(--stack-xl);
   }
 
   .heroCopy {
@@ -56,7 +56,7 @@
   color: var(--cyan-500);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--stack-sm);
   animation: fade-up var(--duration-slow) var(--ease-out) both;
 }
 
@@ -94,7 +94,7 @@
   font-weight: 500;
   color: var(--ultraviolet-400);
   max-width: 42.5rem;
-  margin: 0 0 var(--space-8);
+  margin: 0 0 var(--stack-lg);
   line-height: 1.7;
   animation: fade-up var(--duration-slow) var(--ease-out) 250ms both;
 }
@@ -102,7 +102,7 @@
 .heroActions {
   position: relative;
   display: flex;
-  gap: var(--space-4);
+  gap: var(--gap-lg);
   flex-wrap: wrap;
   animation: fade-up var(--duration-slow) var(--ease-out) 300ms both;
 }
@@ -163,7 +163,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-8) var(--space-6);
+  padding: var(--gutter-lg) var(--gutter-md);
   border-right: var(--border-size-sm) solid var(--border-default);
   animation: fade-up var(--duration-slow) var(--ease-out) 400ms both;
 }
@@ -192,7 +192,7 @@
 /* ── Features ──────────────────────────────────────────────────── */
 
 .features {
-  padding: var(--space-12) var(--space-6);
+  padding: var(--gutter-xl) var(--gutter-md);
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -204,7 +204,7 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   text-align: center;
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--stack-sm);
 }
 
 .sectionLabel::before {
@@ -223,20 +223,20 @@
   font-weight: 800;
   color: var(--text-primary);
   text-align: center;
-  margin: 0 0 var(--space-12);
+  margin: 0 0 var(--stack-xl);
 }
 
 .featureGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-6);
+  gap: var(--stack-md);
 }
 
 .featureCard {
   background: var(--bg-surface);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-lg);
-  padding: var(--space-8);
+  padding: var(--p-square-xl);
   transition: all var(--duration-base) var(--ease-out);
   position: relative;
   overflow: hidden;
@@ -290,7 +290,7 @@
 
 .cta {
   position: relative;
-  padding: var(--space-12) var(--space-6);
+  padding: var(--gutter-xl) var(--gutter-md);
   text-align: center;
   overflow: hidden;
   background: var(--ultraviolet-800);
@@ -314,7 +314,7 @@
   font-size: clamp(var(--font-size-xl), 5vw, var(--font-size-2xl));
   font-weight: 900;
   color: var(--white-100);
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--stack-sm);
 }
 
 .ctaSub {
@@ -323,7 +323,7 @@
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--ultraviolet-400);
-  margin: 0 0 var(--space-8);
+  margin: 0 0 var(--stack-lg);
 }
 
 .ctaActions {

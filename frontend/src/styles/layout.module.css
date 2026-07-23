@@ -1,5 +1,5 @@
 .header {
-  padding: var(--space-4) var(--space-6);
+  padding: var(--gutter-sm) var(--gutter-md);
   border-bottom: var(--border-size-sm) solid var(--border-brand);
   display: flex;
   flex-direction: row;
@@ -10,11 +10,11 @@
 .body {
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-6);
+  padding: var(--gutter-md);
 }
 
 .footer {
-  padding: var(--space-8) var(--space-6);
+  padding: var(--gutter-lg) var(--gutter-md);
   color: var(--text-secondary);
   flex-direction: row;
   align-items: center;

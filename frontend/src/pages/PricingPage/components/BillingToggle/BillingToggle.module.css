@@ -1,8 +1,8 @@
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1);
+  gap: var(--gap-sm);
+  padding: var(--p-square-xxs);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-full);
   background: var(--bg-surface);
@@ -11,8 +11,8 @@
 .option {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-6);
+  gap: var(--gap-sm);
+  padding: var(--p-pill-md);
   border: none;
   border-radius: var(--radius-full);
   background: transparent;
