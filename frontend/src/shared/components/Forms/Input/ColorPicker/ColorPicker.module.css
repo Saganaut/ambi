@@ -119,11 +119,9 @@
   border: none;
   border-radius: var(--radius-full);
 
-  /* The hairline ring is a real border, not an inset box-shadow: on a circle
-     Chrome antialiases an inset shadow badly (it reads as a lumpy, pixelated
-     edge at fractional device pixel ratios), whereas a border stays even all
-     the way round. background-clip keeps a translucent swatch from tinting
-     the ring from underneath. */
+  /* The hairline ring is a real border, not an inset box-shadow: Chrome
+     antialiases an inset shadow badly on a circle, so the ring came out
+     uneven at fractional device pixel ratios. */
   &::after {
     position: absolute;
     inset: 2px;
