@@ -14,9 +14,11 @@
  * `FloatingPopover` handles portalling, positioning, and dismissal (outside
  * press + Escape), with focus management off so opening never pulls the caret
  * out of the phrase field and `listNavigation` for arrow-key access into the
- * shared `OptionMenuContent`. The composer owns which menu is open (at most
- * one per slide). Clicking the image slot goes straight to the gallery
- * picker. A controlled card: the phrase mirror lives here while every write
+ * shared `OptionMenuContent`. The custom-color path swaps the popover body to
+ * the shared `CustomColorPanel` (back returns to the menu). The composer owns
+ * which menu is open (at most one per slide). Clicking the image slot goes
+ * straight to the gallery picker. A controlled card: the phrase mirror lives
+ * here while every write
  * comes in as props from the composer's one editor hook. What "delete" means
  * (the whole Matching pair, the one Grid item) is the caller's: it supplies
  * the handler and the enable flag.

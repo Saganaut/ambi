@@ -150,6 +150,20 @@ describe("ColorPickerPanel", () => {
       expect(screen.getByRole("textbox", { name: "Hex color" })).toHaveValue("#123456");
     });
 
+    it("hands the back control to the host via onBack when opened on custom", async () => {
+      const onBack = vi.fn();
+      render(
+        <ColorPickerPanel
+          colorSwatch={SWATCHES}
+          initialView='custom'
+          onBack={onBack}
+          onChange={vi.fn()}
+        />,
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Custom color" }));
+      expect(onBack).toHaveBeenCalledTimes(1);
+    });
+
     it("returns to the swatch grid via the back button", async () => {
       render(<ColorPickerPanel colorSwatch={SWATCHES} onChange={vi.fn()} />);
       await userEvent.click(screen.getByRole("button", { name: "Custom color" }));

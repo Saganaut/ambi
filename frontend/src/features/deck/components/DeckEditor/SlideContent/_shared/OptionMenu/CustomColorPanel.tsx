@@ -10,6 +10,8 @@
  * defaults both parse), and the Theme row offers the curated theme roles as
  * starting points.
  */
+import { useEffect, useRef } from "react";
+
 import { ColorPickerPanel } from "@components/Forms/Input/ColorPicker/ColorPickerPanel";
 import type { ColorValue } from "@components/Forms/Input/ColorPicker/ColorPickerPanel";
 import { addRecentColor, useRecentColors } from "@hooks/useRecentColors";
@@ -32,20 +34,32 @@ interface CustomColorPanelProps {
 
 const CustomColorPanel = ({ value, onPick, onBack, onClose }: CustomColorPanelProps) => {
   const recentColors = useRecentColors();
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // The host swaps this panel in for the menu, unmounting the chip that held
+  // focus; land focus on the header's back control (the panel's first button)
+  // so keyboard and screen-reader users stay inside the relabelled dialog.
+  useEffect(() => {
+    rootRef.current?.querySelector("button")?.focus();
+  }, []);
 
   return (
-    <ColorPickerPanel
-      value={value}
-      initialView="custom"
-      colorSwatch={THEME_SWATCHES}
-      recentlyUsedColorSwatch={recentColors}
-      onBack={onBack}
-      onChange={(next) => {
-        onPick(next);
-        addRecentColor(next);
-      }}
-      onClose={onClose}
-    />
+    // The menu view names its dialog itself (OptionMenuContent's Popover);
+    // this view mirrors that so the swap re-announces as "Custom color".
+    <div ref={rootRef} role="dialog" aria-label="Custom color">
+      <ColorPickerPanel
+        value={value}
+        initialView="custom"
+        colorSwatch={THEME_SWATCHES}
+        recentlyUsedColorSwatch={recentColors}
+        onBack={onBack}
+        onChange={(next) => {
+          onPick(next);
+          addRecentColor(next);
+        }}
+        onClose={onClose}
+      />
+    </div>
   );
 };
 
