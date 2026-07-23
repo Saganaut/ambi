@@ -63,6 +63,7 @@
       min-width: 0;
       width: 100%;
       border: none;
+      border-radius: 0;
       outline: none;
       background: transparent;
       padding: var(--input-padding);

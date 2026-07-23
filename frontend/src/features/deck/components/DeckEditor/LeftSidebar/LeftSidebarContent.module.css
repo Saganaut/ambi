@@ -2,7 +2,7 @@
   --card-width: 300px;
 
   display: flex;
-  padding: var(--p-sm);
+  padding: var(--space-2);
   flex-direction: column;
   transition: padding var(--duration-base) ease-in-out;
 

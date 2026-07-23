@@ -161,15 +161,6 @@
   --black-russian-700: oklch(from #13002a 30% c h);
   --black-russian-800: oklch(from #13002a 18% c h);
   --black-russian-900: oklch(from #13002a l c h);
-  --ultraviolet-100: oklch(from #260078 97% calc(c * 0.25) h);
-  --ultraviolet-200: oklch(from #260078 92% calc(c * 0.45) h);
-  --ultraviolet-300: oklch(from #260078 84% calc(c * 0.65) h);
-  --ultraviolet-400: oklch(from #260078 72% calc(c * 0.85) h);
-  --ultraviolet-500: oklch(from #260078 55% c h);
-  --ultraviolet-600: oklch(from #260078 42% c h);
-  --ultraviolet-700: oklch(from #260078 32% c h);
-  --ultraviolet-800: oklch(from #260078 l c h);
-  --ultraviolet-900: oklch(from #260078 16% calc(c * 0.85) h);
 
   /* ─── Theme Role Palette ──────────────────────────────────────────────────── */
 
@@ -315,9 +306,7 @@
   --action-hover: var(--role-accent-secondary);
   --action-active: color-mix(in oklab, var(--role-accent-secondary) 72%, var(--role-foreground));
   --action-disabled: color-mix(in oklab, var(--role-muted-foreground) 45%, var(--role-surface));
-}
 
-:root {
   /* --- Typography (Expanded Scale) --- */
   --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
   --font-heading: "Poppins", system-ui, "Segoe UI", "Roboto", sans-serif;
@@ -455,10 +444,18 @@
   /* Soft neutral drop shadows (#141414), used the same in light and dark. See   */
 
   /* rules/styling/elevation-over-borders.md — prefer elevation over borders.      */
-  --shadow-xs: 0 1px 3px #14141433;
-  --shadow-sm: 0 3px 10px #14141447;
-  --shadow-md: 0 8px 24px #14141461;
-  --shadow-lg: 0 16px 40px #14141475;
+  --shadow-xs-size: 0 1px 3px;
+  --shadow-sm-size: 0 3px 10px;
+  --shadow-md-size: 0 8px 24px;
+  --shadow-lg-size: 0 16px 40px;
+  --shadow-xs-color: #14141433;
+  --shadow-sm-color: #14141447;
+  --shadow-md-color: #14141461;
+  --shadow-lg-color: #14141475;
+  --shadow-xs: var(--shadow-xs-size) var(--shadow-xs-color);
+  --shadow-sm: var(--shadow-sm-size) var(--shadow-sm-color);
+  --shadow-md: var(--shadow-md-size) var(--shadow-md-color);
+  --shadow-lg: var(--shadow-lg-size) var(--shadow-lg-color);
   --shadow: var(--shadow-md);
 
   /* Brand-tinted hover glow (DS shadow/hover) — the one non-neutral shadow;    */

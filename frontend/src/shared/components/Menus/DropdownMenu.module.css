@@ -3,13 +3,18 @@
    @floating-ui/react and applied as inline styles on the panel — this module
    only carries the panel's appearance and the menu-item visuals. */
 
+/* TODO: Figure out if dispaly flex is fine here or if it will affect other components
+   if it will then we need to pass this in as a variable or have the parent owne the class */
 .wrapper {
-  display: inline-flex;
+  display: flex;
+
+  /* display: inline-flex; */
 }
 
 .panel {
   background: var(--bg-surface);
-  border: var(--border-size-sm) solid var(--border-default);
+
+  /* border: var(--border-size-sm) solid var(--border-default); */
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   min-width: 180px;

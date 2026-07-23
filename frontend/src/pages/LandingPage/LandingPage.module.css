@@ -10,7 +10,7 @@
   text-align: center;
   padding: var(--gutter-xl) var(--gutter-md);
   overflow: hidden;
-  background-color: var(--ultraviolet-800);
+  background-color: var(--violet-800);
 
   /* Query container for the hero's own responsive layout (the public pages
      render outside the dashboard's `display` container). Safe: a stretched
@@ -81,7 +81,7 @@
   font-family: var(--font-sans);
   font-size: clamp(var(--font-size-lg), 3.5vw, 2.125rem);
   font-weight: 300;
-  color: var(--ultraviolet-200);
+  color: var(--violet-200);
   margin: 0 0 var(--space-5);
   line-height: 1.4;
   animation: fade-up var(--duration-slow) var(--ease-out) 200ms both;
@@ -92,7 +92,7 @@
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   font-weight: 500;
-  color: var(--ultraviolet-400);
+  color: var(--violet-400);
   max-width: 42.5rem;
   margin: 0 0 var(--stack-lg);
   line-height: 1.7;
@@ -115,7 +115,7 @@
   border-radius: var(--radius-md);
   border: var(--border-size-sm) solid var(--cyan-500);
   background: var(--cyan-500);
-  color: var(--ultraviolet-900);
+  color: var(--violet-900);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   text-decoration: none;
@@ -135,7 +135,7 @@
   font-weight: 700;
   padding: var(--space-4) var(--space-8);
   border-radius: var(--radius-md);
-  border: var(--border-size-sm) solid var(--ultraviolet-500);
+  border: var(--border-size-sm) solid var(--violet-500);
   background: transparent;
   color: var(--white-100);
   cursor: pointer;
@@ -293,7 +293,7 @@
   padding: var(--gutter-xl) var(--gutter-md);
   text-align: center;
   overflow: hidden;
-  background: var(--ultraviolet-800);
+  background: var(--violet-800);
 }
 
 .cta::before {
@@ -322,7 +322,7 @@
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   font-weight: 500;
-  color: var(--ultraviolet-400);
+  color: var(--violet-400);
   margin: 0 0 var(--stack-lg);
 }
 

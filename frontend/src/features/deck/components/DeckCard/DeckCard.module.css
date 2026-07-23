@@ -4,7 +4,7 @@
    cover + body shell and only differ in the body blocks they show. */
 
 .card {
-  background: var(--bg-surface);
+  background: var(--bg-canvas);
   border: var(--border-size-sm) solid transparent;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -15,12 +15,12 @@
   text-decoration: none;
   color: inherit;
   transition:
-    border-color var(--duration-fast) ease-in-out,
-    background-color var(--duration-fast) ease-in-out;
+    box-shadow var(--duration-base) ease-in-out,
+    border-color var(--duration-base) ease-in-out;
 
   &:hover {
-    border-color: var(--border-focus);
-    background-color: var(--bg-primary);
+    border-color: oklch(from var(--orange-300) l c h / 50%);
+    box-shadow: 0 3px 10px var(--orange-300);
   }
 }
 

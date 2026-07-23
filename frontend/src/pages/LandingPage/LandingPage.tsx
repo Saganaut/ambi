@@ -9,26 +9,26 @@ import { useRequireLogin } from "@auth/hooks/useRequireLogin";
 
 const FEATURES = [
   {
-    icon: "⚡",
-    title: "Compete in Real Time",
-    desc: "Race against players worldwide in fast-paced mental challenges. Every second counts.",
+    icon: "🎨",
+    title: "Author Any Slide",
+    desc: "17 slide types — from title and media to multiple choice, ranking, 2D axis, grids, drawing, and audience Q&A — with deck defaults and per-slide overrides.",
   },
   {
-    icon: "🧠",
-    title: "Train Your Mind",
-    desc: "Daily puzzles, pattern recognition, and memory drills that adapt to your skill level.",
+    icon: "📊",
+    title: "Answers Become Data",
+    desc: "Every response is a typed, server-scored submission — tallied live and projected into results charts your whole room can see.",
   },
   {
     icon: "🏆",
-    title: "Climb the Ranks",
-    desc: "A global leaderboard tracks your total points, streaks, and highest scores.",
+    title: "Host a Live Game",
+    desc: "Scored rounds, round timers, phased reveals, a live leaderboard, and best-answer voting turn any deck into a competition.",
   },
 ];
 
 const STATS = [
-  { number: "10K+", label: "Active Players" },
-  { number: "50+", label: "Brain Games" },
-  { number: "Daily", label: "Challenges" },
+  { number: "17", label: "Slide Types" },
+  { number: "Live", label: "Server Scoring" },
+  { number: "QR", label: "Instant Join" },
 ];
 
 const LandingPage = () => {
@@ -102,20 +102,21 @@ const LandingPage = () => {
         <div className={styles.heroInner}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>
-              competitive brain training&ensp;·&ensp;play anywhere
+              interactive presentations&ensp;·&ensp;live audience play
             </p>
             <h1 className={styles.heroTitle}>
               Ambi<span className={styles.heroTitleDot}>.</span>
             </h1>
-            <p className={styles.heroTagline}>Train. Compete. Conquer.</p>
+            <p className={styles.heroTagline}>Present. Engage. Compete.</p>
             <p className={styles.heroBody}>
-              Fast-paced mental challenges against players worldwide — daily
-              puzzles, adaptive drills, and a global leaderboard that tracks
-              every streak.
+              Build decks of interactive slides and run them live. Your audience
+              joins from any device by room code or QR, answers in real time,
+              and watches responses, results, and standings unfold on the shared
+              board.
             </p>
             <div className={styles.heroActions}>
               <Link to='/' viewTransition className={styles.btnPrimary}>
-                Play Now
+                Get Started
               </Link>
               <Link to='/about' viewTransition className={styles.btnSecondary}>
                 Learn More
@@ -137,7 +138,7 @@ const LandingPage = () => {
 
       <section className={styles.features}>
         <p className={styles.sectionLabel}>why ambi</p>
-        <h2 className={styles.sectionTitle}>Built for competitors</h2>
+        <h2 className={styles.sectionTitle}>Built for presenters</h2>
         <div className={styles.featureGrid}>
           {FEATURES.map((f) => (
             <div key={f.title} className={styles.featureCard}>
@@ -150,9 +151,9 @@ const LandingPage = () => {
       </section>
 
       <section className={styles.cta}>
-        <h2 className={styles.ctaTitle}>Ready to flex?</h2>
+        <h2 className={styles.ctaTitle}>Ready to present?</h2>
         <p className={styles.ctaSub}>
-          Join thousands of players and start training today.
+          Build your first deck and run it live — free to start.
         </p>
         <div className={styles.ctaActions}>
           <Link to='/' viewTransition className={styles.btnPrimary}>

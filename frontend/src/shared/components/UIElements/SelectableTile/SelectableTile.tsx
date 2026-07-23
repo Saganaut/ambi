@@ -32,7 +32,7 @@ interface SelectableTileButtonProps extends SelectableTileBaseProps {
 }
 
 type SelectableTileProps = SelectableTileLinkProps | SelectableTileButtonProps;
-
+//TODO: this has no consumers, decide if we still need it
 const SelectableTile = (props: SelectableTileProps) => {
   const {
     media,
@@ -68,7 +68,7 @@ const SelectableTile = (props: SelectableTileProps) => {
 
   if (disabled) {
     return (
-      <button type='button' className={composed} disabled aria-pressed={selected}>
+      <button type="button" className={composed} disabled aria-pressed={selected}>
         {content}
       </button>
     );
@@ -84,10 +84,11 @@ const SelectableTile = (props: SelectableTileProps) => {
 
   return (
     <button
-      type='button'
+      type="button"
       className={composed}
       onClick={"onClick" in props ? props.onClick : undefined}
-      aria-pressed={selected}>
+      aria-pressed={selected}
+    >
       {content}
     </button>
   );

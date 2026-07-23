@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding: var(--space-3);
+  padding: var(--space-2);
   height: 100%;
   background-color: var(--bg-canvas);
   transition: padding var(--duration-base) ease-in-out;
@@ -39,20 +39,25 @@
   display: flex;
   flex-direction: column;
   background-color: oklch(from var(--bg-surface) l c h / 95%);
-  border-radius: var(--radius-md);
-  margin-right: var(--space-1);
-  margin-left: var(--space-1);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
   z-index: 3;
   overflow: hidden;
-  border: var(--border-size-sm) solid var(--edge-surface);
+
+  /* border: var(--border-size-sm) solid var(--edge-surface); */
+  box-shadow: var(--shadow-md);
   opacity: 0;
   transition:
     max-width var(--duration-base, 200ms) ease-in-out,
-    opacity var(--duration-base, 200ms) ease-in-out;
+    opacity var(--duration-base, 200ms) ease-in-out,
+    margin var(--duration-base, 200ms) ease-in-out;
 
   &.isOpen {
     max-width: 1000px;
     opacity: 1;
+    margin-right: var(--space-1);
+    margin-left: var(--space-1);
   }
 }
 

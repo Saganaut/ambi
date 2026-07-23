@@ -20,7 +20,8 @@
   --border-color: transparent;
   --gap: var(--space-2);
   --min-height: 2.5rem;
-  --btn-shadow: var(--shadow-xs);
+  --btn-shadow-size: var(--shadow-xs-size);
+  --btn-shadow-color: var(--shadow-xs-color);
 
   display: flex;
   align-items: center;
@@ -33,8 +34,9 @@
   font-size: var(--font-size);
   color: var(--color);
   background-color: var(--background-color);
-  border: var(--border-size-sm) solid var(--border-color);
-  box-shadow: var(--btn-shadow);
+
+  /* border: var(--border-size-sm) solid var(--border-color); */
+  box-shadow: var(--btn-shadow-size) var(--btn-shadow-color);
   transition:
     background-color var(--duration-base) ease-in-out,
     color var(--duration-base) ease-in-out,
@@ -110,7 +112,8 @@
 
   /* an oklch shift on text / bg / border so the colors stay related.         */
   &:hover {
-    color: var(--action-hover);
+    /* color: var(--action-hover); */
+    --btn-shadow-color: var(--action-hover);
   }
 
   &.error:hover,
@@ -190,7 +193,7 @@
    * no-descending-specificity); ghost has no surface to lift, so it opts out.
    */
   &:not(.ghost):hover {
-    --btn-shadow: var(--shadow-sm);
+    --btn-shadow-size: var(--shadow-sm-size);
   }
 }
 

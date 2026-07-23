@@ -5,8 +5,8 @@
  */
 .exitButton {
   position: fixed;
-  top: var(--space-4);
-  right: var(--space-4);
+  top: var(--space-1);
+  left: var(--space-1);
   z-index: 9999;
   width: 2.5rem;
   height: 2.5rem;
@@ -14,9 +14,11 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: var(--border-size-sm) solid var(--border-default);
+
+  /* border: var(--border-size-sm) solid var(--border-default); */
   border-radius: var(--radius-full);
   background-color: var(--bg-canvas);
+  box-shadow: var(--shadow-md);
   color: var(--text-primary);
   transition:
     color 200ms ease-in-out,

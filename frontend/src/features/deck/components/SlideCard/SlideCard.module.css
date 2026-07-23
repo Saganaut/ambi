@@ -43,7 +43,7 @@
 
   &.active {
     --background-color: var(--bg-canvas);
-    --card-shadow: var(--shadow-md);
+    --card-shadow: var(--shadow-sm);
   }
 
   &.sm {
