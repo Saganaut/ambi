@@ -1,10 +1,19 @@
 # Ambi Security Audit — 2026-07-12
 
+> **Revised 2026-07-23:** risk acceptances re-justified against the enterprise quality bar per
+> [`z-docs/about-project-draft-07-2026.md`](about-project-draft-07-2026.md). The original audit
+> framed several acceptances as "learning project" trade-offs; that identity framing has been
+> removed and each acceptance re-evaluated against an enterprise-grade bar. Acceptances that still
+> hold now state their compensating-control / deployment-scope reasoning explicitly; those that do
+> not hold at the enterprise bar have been re-opened and flagged for follow-up (see the
+> deployment-context caveat below and the DNS-rebinding residual under Low / Info). Findings, dates,
+> and severities are otherwise unchanged.
+
 **Scope:** Full-stack review of the Ambi application — Spring Boot 4 / Java backend, React 19 / TypeScript frontend, and the Docker Compose infrastructure (MongoDB, Redis, Garage S3). Conducted as a read-only audit across six parallel lanes: authentication/authorization, injection & input validation, SSRF & media/storage, secrets/config/infrastructure, frontend/client-side, and dependency/supply-chain. No code was modified.
 
 **Overall posture:** **Good, and notably security-aware.** The core authorization model is sound — every controller re-checks ownership/roster/host on the *loaded* resource rather than trusting request ids, authorities are re-derived from the live user on each request, session fixation and refresh-token reuse are handled, and there is no NoSQL injection, unsafe polymorphic deserialization, or path traversal. The SSRF proxy has a genuine denylist with per-hop redirect revalidation. The findings below cluster in three areas: **configuration hardening for production deployment**, **a cross-user stored-XSS chain**, and **inconsistent input-size validation**. None is a trivially-exploitable remote takeover, but several would matter the moment this is deployed outside a local dev box.
 
-> **Deployment-context caveat:** Ambi is a learning project and much of its infrastructure (`compose.yaml`, dev credentials) is explicitly dev-only. Several findings rated High/Medium are severe *if the dev configuration reaches a shared or public host* and low-risk on a firewalled laptop. They are flagged because the fail-open defaults make that misstep easy, not because the current local setup is under attack.
+> **Deployment-context caveat:** Much of Ambi's infrastructure (`compose.yaml`, dev credentials) is explicitly dev-only, and the application is currently deployed only on local developer machines. Several findings rated High/Medium are severe *if the dev configuration reaches a shared or public host* and are contained today solely by that strictly-local deployment. Measured against the enterprise quality bar, that containment is **not a risk acceptance but a hard release gate**: every fail-open default below (#1, #4, #5, #6, #12) must be closed before any non-local deployment, and none may be treated as an accepted residual on the strength of "it only runs locally today." They are flagged now because the fail-open defaults make that misstep easy, not because the current local setup is under attack.
 
 ---
 
@@ -155,7 +164,7 @@ Mongo (`root`/`secret`) and Redis (`--requirepass password`, `--protected-mode n
 ## Low / Info
 
 - **Garage RPC secret committed** — `garage.toml:8-9` ships a static `rpc_secret`. Low impact today (single node, flagged dev-only-replace-in-prod), but a real committed value; generate it via a setup script or add a prod-rotation checklist item.
-- **DNS-rebinding (TOCTOU) residual on the SSRF proxy** — `media/storage/RemoteImageService.java:122-157`. `guardAddresses` validates resolved IPs, but `HttpClient` re-resolves the hostname at connect time, so a DNS-flipping attacker could reach metadata/internal services. **Explicitly documented and accepted in-code** as out of scope for the learning project. Full fix: pin the socket to the vetted IP while sending the original `Host` header.
+- **DNS-rebinding (TOCTOU) residual on the SSRF proxy — ⚠️ RE-OPENED (previously accepted in-code)** — `media/storage/RemoteImageService.java:122-157`. `guardAddresses` validates resolved IPs, but `HttpClient` re-resolves the hostname at connect time, so a DNS-flipping attacker could reach metadata/internal services (e.g. `169.254.169.254`). This was documented and accepted in-code as out of scope for early development. That acceptance does **not** hold at the enterprise quality bar: it is a genuine bypass of an otherwise-thorough SSRF guard on a proxy that fetches user-supplied hosts, and it becomes materially exploitable the moment the service runs on a cloud host exposing an instance-metadata endpoint. Likelihood is low on the current single-node local deployment, but it is no longer an accepted residual. **Follow-up required — closing it:** pin the socket to the already-vetted IP (custom resolver, or connect to the validated address) while sending the original `Host` header, so the connection cannot be re-pointed between check and connect.
 - **`externalSrc` / AVIF stored without scheme or magic-byte validation** — `AppImageDeserializer.java:49`, `ImageIngestService.java:80-92`. `javascript:`/`data:` values in `externalSrc` are persisted (not a server-side SSRF vector; impact depends on frontend sink safety — see #2). AVIF bytes are stored without a decode check. Low; allowlist `http(s)` on `externalSrc` and verify magic bytes.
 - **`shareDeck` does not validate the grantee exists** — `DeckController.java:143`. Manager-only, so impact is dangling ACL entries; cosmetic.
 - **Return-URL guard duplication** — `LoginModal.toRelativeReturnUrl` is not shared, which is precisely how the register open redirect (#3) crept in. Extract to a shared util.

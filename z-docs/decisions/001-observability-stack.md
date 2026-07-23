@@ -1,6 +1,7 @@
 # 001 — Observability & logging stack
 
-**Status:** Accepted
+**Status:** Accepted (rationale reworded July 2026 to match the current product
+identity — see [about-project-draft-07-2026.md](../about-project-draft-07-2026.md))
 **Date:** 2026-05-24
 
 ## Context
@@ -14,10 +15,12 @@ error boundary (a render throw blanked the screen), and no error reporting.
 aspirational stack (Sentry + Logstash JSON + CloudWatch) but none of it existed,
 and there was no way to exercise any AWS path locally.
 
-Constraints: this is a learning project; cost must stay minimal (free tiers, a
-few $/mo at most); production will run on AWS (EC2 + SQS/SNS/Lambda + S3 +
-ElastiCache per infrastructure.md); and the frontend roadmap wants error
-tracking now, Web Vitals and session replay later.
+Constraints: Ambi is an early-stage, pre-revenue product with a small
+deployment footprint, so cost must stay minimal (free tiers, a few $/mo at
+most) — the right trade-off for now, to be revisited as usage grows;
+production will run on AWS (EC2 + SQS/SNS/Lambda + S3 + ElastiCache per
+infrastructure.md); and the frontend roadmap wants error tracking now, Web
+Vitals and session replay later.
 
 ## Decision
 
@@ -87,8 +90,8 @@ the S3 implementation** — LocalStack does not replace it.
   per event, and replay is more limited than Sentry. Rejected for DX/cost on the
   frontend; CloudWatch is still the logs/metrics sink.
 - **Vendor-neutral OpenTelemetry** (OTel SDKs → collector → swappable backend).
-  Most portable, highest learning value, but the most upfront wiring for a solo
-  learning project. Deferred; `traceId` today, X-Ray/OTel optional later.
+  Most portable, but the most upfront wiring for a small team at this stage of
+  the product. Deferred; `traceId` today, X-Ray/OTel optional later.
 - **App-level CloudWatch Logs appender** (e.g. a Logback CloudWatch appender)
   instead of stdout + log driver. Rejected: couples the app to AWS and duplicates
   what the platform log driver does for free.

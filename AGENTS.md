@@ -1,6 +1,6 @@
 # Ambi — Agent Guide
 
-A full-stack web app for competitive brain games. Learning project focused on MongoDB, Java, and Spring Boot. Built as a paired-down version of Cephadex Games.
+An interactive presentation platform: presenters author decks of interactive slides and run them live while the audience participates from their own devices. Full-stack web app — React 19/TypeScript frontend, Java 26 + Spring Boot backend, MongoDB/Redis/S3 — built to an enterprise quality bar.
 
 > **DO NOT TAKE SHORTCUTS.** Always follow the established rules and conventions. Do not bypass testing, documentation, or code review processes for expediency. Quality and maintainability are paramount.
 >

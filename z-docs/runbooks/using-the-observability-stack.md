@@ -174,7 +174,7 @@ Garage stays our S3 — LocalStack is scoped to `cloudwatch,logs` only and does 
 
 ### 1. Retention & archival
 
-Volume is tiny (a learning project), so cost is dominated by the retention window, not ingest.
+Volume is tiny at our current early-stage, pre-revenue scale, so cost is dominated by the retention window, not ingest.
 
 - **A — flat 30-day retention, no archival (leaning).** Set the log group's retention to 30 days; let it expire. Simplest, costs cents/month at our volume.
 - **B — short hot window + S3 archive.** ~14 days hot in CloudWatch, lifecycle-export older logs to S3 (Standard-IA → Glacier). Cheaper long-term keep, more moving parts — only worth it if we ever need >30-day history.
