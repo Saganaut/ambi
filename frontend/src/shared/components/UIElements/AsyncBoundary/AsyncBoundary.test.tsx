@@ -58,4 +58,30 @@ describe("AsyncBoundary", () => {
     );
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
+
+  it("clears a latched error when the key changes, since a new key remounts the boundary", () => {
+    // Regression guard: ErrorBoundary never resets `hasError` on its own, and
+    // TanStack Router doesn't remount a route component on param-only
+    // navigation — callers must key AsyncBoundary by the identifier that
+    // should invalidate a caught error (see the deck/session route usages).
+    const ToggleThrow = ({ shouldThrow }: { shouldThrow: boolean }) => {
+      if (shouldThrow) throw new Error("boom");
+      return <p>Recovered content</p>;
+    };
+
+    const { rerender } = render(
+      <AsyncBoundary key="a">
+        <ToggleThrow shouldThrow={true} />
+      </AsyncBoundary>,
+    );
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    rerender(
+      <AsyncBoundary key="b">
+        <ToggleThrow shouldThrow={false} />
+      </AsyncBoundary>,
+    );
+    expect(screen.getByText("Recovered content")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/sessions/$sessionId/")({
   component: function SessionRoute() {
     const { sessionId } = Route.useParams();
     return (
-      <AsyncBoundary boundaryName='SessionRoute'>
+      <AsyncBoundary key={sessionId} boundaryName="session-route">
         <SessionConnectionProvider sessionId={sessionId}>
           <SessionPage />
         </SessionConnectionProvider>

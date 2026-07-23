@@ -4,7 +4,7 @@ import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 
 export const Route = createFileRoute("/_authenticated/decks/")({
   component: () => (
-    <AsyncBoundary boundaryName='MyDecksRoute'>
+    <AsyncBoundary boundaryName="my-decks-route">
       <MyDecksPage />
     </AsyncBoundary>
   ),

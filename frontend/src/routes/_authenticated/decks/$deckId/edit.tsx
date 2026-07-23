@@ -8,9 +8,12 @@ export const Route = createFileRoute("/_authenticated/decks/$deckId/edit")({
       slideId: (search.slideId as string) || undefined,
     };
   },
-  component: () => (
-    <AsyncBoundary boundaryName='DeckEditRoute'>
-      <DeckViewPage />
-    </AsyncBoundary>
-  ),
+  component: function DeckEditRoute() {
+    const { deckId } = Route.useParams();
+    return (
+      <AsyncBoundary key={deckId} boundaryName="deck-edit-route">
+        <DeckViewPage />
+      </AsyncBoundary>
+    );
+  },
 });

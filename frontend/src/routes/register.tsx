@@ -19,7 +19,7 @@ export const Route = createFileRoute("/register")({
     requirePreRegistration(context.auth, location);
   },
   component: () => (
-    <AsyncBoundary boundaryName='RegisterRoute'>
+    <AsyncBoundary boundaryName="register-route">
       <RegisterPage />
     </AsyncBoundary>
   ),

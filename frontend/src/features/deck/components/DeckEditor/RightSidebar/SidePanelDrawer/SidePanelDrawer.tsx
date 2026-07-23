@@ -46,6 +46,7 @@ const SidePanelDrawer = () => {
           </div>
           <div className={styles.drawerBody}>
             <ErrorBoundary
+              key={`${panelKey}-${slideId ?? "none"}`}
               boundaryName="deck-editor-side-panel"
               fallback={<ErrorFallback message="Something went wrong loading this panel." />}
             >

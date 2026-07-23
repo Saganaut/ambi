@@ -9,9 +9,12 @@ export const Route = createFileRoute("/_authenticated/decks/$deckId/view")({
     };
   },
 
-  component: () => (
-    <AsyncBoundary boundaryName='DeckViewRoute'>
-      <DeckViewPage />
-    </AsyncBoundary>
-  ),
+  component: function DeckViewRoute() {
+    const { deckId } = Route.useParams();
+    return (
+      <AsyncBoundary key={deckId} boundaryName="deck-view-route">
+        <DeckViewPage />
+      </AsyncBoundary>
+    );
+  },
 });

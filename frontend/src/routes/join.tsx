@@ -17,7 +17,7 @@ export const Route = createFileRoute("/join")({
   component: function JoinRoute() {
     const { code } = Route.useSearch();
     return (
-      <AsyncBoundary boundaryName='SessionJoinRoute'>
+      <AsyncBoundary boundaryName="session-join-route">
         <SessionJoinPage code={code} />
       </AsyncBoundary>
     );

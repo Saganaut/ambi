@@ -21,6 +21,7 @@ const withChartErrorBoundary = <P extends object>(
       <Chart {...props} />
     </ErrorBoundary>
   );
+  ChartWithErrorBoundary.displayName = `ChartWithErrorBoundary(${name})`;
   return ChartWithErrorBoundary;
 };
 

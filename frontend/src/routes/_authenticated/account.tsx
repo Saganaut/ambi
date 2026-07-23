@@ -4,7 +4,7 @@ import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: () => (
-    <AsyncBoundary boundaryName='AccountRoute'>
+    <AsyncBoundary boundaryName="account-route">
       <AccountPage />
     </AsyncBoundary>
   ),

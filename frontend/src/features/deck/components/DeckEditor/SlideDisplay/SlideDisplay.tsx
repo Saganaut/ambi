@@ -10,12 +10,12 @@ import { SlideCanvas } from "./SlideCanvas";
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
-import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
+import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 import { resolveSlideBackground, resolveSlideBackgroundColor } from "@/shared/utils/deckImages";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
-import React, { Suspense, lazy } from "react";
+import React, { lazy } from "react";
 import { slotMappingOptions, type SlotMapping } from "../../../contexts/ImageSlot.types";
 import { useSlide } from "../../../hooks/useSlide";
 import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
@@ -215,12 +215,15 @@ const SlideDisplay = () => {
         backgroundColor={backgroundColor}
         slideContentImgUrl={slideContentImgUrl}
       >
-        <ErrorBoundary
+        <AsyncBoundary
           boundaryName="slide-display-editor"
-          fallback={<ErrorFallback message="Something went wrong loading this slide's editor." />}
+          loadingFallback={<Loader />}
+          errorFallback={
+            <ErrorFallback message="Something went wrong loading this slide's editor." />
+          }
         >
-          <Suspense fallback={<Loader />}>{renderBody()}</Suspense>
-        </ErrorBoundary>
+          {renderBody()}
+        </AsyncBoundary>
         <CoverImagePicker
           image={slide.coverImage}
           updateSlidePlacement={updateSlidePlacement}
