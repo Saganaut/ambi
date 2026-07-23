@@ -39,9 +39,9 @@ import com.cephadex.ambi.common.exception.ValidationException;
  *
  * <p><strong>Residual caveat:</strong> this validates the address we resolve,
  * but {@link HttpClient} re-resolves on connect, leaving a narrow DNS-rebinding
- * (TOCTOU) window. Closing it fully would require pinning the connection to the
- * vetted IP; that is out of scope for this learning project and noted here so it
- * isn't mistaken for complete protection.
+ * (TOCTOU) window. This residual is tracked as a re-opened follow-up in
+ * <code>z-docs/security-report-2026-07-12.md</code>: pin the socket to the
+ * vetted IP while sending the original Host header.
  */
 @Service
 public class RemoteImageService {
