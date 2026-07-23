@@ -67,7 +67,7 @@
   font-weight: 900;
   line-height: 1;
   letter-spacing: -0.02em;
-  color: var(--white-100);
+  color: var(--zinc-100);
   margin: 0 0 var(--space-5);
   animation: fade-up var(--duration-slow) var(--ease-out) 100ms both;
 }
@@ -137,7 +137,7 @@
   border-radius: var(--radius-md);
   border: var(--border-size-sm) solid var(--violet-500);
   background: transparent;
-  color: var(--white-100);
+  color: var(--zinc-100);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   text-decoration: none;
@@ -313,7 +313,7 @@
   font-family: var(--font-sans);
   font-size: clamp(var(--font-size-xl), 5vw, var(--font-size-2xl));
   font-weight: 900;
-  color: var(--white-100);
+  color: var(--zinc-100);
   margin: 0 0 var(--stack-sm);
 }
 

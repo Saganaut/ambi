@@ -52,7 +52,7 @@
 
 .btnActive {
   background-color: var(--action-active);
-  color: var(--white-100);
+  color: var(--zinc-100);
   border-color: var(--action-active);
 }
 

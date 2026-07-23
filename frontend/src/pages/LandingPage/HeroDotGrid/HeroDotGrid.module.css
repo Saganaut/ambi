@@ -29,7 +29,7 @@
 
 .dot {
   /* Fallbacks for the per-dot vars set inline by HeroDotGrid.tsx */
-  --dot-color: var(--grey-500);
+  --dot-color: var(--zinc-600);
   --dot-delay: 0ms;
 
   width: var(--dot-size);

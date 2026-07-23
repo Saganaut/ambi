@@ -14,10 +14,10 @@
      defaults to the theme text color for a plain themed surface. The
      `--contrast-plate-*` vars back text with a known-dark frosted blur so light
      text stays legible over an arbitrary image (see `.contrastPlate` consumers). */
-  --canvas-text-light: var(--white-100);
-  --canvas-text-dark: var(--black-russian-900);
+  --canvas-text-light: var(--zinc-100);
+  --canvas-text-dark: var(--zinc-900);
   --canvas-on-bg: var(--text-primary);
-  --contrast-plate-bg: color-mix(in oklch, var(--black-russian-900) 42%, transparent);
+  --contrast-plate-bg: color-mix(in oklch, var(--zinc-900) 42%, transparent);
   --contrast-plate-blur: blur(8px) brightness(0.62);
 
   position: relative;

@@ -88,14 +88,25 @@
   --mulberry-700: oklch(39% 0.08 350deg);
   --mulberry-800: oklch(28% 0.06 350deg);
   --mulberry-900: oklch(23% 0.05 350deg);
-  --grey-200: oklch(80% 0.001 271.152deg);
-  --grey-300: oklch(70% 0.001 271.152deg);
-  --grey-400: oklch(60% 0.001 271.152deg);
-  --grey-500: oklch(50% 0.001 271.152deg);
-  --grey-600: oklch(40% 0.001 271.152deg);
-  --grey-700: oklch(30% 0.001 271.152deg);
-  --grey-800: oklch(20% 0.001 271.152deg);
-  --grey-900: oklch(0% 0.001 271.152deg);
+
+  /* Neutral greyscale — the single consolidated neutral ramp (replaces the      */
+
+  /* former --white-*, --concrete-*, --grey-*, and --black-russian-* scales).    */
+
+  /* Runs from almost-white (100) to almost-black (900) with a whisper of the    */
+
+  /* brand-violet hue so neutrals sit naturally next to the violet/cyan/orange   */
+
+  /* triad; chroma grows slightly toward the dark end where a tint reads best.   */
+  --zinc-100: oklch(98.5% 0.002 290deg);
+  --zinc-200: oklch(96% 0.003 290deg);
+  --zinc-300: oklch(90% 0.004 290deg);
+  --zinc-400: oklch(82% 0.005 290deg);
+  --zinc-500: oklch(70% 0.006 290deg);
+  --zinc-600: oklch(55% 0.008 290deg);
+  --zinc-700: oklch(40% 0.008 290deg);
+  --zinc-800: oklch(25% 0.01 290deg);
+  --zinc-900: oklch(14% 0.012 290deg);
 
   /* ─── Brand Colors ─────────────────────────────────────────────────────── */
   --violet-100: oklch(from #6019ff 97% calc(c * 0.25) h);
@@ -134,33 +145,6 @@
   --cyan-700: oklch(from #54fff1 45% calc(c * 0.9) h);
   --cyan-800: oklch(from #54fff1 30% calc(c * 0.7) h);
   --cyan-900: oklch(from #54fff1 18% calc(c * 0.5) h);
-  --concrete-100: oklch(from #f2f2f2 99% c h);
-  --concrete-200: oklch(from #f2f2f2 96% c h);
-  --concrete-300: oklch(from #f2f2f2 l c h);
-  --concrete-400: oklch(from #f2f2f2 86% c h);
-  --concrete-500: oklch(from #f2f2f2 78% c h);
-  --concrete-600: oklch(from #f2f2f2 65% c h);
-  --concrete-700: oklch(from #f2f2f2 50% c h);
-  --concrete-800: oklch(from #f2f2f2 32% c h);
-  --concrete-900: oklch(from #f2f2f2 18% c h);
-  --white-100: oklch(from #fffffd l c h);
-  --white-200: oklch(from #fffffd 96% c h);
-  --white-300: oklch(from #fffffd 90% c h);
-  --white-400: oklch(from #fffffd 82% c h);
-  --white-500: oklch(from #fffffd 70% c h);
-  --white-600: oklch(from #fffffd 55% c h);
-  --white-700: oklch(from #fffffd 40% c h);
-  --white-800: oklch(from #fffffd 25% c h);
-  --white-900: oklch(from #fffffd 12% c h);
-  --black-russian-100: oklch(from #13002a 97% calc(c * 0.25) h);
-  --black-russian-200: oklch(from #13002a 92% calc(c * 0.45) h);
-  --black-russian-300: oklch(from #13002a 84% calc(c * 0.65) h);
-  --black-russian-400: oklch(from #13002a 72% calc(c * 0.85) h);
-  --black-russian-500: oklch(from #13002a 55% c h);
-  --black-russian-600: oklch(from #13002a 42% c h);
-  --black-russian-700: oklch(from #13002a 30% c h);
-  --black-russian-800: oklch(from #13002a 18% c h);
-  --black-russian-900: oklch(from #13002a l c h);
 
   /* ─── Theme Role Palette ──────────────────────────────────────────────────── */
 
@@ -176,12 +160,12 @@
 
   /* swapping these 16 values + the data-appearance flag.                        */
 
-  --role-canvas: var(--white-100);
+  --role-canvas: var(--zinc-100);
   --role-surface: var(--tolopea-100);
-  --role-surface-raised: var(--white-100);
+  --role-surface-raised: var(--zinc-100);
   --role-subtle: var(--violet-200);
   --role-foreground: var(--tolopea-900);
-  --role-muted-foreground: var(--white-700);
+  --role-muted-foreground: var(--zinc-700);
   --role-primary: var(--violet-500);
   --role-on-primary: var(--violet-100);
   --role-accent: var(--cyan-500);

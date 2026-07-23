@@ -40,7 +40,7 @@
   position: relative;
   border-radius: var(--radius-md);
 
-  --text-primary: var(--canvas-text-light, var(--white-100));
+  --text-primary: var(--canvas-text-light, var(--zinc-100));
 }
 
 /* The blur/dim lives on a pseudo-element rather than on .surface itself, so

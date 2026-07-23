@@ -4,7 +4,7 @@
 
 ## OKLCH — the primary format
 
-- The design-token palette (`frontend/src/tokens.css`) is authored almost entirely in `oklch(...)`. Brand color scales (`--violet-*`, `--orange-*`, `--tolopea-*`, `--cyan-*`, `--concrete-*`, `--white-*`, `--black-russian-*`, `--ultraviolet-*`) use CSS relative-color syntax on a hex seed — e.g. `--violet-500: oklch(from #6019ff l c h);` — the hex is only the seed; every derived shade is still an `oklch()` value.
+- The design-token palette (`frontend/src/tokens.css`) is authored almost entirely in `oklch(...)`. Brand color scales (`--violet-*`, `--orange-*`, `--tolopea-*`, `--cyan-*`) use CSS relative-color syntax on a hex seed — e.g. `--violet-500: oklch(from #6019ff l c h);` — the hex is only the seed; every derived shade is still an `oklch()` value. The neutral greyscale is the single `--zinc-100`…`--zinc-900` ramp (almost-white to almost-black, faintly brand-violet-tinted), authored as literal `oklch()` values; it replaced the former `--white-*`, `--concrete-*`, `--grey-*`, and `--black-russian-*` scales.
 - Semantic tokens (`--bg-*`, `--text-*`, `--border-*`) build on the role vars with `color-mix(in oklab, ...)`.
 - Generated/derived palettes are `oklch()` too: `buildOptionPalette()` (`frontend/src/shared/components/Charts/optionPalette.ts`) emits `oklch(0.65 0.18 <hue>)` swatches — the single source of truth for MCQ/Ranking/Axis option colors. `rankItemColor.ts` (Ranking) and the sibling `axisItemColor` (Axis) delegate to it, then re-derive a darker second cycle via relative-color syntax: `` oklch(from ${base} 0.42 c h) ``.
 

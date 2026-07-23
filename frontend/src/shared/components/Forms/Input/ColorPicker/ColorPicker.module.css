@@ -213,7 +213,7 @@
     position: absolute;
     width: 16px;
     height: 16px;
-    border: var(--border-size-sm) solid var(--white-100);
+    border: var(--border-size-sm) solid var(--zinc-100);
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-xs);
     transform: translate(-50%, -50%);
@@ -245,7 +245,7 @@
     width: 18px;
     height: 18px;
     background: var(--bg-canvas);
-    border: var(--border-size-sm) solid var(--white-100);
+    border: var(--border-size-sm) solid var(--zinc-100);
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-xs);
     transform: translate(-50%, -50%);
