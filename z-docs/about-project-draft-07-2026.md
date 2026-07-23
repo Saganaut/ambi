@@ -68,8 +68,9 @@ called out honestly: *solid* (works end-to-end), *partial* (real but incomplete)
 - **Rounds & phases** *(solid)* — submit → locked → reveal-responses → reveal-results, driven
   by host actions; per-round auto-close timers with pause/resume and host-disconnect
   grace handling (ADR 002).
-- **Host board** *(solid for most types)* — per-type live board views, lobby, and overall
-  results; place-on-image has no live board yet.
+- **Host board** *(partial)* — lobby, overall results, and dedicated live board views for
+  MCQ, Q&A, grid, axis, scales, matching, and drawing; number, text, ranking, allocation,
+  and place-on-image still fall back to a generic placeholder.
 - **Realtime transport** *(solid)* — STOMP over WebSocket, broadcast-only: writes go over
   REST, live deltas arrive as session events on a per-session topic.
 - **Presenter mode** *(stub)* and **session chat/reactions** *(stub)* — routes and components
@@ -82,8 +83,10 @@ called out honestly: *solid* (works end-to-end), *partial* (real but incomplete)
 - **Interactive slide types** *(solid to partial)* — MCQ (multi-correct), axis, drawing (with
   S3-stored submissions and results gallery), grid, matching, scales, ranking, allocation,
   number, text, and Q&A with host answers and a live word-cloud view.
-- **Best-answer voting & prediction follow-ups** *(solid model)* — follow-up slides run as
-  ordinary rounds; votes score `votesReceived × bestAnswerPoints`.
+- **Best-answer voting** *(solid)* — follow-up slides run as ordinary rounds; votes decide
+  the winning submission, which earns a flat `bestAnswerPoints` bonus.
+- **Prediction follow-ups** *(stub)* — `PREDICT_POPULAR` is modeled and authorable, but has
+  no scoring implementation yet.
 
 ### Data & scoring
 
