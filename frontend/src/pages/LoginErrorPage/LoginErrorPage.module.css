@@ -12,7 +12,7 @@
    primary + neutral bordered secondary) so the page reads like the other
    error screens. */
 .retryBtn {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   font-weight: 700;
   padding: var(--space-3) var(--space-6);
@@ -30,7 +30,7 @@
 }
 
 .homeLink {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   font-weight: 700;
   padding: var(--space-3) var(--space-6);

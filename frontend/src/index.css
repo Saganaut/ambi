@@ -1,7 +1,7 @@
 @import url("./tokens.css");
 
 :root {
-  font: 18px / 145% var(--font-mono);
+  font: 18px / 145% var(--font-sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text-primary);
@@ -14,7 +14,7 @@
 
 body {
   margin: 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   background-color: var(--bg-canvas);
   color: var(--text-primary);
   box-sizing: border-box;

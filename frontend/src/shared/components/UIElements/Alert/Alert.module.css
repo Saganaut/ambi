@@ -25,7 +25,7 @@
 
   .title {
     margin: 0;
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: var(--font-size-sm);
     font-weight: 700;
     color: var(--color);
@@ -86,7 +86,7 @@
   }
 
   .message {
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: var(--font-size-sm);
     color: var(--color);
     line-height: 1.4;

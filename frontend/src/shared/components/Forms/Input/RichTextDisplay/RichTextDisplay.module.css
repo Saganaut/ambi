@@ -5,7 +5,7 @@
 
 .content {
   color: var(--text-primary);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-base);
   line-height: 1.5;
   overflow-wrap: break-word;
@@ -43,7 +43,7 @@
 
 .plain {
   color: var(--text-primary);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-base);
   line-height: 1.5;
   white-space: pre-wrap;

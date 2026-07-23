@@ -23,7 +23,7 @@
     padding: var(--p-sm);
     background-color: var(--bg-canvas);
     box-shadow: var(--shadow-xs);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: var(--font-size-sm);
     resize: none;
     field-sizing: content;

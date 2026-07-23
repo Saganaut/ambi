@@ -23,7 +23,7 @@
 .labelRow {
   display: flex;
   justify-content: space-between;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }

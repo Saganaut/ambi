@@ -12,7 +12,7 @@
 }
 
 .eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   letter-spacing: 0.2em;
@@ -35,7 +35,7 @@
 }
 
 .subtitle {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-base);
   color: var(--text-secondary);
   line-height: 1.6;
@@ -75,7 +75,7 @@
 }
 
 .faqBody {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   margin: 0;

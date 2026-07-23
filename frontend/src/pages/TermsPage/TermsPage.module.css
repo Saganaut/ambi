@@ -13,7 +13,7 @@
 }
 
 .eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   letter-spacing: 0.2em;
@@ -36,14 +36,14 @@
 }
 
 .meta {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin: 0 0 var(--space-6);
 }
 
 .intro {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-base);
   color: var(--text-secondary);
   line-height: 1.7;
@@ -68,7 +68,7 @@
 }
 
 .tocLabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   letter-spacing: 0.15em;
@@ -86,7 +86,7 @@
 }
 
 .tocLink {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   text-decoration: none;
@@ -129,7 +129,7 @@
 }
 
 .sectionBody {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   line-height: 1.8;

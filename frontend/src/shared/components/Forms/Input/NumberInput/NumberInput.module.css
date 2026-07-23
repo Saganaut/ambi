@@ -57,6 +57,7 @@
     }
 
     input.input {
+      font-family: var(--font-mono);
       appearance: textfield;
       flex: 1 1 auto;
       min-width: 0;
