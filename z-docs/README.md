@@ -22,6 +22,7 @@ Reachability is enforced by `tools/doc-lint.js`: every `.md` file under the repo
 
 ## Single-file references
 
+- [About Ambi — Draft 07-2026](about-project-draft-07-2026.md) — What the project is (interactive presentation platform; flexibility, data, competitiveness), current feature inventory with maturity, and the docs still carrying the old "learning project / brain games" identity.
 - [Glossary](glossary.md) — Domain terms (deck, element, interactive session, organization, theme, slide, MCQ, …).
 - [Live Session — Open Decisions](live-session-open-decisions.md) — Pre-implementation review of the live-session feature: unresolved design decisions (transport, identity, scoring, persistence) with suggestions.
 - [Security Audit — 2026-07-12](security-report-2026-07-12.md) — Full-stack read-only security audit (auth, injection, SSRF/media, secrets/infra, frontend, dependencies) with prioritized findings and remediation order.
