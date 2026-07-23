@@ -1,5 +1,5 @@
 .root {
-  --gap: var(--space-4);
+  --gap: var(--gap-lg);
   --code-size: 5rem;
   --mascot-size: 160px;
   --title-size: var(--font-size-lg);
@@ -15,7 +15,7 @@
 }
 
 .sm {
-  --gap: var(--space-3);
+  --gap: var(--gap-md);
   --code-size: 3rem;
   --mascot-size: 110px;
   --title-size: var(--font-size-md);
@@ -24,7 +24,7 @@
 }
 
 .md {
-  --gap: var(--space-4);
+  --gap: var(--gap-lg);
   --code-size: 5rem;
   --mascot-size: 160px;
   --title-size: var(--font-size-lg);
@@ -33,7 +33,7 @@
 }
 
 .lg {
-  --gap: var(--space-4);
+  --gap: var(--gap-lg);
   --code-size: 6.5rem;
   --mascot-size: 200px;
   --title-size: var(--font-size-xl);
@@ -89,7 +89,7 @@
 
 .actions {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--gap-lg);
   flex-wrap: wrap;
   justify-content: center;
   margin-top: var(--space-4);

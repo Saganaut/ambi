@@ -6,8 +6,8 @@
 .popover {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-2);
+  gap: var(--gap-sm);
+  padding: var(--p-square-xs);
   background-color: var(--bg-surface);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-md);
@@ -18,7 +18,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
 }
 
 .btn {

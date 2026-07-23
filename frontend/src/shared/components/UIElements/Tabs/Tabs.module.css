@@ -1,14 +1,14 @@
 .tabs {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   width: 100%;
 }
 
 .tablist {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
 }
 
 .underline {
@@ -16,7 +16,7 @@
 }
 
 .pill {
-  padding: var(--space-1);
+  padding: var(--p-square-xxs);
   background-color: var(--bg-subtle);
   border-radius: var(--radius-full);
 }
@@ -24,7 +24,7 @@
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   padding: var(--p-pill-sm);
   border: none;
   background: transparent;

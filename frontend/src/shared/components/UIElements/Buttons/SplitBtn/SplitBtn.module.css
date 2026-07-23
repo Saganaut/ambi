@@ -22,7 +22,7 @@
     border-bottom-left-radius: 0;
     border-left: var(--border-size-sm) solid
       color-mix(in oklab, currentcolor 25%, transparent);
-    padding-inline: var(--space-2);
+    padding-inline: var(--p-square-xs);
   }
 
   .chevronIcon {

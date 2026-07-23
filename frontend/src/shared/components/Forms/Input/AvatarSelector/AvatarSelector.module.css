@@ -15,7 +15,7 @@
   flex-direction: column;
 
   --tile-size: 64px;
-  --tile-gap: var(--space-3);
+  --tile-gap: var(--gap-md);
   --expanded-rows: 5;
 
   .legend {
@@ -33,10 +33,10 @@
 
     &.expanded {
       max-height: calc(
-        var(--tile-size) * var(--expanded-rows) + var(--tile-gap) *
-          (var(--expanded-rows) - 1) + var(--space-2) * 2
+        var(--tile-size) * var(--expanded-rows) + var(--tile-gap) * (var(--expanded-rows) - 1) +
+          var(--space-2) * 2
       );
-      padding: var(--space-2);
+      padding: var(--p-square-xs);
       overflow-y: auto;
       border: var(--border-size-sm) solid var(--edge-subtle);
       border-radius: var(--radius-md);
@@ -79,7 +79,7 @@
       justify-content: center;
       width: var(--tile-size);
       height: var(--tile-size);
-      padding: var(--space-1);
+      padding: var(--p-square-xxs);
       border-radius: var(--radius-full);
       border: 2px solid transparent;
       background-color: transparent;

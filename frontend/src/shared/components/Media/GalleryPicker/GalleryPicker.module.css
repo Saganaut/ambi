@@ -1,7 +1,7 @@
 .picker {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-lg);
   width: min(80vw, 880px);
 
   /* Fixed height (not max-height) so the modal never resizes as async gallery
@@ -40,12 +40,12 @@
 .toolbar {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 .toolbarRow {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -58,7 +58,7 @@
 
 .tagFilters {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -73,7 +73,7 @@
   background: var(--bg-surface);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-full);
-  padding: var(--space-1) var(--space-3);
+  padding: var(--p-xs);
   font-size: var(--font-size-xs);
   color: var(--text-primary);
   cursor: pointer;
@@ -93,9 +93,9 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-3);
+  gap: var(--gap-md);
   overflow-y: auto;
-  padding: var(--space-1);
+  padding: var(--p-square-xxs);
   flex: 1 1 auto;
 
   /* Pack rows at the top at their natural height; with few images the spare
@@ -107,11 +107,11 @@
 .tile {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   background: var(--bg-surface);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-md);
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   cursor: pointer;
   font-family: inherit;
   text-align: left;
@@ -143,7 +143,7 @@
 
 .tileMeta {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   flex-wrap: wrap;
   font-size: var(--font-size-xs);
   color: var(--text-muted);
@@ -158,21 +158,21 @@
 }
 
 .empty {
-  padding: var(--space-6) var(--space-4);
+  padding: var(--gutter-md) var(--gutter-sm);
 }
 
 .uploadForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--gap-md);
+  padding: var(--gutter-sm);
   background: var(--bg-surface);
   border-radius: var(--radius-md);
 }
 
 .uploadFormRow {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   align-items: end;
   flex-wrap: wrap;
 }
@@ -211,7 +211,7 @@
 
 .formActions {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }
 
 /* ── Gallery tab ─────────────────────────────────────────────────────────── */
@@ -219,7 +219,7 @@
 .galleryTab {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -237,7 +237,7 @@
 .editor {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 /* react-easy-crop fills this box absolutely, so it needs a sized,
@@ -254,7 +254,7 @@
 .zoomRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--gap-md);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
@@ -266,5 +266,5 @@
 .editorActions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
 }

@@ -28,7 +28,7 @@
   width: 100%;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   padding: var(--p-sm);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -93,7 +93,7 @@
 }
 
 .dropdownSearch {
-  padding: var(--space-2);
+  padding: var(--p-square-xs);
   border-bottom: var(--border-size-sm) solid var(--border-subtle);
 
   input {
@@ -113,8 +113,8 @@
 .dropdownOption {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: var(--gap-sm);
+  padding: var(--p-sm);
   cursor: pointer;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
@@ -142,7 +142,7 @@
 }
 
 .dropdownEmpty {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--p-sm);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   text-align: center;
@@ -151,7 +151,7 @@
 .chipList {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   flex: 1;
   min-width: 0;
 }
@@ -159,8 +159,8 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-half) var(--space-2);
+  gap: var(--gap-xs);
+  padding: var(--p-pill-xs);
   background-color: var(--bg-subtle);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);

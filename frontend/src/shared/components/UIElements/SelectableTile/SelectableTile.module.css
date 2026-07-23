@@ -1,6 +1,6 @@
 .tile {
   --padding: var(--p-md);
-  --gap: var(--space-2);
+  --gap: var(--gap-sm);
   --media-size: 80px;
 
   position: relative;
@@ -43,19 +43,19 @@
 
 .sm {
   --padding: var(--p-sm);
-  --gap: var(--space-1);
+  --gap: var(--gap-xs);
   --media-size: 48px;
 }
 
 .md {
   --padding: var(--p-md);
-  --gap: var(--space-2);
+  --gap: var(--gap-sm);
   --media-size: 80px;
 }
 
 .lg {
   --padding: var(--p-lg);
-  --gap: var(--space-3);
+  --gap: var(--gap-md);
   --media-size: 120px;
 }
 

@@ -4,7 +4,7 @@
 .modal {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4, 1rem);
+  gap: var(--gap-lg);
   min-width: min(40rem, 80vw);
   max-width: 48rem;
 }
@@ -23,7 +23,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-  gap: var(--space-3, 0.75rem);
+  gap: var(--gap-md);
 }
 
 .section + .section {
@@ -45,9 +45,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--gap-sm);
   width: 100%;
-  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  padding: var(--p-sm);
 
   /* Resting separation comes from elevation (elevation-over-borders rule);
    * the transparent border only reserves room for the active status ring. */
@@ -167,13 +167,13 @@
 .editor {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4, 1rem);
+  gap: var(--gap-lg);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--gap-sm);
 }
 
 .fieldLabel {
@@ -183,7 +183,7 @@
 
 .modeRow {
   display: flex;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--gap-sm);
 }
 
 /* ── Palette role editor ────────────────────────────────────────────────── */
@@ -191,7 +191,7 @@
 .roleGroup {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--gap-sm);
 }
 
 .roleGroupTitle {
@@ -206,13 +206,13 @@
 .roleGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
-  gap: var(--space-2, 0.5rem);
+  gap: var(--gap-sm);
 }
 
 .swatchField {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--gap-sm);
   font-size: var(--font-size-sm, 0.875rem);
   cursor: pointer;
 }
@@ -246,13 +246,13 @@
 .imageRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4, 1rem);
+  gap: var(--gap-lg);
 }
 
 .imageSlot {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1, 0.25rem);
+  gap: var(--gap-xs);
 }
 
 .imageTile {
@@ -278,7 +278,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1, 0.25rem);
+  gap: var(--gap-xs);
   height: 100%;
   color: var(--text-muted, #667);
   font-size: var(--font-size-sm, 0.875rem);
@@ -298,7 +298,7 @@
 .preview {
   display: flex;
   align-items: center;
-  gap: var(--space-3, 0.75rem);
+  gap: var(--gap-md);
   height: 4rem;
   padding: 0 var(--space-3, 0.75rem);
   border-radius: var(--radius-md, 0.5rem);
@@ -319,7 +319,7 @@
 .editorActions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--gap-sm);
 }
 
 .error {

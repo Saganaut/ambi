@@ -1,13 +1,13 @@
 .pagination {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   font-variant-numeric: tabular-nums;
 
   .list {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-1);
+    gap: var(--gap-xs);
     list-style: none;
     margin: 0;
     padding: 0;
@@ -86,5 +86,5 @@
 }
 
 .compact {
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }

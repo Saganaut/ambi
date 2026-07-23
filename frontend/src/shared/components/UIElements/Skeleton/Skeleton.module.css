@@ -1,7 +1,7 @@
 .group {
   display: inline-flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   width: 100%;
 }
 

@@ -10,7 +10,7 @@
   --color-hover: var(--action-hover);
   --color-muted: oklch(from var(--color) l c h / 40%);
   --background-color-hover: var(--background-color);
-  --padding: var(--space-2);
+  --padding: var(--p-square-xs);
   --radius: var(--radius-md);
 
   color: var(--color);
@@ -111,7 +111,7 @@
 }
 
 .guestInput {
-  padding: var(--space-2) var(--space-2);
+  padding: var(--p-square-xs);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);

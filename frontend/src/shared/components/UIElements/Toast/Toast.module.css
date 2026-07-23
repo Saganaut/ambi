@@ -4,7 +4,7 @@
   right: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   z-index: var(--z-tooltip);
   pointer-events: none;
 }
@@ -25,7 +25,7 @@
   align-items: center;
   justify-content: space-between;
   position: relative;
-  gap: var(--space-4);
+  gap: var(--gap-lg);
   padding: var(--padding);
   border-radius: var(--radius);
   border: var(--border-size-sm) solid var(--border-color);

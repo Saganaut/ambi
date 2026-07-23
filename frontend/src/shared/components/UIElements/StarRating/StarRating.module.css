@@ -10,10 +10,10 @@
 .root {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   border: var(--border-size-sm) solid transparent;
   border-radius: var(--radius-sm);
-  padding: var(--space-1);
+  padding: var(--p-square-xxs);
   color: var(--text-warning);
 
   &:focus-visible {
@@ -31,7 +31,7 @@
   & .solidRow,
   & .hitRow {
     display: inline-flex;
-    gap: var(--space-1);
+    gap: var(--gap-xs);
   }
 
   & .solidRow {

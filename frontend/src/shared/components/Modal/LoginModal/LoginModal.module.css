@@ -8,7 +8,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-lg);
 
   /* Design frame is 480px; the Modal wrapper adds space-4 + space-6 padding
      per side (40px), so the content body targets 400px. */
@@ -25,7 +25,7 @@
 .providers {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-md);
 }
 
 /* Figma pairs the bg-secondary fill with body text ("Body on sibling"), not

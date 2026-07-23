@@ -5,8 +5,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-8) var(--space-6);
+  gap: var(--gap-md);
+  padding: var(--gutter-lg) var(--gutter-md);
   min-width: 220px;
   max-width: 280px;
   flex: 1 1 220px;
@@ -86,7 +86,7 @@
 .card {
   --padding: var(--p-sm);
   --radius: var(--radius-lg);
-  --gap: var(--space-2);
+  --gap: var(--gap-sm);
   --color: var(--text-primary);
   --background-color: var(--bg-surface);
   --border-color: var(--border-default);
@@ -136,25 +136,25 @@
   &.xs {
     --padding: var(--p-xxs);
     --radius: var(--radius-sm);
-    --gap: var(--space-1);
+    --gap: var(--gap-xs);
   }
 
   &.sm {
     --padding: var(--p-sm);
     --radius: var(--radius-md);
-    --gap: var(--space-2);
+    --gap: var(--gap-sm);
   }
 
   &.md {
     --padding: var(--p-md);
     --radius: var(--radius-md);
-    --gap: var(--space-3);
+    --gap: var(--gap-md);
   }
 
   &.lg {
     --padding: var(--p-lg);
     --radius: var(--radius-lg);
-    --gap: var(--space-4);
+    --gap: var(--gap-lg);
   }
 
   &.isClickable {
@@ -168,7 +168,7 @@
   .header,
   .body,
   .footer {
-    padding: var(--space-2);
+    padding: var(--p-square-xs);
     background-color: var(--bg-canvas);
     border-radius: var(--radius-md);
   }

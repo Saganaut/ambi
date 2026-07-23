@@ -48,7 +48,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-3);
+  padding: var(--p-square-sm);
   border-bottom: var(--border-size-sm) solid var(--edge-subtle);
 }
 
@@ -82,7 +82,7 @@
 }
 
 .dayLabel {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--p-sm);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -93,8 +93,8 @@
 .row {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--gap-sm);
+  padding: var(--p-square-sm);
   border-top: var(--border-size-sm) solid var(--edge-subtle);
   text-decoration: none;
   color: inherit;
@@ -138,7 +138,7 @@
 .body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
   min-width: 0;
 }
 
@@ -165,7 +165,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--space-1);
+  gap: var(--gap-xs);
 }
 
 .rowTimestamp {
@@ -191,14 +191,14 @@
 }
 
 .empty {
-  padding: var(--space-6) var(--space-4);
+  padding: var(--gutter-md) var(--gutter-sm);
   text-align: center;
   font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
 
 .loading {
-  padding: var(--space-6) var(--space-4);
+  padding: var(--gutter-md) var(--gutter-sm);
   text-align: center;
   font-size: var(--font-size-sm);
   color: var(--text-muted);
