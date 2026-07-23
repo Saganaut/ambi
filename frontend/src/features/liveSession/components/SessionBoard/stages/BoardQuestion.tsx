@@ -6,8 +6,8 @@
  *   per-kind content for every question kind.
  * - results: Shows final distribution + highlights correct answer.
  * * Shared header (title + instructions). Body switches on `contentType`
- * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing built; others fallback to
- * placeholder).
+ * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing, Text built; others fallback
+ * to placeholder).
  */
 import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import type { SlideView } from "../../../store/liveSessionApi.gen";
@@ -19,6 +19,7 @@ import { MatchingBoardContent } from "../content/MatchingBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
 import { QAndABoardContent } from "../content/QAndABoardContent";
 import { ScalesBoardContent } from "../content/ScalesBoardContent";
+import { TextBoardContent } from "../content/TextBoardContent";
 import { VoteBoardContent } from "../content/VoteBoardContent";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import styles from "./BoardQuestion.module.css";
@@ -64,6 +65,8 @@ const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: b
       return <MatchingBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "DRAWING":
       return <DrawingBoardContent slide={slide} mode={mode} interactive={interactive} />;
+    case "TEXT":
+      return <TextBoardContent slide={slide} mode={mode} interactive={interactive} />;
     default:
       // Per-kind presentation surfaces land incrementally; until then the round
       // still renders something coherent rather than a blank board.

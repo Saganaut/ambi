@@ -1,0 +1,130 @@
+.textBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .note {
+    margin: 0;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .displayToggle {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--gap-sm);
+  }
+
+  .answers {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+
+    .answer {
+      display: flex;
+      align-items: center;
+      gap: var(--gap-md);
+      padding: var(--p-md);
+
+      /* Reserve the state-border width so revealing never reflows. */
+      border: var(--border-size-md) solid transparent;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface-raised);
+      color: var(--text-primary);
+      font-size: var(--font-size-lg);
+
+      .answerText {
+        flex: 1;
+        overflow-wrap: anywhere;
+      }
+
+      .answerCount {
+        flex-shrink: 0;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-secondary);
+      }
+    }
+
+    /* Revealed correct answer — success surface + a check badge. */
+    .correct {
+      background-color: var(--bg-success);
+
+      .badge {
+        flex-shrink: 0;
+        color: var(--text-success);
+        font-weight: 700;
+      }
+    }
+  }
+
+  /* The single accepted answer, disclosed when nobody matched it. */
+  .correctAnswer {
+    display: flex;
+    align-items: baseline;
+    gap: var(--gap-sm);
+    margin: 0;
+    padding-inline-start: var(--gap-lg);
+    border-inline-start: var(--border-size-md) solid var(--edge-brand);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+
+    .correctLabel {
+      flex-shrink: 0;
+      color: var(--text-accent);
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+  }
+
+  .compose {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+  }
+
+  .composeInput {
+    width: 100%;
+    padding: var(--p-square-sm);
+    border: var(--border-size-md) solid var(--edge-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-raised);
+    color: var(--text-primary);
+    font: inherit;
+    resize: vertical;
+
+    &:focus-visible {
+      outline: var(--border-size-md) solid var(--edge-brand);
+      outline-offset: 0;
+    }
+  }
+
+  .composeActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--gap-md);
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sent {
+      color: var(--text-success);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+  }
+}
