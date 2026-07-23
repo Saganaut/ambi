@@ -6,9 +6,9 @@ planning future viz work. A per-type **map** (`resultsRegistry`) now records the
 valid charts for every question type, and the chart family covers them — but
 only **MCQ** is wired end-to-end into the editor UI. `Histogram` and
 `WordCloud` are built; the heatmap, Likert and image-overlay renderers are
-scaffolded placeholders awaiting real implementations. (`WordCloud`'s only
-current consumer is the live Q&A board, a separate pipeline from the one
-described below — see the [Q&A per-type note](#per-type-notes).)
+scaffolded placeholders awaiting real implementations. (`WordCloud`'s current
+consumers are the live Q&A and TEXT boards, both separate pipelines from the
+one described below — see their [per-type notes](#per-type-notes).)
 
 ---
 
@@ -103,7 +103,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 |---|---|---|---|
 | **MCQ** | `Set<String>` option ids | Bar / Pie / Donut / Line / Pareto / Dot | ✅ built |
 | **NUMBER** | `double` | Histogram (or DotPlot / box) with target marker | ✅ Histogram built (no editor UI yet) |
-| **TEXT** | `String` | Word cloud, or ranked term bar | 🧩 word cloud built, not wired (no backend tally) |
+| **TEXT** | `String` | Word cloud, or ranked term bar | ✅ live board built (bypasses this pipeline — see note) |
 | **RANKING** | `List<String>` order | Avg-rank bar, or position-distribution stacked bar / bump | ♻️ reuses BarChart |
 | **SCALES** | `Map<id,Double>` normalized positions (see [scales redesign](scales-slides/README.md)) | Per-statement bucketed strip/histogram, or mean±spread per item | 🚧 post-round diverging-bar placeholder; live per-statement 10-bucket strips built on the board — see [scales slides](scales-slides/README.md) |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 post-round heatmap placeholder; live per-cell shading built on the board (`GridBoardContent`) |
@@ -134,9 +134,26 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   **distribution**, not categories: a histogram (bin the guesses) or dot plot,
   with the correct `answer` and its `tolerance` band marked. Bar/pie don't fit
   continuous data.
-- **TEXT** — free text per participant. In `WORDCLOUD` match mode (empty
-  `acceptedAnswers`, unscored) the intent is explicitly a **word cloud** sized
-  by term frequency; a ranked bar of top terms is the tabular fallback.
+- **TEXT** — free text per participant, either scored (an `acceptedAnswers` /
+  `matchMode` short-answer) or unscored `WORDCLOUD` mode (empty
+  `acceptedAnswers`). The **live board** (`TextBoardContent`) is built
+  end-to-end: a participant composes and sends one answer, capped at the
+  effective character limit (the min of the slide's own `maxLength` and the
+  global `TEXT_ANSWER_MAX`), and resending overwrites the prior submission
+  (last write before the round closes wins). Free text is deliberately never
+  live-tallied — broadcasting raw in-progress answers pre-reveal would leak
+  them to the room — so `liveResults` just shows a hidden-until-reveal note.
+  Unlike Q&A's client-side tokenizer, TEXT's aggregation rides the existing
+  durable backend tally: `RoundEvaluator.describeChoice()` already collates
+  `TextAnswer.text()` into `RoundResult.optionCounts`, so at `results` the
+  board renders distinct submitted answers with counts, a **List/Word-cloud
+  toggle** (word cloud sized by term frequency; `WORDCLOUD`-mode slides default
+  straight to the cloud and skip correctness UI), correct-row highlighting from
+  `outcomes`, and a single accepted answer nobody matched disclosed separately.
+  Like Q&A and Drawing, this bypasses this doc's `ChartDatum`/registry/
+  `ResultsDisplaySwitch` pipeline — `resultsRegistry.TEXT` is mapped but
+  `implemented: false`, and the post-round/editor results view is still
+  unmapped for TEXT.
 - **RANKING** — each participant submits a full ordering. Chart the **average
   (or median) rank position per item** (a bar could reuse `BarChart`), or the
   distribution of positions per item as a stacked bar (needs a stacked variant).
@@ -199,11 +216,13 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
 
 Ordered by breadth of slide types unlocked and reuse of existing infrastructure.
 
-1. **Word cloud** → the `WordCloud` renderer + tokenizer adapter are now built
-   and live for Q&A's board (a frontend-only pipeline — see its per-type
-   note). TEXT (`WORDCLOUD` match mode) and FOLLOW_UP still need backend
-   aggregation of raw text plus a `resultsRegistry` adapter to wire into the
-   post-round results pipeline above.
+1. **Word cloud** → the `WordCloud` renderer is now built and live on two
+   boards: Q&A's (a frontend-only tokenizer pipeline over raw live text — see
+   its per-type note) and TEXT's (`TextBoardContent`, results-reveal only,
+   aggregated through the existing durable `RoundResult.optionCounts` tally —
+   see its per-type note). FOLLOW_UP still needs backend aggregation of raw
+   text plus a `resultsRegistry` adapter to wire into the post-round results
+   pipeline above.
 2. **Histogram / box plot** → NUMBER. The only viz for continuous responses.
 3. **Diverging stacked bar (Likert)** → SCALES (now needs a bucketed variant —
    the [continuous-slider redesign](scales-slides/README.md) shipped, so values
