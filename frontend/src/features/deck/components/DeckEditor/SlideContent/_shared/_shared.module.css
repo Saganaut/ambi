@@ -57,6 +57,11 @@
 .settingsCard {
   display: flex;
   flex-direction: column;
+
+  /* Equals .settingsCardBody's gap — a conscious same-tier call: a true step
+     up (--gap-lg, 16) would exceed the card's own --p-square-sm (12) padding,
+     violating padding >= gap. Same precedent as settingsCardBody ==
+     settingsRow below. */
   gap: var(--gap-md);
   padding: var(--p-square-sm);
   background-color: var(--bg-surface);
