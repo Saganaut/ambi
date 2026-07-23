@@ -57,7 +57,7 @@
 .settingsCard {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-sm);
+  gap: var(--gap-md);
   padding: var(--p-square-sm);
   background-color: var(--bg-surface);
   border-radius: var(--radius-md);

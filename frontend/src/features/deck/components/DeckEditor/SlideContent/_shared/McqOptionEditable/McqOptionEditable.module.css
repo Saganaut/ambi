@@ -65,7 +65,7 @@
   display: flex;
   justify-content: space-between;
   align-items: stretch;
-  gap: var(--gap-sm);
+  gap: var(--gap-xs);
 
   /* Fill the card's remaining vertical space so the bounded textarea
      inside `.textColumn` has a real height to fit into. */

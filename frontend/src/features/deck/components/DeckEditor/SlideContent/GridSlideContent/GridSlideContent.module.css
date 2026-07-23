@@ -14,7 +14,7 @@
     minmax(6rem, auto)
     repeat(var(--grid-cols), minmax(0, 1fr))
     auto;
-  gap: var(--gap-sm);
+  gap: var(--gap-md);
   align-items: stretch;
 }
 
@@ -250,12 +250,12 @@
 .unplaced {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-sm);
+  gap: var(--gap-md);
   margin-top: var(--space-3);
 }
 
 .unplacedItems {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-  gap: var(--gap-sm);
+  gap: var(--gap-md);
 }

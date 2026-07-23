@@ -74,13 +74,12 @@
   .menuDivider {
     height: var(--border-size-sm);
     background-color: var(--border-subtle);
-    margin: var(--space-1) 0;
   }
 
   .menuItem {
     display: flex;
     align-items: center;
-    gap: var(--gap-sm);
+    gap: var(--gap-xs);
     width: 100%;
     padding: var(--p-square-xs);
     border: none;

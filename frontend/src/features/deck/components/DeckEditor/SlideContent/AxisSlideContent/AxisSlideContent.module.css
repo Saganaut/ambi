@@ -166,7 +166,9 @@
   align-items: center;
   gap: var(--gap-xs);
   max-width: 9rem;
-  padding: var(--space-half) var(--space-2) var(--space-half) var(--space-1);
+
+  /* (4px, 8px, 4px, 4px) has no --p-* equivalent — sanctioned one-off on the raw scale */
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
   transform: translate(calc(-1 * (var(--space-1) + var(--dot-size) / 2)), -50%);
   border: var(--border-size-sm) solid var(--item-color);
   border-radius: var(--radius-full);
