@@ -216,6 +216,7 @@ const SlideDisplay = () => {
         slideContentImgUrl={slideContentImgUrl}
       >
         <AsyncBoundary
+          key={slideId}
           boundaryName="slide-display-editor"
           loadingFallback={<Loader />}
           errorFallback={
