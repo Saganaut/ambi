@@ -92,7 +92,10 @@
   gap: var(--gap-lg);
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: var(--space-4);
+
+  /* Additive emphasis on top of the size-dependent manifest gap; folding it
+     into the gap would widen every sibling pair. */
+  margin-top: var(--gap-lg);
 }
 
 .homeLink {

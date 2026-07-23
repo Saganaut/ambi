@@ -52,14 +52,17 @@
       max-width: 20%;
     }
 
+    /* Inner-facing margins, not a parent gap: the wrapper body keeps `gap: 0`
+       so collapsed slots stay invisible — the margin animates away with the
+       slot (see SlideContentWrapper.module.css). */
     &.leftCentered {
       max-width: 480px;
-      margin-inline-end: var(--space-3);
+      margin-inline-end: var(--gap-md);
     }
 
     &.rightCentered {
       max-width: 480px;
-      margin-inline-start: var(--space-3);
+      margin-inline-start: var(--gap-md);
     }
   }
 }

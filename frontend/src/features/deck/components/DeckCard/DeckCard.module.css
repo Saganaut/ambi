@@ -89,7 +89,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap-xs);
-  margin-top: var(--space-1);
+
+  /* Additive emphasis on top of the body's uniform gap; folding it into the
+     body gap would widen every sibling pair. */
+  margin-top: var(--gap-xs);
 }
 
 .actions {
@@ -97,5 +100,8 @@
   align-items: center;
   gap: var(--gap-sm);
   margin-top: auto;
-  padding-top: var(--space-1);
+
+  /* Self padding, not sibling separation: guarantees breathing room even when
+     `margin-top: auto` collapses to zero in a full body. */
+  padding-top: var(--gap-xs);
 }

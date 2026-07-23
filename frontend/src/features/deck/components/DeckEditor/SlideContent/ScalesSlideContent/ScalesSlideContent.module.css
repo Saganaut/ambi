@@ -231,8 +231,9 @@
   align-items: center;
 
   /* Breathing room so a marker parked at an end (position 0 / 1) clears the
-     adjacent anchor caption instead of washing over it. */
-  margin-inline: var(--space-1);
+     adjacent anchor caption instead of washing over it — an inset for the
+     overhanging marker, not sibling separation (the row's gap owns that). */
+  margin-inline: var(--gap-xs);
   min-width: 7rem;
   height: 1.5rem;
   touch-action: none;

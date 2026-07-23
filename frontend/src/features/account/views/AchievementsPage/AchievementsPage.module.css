@@ -21,7 +21,10 @@
 .title {
   font-size: var(--font-size-3xl);
   font-weight: 700;
-  margin: 0 0 var(--space-1) 0;
+
+  /* Flow margin: the subtitle trails the title inside the header's left cell,
+     which has no dedicated wrapper to own a gap. */
+  margin: 0 0 var(--gap-xs) 0;
 }
 
 .subtitle {
@@ -37,13 +40,16 @@
 }
 
 .section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-sm);
   margin-bottom: var(--stack-lg);
 }
 
 .sectionTitle {
   font-size: var(--font-size-xl);
   font-weight: 600;
-  margin: 0 0 var(--stack-sm) 0;
+  margin: 0;
 }
 
 .grid {
@@ -105,10 +111,13 @@
 .cardText {
   flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
 }
 
 .cardName {
-  margin: 0 0 var(--space-1) 0;
+  margin: 0;
   font-size: var(--font-size-md);
   font-weight: 600;
 }
@@ -152,7 +161,10 @@
   align-items: center;
   justify-content: space-between;
   margin-top: auto;
-  padding-top: var(--space-2);
+
+  /* Divider inset: clears the border-top rule; the card's gap owns
+     sibling separation. */
+  padding-top: var(--gap-sm);
   border-top: 1px solid var(--edge-surface);
   font-size: var(--font-size-xs);
 }

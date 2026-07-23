@@ -62,5 +62,7 @@
 }
 
 .action {
-  margin-top: var(--space-2);
+  /* Additive emphasis on top of the size-dependent manifest gap; folding it
+     into the gap would widen every sibling pair. */
+  margin-top: var(--gap-sm);
 }

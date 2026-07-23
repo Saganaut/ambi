@@ -80,7 +80,10 @@
   justify-content: center;
   width: 100%;
   height: var(--media-size);
-  margin-bottom: var(--space-1);
+
+  /* Additive emphasis on top of the size-dependent manifest gap; folding it
+     into the gap would widen every sibling pair. */
+  margin-bottom: var(--gap-xs);
   color: var(--text-secondary);
 }
 

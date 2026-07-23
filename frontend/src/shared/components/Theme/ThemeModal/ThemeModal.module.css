@@ -11,8 +11,14 @@
 
 /* ── List view ──────────────────────────────────────────────────────────── */
 
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
 .sectionTitle {
-  margin: 0 0 var(--space-2, 0.5rem);
+  margin: 0;
   font-size: var(--font-size-sm, 0.875rem);
   font-weight: 600;
   color: var(--text-muted, #667);
@@ -26,8 +32,10 @@
   gap: var(--gap-md);
 }
 
+/* Flow margin on top of the modal's gap: sections get one layout-tier step of
+   extra separation over ordinary modal children. */
 .section + .section {
-  margin-top: var(--space-4, 1rem);
+  margin-top: var(--stack-sm);
 }
 
 /* ── Theme card ─────────────────────────────────────────────────────────── */

@@ -66,7 +66,10 @@
 .tagFilterLabel {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
-  margin-right: var(--space-2);
+
+  /* Additive separation from the chip row on top of the row's gap; folding it
+     into the gap would widen every chip pair. */
+  margin-right: var(--gap-sm);
 }
 
 .tagFilterBtn {

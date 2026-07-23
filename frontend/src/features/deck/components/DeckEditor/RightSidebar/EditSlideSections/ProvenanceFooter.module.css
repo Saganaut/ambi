@@ -5,7 +5,7 @@
 .footer {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
-  padding-top: var(--space-3);
+  padding-top: var(--gap-md);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }

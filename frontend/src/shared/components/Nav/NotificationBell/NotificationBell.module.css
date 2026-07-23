@@ -116,12 +116,16 @@
 }
 
 .rowUnread::before {
+  /* Absolute-positioning offset (not sibling spacing), coupled to the height
+     calc so the bar stays vertically centered. */
+  --unread-bar-inset: var(--space-3);
+
   content: "";
   position: absolute;
   left: 0;
   width: 3px;
-  height: calc(100% - var(--space-3) * 2);
-  margin-top: var(--space-3);
+  height: calc(100% - var(--unread-bar-inset) * 2);
+  margin-top: var(--unread-bar-inset);
   background: var(--bg-brand);
   border-radius: var(--radius-sm);
 }

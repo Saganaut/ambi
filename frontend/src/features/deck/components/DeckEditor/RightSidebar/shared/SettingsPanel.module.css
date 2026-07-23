@@ -25,10 +25,11 @@
 }
 
 /* Hairline between the panel's zones (inheritance note → settings rows →
-   per-kind section); the panel's flex gap spaces the zones themselves. */
+   per-kind section); the panel's flex gap spaces the zones themselves — the
+   padding here only insets content from the hairline rule. */
 .sectionDivider {
   border-top: var(--border-size-sm) solid var(--edge-subtle);
-  padding-top: var(--space-3);
+  padding-top: var(--gap-md);
 }
 
 .footer {
@@ -36,7 +37,7 @@
   flex-direction: column;
   gap: var(--gap-sm);
   border-top: 1px solid var(--border-default);
-  padding-top: var(--space-3);
+  padding-top: var(--gap-md);
 }
 
 /* The Tooltip wrapper around the full-width "Apply to deck" button. Tooltip's

@@ -3,19 +3,6 @@
    own per-option chrome (index, remove, correct toggle, fields). Styles
    that belong to a single option card live in McqOptionEditable.module.css. */
 
-.optionsHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: var(--space-2);
-}
-
-.optionsLabel {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
 /* Keeps the footer slot's vertical space reserved when there is no warning
    to show, so toggling correct/wrong doesn't reflow the options grid above. */
 .footerPlaceholder {

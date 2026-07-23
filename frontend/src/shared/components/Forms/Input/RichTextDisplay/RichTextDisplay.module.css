@@ -15,8 +15,10 @@
   margin: 0;
 }
 
+/* Flow margin: paragraph rhythm inside user-authored rich text, where no
+   flex/grid parent exists to own a gap. */
 .content p + p {
-  margin-top: var(--space-2);
+  margin-top: var(--gap-sm);
 }
 
 .content a {

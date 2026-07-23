@@ -35,7 +35,9 @@
   padding-bottom: 0;
 }
 
+/* Kept as a self-margin: a gap on the fieldset would also push the options
+   away from the legend, which spaces itself via its own padding-bottom. */
 .message {
   display: inline-block;
-  margin-top: var(--space-1);
+  margin-top: var(--gap-xs);
 }

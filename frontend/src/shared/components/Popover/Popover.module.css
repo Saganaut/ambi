@@ -60,7 +60,10 @@
   width: 1px;
   align-self: stretch;
   background-color: var(--border-subtle);
-  margin: 0 var(--space-1);
+
+  /* Additive breathing room around the rule on top of the row's gap; folding
+     it into the gap would widen every button pair. */
+  margin: 0 var(--gap-xs);
 }
 
 .groupLabel {
