@@ -7,15 +7,15 @@ import styles from "./HeroDotGrid.module.css";
 // wave sweeps the grid (per-dot animation delays keyed to row + column).
 const GRID_SIZE = 9;
 
-type Hue = "violet" | "grey" | "orange" | "cyan";
+type Hue = "violet" | "zinc" | "orange" | "cyan";
 
 const ROW_HUES: readonly Hue[] = [
   "violet",
-  "grey",
+  "zinc",
   "orange",
   "violet",
   "cyan",
-  "grey",
+  "zinc",
   "violet",
   "orange",
   "cyan",
