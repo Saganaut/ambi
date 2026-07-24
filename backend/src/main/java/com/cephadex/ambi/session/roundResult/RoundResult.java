@@ -1,7 +1,7 @@
 package com.cephadex.ambi.session.roundResult;
 
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,7 +25,15 @@ public class RoundResult {
 
     private List<ParticipantOutcome> perParticipant;
 
-    private Map<String, Integer> optionCounts;
+    /**
+     * Per-choice tally, stored as a list rather than a {@code Map} because the
+     * choice strings are used verbatim as keys and can contain a {@code '.'}: a
+     * NUMBER round keys on the stringified value (e.g. {@code "42.5"}) and a
+     * free-text round on the raw answer ({@code "Mr. Smith"}). MongoDB forbids
+     * dots in field names, so a map would fail to persist the whole document.
+     * {@link #optionCounts()} rebuilds the map view the reveal events expose.
+     */
+    private List<TallyEntry> optionTally;
 
     private int numberOfCorrectAnswers;
 
@@ -36,6 +44,10 @@ public class RoundResult {
     private String correctOption;
 
     private RoundResult() {
+    }
+
+    /** One rendered choice and how many participants selected it. */
+    public record TallyEntry(String choice, int count) {
     }
 
     /**
@@ -63,7 +75,7 @@ public class RoundResult {
         r.perParticipant = List.copyOf(outcomes);
         r.numberOfParticipants = outcomes.size();
         r.numberOfCorrectAnswers = (int) outcomes.stream().filter(o -> o.correct()).count();
-        r.optionCounts = tallyOptions(outcomes);
+        r.optionTally = tallyOptions(outcomes);
         r.responseTimes = outcomes.stream().map(o -> (double) o.responseTimeMs()).toList();
         // correctOption is set by the grading owner via correctOption(...): the key
         // is derived from the slide by RoundEvaluator (the single place that reads
@@ -84,14 +96,16 @@ public class RoundResult {
         return this;
     }
 
-    private static Map<String, Integer> tallyOptions(List<ParticipantOutcome> outcomes) {
-        Map<String, Integer> counts = new HashMap<>();
+    private static List<TallyEntry> tallyOptions(List<ParticipantOutcome> outcomes) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
         for (ParticipantOutcome o : outcomes) {
             if (o.choice() != null) {
                 counts.merge(o.choice(), 1, (a, b) -> a + b);
             }
         }
-        return counts;
+        return counts.entrySet().stream()
+                .map(e -> new TallyEntry(e.getKey(), e.getValue()))
+                .toList();
     }
 
     public RoundResultId id() {
@@ -111,7 +125,14 @@ public class RoundResult {
     }
 
     public Map<String, Integer> optionCounts() {
-        return optionCounts;
+        if (optionTally == null) {
+            return Map.of();
+        }
+        Map<String, Integer> counts = new LinkedHashMap<>(optionTally.size());
+        for (TallyEntry e : optionTally) {
+            counts.put(e.choice(), e.count());
+        }
+        return counts;
     }
 
     public Optional<String> correctOption() {

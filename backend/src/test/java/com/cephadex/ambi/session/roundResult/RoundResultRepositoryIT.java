@@ -20,6 +20,7 @@ import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.AnswerRepository;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
+import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
 
 import java.util.Set;
 
@@ -63,6 +64,33 @@ class RoundResultRepositoryIT {
         assertThat(roundResults.findByIdSidAndIdSlideId(SID, SLIDE)).isPresent();
         assertThat(roundResults.findByIdSid(SID)).hasSize(1);
         assertThat(roundResults.findByIdSidAndIdSlideId(SID, "no-such-slide")).isEmpty();
+    }
+
+    @Test
+    void roundResultPersistsTallyKeysThatWouldBeIllegalMongoFieldNames() {
+        // The tally keys on each participant's rendered choice verbatim: a NUMBER
+        // round on the stringified value (e.g. "42.5") and a free-text round on
+        // the raw answer, which can contain a period ("Mr. Smith") — or even a
+        // literal FULLWIDTH FULL STOP an IME emits ("gmail．com"). Mongo forbids
+        // dots in field names, so the tally is persisted as a list, not a map;
+        // this proves such keys round-trip intact (a map field would either throw
+        // on the dot or silently corrupt the fullwidth stop under dot-escaping).
+        Slide slide = new Slide();
+        slide.setId(SLIDE);
+        RoundResult result = RoundResult.compute(SID, slide, List.of(
+                new ParticipantOutcome("p-1", "42.5", true, 10, 5L),
+                new ParticipantOutcome("p-2", "42.5", true, 10, 7L),
+                new ParticipantOutcome("p-3", "Mr. Smith", false, 0, 8L),
+                new ParticipantOutcome("p-4", "gmail．com", false, 0, 9L)), Instant.now());
+
+        roundResults.save(result);
+
+        RoundResult loaded = roundResults.findByIdSidAndIdSlideId(SID, SLIDE).orElseThrow();
+        // Every key survives the Mongo round-trip byte-for-byte.
+        assertThat(loaded.optionCounts())
+                .containsEntry("42.5", 2)
+                .containsEntry("Mr. Smith", 1)
+                .containsEntry("gmail．com", 1);
     }
 
     @Test
