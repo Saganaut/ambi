@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
+import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 
 /**
@@ -20,7 +21,9 @@ import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
  * revealed answer key for this slide — disclosed only now, at results time.
  * {@code drawings} is the submitted-drawings gallery for a Drawing round
  * (presigned URLs, see {@link DrawingSubmissionView}); {@code null} for every
- * other kind.
+ * other kind. {@code placeTargets} is the authored correct-location circles for
+ * a Place-on-image round (see {@link PlaceTargetView}), disclosed only now so the
+ * board can draw the correct-location reveal; {@code null} for every other kind.
  */
 public record ResultsRevealed(
         String slideId,
@@ -29,5 +32,6 @@ public record ResultsRevealed(
         String correctOption,
         List<ScoreboardEntry> scoreboard,
         List<DrawingSubmissionView> drawings,
+        List<PlaceTargetView> placeTargets,
         boolean terminal) implements SessionEvent {
 }

@@ -6,8 +6,8 @@
  *   per-kind content for every question kind.
  * - results: Shows final distribution + highlights correct answer.
  * * Shared header (title + instructions). Body switches on `contentType`
- * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing, Text, Number built; others
- * fallback to placeholder).
+ * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing, Text, Number, Ranking,
+ * Place-on-Image built; others fallback to placeholder).
  */
 import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import type { SlideView } from "../../../store/liveSessionApi.gen";
@@ -18,6 +18,7 @@ import { GridBoardContent } from "../content/GridBoardContent";
 import { MatchingBoardContent } from "../content/MatchingBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
 import { NumberBoardContent } from "../content/NumberBoardContent";
+import { PlaceOnImageBoardContent } from "../content/PlaceOnImageBoardContent";
 import { QAndABoardContent } from "../content/QAndABoardContent";
 import { RankingBoardContent } from "../content/RankingBoardContent";
 import { ScalesBoardContent } from "../content/ScalesBoardContent";
@@ -73,6 +74,8 @@ const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: b
       return <NumberBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "RANKING":
       return <RankingBoardContent slide={slide} mode={mode} interactive={interactive} />;
+    case "PLACE_ON_IMAGE":
+      return <PlaceOnImageBoardContent slide={slide} mode={mode} interactive={interactive} />;
     default:
       // Per-kind presentation surfaces land incrementally; until then the round
       // still renders something coherent rather than a blank board.

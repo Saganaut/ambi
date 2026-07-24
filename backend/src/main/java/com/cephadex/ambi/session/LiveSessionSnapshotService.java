@@ -12,10 +12,12 @@ import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
 import com.cephadex.ambi.presentation.deck.Settings;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
+import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.SlideView;
 import com.cephadex.ambi.session.event.dto.VoteOptionView;
@@ -117,6 +119,7 @@ public class LiveSessionSnapshotService {
         List<VoteOptionView> voteOptions = null;
         String myVoteOptionId = null;
         Integer votesCast = null;
+        List<PlaceTargetView> placeTargets = null;
         if (currentSlideId != null) {
             var slide = session.getDeck().findSlide(currentSlideId).orElse(null);
             if (slide != null) {
@@ -132,6 +135,14 @@ public class LiveSessionSnapshotService {
                             answerStore.answers(sessionId, currentSlideId),
                             qandaHostAnswers.all(sessionId, currentSlideId),
                             anonymize);
+                }
+                if (currentSlide.contentType() == SlideType.PLACE_ON_IMAGE
+                        && roundState.phase() == RoundPhase.REVEAL_RESULTS
+                        && slide.getContent() instanceof PlaceOnImageContent place) {
+                    // The correct-location circles are the answer key: disclosed only
+                    // once the round is revealing results, mirroring the
+                    // ResultsRevealed delta so a late joiner rehydrates the same reveal.
+                    placeTargets = PlaceTargetView.from(place);
                 }
             }
             optionTally = tallyStore.tally(sessionId, currentSlideId);
@@ -170,6 +181,7 @@ public class LiveSessionSnapshotService {
                 voteOptions,
                 myVoteOptionId,
                 votesCast,
+                placeTargets,
                 rosterViews,
                 SessionEvents.scoreboard(roster),
                 viewer.getParticipantId(),

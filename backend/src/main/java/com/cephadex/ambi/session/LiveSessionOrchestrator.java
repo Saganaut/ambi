@@ -29,6 +29,7 @@ import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
@@ -43,6 +44,7 @@ import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
+import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.VoteOptionView;
 import com.cephadex.ambi.session.liveSession.LiveSession;
@@ -1021,8 +1023,9 @@ public class LiveSessionOrchestrator {
             List<Participant> roster = participants.findAllById(session.getRoster());
             boolean terminal = isLastRound(session, slideId);
             List<DrawingSubmissionView> drawings = drawingSubmissions(session, slideId, roster);
+            List<PlaceTargetView> placeTargets = placeOnImageTargets(session, slideId);
             publisher.publish(current.publicId(),
-                    SessionEvents.resultsRevealed(result, roster, drawings, terminal));
+                    SessionEvents.resultsRevealed(result, roster, drawings, placeTargets, terminal));
         }));
     }
 
@@ -1077,6 +1080,24 @@ public class LiveSessionOrchestrator {
             }
         }
         return drawings;
+    }
+
+    /**
+     * The authored correct-location targets for a Place-on-image round, disclosed
+     * at reveal so the board can draw the correct-location circles. {@code null}
+     * for every other slide kind, so the event field stays absent. Derived purely
+     * from the deck snapshot's slide content (no answer store), so it needs no
+     * presigning and no roster.
+     */
+    private List<PlaceTargetView> placeOnImageTargets(LiveSession session, String slideId) {
+        // Tolerant lookup, matching drawingSubmissions: the targets are a bonus
+        // payload on an already-scored reveal — a missing slide must not fail it.
+        Slide slide = session.getDeck() == null ? null
+                : session.getDeck().findSlide(slideId).orElse(null);
+        if (slide == null || !(slide.getContent() instanceof PlaceOnImageContent place)) {
+            return null;
+        }
+        return PlaceTargetView.from(place);
     }
 
     /**

@@ -69,6 +69,26 @@ class AnswerTallyKeysTest {
     }
 
     @Test
+    void placeOnImageContributesOneQuantizedBucketKey() {
+        // 20-bucket grid: floor(0.42 * 20) = 8, floor(0.78 * 20) = 15.
+        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(0.42, 0.78)))
+                .containsExactly("8,15");
+    }
+
+    @Test
+    void placeOnImageOriginPinLandsInTheFirstBucket() {
+        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(0.0, 0.0)))
+                .containsExactly("0,0");
+    }
+
+    @Test
+    void placeOnImageCoordinateOfExactlyOneClampsIntoTheLastBucket() {
+        // Both 1.0 pins clamp into bucket 19 (PLACE_TALLY_BUCKETS - 1).
+        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(1.0, 1.0)))
+                .containsExactly("19,19");
+    }
+
+    @Test
     void nonTallyablePayloadContributesNoKeys() {
         assertThat(AnswerTallyKeys.optionKeys(new TextAnswer("hello"))).isEmpty();
     }

@@ -43,6 +43,9 @@ import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.presentation.slide.enums.Tool;
 import com.cephadex.ambi.session.answer.Answer;
@@ -919,8 +922,10 @@ class LiveSessionOrchestratorTest {
         ResultsRevealed event = (ResultsRevealed) publishedEvent();
         assertThat(event.slideId()).isEqualTo(SLIDE);
         assertThat(event.terminal()).isTrue();
-        // Not a drawing round → no gallery payload.
+        // Not a drawing round → no gallery payload; not a place-on-image round →
+        // no correct-location circles.
         assertThat(event.drawings()).isNull();
+        assertThat(event.placeTargets()).isNull();
     }
 
     @Test
@@ -959,6 +964,43 @@ class LiveSessionOrchestratorTest {
         assertThat(event.drawings().get(0).participantId()).isEqualTo(artist.getParticipantId());
         assertThat(event.drawings().get(0).displayName()).isEqualTo("Artist One");
         assertThat(event.drawings().get(0).imageUrl()).isEqualTo("https://s3/presigned-drawing");
+    }
+
+    @Test
+    void revealResultsCarriesCorrectTargetsForPlaceOnImageRound() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES);
+        Slide slide = slideWithId(SLIDE);
+        slide.setContent(new PlaceOnImageContent(
+                null,
+                List.of(new Target("t-1", "Capital", null, "#00aa00", 0.25, 0.75, 0.08)),
+                ScoreMode.INSIDE_RADIUS));
+        RoundResult result = RoundResult.compute(SID, slide, List.of(), Instant.now());
+        when(roundResults.find(SID, SLIDE)).thenReturn(Optional.of(result));
+
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of(slide));
+        when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
+        LiveSession session = mock(LiveSession.class);
+        when(session.getId()).thenReturn(SID);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getRoster()).thenReturn(List.of());
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        orchestrator.revealResults(SID, SLIDE);
+
+        ResultsRevealed event = (ResultsRevealed) publishedEvent();
+        // The correct-location circles ride the reveal so the board can draw them.
+        assertThat(event.placeTargets()).singleElement()
+                .satisfies(target -> {
+                    assertThat(target.id()).isEqualTo("t-1");
+                    assertThat(target.label()).isEqualTo("Capital");
+                    assertThat(target.color()).isEqualTo("#00aa00");
+                    assertThat(target.x()).isEqualTo(0.25);
+                    assertThat(target.y()).isEqualTo(0.75);
+                    assertThat(target.radius()).isEqualTo(0.08);
+                });
+        // Not a drawing round → no gallery payload.
+        assertThat(event.drawings()).isNull();
     }
 
     // ── F4 guard: reject opening a second slide while one is open ─────────────

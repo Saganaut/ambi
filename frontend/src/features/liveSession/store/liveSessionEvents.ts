@@ -14,6 +14,7 @@
 // switch on `event.type`.
 import type {
   ParticipantView,
+  PlaceTargetView,
   QAndAQuestionView,
   ScoreboardEntry,
   SessionSnapshotResponse,
@@ -178,6 +179,13 @@ export interface ResultsRevealed {
   scoreboard: ScoreboardEntry[];
   /** The submitted-drawings gallery for a Drawing round; null for every other kind. */
   drawings: DrawingSubmission[] | null;
+  /**
+   * The authored target circles for a Place-on-Image round, disclosed only now;
+   * null for every other kind. `PlaceTargetView` is a generated snapshot DTO
+   * (it also rides `SessionSnapshotResponse`), so it is imported rather than
+   * re-typed here — the same reuse as `SlideView`/`ScoreboardEntry`.
+   */
+  placeTargets: PlaceTargetView[] | null;
   /** true on the final round — the cue for the podium. */
   terminal: boolean;
 }

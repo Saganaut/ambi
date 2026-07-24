@@ -1,0 +1,163 @@
+.placeOnImageBoardContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-md);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .outcomeCorrect,
+  .outcomeWrong {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .outcomeCorrect {
+    color: var(--text-success);
+  }
+
+  .outcomeWrong {
+    color: var(--text-error);
+  }
+
+  .empty {
+    margin: 0;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  /* The placement surface: the image is the box (block-level, full width,
+     intrinsic ratio height), so the normalized [0, 1] overlays land exactly
+     where the grader measures. Capped so a tall image still fits the board. */
+  .surface {
+    position: relative;
+    width: 100%;
+    max-width: 32rem;
+    border-radius: var(--radius-md);
+    overflow: clip;
+
+    /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+    touch-action: none;
+  }
+
+  .surfaceArmed {
+    cursor: crosshair;
+  }
+
+  .surfaceImage {
+    display: block;
+    width: 100%;
+    height: auto;
+    user-select: none;
+  }
+
+  /* One density dot at an occupied bucket's centre. Its diameter and opacity
+     scale with the bucket's share of the busiest one (`--dot-share`, JS-set;
+     the fallback below is the required in-file declaration). */
+  .scatterDot {
+    --dot-share: 0;
+    --dot-size: 1.5rem;
+
+    position: absolute;
+    width: calc(var(--dot-size) * (0.45 + var(--dot-share) * 0.55));
+    height: calc(var(--dot-size) * (0.45 + var(--dot-share) * 0.55));
+    transform: translate(-50%, -50%);
+    border-radius: var(--radius-full);
+    background-color: var(--bg-brand);
+    opacity: calc(0.35 + var(--dot-share) * 0.5);
+    pointer-events: none;
+  }
+
+  /* Revealed target: the accepted region in the target's palette colour
+     (`--target-color`, JS-set; fallback declared here). The faint wash lives on
+     a pseudo-element so its low opacity never fades the dashed outline — the
+     same recipe as the editor's tolerance region (color-mix is banned). */
+  .targetGroup {
+    --target-color: var(--text-accent);
+  }
+
+  .targetRegion {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border: var(--border-size-md) dashed var(--target-color);
+    border-radius: var(--radius-full);
+    pointer-events: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background-color: var(--target-color);
+      opacity: 0.14;
+    }
+  }
+
+  /* An unlabeled target's centre marker. */
+  .targetDot {
+    --dot-size: 0.75rem;
+
+    position: absolute;
+    width: var(--dot-size);
+    height: var(--dot-size);
+    transform: translate(-50%, -50%);
+    border: var(--border-size-sm) solid oklch(99% 0 0deg);
+    border-radius: var(--radius-full);
+    background-color: var(--target-color);
+    pointer-events: none;
+  }
+
+  /* A labeled target grows a pill at its centre point. */
+  .targetLabel {
+    position: absolute;
+    max-width: 9rem;
+    padding: var(--p-xs);
+    transform: translate(-50%, -50%);
+    border: var(--border-size-sm) solid var(--target-color);
+    border-radius: var(--radius-full);
+    background-color: var(--bg-surface-raised);
+    color: var(--target-color);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+  }
+
+  /* The participant's own pin: sits above the scatter and any target markers. */
+  .pin {
+    --pin-size: 1.125rem;
+
+    position: absolute;
+    z-index: 2;
+    width: var(--pin-size);
+    height: var(--pin-size);
+    transform: translate(-50%, -50%);
+    border: var(--border-size-md) solid oklch(99% 0 0deg);
+    border-radius: var(--radius-full);
+    background-color: var(--bg-brand);
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-sm);
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .submitted {
+      margin: 0;
+      color: var(--text-success);
+      font-weight: 600;
+    }
+  }
+}

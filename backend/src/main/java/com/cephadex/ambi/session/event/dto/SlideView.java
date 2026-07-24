@@ -12,6 +12,7 @@ import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.RankingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
@@ -52,7 +53,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * cap + a word-cloud display hint, never {@code acceptedAnswers} or the
  * match/normalization settings); a Number slide carries {@link NumberConfigView}
  * (the display bounds + unit suffix, never {@code answer}, {@code scoreMode}, or
- * {@code tolerance}); each is {@code null} for every other kind.
+ * {@code tolerance}); a Place-on-image slide carries {@link PlaceOnImageConfigView}
+ * (the backing image only, never {@code correctTargets} or {@code scoreMode}); each
+ * is {@code null} for every other kind.
  */
 public record SlideView(
         String id,
@@ -72,6 +75,7 @@ public record SlideView(
         DrawingConfigView drawing,
         TextConfigView text,
         NumberConfigView number,
+        PlaceOnImageConfigView placeOnImage,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -95,6 +99,7 @@ public record SlideView(
         DrawingConfigView drawing = null;
         TextConfigView text = null;
         NumberConfigView number = null;
+        PlaceOnImageConfigView placeOnImage = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -128,6 +133,9 @@ public record SlideView(
             if (content instanceof NumberContent numberContent) {
                 number = NumberConfigView.from(numberContent);
             }
+            if (content instanceof PlaceOnImageContent placeContent) {
+                placeOnImage = PlaceOnImageConfigView.from(placeContent, imageUrl);
+            }
         }
         return new SlideView(
                 slide.getId(),
@@ -147,6 +155,7 @@ public record SlideView(
                 drawing,
                 text,
                 number,
+                placeOnImage,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

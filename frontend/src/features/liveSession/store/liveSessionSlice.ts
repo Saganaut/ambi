@@ -12,6 +12,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import type {
   ParticipantView,
+  PlaceTargetView,
   QAndAQuestionView,
   ScoreboardEntry,
   SessionSnapshotResponse,
@@ -43,6 +44,13 @@ export interface RoundResults {
   scoreboard: ScoreboardEntry[];
   /** Submitted-drawings gallery for a Drawing round; null otherwise. */
   drawings: DrawingSubmission[] | null;
+  /**
+   * Revealed target circles for a Place-on-Image round; null otherwise. Flows
+   * through the `ResultsRevealed` event exactly like {@link drawings}. A late
+   * joiner who never saw that event reads the snapshot copy instead — see
+   * {@link LiveSessionState.placeTargets}.
+   */
+  placeTargets: PlaceTargetView[] | null;
   terminal: boolean;
 }
 
@@ -80,6 +88,16 @@ export interface LiveSessionState {
   /** Running number of votes cast in the VOTE round (never per-option counts). */
   votesCast: number;
   results: RoundResults | null;
+  /**
+   * The revealed Place-on-Image target circles as carried by the REST snapshot —
+   * the seam for a client that JOINS mid-reveal (`seed` deliberately never
+   * reconstructs a `RoundResults`, so `results` stays null for a late joiner,
+   * yet the snapshot still carries `placeTargets` during REVEAL_RESULTS). A
+   * client that was connected through the reveal reads `results.placeTargets`
+   * instead; the component prefers that and falls back here. Null outside a
+   * revealed Place-on-Image round.
+   */
+  placeTargets: PlaceTargetView[] | null;
   scoreboard: ScoreboardEntry[];
   finalScoreboard: ScoreboardEntry[] | null;
   cancelReason: string | null;
@@ -112,6 +130,7 @@ const initialState: LiveSessionState = {
   myVoteOptionId: null,
   votesCast: 0,
   results: null,
+  placeTargets: null,
   scoreboard: [],
   finalScoreboard: null,
   cancelReason: null,
@@ -159,6 +178,10 @@ const liveSessionSlice = createSlice({
       state.viewerIsHost = s.viewerIsHost ?? false;
       // A fresh snapshot supersedes any prior round-local / terminal state.
       state.results = null;
+      // ...except the revealed Place-on-Image targets, which the snapshot itself
+      // carries during REVEAL_RESULTS so a late joiner discloses them despite
+      // never reconstructing a RoundResults. Null on every other phase/kind.
+      state.placeTargets = s.placeTargets ?? null;
       state.finalScoreboard = null;
       state.cancelReason = null;
     },
@@ -206,6 +229,7 @@ const liveSessionSlice = createSlice({
           state.qAndAQuestions = [];
           resetVoting(state);
           state.results = null;
+          state.placeTargets = null;
           state.phase = "SUBMIT";
           break;
         case "LiveResultsShown":
@@ -260,8 +284,13 @@ const liveSessionSlice = createSlice({
             correctOption: e.correctOption,
             scoreboard: e.scoreboard,
             drawings: e.drawings ?? null,
+            placeTargets: e.placeTargets ?? null,
             terminal: e.terminal,
           };
+          // Mirror the reveal into the snapshot seam too, so both live and
+          // late-joining clients read targets from the same field (the
+          // component prefers `results.placeTargets` but falls back here).
+          state.placeTargets = e.placeTargets ?? null;
           // The reveal's durable counts supersede the live tally only when the
           // kind is durably tallied at all — grid (and other non-MCQ) rounds
           // aren't yet (open-decisions D5), and wiping the live counts here
@@ -282,6 +311,7 @@ const liveSessionSlice = createSlice({
           state.qAndAQuestions = [];
           resetVoting(state);
           state.results = null;
+          state.placeTargets = null;
           break;
         case "TimerPaused":
           if (e.slideId === state.currentSlideId) {

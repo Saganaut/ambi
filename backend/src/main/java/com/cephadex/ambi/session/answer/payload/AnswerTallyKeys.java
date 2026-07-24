@@ -38,6 +38,18 @@ public final class AnswerTallyKeys {
     public static final int AXIS_TALLY_BUCKETS = 10;
 
     /**
+     * PLACE_ON_IMAGE pins are quantized into a {@code PLACE_TALLY_BUCKETS ×
+     * PLACE_TALLY_BUCKETS} bucket grid at key-derivation time — one pin per
+     * participant means the histogram is a density scatter, so cardinality stays
+     * small (at most one key per participant) and a finer resolution than the
+     * shared Axis grid gives the board a crisper heat overlay. The frontend
+     * mirrors this constant to lay the scatter out over the backing image (it is
+     * not a request-DTO bound, so it does not flow through
+     * {@code generate-validation}); keep the two in sync.
+     */
+    public static final int PLACE_TALLY_BUCKETS = 20;
+
+    /**
      * The option-tally keys contributed by {@code payload}: one per chosen MCQ
      * option, one {@code itemId@rowIndex,colIndex} key per grid placement (so
      * the live board can shade each cell by what landed there), one
@@ -45,9 +57,11 @@ public final class AnswerTallyKeys {
      * live board can heat-map the plane), one {@code statementId@bucket} key
      * per scales position (quantized, so the board can heat each statement's
      * track), one {@code leftId@rightId} key per matching connection (so the
-     * live board can count each pairing), or one {@code itemId@position} key
+     * live board can count each pairing), one {@code itemId@position} key
      * per ranked slot (0-based, so the board can tally how often each item
-     * lands in each rank). Returns an empty list for payloads
+     * lands in each rank), or one {@code bucketX,bucketY} key per place-on-image
+     * pin (quantized, so the board can render a density scatter of where pins
+     * landed). Returns an empty list for payloads
      * that aren't tallied yet (free text, drawings, …), so the caller simply
      * counts nothing for them.
      */
@@ -92,11 +106,23 @@ public final class AnswerTallyKeys {
                     .mapToObj(position -> ordered.get(position) + GRID_KEY_SEPARATOR + position)
                     .toList();
         }
+        if (payload instanceof PlaceOnImageAnswer place) {
+            // A single pin per participant: quantize (x, y) into one "bucketX,bucketY"
+            // cell — exactly Axis's comma-separated integer-bucket grammar without an
+            // item prefix (there is one pin, not a keyed set), at PLACE_TALLY_BUCKETS
+            // resolution so the board can render a density scatter.
+            return List.of(bucket(place.x(), PLACE_TALLY_BUCKETS) + "," + bucket(place.y(), PLACE_TALLY_BUCKETS));
+        }
         return List.of();
     }
 
-    /** Quantize a normalized [0, 1] coordinate to a bucket index; 1.0 clamps into the last bucket. */
+    /** Quantize a normalized [0, 1] coordinate over the shared Axis/Scales grid. */
     private static int bucket(double coordinate) {
-        return Math.min((int) Math.floor(coordinate * AXIS_TALLY_BUCKETS), AXIS_TALLY_BUCKETS - 1);
+        return bucket(coordinate, AXIS_TALLY_BUCKETS);
+    }
+
+    /** Quantize a normalized [0, 1] coordinate into {@code buckets} bins; 1.0 clamps into the last bin. */
+    private static int bucket(double coordinate, int buckets) {
+        return Math.min((int) Math.floor(coordinate * buckets), buckets - 1);
     }
 }

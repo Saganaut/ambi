@@ -90,6 +90,7 @@ describe("liveSessionSlice", () => {
           { participantId: "host-1", displayName: "Hosty", points: 10, rank: 1 },
         ],
         drawings: null,
+        placeTargets: null,
         terminal: true,
       },
     ];
@@ -243,6 +244,7 @@ describe("liveSessionSlice", () => {
         correctOption: null,
         scoreboard: [],
         drawings: null,
+        placeTargets: null,
         terminal: false,
       }),
     );

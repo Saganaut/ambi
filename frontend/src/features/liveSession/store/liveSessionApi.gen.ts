@@ -506,6 +506,9 @@ export type NumberConfigView = {
   max?: number;
   unit?: string;
 };
+export type PlaceOnImageConfigView = {
+  imageUrl?: string;
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -546,6 +549,7 @@ export type SlideView = {
   drawing?: DrawingConfigView;
   text?: TextConfigView;
   number?: NumberConfigView;
+  placeOnImage?: PlaceOnImageConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {
@@ -559,6 +563,14 @@ export type VoteOptionView = {
   optionId?: string;
   text?: string;
   imageUrl?: string;
+};
+export type PlaceTargetView = {
+  id?: string;
+  x?: number;
+  y?: number;
+  radius?: number;
+  label?: string;
+  color?: string;
 };
 export type ScoreView = {
   points?: number;
@@ -605,6 +617,7 @@ export type SessionSnapshotResponse = {
   voteOptions?: VoteOptionView[];
   myVoteOptionId?: string;
   votesCast?: number;
+  placeTargets?: PlaceTargetView[];
   roster?: ParticipantView[];
   scoreboard?: ScoreboardEntry[];
   viewerParticipantId?: string;

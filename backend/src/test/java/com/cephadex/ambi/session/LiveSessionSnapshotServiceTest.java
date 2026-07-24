@@ -28,11 +28,13 @@ import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
@@ -314,6 +316,61 @@ class LiveSessionSnapshotServiceTest {
                 });
         // The grading secrets must never travel: AxisConfigView has neither
         // correctPositions nor tolerance at all.
+    }
+
+    @Test
+    void placeOnImageRoundSnapshotCarriesBackingImageWithoutTargets() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(new PlaceOnImageContent(
+                null,
+                List.of(new Target("t-1", "Here", null, "#ff0000", 0.4, 0.6, 0.1)),
+                ScoreMode.INSIDE_RADIUS));
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        // SUBMIT phase: answering is open, so the answer key must stay hidden.
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.currentSlide()).isNotNull();
+        assertThat(snap.currentSlide().placeOnImage()).isNotNull();
+        // PlaceOnImageConfigView has no targets field at all — the answer key
+        // never travels pre-reveal, and placeTargets stays absent while open.
+        assertThat(snap.placeTargets()).isNull();
+    }
+
+    @Test
+    void placeOnImageSnapshotDisclosesTargetsAtReveal() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(new PlaceOnImageContent(
+                null,
+                List.of(new Target("t-1", "Here", null, "#ff0000", 0.4, 0.6, 0.1)),
+                ScoreMode.INSIDE_RADIUS));
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        // REVEAL_RESULTS: the correct-location circles are now disclosed, so a
+        // late joiner rehydrates the same reveal the ResultsRevealed delta carries.
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.REVEAL_RESULTS, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.placeTargets()).singleElement()
+                .satisfies(target -> {
+                    assertThat(target.id()).isEqualTo("t-1");
+                    assertThat(target.label()).isEqualTo("Here");
+                    assertThat(target.color()).isEqualTo("#ff0000");
+                    assertThat(target.x()).isEqualTo(0.4);
+                    assertThat(target.y()).isEqualTo(0.6);
+                    assertThat(target.radius()).isEqualTo(0.1);
+                });
+        // The participant-safe config view still never carries the key.
+        assertThat(snap.currentSlide().placeOnImage()).isNotNull();
     }
 
     @Test
