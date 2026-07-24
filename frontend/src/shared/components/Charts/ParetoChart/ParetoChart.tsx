@@ -4,7 +4,7 @@
 // option counts when the author wants to see how few options capture most of
 // the responses. SVG bars + line (stretched to fill) with HTML dot markers and
 // the category labels listed below in the sorted order.
-import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
+import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
 import type { ChartProps } from "../Chart.types";
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
@@ -99,38 +99,47 @@ const ParetoChartInner = ({
             aria-hidden="true"
           />
         ))}
-        {addOption && canAddOption && (
-          <span className={styles.addSlot}>
-            <AddOptionButton onClick={addOption} />
-          </span>
-        )}
       </div>
       <ul className={styles.labels}>
-        {items.map((it) => (
-          <li
-            key={it.index}
-            className={`${styles.label} ${it.datum.highlight ? styles.highlight : ""}`}
-          >
-            <div className={styles.optionControls}>
-              <OptionImage src={it.datum.imageUrl} alt={it.datum.imageAlt} />
-              {renderLabelWithMenu ? (
-                renderLabelWithMenu(it.datum)
-              ) : (
-                <span className={styles.labelText}>{it.datum.text ?? ""}</span>
-              )}
-            </div>
-            <span className={styles.labelStats}>
-              <span className={styles.labelValue}>{it.datum.value}</span>
-              <span className={styles.labelShare}> · {Math.round(it.cumPct * 100)}%</span>
-            </span>
-            {renderMenu && (
-              <span className={styles.labelActions}>
-                <CorrectBadge isCorrect={it.datum.isCorrect} />
-                {renderMenu(it.datum, menuAlignFor(it.index))}
+        {items.map((it) => {
+          const label = (
+            <li
+              key={it.index}
+              className={`${styles.label} ${it.datum.highlight ? styles.highlight : ""}`}
+            >
+              <div className={styles.optionControls}>
+                <OptionImage src={it.datum.imageUrl} alt={it.datum.imageAlt} />
+                {renderLabelWithMenu ? (
+                  renderLabelWithMenu(it.datum)
+                ) : (
+                  <span className={styles.labelText}>{it.datum.text ?? ""}</span>
+                )}
+              </div>
+              <span className={styles.labelStats}>
+                <span className={styles.labelValue}>{it.datum.value}</span>
+                <span className={styles.labelShare}> · {Math.round(it.cumPct * 100)}%</span>
               </span>
-            )}
-          </li>
-        ))}
+              {renderMenu && (
+                <span className={styles.labelActions}>
+                  <CorrectBadge isCorrect={it.datum.isCorrect} />
+                  {renderMenu(it.datum, menuAlignFor(it.index))}
+                </span>
+              )}
+            </li>
+          );
+
+          return it.index === items.length - 1 && addOption && canAddOption ? (
+            <AddOptionPopover
+              key={it.datum.id}
+              anchor={label}
+              onAdd={addOption}
+              placement="top"
+              focusableAnchor
+            />
+          ) : (
+            label
+          );
+        })}
       </ul>
     </div>
   );

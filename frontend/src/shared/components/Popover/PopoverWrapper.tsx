@@ -73,6 +73,12 @@ interface FloatingPopoverProps {
    */
   manageFocus?: boolean;
   /**
+   * Which floating element receives focus when the popover opens. Pass -1 to
+   * retain focus on an anchor's existing control while retaining portal tab
+   * order and focus guards.
+   */
+  initialFocus?: number;
+  /**
    * Opt into arrow-key list navigation. The popover exposes floating-ui's
    * `getItemProps` and the active index through `ctx.listNav`; children wrap
    * their focusable items with those so Up/Down moves roving focus between them.
@@ -124,6 +130,7 @@ const FloatingPopoverImpl = ({
   onOpenChange,
   openOn = "click",
   manageFocus = true,
+  initialFocus,
   listNavigation = false,
   showArrow = false,
   arrowClassName,
@@ -166,7 +173,12 @@ const FloatingPopoverImpl = ({
     if (!isOpen) setActiveIndex(null);
   }, [isOpen]);
 
-  const click = useClick(context, { enabled: openOn === "click" });
+  const click = useClick(context, {
+    enabled: openOn === "click" || openOn === "hover",
+    // Hover affordances still need an intentional touch/keyboard path, but a
+    // mouse click on their anchor must not fight the hover interaction.
+    ignoreMouse: openOn === "hover",
+  });
   const hover = useHover(context, {
     enabled: openOn === "hover",
     handleClose: safePolygon(),
@@ -212,7 +224,12 @@ const FloatingPopoverImpl = ({
 
       {isMounted && (
         <FloatingPortal>
-          <FloatingFocusManager context={context} modal={false} disabled={!manageFocus}>
+          <FloatingFocusManager
+            context={context}
+            modal={false}
+            disabled={!manageFocus}
+            initialFocus={initialFocus}
+          >
             <div
               ref={refs.setFloating}
               aria-label={ariaLabel}

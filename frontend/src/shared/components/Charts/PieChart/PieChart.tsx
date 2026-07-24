@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, useState } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
-import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
+import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
 import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.types";
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
@@ -13,7 +13,10 @@ import styles from "./PieChart.module.css";
 const RADII = { pie: 25, donut: 38 } as const;
 const STROKE = { pie: 50, donut: 16 } as const;
 
-type PieChartSegmentRenderProps = ChartSegmentRenderProps;
+type PieChartSegmentRenderProps = ChartSegmentRenderProps & {
+  /** Whether this final legend item owns the chart's add-option affordance. */
+  isAddAnchor?: boolean;
+};
 
 const PieChartSegment = ({
   sortIndex,
@@ -22,6 +25,9 @@ const PieChartSegment = ({
   displayAsPercentage,
   renderLabelWithMenu,
   renderMenu,
+  addOption,
+  canAddOption,
+  isAddAnchor = false,
 }: PieChartSegmentRenderProps) => {
   const pct = denominator > 0 ? (datum.value / denominator) * 100 : 0;
 
@@ -37,7 +43,7 @@ const PieChartSegment = ({
     if (typeof sortableRef === "function") sortableRef(node);
   };
 
-  return (
+  const legendItem = (
     <li
       ref={setCardRef}
       className={`${styles.legendItem} ${datum.highlight ? styles.highlight : ""}`}
@@ -66,6 +72,12 @@ const PieChartSegment = ({
         </span>
       )}
     </li>
+  );
+
+  return isAddAnchor && canAddOption && addOption ? (
+    <AddOptionPopover anchor={legendItem} onAdd={addOption} focusableAnchor />
+  ) : (
+    legendItem
   );
 };
 
@@ -185,14 +197,12 @@ const PieChartInner = ({
                 sortIndex={index}
                 renderLabelWithMenu={renderLabelWithMenu}
                 renderMenu={renderMenu}
+                addOption={addOption}
+                canAddOption={canAddOption}
+                isAddAnchor={index === slices.length - 1}
               />
             ))}
           </DragDropWrapper>
-          {addOption && canAddOption && (
-            <li className={styles.addSlot}>
-              <AddOptionButton onClick={addOption} />
-            </li>
-          )}
         </ul>
       </div>
     </div>

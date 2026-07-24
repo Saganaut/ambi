@@ -61,26 +61,6 @@
   box-shadow: 0 0 0 2px var(--bg-surface-raised);
 }
 
-/* Add-option "+" floating in the plot's top-right corner: revealed while the
-   chart is hovered (or the button holds focus), like the option cards'
-   affordance. Hidden via opacity + pointer-events (NOT visibility) so the
-   button stays in the tab order and the :focus-within reveal works for
-   keyboard users. */
-.addSlot {
-  position: absolute;
-  top: 0;
-  right: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-base) ease-in-out;
-}
-
-.chart:hover .addSlot,
-.addSlot:focus-within {
-  opacity: 1;
-  pointer-events: auto;
-}
-
 /* Value badges (counts / percentages) pinned above each SVG point */
 .valueRow {
   position: relative;

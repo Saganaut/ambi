@@ -101,25 +101,6 @@
     color: var(--text-secondary);
   }
 
-  /* Ghost slot holding the add-option "+": revealed while the chart is
-     hovered (or the button holds focus), like the option cards' affordance.
-     Hidden via opacity + pointer-events (NOT visibility) so the button stays
-     in the tab order and the :focus-within reveal works for keyboard users. */
-  .addSlot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--duration-base) ease-in-out;
-  }
-
-  &:hover .addSlot,
-  .addSlot:focus-within {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
   &.horizontal {
     .bars {
       flex-direction: column;

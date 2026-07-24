@@ -4,7 +4,7 @@
  */
 import { useSortable } from "@dnd-kit/react/sortable";
 
-import { AddOptionButton } from "@/shared/components/Charts/AddOptionButton/AddOptionButton";
+import { AddOptionPopover } from "@/shared/components/Charts/AddOptionButton/AddOptionPopover";
 import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types";
 import { CorrectBadge } from "@/shared/components/Charts/CorrectBadge/CorrectBadge";
 import { Container } from "@components/Containers/Container";
@@ -43,46 +43,42 @@ const McqOptionEditable = ({
   const color = resolveOptionColor(datum.color, sortIndex);
   const displayIndex = sortIndex >= 0 ? sortIndex + 1 : 0;
 
+  const card = (
+    <div
+      className={`${styles.card} ${isCorrect ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
+    >
+      <div className={styles.topRow}>
+        <div className={styles.textColumn}>
+          <IndexPill value={displayIndex} variant="bare" />
+          <div
+            className={styles.interactiveZone}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {renderLabelWithMenu ? (
+              renderLabelWithMenu(datum)
+            ) : (
+              <span className={styles.label}>{datum.text ?? ""}</span>
+            )}
+          </div>
+        </div>
+        <div className={styles.imgThumbnail} style={thumbnailSrc ? {} : { backgroundColor: color }}>
+          {thumbnailSrc && <img src={thumbnailSrc} alt="" />}
+        </div>
+      </div>
+
+      <ProgressBar value={100} color={color} />
+      <div className={styles.footer}>
+        <CorrectBadge isCorrect={isCorrect} />
+        {renderMenu?.(datum)}
+      </div>
+    </div>
+  );
+
   return (
     <Container ref={sortableRef} name="McqOptionCard">
-      <div
-        className={`${styles.card} ${isCorrect ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
-      >
-        <div className={styles.topRow}>
-          <div className={styles.textColumn}>
-            <IndexPill value={displayIndex} variant="bare" />
-            <div
-              className={styles.interactiveZone}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              {renderLabelWithMenu ? (
-                renderLabelWithMenu(datum)
-              ) : (
-                <span className={styles.label}>{datum.text ?? ""}</span>
-              )}
-            </div>
-          </div>
-          <div
-            className={styles.imgThumbnail}
-            style={thumbnailSrc ? {} : { backgroundColor: color }}
-          >
-            {thumbnailSrc && <img src={thumbnailSrc} alt="" />}
-          </div>
-        </div>
-
-        <ProgressBar value={100} color={color} />
-        <div className={styles.footer}>
-          <CorrectBadge isCorrect={isCorrect} />
-          {renderMenu?.(datum)}
-        </div>
-        {canAddOption && addOption && (
-          <div className={styles.canAddBtn}>
-            <AddOptionButton onClick={addOption} />
-          </div>
-        )}
-      </div>
+      {canAddOption && addOption ? <AddOptionPopover anchor={card} onAdd={addOption} /> : card}
     </Container>
   );
 };

@@ -1,4 +1,4 @@
-import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
+import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
 import type { ChartProps } from "../Chart.types";
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
@@ -23,7 +23,7 @@ const DotPlot = ({
         {data.map((datum, index) => {
           const posPct = (datum.value / max) * 100;
           const sharePct = denominator > 0 ? Math.round((datum.value / denominator) * 100) : 0;
-          return (
+          const row = (
             <li
               // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
               key={index}
@@ -62,12 +62,13 @@ const DotPlot = ({
               )}
             </li>
           );
+
+          return index === data.length - 1 && addOption && canAddOption ? (
+            <AddOptionPopover key={datum.id} anchor={row} onAdd={addOption} focusableAnchor />
+          ) : (
+            row
+          );
         })}
-        {addOption && canAddOption && (
-          <li className={styles.addSlot}>
-            <AddOptionButton onClick={addOption} />
-          </li>
-        )}
       </ul>
     </div>
   );

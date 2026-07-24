@@ -1,4 +1,4 @@
-import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
+import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
 import type { ChartProps } from "../Chart.types";
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
 import { OptionImage } from "../OptionImage/OptionImage";
@@ -90,32 +90,41 @@ const LineChartInner = ({
             aria-hidden="true"
           />
         ))}
-        {addOption && canAddOption && (
-          <span className={styles.addSlot}>
-            <AddOptionButton onClick={addOption} />
-          </span>
-        )}
       </div>
       <div className={styles.controlsRow}>
-        {data.map((datum, index) => (
-          <div
-            // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
-            key={index}
-            className={styles.controlsItem}
-            style={{ left: `${xPct(index).toFixed(2)}%` }}
-          >
-            <div className={styles.optionControls}>
-              <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
-              {renderLabelWithMenu ? (
-                <>
-                  {renderLabelWithMenu(datum)} {renderMenu?.(datum, menuAlignFor(index))}
-                </>
-              ) : (
-                <span className={styles.labelText}>{datum.text ?? ""}</span>
-              )}
+        {data.map((datum, index) => {
+          const controlsItem = (
+            <div
+              // eslint-disable-next-line react-x/no-array-index-key -- position is the identity
+              key={index}
+              className={styles.controlsItem}
+              style={{ left: `${xPct(index).toFixed(2)}%` }}
+            >
+              <div className={styles.optionControls}>
+                <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
+                {renderLabelWithMenu ? (
+                  <>
+                    {renderLabelWithMenu(datum)} {renderMenu?.(datum, menuAlignFor(index))}
+                  </>
+                ) : (
+                  <span className={styles.labelText}>{datum.text ?? ""}</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+
+          return index === data.length - 1 && addOption && canAddOption ? (
+            <AddOptionPopover
+              key={datum.id}
+              anchor={controlsItem}
+              onAdd={addOption}
+              placement="top"
+              focusableAnchor
+            />
+          ) : (
+            controlsItem
+          );
+        })}
       </div>
     </div>
   );

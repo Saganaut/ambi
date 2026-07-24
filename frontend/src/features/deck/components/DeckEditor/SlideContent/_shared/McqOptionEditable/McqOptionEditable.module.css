@@ -25,25 +25,8 @@
     background-color var(--duration-fast, 150ms) ease-out,
     outline-color var(--duration-base) ease-in-out;
 
-  .canAddBtn {
-    align-self: flex-end;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--duration-base) ease-in-out;
-  }
-
   &:hover {
     border-color: var(--border-default);
-
-    .canAddBtn {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-
-  .canAddBtn:focus-within {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   &.cardCorrect {

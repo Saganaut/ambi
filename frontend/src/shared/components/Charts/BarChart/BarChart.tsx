@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useRef } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
-import { AddOptionButton } from "../AddOptionButton/AddOptionButton";
+import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
 import type { ChartProps, ChartSegmentRenderProps, MenuAlign } from "../Chart.types";
 import { OptionImage } from "../OptionImage/OptionImage";
 import { resolveDatumColor } from "../optionPalette";
@@ -15,6 +15,8 @@ export type BarChartSegmentRenderProps = ChartSegmentRenderProps & {
   menuAlign?: MenuAlign;
   /** Bar growth direction — picks the in-bar image anchor (left vs. base). */
   orientation?: "horizontal" | "vertical";
+  /** Whether this final option owns the chart's add-option affordance. */
+  isAddAnchor?: boolean;
 };
 
 const SortableListItem = ({
@@ -25,6 +27,9 @@ const SortableListItem = ({
   datum,
   highestValue,
   denominator,
+  addOption,
+  canAddOption,
+  isAddAnchor = false,
   // menuAlign,
   orientation = "horizontal",
 }: BarChartSegmentRenderProps) => {
@@ -43,7 +48,7 @@ const SortableListItem = ({
     cardRef.current = node;
     if (typeof sortableRef === "function") sortableRef(node);
   };
-  return (
+  const row = (
     <li ref={setCardRef} className={`${styles.row} ${datum.highlight ? styles.highlight : ""}`}>
       <div className={styles.optionControls}>
         {renderLabelWithMenu ? (
@@ -81,6 +86,17 @@ const SortableListItem = ({
         </span>
       )} */}
     </li>
+  );
+
+  return isAddAnchor && canAddOption && addOption ? (
+    <AddOptionPopover
+      anchor={row}
+      onAdd={addOption}
+      placement={orientation === "vertical" ? "top" : "right"}
+      focusableAnchor
+    />
+  ) : (
+    row
   );
 };
 
@@ -120,14 +136,12 @@ const BarChartInner = ({
               // renderMenu={renderMenu}
               menuAlign={menuAlignFor(index)}
               orientation={orientation}
+              addOption={addOption}
+              canAddOption={canAddOption}
+              isAddAnchor={index === data.length - 1}
             />
           ))}
         </DragDropWrapper>
-        {addOption && canAddOption && (
-          <li className={styles.addSlot}>
-            <AddOptionButton onClick={addOption} />
-          </li>
-        )}
       </ul>
     </div>
   );
