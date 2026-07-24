@@ -110,6 +110,31 @@ describe("GridBoardContent placing", () => {
     expect(screen.queryByRole("button", { name: "Bat" })).not.toBeInTheDocument();
   });
 
+  it("keeps chips as plain buttons so the tap/keyboard path stays operable", async () => {
+    // Drag is layered on top; the accessible affordances must stay buttons a
+    // click can drive (a quick click never crosses the drag threshold).
+    renderContent();
+
+    const bat = screen.getByRole("button", { name: "Bat" });
+    expect(bat.tagName).toBe("BUTTON");
+    expect(bat).not.toBeDisabled();
+
+    // Clicking still toggles the held state rather than starting a drag.
+    await userEvent.click(bat);
+    expect(bat).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(bat);
+    expect(bat).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps a placed chip an enabled button (drag source + pick-up active)", async () => {
+    renderContent();
+
+    await place("Bat", /Place in Mammal × Flies/);
+    const placed = screen.getByRole("button", { name: /Pick Bat back up from Mammal × Flies/ });
+    expect(placed.tagName).toBe("BUTTON");
+    expect(placed).not.toBeDisabled();
+  });
+
   it("renders an authored item image inside its chip, keeping the label as its name", () => {
     const withImage: SlideView = {
       ...slide,

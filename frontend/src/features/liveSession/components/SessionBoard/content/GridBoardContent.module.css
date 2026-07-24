@@ -41,6 +41,12 @@
       overflow-wrap: anywhere;
     }
 
+    /* Live drop target while a chip drags over the cell. */
+    .cellDropTarget {
+      outline: var(--border-size-md) dashed var(--text-accent);
+      outline-offset: calc(-1 * var(--space-1));
+    }
+
     .cell {
       /* 0..1 live share of placements — shades the cell like a heatmap. */
       --cell-heat: 0;
@@ -80,6 +86,14 @@
         background-color: var(--bg-surface);
         color: var(--text-primary);
         font-weight: 600;
+
+        /* Whole-chip drag source: keep the pointer from scrolling mid-drag. */
+        touch-action: none;
+        cursor: grab;
+
+        &:active {
+          cursor: grabbing;
+        }
 
         &:disabled {
           cursor: default;
@@ -122,6 +136,7 @@
       align-items: center;
       justify-content: center;
       gap: var(--gap-sm);
+      border-radius: var(--radius-md);
 
       .bankChip {
         /* Fallback for the inline value set from the item's resolved color. */
@@ -136,7 +151,18 @@
         background-color: var(--bg-surface-raised);
         color: var(--text-primary);
         font-weight: 600;
-        cursor: pointer;
+
+        /* Whole-chip drag source: keep the pointer from scrolling mid-drag. */
+        touch-action: none;
+        cursor: grab;
+
+        &:active {
+          cursor: grabbing;
+        }
+
+        &:disabled {
+          cursor: default;
+        }
       }
 
       .held {
@@ -144,6 +170,12 @@
         background-color: var(--bg-brand);
         color: var(--text-on-brand);
       }
+    }
+
+    /* Live drop target while a placed chip drags back onto the bank. */
+    .bankDropTarget {
+      outline: var(--border-size-md) dashed var(--text-accent);
+      outline-offset: calc(-1 * var(--space-1));
     }
 
     .hint {
@@ -156,6 +188,11 @@
       color: var(--text-success);
       font-weight: 600;
     }
+  }
+
+  /* The chip being dragged: dim it so the drop target reads clearly. */
+  .dragging {
+    opacity: 0.6;
   }
 
   /* Authored item image, shown inside its chip beside the label. */
