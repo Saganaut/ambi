@@ -337,8 +337,16 @@ class LiveSessionSnapshotServiceTest {
 
         assertThat(snap.currentSlide()).isNotNull();
         assertThat(snap.currentSlide().placeOnImage()).isNotNull();
-        // PlaceOnImageConfigView has no targets field at all — the answer key
-        // never travels pre-reveal, and placeTargets stays absent while open.
+        // The config view exposes the item to place — its id / label / color —
+        // but PlaceItemView has no coordinate field at all, so the answer key
+        // (x, y, radius) never travels pre-reveal, and placeTargets stays absent
+        // while answering is open.
+        assertThat(snap.currentSlide().placeOnImage().items()).singleElement()
+                .satisfies(item -> {
+                    assertThat(item.id()).isEqualTo("t-1");
+                    assertThat(item.label()).isEqualTo("Here");
+                    assertThat(item.color()).isEqualTo("#ff0000");
+                });
         assertThat(snap.placeTargets()).isNull();
     }
 

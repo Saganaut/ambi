@@ -353,11 +353,16 @@ export type NumberAnswer = {
 } & AnswerPayloadBase & {
     value?: number;
   };
+export type PlacePoint = {
+  x: number;
+  y: number;
+};
 export type PlaceOnImageAnswer = {
   answerType: "PlaceOnImageAnswer";
 } & AnswerPayloadBase & {
-    x?: number;
-    y?: number;
+    placements?: {
+      [key: string]: PlacePoint;
+    };
   };
 export type QAndAAnswer = {
   answerType: "QAndAAnswer";
@@ -506,8 +511,15 @@ export type NumberConfigView = {
   max?: number;
   unit?: string;
 };
+export type PlaceItemView = {
+  id?: string;
+  label?: string;
+  imageUrl?: string;
+  color?: string;
+};
 export type PlaceOnImageConfigView = {
   imageUrl?: string;
+  items?: PlaceItemView[];
 };
 export type AnswerSettingsView = {
   maxSelections?: number;

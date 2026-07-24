@@ -39,10 +39,10 @@ public final class AnswerTallyKeys {
 
     /**
      * PLACE_ON_IMAGE pins are quantized into a {@code PLACE_TALLY_BUCKETS ×
-     * PLACE_TALLY_BUCKETS} bucket grid at key-derivation time — one pin per
-     * participant means the histogram is a density scatter, so cardinality stays
-     * small (at most one key per participant) and a finer resolution than the
-     * shared Axis grid gives the board a crisper heat overlay. The frontend
+     * PLACE_TALLY_BUCKETS} bucket grid at key-derivation time — one pin per item
+     * (keyed {@code itemId@bx,by}) means the histogram is a density scatter, so a
+     * finer resolution than the shared Axis grid gives the board a crisper heat
+     * overlay. The frontend
      * mirrors this constant to lay the scatter out over the backing image (it is
      * not a request-DTO bound, so it does not flow through
      * {@code generate-validation}); keep the two in sync.
@@ -59,9 +59,9 @@ public final class AnswerTallyKeys {
      * track), one {@code leftId@rightId} key per matching connection (so the
      * live board can count each pairing), one {@code itemId@position} key
      * per ranked slot (0-based, so the board can tally how often each item
-     * lands in each rank), or one {@code bucketX,bucketY} key per place-on-image
-     * pin (quantized, so the board can render a density scatter of where pins
-     * landed). Returns an empty list for payloads
+     * lands in each rank), or one {@code itemId@bucketX,bucketY} key per
+     * place-on-image pin (quantized, so the board can render a per-item density
+     * scatter of where each item's pin landed). Returns an empty list for payloads
      * that aren't tallied yet (free text, drawings, …), so the caller simply
      * counts nothing for them.
      */
@@ -106,12 +106,16 @@ public final class AnswerTallyKeys {
                     .mapToObj(position -> ordered.get(position) + GRID_KEY_SEPARATOR + position)
                     .toList();
         }
-        if (payload instanceof PlaceOnImageAnswer place) {
-            // A single pin per participant: quantize (x, y) into one "bucketX,bucketY"
-            // cell — exactly Axis's comma-separated integer-bucket grammar without an
-            // item prefix (there is one pin, not a keyed set), at PLACE_TALLY_BUCKETS
-            // resolution so the board can render a density scatter.
-            return List.of(bucket(place.x(), PLACE_TALLY_BUCKETS) + "," + bucket(place.y(), PLACE_TALLY_BUCKETS));
+        if (payload instanceof PlaceOnImageAnswer place && place.placements() != null) {
+            // One "itemId@bucketX,bucketY" key per placed pin — exactly Axis's
+            // per-item bucket grammar, but quantized at the finer
+            // PLACE_TALLY_BUCKETS resolution so the board can render a per-item
+            // density scatter over the backing image.
+            return place.placements().entrySet().stream()
+                    .map(placement -> placement.getKey() + GRID_KEY_SEPARATOR
+                            + bucket(placement.getValue().x(), PLACE_TALLY_BUCKETS) + ","
+                            + bucket(placement.getValue().y(), PLACE_TALLY_BUCKETS))
+                    .toList();
         }
         return List.of();
     }

@@ -26,12 +26,14 @@ import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.dto.SubmitVoteRequest;
@@ -41,6 +43,7 @@ import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
+import com.cephadex.ambi.session.answer.payload.PlaceOnImageAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
@@ -156,6 +159,7 @@ public class LiveSessionAnswerService {
         // a multi-select MCQ change.
         int effectiveMaxSelections = request.payload() instanceof GridAnswer
                 || request.payload() instanceof AxisAnswer
+                || request.payload() instanceof PlaceOnImageAnswer
                 || request.payload() instanceof ScalesAnswer
                 || request.payload() instanceof MatchingAnswer
                 || request.payload() instanceof DrawingAnswer
@@ -206,6 +210,9 @@ public class LiveSessionAnswerService {
         }
         if (content instanceof AxisContent axis && payload instanceof AxisAnswer ans) {
             validateAxis(axis, ans);
+        }
+        if (content instanceof PlaceOnImageContent place && payload instanceof PlaceOnImageAnswer ans) {
+            validatePlaceOnImage(place, ans);
         }
         if (content instanceof ScalesContent scales && payload instanceof ScalesAnswer ans) {
             validateScales(scales, ans);
@@ -318,6 +325,34 @@ public class LiveSessionAnswerService {
             }
             if (!isPointOnPlane(placement.getValue())) {
                 throw new ValidationException("placement is not on the plane");
+            }
+        }
+    }
+
+    /**
+     * A place-on-image submission must pin at least one real item at a real
+     * point: every key must be one of the slide's targets (the items to place),
+     * every point finite and within the normalized {@code [0, 1]} image box.
+     * Partial maps are accepted (grid/axis precedent — the board gates full
+     * completion client-side).
+     */
+    private void validatePlaceOnImage(PlaceOnImageContent content, PlaceOnImageAnswer answer) {
+        Map<String, PlacePoint> placements = answer.placements();
+        if (placements == null || placements.isEmpty()) {
+            throw new ValidationException("at least one item must be placed");
+        }
+        Set<String> itemIds = content.correctTargets() == null ? Set.of()
+                : content.correctTargets().stream()
+                        .map(target -> target.id())
+                        .collect(Collectors.toSet());
+        for (Map.Entry<String, PlacePoint> placement : placements.entrySet()) {
+            if (!itemIds.contains(placement.getKey())) {
+                throw new ValidationException("placed item is not on the slide");
+            }
+            PlacePoint point = placement.getValue();
+            if (point == null || !Double.isFinite(point.x()) || !Double.isFinite(point.y())
+                    || point.x() < 0 || point.x() > 1 || point.y() < 0 || point.y() > 1) {
+                throw new ValidationException("placement is not on the image");
             }
         }
     }

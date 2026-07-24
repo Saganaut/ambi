@@ -1,12 +1,15 @@
-// Tests for the Place-on-Image board: dropping a single pin on the image
-// (normalized, top-left-origin coordinates), locking it in once, the read-only
-// projected view, the density scatter aggregated from the quantized "bx,by"
-// tally keys, and the results view (revealed target circles + the viewer's own
-// outcome, via both the live event copy and the snapshot seam). The session
-// connection and the live read model are mocked, with the read model mutable
-// per test. jsdom reports zero-size rects and lacks pointer capture, so the
-// surface rect is stubbed to a 100×100 box at the origin (pointer coordinates
-// then read directly as percentages) and set/hasPointerCapture are stubbed.
+// Tests for the Place-on-Image board: placing one pin per authored item onto
+// the image via the tap fallback (tap a bank chip, then tap the image at a
+// point — normalized, top-left-origin coordinates), submit gated on every item
+// placed, locking the whole placement map once, pick-back-up, the read-only
+// projected view, the density scatter aggregated from the quantized
+// `itemId@bx,by` tally keys, and the results view (revealed target circles + the
+// viewer's own outcome, via both the live event copy and the snapshot seam).
+// The session connection and the live read model are mocked, mutable per test.
+// jsdom reports zero-size rects, so the surface rect is stubbed to a 100×100 box
+// at the origin — tap coordinates then read directly as percentages. (Drag is
+// dnd-kit's primary path but isn't exercised in jsdom; the tap fallback drives
+// the same placement state, mirroring the Grid board's test.)
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -38,7 +41,13 @@ import { PlaceOnImageBoardContent } from "./PlaceOnImageBoardContent";
 const slide: SlideView = {
   id: "el-0",
   contentType: "PLACE_ON_IMAGE",
-  placeOnImage: { imageUrl: "https://img.test/map.png" },
+  placeOnImage: {
+    imageUrl: "https://img.test/map.png",
+    items: [
+      { id: "heart", label: "Heart" },
+      { id: "lungs", label: "Lungs" },
+    ],
+  },
 };
 
 const RECT = {
@@ -56,8 +65,6 @@ const RECT = {
 let rectSpy: ReturnType<typeof vi.spyOn>;
 beforeAll(() => {
   rectSpy = vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(RECT);
-  Element.prototype.setPointerCapture = vi.fn();
-  Element.prototype.hasPointerCapture = vi.fn(() => true);
 });
 afterAll(() => {
   rectSpy.mockRestore();
@@ -69,16 +76,14 @@ const renderContent = (
   slideOverride: SlideView = slide,
 ) => render(<PlaceOnImageBoardContent slide={slideOverride} mode={mode} interactive={interactive} />);
 
-/** The pointer surface — the wrapper around the backing <img>. */
-const getSurface = (container: HTMLElement): HTMLElement => {
-  const surface = container.querySelector("img")?.parentElement;
-  if (!surface) throw new Error("surface not found");
-  return surface;
+/** Pick `chip` from the bank, then tap the image at (clientX, clientY). */
+const place = async (chip: string, clientX: number, clientY: number) => {
+  await userEvent.click(screen.getByRole("button", { name: chip }));
+  fireEvent.click(screen.getByRole("button", { name: "Place on the image" }), {
+    clientX,
+    clientY,
+  });
 };
-
-/** Press the surface at (x, y) client px (= percent, given the 100×100 rect). */
-const placePin = (container: HTMLElement, x: number, y: number) =>
-  fireEvent.pointerDown(getSurface(container), { clientX: x, clientY: y, pointerId: 1 });
 
 describe("PlaceOnImageBoardContent placing", () => {
   beforeEach(() => {
@@ -89,60 +94,78 @@ describe("PlaceOnImageBoardContent placing", () => {
     h.query.placeTargets = null;
   });
 
-  it("drops a pin at the pointer's normalized coords and locks it in", async () => {
-    const { container } = renderContent();
-    // Nothing placed yet → no pin, and Lock is gated.
-    expect(screen.queryByLabelText("Your pin")).not.toBeInTheDocument();
+  it("places one pin per item at the tap's normalized coords and locks the map", async () => {
+    renderContent();
+    // Nothing held yet → no image tap target, and Lock is gated.
+    expect(
+      screen.queryByRole("button", { name: "Place on the image" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lock in answer" })).toBeDisabled();
 
-    placePin(container, 30, 40); // 30% across, 40% down → (0.3, 0.4)
-    expect(screen.getByLabelText("Your pin")).toBeInTheDocument();
+    await place("Heart", 30, 40); // 30% across, 40% down → (0.3, 0.4)
+    await place("Lungs", 70, 25); // → (0.7, 0.25)
     await userEvent.click(screen.getByRole("button", { name: "Lock in answer" }));
 
     expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
       answerType: "PlaceOnImageAnswer",
-      x: 0.3,
-      y: 0.4,
+      placements: { heart: { x: 0.3, y: 0.4 }, lungs: { x: 0.7, y: 0.25 } },
     });
     expect(screen.getByText("Answer locked in ✓")).toBeInTheDocument();
   });
 
-  it("a fresh press relocates the single pin", () => {
-    const { container } = renderContent();
+  it("lock stays gated until every item is placed", async () => {
+    renderContent();
 
-    placePin(container, 10, 10);
-    placePin(container, 80, 60);
-    const pin = screen.getByLabelText("Your pin");
-    expect(pin).toHaveStyle({ left: "80%", top: "60%" });
-    // Still one pin, not two.
-    expect(screen.getAllByLabelText("Your pin")).toHaveLength(1);
-  });
+    await place("Heart", 50, 50);
 
-  it("cannot submit again once locked in", async () => {
-    const { container } = renderContent();
-
-    placePin(container, 50, 50);
-    await userEvent.click(screen.getByRole("button", { name: "Lock in answer" }));
-    expect(h.sendAnswer).toHaveBeenCalledTimes(1);
-
-    // The button is gone; a further press on the (frozen) surface does nothing.
-    expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
-    placePin(container, 10, 90);
-    expect(h.sendAnswer).toHaveBeenCalledTimes(1);
-  });
-
-  it("is read-only when not interactive (projected / host view)", () => {
-    const { container } = renderContent("prompt", false);
-
-    expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
-    // A press on the projected surface places nothing.
-    placePin(container, 50, 50);
-    expect(screen.queryByLabelText("Your pin")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lock in answer" })).toBeDisabled();
     expect(h.sendAnswer).not.toHaveBeenCalled();
   });
 
+  it("a placed pin can be picked back up and re-placed", async () => {
+    renderContent();
+
+    await place("Heart", 20, 20);
+    await userEvent.click(screen.getByRole("button", { name: /Pick Heart back up/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Place on the image" }), {
+      clientX: 60,
+      clientY: 50,
+    });
+    await place("Lungs", 70, 25);
+    await userEvent.click(screen.getByRole("button", { name: "Lock in answer" }));
+
+    expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
+      answerType: "PlaceOnImageAnswer",
+      placements: { heart: { x: 0.6, y: 0.5 }, lungs: { x: 0.7, y: 0.25 } },
+    });
+  });
+
+  it("cannot submit again once locked in", async () => {
+    renderContent();
+
+    await place("Heart", 30, 40);
+    await place("Lungs", 70, 25);
+    await userEvent.click(screen.getByRole("button", { name: "Lock in answer" }));
+    expect(h.sendAnswer).toHaveBeenCalledTimes(1);
+
+    // The bank and lock button are gone; the surface is frozen.
+    expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Heart" })).not.toBeInTheDocument();
+  });
+
+  it("is read-only when not interactive (projected / host view)", () => {
+    renderContent("prompt", false);
+
+    expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Heart" })).not.toBeInTheDocument();
+  });
+
   it("shows an empty state when the slide has no image", () => {
-    renderContent("prompt", true, { id: "el-0", contentType: "PLACE_ON_IMAGE", placeOnImage: {} });
+    renderContent("prompt", true, {
+      id: "el-0",
+      contentType: "PLACE_ON_IMAGE",
+      placeOnImage: { items: [{ id: "heart", label: "Heart" }] },
+    });
 
     expect(screen.getByText("No image was set for this slide.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
@@ -158,13 +181,14 @@ describe("PlaceOnImageBoardContent results", () => {
     h.query.placeTargets = null;
   });
 
-  it("renders the density scatter from the bucket tally keys", () => {
-    h.query.optionCounts = { "5,5": 3, "10,2": 1, "1,1": 0 };
+  it("sums the itemId@bx,by tally into a per-bucket density scatter", () => {
+    // Two items in one bucket, one in another, and a reconciled-away zero.
+    h.query.optionCounts = { "heart@5,5": 3, "lungs@5,5": 1, "lungs@10,2": 2, "heart@1,1": 0 };
     renderContent("liveResults", false);
 
-    expect(screen.getByLabelText("3 pins")).toBeInTheDocument();
-    expect(screen.getByLabelText("1 pins")).toBeInTheDocument();
-    // A zero-count bucket doesn't render a dot.
+    // Bucket 5,5 holds heart(3)+lungs(1)=4; 10,2 holds 2; zero-count keys don't render.
+    expect(screen.getByLabelText("4 pins")).toBeInTheDocument();
+    expect(screen.getByLabelText("2 pins")).toBeInTheDocument();
     expect(screen.queryByLabelText("0 pins")).not.toBeInTheDocument();
   });
 
@@ -182,7 +206,7 @@ describe("PlaceOnImageBoardContent results", () => {
     renderContent("results", false);
 
     expect(screen.getByText("Middle")).toBeInTheDocument();
-    expect(screen.getByText("Your pin landed on target ✓")).toBeInTheDocument();
+    expect(screen.getByText("You placed everything on target ✓")).toBeInTheDocument();
   });
 
   it("banners a missed outcome", () => {
@@ -198,7 +222,7 @@ describe("PlaceOnImageBoardContent results", () => {
     };
     renderContent("results", false);
 
-    expect(screen.getByText("Not quite — your pin missed the mark.")).toBeInTheDocument();
+    expect(screen.getByText("Not quite — some pins missed the mark.")).toBeInTheDocument();
   });
 
   it("falls back to the snapshot targets for a late joiner (no RoundResults)", () => {

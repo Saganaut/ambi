@@ -85,13 +85,22 @@ public class SlideContentTypes {
     // --------------- PlaceOnImage ----------------------------------------
 
     /**
-     * A click target on an image.
-     * {@code label}, {@code image}, and {@code color} are optional author
-     * annotations (mirroring {@link AxisItem}); {@code x}, {@code y}, and
-     * {@code radius} are normalized to [0, 1].
+     * A click target on an image, and also the item players place a pin for:
+     * {@code label}, {@code image}, and {@code color} are the author annotations
+     * shown on the item's bank chip and placed pin (mirroring {@link AxisItem}),
+     * while {@code x}, {@code y}, and {@code radius} (all normalized to [0, 1])
+     * are the answer key — the region that item's pin must land inside. The
+     * participant-facing view ({@code PlaceOnImageConfigView.PlaceItemView})
+     * carries only the annotations, never the geometry.
      */
     public record Target(String id, String label, AppImage image, String color,
             double x, double y, double radius) {
+    }
+
+    /** A point players pin on the image for an item, normalized to [0, 1] on both axes. */
+    public record PlacePoint(
+            @Schema(requiredMode = REQUIRED) double x,
+            @Schema(requiredMode = REQUIRED) double y) {
     }
 
     // --------------- Matching --------------------------------------------

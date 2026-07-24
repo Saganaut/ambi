@@ -39,6 +39,7 @@ import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
@@ -51,8 +52,10 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Matc
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
@@ -63,6 +66,7 @@ import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
+import com.cephadex.ambi.session.answer.payload.PlaceOnImageAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
@@ -267,6 +271,55 @@ class LiveSessionAnswerServiceTest {
                 .isInstanceOf(ValidationException.class);
         assertThatThrownBy(() -> service.submit(SID,
                 request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(Double.NaN, 0.5)))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    // ── Place-on-image ──────────────────────────────────────────────────────────
+
+    @Test
+    void placeOnImagePlacementsBypassTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), placeContent());
+
+        service.submit(SID,
+                request(new PlaceOnImageAnswer(java.util.Map.of("t-1", new PlacePoint(0.4, 0.6)))), registered);
+
+        // Like grid/axis, a place-on-image resubmit must overwrite rather than
+        // lock on first submit, so the orchestrator is called with 0.
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(PlaceOnImageAnswer.class), eq(0));
+    }
+
+    @Test
+    void placeOnImageEmptyPlacementsAreRejected() {
+        givenLiveSession(answerSettings(true, 1), placeContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new PlaceOnImageAnswer(java.util.Map.of())), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void placeOnImageUnknownItemIsRejected() {
+        givenLiveSession(answerSettings(true, 1), placeContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new PlaceOnImageAnswer(java.util.Map.of("t-nope", new PlacePoint(0.5, 0.5)))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void placeOnImageOutOfBoundsOrNonFinitePointIsRejected() {
+        givenLiveSession(answerSettings(true, 1), placeContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new PlaceOnImageAnswer(java.util.Map.of("t-1", new PlacePoint(1.2, 0.5)))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new PlaceOnImageAnswer(java.util.Map.of("t-1", new PlacePoint(0.5, -0.01)))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new PlaceOnImageAnswer(java.util.Map.of("t-1", new PlacePoint(Double.NaN, 0.5)))), registered))
                 .isInstanceOf(ValidationException.class);
     }
 
@@ -608,6 +661,19 @@ class LiveSessionAnswerServiceTest {
                 List.of(new AxisItem("it-1", "One", null, null), new AxisItem("it-2", "Two", null, null)),
                 java.util.Map.of(),
                 0.1,
+                ScoreMode.INSIDE_RADIUS);
+    }
+
+    /**
+     * A place-on-image slide with two targets ("t-1", "t-2") — the items to
+     * place. Their geometry is the (hidden) answer key; validation keys off the
+     * target ids.
+     */
+    private static PlaceOnImageContent placeContent() {
+        return new PlaceOnImageContent(
+                null,
+                List.of(new Target("t-1", "One", null, null, 0.4, 0.6, 0.1),
+                        new Target("t-2", "Two", null, null, 0.8, 0.8, 0.1)),
                 ScoreMode.INSIDE_RADIUS);
     }
 

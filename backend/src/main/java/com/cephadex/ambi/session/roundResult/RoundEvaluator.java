@@ -22,6 +22,7 @@ import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.session.answer.Answer;
@@ -311,19 +312,24 @@ public final class RoundEvaluator {
     }
 
     private static boolean gradePlaceOnImage(PlaceOnImageContent content, PlaceOnImageAnswer answer) {
-        // INSIDE_RADIUS: the pin lands inside any target circle. NEAREST/DISTANCE are
-        // relative/graded-distance scoring, not a per-answer boolean — seam.
-        if (content.scoreMode() != ScoreMode.INSIDE_RADIUS || content.correctTargets() == null) {
+        // INSIDE_RADIUS, per item: every target's pin must land inside that
+        // target's own radius (gradeAxis's loop-over-answer-key, but each target
+        // carries its own tolerance instead of one shared plane tolerance). An
+        // empty target list marks an unscored collect-only image; NEAREST/DISTANCE
+        // are relative/graded-distance scoring, not a per-answer boolean — seam.
+        if (content.scoreMode() != ScoreMode.INSIDE_RADIUS
+                || content.correctTargets() == null || content.correctTargets().isEmpty()
+                || answer.placements() == null) {
             return false;
         }
         for (Target target : content.correctTargets()) {
-            double dx = answer.x() - target.x();
-            double dy = answer.y() - target.y();
-            if (Math.hypot(dx, dy) <= target.radius()) {
-                return true;
+            PlacePoint placed = answer.placements().get(target.id());
+            if (placed == null || Math.hypot(placed.x() - target.x(),
+                    placed.y() - target.y()) > target.radius()) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     /**

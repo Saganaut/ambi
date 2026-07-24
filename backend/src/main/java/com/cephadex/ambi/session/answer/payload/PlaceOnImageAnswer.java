@@ -1,9 +1,12 @@
 package com.cephadex.ambi.session.answer.payload;
 
+import java.util.Map;
+
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
-/** Normalized (0..1) coordinates of the pin the participant placed on the image. */
-public record PlaceOnImageAnswer(double x, double y) implements AnswerPayload {
+/** Placement of each item id at a normalized (0..1) pin on the image. */
+public record PlaceOnImageAnswer(Map<String, PlacePoint> placements) implements AnswerPayload {
     @Override
     public SlideType slideType() {
         return SlideType.PLACE_ON_IMAGE;

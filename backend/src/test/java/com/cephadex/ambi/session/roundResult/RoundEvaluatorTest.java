@@ -15,6 +15,7 @@ import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
+import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.RankingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
@@ -25,8 +26,10 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Axis
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
@@ -34,6 +37,7 @@ import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
+import com.cephadex.ambi.session.answer.payload.PlaceOnImageAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.answer.payload.RankingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
@@ -123,6 +127,37 @@ class RoundEvaluatorTest {
 
         AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
                 List.of(answer("p", new AxisAnswer(Map.of("it-1", new AxisPoint(0.5, 0.5))), 10)), START).get(0);
+
+        assertThat(eval.correct()).isFalse();
+        assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
+    }
+
+    @Test
+    void gradesPlaceOnImageAllOrNothingEachInsideItsOwnRadius() {
+        // Two targets, each with its own radius: every item's pin must land
+        // inside that item's target circle (not merely inside any circle).
+        Slide slide = slideWith(place(
+                new Target("it-1", "One", null, null, 0.2, 0.2, 0.1),
+                new Target("it-2", "Two", null, null, 0.8, 0.8, 0.05)));
+
+        // Both inside their own radius.
+        assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(0.25, 0.2), "it-2", new PlacePoint(0.8, 0.82))))).isTrue();
+        // it-2 lands inside it-1's larger radius but outside its OWN smaller one → fails.
+        assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(0.2, 0.2), "it-2", new PlacePoint(0.72, 0.8))))).isFalse();
+        // A keyed item missing from the placements fails.
+        assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(0.2, 0.2))))).isFalse();
+    }
+
+    @Test
+    void placeOnImageWithNoTargetsIsCollectOnlyAndNeverGradesCorrect() {
+        Slide slide = slideWith(new PlaceOnImageContent(null, List.of(), ScoreMode.INSIDE_RADIUS));
+
+        AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
+                List.of(answer("p", new PlaceOnImageAnswer(Map.of("it-1", new PlacePoint(0.5, 0.5))), 10)),
+                START).get(0);
 
         assertThat(eval.correct()).isFalse();
         assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
@@ -312,6 +347,10 @@ class RoundEvaluatorTest {
                         new RankItem("it-2", "Two", null, null),
                         new RankItem("it-3", "Three", null, null)),
                 correctOrder, ScoreMode.EXACT);
+    }
+
+    private static PlaceOnImageContent place(Target... targets) {
+        return new PlaceOnImageContent(null, List.of(targets), ScoreMode.INSIDE_RADIUS);
     }
 
     private static ScalesContent scales(Map<String, Double> correctValues, double tolerance) {

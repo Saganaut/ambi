@@ -9,6 +9,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 
 class AnswerTallyKeysTest {
 
@@ -69,23 +70,20 @@ class AnswerTallyKeysTest {
     }
 
     @Test
-    void placeOnImageContributesOneQuantizedBucketKey() {
-        // 20-bucket grid: floor(0.42 * 20) = 8, floor(0.78 * 20) = 15.
-        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(0.42, 0.78)))
-                .containsExactly("8,15");
-    }
-
-    @Test
-    void placeOnImageOriginPinLandsInTheFirstBucket() {
-        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(0.0, 0.0)))
-                .containsExactly("0,0");
+    void placeOnImageContributesOneItemAtQuantizedBucketKeyPerPlacement() {
+        // 20-bucket grid: floor(0.42 * 20) = 8, floor(0.78 * 20) = 15; floor(0 * 20) = 0.
+        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(0.42, 0.78),
+                "it-2", new PlacePoint(0.0, 0.0)))))
+                .containsExactlyInAnyOrder("it-1@8,15", "it-2@0,0");
     }
 
     @Test
     void placeOnImageCoordinateOfExactlyOneClampsIntoTheLastBucket() {
         // Both 1.0 pins clamp into bucket 19 (PLACE_TALLY_BUCKETS - 1).
-        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(1.0, 1.0)))
-                .containsExactly("19,19");
+        assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(1.0, 1.0)))))
+                .containsExactly("it-1@19,19");
     }
 
     @Test
