@@ -349,6 +349,11 @@ public final class RoundEvaluator {
      * {@link #describeChoice}, so the reveal's {@code correctOption} lines up with
      * the option tallies. Returns null for content with no single collatable key
      * (multiple accepted texts, map/coordinate keys, or no static key at all).
+     *
+     * <p>Ranking is the one reveal-only exception: its list-shaped answer isn't
+     * collated as a tally choice ({@code describeChoice} returns null for it),
+     * but the board still needs the correct order at reveal, so this renders it
+     * as the comma-joined id list for the client to split back apart.
      */
     public static String correctKey(Slide slide) {
         SlideContent content = slide.getContent();
@@ -363,6 +368,14 @@ public final class RoundEvaluator {
         if (content instanceof TextContent text
                 && text.acceptedAnswers() != null && text.acceptedAnswers().size() == 1) {
             return text.acceptedAnswers().iterator().next();
+        }
+        if (content instanceof RankingContent ranking && ranking.correctOrder() != null) {
+            // The correct order joined top → bottom; item ids are client-minted
+            // alphanumerics that never contain a comma, so the board splits this
+            // back into the ordered id list at reveal. This is a whole-ordering
+            // reveal string, not a per-position tally key — it stands apart from
+            // describeChoice (which returns null for ranking's list-shaped answer).
+            return String.join(",", ranking.correctOrder());
         }
         return null;
     }

@@ -16,6 +16,7 @@ import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.RankingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
@@ -23,6 +24,7 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Axis
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.session.answer.Answer;
@@ -33,6 +35,7 @@ import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
+import com.cephadex.ambi.session.answer.payload.RankingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
 
@@ -177,6 +180,16 @@ class RoundEvaluatorTest {
     }
 
     @Test
+    void gradesRankingAsExactOrderMatch() {
+        Slide slide = slideWith(ranking(List.of("it-1", "it-2", "it-3")));
+
+        // The exact order grades true.
+        assertThat(gradeOne(slide, new RankingAnswer(List.of("it-1", "it-2", "it-3")))).isTrue();
+        // Any swapped pair fails the whole ordering (EXACT, all-or-nothing).
+        assertThat(gradeOne(slide, new RankingAnswer(List.of("it-2", "it-1", "it-3")))).isFalse();
+    }
+
+    @Test
     void contentWithNoStaticKeyNeverGradesCorrect() {
         Slide slide = slideWith(mcq(Set.of("a")));
 
@@ -255,6 +268,14 @@ class RoundEvaluatorTest {
     }
 
     @Test
+    void correctKeyRendersRankingAsCommaJoinedOrder() {
+        // Order is preserved (unlike MCQ's sort) and comma-joined, so the board
+        // can split it back into the ordered item ids at reveal.
+        assertThat(RoundEvaluator.correctKey(slideWith(ranking(List.of("it-3", "it-1", "it-2")))))
+                .isEqualTo("it-3,it-1,it-2");
+    }
+
+    @Test
     void describeChoiceRendersMcqSortedJoin() {
         AnswerEvaluation eval = RoundEvaluator.evaluate(slideWith(mcq(Set.of("a"))),
                 List.of(answer("p", new McqAnswer(Set.of("b", "a")), 10)), START).get(0);
@@ -283,6 +304,14 @@ class RoundEvaluatorTest {
                 List.of(new MatchItem("left-1", "One", null, null), new MatchItem("left-2", "Two", null, null)),
                 List.of(new MatchItem("right-1", "Uno", null, null), new MatchItem("right-2", "Dos", null, null)),
                 correctPairs, ScoreMode.EXACT);
+    }
+
+    private static RankingContent ranking(List<String> correctOrder) {
+        return new RankingContent(
+                List.of(new RankItem("it-1", "One", null, null),
+                        new RankItem("it-2", "Two", null, null),
+                        new RankItem("it-3", "Three", null, null)),
+                correctOrder, ScoreMode.EXACT);
     }
 
     private static ScalesContent scales(Map<String, Double> correctValues, double tolerance) {

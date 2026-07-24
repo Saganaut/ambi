@@ -1,6 +1,7 @@
 package com.cephadex.ambi.session.answer.payload;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * Derives the per-option tally keys for an answer — the histogram keys behind the
@@ -43,8 +44,10 @@ public final class AnswerTallyKeys {
      * {@code itemId@bucketX,bucketY} key per axis placement (quantized, so the
      * live board can heat-map the plane), one {@code statementId@bucket} key
      * per scales position (quantized, so the board can heat each statement's
-     * track), or one {@code leftId@rightId} key per matching connection (so the
-     * live board can count each pairing). Returns an empty list for payloads
+     * track), one {@code leftId@rightId} key per matching connection (so the
+     * live board can count each pairing), or one {@code itemId@position} key
+     * per ranked slot (0-based, so the board can tally how often each item
+     * lands in each rank). Returns an empty list for payloads
      * that aren't tallied yet (free text, drawings, …), so the caller simply
      * counts nothing for them.
      */
@@ -77,6 +80,16 @@ public final class AnswerTallyKeys {
             // key splits unambiguously under the same grammar.
             return matching.matches().entrySet().stream()
                     .map(match -> match.getKey() + GRID_KEY_SEPARATOR + match.getValue())
+                    .toList();
+        }
+        if (payload instanceof RankingAnswer ranking && ranking.orderedItemIds() != null) {
+            // One key per ranked slot: the 0-based position is a small int (a
+            // strict subset of grid's "r,c" suffix), so "itemId@position" splits
+            // unambiguously under the same grammar. Lets the board tally how
+            // often each item landed at each rank.
+            List<String> ordered = ranking.orderedItemIds();
+            return IntStream.range(0, ordered.size())
+                    .mapToObj(position -> ordered.get(position) + GRID_KEY_SEPARATOR + position)
                     .toList();
         }
         return List.of();

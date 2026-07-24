@@ -19,6 +19,7 @@ import { MatchingBoardContent } from "../content/MatchingBoardContent";
 import { McqBoardContent } from "../content/McqBoardContent";
 import { NumberBoardContent } from "../content/NumberBoardContent";
 import { QAndABoardContent } from "../content/QAndABoardContent";
+import { RankingBoardContent } from "../content/RankingBoardContent";
 import { ScalesBoardContent } from "../content/ScalesBoardContent";
 import { TextBoardContent } from "../content/TextBoardContent";
 import { VoteBoardContent } from "../content/VoteBoardContent";
@@ -70,6 +71,8 @@ const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: b
       return <TextBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "NUMBER":
       return <NumberBoardContent slide={slide} mode={mode} interactive={interactive} />;
+    case "RANKING":
+      return <RankingBoardContent slide={slide} mode={mode} interactive={interactive} />;
     default:
       // Per-kind presentation surfaces land incrementally; until then the round
       // still renders something coherent rather than a blank board.

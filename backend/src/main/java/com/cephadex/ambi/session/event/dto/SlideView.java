@@ -13,6 +13,7 @@ import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
+import com.cephadex.ambi.presentation.slide.content.RankingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
@@ -43,7 +44,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * {@link ScalesConfigView} (the endpoints, anchor labels + statements, never
  * {@code correctValues} or {@code tolerance}); a Matching slide carries
  * {@link MatchingConfigView} (both card columns with the right column
- * re-ordered, never {@code correctPairs}); a Drawing slide carries
+ * re-ordered, never {@code correctPairs}); a Ranking slide carries
+ * {@link RankingConfigView} (the item bank, never {@code correctOrder} or
+ * {@code scoreMode}); a Drawing slide carries
  * {@link DrawingConfigView} (prompt image + placement, palette, tools, never
  * {@code correctImage}); a Text slide carries {@link TextConfigView} (the input
  * cap + a word-cloud display hint, never {@code acceptedAnswers} or the
@@ -65,6 +68,7 @@ public record SlideView(
         AxisConfigView axis,
         ScalesConfigView scales,
         MatchingConfigView matching,
+        RankingConfigView ranking,
         DrawingConfigView drawing,
         TextConfigView text,
         NumberConfigView number,
@@ -87,6 +91,7 @@ public record SlideView(
         AxisConfigView axis = null;
         ScalesConfigView scales = null;
         MatchingConfigView matching = null;
+        RankingConfigView ranking = null;
         DrawingConfigView drawing = null;
         TextConfigView text = null;
         NumberConfigView number = null;
@@ -110,6 +115,9 @@ public record SlideView(
             }
             if (content instanceof MatchingContent matchingContent) {
                 matching = MatchingConfigView.from(matchingContent, imageUrl);
+            }
+            if (content instanceof RankingContent rankingContent) {
+                ranking = RankingConfigView.from(rankingContent, imageUrl);
             }
             if (content instanceof DrawingContent drawingContent) {
                 drawing = DrawingConfigView.from(drawingContent, imageUrl);
@@ -135,6 +143,7 @@ public record SlideView(
                 axis,
                 scales,
                 matching,
+                ranking,
                 drawing,
                 text,
                 number,

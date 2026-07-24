@@ -1,0 +1,180 @@
+.rankingBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .outcomeCorrect,
+  .outcomeWrong {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .outcomeCorrect {
+    color: var(--text-success);
+  }
+
+  .outcomeWrong {
+    color: var(--text-error);
+  }
+
+  /* Both the reorder surface and the aggregate ranking are numbered lists that
+     share a row shell — a rank number, the item face, then per-mode trailing
+     controls or stats. */
+  .orderList,
+  .ranked {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    width: 100%;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+  }
+
+  .orderRow,
+  .rankedRow {
+    /* Fallback for the inline value set from the item's resolved color. */
+    --row-accent: var(--bg-brand);
+
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-md);
+    overflow: hidden;
+    padding: var(--p-md);
+    border-radius: var(--radius-md);
+
+    /* Reserve the state-border width so a reveal never reflows. */
+    border: var(--border-size-md) solid transparent;
+    background-color: var(--bg-surface-raised);
+    color: var(--text-primary);
+
+    /* Per-row accent strip (colour comes from the authored item data). */
+    &::before {
+      content: "";
+      align-self: stretch;
+      width: var(--space-2);
+      border-radius: var(--radius-full);
+      background-color: var(--row-accent);
+    }
+  }
+
+  /* Revealed row the crowd ranked into its correct slot — success surface. */
+  .rowCorrect {
+    background-color: var(--bg-success);
+  }
+
+  .rankNum {
+    flex-shrink: 0;
+    min-width: var(--space-6);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .face {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-width: 0;
+  }
+
+  .thumbnail {
+    width: var(--space-12);
+    height: var(--space-12);
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+  }
+
+  .label {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .moveControls {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--gap-xs);
+  }
+
+  .moveBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-8);
+    height: var(--space-8);
+    border: var(--border-size-md) solid var(--edge-subtle);
+    border-radius: var(--radius-full);
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    font-weight: 700;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.4;
+    }
+  }
+
+  .avg {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  .correctBadge {
+    flex-shrink: 0;
+    padding: var(--p-square-xs);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-success);
+    color: var(--text-success);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+  }
+
+  /* Per-item strip of N cells (one per rank slot) showing how the votes spread
+     across positions — each cell shades by its share of the item's busiest
+     slot, the ranking analogue of the scales board's heat strip. */
+  .heatStrip {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--gap-xs);
+    width: 6rem;
+    height: var(--space-2);
+  }
+
+  .heatCell {
+    /* 0..1 share of the item's busiest position — shades like a heatmap. */
+    --cell-heat: 0;
+
+    flex: 1;
+    border-radius: var(--radius-sm);
+    background-color: var(--row-accent);
+    opacity: calc(0.12 + var(--cell-heat) * 0.6);
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap-md);
+
+    .submittedNote {
+      margin: 0;
+      color: var(--text-success);
+      font-weight: 600;
+    }
+  }
+}

@@ -2,6 +2,7 @@ package com.cephadex.ambi.session.answer.payload;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,6 +60,12 @@ class AnswerTallyKeysTest {
                 "left-1", "right-b",
                 "left-2", "right-a"))))
                 .containsExactlyInAnyOrder("left-1@right-b", "left-2@right-a");
+    }
+
+    @Test
+    void rankingContributesOneItemAtPositionKeyPerRankedSlot() {
+        assertThat(AnswerTallyKeys.optionKeys(new RankingAnswer(List.of("it-c", "it-a", "it-b"))))
+                .containsExactly("it-c@0", "it-a@1", "it-b@2");
     }
 
     @Test

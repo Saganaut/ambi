@@ -482,6 +482,15 @@ export type MatchingConfigView = {
   right?: MatchCardView[];
   scored?: boolean;
 };
+export type RankItemView = {
+  id?: string;
+  label?: string;
+  imageUrl?: string;
+  color?: string;
+};
+export type RankingConfigView = {
+  items?: RankItemView[];
+};
 export type DrawingConfigView = {
   imagePromptUrl?: string;
   promptPlacement?: "ALONGSIDE" | "BACKGROUND";
@@ -533,6 +542,7 @@ export type SlideView = {
   axis?: AxisConfigView;
   scales?: ScalesConfigView;
   matching?: MatchingConfigView;
+  ranking?: RankingConfigView;
   drawing?: DrawingConfigView;
   text?: TextConfigView;
   number?: NumberConfigView;

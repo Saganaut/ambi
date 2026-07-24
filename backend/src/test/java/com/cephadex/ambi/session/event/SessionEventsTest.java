@@ -20,12 +20,14 @@ import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
+import com.cephadex.ambi.presentation.slide.content.RankingContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
@@ -117,6 +119,28 @@ class SessionEventsTest {
                         new MatchItem("right-z", "King Elessar", image, null),
                         new MatchItem("right-a", "King Éomer", null, null)),
                 Map.of("left-1", "right-z", "left-2", "right-a"),
+                ScoreMode.EXACT));
+        return slide;
+    }
+
+    /**
+     * {@code king-image} carries an image; the rest are text-only items. The
+     * authored {@code correctOrder} deliberately differs from the item order so
+     * the config view's silence about it is observable.
+     */
+    private static Slide rankingSlide() {
+        AppImage image = new AppImage();
+        image.setExternal(true);
+        image.setExternalSrc("https://example.test/aragorn.png");
+        Slide slide = new Slide();
+        slide.setId("slide-ranking");
+        slide.setTitle("Rank the kings by reign");
+        slide.setContent(new RankingContent(
+                List.of(
+                        new RankItem("rank-1", "Elessar", image, "#aabbcc"),
+                        new RankItem("rank-2", "Éomer", null, null),
+                        new RankItem("rank-3", "Théoden", null, null)),
+                List.of("rank-3", "rank-1", "rank-2"),
                 ScoreMode.EXACT));
         return slide;
     }
@@ -301,6 +325,31 @@ class SessionEventsTest {
         SlideView view = SlideView.from(slide, null, NO_IMAGES);
 
         assertThat(view.matching().scored()).isFalse();
+    }
+
+    @Test
+    void slideViewCarriesRankingConfigButDropsAnswerKey() {
+        SlideView view = SlideView.from(rankingSlide(), null,
+                img -> img == null ? null : "https://cdn.test/presigned/aragorn");
+
+        // The item bank travels in authored order (no positional key to leak,
+        // unlike Matching — the correct order is a separate field entirely).
+        assertThat(view.ranking()).isNotNull();
+        assertThat(view.ranking().items()).extracting("id")
+                .containsExactly("rank-1", "rank-2", "rank-3");
+        assertThat(view.ranking().items()).extracting("label")
+                .containsExactly("Elessar", "Éomer", "Théoden");
+        assertThat(view.ranking().items()).extracting("color")
+                .containsExactly("#aabbcc", null, null);
+        // Images arrive pre-resolved through the supplied resolver; text items carry none.
+        assertThat(view.ranking().items()).extracting("imageUrl")
+                .containsExactly("https://cdn.test/presigned/aragorn", null, null);
+
+        // Neither the answer key nor the score mode reaches the wire.
+        String json = codec.serialize(view);
+        assertThat(json).doesNotContain("correctOrder");
+        assertThat(json).doesNotContain("scoreMode");
+        assertThat(json).doesNotContain("rank-3,rank-1,rank-2");
     }
 
     @Test
