@@ -15,10 +15,13 @@ import {
   autoUpdate,
   flip,
   offset,
+  safePolygon,
   shift,
   useClick,
   useDismiss,
   useFloating,
+  useFocus,
+  useHover,
   useFloatingNodeId,
   useFloatingParentNodeId,
   useInteractions,
@@ -55,11 +58,13 @@ interface FloatingPopoverProps {
   onOpenChange?: (isOpen: boolean) => void;
   /**
    * How the trigger opens the popover. "click" (default) toggles on trigger
-   * click. "controlled" wires no open interaction — the consumer drives `open`
+   * click. "hover" keeps it open while the pointer travels from the trigger
+   * to the portalled content and also opens it from keyboard focus.
+   * "controlled" wires no open interaction — the consumer drives `open`
    * itself (e.g. a field whose focus opens the menu); dismissal (outside press
    * and Escape) still fires `onOpenChange(false)`.
    */
-  openOn?: "click" | "controlled";
+  openOn?: "click" | "hover" | "controlled";
   /**
    * Whether the floating focus manager moves focus into the popover on open
    * and restores it on close. Turn off for menus opened from a still-focused
@@ -162,6 +167,11 @@ const FloatingPopoverImpl = ({
   }, [isOpen]);
 
   const click = useClick(context, { enabled: openOn === "click" });
+  const hover = useHover(context, {
+    enabled: openOn === "hover",
+    handleClose: safePolygon(),
+  });
+  const focus = useFocus(context, { enabled: openOn === "hover" });
   const dismiss = useDismiss(context);
   const role = useRole(context);
   const listNav = useListNavigation(context, {
@@ -175,6 +185,8 @@ const FloatingPopoverImpl = ({
 
   const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
     click,
+    hover,
+    focus,
     dismiss,
     role,
     listNav,

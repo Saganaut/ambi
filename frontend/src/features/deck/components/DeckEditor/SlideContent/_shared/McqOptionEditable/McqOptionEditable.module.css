@@ -26,13 +26,9 @@
     outline-color var(--duration-base) ease-in-out;
 
   .canAddBtn {
-    visibility: hidden;
+    align-self: flex-end;
     opacity: 0;
-    position: absolute;
-    top: 35%;
-    z-index: 200;
-    right: 0;
-    transform: translateX(50%);
+    pointer-events: none;
     transition: opacity var(--duration-base) ease-in-out;
   }
 
@@ -41,8 +37,13 @@
 
     .canAddBtn {
       opacity: 1;
-      visibility: visible;
+      pointer-events: auto;
     }
+  }
+
+  .canAddBtn:focus-within {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   &.cardCorrect {
