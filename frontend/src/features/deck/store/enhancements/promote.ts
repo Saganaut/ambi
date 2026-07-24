@@ -1,7 +1,8 @@
 /**
- * Cache-sync rules for the three "apply to deck" promote mutations: each
- * atomically sets a new deck-level default AND clears every slide's per-slide
- * override for that field in one backend round-trip.
+ * Cache-sync rules for the "apply to deck" promote mutations: each atomically
+ * sets a new deck-level default (or, for the cleared-background variants,
+ * clears it) AND clears every slide's per-slide override for that field in one
+ * backend round-trip.
  *
  * These endpoints are generated into `deckApi.gen.ts`, so the behavior is
  * layered on with `enhanceEndpoints` (not `injectEndpoints`, which would be
@@ -23,6 +24,8 @@ import {
   type PromoteAnswerSettingsToDeckApiArg,
   type PromoteBackgroundColorToDeckApiArg,
   type PromoteBackgroundImageToDeckApiArg,
+  type PromoteClearedBackgroundColorToDeckApiArg,
+  type PromoteClearedBackgroundImageToDeckApiArg,
   type PromotePointSettingsToDeckApiArg,
 } from "../deckApi.gen";
 
@@ -141,6 +144,43 @@ deckApi.enhanceEndpoints({
       },
     },
 
+    promoteClearedBackgroundImageToDeck: {
+      onQueryStarted: async (
+        arg: PromoteClearedBackgroundImageToDeckApiArg,
+        { dispatch, queryFulfilled }: CacheSyncMutationApi<DeckResponse>,
+      ) => {
+        const deckPatch = dispatch(
+          deckApi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.backgroundImage = undefined;
+          }),
+        );
+        const slidesPatch = dispatch(
+          deckApi.util.updateQueryData(
+            "listDeckSlides",
+            { id: arg.id },
+            (draft) => {
+              // Every slide falls through to the (now empty) deck default: drop
+              // both the per-slide image override and the hideBackground suppress
+              // flag, mirroring the atomic backend unset.
+              for (const slide of draft) {
+                slide.backgroundImage = undefined;
+                slide.hideBackground = false;
+              }
+            },
+          ),
+        );
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            deckApi.util.updateQueryData("getDeck", { id: arg.id }, () => data),
+          );
+        } catch {
+          deckPatch.undo();
+          slidesPatch.undo();
+        }
+      },
+    },
+
     promoteBackgroundColorToDeck: {
       onQueryStarted: async (
         arg: PromoteBackgroundColorToDeckApiArg,
@@ -159,6 +199,43 @@ deckApi.enhanceEndpoints({
               // Every slide falls through to the new deck color: drop the
               // per-slide color override only. Unlike the image promote, the
               // shared hideBackground flag is left untouched — promoting a color
+              // must not un-suppress a slide that opted out of the background.
+              for (const slide of draft) {
+                slide.backgroundColor = undefined;
+              }
+            },
+          ),
+        );
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            deckApi.util.updateQueryData("getDeck", { id: arg.id }, () => data),
+          );
+        } catch {
+          deckPatch.undo();
+          slidesPatch.undo();
+        }
+      },
+    },
+
+    promoteClearedBackgroundColorToDeck: {
+      onQueryStarted: async (
+        arg: PromoteClearedBackgroundColorToDeckApiArg,
+        { dispatch, queryFulfilled }: CacheSyncMutationApi<DeckResponse>,
+      ) => {
+        const deckPatch = dispatch(
+          deckApi.util.updateQueryData("getDeck", { id: arg.id }, (draft) => {
+            draft.backgroundColor = undefined;
+          }),
+        );
+        const slidesPatch = dispatch(
+          deckApi.util.updateQueryData(
+            "listDeckSlides",
+            { id: arg.id },
+            (draft) => {
+              // Every slide falls through to the (now empty) deck color: drop the
+              // per-slide color override only. Unlike the image promotes, the
+              // shared hideBackground flag is left untouched — clearing the color
               // must not un-suppress a slide that opted out of the background.
               for (const slide of draft) {
                 slide.backgroundColor = undefined;

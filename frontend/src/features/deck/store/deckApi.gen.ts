@@ -272,6 +272,15 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.setImageRequest,
       }),
     }),
+    promoteClearedBackgroundImageToDeck: build.mutation<
+      PromoteClearedBackgroundImageToDeckApiResponse,
+      PromoteClearedBackgroundImageToDeckApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-image/promote`,
+        method: "DELETE",
+      }),
+    }),
     setDeckBackgroundColor: build.mutation<
       SetDeckBackgroundColorApiResponse,
       SetDeckBackgroundColorApiArg
@@ -299,6 +308,15 @@ const injectedRtkApi = api.injectEndpoints({
         url: `/api/decks/${queryArg.id}/background-color/promote`,
         method: "PUT",
         body: queryArg.setColorRequest,
+      }),
+    }),
+    promoteClearedBackgroundColorToDeck: build.mutation<
+      PromoteClearedBackgroundColorToDeckApiResponse,
+      PromoteClearedBackgroundColorToDeckApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/background-color/promote`,
+        method: "DELETE",
       }),
     }),
     setDeckAudienceSettings: build.mutation<
@@ -568,6 +586,11 @@ export type PromoteBackgroundImageToDeckApiArg = {
   id: string;
   setImageRequest: SetImageRequest;
 };
+export type PromoteClearedBackgroundImageToDeckApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type PromoteClearedBackgroundImageToDeckApiArg = {
+  id: string;
+};
 export type SetDeckBackgroundColorApiResponse =
   /** status 200 OK */ DeckResponse;
 export type SetDeckBackgroundColorApiArg = {
@@ -584,6 +607,11 @@ export type PromoteBackgroundColorToDeckApiResponse =
 export type PromoteBackgroundColorToDeckApiArg = {
   id: string;
   setColorRequest: SetColorRequest;
+};
+export type PromoteClearedBackgroundColorToDeckApiResponse =
+  /** status 200 OK */ DeckResponse;
+export type PromoteClearedBackgroundColorToDeckApiArg = {
+  id: string;
 };
 export type SetDeckAudienceSettingsApiResponse =
   /** status 200 OK */ DeckResponse;
@@ -1173,9 +1201,11 @@ export const {
   useSetDeckBackgroundImageMutation,
   useClearDeckBackgroundImageMutation,
   usePromoteBackgroundImageToDeckMutation,
+  usePromoteClearedBackgroundImageToDeckMutation,
   useSetDeckBackgroundColorMutation,
   useClearDeckBackgroundColorMutation,
   usePromoteBackgroundColorToDeckMutation,
+  usePromoteClearedBackgroundColorToDeckMutation,
   useSetDeckAudienceSettingsMutation,
   useSetDeckAnswerSettingsMutation,
   usePromoteAnswerSettingsToDeckMutation,

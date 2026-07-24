@@ -70,11 +70,13 @@ public interface DeckRepositoryCustom {
 
     /**
      * Atomically promote {@code image} to the deck's {@code background_image} field
-     * <em>and</em> clear {@code background_image} from every embedded slide — all in
-     * a single {@code $set/$unset} update without bumping the deck's {@code @Version}.
+     * <em>and</em> clear {@code background_image} (plus the {@code hide_background}
+     * suppress flag) from every embedded slide — all in a single {@code $set/$unset}
+     * update without bumping the deck's {@code @Version}. Pass {@code null} to unset
+     * the deck image too.
      *
      * @param deckId  owning deck id
-     * @param image   the new deck background image to set
+     * @param image   the new deck background image to set, or {@code null} to unset
      */
     void promoteBackgroundImageToDeck(String deckId, AppImage image);
 

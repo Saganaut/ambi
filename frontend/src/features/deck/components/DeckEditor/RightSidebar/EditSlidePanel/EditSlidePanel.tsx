@@ -2,20 +2,22 @@
 // slide from the slide cache (via useSlide), mounts the per-kind options
 // section, then the image section, session pacing, and provenance footer.
 // Per-kind sections each own their own useSlideEditor instance.
-import { SlotMapping, slotMappingOptions } from "@/features/deck/contexts/ImageSlot.types";
+import { slotMappingOptions } from "@/features/deck/contexts/ImageSlot.types";
 import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { useDeckQuery } from "@/features/deck/hooks/useDeckQuery";
 import { useSlide } from "@deck/hooks/useSlide";
 import {
   usePromoteBackgroundColorToDeckMutation,
   usePromoteBackgroundImageToDeckMutation,
+  usePromoteClearedBackgroundColorToDeckMutation,
+  usePromoteClearedBackgroundImageToDeckMutation,
 } from "@deck/store/deckApi.gen";
-import { ColorPicker } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
-import type { ColorValue } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
-import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
+import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
 import { DEFAULT_PALETTE } from "@features/theme/palette";
 import type { Palette } from "@features/theme/store/themeApi.gen";
-import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
+import type { ColorValue } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
+import { ColorPicker } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
+import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { addRecentColor, useRecentColors } from "@shared/hooks/useRecentColors";
 import { Btn } from "@ui/Buttons/Btn";
@@ -60,15 +62,15 @@ const backgroundSwatchesFor = (palette: Palette): ColorValue[] => {
   return swatches;
 };
 
-import { ImagePlacementPicker } from "./ImagePlacementPicker/ImagePlacementPicker";
-
 const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
-  const { getSlide, setSlideImage, clearSlideImage, hideSlideBackground } = useSlide(deckId);
+  const { slides, getSlide, setSlideImage, clearSlideImage, hideSlideBackground } =
+    useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
 
   const { deck } = useDeckQuery(deckId);
   const openPicker = useGalleryPicker();
   const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
+  const [promoteClearedBackgroundImage] = usePromoteClearedBackgroundImageToDeckMutation();
 
   if (!slide)
     return (
@@ -83,13 +85,17 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const hasOwnImage = slide.backgroundImage != null;
   const isHidden = slide.hideBackground === true;
   const deckHasBackground = deck?.backgroundImage != null;
+  // Whether promoting this slide's *cleared* state would change anything: a
+  // deck default or a per-slide override still exists somewhere in the deck.
+  const anyImageToClear = deckHasBackground || slides.some((s) => s.backgroundImage != null);
 
   // Effective image mirrors what the canvas actually shows: own image wins,
   // then inherited deck image, then nothing (hidden or no deck background).
-  const effectiveImage =
-    hasOwnImage ? slide.backgroundImage
-    : !isHidden && deckHasBackground ? deck?.backgroundImage
-    : undefined;
+  const effectiveImage = hasOwnImage
+    ? slide.backgroundImage
+    : !isHidden && deckHasBackground
+      ? deck?.backgroundImage
+      : undefined;
 
   const handleClear = () => {
     if (hasOwnImage) {
@@ -136,7 +142,11 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
           }}
         />
       )}
-      {slide.backgroundImage != null && (
+      {/* "Make all slides look like this one": with an own image, promote it to
+          the deck; without one, promote the cleared state — wipe the deck default
+          and every per-slide override (the way to undo an earlier apply-to-all).
+          The cleared variant only shows while there is still something to wipe. */}
+      {hasOwnImage ? (
         <div className={settingsPanel.footer}>
           <Tooltip
             className={settingsPanel.applyTooltip}
@@ -157,6 +167,25 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
             </Btn>
           </Tooltip>
         </div>
+      ) : (
+        anyImageToClear && (
+          <div className={settingsPanel.footer}>
+            <Tooltip
+              className={settingsPanel.applyTooltip}
+              label="Removes the deck background and all per-slide background overrides, so no slide shows a background image."
+            >
+              <Btn
+                variant="secondary"
+                fill="bordered"
+                onClick={() => {
+                  void promoteClearedBackgroundImage({ id: deckId });
+                }}
+              >
+                Apply to all slides
+              </Btn>
+            </Tooltip>
+          </div>
+        )
       )}
     </section>
   );
@@ -168,11 +197,12 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
 // hide toggle here — the shared `hideBackground` flag lives with the image
 // section above and suppresses the inherited color too.
 const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
-  const { getSlide, setSlideColor, clearSlideColor } = useSlide(deckId);
+  const { slides, getSlide, setSlideColor, clearSlideColor } = useSlide(deckId);
   const slide = slideId ? getSlide(slideId) : undefined;
 
   const { deck } = useDeckQuery(deckId);
   const [promoteBackgroundColor] = usePromoteBackgroundColorToDeckMutation();
+  const [promoteClearedBackgroundColor] = usePromoteClearedBackgroundColorToDeckMutation();
   const recentColors = useRecentColors();
   // The theme painting this deck's canvas (deck theme supersedes the global one);
   // its surface roles become the quick-pick swatches. No deck theme → the neutral
@@ -193,6 +223,10 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
   // unless the slide suppresses the inherited background entirely.
   const inheritedColor = slide.hideBackground ? undefined : deck?.backgroundColor;
   const effectiveColor = ownColor ?? inheritedColor ?? undefined;
+  // Whether promoting this slide's *cleared* state would change anything: a
+  // deck default or a per-slide override still exists somewhere in the deck.
+  const anyColorToClear =
+    deck?.backgroundColor != null || slides.some((s) => s.backgroundColor != null);
 
   return (
     <section className={styles.section}>
@@ -225,7 +259,11 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
           </button>
         )}
       />
-      {ownColor != null && (
+      {/* Same promote pattern as the image section: an own color promotes to the
+          deck; no own color promotes the cleared state — wipe the deck color and
+          every per-slide override (the way to undo an earlier apply-to-all) —
+          shown only while there is still something to wipe. */}
+      {ownColor != null ? (
         <div className={settingsPanel.footer}>
           <Tooltip
             className={settingsPanel.applyTooltip}
@@ -246,6 +284,25 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
             </Btn>
           </Tooltip>
         </div>
+      ) : (
+        anyColorToClear && (
+          <div className={settingsPanel.footer}>
+            <Tooltip
+              className={settingsPanel.applyTooltip}
+              label="Removes the deck background color and all per-slide color overrides, so no slide has a background color."
+            >
+              <Btn
+                variant="secondary"
+                fill="bordered"
+                onClick={() => {
+                  void promoteClearedBackgroundColor({ id: deckId });
+                }}
+              >
+                Apply to all slides
+              </Btn>
+            </Tooltip>
+          </div>
+        )
       )}
     </section>
   );
@@ -262,10 +319,10 @@ const FeatureImageSelector = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const openPicker = useGalleryPicker();
   const defaultPlacement = slotMappingOptions[0];
 
-  const updateSlidePlacement = (slidePlacement: SlotMapping) => {
-    if (slide?.coverImage == null) return;
-    setSlideImage(slideId, "cover", slide?.coverImage, slidePlacement);
-  };
+  // const updateSlidePlacement = (slidePlacement: SlotMapping) => {
+  //   if (slide?.coverImage == null) return;
+  //   setSlideImage(slideId, "cover", slide?.coverImage, slidePlacement);
+  // };
 
   return (
     <>
@@ -289,7 +346,7 @@ const FeatureImageSelector = ({ deckId, slideId }: deckAndSlideIdProps) => {
         }}
       />
 
-      <ImagePlacementPicker updateSlidePlacement={updateSlidePlacement} />
+      {/* <ImagePlacementPicker updateSlidePlacement={updateSlidePlacement} /> */}
     </>
   );
 };
@@ -310,7 +367,7 @@ const EditSlidePanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
     <div className={styles.panel}>
       <PerSlideStyle deckId={deckId} slideId={slideId} />
       <PerSlideColor deckId={deckId} slideId={slideId} />
-      <FeatureImageSelector deckId={deckId} slideId={slideId} />
+      {/* <FeatureImageSelector deckId={deckId} slideId={slideId} /> */}
       <FollowUpAttachSection slide={slide} />
     </div>
   );

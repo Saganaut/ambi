@@ -585,6 +585,27 @@ class DeckServiceTest {
         verify(deckRepository).promoteBackgroundImageToDeck("deck-1", promoted);
     }
 
+    @Test
+    void promoteClearedBackgroundImageClearsDeckAndEveryOverrideIncludingHideFlags() {
+        // The DELETE counterpart: the deck default goes too, and every slide is
+        // reset the same way the non-null promote resets it.
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        deck.setBackgroundImage(image("https://img/deck.jpg"));
+        deck.findSlide("s1").orElseThrow().setBackgroundImage(image("https://img/s1.jpg"));
+        deck.findSlide("s2").orElseThrow().setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck result = deckService.promoteClearedBackgroundImageToDeck("deck-1", owner);
+
+        assertThat(result.getBackgroundImage()).isNull();
+        assertThat(result.getSlides())
+                .allSatisfy(s -> {
+                    assertThat(s.getBackgroundImage()).isNull();
+                    assertThat(s.isHideBackground()).isFalse();
+                });
+        verify(deckRepository).promoteBackgroundImageToDeck("deck-1", null);
+    }
+
     // ── Background color ────────────────────────────────────────────────────────
 
     @Test
@@ -632,6 +653,24 @@ class DeckServiceTest {
         assertThat(result.getSlides()).allSatisfy(s -> assertThat(s.getBackgroundColor()).isNull());
         assertThat(deck.findSlide("s2").orElseThrow().isHideBackground()).isTrue();
         verify(deckRepository).promoteBackgroundColorToDeck("deck-1", "#ABCDEF");
+    }
+
+    @Test
+    void promoteClearedBackgroundColorClearsDeckAndSlideColorsButNotHideFlags() {
+        // The DELETE counterpart: the deck default goes too; hideBackground stays
+        // untouched exactly as in the non-null color promote.
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        deck.setBackgroundColor("#ABCDEF");
+        deck.findSlide("s1").orElseThrow().setBackgroundColor("#111111");
+        deck.findSlide("s2").orElseThrow().setHideBackground(true);
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        Deck result = deckService.promoteClearedBackgroundColorToDeck("deck-1", owner);
+
+        assertThat(result.getBackgroundColor()).isNull();
+        assertThat(result.getSlides()).allSatisfy(s -> assertThat(s.getBackgroundColor()).isNull());
+        assertThat(deck.findSlide("s2").orElseThrow().isHideBackground()).isTrue();
+        verify(deckRepository).promoteBackgroundColorToDeck("deck-1", null);
     }
 
     @Test

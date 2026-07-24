@@ -207,6 +207,19 @@ public class DeckController {
         return toResponse(deckService.promoteBackgroundImageToDeck(id, body.image(), principal), principal);
     }
 
+    /**
+     * Promote a cleared background image to the deck default, clearing all slide
+     * overrides (EDIT). The DELETE counterpart of the promote above — clearing is
+     * an explicit DELETE, never a null PUT — so the deck default and every
+     * slide's own image (and suppress flag) are dropped in one atomic update.
+     */
+    @DeleteMapping("/{id}/background-image/promote")
+    public DeckResponse promoteClearedBackgroundImageToDeck(
+            @PathVariable String id,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.promoteClearedBackgroundImageToDeck(id, principal), principal);
+    }
+
     // ── Deck background color ─────────────────────────────────────────────────
     // The color counterpart to the deck background image, with the same set /
     // clear / promote split (EDIT). A color composes behind the image.
@@ -235,6 +248,19 @@ public class DeckController {
             @Valid @RequestBody SetColorRequest body,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return toResponse(deckService.promoteBackgroundColorToDeck(id, body.color(), principal), principal);
+    }
+
+    /**
+     * Promote a cleared background color to the deck default, clearing all slide
+     * overrides (EDIT). The DELETE counterpart of the promote above — clearing is
+     * an explicit DELETE, never a null PUT — so the deck default and every
+     * slide's own color override are dropped in one atomic update.
+     */
+    @DeleteMapping("/{id}/background-color/promote")
+    public DeckResponse promoteClearedBackgroundColorToDeck(
+            @PathVariable String id,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return toResponse(deckService.promoteClearedBackgroundColorToDeck(id, principal), principal);
     }
 
     // ── Deck tags ───────────────────────────────────────────────────────────────

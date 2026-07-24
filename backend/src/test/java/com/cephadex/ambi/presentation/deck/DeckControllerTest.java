@@ -251,6 +251,18 @@ class DeckControllerTest {
         verify(deckService).clearDeckBackgroundImage(eq("deck-1"), any());
     }
 
+    @Test
+    void promoteClearedBackgroundImageToDeckDelegates() throws Exception {
+        when(deckService.promoteClearedBackgroundImageToDeck(eq("deck-1"), any()))
+                .thenReturn(deck("deck-1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/background-image/promote"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).promoteClearedBackgroundImageToDeck(eq("deck-1"), any());
+    }
+
     /** A null image body is rejected — clearing is an explicit DELETE, not a null PUT. */
     @Test
     void setDeckCoverImageRejectsMissingImage() throws Exception {
@@ -362,6 +374,18 @@ class DeckControllerTest {
                 .andExpect(jsonPath("$.id").value("deck-1"));
 
         verify(deckService).promoteBackgroundColorToDeck(eq("deck-1"), eq("#1A2B3C"), any());
+    }
+
+    @Test
+    void promoteClearedBackgroundColorToDeckDelegates() throws Exception {
+        when(deckService.promoteClearedBackgroundColorToDeck(eq("deck-1"), any()))
+                .thenReturn(deck("deck-1"));
+
+        mockMvc.perform(delete("/api/decks/deck-1/background-color/promote"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("deck-1"));
+
+        verify(deckService).promoteClearedBackgroundColorToDeck(eq("deck-1"), any());
     }
 
     /** A malformed (non-hex) color is rejected by the @Pattern bound. */

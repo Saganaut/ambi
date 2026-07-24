@@ -430,7 +430,9 @@ public class DeckService {
      * background override in a single atomic update (EDIT). Unlike the plain
      * {@link #setDeckBackgroundImage} which only updates the deck, this also drops
      * all per-slide overrides — both the image and the {@code hideBackground}
-     * suppress flag — so every slide falls through to the new deck image.
+     * suppress flag — so every slide falls through to the new deck image. A null
+     * {@code image} clears the deck default instead (see
+     * {@link #promoteClearedBackgroundImageToDeck}).
      */
     public Deck promoteBackgroundImageToDeck(String id, AppImage image, AmbiPrincipal principal) {
         Deck deck = getEditable(id, principal);
@@ -441,6 +443,19 @@ public class DeckService {
         });
         deckRepository.promoteBackgroundImageToDeck(id, image);
         return deck;
+    }
+
+    /**
+     * Promote a cleared background image to the deck default (EDIT): the deck's
+     * default background image goes to null and every slide's own override —
+     * both the image and the {@code hideBackground} suppress flag — is dropped
+     * in the same single atomic update, so all slides uniformly show no
+     * background image. The clearing counterpart of
+     * {@link #promoteBackgroundImageToDeck}, and unlike the plain
+     * {@link #clearDeckBackgroundImage} which only touches the deck.
+     */
+    public Deck promoteClearedBackgroundImageToDeck(String id, AmbiPrincipal principal) {
+        return promoteBackgroundImageToDeck(id, null, principal);
     }
 
     private Deck applyDeckImage(String id, AmbiPrincipal principal, Consumer<Deck> mutation) {
@@ -485,7 +500,8 @@ public class DeckService {
      * all per-slide color overrides so every slide falls through to the new deck
      * color. The shared {@code hideBackground} flag is deliberately left untouched
      * — promoting a color must not un-suppress a slide that opted out of the
-     * inherited background.
+     * inherited background. A null {@code color} clears the deck default instead
+     * (see {@link #promoteClearedBackgroundColorToDeck}).
      */
     public Deck promoteBackgroundColorToDeck(String id, String color, AmbiPrincipal principal) {
         Deck deck = getEditable(id, principal);
@@ -493,6 +509,21 @@ public class DeckService {
         deck.getSlides().forEach(s -> s.setBackgroundColor(null));
         deckRepository.promoteBackgroundColorToDeck(id, color);
         return deck;
+    }
+
+    /**
+     * Promote a cleared background color to the deck default (EDIT): the deck's
+     * default background color goes to null and every slide's own color override
+     * is dropped in the same single atomic update, so no slide paints a color
+     * layer anymore. The clearing counterpart of
+     * {@link #promoteBackgroundColorToDeck}, and unlike the plain
+     * {@link #clearDeckBackgroundColor} which only touches the deck. As there,
+     * the shared {@code hideBackground} flag is deliberately left untouched —
+     * clearing the color must not un-suppress a slide that opted out of the
+     * inherited background.
+     */
+    public Deck promoteClearedBackgroundColorToDeck(String id, AmbiPrincipal principal) {
+        return promoteBackgroundColorToDeck(id, null, principal);
     }
 
     // ── Slide settings ──────────────────────────────────────────────────────────
