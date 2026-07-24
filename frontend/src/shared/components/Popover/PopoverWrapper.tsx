@@ -176,11 +176,17 @@ const FloatingPopoverImpl = ({
   const click = useClick(context, {
     enabled: openOn === "click" || openOn === "hover",
     // Hover affordances still need an intentional touch/keyboard path, but a
-    // mouse click on their anchor must not fight the hover interaction.
+    // mouse click on their anchor must not fight the hover interaction. A
+    // repeated touch keeps a hover affordance open; Escape or an outside press
+    // dismisses it. This avoids treating focus followed by click as a toggle.
     ignoreMouse: openOn === "hover",
+    toggle: openOn !== "hover",
   });
   const hover = useHover(context, {
     enabled: openOn === "hover",
+    // Touch devices synthesize mouse-enter events for a tap. Hover must not
+    // open from that synthetic event; useClick provides the deliberate path.
+    mouseOnly: true,
     handleClose: safePolygon(),
   });
   const focus = useFocus(context, { enabled: openOn === "hover" });

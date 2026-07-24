@@ -5,14 +5,11 @@
 // fill="ghost". `shape="avatar"` gives the round photo treatment (zero
 // padding, thicker border, image clipping). See Btn.types.ts and
 // styling-rules.md "Named button + icon-button variants".
-import React, { forwardRef, type ReactNode } from "react";
+import React, { type ReactNode } from "react";
 import type { BtnShape, BtnSize, BtnVariant, BtnFill } from "./Btn.types";
 import styles from "./Buttons.module.css";
 
-interface IconBtnProps extends Omit<
-  React.ButtonHTMLAttributes<HTMLButtonElement>,
-  "type"
-> {
+interface IconBtnProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
   variant?: BtnVariant;
   fill?: BtnFill;
   icon?: ReactNode;
@@ -20,24 +17,20 @@ interface IconBtnProps extends Omit<
   shape?: BtnShape;
 }
 
-const IconBtn = forwardRef<HTMLButtonElement, IconBtnProps>(
-  (
-    {
-      variant = "primary",
-      fill = "default",
-      icon,
-      size = "md",
-      shape = "default",
-      disabled = false,
-      onClick,
-      className,
-      ...rest
-    },
-    ref,
-  ) => (
+const IconBtn = ({
+  variant = "primary",
+  fill = "default",
+  icon,
+  size = "md",
+  shape = "default",
+  disabled = false,
+  onClick,
+  className,
+  ...rest
+}: IconBtnProps) => {
+  return (
     <button
-      ref={ref}
-      type='button'
+      type="button"
       disabled={disabled}
       onClick={onClick}
       {...rest}
@@ -50,10 +43,11 @@ const IconBtn = forwardRef<HTMLButtonElement, IconBtnProps>(
         className,
       ]
         .filter(Boolean)
-        .join(" ")}>
+        .join(" ")}
+    >
       {icon}
     </button>
-  ),
-);
+  );
+};
 
 export { IconBtn };

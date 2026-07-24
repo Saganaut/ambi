@@ -58,4 +58,31 @@ describe("AddOptionPopover", () => {
       within(popover).getByRole("button", { name: "Add option" }),
     );
   });
+
+  it("lets a touch interaction edit an option field without opening the add action", async () => {
+    const user = userEvent.setup();
+    const onEditorFocus = vi.fn();
+    render(
+      <AddOptionPopover
+        anchor={
+          <div aria-label="Option card">
+            <textarea aria-label="Edit option" onFocus={onEditorFocus} />
+            <div aria-hidden="true">Option one</div>
+          </div>
+        }
+        onAdd={vi.fn()}
+      />,
+    );
+
+    const editor = screen.getByRole("textbox", { name: "Edit option" });
+    await user.pointer([{ target: editor, keys: "[TouchA]" }]);
+
+    expect(onEditorFocus).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(editor);
+    expect(screen.queryByRole("dialog", { name: "Add option" })).not.toBeInTheDocument();
+
+    await user.pointer([{ target: screen.getByLabelText("Option card"), keys: "[TouchA]" }]);
+
+    expect(await screen.findByRole("dialog", { name: "Add option" })).toBeInTheDocument();
+  });
 });

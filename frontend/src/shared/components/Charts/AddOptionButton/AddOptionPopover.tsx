@@ -6,6 +6,7 @@ import {
   type ReactElement,
   type Ref,
   type SyntheticEvent,
+  useRef,
 } from "react";
 import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import { AddOptionButton } from "./AddOptionButton";
@@ -32,6 +33,15 @@ const composeEventHandlers =
     if (!event.defaultPrevented) floatingHandler?.(event);
   };
 
+const editableDescendant = (event: SyntheticEvent<HTMLElement>) => {
+  const target = event.target;
+  return target instanceof Element && target !== event.currentTarget
+    ? target.closest(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
+      )
+    : null;
+};
+
 const AddOptionAnchor = ({
   anchor,
   floatingProps,
@@ -43,6 +53,32 @@ const AddOptionAnchor = ({
 }) => {
   const anchorProps = anchor.props as AnchorProps;
   const mergedRef = useMergeRefs<HTMLElement>([anchorProps.ref, floatingProps.ref]);
+  // A touch focuses an editor before its click bubbles to this anchor. Keep
+  // that interaction owned by the editor rather than opening the add action.
+  const editablePointerTargetRef = useRef<Element | null>(null);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    editablePointerTargetRef.current = editableDescendant(event);
+    anchorProps.onPointerDown?.(event);
+    if (!event.defaultPrevented) floatingProps.onPointerDown?.(event);
+  };
+
+  const handleFocus = (event: React.FocusEvent<HTMLElement>) => {
+    anchorProps.onFocus?.(event);
+    const focusFollowedEditablePointer =
+      editablePointerTargetRef.current !== null &&
+      event.target instanceof Node &&
+      editablePointerTargetRef.current.contains(event.target);
+    editablePointerTargetRef.current = null;
+    if (!event.defaultPrevented && !focusFollowedEditablePointer) floatingProps.onFocus?.(event);
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    anchorProps.onClick?.(event);
+    if (!event.defaultPrevented && editableDescendant(event) === null) {
+      floatingProps.onClick?.(event);
+    }
+  };
 
   // eslint-disable-next-line react/no-clone-element -- compose the host anchor's existing ref and handlers.
   return cloneElement(anchor as ReactElement<AnchorProps>, {
@@ -50,13 +86,13 @@ const AddOptionAnchor = ({
     ref: mergedRef,
     tabIndex: focusableAnchor ? (anchorProps.tabIndex ?? 0) : anchorProps.tabIndex,
     onBlur: composeEventHandlers(anchorProps.onBlur, floatingProps.onBlur),
-    onClick: composeEventHandlers(anchorProps.onClick, floatingProps.onClick),
-    onFocus: composeEventHandlers(anchorProps.onFocus, floatingProps.onFocus),
+    onClick: handleClick,
+    onFocus: handleFocus,
     onKeyDown: composeEventHandlers(anchorProps.onKeyDown, floatingProps.onKeyDown),
     onMouseEnter: composeEventHandlers(anchorProps.onMouseEnter, floatingProps.onMouseEnter),
     onMouseLeave: composeEventHandlers(anchorProps.onMouseLeave, floatingProps.onMouseLeave),
     onMouseMove: composeEventHandlers(anchorProps.onMouseMove, floatingProps.onMouseMove),
-    onPointerDown: composeEventHandlers(anchorProps.onPointerDown, floatingProps.onPointerDown),
+    onPointerDown: handlePointerDown,
     onPointerEnter: composeEventHandlers(anchorProps.onPointerEnter, floatingProps.onPointerEnter),
     onPointerLeave: composeEventHandlers(anchorProps.onPointerLeave, floatingProps.onPointerLeave),
   });
