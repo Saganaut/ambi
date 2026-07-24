@@ -194,6 +194,10 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
     const drop = resolveDragEnd(event);
     if (!drop || !canPlace) return;
     const { itemId, targetId } = drop;
+    // An id-less item renders with an empty draggable id (GridItemView.id is
+    // optional); never let that key into the placement map — the tap flow
+    // guards the same way.
+    if (!itemId) return;
     if (targetId === BANK_DROPPABLE_ID) {
       if (!placements[itemId]) return;
       setPlacements((prev) => {
