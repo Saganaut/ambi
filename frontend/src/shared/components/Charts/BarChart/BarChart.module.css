@@ -181,11 +181,6 @@
     .rowActions {
       order: 2;
     }
-
-    /* A slim ghost column at the row's end. */
-    .addSlot {
-      flex: 0 0 auto;
-    }
   }
 
   /* Room for a legible in-bar thumbnail (see hasImages in BarChart.tsx).
