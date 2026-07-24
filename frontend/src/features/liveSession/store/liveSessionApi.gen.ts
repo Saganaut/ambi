@@ -492,6 +492,11 @@ export type TextConfigView = {
   maxLength?: number;
   wordCloud?: boolean;
 };
+export type NumberConfigView = {
+  min?: number;
+  max?: number;
+  unit?: string;
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -530,6 +535,7 @@ export type SlideView = {
   matching?: MatchingConfigView;
   drawing?: DrawingConfigView;
   text?: TextConfigView;
+  number?: NumberConfigView;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {

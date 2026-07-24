@@ -2,6 +2,7 @@ package com.cephadex.ambi.session.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.NumberContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
@@ -73,6 +75,16 @@ class SessionEventsTest {
                 List.of(new ScaleItem("meal-1", "Breakfast"), new ScaleItem("meal-2", "Elevenses")),
                 Map.of("meal-1", 4.5),
                 0.8));
+        return slide;
+    }
+
+    private static Slide numberSlide() {
+        Slide slide = new Slide();
+        slide.setId("slide-number");
+        slide.setTitle("How far to the summit?");
+        slide.setContent(new NumberContent(
+                new BigDecimal("42.5"), ScoreMode.EXACT, new BigDecimal("2.5"), "km",
+                new BigDecimal("0"), new BigDecimal("100")));
         return slide;
     }
 
@@ -167,6 +179,23 @@ class SessionEventsTest {
         assertThat(json).doesNotContain("correctValues");
         assertThat(json).doesNotContain("tolerance");
         assertThat(json).doesNotContain("4.5");
+    }
+
+    @Test
+    void slideViewCarriesNumberConfigButDropsAnswerKeyAndGradingSecrets() {
+        SlideView view = SlideView.from(numberSlide(), null, NO_IMAGES);
+
+        // The participant-safe config travels: the display bounds and unit suffix.
+        assertThat(view.number()).isNotNull();
+        assertThat(view.number().min()).isEqualTo(0);
+        assertThat(view.number().max()).isEqualTo(100);
+        assertThat(view.number().unit()).isEqualTo("km");
+
+        // answer (the key), scoreMode, and tolerance are grading-only — never on the wire.
+        String json = codec.serialize(view);
+        assertThat(json).doesNotContain("42.5");
+        assertThat(json).doesNotContain("scoreMode");
+        assertThat(json).doesNotContain("tolerance");
     }
 
     @Test

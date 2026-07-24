@@ -11,6 +11,7 @@ import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
+import com.cephadex.ambi.presentation.slide.content.NumberContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
@@ -46,7 +47,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * {@link DrawingConfigView} (prompt image + placement, palette, tools, never
  * {@code correctImage}); a Text slide carries {@link TextConfigView} (the input
  * cap + a word-cloud display hint, never {@code acceptedAnswers} or the
- * match/normalization settings); each is {@code null} for every other kind.
+ * match/normalization settings); a Number slide carries {@link NumberConfigView}
+ * (the display bounds + unit suffix, never {@code answer}, {@code scoreMode}, or
+ * {@code tolerance}); each is {@code null} for every other kind.
  */
 public record SlideView(
         String id,
@@ -64,6 +67,7 @@ public record SlideView(
         MatchingConfigView matching,
         DrawingConfigView drawing,
         TextConfigView text,
+        NumberConfigView number,
         AnswerSettingsView answerSettings) {
 
     /**
@@ -85,6 +89,7 @@ public record SlideView(
         MatchingConfigView matching = null;
         DrawingConfigView drawing = null;
         TextConfigView text = null;
+        NumberConfigView number = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -112,6 +117,9 @@ public record SlideView(
             if (content instanceof TextContent textContent) {
                 text = TextConfigView.from(textContent);
             }
+            if (content instanceof NumberContent numberContent) {
+                number = NumberConfigView.from(numberContent);
+            }
         }
         return new SlideView(
                 slide.getId(),
@@ -129,6 +137,7 @@ public record SlideView(
                 matching,
                 drawing,
                 text,
+                number,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

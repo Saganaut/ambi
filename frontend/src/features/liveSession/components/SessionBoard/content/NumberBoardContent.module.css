@@ -1,0 +1,195 @@
+.numberBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .note {
+    margin: 0;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .outcomeCorrect,
+  .outcomeWrong {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .outcomeCorrect {
+    color: var(--text-success);
+  }
+
+  .outcomeWrong {
+    color: var(--text-error);
+  }
+
+  /* Histogram: vertical bars over the authored domain. `position: relative`
+     anchors the absolutely-placed correct-answer marker. */
+  .chart {
+    position: relative;
+    flex: 1;
+    min-height: 8rem;
+    width: 100%;
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--gap-xs);
+    width: 100%;
+    height: 100%;
+  }
+
+  .barCol {
+    display: flex;
+    flex: 1;
+    align-items: flex-end;
+    justify-content: center;
+    height: 100%;
+    min-width: 0;
+  }
+
+  .bar {
+    position: relative;
+    width: 100%;
+    /* Reserve room for the count so the tallest bar never clips its label. */
+    min-height: var(--border-size-sm);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background-color: var(--bg-brand);
+    transition: height 0.4s ease;
+  }
+
+  .barCount {
+    position: absolute;
+    inset-block-start: calc(-1 * var(--space-5));
+    inset-inline: 0;
+    text-align: center;
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+
+  /* The revealed correct value, pinned to its position along the domain. */
+  .correctMarker {
+    position: absolute;
+    inset-block: 0;
+    z-index: 1;
+    width: var(--border-size-md);
+    background-color: var(--edge-brand);
+    transform: translateX(-50%);
+  }
+
+  .correctFlag {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    padding: var(--p-square-xs);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-brand);
+    color: var(--text-on-brand);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .axis {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 48rem;
+    margin: 0 auto;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: var(--gap-lg);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The correct value, disclosed only at results when the slide defines one. */
+  .correctAnswer {
+    display: flex;
+    align-items: baseline;
+    gap: var(--gap-sm);
+    margin: 0;
+    padding-inline-start: var(--gap-lg);
+    border-inline-start: var(--border-size-md) solid var(--edge-brand);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+
+    .correctLabel {
+      flex-shrink: 0;
+      color: var(--text-accent);
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+  }
+
+  .compose {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+  }
+
+  .inputRow {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+  }
+
+  .input {
+    flex: 1;
+    min-width: 0;
+    padding: var(--p-square-sm);
+    border: var(--border-size-md) solid var(--edge-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-raised);
+    color: var(--text-primary);
+    font: inherit;
+
+    &:focus-visible {
+      outline: var(--border-size-md) solid var(--edge-brand);
+      outline-offset: 0;
+    }
+  }
+
+  .unit {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .composeActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--gap-md);
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .sent {
+      color: var(--text-success);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+  }
+}
