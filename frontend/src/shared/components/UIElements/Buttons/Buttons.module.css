@@ -203,7 +203,7 @@
 .colorOptionBtn {
   width: var(--space-6);
   height: var(--space-6);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   border: var(--border-size-sm) solid var(--border-subtle);
   cursor: pointer;
   padding: 0;

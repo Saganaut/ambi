@@ -136,8 +136,11 @@
   top: 50%;
   right: var(--space-1, 0.25rem);
   display: flex;
-  gap: var(--space-half, 0.125rem);
-  padding: var(--space-half, 0.125rem);
+
+  /* Hairline (2px) frame around the hover-revealed icon-button chip; --gap-xs
+     (4px) bloats the floating pill — sanctioned one-offs on the raw scale */
+  gap: var(--space-half);
+  padding: var(--space-half);
   border-radius: var(--radius-md, 0.5rem);
   background: var(--bg-surface-raised, #fff);
 
@@ -237,7 +240,8 @@
 }
 
 .swatchInput::-webkit-color-swatch-wrapper {
-  padding: var(--space-half, 2px);
+  /* 2px inset between the swatch and its 1px border — sanctioned one-off */
+  padding: var(--space-half);
 }
 
 .swatchInput::-webkit-color-swatch {

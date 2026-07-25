@@ -5,7 +5,7 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--stack-sm);
 }
 
 .heading {
@@ -171,6 +171,7 @@
   margin-right: auto;
 
   .mineBadge {
+    /* (2px, 8px) has no --p-pill-* equivalent — sanctioned one-off on the raw scale */
     padding: var(--space-half) var(--space-2);
     border-radius: var(--radius-full);
     background: var(--bg-secondary);

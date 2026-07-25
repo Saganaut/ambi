@@ -156,7 +156,7 @@
 .wrapper.block .editor ul,
 .wrapper.block .editor ol {
   margin: 0;
-  padding-left: var(--space-5);
+  padding-left: var(--list-indent);
 }
 
 /* When the block is center/right aligned, keep list markers attached to their

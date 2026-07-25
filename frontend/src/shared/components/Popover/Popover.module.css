@@ -8,8 +8,9 @@
   flex-direction: column;
   gap: var(--gap-sm);
   padding: var(--p-square-xs);
-  background-color: var(--bg-surface);
-  border: var(--border-size-sm) solid var(--border-default);
+  background-color: var(--bg-canvas);
+
+  /* border: var(--border-size-sm) solid var(--border-default); */
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }

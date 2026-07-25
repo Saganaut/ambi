@@ -42,7 +42,7 @@
 }
 
 .xl {
-  --gap: var(--space-5);
+  --gap: var(--gap-xl);
   --code-size: 8rem;
   --mascot-size: 240px;
   --title-size: var(--font-size-2xl);

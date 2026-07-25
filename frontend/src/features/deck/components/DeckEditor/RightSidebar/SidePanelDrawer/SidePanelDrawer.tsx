@@ -37,7 +37,7 @@ const SidePanelDrawer = () => {
             <IconBtn
               fill="ghost"
               icon={<XMarkIcon />}
-              size="sm"
+              size="xs"
               aria-label="Close panel"
               onClick={() => {
                 dispatch(close());

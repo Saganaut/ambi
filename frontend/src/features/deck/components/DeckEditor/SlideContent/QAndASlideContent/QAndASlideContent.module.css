@@ -25,7 +25,7 @@
   flex-direction: column;
   gap: var(--gap-xs);
   margin: 0;
-  padding-inline-start: var(--space-5);
+  padding-inline-start: var(--list-indent);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   text-align: start;

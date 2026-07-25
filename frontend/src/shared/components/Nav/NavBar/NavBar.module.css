@@ -20,7 +20,7 @@
   gap: var(--gap-lg);
   padding: var(--padding);
   align-items: center;
-  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
 
   a {
     transition:

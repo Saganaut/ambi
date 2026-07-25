@@ -32,21 +32,21 @@
   z-index: 2;
 }
 
+/* Panel card treatment from the DS "Drawer / Header" spec (Figma 637-3075). */
 .drawer {
   right: calc(100% + var(--space-4));
   width: 320px;
   max-width: 0;
   display: flex;
   flex-direction: column;
-  background-color: oklch(from var(--bg-surface) l c h / 95%);
+  background-color: var(--bg-surface-raised);
+  border: 1px solid var(--edge-surface);
   border-radius: var(--radius-lg);
   margin-top: var(--space-2);
   margin-bottom: var(--space-2);
   z-index: 3;
   overflow: hidden;
-
-  /* border: var(--border-size-sm) solid var(--edge-surface); */
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   opacity: 0;
   transition:
     max-width var(--duration-base, 200ms) ease-in-out,
@@ -73,9 +73,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: var(--border-size-sm) solid var(--border-subtle);
+  gap: var(--gap-sm);
+
+  /* DS header: 12px block padding, 16px left, 12px right of the close button. */
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--edge-subtle);
   background-color: var(--bg-canvas);
 }
 
@@ -88,16 +90,17 @@
 
 .drawerBody {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
-  padding: var(--space-4);
-  padding-right: var(--space-2);
+  padding: var(--p-square-md);
   scrollbar-gutter: stable;
 }
 
 .placeholder {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }

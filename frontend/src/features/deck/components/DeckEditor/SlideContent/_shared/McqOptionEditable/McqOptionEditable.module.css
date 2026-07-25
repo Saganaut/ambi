@@ -47,9 +47,11 @@
 
 .topRow {
   display: flex;
+  min-width: 0;
   justify-content: space-between;
   align-items: stretch;
   gap: var(--gap-xs);
+  width: 100%;
 
   /* Fill the card's remaining vertical space so the bounded textarea
      inside `.textColumn` has a real height to fit into. */
@@ -97,4 +99,3 @@
     }
   }
 }
-

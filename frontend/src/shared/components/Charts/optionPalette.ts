@@ -10,7 +10,7 @@ export const MAX_OPTION_COLORS = OPTION_HUE_OFFSETS.length;
 
 export const buildOptionPalette = (): string[] =>
   OPTION_HUE_OFFSETS.map(
-    (offset) => `oklch(0.65 0.18 ${((OPTION_BASE_HUE + offset) % 360).toString()})`,
+    (offset) => `oklch(0.65 0.40 ${((OPTION_BASE_HUE + offset) % 360).toString()})`,
   );
 
 /** The datum's own colour, or the palette default for its position. */

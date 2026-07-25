@@ -314,9 +314,10 @@ public final class RoundEvaluator {
     private static boolean gradePlaceOnImage(PlaceOnImageContent content, PlaceOnImageAnswer answer) {
         // INSIDE_RADIUS, per item: every target's pin must land inside that
         // target's own radius (gradeAxis's loop-over-answer-key, but each target
-        // carries its own tolerance instead of one shared plane tolerance). An
-        // empty target list marks an unscored collect-only image; NEAREST/DISTANCE
-        // are relative/graded-distance scoring, not a per-answer boolean — seam.
+        // carries its own tolerance instead of one shared plane tolerance). With
+        // no targets there is nothing to place (an empty bank), so it never
+        // grades correct; NEAREST/DISTANCE are relative/graded-distance scoring,
+        // not a per-answer boolean — seam.
         if (content.scoreMode() != ScoreMode.INSIDE_RADIUS
                 || content.correctTargets() == null || content.correctTargets().isEmpty()
                 || answer.placements() == null) {

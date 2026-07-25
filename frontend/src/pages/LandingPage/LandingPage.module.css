@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-16);
+  gap: var(--stack-xl);
 }
 
 .heroCopy {
@@ -68,7 +68,7 @@
   line-height: 1;
   letter-spacing: -0.02em;
   color: var(--zinc-100);
-  margin: 0 0 var(--space-5);
+  margin: 0 0 var(--stack-md);
   animation: fade-up var(--duration-slow) var(--ease-out) 100ms both;
 }
 
@@ -82,7 +82,7 @@
   font-size: clamp(var(--font-size-lg), 3.5vw, 2.125rem);
   font-weight: 300;
   color: var(--violet-200);
-  margin: 0 0 var(--space-5);
+  margin: 0 0 var(--stack-md);
   line-height: 1.4;
   animation: fade-up var(--duration-slow) var(--ease-out) 200ms both;
 }
@@ -178,7 +178,7 @@
   font-weight: 900;
   color: var(--violet-500);
   line-height: 1;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--gap-sm);
 }
 
 .statLabel {
@@ -266,7 +266,7 @@
 
 .featureIcon {
   font-size: var(--font-size-xl);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--gap-lg);
   display: block;
 }
 
@@ -275,7 +275,7 @@
   font-size: var(--font-size-md);
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--gap-md);
 }
 
 .featureDesc {

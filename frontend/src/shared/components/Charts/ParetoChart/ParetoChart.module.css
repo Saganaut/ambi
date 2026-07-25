@@ -71,14 +71,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  /* Hairline tick-to-label stack under dense chart columns; --gap-xs (4px)
+     detaches the label from its column — sanctioned one-off on the raw scale */
   gap: var(--space-half);
   min-width: 0;
   flex: 1;
-}
-
-.label.highlight .labelText {
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 /* Wraps the editable controls (Label + CorrectBadge + Menu) and anchors the
@@ -123,6 +121,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+.label.highlight .labelText {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .labelStats {

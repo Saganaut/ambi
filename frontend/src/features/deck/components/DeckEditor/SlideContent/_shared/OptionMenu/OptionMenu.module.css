@@ -33,7 +33,7 @@
     flex: none;
     padding: 0;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-full);
     cursor: pointer;
 
     /* Roving focus lands here during arrow-key navigation; the app-wide

@@ -40,7 +40,7 @@ import {
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { PlaceItemView, SlideView } from "../../../store/liveSessionApi.gen";
+import type { PlaceItemView, PlacePoint, SlideView } from "../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "./boardDnd";
@@ -69,12 +69,6 @@ interface PlaceOnImageBoardContentProps {
   slide: SlideView;
   mode: BoardQuestionMode;
   interactive: boolean;
-}
-
-/** A normalized [0, 1] point over the image box (top-left origin). */
-interface PlacePoint {
-  x: number;
-  y: number;
 }
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));

@@ -383,6 +383,11 @@
   --gap-lg: var(--space-4);
   --gap-xl: var(--space-6);
 
+  /* Room reserved for ul/ol markers (padding-inline-start). One shared value so
+     rich-text editors, rich-text display, and board/author list surfaces indent
+     identically. */
+  --list-indent: var(--space-5);
+
   /* --- Layout Spacing — between & around large components --- */
 
   /* The layout tier, one level above --p-* and --gap-*: --stack-* separates   */

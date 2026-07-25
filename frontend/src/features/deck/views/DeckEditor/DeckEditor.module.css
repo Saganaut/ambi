@@ -22,7 +22,8 @@
     padding: var(--padding, var(--p-md));
     justify-content: space-between;
     align-items: center;
-    border-top: var(--border-size-sm) solid var(--color, var(--text-primary));
+
+    /* border-top: var(--border-size-sm) solid var(--color, var(--text-primary)); */
 
     .leftControlButtons {
       width: 100%;

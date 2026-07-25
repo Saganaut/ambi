@@ -26,10 +26,12 @@
       display: flex;
       flex: 1;
       background-color: var(--bg-canvas);
-      padding: var(--p-md);
-      padding-left: var(--space-2);
-      padding-right: var(--space-2);
-      padding-bottom: var(--space-16);
+
+      /* Top inset on the gutter ladder. Sanctioned one-offs on the raw scale:
+         inline hugs the board edges (8px, below the --gutter-* ladder) and the
+         bottom clears the absolutely-positioned SessionControls overlay
+         (min-height 50px, so --stack-xl 48px would collide). */
+      padding: var(--gutter-sm) var(--space-2) var(--space-16);
 
       .sessionBoard {
         display: flex;
