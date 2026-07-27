@@ -4,9 +4,9 @@
    placement surface whose height comes from the image's own intrinsic aspect
    ratio (a block <img> sizes the wrapper — only the empty placeholder falls
    back to 16:9), and the numbered markers + tolerance regions (palette color
-   carried on --target-color; width/height are the same percentage of the
-   non-square box, so the region renders as the exact ellipse the
-   normalized-distance grader accepts). */
+   carried on --target-color; the width-derived diameter and 1:1 aspect ratio
+   keep the region visually circular on non-square images, independent of the
+   normalized-coordinate grading geometry). */
 
 /* ── Editor layout: surface and target rows side by side ────────────────── */
 
