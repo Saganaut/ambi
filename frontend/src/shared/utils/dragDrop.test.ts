@@ -1,11 +1,11 @@
-// Unit tests for the shared board drag-end resolver. Real pointer drags can't
+// Unit tests for the shared drag-end resolver. Real pointer drags can't
 // be simulated in JSDOM, so these construct the minimal event envelope
 // `resolveDragEnd` reads (`canceled` + `operation.source/target.id`) and assert
-// the framework guards. Same-target no-op semantics live in each board, not
+// the framework guards. Same-target no-op semantics live in each surface, not
 // here, so they aren't exercised.
 import { describe, it, expect } from "vitest";
 import type { DragEndEvent } from "@dnd-kit/react";
-import { BANK_DROPPABLE_ID, resolveDragEnd } from "./boardDnd";
+import { BANK_DROPPABLE_ID, resolveDragEnd } from "./dragDrop";
 
 /** Build the slice of a DragEndEvent that {@link resolveDragEnd} reads. */
 const event = (

@@ -1,11 +1,11 @@
-// Shared seam for drag-and-drop on the live-session board content surfaces
-// (GridBoardContent today; MatchingBoardContent, AxisBoardContent,
-// RankingBoardContent… next). Every board wraps its droppable regions and its
-// draggable item chips in one `DragDropProvider` and reads the drop through
-// `resolveDragEnd`, which owns the framework-shaped guards (canceled drag,
-// missing/undefined source or target, non-string ids). The board-specific
-// placement semantics — what a given target id *means*, and whether a drop is a
-// no-op — stay in the component that knows its own model.
+// Shared seam for drag-and-drop on any drag-onto-regions surface (live-session
+// boards today; the deck editor's Grid authoring surface next). Every such
+// surface wraps its droppable regions and its draggable item chips in one
+// `DragDropProvider` and reads the drop through `resolveDragEnd`, which owns
+// the framework-shaped guards (canceled drag, missing/undefined source or
+// target, non-string ids). The surface-specific placement semantics — what a
+// given target id *means*, and whether a drop is a no-op — stay in the
+// component that knows its own model.
 import type { DragEndEvent } from "@dnd-kit/react";
 
 // Reserved droppable id for the item bank. Item ids are backend-generated
@@ -14,9 +14,9 @@ import type { DragEndEvent } from "@dnd-kit/react";
 export const BANK_DROPPABLE_ID = "bank";
 
 /** A resolved drop: the dragged item and the id of the region it landed on. */
-export interface BoardDragResolution {
+export interface DragResolution {
   itemId: string;
-  /** A board-defined target id (a cell id, {@link BANK_DROPPABLE_ID}, …). */
+  /** A surface-defined target id (a cell id, {@link BANK_DROPPABLE_ID}, …). */
   targetId: string;
 }
 
@@ -27,7 +27,7 @@ export interface BoardDragResolution {
  * anything (a same-cell drop, a bank item dropped back on the bank) is the
  * caller's concern — this only strips the framework envelope.
  */
-export const resolveDragEnd = (event: DragEndEvent): BoardDragResolution | null => {
+export const resolveDragEnd = (event: DragEndEvent): DragResolution | null => {
   if (event.canceled) return null;
   const itemId = event.operation.source?.id;
   const targetId = event.operation.target?.id;

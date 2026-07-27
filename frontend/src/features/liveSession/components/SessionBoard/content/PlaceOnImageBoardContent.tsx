@@ -43,7 +43,7 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import type { PlaceItemView, PlacePoint, SlideView } from "../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
-import { BANK_DROPPABLE_ID, resolveDragEnd } from "./boardDnd";
+import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { seededShuffle } from "./seededShuffle";
 import styles from "./PlaceOnImageBoardContent.module.css";
 
