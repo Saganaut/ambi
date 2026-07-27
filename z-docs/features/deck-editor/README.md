@@ -15,6 +15,51 @@ All under `frontend/src/features/deck/`:
 - `components/DeckEditor/SlideDisplay/SlideDisplay.tsx` — dispatches to the correct content editor based on `slide.content.contentType`. Each per-type editor is lazy-loaded so only the active slide's chunk downloads.
 - `components/DeckEditor/SlideContent/` — one folder per `SlideType`, plus a `_shared/` folder for cross-type building blocks (option controls, item fields, image-backing editor, etc.). 17 types total: `ALLOCATION`, `AXIS`, `CONTENT`, `DRAWING`, `FOLLOW_UP`, `GRID`, `INSTRUCTION`, `MATCHING`, `MCQ`, `MEDIA`, `NUMBER`, `PLACE_ON_IMAGE`, `Q_AND_A`, `RANKING`, `SCALES`, `TEXT`, `TITLE` (see `frontend/src/features/deck/store/deckEnums.gen.ts`).
 
+## Placement editors — Axis, Place-on-Image, Grid
+
+Three slide kinds are "author a list of items, then place them somewhere":
+`AXIS` (a 2D plane), `PLACE_ON_IMAGE` (a backing image), and `GRID` (a rows ×
+columns matrix). All three are built to the same shape, so learning one
+teaches the others.
+
+### Shared placement kit
+
+The pieces every one of them uses live in
+`components/DeckEditor/SlideContent/_shared/placement/` and are re-exported
+from the `_shared` barrel:
+
+- `PlacementItemRow` — the presentational item row (colored index pill, label field + popover menu, image thumbnail, optional trailing meta slot), plus its two dnd wrappers `SortablePlacementRow` (reorderable rows — Axis) and `DraggablePlacementRow` (rows dragged onto a target — Grid). The rules of hooks forbid one component switching between `useSortable` and `useDraggable`, hence the split.
+- `usePlacementSurface` + `PlacementMarker` + `placementGeometry.ts` — the pointer/normalized-coordinate machinery for the free-placement surfaces (Axis, Place-on-Image); Grid places into discrete cells and doesn't use them.
+- `ToleranceField` — the ×100 / ÷100 percent wrapper around the shared `NumberInput`.
+- `_shared/useSlideComposerState.ts` — the prompt mirror, `selectedItemId` (the armed row), and `openMenuId`, resynced during render when the bound slide changes.
+- `_shared/_shared.module.css` — the two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, the drag grip, and the row's thumbnail/meta layout.
+
+Item colors come from one resolver, `resolveDatumColor(item.color, index)`
+(`shared/components/Charts/optionPalette.ts`): the authored override, else a
+palette default by list position, with a darker second cycle past the palette's
+six colors. The play-time boards use the same call, so a chip in the editor and
+its counterpart on the board are the same color. Drag-end events are reduced by
+the shared `resolveDragEnd` / `BANK_DROPPABLE_ID` seam in
+`shared/utils/dragDrop.ts`, shared with the live-session boards.
+
+Kind-specific detail lives with each kind:
+[Axis](../axis-slides/README.md) carries the kit's full inventory,
+[Place-on-Image](../place-on-image/README.md) its own surface, and Grid is
+below.
+
+### Grid slides
+
+`SlideContent/GridSlideContent/` mirrors Axis's two-column layout: a "Grid"
+card holding the matrix (in-place editable axis labels, "+" affordances to grow
+either axis, one droppable cell per row × column, and an "N of M placed"
+counter in the header) beside an "Items" card holding one
+`DraggablePlacementRow` per item.
+
+- **The Items column IS the bank.** An item lives in that list whether or not it is placed; `correctCells` (item id → `"rowIndex,colIndex"`) carries an entry only for the placed ones, and each row shows its cell name — or "Unplaced" — as trailing meta. There is no separate "unplaced items" tray, and adding an item (`useGridEditor`'s `addItem(cell?)`) no longer requires a cell.
+- **Placement has two inputs.** Arm-then-click is the pointer-free path: click a row to arm that item, then press a cell's "Place here" button (disabled, with a muted "Select an item to place", while nothing is armed). Dragging is the pointer path: a row's grip drops the item onto any cell, and a placed chip (`GridCellChip` — the compact numbered token in a cell, matching its row's number and color) drags between cells, or onto the Items column to unplace it. The row menu's "Clear cell" unplaces without a pointer.
+- **Two drag ids per item.** Because an item is draggable from its row *and* from its placed chip inside a single `DragDropProvider`, the chip takes a prefixed dnd id (`gridDragIds.ts`: `"placed:" + itemId`), which `itemIdFromDragId` strips on drop. The colon can never collide with an item id (a UUID) or a cell id (always `"row,col"`), so a bare id passes through untouched. The Items column is a droppable using the shared `BANK_DROPPABLE_ID` sentinel.
+- Grading is EXACT — every placement must match `correctCells` — so the footer nudges until every item has a cell, but never blocks. `scoreMode` has no authoring knob.
+
 ## The Slide model
 
 The primary authoring unit is a **Slide**, not an "element" — there is no

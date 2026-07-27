@@ -1,7 +1,9 @@
-/* GridSlideContent — author UI for Grid (drag-into-matrix) slides, authored
-   directly on the matrix: in-place editable axis label pills (hover for the
-   delete ×), "+" affordances to grow either axis, droppable cells holding
-   the shared phrase-or-image item cards, and a tray for unplaced items. */
+/* GridSlideContent — author UI for Grid (drag-into-matrix) slides: the matrix
+   beside its item bank. Only the matrix is this file's own — in-place editable
+   axis label pills (hover for the delete ×), "+" affordances to grow either
+   axis, droppable cells holding the placed items' chips, and the place
+   affordance. The two-column frame, the item rows, and their chrome come from
+   the shared placement kit (`_shared/_shared.module.css`). */
 
 /* ── Matrix frame ───────────────────────────────────────────────────────── */
 
@@ -10,9 +12,13 @@
   --grid-cols: 2;
 
   display: grid;
+
+  /* The row-label column takes a share of the track, not its natural width:
+     the matrix now shares the editor row with the item bank, and letting the
+     labels size to content squeezed the cells (and their chips) too far. */
   grid-template-columns:
-    minmax(6rem, auto)
-    repeat(var(--grid-cols), minmax(0, 1fr))
+    minmax(5rem, 1fr)
+    repeat(var(--grid-cols), minmax(0, 1.6fr))
     auto;
   gap: var(--gap-md);
   align-items: stretch;
@@ -137,8 +143,12 @@
 
 .cell {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+
+  /* Chips flow and wrap inside the cell (they are compact tokens, not the
+     full-width cards this cell used to hold). */
+  flex-wrap: wrap;
+  align-items: center;
+  place-content: center;
   gap: var(--gap-sm);
   min-height: 8rem;
   padding: var(--p-square-xs);
@@ -152,24 +162,33 @@
   outline-offset: calc(-1 * var(--space-1));
 }
 
-/* Empty cell: the whole body is one big add button. */
+/* Empty cell: the whole body is one big place button. */
 .cellAddEmpty {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--gap-xs);
   flex: 1;
+  align-self: stretch;
   padding: var(--p-square-xs);
   border: var(--space-px) dashed var(--border-default);
   border-radius: var(--radius-md);
   background: none;
   color: var(--text-muted);
   font-size: var(--font-size-sm);
+  text-align: center;
 }
 
 .cellAddEmpty:hover {
   border-color: var(--text-accent);
   color: var(--text-accent);
+}
+
+/* Nothing armed to place: inert, and the copy inside says so. */
+.cellAddEmpty:disabled {
+  border-color: var(--border-default);
+  color: var(--text-muted);
+  cursor: default;
 }
 
 /* Filled cell: a compact "+" revealed on hover/focus (kept in the tree so
@@ -197,6 +216,13 @@
   opacity: 1;
 }
 
+/* Nothing armed to place: inert. */
+.cellAddCompact:disabled {
+  border-color: var(--border-default);
+  color: var(--text-muted);
+  cursor: default;
+}
+
 .cell:hover .cellAddCompact,
 .cell:focus-within .cellAddCompact {
   opacity: 1;
@@ -207,59 +233,111 @@
   height: 1rem;
 }
 
-/* ── Item cards ─────────────────────────────────────────────────────────── */
+/* ── Placed chips ───────────────────────────────────────────────────────── */
 
-/* Grip handle slotted into the shared card's footer `actions`. */
-.dragHandle {
+/* An item's token inside a cell: numbered like — and colored to match — its
+   row's index pill, and a whole-body drag source (matching the live-session
+   board's placed chip, so authoring and play read the same). */
+.chip {
+  /* Fallback for the inline value set from the item's resolved color. */
+  --chip-accent: var(--text-accent);
+
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: var(--p-square-xxs);
-  color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  cursor: grab;
+  gap: var(--gap-xs);
+  max-width: 100%;
+  padding: var(--p-xs);
+  border: var(--border-size-md) solid var(--chip-accent);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
 
   /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
   touch-action: none;
-  transition:
-    color var(--duration-fast) ease-out,
-    background-color var(--duration-fast) ease-out;
+  cursor: grab;
 }
 
-.dragHandle:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-surface-raised);
-}
-
-.dragHandle:active {
+.chip:active {
   cursor: grabbing;
 }
 
-.dragHandleIcon {
-  width: 1rem;
-  height: 1rem;
+/* Armed for placement — the same state the row's card outline shows. */
+.chip[aria-pressed="true"] {
+  outline: var(--border-size-md) solid var(--orange-400);
+  outline-offset: var(--space-half);
 }
 
-/* The card being dragged: dim it so the drop target reads clearly. */
-.dragging {
+/* The chip's contents are decorative: they must not be the pointer target.
+   dnd-kit refuses to start a drag whose `pointerdown` landed on a child of a
+   native <button> (its `preventActivation` resolves the target with
+   `closest("button")` and treats the hit as a click on a control), so a chip
+   grabbed by its label would never drag. */
+.chipIndex,
+.chipImage,
+.chipLabel {
+  pointer-events: none;
+}
+
+/* The chip's number, tying it to its row's index pill. */
+.chipIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-full);
+  background-color: var(--chip-accent);
+  color: oklch(99% 0 0deg);
+  font-weight: 700;
+}
+
+.chipImage {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.chipLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The chip being dragged: dim it so the drop target reads clearly. */
+.chipDragging {
   opacity: 0.6;
 }
 
-/* ── Unplaced tray ──────────────────────────────────────────────────────── */
+/* ── Item bank ──────────────────────────────────────────────────────────── */
 
-.unplaced {
+/* The item rows, which double as the un-place drop target: a chip dragged out
+   of a cell and onto this column drops its cell assignment. */
+.bank {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-md);
-
-  /* Separation from the matrix above. Kept as a margin: the parent is the
-     shared SlideContentWrapper inner body, which every slide editor uses and
-     which deliberately carries no gap. */
-  margin-top: var(--gap-md);
+  gap: var(--gap-sm);
+  border-radius: var(--radius-md);
 }
 
-.unplacedItems {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-  gap: var(--gap-md);
+/* Live drop target while a placed chip drags back over the bank — mirrors
+   `.cellDropTarget` so both drop zones read the same. */
+.bankDropTarget {
+  outline: var(--border-size-md) dashed var(--text-accent);
+  outline-offset: calc(-1 * var(--space-1));
+}
+
+/* Which cell a row's item sits in (or "Unplaced"), trailing inside the row. */
+.rowMeta {
+  flex: none;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
 }

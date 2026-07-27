@@ -1,16 +1,23 @@
 .sessionControls {
   border-top-left-radius: var(--radius-md);
   border-top-right-radius: var(--radius-md);
-  background-color: var(--bg-surface);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
   width: 100%;
-  min-height: 50px;
+  padding: var(--gap-sm);
+  border: 1px dashed yellow;
 
   .actions {
-    display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    min-width: 300px;
+    padding: var(--p-sm);
+    display: inline-flex;
     align-items: center;
     gap: var(--gap-sm);
-    padding: var(--p-md);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-md);
 
     /* Pushes the destructive group (End / Restart) to the trailing edge,
        separated from the round-flow controls. */

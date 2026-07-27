@@ -2,8 +2,9 @@
 // useAxisEditor.test): the `correctCells` answer key is keyed only by ids of
 // live items and only by cells that exist — removing an item drops its entry,
 // removing a row/column drops entries in that lane and REINDEXES the lanes
-// behind it — and `addItemToCell` seeds the new item's target in the same
-// write. Also pins the GRID default-content shape `buildDefaultContent` mints.
+// behind it — and `addItem` seeds the new item's target in the same write when
+// given a cell, leaving it unplaced when not. Also pins the GRID
+// default-content shape `buildDefaultContent` mints.
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -108,11 +109,11 @@ describe("buildDefaultContent(GRID)", () => {
 });
 
 describe("useGridEditor structural ops", () => {
-  it("addItemToCell appends a fresh item already targeted at the cell", async () => {
+  it("addItem with a cell appends a fresh item already targeted at it", async () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.addItemToCell("1,0");
+      result.current.addItem("1,0");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -122,6 +123,22 @@ describe("useGridEditor structural ops", () => {
     expect(added?.id).toBeTruthy();
     expect(added?.label).toBe("");
     expect(content?.correctCells).toEqual({ ...gridContent.correctCells, [added?.id ?? ""]: "1,0" });
+  });
+
+  it("addItem without a cell appends an unplaced item (no answer-key entry)", async () => {
+    const result = await renderUseGridEditor();
+
+    act(() => {
+      result.current.addItem();
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    const content = gridContentOf(lastPutBody);
+    expect(content?.items).toHaveLength(5);
+    const added = content?.items[4];
+    expect(added?.id).toBeTruthy();
+    expect(content?.correctCells).toEqual(gridContent.correctCells);
+    expect(content?.correctCells[added?.id ?? ""]).toBeUndefined();
   });
 
   it("removing an item drops its correctCells entry (key-consistency invariant)", async () => {

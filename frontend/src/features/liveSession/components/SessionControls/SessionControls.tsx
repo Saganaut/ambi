@@ -61,7 +61,13 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     return (
       <div className={`${styles.sessionControls} ${className ?? ""}`}>
         <div className={styles.actions}>
-          <Btn size="sm" variant="brand" disabled={roster.length < 1} onClick={sendStart}>
+          <Btn
+            shape="pill"
+            size="md"
+            variant="brand"
+            disabled={roster.length < 1}
+            onClick={sendStart}
+          >
             Start session
           </Btn>
         </div>
@@ -109,7 +115,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
       <div className={styles.actions}>
         {/* Surface the live response distribution without ending the round. */}
         <Btn
-          size="sm"
+          shape="pill"
+          size="md"
           disabled={!actions.canShowResponses}
           onClick={() => {
             sendRevealResponses(slideId);
@@ -119,7 +126,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         </Btn>
         {/* Close submissions — locks and scores the round. */}
         <Btn
-          size="sm"
+          shape="pill"
+          size="md"
           disabled={!actions.canClose}
           onClick={() => {
             sendCloseRound(slideId);
@@ -131,7 +139,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
             (D3); the round is scored — votes included — at the results reveal. */}
         {actions.canOpenVoting && (
           <Btn
-            size="sm"
+            shape="pill"
+            size="md"
             onClick={() => {
               sendOpenVoting(slideId);
             }}
@@ -141,7 +150,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         )}
         {/* Reveal the result + correct answer (closes an open round first). */}
         <Btn
-          size="sm"
+          shape="pill"
+          size="md"
           variant="brand"
           disabled={!actions.canRevealResults}
           onClick={() => {
@@ -150,15 +160,21 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         >
           Reveal answers
         </Btn>
-        {actions.canAdvance && (
-          <Btn size="sm" variant={hasSlide ? undefined : "brand"} onClick={sendAdvance}>
-            {hasSlide ? "Next round" : "Start round"}
-          </Btn>
-        )}
+        <Btn
+          size="md"
+          shape="pill"
+          disabled={!actions.canAdvance}
+          variant={hasSlide ? undefined : "brand"}
+          onClick={sendAdvance}
+        >
+          {hasSlide ? "Next round" : "Start round"}
+        </Btn>
+
         {/* Timed rounds only: freeze/unfreeze the auto-close countdown. */}
         {(actions.canPauseTimer || actions.canResumeTimer) && (
           <Btn
-            size="sm"
+            shape="pill"
+            size="md"
             onClick={() => {
               if (actions.canPauseTimer) sendPauseTimer(slideId);
               else sendResumeTimer(slideId);
@@ -171,7 +187,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         <span className={styles.spacer} />
 
         <Btn
-          size="sm"
+          shape="pill"
+          size="md"
           variant="error"
           fill="ghost"
           onClick={() => {
@@ -181,7 +198,8 @@ const SessionControls = ({ className }: SessionControlsProps) => {
           End session
         </Btn>
         <Btn
-          size="sm"
+          shape="pill"
+          size="md"
           variant="error"
           disabled={!actions.canRestart}
           onClick={() => {

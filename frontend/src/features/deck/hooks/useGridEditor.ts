@@ -9,11 +9,13 @@
 //
 // A GRID slide is a drag-into-matrix: labeled rows × columns, a bank of items,
 // and `correctCells` mapping each item id to its target `"rowIndex,colIndex"`
-// cell. Structural edits keep that map consistent: removing an item drops its
-// target; removing a row/column drops targets in it and reindexes the ones
-// behind it. Grading is EXACT (all placements must match), so `scoreMode` has
-// no authoring knob — `buildDefaultContent` fixes it and the editor never
-// writes it.
+// cell. Items live in the bank whether or not they are placed — the author
+// surface lists them all in its "Items" column and `correctCells` carries an
+// entry only for the placed ones. Structural edits keep that map consistent:
+// removing an item drops its target; removing a row/column drops targets in it
+// and reindexes the ones behind it. Grading is EXACT (all placements must
+// match), so `scoreMode` has no authoring knob — `buildDefaultContent` fixes it
+// and the editor never writes it.
 import type { AppImage, GridItem } from "@deck/store/deckApi.gen";
 
 import { buildDefaultGridItem } from "../utils/slideContent";
@@ -77,8 +79,12 @@ interface UseGridEditorResult {
   /** ── Items (keyed by `item.id`) ──────────────────────────────────────── */
   canAddItem: boolean;
   canRemoveItem: boolean;
-  /** Append a blank item already targeted at `cell`. Immediate. */
-  addItemToCell: (cell: string) => void;
+  /**
+   * Append a blank item to the bank, targeted at `cell` when one is given and
+   * left unplaced otherwise (the "Items" column authors items before they are
+   * placed). Immediate.
+   */
+  addItem: (cell?: string) => void;
   /** Remove the item and its target-cell assignment. */
   removeItem: (itemId: string | undefined) => void;
   /** Debounced item label edit. */
@@ -172,12 +178,12 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
   const canAddItem = items.length < MAX_GRID_ITEMS;
   const canRemoveItem = items.length > MIN_GRID_ITEMS;
 
-  const addItemToCell = (cell: string) => {
+  const addItem = (cell?: string) => {
     if (!canAddItem) return;
     const item = buildDefaultGridItem();
     editor.updateSlideContent((prev) => ({
       items: [...prev.items, item],
-      ...(item.id ? { correctCells: { ...prev.correctCells, [item.id]: cell } } : {}),
+      ...(item.id && cell ? { correctCells: { ...prev.correctCells, [item.id]: cell } } : {}),
     }));
     editor.flush();
   };
@@ -236,7 +242,7 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     scheduleLabel,
     canAddItem,
     canRemoveItem,
-    addItemToCell,
+    addItem,
     removeItem,
     scheduleItemLabel,
     setItemColor,
