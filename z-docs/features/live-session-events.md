@@ -5,9 +5,9 @@ a standardized event envelope with sequencing, snapshot/socket reconciliation, a
 presentation-cue layer — while keeping the current lifecycle state machine, orchestrator,
 event hierarchy, and board-stage resolver unchanged.
 
-Decided against (2026-07-27): a client-side Redux event journal (Redux DevTools' action
-log covers debugging/inspection), a replay product feature, and a durable server-side
-event log **for now** — the backend is standardized so an event log can be added later as
+Rejected (2026-07-27): a client-side Redux event journal (Redux DevTools' action log
+covers debugging/inspection) and a replay product feature. Deferred, not rejected: a
+durable server-side event log — the backend is standardized so it can be added later as
 an add-on (see [Deferred: durable event log](#deferred-durable-event-log-add-on)).
 
 ---
@@ -130,7 +130,8 @@ type PresentationCue =
 First consumer — the round-completion animation:
 
 - `ResultsRevealed` → `slide-completed` cue → overlay above `SessionBoard`.
-- Respect `prefers-reduced-motion` (no such handling exists in the frontend today).
+- Respect `prefers-reduced-motion` (no such handling exists in the live-session feature
+  today; other frontend features already use it in their CSS).
 - Dedup by `eventId` so a duplicate delivery cannot fire it twice.
 - Display-only slides complete by navigation away, not results reveal — they take the
   `slide-entered`/navigation path, per `resolveBoardStage`'s existing display/question
