@@ -16,6 +16,7 @@ Per-feature design docs. One subfolder (or single file) per feature; each owns i
 - [Invite Settings](invite-settings.md) — Sharing-preferences model (room code in header, join info on results), design rationale, and where each flag is consumed during a live session.
 - [Code Connect](code-connect.md) — Figma Code Connect mappings for `Btn`/`IconBtn`, the config, property mapping, and the plan-gated publish steps.
 - [Missing Features](missing-features.md) — Running backlog of cross-cutting gaps and TODOs across features.
+- [Live-Session Event Standardization](live-session-events.md) — Standardized event envelope (eventId/sequence/occurredAt), snapshot reconciliation, presentation-cue layer, and the deferred durable-event-log seam.
 
 ## Adding a new feature
 
