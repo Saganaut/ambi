@@ -30,6 +30,7 @@
 import { ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { Btn } from "@ui/Buttons/Btn";
@@ -45,7 +46,6 @@ import { EmptySelect, ItemCard, ItemField, ItemList, ScoringFooter, SettingsCard
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { PlaceOnImageSurface } from "./PlaceOnImageSurface";
-import { resolveTargetColor } from "./targetColor";
 import styles from "./PlaceOnImageSlideContent.module.css";
 
 const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
@@ -167,7 +167,7 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   <ItemCard
                     key={target.id}
                     index={index}
-                    indexColor={resolveTargetColor(target.color, index)}
+                    indexColor={resolveDatumColor(target.color, index)}
                   >
                     <div className={styles.targetFields}>
                       <ItemField
@@ -177,7 +177,7 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                         displayIndex={index + 1}
                         placeholder={`Target ${(index + 1).toString()}`}
                         maxLength={PLACE_LABEL_MAX}
-                        color={resolveTargetColor(target.color, index)}
+                        color={resolveDatumColor(target.color, index)}
                         open={openMenuId === target.id}
                         onOpenChange={(open) => {
                           setOpenMenuId(open ? target.id : null);

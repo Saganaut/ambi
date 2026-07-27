@@ -6,9 +6,9 @@
  */
 import type { CSSProperties, PointerEventHandler } from "react";
 
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import type { PlacePoint, PlaceTargetView } from "@deck/hooks/usePlaceOnImageEditor";
 import styles from "./PlaceOnImageSlideContent.module.css";
-import { resolveTargetColor } from "./targetColor";
 
 interface PlaceOnImageMarkerProps {
   point: PlacePoint;
@@ -32,7 +32,7 @@ const PlaceOnImageMarker = ({
   onPointerUp,
 }: PlaceOnImageMarkerProps) => {
   const label = isGhost ? "" : (target?.label?.trim() ?? "");
-  const color = resolveTargetColor(isGhost ? undefined : target?.color, index);
+  const color = resolveDatumColor(isGhost ? undefined : target?.color, index);
   const position = {
     left: `${(point.x * 100).toString()}%`,
     top: `${(point.y * 100).toString()}%`,

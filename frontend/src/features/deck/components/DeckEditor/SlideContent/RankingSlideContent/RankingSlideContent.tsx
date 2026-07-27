@@ -13,12 +13,12 @@
  */
 import { useState } from "react";
 
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import { MAX_RANKING_ITEMS, useRankingEditor } from "@deck/hooks/useRankingEditor";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { EmptySelect, ItemList, SectionHeader } from "../_shared";
-import { resolveRankItemColor } from "./rankItemColor";
 import { RankingItemEditable } from "./RankingItemEditable";
 
 interface RankingSlideContentProps {
@@ -84,7 +84,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
               key={item.id ?? idx}
               item={item}
               sortIndex={idx}
-              color={resolveRankItemColor(item.color, idx)}
+              color={resolveDatumColor(item.color, idx)}
               menuOpen={item.id != null && openMenuId === item.id}
               canRemove={canRemove}
               onMenuOpenChange={(open) => {

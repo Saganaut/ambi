@@ -29,6 +29,7 @@
  */
 import { useState } from "react";
 
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
@@ -41,7 +42,6 @@ import {
 import { EmptySelect, ItemList, ScoringFooter, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContentWrapper } from "../SlideContentWrapper";
-import { resolveAxisItemColor } from "./axisItemColor";
 import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
 import styles from "./AxisSlideContent.module.css";
@@ -166,7 +166,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                     item={item}
                     sortIndex={index}
                     targetPosition={item.id ? (correctPositions[item.id] ?? null) : null}
-                    color={resolveAxisItemColor(item.color, index)}
+                    color={resolveDatumColor(item.color, index)}
                     selected={item.id != null && selectedItemId === item.id}
                     menuOpen={item.id != null && openMenuId === item.id}
                     canRemove={editor.canRemoveItem}

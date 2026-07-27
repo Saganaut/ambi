@@ -20,6 +20,7 @@
  */
 import { useRef, useState } from "react";
 
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { Input } from "@components/Forms/Input/Input/Input";
 import {
   AXIS_LABEL_MAX,
@@ -28,7 +29,6 @@ import {
   type AxisQuestionView,
 } from "@deck/hooks/useAxisEditor";
 import type { AxisPoint } from "@deck/store/deckApi.gen";
-import { resolveAxisItemColor } from "./axisItemColor";
 import styles from "./AxisSlideContent.module.css";
 
 /** Pointer travel (px) below which a marker press counts as a tap, not a drag. */
@@ -218,7 +218,7 @@ const AxisPlaneEditor = ({
         if (!itemId) return null;
         const point = renderedPoint(itemId);
         if (!point) return null;
-        const color = resolveAxisItemColor(item.color, index);
+        const color = resolveDatumColor(item.color, index);
         // Both are positioned directly on the plane so their percentage
         // coordinates/sizes resolve against the plane's box.
         const position = {
