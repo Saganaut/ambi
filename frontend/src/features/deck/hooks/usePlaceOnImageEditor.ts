@@ -22,10 +22,20 @@
 // (the pin lands inside any target circle) and the grader implements nothing
 // else, so `scoreMode` has no authoring knob — `buildDefaultContent` fixes it
 // and the editor never writes it.
+//
+// Targets are addressed by id (Axis's item ops), never by array position: the
+// UI holds an id across renders, an index goes stale the moment a row is
+// removed. `correctTargets` is a list rather than Axis's id-keyed map, so each
+// write resolves the id back to an index — inside the updater, against the
+// freshest draft — and a key that matches nothing is a no-op. Targets minted
+// before ids existed on the wire stay addressable through the
+// `target-<index>` fallback key.
 import { nanoid } from "nanoid";
 
 import type { AppImage, Target } from "@deck/store/deckApi.gen";
 
+import type { NormalizedPoint } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
+import { clamp01 } from "../utils/placement";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** Cap the pin targets where the shared 6-color option palette runs out, so
@@ -41,13 +51,11 @@ const PLACE_TOLERANCE_DEFAULT = 0.1;
 const PLACE_LABEL_MAX = 80;
 
 /** A normalized point on the image, screen-space: (0, 0) is the top-left. */
-interface PlacePoint {
-  x: number;
-  y: number;
-}
+type PlacePoint = NormalizedPoint;
 
 /** A wire `Target` with its coordinate fields resolved for the UI. */
 interface PlaceTargetView {
+  /** The target's address: its wire id, else its `target-<index>` fallback. */
   id: string;
   x: number;
   y: number;
@@ -82,19 +90,19 @@ interface UsePlaceOnImageEditorResult {
   /** Swap the backing image (gallery pick / URL). Immediate. */
   setImage: (image: AppImage) => void;
 
-  /** ── Targets (addressed by array index — they carry no label) ─────────── */
+  /** ── Targets (keyed by `PlaceTargetView.id`) ──────────────────────────── */
   canAddTarget: boolean;
   /** Append a target at `point` (image centre by default). Immediate. */
   addTarget: (point?: PlacePoint) => void;
   /** Move a target to a clamped normalized point. Immediate. */
-  moveTarget: (index: number, point: PlacePoint) => void;
-  removeTarget: (index: number) => void;
+  moveTarget: (targetId: string, point: PlacePoint) => void;
+  removeTarget: (targetId: string) => void;
   /** Debounced target label edit. */
-  scheduleTargetLabel: (index: number, label: string) => void;
+  scheduleTargetLabel: (targetId: string, label: string) => void;
   /** Override the target's palette color (menu swatch / custom picker). Immediate. */
-  setTargetColor: (index: number, color: string) => void;
+  setTargetColor: (targetId: string, color: string) => void;
   /** Set or clear (empty AppImage) the target's image. Immediate. */
-  setTargetImage: (index: number, image: AppImage) => void;
+  setTargetImage: (targetId: string, image: AppImage) => void;
 
   /** ── Scoring ─────────────────────────────────────────────────────────── */
   /** Set the shared tolerance radius (clamped to the 2–50 % bounds) on every
@@ -102,8 +110,15 @@ interface UsePlaceOnImageEditorResult {
   setTolerance: (value: number) => void;
 }
 
-/** Clamp to the normalized image box so a target can never leave [0, 1]. */
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
+/** A target's stable address: its wire id, else its position — targets
+ * authored before ids reached the wire have to stay addressable. */
+const targetKey = (target: Target, index: number): string =>
+  target.id ?? `target-${index.toString()}`;
+
+/** Where the addressed target sits in the list, or -1 when it addresses none
+ * (a stale key from a row the author has since removed). */
+const indexOfTarget = (targets: Target[], targetId: string): number =>
+  targets.findIndex((target, index) => targetKey(target, index) === targetId);
 
 /** The one shared radius: first target's, else the default (wire fields are
  * optional, so a hand-authored target without a radius also falls back). */
@@ -123,7 +138,7 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
         prompt: slide.title,
         image: content?.image ?? { external: true },
         targets: targets.map((target, index) => ({
-          id: target.id ?? `target-${index.toString()}`,
+          id: targetKey(target, index),
           x: target.x ?? 0.5,
           y: target.y ?? 0.5,
           label: target.label,
@@ -159,43 +174,46 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
     editor.flush();
   };
 
-  const moveTarget = (index: number, point: PlacePoint) => {
-    editor.updateSlideContent((prev) => ({
-      correctTargets: prev.correctTargets.map((target, i) =>
-        i === index ? { ...target, x: clamp01(point.x), y: clamp01(point.y) } : target,
-      ),
-    }));
-    editor.flush();
-  };
-
-  const removeTarget = (index: number) => {
-    editor.updateSlideContent((prev) => ({
-      correctTargets: prev.correctTargets.filter((_, i) => i !== index),
-    }));
-    editor.flush();
-  };
-
-  /** Merge a patch into one target; `flush` opts structural (menu) edits out
-   *  of the debounce window, while label typing stays debounced. */
-  const patchTarget = (index: number, patch: Partial<Target>, flush: boolean) => {
-    editor.updateSlideContent((prev) => ({
-      correctTargets: prev.correctTargets.map((target, i) =>
-        i === index ? { ...target, ...patch } : target,
-      ),
-    }));
+  /** Merge a patch into the addressed target; `flush` opts structural (menu)
+   *  edits out of the debounce window, while label typing stays debounced.
+   *  The id resolves against the updater's own `prev`, so back-to-back writes
+   *  inside one debounce window address the freshest list. */
+  const patchTarget = (targetId: string, patch: Partial<Target>, flush: boolean) => {
+    editor.updateSlideContent((prev) => {
+      const index = indexOfTarget(prev.correctTargets, targetId);
+      if (index === -1) return {};
+      return {
+        correctTargets: prev.correctTargets.map((target, i) =>
+          i === index ? { ...target, ...patch } : target,
+        ),
+      };
+    });
     if (flush) editor.flush();
   };
 
-  const scheduleTargetLabel = (index: number, label: string) => {
-    patchTarget(index, { label }, false);
+  const moveTarget = (targetId: string, point: PlacePoint) => {
+    patchTarget(targetId, { x: clamp01(point.x), y: clamp01(point.y) }, true);
   };
 
-  const setTargetColor = (index: number, color: string) => {
-    patchTarget(index, { color }, true);
+  const removeTarget = (targetId: string) => {
+    editor.updateSlideContent((prev) => {
+      const index = indexOfTarget(prev.correctTargets, targetId);
+      if (index === -1) return {};
+      return { correctTargets: prev.correctTargets.filter((_, i) => i !== index) };
+    });
+    editor.flush();
   };
 
-  const setTargetImage = (index: number, image: AppImage) => {
-    patchTarget(index, { image }, true);
+  const scheduleTargetLabel = (targetId: string, label: string) => {
+    patchTarget(targetId, { label }, false);
+  };
+
+  const setTargetColor = (targetId: string, color: string) => {
+    patchTarget(targetId, { color }, true);
+  };
+
+  const setTargetImage = (targetId: string, image: AppImage) => {
+    patchTarget(targetId, { image }, true);
   };
 
   const setTolerance = (value: number) => {

@@ -1,9 +1,10 @@
 // Pins the Place-on-Image editor's invariants: targets stay inside the
 // normalized [0, 1] image box, the single tolerance knob keeps every target's
-// wire `radius` in lockstep (and hands it to newly added targets), and
-// removal is index-addressed. Also pins the PLACE_ON_IMAGE default-content
-// shape `buildDefaultContent` mints for a brand-new slide (no targets,
-// INSIDE_RADIUS fixed).
+// wire `radius` in lockstep (and hands it to newly added targets), and every
+// target op is addressed by id — including the `target-<index>` fallback that
+// keeps id-less legacy targets reachable, and a stale id that must do nothing.
+// Also pins the PLACE_ON_IMAGE default-content shape `buildDefaultContent`
+// mints for a brand-new slide (no targets, INSIDE_RADIUS fixed).
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -36,22 +37,36 @@ const placeContent: PlaceOnImageContent = {
   scoreMode: "INSIDE_RADIUS",
 };
 
-const placeSlide: SlideResponse = {
+// A deck authored before targets carried ids on the wire: the first target is
+// reachable only through its `target-<index>` fallback key.
+const legacyContent: PlaceOnImageContent = {
+  ...placeContent,
+  correctTargets: [
+    { x: 0.2, y: 0.15, radius: 0.08 },
+    { id: "target_b", x: 0.85, y: 0.3, radius: 0.08 },
+  ],
+};
+
+const slideWith = (content: PlaceOnImageContent): SlideResponse => ({
   id: SLIDE_ID,
   title: "Where is Rivendell?",
   createdByUserId: "u1",
   lastEditedByUserId: "u1",
   version: 1,
-  content: placeContent,
-};
+  content,
+});
 
+const placeSlide = slideWith(placeContent);
+
+// The slide the handlers serve — swapped per test by the render helper.
+let activeSlide: SlideResponse = placeSlide;
 // Capture each outgoing PUT body and echo the slide back so the mutation resolves.
 let lastPutBody: SlideRequest | undefined;
 const server = setupServer(
-  http.get(`${apiBaseUrl}/api/decks/${DECK_ID}/slides`, () => HttpResponse.json([placeSlide])),
+  http.get(`${apiBaseUrl}/api/decks/${DECK_ID}/slides`, () => HttpResponse.json([activeSlide])),
   http.put(`${apiBaseUrl}/api/decks/${DECK_ID}/slides/${SLIDE_ID}`, async ({ request }) => {
     lastPutBody = (await request.json()) as SlideRequest;
-    return HttpResponse.json({ ...placeSlide, ...lastPutBody });
+    return HttpResponse.json({ ...activeSlide, ...lastPutBody });
   }),
 );
 
@@ -61,6 +76,7 @@ beforeAll(() => {
 afterEach(() => {
   server.resetHandlers();
   lastPutBody = undefined;
+  activeSlide = placeSlide;
 });
 afterAll(() => {
   server.close();
@@ -72,12 +88,11 @@ const makeStore = () =>
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(emptySplitApi.middleware),
   });
 
-const renderUsePlaceOnImageEditor = async () => {
+const renderUsePlaceOnImageEditor = async (slide: SlideResponse = placeSlide) => {
+  activeSlide = slide;
   const store = makeStore();
   // Prime the slide-collection cache the deck editor would have populated.
-  await store.dispatch(
-    deckApi.util.upsertQueryData("listDeckSlides", { id: DECK_ID }, [placeSlide]),
-  );
+  await store.dispatch(deckApi.util.upsertQueryData("listDeckSlides", { id: DECK_ID }, [slide]));
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>{children}</Provider>
   );
@@ -124,7 +139,7 @@ describe("usePlaceOnImageEditor target ops", () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.moveTarget(0, { x: -0.4, y: 1.2 });
+      result.current.moveTarget("target_a", { x: -0.4, y: 1.2 });
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -137,20 +152,18 @@ describe("usePlaceOnImageEditor target ops", () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.removeTarget(0);
+      result.current.removeTarget("target_a");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
-    expect(placeContentOf(lastPutBody)?.correctTargets).toEqual([
-      placeContent.correctTargets[1],
-    ]);
+    expect(placeContentOf(lastPutBody)?.correctTargets).toEqual([placeContent.correctTargets[1]]);
   });
 
   it("label/color/image ops patch only the addressed target, never coordinates", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.scheduleTargetLabel(0, "Rivendell");
+      result.current.scheduleTargetLabel("target_a", "Rivendell");
       result.current.flush();
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
@@ -159,7 +172,7 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(targets?.[1].label).toBeUndefined();
 
     act(() => {
-      result.current.setTargetColor(1, "#ff8800");
+      result.current.setTargetColor("target_b", "#ff8800");
     });
     await vi.waitFor(() =>
       expect(placeContentOf(lastPutBody)?.correctTargets[1].color).toBe("#ff8800"),
@@ -167,7 +180,7 @@ describe("usePlaceOnImageEditor target ops", () => {
 
     const image = { external: true, externalSrc: "https://example.test/rivendell.png" };
     act(() => {
-      result.current.setTargetImage(0, image);
+      result.current.setTargetImage("target_a", image);
     });
     await vi.waitFor(() =>
       expect(placeContentOf(lastPutBody)?.correctTargets[0].image).toEqual(image),
@@ -180,6 +193,40 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(targets?.map(({ x, y, radius }) => ({ x, y, radius }))).toEqual(
       placeContent.correctTargets.map(({ x, y, radius }) => ({ x, y, radius })),
     );
+  });
+
+  it("addresses a legacy id-less target through its target-<index> fallback key", async () => {
+    const result = await renderUsePlaceOnImageEditor(slideWith(legacyContent));
+
+    // The view hands the UI a usable address even with no wire id.
+    expect(result.current.question?.targets.map((target) => target.id)).toEqual([
+      "target-0",
+      "target_b",
+    ]);
+
+    act(() => {
+      result.current.moveTarget("target-0", { x: 0.4, y: 0.6 });
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    const targets = placeContentOf(lastPutBody)?.correctTargets;
+    // The fallback key never leaks onto the wire — only the coordinates move.
+    expect(targets?.[0]).toEqual({ x: 0.4, y: 0.6, radius: 0.08 });
+    expect(targets?.[1]).toEqual(legacyContent.correctTargets[1]);
+  });
+
+  it("ignores an op addressed to a target that no longer exists", async () => {
+    const result = await renderUsePlaceOnImageEditor();
+
+    act(() => {
+      result.current.moveTarget("target_gone", { x: 0.4, y: 0.6 });
+      result.current.setTargetColor("target_gone", "#ff8800");
+      result.current.removeTarget("target_gone");
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    // A stale id is inert: no target moved, none was dropped.
+    expect(placeContentOf(lastPutBody)?.correctTargets).toEqual(placeContent.correctTargets);
   });
 
   it("setTolerance clamps to the tolerance bounds and rewrites every radius", async () => {

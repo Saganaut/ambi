@@ -33,14 +33,18 @@ carries the same optional author annotations as Axis's `AxisItem` —
 `label`, `image`, `color` — so the editor's shared `ItemField` row control
 (see [Editor UX](#editor-ux) below) can label a target, override its
 palette color, or attach an image; the grader reads only `x`/`y`/`radius`
-and ignores the rest. There's still no bank to address targets by name —
-the editor's target ops (`moveTarget`, `removeTarget`, ...) take an array
-index, not an id or label.
+and ignores the rest. `correctTargets` is a **list**, not Axis's id-keyed
+map, but the editor still addresses targets **by id** (`Target.id`, minted
+by `addTarget`) rather than by array position — see
+[Hook](#hook--useplaceonimageeditorts).
 
 Coordinates are screen-space over the image box: **`(0, 0)` is the image's
 top-left corner**, y is *not* inverted — the opposite of Axis's bottom-left
 origin. `RoundEvaluator.gradePlaceOnImage`, the editor's placement surface,
-and the answer payload all measure in this same space.
+and the answer payload all measure in this same space. That origin is stated
+once, as `invertY: false`, where the editor's surface calls the shared
+placement kit — the stored point *is* the rendered point, so nothing between
+the grader and the marker flips y.
 
 ### Answer payload
 
@@ -88,12 +92,22 @@ Over the generic `useSlideEditor(deckId, slideId, "PLACE_ON_IMAGE")`:
 - Synthesized `question` view (`prompt` from `slide.title`, `image`,
   `targets`, one shared `tolerance`); debounced `schedulePrompt`.
 - `setImage(image)` — immediate; swaps the backing image.
-- Coordinate/structural ops, addressed by array index (there's still no
-  by-name bank): `addTarget(point?)` (defaults to image centre),
-  `moveTarget(index, point)`, `removeTarget(index)`.
-- Author-annotation ops, mirroring Axis's item ops and also addressed by
-  index: `scheduleTargetLabel(index, label)` (debounced), `setTargetColor(index, color)`
-  and `setTargetImage(index, image)` (both immediate).
+- Coordinate/structural ops, addressed **by target id** (Axis's item ops):
+  `addTarget(point?)` (defaults to image centre, mints a `nanoid(8)` id),
+  `moveTarget(targetId, point)`, `removeTarget(targetId)`.
+- Author-annotation ops, mirroring Axis's item ops and likewise id-addressed:
+  `scheduleTargetLabel(targetId, label)` (debounced),
+  `setTargetColor(targetId, color)` and `setTargetImage(targetId, image)`
+  (both immediate).
+- **Id addressing over a list.** Because `correctTargets` is an array, each
+  write resolves the id back to an index — *inside* the `updateSlideContent`
+  updater, against the freshest draft, so back-to-back writes in one debounce
+  window can't address a stale list. A key matching nothing (a row the author
+  has since removed) is a no-op. Targets authored before `Target.id` reached
+  the wire stay reachable through the `target-<index>` fallback key
+  `targetKey(target, index)` mints, which is also what
+  `PlaceTargetView.id` carries; the fallback is a UI address only and never
+  reaches the wire.
 - **`setTolerance(value)`** — the one knob that matters: every target's
   `radius` on the wire is kept in lockstep (clamped `0.02`–`0.5`, i.e. 2–50 %),
   so a target-less slide's *next* `addTarget` seeds at the shared default
@@ -108,32 +122,48 @@ Over the generic `useSlideEditor(deckId, slideId, "PLACE_ON_IMAGE")`:
 
 ### Components — `SlideContent/PlaceOnImageSlideContent/`
 
+Only two components are Place-on-Image's own; the rows, markers, pointer
+bookkeeping, tolerance input, two-column layout, and composer state all come
+from the **shared placement kit** (`SlideContent/_shared/placement/`) that
+Axis, Place-on-Image, and Grid build on — see
+[Axis's README](../axis-slides/README.md) for the kit's inventory.
+
 - `PlaceOnImageSlideContent.tsx` — mirrors `AxisSlideContent`'s side-by-side
-  `SettingsCard` layout: an "Image" card (choose/replace button + the
-  placement surface) and a "Targets" card (tolerance `NumberInput` in the
-  header, one `ItemCard` row per target, add/remove). Each row's fields are
-  the shared `ItemField` (`_shared/ItemField/ItemField.tsx` — the same
-  label-field-with-popover control [Axis's items](../axis-slides/README.md)
-  use): the label doubles as the popover trigger, and the menu holds "Center
-  target" (the pointer-free placement path, parking the target at the
-  image's centre), the shared color palette/custom-color modal, image
-  upload/clear, and delete — replacing the old numeric X/Y percent inputs. A
-  row also shows an image thumbnail when the target has one. The composer
-  owns which row's menu is open (at most one). Advisory (non-blocking)
-  footer nudges for an image and at least one target — a target-less slide
-  is still valid.
+  `SettingsCard` layout (the shared `.editorRow` / `.editorColumnWide` /
+  `.editorColumnNarrow` classes): an "Image" card (choose/replace button +
+  the placement surface) and a "Targets" card (the shared `ToleranceField` in
+  the header, one `PlacementItemRow` per target, add/remove). The rows are
+  **gripless** — unlike Axis, Place-on-Image targets are not reorderable,
+  since their order is display-only (index drives the marker number and the
+  palette default). Each row wraps the shared `ItemField` — the label doubles
+  as the popover trigger, and the menu holds "Center target" (the
+  pointer-free placement path, parking the target at the image's centre), the
+  shared color palette/custom-color modal, image upload/clear, and delete — and
+  shows an image thumbnail when the target has one. `useSlideComposerState`
+  holds the prompt mirror and which row's menu is open (at most one); every
+  callback addresses its target by `target.id`. Advisory (non-blocking) footer
+  nudges for an image and at least one target — a target-less slide is still
+  valid.
 - `PlaceOnImageSurface.tsx` — the placement surface: a plain block `<img>` at
   its intrinsic aspect ratio (never letterboxed/stretched), so the normalized
-  overlay coordinates land exactly where players would see them. Press the
-  open image to drop a new target and keep dragging it; release commits.
-  Placed markers drag directly via pointer capture, in the target's resolved
-  color (`resolveTargetColor(target.color, index)` in `targetColor.ts` — the
-  authored override when set, else the shared 6-color palette by index). A
-  labeled target grows an Axis-style label pill next to its numbered dot —
-  the dot, not the pill, stays centred on the graded point; unlabeled
-  targets stay a bare numbered dot. Each marker draws its tolerance region as
-  an ellipse sized to the same percentage of the (usually non-square) image
-  box the grader measures in — what the author sees is what is graded.
+  overlay coordinates land exactly where players would see them. The image
+  box, the image, and the no-image 16:9 stand-in are all this file's own CSS;
+  the surface chrome and pointer machinery are the kit's `.surface` /
+  `.surfaceArmed` and `usePlacementSurface({ invertY: false, … })`. Press the
+  open image to drop a new target and keep dragging it; release commits via
+  `addTarget`. Because that target has no id until it commits, the in-flight
+  placement is drawn as a **ghost** `PlacementMarker`, keyed on the hook's
+  `PENDING_PLACEMENT_KEY` sentinel. Placed markers drag directly (pointer
+  capture) and commit through `onMoveTarget(targetId, point)`; a press on one
+  means nothing but "move me", so this surface passes no `onMarkerTap` (Axis's
+  tap-to-select has no analogue without a bank). Markers are the shared
+  `PlacementMarker` in the target's resolved color
+  (`resolveDatumColor(target.color, index)` — the authored override when set,
+  else the shared 6-color palette by index): a labeled target grows a label
+  pill next to its numbered dot — the dot, not the pill, stays centred on the
+  graded point — and each marker draws its tolerance circle sized off the
+  image box's width with a 1:1 aspect ratio, so it reads as a circle on a
+  non-square image while the grading space stays the normalized one.
 - Image picking uses `cropAspect: "source"` (see
   [below](#gallerypicker-cropaspect-source)) so the uploaded backing image is
   never clipped to a fixed frame before the placement surface — which renders

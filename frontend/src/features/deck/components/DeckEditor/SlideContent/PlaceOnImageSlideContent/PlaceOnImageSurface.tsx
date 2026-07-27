@@ -5,39 +5,25 @@
  * player's screen — never letterboxed or stretched to a fixed frame), with the
  * placed target markers and their tolerance regions overlaid in percentages.
  *
- * Placement is direct: targets carry no labels, so there is no bank to arm —
- * a press on open image adds a target at the pointer and keeps dragging it
- * until release (Axis's plane-drag, minus the selection step), and placed
- * markers drag directly (pointer capture). Each marker is the numbered dot in
- * its palette color, matching its row in the Targets card.
+ * Placement is direct: targets carry no bank to arm, so a press on open image
+ * adds a target at the pointer and keeps dragging it until release (Axis's
+ * plane-drag, minus the selection step) — the in-flight placement is drawn as
+ * a ghost marker, since it has no id to key on until it commits. Placed
+ * markers drag directly, and a press on one means nothing but "move me", so
+ * this surface passes `usePlacementSurface` no `onMarkerTap`.
  *
  * Coordinates are normalized [0, 1] in screen space over the image box —
  * (0, 0) is the image's top-left, y NOT inverted (unlike Axis), the natural
- * frame for an image and the space `RoundEvaluator.gradePlaceOnImage`
- * measures in. The tolerance region uses the image width for its diameter and
- * a fixed 1:1 aspect ratio so it remains circular on non-square images. The
+ * frame for an image and the space `RoundEvaluator.gradePlaceOnImage` measures
+ * in; hence `invertY: false` here and no `invertY` on the markers. The
  * pointer-free path lives in the target rows' popover menus ("Center target",
  * see `PlaceOnImageSlideContent`).
- *
- * A labeled target's marker grows an Axis-style label pill next to its
- * numbered dot — the DOT's centre, not the pill's, stays on the target point,
- * matching where the grader measures. Unlabeled markers stay a bare dot so
- * they don't crowd the image.
  */
-import { useRef, useState } from "react";
-
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import type { PlacePoint, PlaceTargetView } from "@deck/hooks/usePlaceOnImageEditor";
+import { PENDING_PLACEMENT_KEY, PlacementMarker, usePlacementSurface } from "../_shared";
+import placement from "../_shared/placement/placement.module.css";
 import styles from "./PlaceOnImageSlideContent.module.css";
-import { PlaceOnImageMarker } from "./PlaceOnImageMarker";
-
-/** Pointer travel (px) below which a marker press counts as a tap, not a drag. */
-const DRAG_THRESHOLD_PX = 4;
-
-/** A drag in flight: an existing target (its index) or a brand-new one. */
-interface DragState {
-  index: number | "new";
-  point: PlacePoint;
-}
 
 interface PlaceOnImageSurfaceProps {
   /** Resolved backing-image URL, or null while none is chosen. */
@@ -48,7 +34,7 @@ interface PlaceOnImageSurfaceProps {
   /** Whether a press on open image may add a target (max not reached). */
   canAddTarget: boolean;
   onAddTarget: (point: PlacePoint) => void;
-  onMoveTarget: (index: number, point: PlacePoint) => void;
+  onMoveTarget: (targetId: string, point: PlacePoint) => void;
 }
 
 const PlaceOnImageSurface = ({
@@ -59,107 +45,34 @@ const PlaceOnImageSurface = ({
   onAddTarget,
   onMoveTarget,
 }: PlaceOnImageSurfaceProps) => {
-  const surfaceRef = useRef<HTMLDivElement>(null);
-
-  // Live position of the target being dragged — a marker drag or a press
-  // placing a new target. Committed once, on release.
-  const [drag, setDrag] = useState<DragState | null>(null);
-  const pressRef = useRef<{ index: number; startX: number; startY: number; moved: boolean }>({
-    index: -1,
-    startX: 0,
-    startY: 0,
-    moved: false,
+  const surface = usePlacementSurface({
+    invertY: false,
+    // Every press on open image places a target, so the pending placement is
+    // the sentinel rather than any row's id — the target it becomes is minted
+    // by `addTarget` on release.
+    pendingKey: () => (imageUrl && canAddTarget ? PENDING_PLACEMENT_KEY : null),
+    onSurfaceCommit: (_key, point) => {
+      onAddTarget(point);
+    },
+    onMarkerCommit: onMoveTarget,
   });
-
-  /** Normalized image-box point for a client position (top-left origin). */
-  const pointFromClient = (clientX: number, clientY: number): PlacePoint | null => {
-    const rect = surfaceRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) return null;
-    const x = (clientX - rect.left) / rect.width;
-    const y = (clientY - rect.top) / rect.height;
-    return { x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) };
-  };
-
-  // Press on open image: drop a new target at the pointer and keep following
-  // it, committing once on release.
-  const handleSurfacePointerDown = (event: React.PointerEvent) => {
-    if (!imageUrl || !canAddTarget) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (!point) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setDrag({ index: "new", point });
-  };
-
-  const handleSurfacePointerMove = (event: React.PointerEvent) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point) setDrag((prev) => (prev ? { index: prev.index, point } : prev));
-  };
-
-  const handleSurfacePointerUp = (event: React.PointerEvent) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point && drag) onAddTarget(point);
-    setDrag(null);
-  };
-
-  const handleMarkerPointerDown = (index: number) => (event: React.PointerEvent) => {
-    // Keep the press from also starting a new-target placement underneath.
-    event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    pressRef.current = {
-      index,
-      startX: event.clientX,
-      startY: event.clientY,
-      moved: false,
-    };
-  };
-
-  const handleMarkerPointerMove = (event: React.PointerEvent) => {
-    const press = pressRef.current;
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    if (
-      !press.moved &&
-      Math.hypot(event.clientX - press.startX, event.clientY - press.startY) < DRAG_THRESHOLD_PX
-    ) {
-      return;
-    }
-    press.moved = true;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point) setDrag({ index: press.index, point });
-  };
-
-  const handleMarkerPointerUp = (event: React.PointerEvent) => {
-    const press = pressRef.current;
-    // A sloppy click (under the threshold) must not nudge the target.
-    if (press.moved) {
-      const point = pointFromClient(event.clientX, event.clientY);
-      if (point) onMoveTarget(press.index, point);
-      setDrag(null);
-    }
-    pressRef.current.moved = false;
-  };
-
-  /** The marker's rendered position: the live drag point while dragging, else its stored target. */
-  const renderedPoint = (index: number): PlacePoint =>
-    drag?.index === index ? drag.point : targets[index];
+  const ghostIndex = targets.length;
 
   return (
     // Pointer placement surface; the pointer-free path is the target rows'
     // popover menus ("Center target").
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
-      ref={surfaceRef}
+      ref={surface.surfaceRef}
       className={[
-        styles.surface,
-        imageUrl && canAddTarget ? styles.surfaceArmed : "",
+        placement.surface,
+        styles.imageSurface,
+        imageUrl && canAddTarget ? placement.surfaceArmed : "",
         imageUrl ? "" : styles.surfaceEmpty,
       ]
         .filter(Boolean)
         .join(" ")}
-      onPointerDown={handleSurfacePointerDown}
-      onPointerMove={handleSurfacePointerMove}
-      onPointerUp={handleSurfacePointerUp}
+      {...surface.surfaceProps}
     >
       {imageUrl ? (
         // The img is the box: block-level, full width, intrinsic ratio height.
@@ -168,24 +81,33 @@ const PlaceOnImageSurface = ({
         <span className={styles.surfacePlaceholder}>Choose an image to place targets on.</span>
       )}
       {imageUrl &&
-        targets.map((target, index) => (
-          <PlaceOnImageMarker
-            key={target.id}
-            point={renderedPoint(index)}
-            target={target}
-            index={index}
-            tolerance={tolerance}
-            onPointerDown={handleMarkerPointerDown(index)}
-            onPointerMove={handleMarkerPointerMove}
-            onPointerUp={handleMarkerPointerUp}
-          />
-        ))}
-      {imageUrl && drag?.index === "new" && (
-        <PlaceOnImageMarker
-          point={drag.point}
-          index={targets.length}
+        targets.map((target, index) => {
+          // A placed target always has a point; the fallback is only the hook's
+          // "stored point may be missing" signature (Axis clears targets).
+          const point = surface.pointFor(target.id, target) ?? target;
+          const label = target.label?.trim() ?? "";
+          const displayIndex = index + 1;
+          return (
+            <PlacementMarker
+              key={target.id}
+              point={point}
+              color={resolveDatumColor(target.color, index)}
+              displayIndex={displayIndex}
+              label={label}
+              tolerance={tolerance}
+              ariaLabel={`Target ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to move`}
+              {...surface.markerProps(target.id)}
+            />
+          );
+        })}
+      {imageUrl && surface.drag?.key === PENDING_PLACEMENT_KEY && (
+        <PlacementMarker
+          point={surface.drag.point}
+          color={resolveDatumColor(undefined, ghostIndex)}
+          displayIndex={ghostIndex + 1}
           tolerance={tolerance}
-          isGhost
+          ariaLabel={`New target ${(ghostIndex + 1).toString()}`}
+          ghost
         />
       )}
     </div>

@@ -1,60 +1,19 @@
-/* PlaceOnImageSlideContent — author UI for Place-on-Image (pin on the backing
-   image) slides. The target row chrome is the shared `ItemCard`; the styles
-   here are the side-by-side image/targets columns (mirroring Axis), the
-   placement surface whose height comes from the image's own intrinsic aspect
-   ratio (a block <img> sizes the wrapper — only the empty placeholder falls
-   back to 16:9), and the numbered markers + tolerance regions (palette color
-   carried on --target-color; the width-derived diameter and 1:1 aspect ratio
-   keep the region visually circular on non-square images, independent of the
-   normalized-coordinate grading geometry). */
+/* PlaceOnImageSlideContent — what makes the backing image that surface.
+   Everything else it wears comes from shared modules: the two-column layout,
+   row chrome, and card-header accessories from `_shared.module.css`, the
+   surface and marker chrome from the placement kit's `placement.module.css`.
+   Left here: the image box (the shared `.surface` sets no size, and this one's
+   height comes from the image's own intrinsic aspect ratio — a block <img>
+   sizes the wrapper), the image itself, and the no-image stand-in. */
 
-/* ── Editor layout: surface and target rows side by side ────────────────── */
-
-.editorRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--stack-sm);
-}
-
-.imageColumn {
-  flex: 1 1 18rem;
-  min-width: 0;
-}
-
-.targetsColumn {
-  flex: 1 1 16rem;
-  min-width: 0;
-}
-
-.imageColumn > section,
-.targetsColumn > section {
-  width: 100%;
-}
-
-/* ── The placement surface ──────────────────────────────────────────────── */
-
-.surface {
-  position: relative;
-  width: 100%;
-  margin-inline: auto;
-
+/* Joined onto the shared `.surface`, which owns the border and pointer setup. */
+.imageSurface {
   /* Capped so the editor row fits the slide canvas unscrolled; the height
      follows from the image's intrinsic ratio. */
   max-width: 24rem;
-  border: var(--border-size-sm) solid var(--edge-primary);
-  border-radius: var(--radius-md);
+
+  /* Trim the image's corners to the surface's rounded border. */
   overflow: clip;
-
-  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
-  touch-action: none;
-}
-
-/* Room to add a target: any press on the image drops (and drags) one. */
-.surfaceArmed {
-  cursor: crosshair;
-  outline: var(--border-size-sm) solid color-mix(in oklab, var(--edge-primary) 30%, transparent);
-  outline-offset: var(--space-half);
 }
 
 /* The image is the box: block-level so no baseline gap, full width so the
@@ -81,141 +40,4 @@
   color: var(--text-muted);
   font-size: var(--font-size-sm);
   text-align: center;
-}
-
-/* ── Placed targets ─────────────────────────────────────────────────────── */
-
-/* Carries the target's palette color for the marker + region pair. The real
-   value is set inline per target; this is only the declared fallback. */
-.markerGroup {
-  --target-color: var(--text-accent);
-}
-
-/* The accepted region, in the target's color: dashed outline + faint wash.
-   The wash lives on the pseudo-element so its low opacity never fades the
-   dashed outline. */
-.toleranceRegion {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  border: var(--space-px) dashed var(--target-color);
-  border-radius: var(--radius-full);
-  pointer-events: none;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-color: var(--target-color);
-    opacity: 0.14;
-  }
-}
-
-/* Marker = numbered dot (tying it to its row's index pill), its centre
-   exactly on the target point (matching where the grader measures). A
-   labeled target grows the Axis-style pill around the dot — see
-   `.markerLabeled`, whose transform keeps the DOT centred, not the pill. */
-.marker {
-  --dot-size: 1.375rem;
-
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  padding: 0;
-  transform: translate(-50%, -50%);
-  border: none;
-  background: none;
-  color: var(--target-color);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: grab;
-
-  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
-  touch-action: none;
-}
-
-.marker:active {
-  cursor: grabbing;
-}
-
-/* The numbered dot itself, in the target's color. */
-.markerDot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: var(--dot-size);
-  height: var(--dot-size);
-  border: var(--border-size-sm) solid oklch(99% 0 0deg);
-  border-radius: var(--radius-full);
-  background-color: var(--target-color);
-  color: oklch(99% 0 0deg);
-  font-weight: 700;
-}
-
-/* Labeled variant: pill chrome around dot + text; the transform keeps the
-   dot's centre — not the pill's — on the target point (border + padding sit
-   left of the dot inside the border-box). */
-.markerLabeled {
-  max-width: 9rem;
-
-  /* (4px, 8px, 4px, 4px) has no --p-* equivalent — sanctioned one-off on the raw scale */
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
-  transform: translate(
-    calc(-1 * (var(--border-size-sm) + var(--space-1) + var(--dot-size) / 2)),
-    -50%
-  );
-  border: var(--border-size-sm) solid var(--target-color);
-  border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-}
-
-.markerLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The not-yet-committed target following the pointer during placement. */
-.markerGhost {
-  cursor: crosshair;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-/* ── Card-header accessories ────────────────────────────────────────────── */
-
-/* How-to hint + tolerance input cluster in the Targets card's header. */
-.targetsMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-md);
-  min-width: 0;
-}
-
-.targetsHint {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  text-align: right;
-}
-
-/* ── Target rows ────────────────────────────────────────────────────────── */
-
-/* Label field (+ optional thumbnail) inside the row card. */
-.targetFields {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  flex: 1;
-  min-width: 0;
-}
-
-/* Thumbnail of the target's authored image (set via the row's menu). */
-.targetThumbnail {
-  flex: none;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
 }
