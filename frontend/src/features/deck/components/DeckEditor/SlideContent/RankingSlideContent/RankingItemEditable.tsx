@@ -3,7 +3,7 @@
  * label field with its popover menu (the shared `ItemField` — color, image
  * upload/clear, delete), and an image thumbnail when one is set. Focusing the
  * label field opens the row's menu — the same focus-opened pattern as MCQ's
- * option menu and `AxisItemEditable`; `ItemField` owns the label mirror,
+ * option menu and the shared `PlacementItemRow`; `ItemField` owns the label mirror,
  * positioning, and dismissal. Ranking has no kind-specific primary action
  * (the correct order is the drag order, so there is nothing to toggle), so the
  * menu omits the leading action row. Structural ops (schedule / flush / remove

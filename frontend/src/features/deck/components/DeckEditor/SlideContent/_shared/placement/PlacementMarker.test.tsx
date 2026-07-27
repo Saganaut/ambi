@@ -1,17 +1,19 @@
-// Covers Place-on-Image marker positioning, labeling, and circular tolerance sizing.
+// Covers placement-marker positioning, labeling, and circular tolerance sizing.
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { PlaceOnImageMarker } from "./PlaceOnImageMarker";
+import { PlacementMarker } from "./PlacementMarker";
 
-describe("PlaceOnImageMarker", () => {
+describe("PlacementMarker", () => {
   it("renders a circular tolerance region at the normalized target point", () => {
     const { container } = render(
-      <PlaceOnImageMarker
+      <PlacementMarker
         point={{ x: 0.25, y: 0.75 }}
-        target={{ id: "target-1", x: 0.25, y: 0.75, label: "North gate" }}
-        index={0}
+        color="oklch(0.65 0.4 290)"
+        displayIndex={1}
+        label="North gate"
         tolerance={0.1}
+        ariaLabel="Target 1 (North gate) — drag to move"
       />,
     );
 

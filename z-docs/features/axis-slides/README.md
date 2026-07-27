@@ -253,37 +253,44 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   which row's popover menu is open. The Plane and Items `SettingsCard`s sit
   side by side (wrapping on narrow containers) so the plane and the item
   bank read as one workspace; the Plane card header holds the "N of M
-  placed" counter next to a compact tolerance `NumberInput` ("Tolerance
-  ±%", 2–50, wired to `setTolerance`).
+  placed" counter next to the shared `ToleranceField` ("Tolerance %", 2–50,
+  wired to `setTolerance`). The prompt mirror, selected row, and open menu
+  are held by the shared `useSlideComposerState`.
 - `AxisPlaneEditor.tsx` — the four endpoint-label pills overlaid *inside* the
   plane's edges (top/bottom = Y high/low, left/right = X low/high; empty
   labels fall back to placeholders, grid's `"Row 1"` pattern) so the plane
   claims all the room. **Select a row, then press/drag on the plane** →
   `getBoundingClientRect` → normalized point → `setTargetPosition` (committed
-  on release). Placed markers — a dot + label pill in the item's resolved
-  color (`resolveAxisItemColor(item.color, index)`: the authored override,
-  or a palette default from the shared 6-color palette — one distinct color
-  per item at the `MAX_AXIS_ITEMS = 6` cap, with a darker-lightness second
-  cycle kept as a defensive fallback should the cap ever rise), dot
-  centered on the target — can be dragged directly (pointer capture) or
-  tapped to toggle their row's selection. Every placed marker renders its
-  tolerance circle in the same color so the accepted region is visible while
-  tuning. A per-item numeric X/Y accessible-fallback input pair (0–100 %) in
-  the item rows previously backed keyboard/screen-reader placement; **this is
-  currently being removed from `AxisItemEditable.tsx` in an in-progress
-  change** (uncommitted at time of writing) with no replacement landed yet —
-  treat the accessible-fallback story as open, not settled.
-- `AxisItemEditable.tsx` — item row (`RankingItemEditable` pattern): the
-  palette-colored index badge, a label field with its popover menu
-  (`AxisItemField.tsx`), and an image thumbnail when one is set. Clicking the
-  row selects it. (The row's accessible X/Y inputs are being removed — see the
-  note above.)
-- `AxisItemField.tsx` — a thin wrapper around the shared `ItemField`
-  (`_shared/ItemField/ItemField.tsx`) that supplies the Axis-specific
-  primary action: "Set target" (seeds `{x: 0.5, y: 0.5}`, the plane's
-  center) / "Clear target". `ItemField` — extracted from `AxisItemField`
-  and also used by [Place-on-Image](../place-on-image/README.md)'s target
-  rows — owns the generic mechanics: the label `Input` is itself the
+  on release). Placed markers — a numbered dot in the item's resolved color
+  (`resolveDatumColor(item.color, index)`: the authored override, or a
+  palette default from the shared 6-color palette — one distinct color per
+  item at the `MAX_AXIS_ITEMS = 6` cap, with a darker-lightness second cycle
+  kept as a defensive fallback should the cap ever rise), growing a label
+  pill only when the item is labeled, dot centered on the target — can be
+  dragged directly (pointer capture) or tapped to toggle their row's
+  selection. Every placed marker renders its tolerance circle in the same
+  color so the accepted region is visible while tuning. **The pointer-free
+  path is the row menu's "Set target"** (seeds `{x: 0.5, y: 0.5}`, the plane's
+  center), reachable by keyboard because focusing a row's label opens its
+  menu; the numeric X/Y input pair that once backed keyboard placement is
+  gone. Nothing here is Axis-specific except the plane: the surface's pointer
+  bookkeeping and the markers come from the shared placement kit (see below).
+- **Rows and markers come from the shared placement kit**
+  (`SlideContent/_shared/placement/`), which Axis, [Place-on-Image](../place-on-image/README.md),
+  and Grid all build on: `usePlacementSurface` (press-to-place,
+  drag-to-move, tap-to-select, all in normalized coordinates, parameterized
+  by `invertY` — Axis inverts, the others don't), `PlacementMarker` (numbered
+  dot + optional label pill + tolerance circle), `PlacementItemRow` plus its
+  `SortablePlacementRow` / `DraggablePlacementRow` dnd wrappers, and
+  `ToleranceField` (the ×100 / ÷100 percent wrapper around `NumberInput`).
+  Axis renders `SortablePlacementRow` with an inline `primaryAction` for the
+  "Set target" / "Clear target" toggle; there is no Axis-specific row or
+  field component. Coordinate helpers live in `placementGeometry.ts`
+  (component layer) and `@deck/utils/placement.ts` (hook layer).
+  `PlacementItemRow` wraps the shared `ItemField`
+  (`_shared/ItemField/ItemField.tsx`), also used by
+  [Place-on-Image](../place-on-image/README.md)'s target
+  rows, which owns the generic mechanics: the label `Input` is itself the
   popover's trigger, wrapped in a `.triggerWrap` anchor div; focusing it
   opens the menu. The shared `FloatingPopover`
   (`shared/components/Popover/PopoverWrapper.tsx`) handles portalling,
@@ -307,8 +314,8 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
 (palette + custom color, image upload/clear, delete, and a `primaryAction`
 prop each kind supplies: MCQ passes mark-correct, Axis passes
 set/clear-target, Place-on-Image passes center-target, Match/Grid passes
-the phrase/image face flip). Axis (`AxisItemField.tsx`) and
-Place-on-Image's target rows reach it via the shared
+the phrase/image face flip). Axis (via the placement kit's
+`PlacementItemRow`) and Place-on-Image's target rows reach it via the shared
 `_shared/ItemField/ItemField.tsx` (label field as popover trigger,
 `FloatingPopover`, `OptionMenuContent`); MCQ
 (`OptionControls/OptionField.tsx`) and Match/Grid

@@ -12,85 +12,76 @@
  *     and the tolerance percent input (2–50 %) — every placed target's circle
  *     resizes live.
  *   - "Items" card: the item rows, each in its resolved color (override or
- *     palette default, mirrored by its marker on the plane) with the
- *     accessible numeric X/Y fallback — `correctPositions` maps item id →
- *     normalized point.
+ *     palette default, mirrored by its marker on the plane) — `correctPositions`
+ *     maps item id → normalized point.
  *
  * Interaction: selecting a row (click, or focusing its label) arms the plane —
  * pressing/dragging on the plane places that item's target. Focusing a row's
  * label also opens its popover menu (set/clear target, color, image, delete),
- * the same focus-opened menu pattern as MCQ options; this composer owns which
- * menu is open (at most one) and which row is selected.
+ * the same focus-opened menu pattern as MCQ options; "Set target" seeds the
+ * plane's centre, which is the pointer-free placement path. This composer owns
+ * which menu is open (at most one) and which row is selected.
  *
  * Grading is INSIDE_RADIUS (every keyed item must land within tolerance), so
  * the footer nudges until every item has a target — but only nudges: an empty
  * answer key is a legitimate collect-only opinion plane, so nothing blocks.
  * `scoreMode` has no authoring knob.
  */
-import { useState } from "react";
+import { ArrowUturnLeftIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
+  AXIS_LABEL_MAX,
   AXIS_TOLERANCE_MAX,
   AXIS_TOLERANCE_MIN,
   MAX_AXIS_ITEMS,
   useAxisEditor,
 } from "@deck/hooks/useAxisEditor";
-import { EmptySelect, ItemList, ScoringFooter, SettingsCard } from "../_shared";
+import {
+  EmptySelect,
+  ItemList,
+  ScoringFooter,
+  SettingsCard,
+  SortablePlacementRow,
+  ToleranceField,
+  useSlideComposerState,
+} from "../_shared";
+import shared from "../_shared/_shared.module.css";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContentWrapper } from "../SlideContentWrapper";
-import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
-import styles from "./AxisSlideContent.module.css";
 
 const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useAxisEditor(deckId, slideId);
   const { question } = editor;
   const openPicker = useGalleryPicker();
-
-  const [prompt, setPrompt] = useState(question?.prompt ?? "");
-  // The row armed for placement on the plane, if any.
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  // Which row's menu is open — at most one per slide. Focusing a row's label
-  // opens its menu (and thereby closes any other); the menu owns dismissal.
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [syncedFromId, setSyncedFromId] = useState(question?.id);
-  // Resync the local mirror when the active slide changes ("derive state
-  // during render" — safe when the new value differs).
-  if (question && syncedFromId !== question.id) {
-    setSyncedFromId(question.id);
-    setPrompt(question.prompt);
-    setSelectedItemId(null);
-    setOpenMenuId(null);
-  }
+  const composer = useSlideComposerState(question);
 
   if (!question) return <EmptySelect title="Axis" />;
 
   const { items, correctPositions, tolerance } = question;
   const placedCount = items.filter((item) => item.id && correctPositions[item.id]).length;
   const fullyAssigned = items.length > 0 && placedCount === items.length;
-  const tolerancePercent = Math.round(tolerance * 100);
 
   const selectItem = (itemId: string | undefined) => {
-    if (itemId) setSelectedItemId(itemId);
+    if (itemId) composer.setSelectedItemId(itemId);
   };
 
   const removeItem = (itemId: string | undefined) => {
     editor.removeItem(itemId);
-    if (itemId && selectedItemId === itemId) setSelectedItemId(null);
+    if (itemId && composer.selectedItemId === itemId) composer.setSelectedItemId(null);
   };
 
   return (
     <SlideContentWrapper
       prompt={{
         idBase: `axis-${question.id}`,
-        value: prompt,
+        value: composer.prompt,
         placeholder: "Ask players to place the items on the plane…",
         onChange: (html) => {
-          setPrompt(html);
+          composer.setPrompt(html);
           editor.schedulePrompt(html);
         },
         onBlur: editor.flush,
@@ -106,35 +97,30 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         )
       }
     >
-      <div className={styles.editorRow}>
-        <div className={styles.planeColumn}>
+      <div className={shared.editorRow}>
+        <div className={shared.editorColumnWide}>
           <SettingsCard
             title="Plane"
             action={
-              <span className={styles.planeMeta}>
-                <span className={styles.placedCount}>
+              <span className={shared.cardHeaderMeta}>
+                <span className={shared.placedCount}>
                   {placedCount} of {items.length} placed
                 </span>
-                <NumberInput
-                  compact
+                <ToleranceField
                   id={`axis-tolerance-${question.id}`}
-                  label="Tolerance %"
-                  labelPosition="labelInFront"
-                  min={Math.round(AXIS_TOLERANCE_MIN * 100)}
-                  max={Math.round(AXIS_TOLERANCE_MAX * 100)}
-                  value={tolerancePercent}
-                  onChange={(next) => {
-                    editor.setTolerance(next / 100);
-                  }}
+                  value={tolerance}
+                  min={AXIS_TOLERANCE_MIN}
+                  max={AXIS_TOLERANCE_MAX}
+                  onChange={editor.setTolerance}
                 />
               </span>
             }
           >
             <AxisPlaneEditor
               question={question}
-              selectedItemId={selectedItemId}
+              selectedItemId={composer.selectedItemId}
               onToggleSelect={(itemId) => {
-                setSelectedItemId((held) => (held === itemId ? null : itemId));
+                composer.setSelectedItemId((held) => (held === itemId ? null : itemId));
               }}
               onScheduleAxisLabel={editor.scheduleAxisLabel}
               onSetTargetPosition={editor.setTargetPosition}
@@ -143,11 +129,11 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           </SettingsCard>
         </div>
 
-        <div className={styles.itemsColumn}>
+        <div className={shared.editorColumnNarrow}>
           <SettingsCard
             title="Items"
             action={
-              <span className={styles.itemsHint}>
+              <span className={shared.cardHeaderHint}>
                 Select a row, then drag on the plane to place its target.
               </span>
             }
@@ -160,42 +146,55 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               onAdd={editor.addItem}
             >
               <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-                {items.map((item, index) => (
-                  <AxisItemEditable
-                    key={item.id ?? index}
-                    item={item}
-                    sortIndex={index}
-                    targetPosition={item.id ? (correctPositions[item.id] ?? null) : null}
-                    color={resolveDatumColor(item.color, index)}
-                    selected={item.id != null && selectedItemId === item.id}
-                    menuOpen={item.id != null && openMenuId === item.id}
-                    canRemove={editor.canRemoveItem}
-                    onSelect={() => {
-                      selectItem(item.id);
-                    }}
-                    onMenuOpenChange={(open) => {
-                      setOpenMenuId(open ? (item.id ?? null) : null);
-                      if (open) selectItem(item.id);
-                    }}
-                    onScheduleLabel={(label) => {
-                      editor.scheduleItemLabel(item.id, label);
-                    }}
-                    onFlush={editor.flush}
-                    onSetTarget={(point) => {
-                      editor.setTargetPosition(item.id, point);
-                    }}
-                    onSetColor={(color) => {
-                      editor.setItemColor(item.id, color);
-                    }}
-                    onSetImage={(image) => {
-                      editor.setItemImage(item.id, image);
-                    }}
-                    onRemove={() => {
-                      removeItem(item.id);
-                    }}
-                    openPicker={openPicker}
-                  />
-                ))}
+                {items.map((item, index) => {
+                  const hasTarget = item.id != null && correctPositions[item.id] != null;
+                  return (
+                    <SortablePlacementRow
+                      key={item.id ?? index}
+                      item={item}
+                      index={index}
+                      color={resolveDatumColor(item.color, index)}
+                      itemNoun="Item"
+                      labelMaxLength={AXIS_LABEL_MAX}
+                      gripLabel={`Reorder item ${(index + 1).toString()}`}
+                      selected={item.id != null && composer.selectedItemId === item.id}
+                      menuOpen={item.id != null && composer.openMenuId === item.id}
+                      canRemove={editor.canRemoveItem}
+                      primaryAction={{
+                        label: hasTarget ? "Clear target" : "Set target",
+                        icon: hasTarget ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
+                        pressed: hasTarget,
+                        onSelect: () => {
+                          composer.setOpenMenuId(null);
+                          // Seed a fresh target at the plane's centre; the
+                          // author drags the exact spot from there.
+                          editor.setTargetPosition(item.id, hasTarget ? null : { x: 0.5, y: 0.5 });
+                        },
+                      }}
+                      onSelect={() => {
+                        selectItem(item.id);
+                      }}
+                      onMenuOpenChange={(open) => {
+                        composer.setOpenMenuId(open ? (item.id ?? null) : null);
+                        if (open) selectItem(item.id);
+                      }}
+                      onScheduleLabel={(label) => {
+                        editor.scheduleItemLabel(item.id, label);
+                      }}
+                      onFlush={editor.flush}
+                      onSetColor={(color) => {
+                        editor.setItemColor(item.id, color);
+                      }}
+                      onSetImage={(image) => {
+                        editor.setItemImage(item.id, image);
+                      }}
+                      onRemove={() => {
+                        removeItem(item.id);
+                      }}
+                      openPicker={openPicker}
+                    />
+                  );
+                })}
               </DragDropWrapper>
             </ItemList>
           </SettingsCard>

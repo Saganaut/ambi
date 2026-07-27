@@ -163,6 +163,117 @@
   flex-shrink: 0;
 }
 
+/* ─── Two-column editor layout ─────────────────────────────────────────── */
+
+/* The placement editors (Axis, Place-on-Image, Grid) all read as one
+   workspace: the surface beside its item bank, wrapping on narrow containers
+   so neither column collapses. */
+
+.editorRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--stack-sm);
+}
+
+/* The surface's column — wider, since the plane/image/matrix leads. */
+.editorColumnWide {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+/* The item bank's column. */
+.editorColumnNarrow {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+/* Each column holds a single SettingsCard, which must fill it. */
+.editorColumnWide > section,
+.editorColumnNarrow > section {
+  width: 100%;
+}
+
+/* ─── Card-header accessories ──────────────────────────────────────────── */
+
+/* Counter/hint plus a compact input, clustered in a card's header. */
+.cardHeaderMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  min-width: 0;
+}
+
+/* How-to text in a card's header. */
+.cardHeaderHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* "N of M placed" counter in a card's header. */
+.placedCount {
+  flex: none;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* ─── PlacementItemRow ─────────────────────────────────────────────────── */
+
+/* Label field, thumbnail, and any meta slot inside the row card. */
+.itemFields {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+/* Thumbnail of the item's authored image (set via the row's menu). */
+.itemThumbnail {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+/* Grip handle slotted into the card's `actions`. */
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-square-xxs);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+  transition:
+    color var(--duration-fast) ease-out,
+    background-color var(--duration-fast) ease-out;
+}
+
+.dragHandle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-raised);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.dragHandleIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The row being dragged: dim it so the drop target reads clearly. */
+.dragging {
+  opacity: 0.6;
+}
+
 /* ─── AddItemRow ───────────────────────────────────────────────────────── */
 
 .addItemRow {

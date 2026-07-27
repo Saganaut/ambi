@@ -20,6 +20,7 @@ import { isSortable } from "@dnd-kit/react/sortable";
 
 import type { AppImage, AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 
+import { clamp01 } from "../utils/placement";
 import { buildDefaultAxisItem } from "../utils/slideContent";
 import { useSlideEditor } from "./useSlideEditor";
 
@@ -93,9 +94,6 @@ interface UseAxisEditorResult {
   /** Set the per-slide tolerance radius (clamped to the 2–50 % bounds). Immediate. */
   setTolerance: (value: number) => void;
 }
-
-/** Clamp to the normalized plane so a target can never leave [0, 1]. */
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
 const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => {
   const editor = useSlideEditor(deckId, slideId, "AXIS");

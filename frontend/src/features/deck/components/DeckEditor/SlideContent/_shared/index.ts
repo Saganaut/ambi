@@ -13,3 +13,27 @@ export type { PhraseOrImageItem } from "./PhraseOrImageCard/PhraseOrImageCard";
 // export { ImageBackingEditor } from "./ImageBackingEditor";
 export { ScoringFooter } from "./ScoringFooter";
 export { EmptySelect } from "./EmptySelect";
+export { useSlideComposerState } from "./useSlideComposerState";
+export type { ComposerQuestion, SlideComposerState } from "./useSlideComposerState";
+
+// ── Placement kit (Axis, Place-on-Image, Grid) ──────────────────────────
+export { DraggablePlacementRow } from "./placement/DraggablePlacementRow";
+export { PlacementItemRow } from "./placement/PlacementItemRow";
+export type { PlacementItemRowProps } from "./placement/PlacementItemRow";
+export { PlacementMarker } from "./placement/PlacementMarker";
+export type { PlacementMarkerProps } from "./placement/PlacementMarker";
+export { SortablePlacementRow } from "./placement/SortablePlacementRow";
+export { ToleranceField } from "./placement/ToleranceField";
+export {
+  DRAG_THRESHOLD_PX,
+  clamp01,
+  normalizeToBox,
+  toRenderStyle,
+} from "./placement/placementGeometry";
+export { PENDING_PLACEMENT_KEY, usePlacementSurface } from "./placement/usePlacementSurface";
+export type {
+  PlacementDrag,
+  UsePlacementSurfaceOptions,
+  UsePlacementSurfaceResult,
+} from "./placement/usePlacementSurface";
+export type { NormalizedPoint, PlaceableItem } from "./placement/placement.types";

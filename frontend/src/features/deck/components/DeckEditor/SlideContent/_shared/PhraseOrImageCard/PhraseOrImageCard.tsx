@@ -10,7 +10,7 @@
  *
  * Focusing the card's field (phrase input or image slot) opens its popover
  * menu (flip, color, image, delete) — the same field-as-trigger pattern as
- * MCQ's `OptionField` and `AxisItemField`. The face is the popover's anchor;
+ * MCQ's `OptionField` and the shared `ItemField`. The face is the popover's anchor;
  * `FloatingPopover` handles portalling, positioning, and dismissal (outside
  * press + Escape), with focus management off so opening never pulls the caret
  * out of the phrase field and `listNavigation` for arrow-key access into the

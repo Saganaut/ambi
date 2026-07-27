@@ -1,0 +1,134 @@
+/* Shared chrome for the placement editors' surfaces and markers (Axis's
+   plane, Place-on-Image's backing image). Each editor's own module keeps only
+   what makes its surface that surface — the box it occupies, its background,
+   its overlays — and joins `.surface` / `.surfaceArmed` onto it.
+
+   Marker geometry is the load-bearing part: the numbered DOT's centre — not
+   the label pill's — sits on the placement point, matching where the grader
+   measures. The tolerance region takes its diameter from the surface's width
+   and a fixed 1:1 aspect ratio, so it stays circular on a non-square surface
+   without pretending the grading space is anisotropic. */
+
+/* ── The placement surface ──────────────────────────────────────────────── */
+
+.surface {
+  position: relative;
+  width: 100%;
+  margin-inline: auto;
+  border: var(--border-size-sm) solid var(--edge-primary);
+  border-radius: var(--radius-md);
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+}
+
+/* A press would land a placement: an armed row (Axis) or room for one more
+   target (Place-on-Image). */
+.surfaceArmed {
+  cursor: crosshair;
+  outline: var(--border-size-sm) solid color-mix(in oklab, var(--edge-primary) 30%, transparent);
+  outline-offset: var(--space-half);
+}
+
+/* ── Placed markers ─────────────────────────────────────────────────────── */
+
+/* Carries the item's resolved color for the marker + region pair. The real
+   value is set inline per marker; this is only the declared fallback. */
+.markerGroup {
+  --placement-color: var(--text-accent);
+}
+
+/* The accepted region, in the item's color: dashed outline + faint wash. The
+   wash lives on the pseudo-element so its low opacity never fades the dashed
+   outline. */
+.toleranceCircle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: var(--space-px) dashed var(--placement-color);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--placement-color);
+    opacity: 0.14;
+  }
+}
+
+/* Bare marker: just the numbered dot, centred on the placement point. */
+.marker {
+  --dot-size: 1.375rem;
+
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: none;
+  background: none;
+  color: var(--placement-color);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: grab;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+}
+
+.marker:active {
+  cursor: grabbing;
+}
+
+/* Selected (Axis picks a marker up by tapping it). */
+.marker[aria-pressed="true"] {
+  box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--placement-color) 35%, transparent);
+}
+
+/* Labeled variant: pill chrome around dot + text; the transform keeps the
+   dot's centre — not the pill's — on the placement point (border + padding sit
+   left of the dot inside the border-box). */
+.markerLabeled {
+  max-width: 9rem;
+
+  /* (4px, 8px, 4px, 4px) has no --p-* equivalent — sanctioned one-off on the raw scale */
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  transform: translate(
+    calc(-1 * (var(--border-size-sm) + var(--space-1) + var(--dot-size) / 2)),
+    -50%
+  );
+  border: var(--border-size-sm) solid var(--placement-color);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+}
+
+/* The numbered dot itself, tying the marker to its row's index pill. */
+.markerDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border: var(--border-size-sm) solid oklch(99% 0 0deg);
+  border-radius: var(--radius-full);
+  background-color: var(--placement-color);
+  color: oklch(99% 0 0deg);
+  font-weight: 700;
+}
+
+.markerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The not-yet-committed placement following the pointer. */
+.markerGhost {
+  cursor: crosshair;
+  opacity: 0.8;
+  pointer-events: none;
+}

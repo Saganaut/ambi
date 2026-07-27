@@ -1,33 +1,8 @@
-/* AxisSlideContent — author UI for Axis (free-form 2D placement) slides. The
-   item row chrome is the shared `ItemCard`; axis-specific styles are the
-   side-by-side plane/items columns, the plane with its endpoint-label pills
-   overlaid inside its edges, the placed markers + tolerance circles (each in
-   its item's resolved color, carried on --item-color), and the drag grip
-   (mirroring Grid). */
-
-/* ── Editor layout: plane and item bank side by side ────────────────────── */
-
-.editorRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--stack-sm);
-}
-
-.planeColumn {
-  flex: 1 1 18rem;
-  min-width: 0;
-}
-
-.itemsColumn {
-  flex: 1 1 16rem;
-  min-width: 0;
-}
-
-.planeColumn > section,
-.itemsColumn > section {
-  width: 100%;
-}
+/* AxisSlideContent — what makes the Axis plane that plane. Everything else it
+   wears comes from shared modules: the two-column layout, row chrome, and grip
+   from `_shared.module.css`, the surface and marker chrome from the placement
+   kit's `placement.module.css`. Left here: the plane's own box, its quartering
+   centre lines, and the four endpoint-label pills overlaid inside its edges. */
 
 /* ── Endpoint labels, overlaid inside the plane's edges ─────────────────── */
 
@@ -83,27 +58,12 @@
 
 /* ── The plane itself ───────────────────────────────────────────────────── */
 
+/* Joined onto the shared `.surface`, which owns the border and pointer setup. */
 .plane {
-  position: relative;
-  width: 100%;
-  margin-inline: auto;
-
   /* Near-square, capped so the editor row fits the slide canvas unscrolled. */
   max-width: 16rem;
   aspect-ratio: 1;
-  border: var(--border-size-sm) solid var(--edge-primary);
-  border-radius: var(--radius-md);
   background-color: var(--bg-surface-raised);
-
-  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
-  touch-action: none;
-}
-
-/* A row is selected: any press on the plane places (and drags) its target. */
-.planeArmed {
-  cursor: crosshair;
-  outline: var(--border-size-sm) solid color-mix(in oklab, var(--edge-primary) 30%, transparent);
-  outline-offset: var(--space-half);
 }
 
 /* Faint centre lines quarter the plane so authors can eyeball coordinates. */
@@ -126,182 +86,4 @@
   bottom: 0;
   left: 50%;
   width: var(--space-px);
-}
-
-/* ── Placed targets ─────────────────────────────────────────────────────── */
-
-/* Carries the item's palette color for the marker + circle pair. The real
-   value is set inline per item; this is only the declared fallback. */
-.markerGroup {
-  --item-color: var(--text-accent);
-}
-
-/* The accepted region, in the item's color: dashed outline + faint wash. The
-   wash lives on the pseudo-element so its low opacity never fades the dashed
-   outline. */
-.toleranceCircle {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  border: var(--space-px) dashed var(--item-color);
-  border-radius: var(--radius-full);
-  pointer-events: none;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-color: var(--item-color);
-    opacity: 0.14;
-  }
-}
-
-/* Marker = dot + label pill. The transform keeps the DOT's centre — not the
-   pill's — on the target point, matching where the grader measures. */
-.marker {
-  --dot-size: 0.875rem;
-
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  max-width: 9rem;
-
-  /* (4px, 8px, 4px, 4px) has no --p-* equivalent — sanctioned one-off on the raw scale */
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
-  transform: translate(calc(-1 * (var(--space-1) + var(--dot-size) / 2)), -50%);
-  border: var(--border-size-sm) solid var(--item-color);
-  border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-  color: var(--item-color);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: grab;
-
-  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
-  touch-action: none;
-}
-
-.marker:active {
-  cursor: grabbing;
-}
-
-.marker[aria-pressed="true"] {
-  box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--item-color) 35%, transparent);
-}
-
-/* Ring with a filled centre, sitting exactly on the target point. */
-.markerDot {
-  position: relative;
-  flex: none;
-  width: var(--dot-size);
-  height: var(--dot-size);
-  border: var(--space-px) solid var(--item-color);
-  border-radius: var(--radius-full);
-}
-
-.markerDot::after {
-  content: "";
-  position: absolute;
-  inset: var(--space-half);
-  border-radius: inherit;
-  background-color: var(--item-color);
-}
-
-.markerLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── Card-header accessories ────────────────────────────────────────────── */
-
-/* Counter + tolerance input cluster in the Plane card's header. */
-.planeMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-md);
-  min-width: 0;
-}
-
-/* "N of M placed" counter in the Plane card's header. */
-.placedCount {
-  flex: none;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
-
-/* Placement how-to in the Items card's header. */
-.itemsHint {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  text-align: right;
-}
-
-/* ── Item rows ──────────────────────────────────────────────────────────── */
-
-.itemFields {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  flex: 1;
-  min-width: 0;
-}
-
-.targetFields {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  flex: none;
-
-  /* Whole percents only (0–100): keep the X/Y fields narrow so the label
-     field keeps the row's slack. */
-  & input[type="number"] {
-    width: 3.5rem;
-  }
-}
-
-/* Thumbnail of the item's authored image (set via the row's menu). */
-.itemThumbnail {
-  flex: none;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
-/* Grip handle slotted into the card's `actions` (see GridSlideContent). */
-.dragHandle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-square-xxs);
-  color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  cursor: grab;
-
-  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
-  touch-action: none;
-  transition:
-    color var(--duration-fast) ease-out,
-    background-color var(--duration-fast) ease-out;
-}
-
-.dragHandle:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-surface-raised);
-}
-
-.dragHandle:active {
-  cursor: grabbing;
-}
-
-.dragHandleIcon {
-  width: 1rem;
-  height: 1rem;
-}
-
-/* The row being dragged: dim it so the drop target reads clearly. */
-.dragging {
-  opacity: 0.6;
 }

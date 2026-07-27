@@ -7,18 +7,18 @@
  * Placement is select-then-drag: the composer holds the selected item (rows
  * and markers both select), and while an item is selected any press on the
  * plane drops — and keeps dragging — its target at the pointer's normalized
- * coordinates. Placed markers can also be dragged directly (pointer capture),
- * or tapped to toggle their row's selection. Every placed marker is drawn in
- * its item's palette color with its dashed tolerance circle, in the same
- * normalized space the grader measures in, so what the author sees is what
- * is graded. The marker's dot — not the label pill — sits on the target.
+ * coordinates. Placed markers can also be dragged directly, or tapped to
+ * toggle their row's selection; `usePlacementSurface` owns that pointer
+ * bookkeeping. Every placed marker is drawn in its item's resolved color with
+ * its dashed tolerance circle, in the same normalized space the grader
+ * measures in, so what the author sees is what is graded.
  *
  * Coordinates are normalized [0, 1] with (0,0) the low/low corner — bottom-left
- * as rendered — so the screen y-axis is inverted on the way in and out.
- * The accessible, pointer-free path lives in the item rows' numeric X/Y inputs
- * (see `AxisItemEditable`).
+ * as rendered — hence `invertY`, which the surface hook and the markers both
+ * take. The pointer-free path is the row menu's "Set target", which seeds the
+ * plane's centre (see `AxisSlideContent`).
  */
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { Input } from "@components/Forms/Input/Input/Input";
@@ -29,14 +29,9 @@ import {
   type AxisQuestionView,
 } from "@deck/hooks/useAxisEditor";
 import type { AxisPoint } from "@deck/store/deckApi.gen";
+import { PlacementMarker, usePlacementSurface } from "../_shared";
+import placement from "../_shared/placement/placement.module.css";
 import styles from "./AxisSlideContent.module.css";
-
-/** Pointer travel (px) below which a marker press counts as a tap, not a drag. */
-const DRAG_THRESHOLD_PX = 4;
-
-/** Display name for an item label, falling back to its 1-based position. */
-const labelOr = (label: string | undefined, index: number): string =>
-  (label?.trim() ?? "") ? (label as string).trim() : `Item ${(index + 1).toString()}`;
 
 interface AxisPlaneEditorProps {
   question: AxisQuestionView;
@@ -57,16 +52,12 @@ const AxisPlaneEditor = ({
   onSetTargetPosition,
   onFlush,
 }: AxisPlaneEditorProps) => {
-  const planeRef = useRef<HTMLDivElement>(null);
-
-  // Live drag position of a target while the pointer is captured — either a
-  // marker drag or a plane press placing the selected item.
-  const [drag, setDrag] = useState<{ itemId: string; point: AxisPoint } | null>(null);
-  const pressRef = useRef<{ itemId: string; startX: number; startY: number; moved: boolean }>({
-    itemId: "",
-    startX: 0,
-    startY: 0,
-    moved: false,
+  const surface = usePlacementSurface({
+    invertY: true,
+    pendingKey: () => selectedItemId,
+    onSurfaceCommit: onSetTargetPosition,
+    onMarkerCommit: onSetTargetPosition,
+    onMarkerTap: onToggleSelect,
   });
 
   // Local mirrors for the debounced endpoint-label inputs, resynced on slide
@@ -87,76 +78,6 @@ const AxisPlaneEditor = ({
       yHigh: question.yHighLabel,
     });
   }
-
-  /** Normalized plane point for a client position, y inverted (0 = bottom). */
-  const pointFromClient = (clientX: number, clientY: number): AxisPoint | null => {
-    const rect = planeRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) return null;
-    const x = (clientX - rect.left) / rect.width;
-    const y = 1 - (clientY - rect.top) / rect.height;
-    return { x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) };
-  };
-
-  // Plane press with a selected item: place its target immediately and keep
-  // following the pointer, committing once on release ("drag on the plane").
-  const handlePlanePointerDown = (event: React.PointerEvent) => {
-    if (!selectedItemId) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (!point) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setDrag({ itemId: selectedItemId, point });
-  };
-
-  const handlePlanePointerMove = (event: React.PointerEvent) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point) setDrag((prev) => (prev ? { itemId: prev.itemId, point } : prev));
-  };
-
-  const handlePlanePointerUp = (event: React.PointerEvent) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point && drag) onSetTargetPosition(drag.itemId, point);
-    setDrag(null);
-  };
-
-  const handleMarkerPointerDown = (itemId: string) => (event: React.PointerEvent) => {
-    // Keep the press from also starting a plane placement underneath.
-    event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    pressRef.current = {
-      itemId,
-      startX: event.clientX,
-      startY: event.clientY,
-      moved: false,
-    };
-  };
-
-  const handleMarkerPointerMove = (event: React.PointerEvent) => {
-    const press = pressRef.current;
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    if (
-      !press.moved &&
-      Math.hypot(event.clientX - press.startX, event.clientY - press.startY) < DRAG_THRESHOLD_PX
-    ) {
-      return;
-    }
-    press.moved = true;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point) setDrag({ itemId: press.itemId, point });
-  };
-
-  const handleMarkerPointerUp = (event: React.PointerEvent) => {
-    const press = pressRef.current;
-    if (press.moved) {
-      const point = pointFromClient(event.clientX, event.clientY);
-      if (point) onSetTargetPosition(press.itemId, point);
-      setDrag(null);
-    } else {
-      onToggleSelect(press.itemId);
-    }
-    pressRef.current.moved = false;
-  };
 
   const endpointInput = (
     axis: AxisAxis,
@@ -193,19 +114,16 @@ const AxisPlaneEditor = ({
     </div>
   );
 
-  /** The marker's rendered position: the live drag point while dragging, else its target. */
-  const renderedPoint = (itemId: string): AxisPoint | undefined =>
-    drag?.itemId === itemId ? drag.point : question.correctPositions[itemId];
-
   return (
-    // Pointer placement surface; the accessible path is the item rows' numeric inputs.
+    // Pointer placement surface; the pointer-free path is the row menu's
+    // "Set target".
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
-      ref={planeRef}
-      className={[styles.plane, selectedItemId ? styles.planeArmed : ""].filter(Boolean).join(" ")}
-      onPointerDown={handlePlanePointerDown}
-      onPointerMove={handlePlanePointerMove}
-      onPointerUp={handlePlanePointerUp}
+      ref={surface.surfaceRef}
+      className={[placement.surface, styles.plane, selectedItemId ? placement.surfaceArmed : ""]
+        .filter(Boolean)
+        .join(" ")}
+      {...surface.surfaceProps}
     >
       <span className={styles.planeAxisLineX} aria-hidden="true" />
       <span className={styles.planeAxisLineY} aria-hidden="true" />
@@ -216,48 +134,23 @@ const AxisPlaneEditor = ({
       {question.items.map((item, index) => {
         const itemId = item.id;
         if (!itemId) return null;
-        const point = renderedPoint(itemId);
+        const point = surface.pointFor(itemId, question.correctPositions[itemId]);
         if (!point) return null;
-        const color = resolveDatumColor(item.color, index);
-        // Both are positioned directly on the plane so their percentage
-        // coordinates/sizes resolve against the plane's box.
-        const position = {
-          left: `${(point.x * 100).toString()}%`,
-          top: `${((1 - point.y) * 100).toString()}%`,
-        };
+        const label = item.label?.trim() ?? "";
+        const displayIndex = index + 1;
         return (
-          <span
+          <PlacementMarker
             key={itemId}
-            className={styles.markerGroup}
-            style={{ "--item-color": color } as React.CSSProperties}
-          >
-            <span
-              className={styles.toleranceCircle}
-              style={{
-                ...position,
-                width: `${(question.tolerance * 2 * 100).toString()}%`,
-                height: `${(question.tolerance * 2 * 100).toString()}%`,
-              }}
-              aria-hidden="true"
-            />
-            <button
-              type="button"
-              className={styles.marker}
-              style={position}
-              aria-pressed={selectedItemId === itemId}
-              onPointerDown={handleMarkerPointerDown(itemId)}
-              onPointerMove={handleMarkerPointerMove}
-              onPointerUp={handleMarkerPointerUp}
-              onClick={(event) => {
-                // Selection is handled on pointerup; keep the click from
-                // falling through to the plane underneath.
-                event.stopPropagation();
-              }}
-            >
-              <span className={styles.markerDot} aria-hidden="true" />
-              <span className={styles.markerLabel}>{labelOr(item.label, index)}</span>
-            </button>
-          </span>
+            point={point}
+            invertY
+            color={resolveDatumColor(item.color, index)}
+            displayIndex={displayIndex}
+            label={label}
+            tolerance={question.tolerance}
+            ariaLabel={`Item ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to move`}
+            selected={selectedItemId === itemId}
+            {...surface.markerProps(itemId)}
+          />
         );
       })}
     </div>
