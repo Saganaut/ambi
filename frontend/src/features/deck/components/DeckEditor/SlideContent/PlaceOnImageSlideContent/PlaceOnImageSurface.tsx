@@ -14,11 +14,10 @@
  * Coordinates are normalized [0, 1] in screen space over the image box —
  * (0, 0) is the image's top-left, y NOT inverted (unlike Axis), the natural
  * frame for an image and the space `RoundEvaluator.gradePlaceOnImage`
- * measures in. The tolerance region is drawn with its width and height as the
- * same percentage of the (usually non-square) image box, so it renders as the
- * exact ellipse the normalized-distance grader accepts — what the author sees
- * is what is graded. The pointer-free path lives in the target rows' popover
- * menus ("Center target", see `PlaceOnImageSlideContent`).
+ * measures in. The tolerance region uses the image width for its diameter and
+ * a fixed 1:1 aspect ratio so it remains circular on non-square images. The
+ * pointer-free path lives in the target rows' popover menus ("Center target",
+ * see `PlaceOnImageSlideContent`).
  *
  * A labeled target's marker grows an Axis-style label pill next to its
  * numbered dot — the DOT's centre, not the pill's, stays on the target point,
@@ -28,8 +27,8 @@
 import { useRef, useState } from "react";
 
 import type { PlacePoint, PlaceTargetView } from "@deck/hooks/usePlaceOnImageEditor";
-import { resolveTargetColor } from "./targetColor";
 import styles from "./PlaceOnImageSlideContent.module.css";
+import { PlaceOnImageMarker } from "./PlaceOnImageMarker";
 
 /** Pointer travel (px) below which a marker press counts as a tap, not a drag. */
 const DRAG_THRESHOLD_PX = 4;
@@ -145,64 +144,6 @@ const PlaceOnImageSurface = ({
   const renderedPoint = (index: number): PlacePoint =>
     drag?.index === index ? drag.point : targets[index];
 
-  /** Marker + tolerance region at a normalized point, in the target's
-   *  resolved color. A non-empty label grows the marker into a pill whose
-   *  numbered dot stays centred on the point. */
-  const renderTarget = (point: PlacePoint, index: number, key: string, isGhost: boolean) => {
-    const label = isGhost ? "" : (targets[index].label?.trim() ?? "");
-    const color = resolveTargetColor(isGhost ? undefined : targets[index].color, index);
-    const position = {
-      left: `${(point.x * 100).toString()}%`,
-      top: `${(point.y * 100).toString()}%`,
-    };
-    const markerClass = [styles.marker, label ? styles.markerLabeled : ""]
-      .filter(Boolean)
-      .join(" ");
-    const markerBody = (
-      <>
-        <span className={styles.markerDot} aria-hidden="true">
-          {index + 1}
-        </span>
-        {label && <span className={styles.markerLabel}>{label}</span>}
-      </>
-    );
-    return (
-      <span
-        key={key}
-        className={styles.markerGroup}
-        style={{ "--target-color": color } as React.CSSProperties}
-      >
-        <span
-          className={styles.toleranceRegion}
-          style={{
-            ...position,
-            width: `${(tolerance * 2 * 100).toString()}%`,
-            height: `${(tolerance * 2 * 100).toString()}%`,
-          }}
-          aria-hidden="true"
-        />
-        {isGhost ? (
-          // The new target being placed — not committed yet, so not a button.
-          <span className={[markerClass, styles.markerGhost].join(" ")} style={position}>
-            {markerBody}
-          </span>
-        ) : (
-          <button
-            type="button"
-            className={markerClass}
-            style={position}
-            aria-label={`Target ${(index + 1).toString()}${label ? ` (${label})` : ""} — drag to move`}
-            onPointerDown={handleMarkerPointerDown(index)}
-            onPointerMove={handleMarkerPointerMove}
-            onPointerUp={handleMarkerPointerUp}
-          >
-            {markerBody}
-          </button>
-        )}
-      </span>
-    );
-  };
-
   return (
     // Pointer placement surface; the pointer-free path is the target rows'
     // popover menus ("Center target").
@@ -226,8 +167,27 @@ const PlaceOnImageSurface = ({
       ) : (
         <span className={styles.surfacePlaceholder}>Choose an image to place targets on.</span>
       )}
-      {imageUrl && targets.map((target, index) => renderTarget(renderedPoint(index), index, target.id, false))}
-      {imageUrl && drag?.index === "new" && renderTarget(drag.point, targets.length, "ghost", true)}
+      {imageUrl &&
+        targets.map((target, index) => (
+          <PlaceOnImageMarker
+            key={target.id}
+            point={renderedPoint(index)}
+            target={target}
+            index={index}
+            tolerance={tolerance}
+            onPointerDown={handleMarkerPointerDown(index)}
+            onPointerMove={handleMarkerPointerMove}
+            onPointerUp={handleMarkerPointerUp}
+          />
+        ))}
+      {imageUrl && drag?.index === "new" && (
+        <PlaceOnImageMarker
+          point={drag.point}
+          index={targets.length}
+          tolerance={tolerance}
+          isGhost
+        />
+      )}
     </div>
   );
 };
