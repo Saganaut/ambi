@@ -100,20 +100,14 @@
     }
   }
 
-  /* The target's own marker: a non-interactive MarkerBadge centred on the
-     target point, matching the editor's placed markers. It contributes no
-     chrome of its own — MarkerBadge owns the disc/pill look — only position
-     and the geometry that keeps the DISC (not the pill) on the graded point,
-     same recipe as the editor's `.markerLabeled` (`--marker-badge-disc-inset`,
-     published in tokens.css). */
+  /* The target's own marker: a non-interactive MarkerBadge on the target point,
+     matching the editor's placed markers. It contributes no chrome of its own —
+     MarkerBadge owns the disc/pill look, and MarkerBadge's `anchored` /
+     `anchoredLabeled` classes (joined on in TS) do the centring that keeps the
+     DISC, not the pill, on the graded point. */
   .targetMarker {
     position: absolute;
-    transform: translate(-50%, -50%);
     pointer-events: none;
-  }
-
-  .targetMarkerLabeled {
-    transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
   }
 
   /* Full-image tap target, shown only while an item is held (tap fallback) — the
@@ -129,11 +123,11 @@
   }
 
   /* The participant's own placed pin, one per item: a bare wrapper around the
-     MarkerBadge, centred on its normalized point, above the scatter/targets.
-     It contributes no chrome of its own — MarkerBadge owns the disc/pill look
-     — only position, drag/tap interactivity, and the geometry that keeps the
-     DISC (not the pill) on the graded point, same recipe as the editor's
-     `.markerLabeled` (`--marker-badge-disc-inset`, published in tokens.css). */
+     MarkerBadge, sitting above the scatter/targets. It contributes no chrome of
+     its own — MarkerBadge owns the disc/pill look — only position, size cap and
+     drag/tap interactivity; MarkerBadge's `anchored` / `anchoredLabeled`
+     classes (joined on in TS) do the centring that keeps the DISC, not the
+     pill, on the graded point. */
   .placedPin {
     position: absolute;
     z-index: 3;
@@ -141,7 +135,6 @@
     align-items: center;
     max-width: 9rem;
     padding: 0;
-    transform: translate(-50%, -50%);
     border: none;
     border-radius: var(--radius-full);
     background: none;
@@ -150,10 +143,6 @@
     &:disabled {
       cursor: default;
     }
-  }
-
-  .placedPinLabeled {
-    transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
   }
 
   .dragging {

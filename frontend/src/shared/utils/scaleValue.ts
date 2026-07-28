@@ -1,11 +1,10 @@
 // Pure mapping between a scale's track and its units. The track is the
 // normalized [0, 1] drag surface (0 = left end) — the same space the answer
 // wire uses — while `min`/`max` bound the human-facing scale units every
-// readout renders. Kept dependency-free so the editor and the live board can
-// share one conversion.
-
-/** Clamp to the normalized track so a position can never leave [0, 1]. */
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
+// readout renders. Kept free of React and the store so the editor and the live
+// board can share one conversion. The track is the same [0, 1] space the
+// placement surfaces normalize into, so it borrows their clamp.
+import { clamp01 } from "./placementGeometry";
 
 /** Denormalize a track position into scale units: `min + p · (max − min)`. */
 const positionToValue = (position: number, min: number, max: number): number =>

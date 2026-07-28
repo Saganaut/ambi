@@ -291,8 +291,11 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   with `draggable`, `scored` (set for any item with a `correctPositions`
   entry), and an inline `primaryAction` for the
   "Set target" / "Clear target" toggle; there is no Axis-specific row or
-  field component. Coordinate helpers live in `placementGeometry.ts`
-  (component layer) and `@deck/utils/placement.ts` (hook layer).
+  field component. The coordinate helpers themselves live in
+  `@utils/placementGeometry` — shared with the live-session boards, which
+  measure in the same normalized space — and are reached through
+  `placementGeometry.ts` (component layer) and `@deck/utils/placement.ts`
+  (hook layer).
   `PlacementRow` wraps the shared `ItemField`
   (`_shared/ItemField/ItemField.tsx`), also used by
   [Place-on-Image](../place-on-image/README.md)'s target

@@ -103,10 +103,12 @@
     cursor: crosshair;
   }
 
-  /* The participant's own placed chip, centred on its normalized point: a bare
-     box wrapped tight around the badge, contributing no chrome of its own.
-     `--chip-accent` is JS-set (the fallback below is the required in-file
-     declaration). */
+  /* The participant's own placed chip: a bare box wrapped tight around the
+     badge, contributing no chrome of its own. Its `left`/`top` is the
+     normalized point; MarkerBadge's own `anchored` / `anchoredLabeled` classes
+     (joined on in TS) do the centring, since only the badge knows where its
+     disc sits. `--chip-accent` is JS-set (the fallback below is the required
+     in-file declaration). */
   .placedChip {
     --chip-accent: var(--text-accent);
 
@@ -116,7 +118,6 @@
     align-items: center;
     max-width: 100%;
     padding: 0;
-    transform: translate(-50%, -50%);
     border: none;
     border-radius: var(--radius-full);
     background: none;
@@ -132,14 +133,6 @@
     &:disabled {
       cursor: default;
     }
-  }
-
-  /* Labeled variant: the badge draws itself as a pill, which puts its disc off
-     to the leading edge, so the chip shifts left by the badge's published
-     edge-to-disc-centre distance to keep the DISC — the graded point — on the
-     coordinate. The pill's own vertical centre is the disc's, so -50% holds. */
-  .placedChipLabeled {
-    transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
   }
 
   /* The badge inside a chip is decorative: the chip button itself is the

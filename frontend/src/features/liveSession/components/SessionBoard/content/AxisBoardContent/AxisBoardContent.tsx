@@ -34,7 +34,9 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
+import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
+import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
 import type { AxisItemView, AxisPoint, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { seededShuffle } from "../seededShuffle";
@@ -58,13 +60,18 @@ const KEYBOARD_NUDGE_STEP = 0.02;
  */
 const SURFACE_DROPPABLE_ID = "plane";
 
+/**
+ * The plane's orientation, handed to the shared geometry at every call site:
+ * (0, 0) is the low/low corner — bottom-left as rendered — so the screen y axis
+ * inverts on the way into normalized space and back out again on render.
+ */
+const INVERT_Y = true;
+
 interface AxisBoardContentProps {
   slide: SlideView;
   mode: BoardQuestionMode;
   interactive: boolean;
 }
-
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
 /**
  * Sum the live per-`itemId@bucketX,bucketY` tally into per-bucket totals
@@ -167,17 +174,6 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
     setSubmitted(true);
   };
 
-  /** Normalized plane point for a client position ((0, 0) = bottom-left). */
-  const pointFromClient = (clientX: number, clientY: number): AxisPoint | null => {
-    const rect = planeRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) return null;
-    // (0,0) is the low/low corner — bottom-left as rendered — so screen y inverts.
-    return {
-      x: clamp01((clientX - rect.left) / rect.width),
-      y: clamp01(1 - (clientY - rect.top) / rect.height),
-    };
-  };
-
   // Resolve a drag onto the plane (place / move at the drop pointer) or onto the
   // bank (un-place), no-op'ing a drop with no coordinate. The drop coordinate
   // comes from dnd-kit's live pointer position, not the discrete droppable id.
@@ -197,7 +193,12 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
       });
     } else if (targetId === SURFACE_DROPPABLE_ID) {
       const pointer = event.operation.position.current;
-      const point = pointFromClient(pointer.x, pointer.y);
+      const point = normalizeToBox(
+        planeRef.current?.getBoundingClientRect(),
+        pointer.x,
+        pointer.y,
+        INVERT_Y,
+      );
       if (!point) return;
       setPlacements((prev) => ({ ...prev, [itemId]: point }));
     }
@@ -207,7 +208,12 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   // Tap fallback: with an item held, tapping the plane drops it at the tap.
   const placeAt = (event: React.MouseEvent<HTMLElement>) => {
     if (!canPlace || heldItemId == null) return;
-    const point = pointFromClient(event.clientX, event.clientY);
+    const point = normalizeToBox(
+      planeRef.current?.getBoundingClientRect(),
+      event.clientX,
+      event.clientY,
+      INVERT_Y,
+    );
     if (!point) return;
     setPlacements((prev) => ({ ...prev, [heldItemId]: point }));
     setHeldItemId(null);
@@ -230,7 +236,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
       if (!current) return prev;
       return {
         ...prev,
-        [itemId]: { x: clamp01(current.x + delta[0]), y: clamp01(current.y + delta[1]) },
+        [itemId]: clampPoint({ x: current.x + delta[0], y: current.y + delta[1] }),
       };
     });
   };
@@ -324,24 +330,24 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                 const itemId = item.id;
                 const point = itemId ? placements[itemId] : undefined;
                 if (!itemId || !point) return null;
-                // A labeled badge is a pill, so the marker shifts left by the
-                // badge's published edge-to-disc-centre distance to keep the
-                // DISC — the graded point — on the coordinate.
+                // The badge's own anchoring classes keep its DISC — the graded
+                // point — on the coordinate, whichever shape the badge takes.
                 const labeled = Boolean(item.label?.trim());
                 return (
                   <DraggableChip
                     key={itemId}
                     itemId={itemId}
-                    className={[styles.placedChip, labeled ? styles.placedChipLabeled : ""]
+                    className={[
+                      styles.placedChip,
+                      markerStyles.anchored,
+                      labeled ? markerStyles.anchoredLabeled : "",
+                    ]
                       .filter(Boolean)
                       .join(" ")}
                     accent={paletteColorAt(authoredIndexOf(item))}
                     disabled={!canPlace}
                     ariaLabel={`Pick ${labelOf(item.label)} back up (arrow keys nudge it)`}
-                    style={{
-                      left: `${(point.x * 100).toString()}%`,
-                      top: `${((1 - point.y) * 100).toString()}%`,
-                    }}
+                    style={toRenderStyle(point, INVERT_Y)}
                     onKeyDown={nudge(itemId)}
                     onClick={() => {
                       if (!canPlace) return;

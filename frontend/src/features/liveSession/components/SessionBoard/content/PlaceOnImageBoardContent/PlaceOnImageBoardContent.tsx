@@ -44,7 +44,9 @@ import type { PlaceItemView, PlacePoint, SlideView } from "../../../../store/liv
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
+import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
+import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
 import { seededShuffle } from "../seededShuffle";
 import styles from "./PlaceOnImageBoardContent.module.css";
 
@@ -66,13 +68,18 @@ const KEYBOARD_NUDGE_STEP = 0.02;
  */
 const SURFACE_DROPPABLE_ID = "surface";
 
+/**
+ * The image's orientation, handed to the shared geometry at every call site:
+ * (0, 0) is the image's top-left, like the browser measures, so screen y never
+ * inverts (unlike the Axis plane's).
+ */
+const INVERT_Y = false;
+
 interface PlaceOnImageBoardContentProps {
   slide: SlideView;
   mode: BoardQuestionMode;
   interactive: boolean;
 }
-
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
 /** One occupied tally bucket, decoded from an `itemId@bx,by` key. */
 interface ScatterDot {
@@ -195,16 +202,6 @@ const PlaceOnImageBoardContent = ({
     setSubmitted(true);
   };
 
-  /** Normalized image-box point for a client position (top-left origin). */
-  const pointFromClient = (clientX: number, clientY: number): PlacePoint | null => {
-    const rect = surfaceRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) return null;
-    return {
-      x: clamp01((clientX - rect.left) / rect.width),
-      y: clamp01((clientY - rect.top) / rect.height),
-    };
-  };
-
   // Resolve a drag onto the image (place / move at the drop pointer) or onto the
   // bank (un-place), no-op'ing a drop with no coordinate. The drop coordinate
   // comes from dnd-kit's live pointer position, not the discrete droppable id.
@@ -223,7 +220,12 @@ const PlaceOnImageBoardContent = ({
       });
     } else if (targetId === SURFACE_DROPPABLE_ID) {
       const pointer = event.operation.position.current;
-      const point = pointFromClient(pointer.x, pointer.y);
+      const point = normalizeToBox(
+        surfaceRef.current?.getBoundingClientRect(),
+        pointer.x,
+        pointer.y,
+        INVERT_Y,
+      );
       if (!point) return;
       setPlacements((prev) => ({ ...prev, [itemId]: point }));
     }
@@ -233,7 +235,12 @@ const PlaceOnImageBoardContent = ({
   // Tap fallback: with an item held, tapping the image drops its pin at the tap.
   const placeAt = (event: React.MouseEvent<HTMLElement>) => {
     if (!canPlace || heldItemId == null) return;
-    const point = pointFromClient(event.clientX, event.clientY);
+    const point = normalizeToBox(
+      surfaceRef.current?.getBoundingClientRect(),
+      event.clientX,
+      event.clientY,
+      INVERT_Y,
+    );
     if (!point) return;
     setPlacements((prev) => ({ ...prev, [heldItemId]: point }));
     setHeldItemId(null);
@@ -256,7 +263,7 @@ const PlaceOnImageBoardContent = ({
       if (!current) return prev;
       return {
         ...prev,
-        [itemId]: { x: clamp01(current.x + delta[0]), y: clamp01(current.y + delta[1]) },
+        [itemId]: clampPoint({ x: current.x + delta[0], y: current.y + delta[1] }),
       };
     });
   };
@@ -355,10 +362,7 @@ const PlaceOnImageBoardContent = ({
             const radius = target.radius ?? 0;
             const label = target.label?.trim() ?? "";
             const color = resolveDatumColor(target.color, index);
-            const position = {
-              left: `${(x * 100).toString()}%`,
-              top: `${(y * 100).toString()}%`,
-            };
+            const position = toRenderStyle({ x, y }, INVERT_Y);
             return (
               <span
                 key={target.id ?? `target-${index.toString()}`}
@@ -374,7 +378,11 @@ const PlaceOnImageBoardContent = ({
                   aria-hidden="true"
                 />
                 <span
-                  className={[styles.targetMarker, label ? styles.targetMarkerLabeled : ""]
+                  className={[
+                    styles.targetMarker,
+                    markerStyles.anchored,
+                    label ? markerStyles.anchoredLabeled : "",
+                  ]
                     .filter(Boolean)
                     .join(" ")}
                   style={position}>
@@ -395,17 +403,15 @@ const PlaceOnImageBoardContent = ({
                 itemId={itemId}
                 className={[
                   styles.placedPin,
-                  isPillItem(item) ? styles.placedPinLabeled : "",
+                  markerStyles.anchored,
+                  isPillItem(item) ? markerStyles.anchoredLabeled : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
                 accent={accentOf(item)}
                 disabled={!canPlace}
                 ariaLabel={`Pick ${labelOf(item.label)} back up (arrow keys nudge it)`}
-                style={{
-                  left: `${(point.x * 100).toString()}%`,
-                  top: `${(point.y * 100).toString()}%`,
-                }}
+                style={toRenderStyle(point, INVERT_Y)}
                 onKeyDown={nudge(itemId)}
                 onClick={() => {
                   if (!canPlace) return;

@@ -5,14 +5,14 @@
 
    Marker geometry is the load-bearing part: the centre of the badge's numbered
    DISC — not the label pill's — sits on the placement point, matching where
-   the grader measures. `MarkerBadge` owns the pill's chrome and publishes the
-   distance from its edge to that centre as `--marker-badge-disc-inset`, so the
-   offset below stays in step with it. Everything the marker still styles is
-   position, pointer affordance, or state (selected, ghost) — the badge's own
-   look is not the marker's to touch. The tolerance region takes its diameter
-   from the surface's width and a fixed 1:1 aspect ratio, so it stays circular
-   on a non-square surface without pretending the grading space is
-   anisotropic. */
+   the grader measures. That offset is `MarkerBadge`'s own to publish, so it
+   ships as the badge module's `anchored` / `anchoredLabeled` classes and the
+   marker below joins them on rather than restating them. Everything the marker
+   still styles is position, pointer affordance, or state (selected, ghost) —
+   the badge's own look is not the marker's to touch. The tolerance region
+   takes its diameter from the surface's width and a fixed 1:1 aspect ratio, so
+   it stays circular on a non-square surface without pretending the grading
+   space is anisotropic. */
 
 /* ── The placement surface ──────────────────────────────────────────────── */
 
@@ -63,15 +63,16 @@
   }
 }
 
-/* The marker button: a bare box wrapped tight around the badge, centred on the
+/* The marker button: a bare box wrapped tight around the badge, sitting at the
    placement point. It contributes no chrome of its own — the rounding is only
-   so the selected ring below follows the badge's shape. */
+   so the selected ring below follows the badge's shape — and no geometry:
+   MarkerBadge's own `anchored` / `anchoredLabeled` classes (joined on in
+   `PlacementMarker`) do the centring. */
 .marker {
   position: absolute;
   display: inline-flex;
   align-items: center;
   padding: 0;
-  transform: translate(-50%, -50%);
   border: none;
   border-radius: var(--radius-full);
   background: none;
@@ -88,14 +89,6 @@
 /* Selected (Axis picks a marker up by tapping it). */
 .marker[aria-pressed="true"] {
   box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--placement-color) 35%, transparent);
-}
-
-/* Labeled variant: the badge draws itself as a pill, which puts its disc off
-   to the leading edge, so the marker shifts left by the badge's published
-   edge-to-disc-centre distance to keep the DISC — not the pill — on the point.
-   The pill's own vertical centre is the disc's, so -50% still holds. */
-.markerLabeled {
-  transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
 }
 
 /* The not-yet-committed placement following the pointer. */

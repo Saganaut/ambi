@@ -13,6 +13,7 @@
 import type { CSSProperties, PointerEventHandler } from "react";
 
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
+import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "./placementGeometry";
 import type { NormalizedPoint } from "./placement.types";
 import styles from "./placement.module.css";
@@ -55,7 +56,11 @@ const PlacementMarker = ({
 }: PlacementMarkerProps) => {
   const position = toRenderStyle(point, invertY);
   const trimmedLabel = label?.trim() ?? "";
-  const markerClass = [styles.marker, trimmedLabel ? styles.markerLabeled : ""]
+  const markerClass = [
+    styles.marker,
+    markerStyles.anchored,
+    trimmedLabel ? markerStyles.anchoredLabeled : "",
+  ]
     .filter(Boolean)
     .join(" ");
   const markerBody = <MarkerBadge displayIndex={displayIndex} color={color} label={trimmedLabel} />;

@@ -1,18 +1,13 @@
 /**
- * The vocabulary the placement kit speaks: a normalized point and the slice of
- * a slide entity its rows and markers need.
+ * The vocabulary the placement kit speaks: the slice of a slide entity its rows
+ * and markers need, alongside the shared normalized point they are placed at.
  *
  * `PlaceableItem` is deliberately structural rather than a union of the wire
  * types (`AxisItem`, `PlaceTarget`, `GridItem`) — every placement kind already
  * carries these four fields, so the kit stays decoupled from any one of them.
  */
 import type { AppImage } from "@deck/store/deckApi.gen";
-
-/** A coordinate pair in a surface's normalized [0, 1] placement space. */
-interface NormalizedPoint {
-  x: number;
-  y: number;
-}
+import type { NormalizedPoint } from "@utils/placementGeometry";
 
 /** What the shared row and marker chrome reads off an item. */
 interface PlaceableItem {

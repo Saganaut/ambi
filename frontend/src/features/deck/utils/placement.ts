@@ -1,18 +1,10 @@
-// Normalized-coordinate guards shared by the placement editors' hooks (Axis,
-// Place-on-Image).
+// The placement editors' hooks (Axis, Place-on-Image) reach for the normalized
+// [0, 1] guards through here.
 //
-// Every placement answer key is stored as normalized [0, 1] coordinates — the
-// space the graders measure in — so the hooks clamp on the way in rather than
-// trusting whatever a surface or a legacy wire payload hands them.
-
-/** Clamp to the normalized placement space so a coordinate can never leave [0, 1]. */
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
-
-/** Clamp both coordinates of a point into the normalized placement space. */
-const clampPoint = <T extends { x: number; y: number }>(point: T): T => ({
-  ...point,
-  x: clamp01(point.x),
-  y: clamp01(point.y),
-});
+// Every placement answer key is stored in the normalized space the graders
+// measure in, so the hooks clamp on the way in rather than trusting whatever a
+// surface or a legacy wire payload hands them. The guards themselves are the
+// shared ones — the live boards clamp the same coordinates.
+import { clamp01, clampPoint } from "@utils/placementGeometry";
 
 export { clamp01, clampPoint };

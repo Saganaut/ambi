@@ -12,6 +12,11 @@
 //
 // The disc's light ring keeps the number legible on top of an arbitrary
 // backdrop (a photo, a colored cell), which is why every user gets it.
+//
+// Callers that pin a badge to a graded point still need geometry only the
+// badge has — where its disc sits inside each shape — so the module publishes
+// `anchored` / `anchoredLabeled` for the wrapper to apply. Published, not
+// applied: the badge itself stays position-free.
 import type { CSSProperties } from "react";
 
 import styles from "./MarkerBadge.module.css";

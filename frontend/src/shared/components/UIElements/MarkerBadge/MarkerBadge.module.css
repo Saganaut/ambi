@@ -66,3 +66,26 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Anchoring, for callers that pin a badge to a point ─────────────────────
+
+   The badge never positions itself, so these two are joined onto the WRAPPER
+   by the caller (import this module in TS alongside your own), which owns the
+   `left`/`top` the point resolves to. They live here because only the badge
+   knows where its disc sits inside its two shapes — and they are a pair on
+   purpose: one wins over the other by source order, so a wrapper's own module
+   never has to out-specify them. */
+
+/* Bare disc (or any badge measured from its own centre): the point is the
+   badge's centre. */
+.anchored {
+  transform: translate(-50%, -50%);
+}
+
+/* Labeled: the badge draws itself as a pill, which puts its disc off to the
+   leading edge, so the wrapper shifts left by the published edge-to-disc-centre
+   distance to keep the DISC on the point. The pill's own vertical centre is the
+   disc's, so -50% still holds. */
+.anchoredLabeled {
+  transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
+}

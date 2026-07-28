@@ -51,7 +51,7 @@ describe("PlacementMarker", () => {
 
     expect(
       screen.getByRole("button", { name: "Target 1 (North gate) — drag to move" }).className,
-    ).toContain("markerLabeled");
+    ).toContain("anchoredLabeled");
   });
 
   it("centres an unlabeled marker's bare disc on the point", () => {
@@ -65,7 +65,7 @@ describe("PlacementMarker", () => {
     );
 
     expect(screen.getByRole("button", { name: "Target 1 — drag to move" }).className).not.toContain(
-      "markerLabeled",
+      "anchoredLabeled",
     );
   });
 });
