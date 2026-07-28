@@ -1,5 +1,6 @@
-// Vertical stack of `ItemCard`s capped by an inline "Add" affordance. Owns
-// the empty/at-max states so each slide editor just supplies the cards.
+// Vertical stack of item rows (`ItemCard`s or `PlacementRow`s) capped by an
+// inline "Add" affordance. Owns the empty/at-max states so each slide editor
+// just supplies the rows.
 import type { ReactNode } from "react";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import styles from "./_shared.module.css";

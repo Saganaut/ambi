@@ -16,12 +16,13 @@ export { EmptySelect } from "./EmptySelect";
 export { useSlideComposerState } from "./useSlideComposerState";
 export type { ComposerQuestion, SlideComposerState } from "./useSlideComposerState";
 
+// ── Item-bank row (Axis, Grid, Ranking, Place-on-Image) ─────────────────
+export { PlacementRow } from "./PlacementRow/PlacementRow";
+export type { PlacementRowProps } from "./PlacementRow/PlacementRow";
+
 // ── Placement kit (Axis, Place-on-Image, Grid) ──────────────────────────
-export { PlacementItemRow } from "./placement/PlacementItemRow";
-export type { PlacementItemRowProps } from "./placement/PlacementItemRow";
 export { PlacementMarker } from "./placement/PlacementMarker";
 export type { PlacementMarkerProps } from "./placement/PlacementMarker";
-export { SortablePlacementRow } from "./placement/SortablePlacementRow";
 export { ToleranceField } from "./placement/ToleranceField";
 export {
   DRAG_THRESHOLD_PX,

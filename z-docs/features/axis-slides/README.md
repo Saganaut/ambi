@@ -282,14 +282,16 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   `usePlacementSurface` (that gesture resolved to normalized coordinates,
   parameterized by `invertY` — Axis inverts, Place-on-Image doesn't, and Grid
   resolves to a cell instead), `PlacementMarker` (numbered
-  dot + optional label pill + tolerance circle), `PlacementItemRow` plus its
-  `SortablePlacementRow` dnd wrapper, and
+  dot + optional label pill + tolerance circle), and
   `ToleranceField` (the ×100 / ÷100 percent wrapper around `NumberInput`).
-  Axis renders `SortablePlacementRow` with an inline `primaryAction` for the
+  The item row itself is `_shared/PlacementRow/` — one level up from the
+  placement folder, since Ranking lists it too. Axis renders `PlacementRow`
+  with `draggable`, `scored` (set for any item with a `correctPositions`
+  entry), and an inline `primaryAction` for the
   "Set target" / "Clear target" toggle; there is no Axis-specific row or
   field component. Coordinate helpers live in `placementGeometry.ts`
   (component layer) and `@deck/utils/placement.ts` (hook layer).
-  `PlacementItemRow` wraps the shared `ItemField`
+  `PlacementRow` wraps the shared `ItemField`
   (`_shared/ItemField/ItemField.tsx`), also used by
   [Place-on-Image](../place-on-image/README.md)'s target
   rows, which owns the generic mechanics: the label `Input` is itself the
@@ -315,16 +317,15 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
 `_shared/OptionMenu/OptionMenuContent.tsx` — the presentational menu body
 (palette + custom color, image upload/clear, delete, and a `primaryAction`
 prop each kind supplies: MCQ passes mark-correct, Axis passes
-set/clear-target, Place-on-Image passes center-target, Match/Grid passes
-the phrase/image face flip). Axis (via the placement kit's
-`PlacementItemRow`) and Place-on-Image's target rows reach it via the shared
+set/clear-target, Match passes the phrase/image face flip — Grid,
+Place-on-Image, and Ranking pass none). Every `PlacementRow` bank (Axis,
+Grid, Ranking, Place-on-Image) reaches it via the shared
 `_shared/ItemField/ItemField.tsx` (label field as popover trigger,
 `FloatingPopover`, `OptionMenuContent`); MCQ
-(`OptionControls/OptionField.tsx`) and Match/Grid
+(`OptionControls/OptionField.tsx`) and Match
 (`_shared/PhraseOrImageCard/PhraseOrImageCard.tsx`) render
 `FloatingPopover`/`OptionMenuContent` directly rather than through
-`ItemField`. Ranking (`RankingSlideContent/RankingItemEditable.tsx`) also
-reaches it through the shared `ItemField`, like Axis. The legacy
+`ItemField`. The legacy
 `_shared/OptionMenu/OptionMenu.tsx` shell (manual outside-pointerdown/Escape
 dismissal, static start/end alignment) has been removed now that every kind
 is on the `FloatingPopover` path.

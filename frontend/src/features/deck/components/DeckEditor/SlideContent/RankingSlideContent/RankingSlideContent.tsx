@@ -8,18 +8,27 @@
  * structural change so the backend stays consistent.
  *
  * There is exactly one `useRankingEditor` here; each row is a controlled
- * `RankingItemEditable` that receives its slice of the editor surface as props,
- * so all writes funnel through a single draft + debounce buffer.
+ * shared `PlacementRow` that receives its slice of the editor surface as
+ * props, so all writes funnel through a single draft + debounce buffer. Every
+ * row is `scored`: the authored order IS the answer key, so there is nothing
+ * to set per row (and hence no `primaryAction` in its menu either).
  */
-import { useState } from "react";
-
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
-import { MAX_RANKING_ITEMS, useRankingEditor } from "@deck/hooks/useRankingEditor";
+import {
+  MAX_RANKING_ITEMS,
+  RANKING_LABEL_MAX,
+  useRankingEditor,
+} from "@deck/hooks/useRankingEditor";
 import { SlideContentWrapper } from "../SlideContentWrapper";
-import { EmptySelect, ItemList, SectionHeader } from "../_shared";
-import { RankingItemEditable } from "./RankingItemEditable";
+import {
+  EmptySelect,
+  ItemList,
+  PlacementRow,
+  SectionHeader,
+  useSlideComposerState,
+} from "../_shared";
 
 interface RankingSlideContentProps {
   deckId: string;
@@ -41,20 +50,10 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
     removeItem,
   } = useRankingEditor(deckId, slideId);
   const openPicker = useGalleryPicker();
-
-  const [prompt, setPrompt] = useState(question?.prompt ?? "");
-  // Which row's menu is open — at most one per slide. Focusing a row's label
-  // opens its menu (and thereby closes any other); the menu owns dismissal.
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [syncedFromId, setSyncedFromId] = useState(question?.id);
-
-  // Resync the local mirror when the active slide changes ("derive state during
-  // render" — safe when the new value differs).
-  if (question && syncedFromId !== question.id) {
-    setSyncedFromId(question.id);
-    setPrompt(question.prompt);
-    setOpenMenuId(null);
-  }
+  // The prompt mirror and which row's menu is open — at most one per slide.
+  // Focusing a row's label opens its menu (and thereby closes any other); the
+  // menu owns dismissal. Ranking arms no row, so `selectedItemId` goes unused.
+  const composer = useSlideComposerState(question);
 
   if (!question) return <EmptySelect title="Ranking" />;
 
@@ -62,10 +61,10 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
     <SlideContentWrapper
       prompt={{
         idBase: `rank-${question.id}`,
-        value: prompt,
+        value: composer.prompt,
         placeholder: "How should players rank these?",
         onChange: (html: string) => {
-          setPrompt(html);
+          composer.setPrompt(html);
           schedulePrompt(html);
         },
         onBlur: flush,
@@ -80,18 +79,23 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
       >
         <DragDropWrapper onReorder={handleItemDragEnd}>
           {question.items.map((item, idx) => (
-            <RankingItemEditable
+            <PlacementRow
               key={item.id ?? idx}
               item={item}
-              sortIndex={idx}
+              index={idx}
               color={resolveDatumColor(item.color, idx)}
-              menuOpen={item.id != null && openMenuId === item.id}
+              itemNoun="Item"
+              labelMaxLength={RANKING_LABEL_MAX}
+              scored
+              draggable
+              gripLabel={`Reorder item ${(idx + 1).toString()}`}
+              menuOpen={item.id != null && composer.openMenuId === item.id}
               canRemove={canRemove}
               onMenuOpenChange={(open) => {
-                setOpenMenuId(open ? (item.id ?? null) : null);
+                composer.setOpenMenuId(open ? (item.id ?? null) : null);
               }}
-              onScheduleLabel={(next) => {
-                scheduleItem(item.id, next);
+              onScheduleLabel={(label) => {
+                scheduleItem(item.id, { ...item, label });
               }}
               onFlush={flush}
               onSetColor={(next) => {

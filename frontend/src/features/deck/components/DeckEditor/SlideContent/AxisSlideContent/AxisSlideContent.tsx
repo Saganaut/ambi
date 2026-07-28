@@ -42,9 +42,9 @@ import {
 import {
   EmptySelect,
   ItemList,
+  PlacementRow,
   ScoringFooter,
   SettingsCard,
-  SortablePlacementRow,
   ToleranceField,
   useSlideComposerState,
 } from "../_shared";
@@ -149,13 +149,15 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 {items.map((item, index) => {
                   const hasTarget = item.id != null && correctPositions[item.id] != null;
                   return (
-                    <SortablePlacementRow
+                    <PlacementRow
                       key={item.id ?? index}
                       item={item}
                       index={index}
                       color={resolveDatumColor(item.color, index)}
                       itemNoun="Item"
                       labelMaxLength={AXIS_LABEL_MAX}
+                      scored={hasTarget}
+                      draggable
                       gripLabel={`Reorder item ${(index + 1).toString()}`}
                       selected={item.id != null && composer.selectedItemId === item.id}
                       menuOpen={item.id != null && composer.openMenuId === item.id}

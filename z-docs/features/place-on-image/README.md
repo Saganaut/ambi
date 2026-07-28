@@ -132,16 +132,20 @@ Axis, Place-on-Image, and Grid build on — see
   `SettingsCard` layout (the shared `.editorRow` / `.editorColumnWide` /
   `.editorColumnNarrow` classes): an "Image" card (choose/replace button +
   the placement surface) and a "Targets" card (the shared `ToleranceField` in
-  the header, one `PlacementItemRow` per target, add/remove). The rows are
-  **gripless** — unlike Axis, Place-on-Image targets are not reorderable,
-  since their order is display-only (index drives the marker number and the
-  palette default). Each row wraps the shared `ItemField` — the label doubles
-  as the popover trigger, and the menu holds "Center target" (the
-  pointer-free placement path, parking the target at the image's centre), the
-  shared color palette/custom-color modal, image upload/clear, and delete — and
-  shows an image thumbnail when the target has one. `useSlideComposerState`
+  the header, one `PlacementRow` per target, add/remove). The rows are
+  **draggable by their grip**, wrapped in a `DragDropWrapper` like Axis's and
+  Grid's banks: row order drives each marker's number and palette default, so
+  reordering is how an author renumbers and recolors the set
+  (`usePlaceOnImageEditor`'s `handleItemDragEnd` splices `correctTargets` by
+  index — positional rather than id-addressed, which keeps targets authored
+  before ids reached the wire reorderable too). Each row wraps the shared
+  `ItemField` — the label doubles as the popover trigger, and the menu holds
+  the shared color palette/custom-color modal, image upload/clear, and delete;
+  there is no kind-specific `primaryAction`, since a target exists only by
+  being placed. The row shows an image thumbnail when the target has one, and
+  is always `scored`. `useSlideComposerState`
   holds the prompt mirror and which row's menu is open (at most one); every
-  callback addresses its target by `target.id`. Advisory (non-blocking) footer
+  other callback addresses its target by `target.id`. Advisory (non-blocking) footer
   nudges for an image and at least one target — a target-less slide is still
   valid.
 - `PlaceOnImageSurface.tsx` — the placement surface: a plain block `<img>` at

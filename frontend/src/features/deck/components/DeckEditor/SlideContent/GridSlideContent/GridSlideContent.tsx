@@ -12,10 +12,12 @@
  *     or a row, and each cell holding the chips of the items targeted at it;
  *     the header holds the "N of M placed" counter.
  *   - "Items" card: one row per item in its resolved color (override or
- *     palette default, mirrored by the item's chip in the matrix), each with
- *     its cell name — or "Unplaced" — as trailing meta. The list IS the bank:
- *     an item lives here whether or not it is placed, and `correctCells` maps
- *     item id → "rowIndex,colIndex" for the placed ones.
+ *     palette default, mirrored by the item's chip in the matrix), a placed
+ *     one carrying its cell name as trailing meta plus the row's "answer set"
+ *     check — an unplaced item simply shows neither. The list IS the bank: an
+ *     item lives here whether or not it is placed, and `correctCells` maps
+ *     item id → "rowIndex,colIndex" for the placed ones. Unplacing is the
+ *     matrix's job (drag a chip off it), not the row menu's.
  *
  * Placement has two inputs, both resolved here. Arm-then-click: selecting a
  * row arms that item, and a cell's "Place here" button places it — the
@@ -34,7 +36,6 @@
  * Grading is EXACT (every placement must match `correctCells`), so the footer
  * nudges until every item has a cell; `scoreMode` has no authoring knob.
  */
-import { ArrowUturnLeftIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { Fragment, type CSSProperties } from "react";
 
@@ -53,9 +54,9 @@ import { resolveImageUrl } from "@utils/image";
 import {
   EmptySelect,
   ItemList,
+  PlacementRow,
   ScoringFooter,
   SettingsCard,
-  SortablePlacementRow,
   useSlideComposerState,
 } from "../_shared";
 import placement from "../_shared/placement/placement.module.css";
@@ -312,34 +313,25 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 {items.map((item, index) => {
                   const cell = item.id != null ? correctCells[item.id] : undefined;
                   return (
-                    <SortablePlacementRow
+                    <PlacementRow
                       key={item.id ?? index}
                       item={item}
                       index={index}
                       color={resolveDatumColor(item.color, index)}
                       itemNoun="Item"
                       labelMaxLength={GRID_ITEM_LABEL_MAX}
+                      scored={cell != null}
+                      draggable
                       gripLabel={`Reorder item ${(index + 1).toString()}`}
                       selected={item.id != null && composer.selectedItemId === item.id}
                       menuOpen={item.id != null && composer.openMenuId === item.id}
                       canRemove={editor.canRemoveItem}
+                      // An unplaced item shows no cell name and no check — the
+                      // absent pair says "unplaced" without a word for it.
                       meta={
-                        <span className={styles.rowMeta}>
-                          {cell == null ? "Unplaced" : cellNameOf(cell)}
-                        </span>
-                      }
-                      primaryAction={
-                        cell == null
-                          ? undefined
-                          : {
-                              label: "Clear cell",
-                              icon: ArrowUturnLeftIcon,
-                              pressed: true,
-                              onSelect: () => {
-                                composer.setOpenMenuId(null);
-                                editor.setTargetCell(item.id, null);
-                              },
-                            }
+                        cell == null ? undefined : (
+                          <span className={styles.rowMeta}>{cellNameOf(cell)}</span>
+                        )
                       }
                       onSelect={() => {
                         if (item.id) composer.setSelectedItemId(item.id);

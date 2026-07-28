@@ -15,24 +15,25 @@
  *     drag markers to move them.
  *   - "Targets" card: the tolerance percent input (2–50 %, every circle
  *     resizes live) in the header; one row per target — the shared
- *     `PlacementItemRow`, gripless because target order is display-only
- *     (index drives the marker number and the palette default, and there is
- *     nothing to reorder against) — plus an "Add target" affordance (drops at
- *     the centre). This composer owns which row's menu is open (at most one).
- *     The row menu's "Center target" is the pointer-free placement path.
+ *     `PlacementRow`, draggable by its grip because row order drives each
+ *     marker's number and palette default, so reordering is how an author
+ *     renumbers and recolors the set — plus an "Add target" affordance (drops
+ *     at the centre). Every row is `scored`: a target exists only by being
+ *     placed, so there is no per-row answer to set. This composer owns which
+ *     row's menu is open (at most one).
  *
  * Targets are addressed by id throughout, so a row and its marker keep
- * pointing at the same target across adds and removals.
+ * pointing at the same target across adds and removals — reordering is the one
+ * position-addressed op, since it moves the list itself.
  *
  * Grading is INSIDE_RADIUS (pin inside any target's circle), the only mode
  * the grader implements, so `scoreMode` has no authoring knob. The footer
  * nudges until an image is chosen and at least one target exists — but only
  * nudges: a target-less slide is a legitimate collect-only pin drop.
  */
-import { ViewfinderCircleIcon } from "@heroicons/react/24/outline";
-
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import { Btn } from "@ui/Buttons/Btn";
 import {
   MAX_PLACE_TARGETS,
@@ -45,7 +46,7 @@ import { largestUrl } from "@utils/image";
 import {
   EmptySelect,
   ItemList,
-  PlacementItemRow,
+  PlacementRow,
   ScoringFooter,
   SettingsCard,
   ToleranceField,
@@ -148,45 +149,40 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 editor.addTarget();
               }}
             >
-              {targets.map((target, index) => (
-                <PlacementItemRow
-                  key={target.id}
-                  item={target}
-                  index={index}
-                  color={resolveDatumColor(target.color, index)}
-                  itemNoun="Target"
-                  labelMaxLength={PLACE_LABEL_MAX}
-                  menuOpen={composer.openMenuId === target.id}
-                  canRemove
-                  primaryAction={{
-                    // The pointer-free placement path: park the target at the
-                    // image's centre, ready for pointer nudging from there.
-                    label: "Center target",
-                    icon: ViewfinderCircleIcon,
-                    onSelect: () => {
-                      composer.setOpenMenuId(null);
-                      editor.moveTarget(target.id, { x: 0.5, y: 0.5 });
-                    },
-                  }}
-                  onMenuOpenChange={(open) => {
-                    composer.setOpenMenuId(open ? target.id : null);
-                  }}
-                  onScheduleLabel={(label) => {
-                    editor.scheduleTargetLabel(target.id, label);
-                  }}
-                  onFlush={editor.flush}
-                  onSetColor={(color) => {
-                    editor.setTargetColor(target.id, color);
-                  }}
-                  onSetImage={(image) => {
-                    editor.setTargetImage(target.id, image);
-                  }}
-                  onRemove={() => {
-                    editor.removeTarget(target.id);
-                  }}
-                  openPicker={openPicker}
-                />
-              ))}
+              <DragDropWrapper onReorder={editor.handleItemDragEnd}>
+                {targets.map((target, index) => (
+                  <PlacementRow
+                    key={target.id}
+                    item={target}
+                    index={index}
+                    color={resolveDatumColor(target.color, index)}
+                    itemNoun="Target"
+                    labelMaxLength={PLACE_LABEL_MAX}
+                    scored
+                    draggable
+                    gripLabel={`Reorder target ${(index + 1).toString()}`}
+                    menuOpen={composer.openMenuId === target.id}
+                    canRemove
+                    onMenuOpenChange={(open) => {
+                      composer.setOpenMenuId(open ? target.id : null);
+                    }}
+                    onScheduleLabel={(label) => {
+                      editor.scheduleTargetLabel(target.id, label);
+                    }}
+                    onFlush={editor.flush}
+                    onSetColor={(color) => {
+                      editor.setTargetColor(target.id, color);
+                    }}
+                    onSetImage={(image) => {
+                      editor.setTargetImage(target.id, image);
+                    }}
+                    onRemove={() => {
+                      editor.removeTarget(target.id);
+                    }}
+                    openPicker={openPicker}
+                  />
+                ))}
+              </DragDropWrapper>
             </ItemList>
           </SettingsCard>
         </div>

@@ -30,6 +30,8 @@
 // freshest draft — and a key that matches nothing is a no-op. Targets minted
 // before ids existed on the wire stay addressable through the
 // `target-<index>` fallback key.
+import type { DragEndEvent } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/react/sortable";
 import { nanoid } from "nanoid";
 
 import type { AppImage, Target } from "@deck/store/deckApi.gen";
@@ -94,6 +96,8 @@ interface UsePlaceOnImageEditorResult {
   canAddTarget: boolean;
   /** Append a target at `point` (image centre by default). Immediate. */
   addTarget: (point?: PlacePoint) => void;
+  /** Commit a row drop — reorders `correctTargets`. Immediate. */
+  handleItemDragEnd: (event: DragEndEvent) => void;
   /** Move a target to a clamped normalized point. Immediate. */
   moveTarget: (targetId: string, point: PlacePoint) => void;
   removeTarget: (targetId: string) => void;
@@ -174,6 +178,25 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
     editor.flush();
   };
 
+  /** Reorder the targets on a row drop (mirrors `useAxisEditor`). Positional
+   *  rather than id-addressed on purpose: the drop only ever states "the row
+   *  at this position moved to that one", and splicing by index keeps targets
+   *  authored before ids reached the wire reorderable too. */
+  const handleItemDragEnd = (event: DragEndEvent) => {
+    if (event.canceled) return;
+    const { source } = event.operation;
+    if (!isSortable(source)) return;
+    const { initialIndex, index } = source;
+    if (initialIndex === index) return;
+    editor.updateSlideContent((prev) => {
+      const next = prev.correctTargets.slice();
+      const [moved] = next.splice(initialIndex, 1);
+      next.splice(index, 0, moved);
+      return { correctTargets: next };
+    });
+    editor.flush();
+  };
+
   /** Merge a patch into the addressed target; `flush` opts structural (menu)
    *  edits out of the debounce window, while label typing stays debounced.
    *  The id resolves against the updater's own `prev`, so back-to-back writes
@@ -231,6 +254,7 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
     setImage,
     canAddTarget,
     addTarget,
+    handleItemDragEnd,
     moveTarget,
     removeTarget,
     scheduleTargetLabel,
