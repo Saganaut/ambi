@@ -28,16 +28,24 @@
 // removed. `correctTargets` is a list rather than Axis's id-keyed map, so each
 // write resolves the id back to an index — inside the updater, against the
 // freshest draft — and a key that matches nothing is a no-op. Targets minted
-// before ids existed on the wire stay addressable through the
-// `target-<index>` fallback key.
+// before ids existed on the wire are given one by the load-time backfill
+// (`useItemIdentityBackfill`), so addressing is pure id with no positional
+// fallback anywhere.
+//
+// Target identity — id AND color — is likewise a stored fact, minted at
+// creation and repaired on load. Nothing here derives either from a target's
+// position, so reordering the rows renumbers the markers without moving or
+// repainting them (their coordinates were always their own).
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import { nanoid } from "nanoid";
 
+import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
 import type { AppImage, Target } from "@deck/store/deckApi.gen";
 
 import type { NormalizedPoint } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { clamp01 } from "../utils/placement";
+import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** Cap the pin targets where the shared 6-color option palette runs out, so
@@ -57,7 +65,7 @@ type PlacePoint = NormalizedPoint;
 
 /** A wire `Target` with its coordinate fields resolved for the UI. */
 interface PlaceTargetView {
-  /** The target's address: its wire id, else its `target-<index>` fallback. */
+  /** The target's address — its wire id, guaranteed by the load-time backfill. */
   id: string;
   x: number;
   y: number;
@@ -114,15 +122,10 @@ interface UsePlaceOnImageEditorResult {
   setTolerance: (value: number) => void;
 }
 
-/** A target's stable address: its wire id, else its position — targets
- * authored before ids reached the wire have to stay addressable. */
-const targetKey = (target: Target, index: number): string =>
-  target.id ?? `target-${index.toString()}`;
-
 /** Where the addressed target sits in the list, or -1 when it addresses none
- * (a stale key from a row the author has since removed). */
+ * (a stale id from a row the author has since removed). */
 const indexOfTarget = (targets: Target[], targetId: string): number =>
-  targets.findIndex((target, index) => targetKey(target, index) === targetId);
+  targets.findIndex((target) => target.id === targetId);
 
 /** The one shared radius: first target's, else the default (wire fields are
  * optional, so a hand-authored target without a radius also falls back). */
@@ -136,19 +139,34 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
   const content = slide?.content;
   const targets = content?.correctTargets ?? [];
 
+  // Freeze legacy targets' ids and colors into the content once, on load.
+  useItemIdentityBackfill(slideId, content?.correctTargets, (backfilled) => {
+    editor.updateSlideContent({ correctTargets: backfilled });
+    editor.flush();
+  });
+
   const question: PlaceOnImageQuestionView | undefined = slide
     ? {
         id: slide.id,
         prompt: slide.title,
         image: content?.image ?? { external: true },
-        targets: targets.map((target, index) => ({
-          id: targetKey(target, index),
-          x: target.x ?? 0.5,
-          y: target.y ?? 0.5,
-          label: target.label,
-          image: target.image,
-          color: target.color,
-        })),
+        // An id-less target is unaddressable — no row op and no marker drag
+        // could reach it — so it is withheld rather than rendered inert. The
+        // backfill above mints its id on the very next render.
+        targets: targets.flatMap((target) =>
+          target.id == null
+            ? []
+            : [
+                {
+                  id: target.id,
+                  x: target.x ?? 0.5,
+                  y: target.y ?? 0.5,
+                  label: target.label,
+                  image: target.image,
+                  color: target.color,
+                },
+              ],
+        ),
         tolerance: sharedTolerance(targets),
       }
     : undefined;
@@ -164,11 +182,14 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
 
   const addTarget = (point?: PlacePoint) => {
     if (!canAddTarget) return;
+    // Both id and color are picked against the freshest draft, so two adds
+    // inside one debounce window can't collide on either.
     editor.updateSlideContent((prev) => ({
       correctTargets: [
         ...prev.correctTargets,
         {
           id: nanoid(8),
+          color: nextPaletteColor(prev.correctTargets.map((target) => target.color)),
           x: clamp01(point?.x ?? 0.5),
           y: clamp01(point?.y ?? 0.5),
           radius: sharedTolerance(prev.correctTargets),
@@ -180,8 +201,9 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
 
   /** Reorder the targets on a row drop (mirrors `useAxisEditor`). Positional
    *  rather than id-addressed on purpose: the drop only ever states "the row
-   *  at this position moved to that one", and splicing by index keeps targets
-   *  authored before ids reached the wire reorderable too. */
+   *  at this position moved to that one". It moves display order alone — each
+   *  target owns its coordinates and its color, so the markers keep their
+   *  place and their hue and only their numbers change. */
   const handleItemDragEnd = (event: DragEndEvent) => {
     if (event.canceled) return;
     const { source } = event.operation;

@@ -3,8 +3,10 @@
 // live items and only by cells that exist — removing an item drops its entry,
 // removing a row/column drops entries in that lane and REINDEXES the lanes
 // behind it — and `addItem` seeds the new item's target in the same write when
-// given a cell, leaving it unplaced when not. Also pins the GRID
-// default-content shape `buildDefaultContent` mints.
+// given a cell, leaving it unplaced when not, with the lowest palette color
+// its siblings have not claimed (a stored fact, so reordering the bank can
+// never repaint it). Also pins the GRID default-content shape
+// `buildDefaultContent` mints.
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -15,6 +17,7 @@ import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
 
 import { emptySplitApi, apiBaseUrl } from "@/shared/store/emptyApi";
+import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import {
   deckApi,
   type GridContent,
@@ -31,11 +34,13 @@ const gridContent: GridContent = {
   contentType: "GRID",
   rowLabels: ["Forest", "Ocean"],
   colLabels: ["Small", "Medium", "Large"],
+  // Migrated content: every item carries its id and its own color, so the
+  // load-time identity backfill has nothing to repair and writes nothing.
   items: [
-    { id: "it_a", label: "Fox" },
-    { id: "it_b", label: "Deer" },
-    { id: "it_c", label: "Whale" },
-    { id: "it_d", label: "Crab" },
+    { id: "it_a", label: "Fox", color: paletteColorAt(0) },
+    { id: "it_b", label: "Deer", color: paletteColorAt(1) },
+    { id: "it_c", label: "Whale", color: paletteColorAt(2) },
+    { id: "it_d", label: "Crab", color: paletteColorAt(3) },
   ],
   correctCells: { it_a: "0,0", it_b: "0,1", it_c: "1,2" },
   scoreMode: "EXACT",
@@ -122,6 +127,8 @@ describe("useGridEditor structural ops", () => {
     const added = content?.items[4];
     expect(added?.id).toBeTruthy();
     expect(added?.label).toBe("");
+    // Slots 0–3 are taken by the four existing items.
+    expect(added?.color).toBe(paletteColorAt(4));
     expect(content?.correctCells).toEqual({ ...gridContent.correctCells, [added?.id ?? ""]: "1,0" });
   });
 
@@ -137,6 +144,7 @@ describe("useGridEditor structural ops", () => {
     expect(content?.items).toHaveLength(5);
     const added = content?.items[4];
     expect(added?.id).toBeTruthy();
+    expect(added?.color).toBe(paletteColorAt(4));
     expect(content?.correctCells).toEqual(gridContent.correctCells);
     expect(content?.correctCells[added?.id ?? ""]).toBeUndefined();
   });
@@ -209,7 +217,8 @@ describe("useGridEditor structural ops", () => {
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     let content = gridContentOf(lastPutBody);
     expect(content?.items.find((item) => item.id === "it_a")?.color).toBe("#ff8800");
-    expect(content?.items.find((item) => item.id === "it_b")?.color).toBeUndefined();
+    // The sibling keeps its own stored color — an override touches one item.
+    expect(content?.items.find((item) => item.id === "it_b")?.color).toBe(paletteColorAt(1));
 
     const image = { external: true, externalSrc: "https://example.test/whale.png" };
     act(() => {

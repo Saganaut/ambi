@@ -22,13 +22,15 @@
  * Clicking anywhere on the row selects it; the keyboard path is focusing the
  * label field, which both selects the row (via `onMenuOpenChange`) and opens
  * its menu — hence the two a11y suppressions here rather than at each editor.
+ * The grip lives inside that click target, so a finished drag would otherwise
+ * select the row it just moved — see `useClickAfterDragGuard`.
  *
  * `useSortable` cannot be switched on and off by a prop, so `draggable` picks
  * between two private components at the top of `PlacementRow`; both render the
  * same private base row, which keeps this file to one public export.
  */
 import { useSortable } from "@dnd-kit/react/sortable";
-import type { ReactNode, Ref } from "react";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
 
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import CheckIcon from "@assets/icons/status/check-solid.svg?react";
@@ -38,10 +40,11 @@ import { resolveImageUrl } from "@utils/image";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { ItemField } from "../ItemField/ItemField";
 import type { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
-import type { PlaceableItem } from "../placement/placement.types";
+import type { Identified, PlaceableItem } from "../placement/placement.types";
 import styles from "./PlacementRow.module.css";
 
-interface PlacementRowProps {
+/** Everything a row takes regardless of whether it can be dragged. */
+interface PlacementRowBaseProps {
   item: PlaceableItem;
   /** 0-based position — drives the index pill, placeholder, and menu label. */
   index: number;
@@ -61,8 +64,6 @@ interface PlacementRowProps {
   meta?: ReactNode;
   /** Whether this row carries an answer — shows the trailing check. */
   scored?: boolean;
-  /** Whether the row can be dragged to reorder its list. */
-  draggable?: boolean;
   /** Accessible name for the grip; defaults to "Reorder <noun> <n>". */
   gripLabel?: string;
   onSelect?: () => void;
@@ -75,13 +76,60 @@ interface PlacementRowProps {
   openPicker: OpenGalleryPicker;
 }
 
+/**
+ * A draggable row must carry an identified item: `useSortable` keys the list on
+ * it, and two rows sharing a key (or an empty-string stand-in) would reorder
+ * each other. The editors' views only publish identified items, so `draggable`
+ * costs their call sites nothing.
+ */
+type PlacementRowProps = PlacementRowBaseProps &
+  (
+    | { draggable: true; item: Identified<PlaceableItem> }
+    | { draggable?: false; item: PlaceableItem }
+  );
+
 /** The base row's own props: the public set minus the two drag switches, plus
- *  the sortable wiring `SortableRow` injects (nothing when it isn't used). */
-interface BaseRowProps extends Omit<PlacementRowProps, "draggable" | "gripLabel"> {
+ *  the sortable wiring `SortableRow` injects (nothing when it isn't used), and
+ *  the press that clears the post-drag click guard. */
+interface BaseRowProps extends Omit<PlacementRowBaseProps, "gripLabel"> {
   rootRef?: Ref<HTMLDivElement>;
   grip?: ReactNode;
   dragging?: boolean;
+  onPointerDown?: () => void;
 }
+
+/**
+ * Swallow the click a finished grip drag leaves behind.
+ *
+ * The grip sits inside the row's click target, and a pointer drag ends with a
+ * `pointerup` over the row that the browser follows with a `click`. That click
+ * would run `onSelect` — arming the row for placement — so the author's next
+ * press on the plane or the matrix would relocate the item they only meant to
+ * reorder. The guard latches while the row is dragging and is cleared by the
+ * next `pointerdown`: a genuine click always begins with one, the click after a
+ * drop never does, so exactly one click is swallowed and the keyboard path
+ * (which never produces a click here) is untouched.
+ */
+const useClickAfterDragGuard = (isDragging: boolean, onSelect?: () => void) => {
+  const draggedRef = useRef(false);
+
+  useEffect(() => {
+    if (isDragging) draggedRef.current = true;
+  }, [isDragging]);
+
+  return {
+    onPointerDown: () => {
+      draggedRef.current = false;
+    },
+    onSelect: () => {
+      if (draggedRef.current) {
+        draggedRef.current = false;
+        return;
+      }
+      onSelect?.();
+    },
+  };
+};
 
 const BaseRow = ({
   item,
@@ -99,6 +147,7 @@ const BaseRow = ({
   grip,
   dragging = false,
   onSelect,
+  onPointerDown,
   onMenuOpenChange,
   onScheduleLabel,
   onFlush,
@@ -119,6 +168,7 @@ const BaseRow = ({
         .filter(Boolean)
         .join(" ")}
       onClick={onSelect}
+      onPointerDown={onPointerDown}
     >
       <IndexPill value={displayIndex} color={color} />
       {thumbnailSrc && <img className={styles.thumbnail} src={thumbnailSrc} alt="" />}
@@ -155,18 +205,27 @@ const BaseRow = ({
 };
 
 /** The reorderable variant — for banks whose row order is itself meaningful
- *  (it fixes each item's number and palette color, and for Ranking it IS the
- *  answer). The grip alone activates the drag, so typing in the label field
- *  never fights with it. */
-const SortableRow = ({ gripLabel, ...rowProps }: Omit<PlacementRowProps, "draggable">) => {
+ *  (it fixes each item's number, and for Ranking it IS the answer; colors are
+ *  the item's own and do not follow the row). The grip alone activates the
+ *  drag, so typing in the label field never fights with it. */
+const SortableRow = ({
+  gripLabel,
+  item,
+  onSelect,
+  ...rowProps
+}: PlacementRowBaseProps & { item: Identified<PlaceableItem> }) => {
   const { ref, handleRef, isDragging } = useSortable({
-    id: rowProps.item.id ?? "",
+    id: item.id,
     index: rowProps.index,
   });
+  const clickGuard = useClickAfterDragGuard(isDragging, onSelect);
 
   return (
     <BaseRow
       {...rowProps}
+      item={item}
+      onSelect={clickGuard.onSelect}
+      onPointerDown={clickGuard.onPointerDown}
       rootRef={ref}
       dragging={isDragging}
       grip={
@@ -186,8 +245,16 @@ const SortableRow = ({ gripLabel, ...rowProps }: Omit<PlacementRowProps, "dragga
   );
 };
 
-const PlacementRow = ({ draggable = false, gripLabel, ...rowProps }: PlacementRowProps) =>
-  draggable ? <SortableRow {...rowProps} gripLabel={gripLabel} /> : <BaseRow {...rowProps} />;
+// Narrowed on `props` rather than a destructured `draggable`, so the union's
+// promise — a draggable row's item carries an id — survives into `SortableRow`.
+const PlacementRow = (props: PlacementRowProps) => {
+  if (props.draggable === true) {
+    const { draggable: _draggable, ...rowProps } = props;
+    return <SortableRow {...rowProps} />;
+  }
+  const { draggable: _draggable, gripLabel: _gripLabel, ...rowProps } = props;
+  return <BaseRow {...rowProps} />;
+};
 
 export { PlacementRow };
 export type { PlacementRowProps };

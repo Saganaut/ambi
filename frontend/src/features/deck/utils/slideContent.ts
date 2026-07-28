@@ -13,6 +13,7 @@
  * slide and its settings — so they are absent here entirely.
  */
 import { nanoid } from "nanoid";
+import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import type { ColorString } from "@components/Forms/Input/ColorPicker/ColorPicker";
 import {
   AxisItem,
@@ -125,7 +126,10 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
     case "RANKING": {
       // Seed two blank items (the minimum for a real ordering) with a matching
       // correctOrder — the authoring order is the correct order.
-      const items = [buildDefaultRankItem(), buildDefaultRankItem()];
+      const items = [
+        buildDefaultRankItem(paletteColorAt(0)),
+        buildDefaultRankItem(paletteColorAt(1)),
+      ];
       return {
         contentType: "RANKING",
         items,
@@ -156,7 +160,7 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         contentType: "GRID",
         rowLabels: ["", ""],
         colLabels: ["", ""],
-        items: [buildDefaultGridItem(), buildDefaultGridItem()],
+        items: [buildDefaultGridItem(paletteColorAt(0)), buildDefaultGridItem(paletteColorAt(1))],
         correctCells: {},
         scoreMode: "EXACT",
       };
@@ -172,7 +176,7 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         xHighLabel: "",
         yLowLabel: "",
         yHighLabel: "",
-        items: [buildDefaultAxisItem(), buildDefaultAxisItem()],
+        items: [buildDefaultAxisItem(paletteColorAt(0)), buildDefaultAxisItem(paletteColorAt(1))],
         correctPositions: {},
         tolerance: 0.1,
         scoreMode: "INSIDE_RADIUS",
@@ -264,32 +268,41 @@ export const buildDefaultAllocationOption = (): McqOption => ({
  * their position by id (via the content's `correctOrder`), so a stable id at
  * creation time is what lets the author reorder and the backend resolve the
  * correct order. The label is empty for the author to fill in.
+ *
+ * `color` is stamped here rather than derived from the item's position, so a
+ * reorder renumbers the list without repainting it — pass `nextPaletteColor`
+ * (`shared/components/Charts/optionPalette.ts`) of the colors already in use.
  */
-export const buildDefaultRankItem = (): RankItem => ({
+export const buildDefaultRankItem = (color: string): RankItem => ({
   id: nanoid(8),
   label: "",
+  color,
 });
 
 /**
  * Build a blank grid item with a fresh client-minted id. GRID slides key each
  * item's target cell by id (via the content's `correctCells`), so a stable id
  * at creation time is what lets the author assign targets and the backend grade
- * placements. The label is empty for the author to fill in.
+ * placements. The label is empty for the author to fill in; `color` is stamped
+ * at creation for the reason {@link buildDefaultRankItem} gives.
  */
-export const buildDefaultGridItem = (): GridItem => ({
+export const buildDefaultGridItem = (color: string): GridItem => ({
   id: nanoid(8),
   label: "",
+  color,
 });
 
 /**
  * Build a blank axis item with a fresh client-minted id. AXIS slides key each
  * item's target point by id (via the content's `correctPositions`), so a stable
  * id at creation time is what lets the author place targets and the backend
- * grade placements. The label is empty for the author to fill in.
+ * grade placements. The label is empty for the author to fill in; `color` is
+ * stamped at creation for the reason {@link buildDefaultRankItem} gives.
  */
-export const buildDefaultAxisItem = (): AxisItem => ({
+export const buildDefaultAxisItem = (color: string): AxisItem => ({
   id: nanoid(8),
   label: "",
+  color,
 });
 
 /**

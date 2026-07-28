@@ -1,10 +1,12 @@
 // Pins the Place-on-Image editor's invariants: targets stay inside the
 // normalized [0, 1] image box, the single tolerance knob keeps every target's
-// wire `radius` in lockstep (and hands it to newly added targets), and every
-// target op is addressed by id — including the `target-<index>` fallback that
-// keeps id-less legacy targets reachable, and a stale id that must do nothing.
-// Also pins the PLACE_ON_IMAGE default-content shape `buildDefaultContent`
-// mints for a brand-new slide (no targets, INSIDE_RADIUS fixed).
+// wire `radius` in lockstep (and hands it to newly added targets), a new target
+// is minted with the lowest free palette color, and every target op is
+// addressed by id alone — including a stale id that must do nothing, and a
+// legacy target that reaches the editor without one and is repaired by the
+// load-time identity backfill before any op can address it. Also pins the
+// PLACE_ON_IMAGE default-content shape `buildDefaultContent` mints for a
+// brand-new slide (no targets, INSIDE_RADIUS fixed).
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -15,6 +17,7 @@ import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
 
 import { emptySplitApi, apiBaseUrl } from "@/shared/store/emptyApi";
+import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import {
   deckApi,
   type PlaceOnImageContent,
@@ -27,22 +30,25 @@ import { usePlaceOnImageEditor } from "./usePlaceOnImageEditor";
 const DECK_ID = "deck-1";
 const SLIDE_ID = "slide-place";
 
+// Migrated content: every target carries the id it is addressed by and the
+// color minted for it, so the load-time backfill has nothing to repair and
+// writes nothing.
 const placeContent: PlaceOnImageContent = {
   contentType: "PLACE_ON_IMAGE",
   image: { external: true, externalSrc: "https://example.test/middle-earth.png" },
   correctTargets: [
-    { id: "target_a", x: 0.2, y: 0.15, radius: 0.08 },
-    { id: "target_b", x: 0.85, y: 0.3, radius: 0.08 },
+    { id: "target_a", x: 0.2, y: 0.15, radius: 0.08, color: paletteColorAt(0) },
+    { id: "target_b", x: 0.85, y: 0.3, radius: 0.08, color: paletteColorAt(1) },
   ],
   scoreMode: "INSIDE_RADIUS",
 };
 
-// A deck authored before targets carried ids on the wire: the first target is
-// reachable only through its `target-<index>` fallback key.
+// A deck authored before targets carried ids or colors on the wire: the first
+// target has neither, so the editor has to repair it on load.
 const legacyContent: PlaceOnImageContent = {
   ...placeContent,
   correctTargets: [
-    { x: 0.2, y: 0.15, radius: 0.08 },
+    { x: 0.2, y: 0.15, radius: 0.08, label: "Rivendell" },
     { id: "target_b", x: 0.85, y: 0.3, radius: 0.08 },
   ],
 };
@@ -117,7 +123,7 @@ describe("buildDefaultContent(PLACE_ON_IMAGE)", () => {
 });
 
 describe("usePlaceOnImageEditor target ops", () => {
-  it("addTarget appends a clamped point with a fresh id and the shared radius", async () => {
+  it("addTarget appends a clamped point with a fresh id, color and the shared radius", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
@@ -130,7 +136,9 @@ describe("usePlaceOnImageEditor target ops", () => {
     const added = targets?.[2];
     expect(added?.id).toBeTruthy();
     expect(added?.id).not.toBe("target_a");
-    expect(added).toMatchObject({ x: 1, y: 0, radius: 0.08 });
+    // The color is stored at creation — the lowest palette slot the existing
+    // targets have not claimed — so a later reorder can never repaint it.
+    expect(added).toMatchObject({ x: 1, y: 0, radius: 0.08, color: paletteColorAt(2) });
     // Existing targets are untouched.
     expect(targets?.slice(0, 2)).toEqual(placeContent.correctTargets);
   });
@@ -144,7 +152,13 @@ describe("usePlaceOnImageEditor target ops", () => {
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
     const targets = placeContentOf(lastPutBody)?.correctTargets;
-    expect(targets?.[0]).toEqual({ id: "target_a", x: 0, y: 1, radius: 0.08 });
+    expect(targets?.[0]).toEqual({
+      id: "target_a",
+      x: 0,
+      y: 1,
+      radius: 0.08,
+      color: paletteColorAt(0),
+    });
     expect(targets?.[1]).toEqual(placeContent.correctTargets[1]);
   });
 
@@ -187,7 +201,8 @@ describe("usePlaceOnImageEditor target ops", () => {
     );
 
     targets = placeContentOf(lastPutBody)?.correctTargets;
-    expect(targets?.[0].color).toBeUndefined();
+    // The other target's own color is untouched by a sibling's override.
+    expect(targets?.[0].color).toBe(paletteColorAt(0));
     expect(targets?.[1].image).toBeUndefined();
     // Annotation edits never disturb the answer key's geometry.
     expect(targets?.map(({ x, y, radius }) => ({ x, y, radius }))).toEqual(
@@ -195,24 +210,66 @@ describe("usePlaceOnImageEditor target ops", () => {
     );
   });
 
-  it("addresses a legacy id-less target through its target-<index> fallback key", async () => {
-    const result = await renderUsePlaceOnImageEditor(slideWith(legacyContent));
+  it("backfills a legacy id-less target on load, then addresses it by that id", async () => {
+    await renderUsePlaceOnImageEditor(slideWith(legacyContent));
 
-    // The view hands the UI a usable address even with no wire id.
+    // Opening the slide writes the repair once, ids and colors together.
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+    const repairedContent = placeContentOf(lastPutBody);
+    const repaired = repairedContent?.correctTargets;
+    const mintedId = repaired?.[0].id ?? "";
+    expect(mintedId).toBeTruthy();
+    expect(mintedId).not.toBe("target_b");
+    // The colorless target keeps exactly the palette default its position was
+    // already rendering, so the repair is invisible to the author — and its
+    // geometry and label ride through untouched.
+    expect(repaired?.[0]).toEqual({
+      id: mintedId,
+      x: 0.2,
+      y: 0.15,
+      radius: 0.08,
+      label: "Rivendell",
+      color: paletteColorAt(0),
+    });
+    // The already-identified target keeps its id and is only given the color
+    // its position was rendering — one write covers both fields, every target.
+    expect(repaired?.[1]).toEqual({
+      ...legacyContent.correctTargets[1],
+      color: paletteColorAt(1),
+    });
+
+    // Reopen the slide as the repair persisted it: the minted id is the only
+    // address the target has (there is no positional fallback any more), the
+    // view publishes it, and there is nothing left to repair.
+    if (!repairedContent) throw new Error("expected the backfill to have been written");
+    lastPutBody = undefined;
+    const result = await renderUsePlaceOnImageEditor(slideWith(repairedContent));
+    expect(lastPutBody).toBeUndefined();
     expect(result.current.question?.targets.map((target) => target.id)).toEqual([
-      "target-0",
+      mintedId,
       "target_b",
     ]);
 
     act(() => {
-      result.current.moveTarget("target-0", { x: 0.4, y: 0.6 });
+      result.current.moveTarget(mintedId, { x: 0.4, y: 0.6 });
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
     const targets = placeContentOf(lastPutBody)?.correctTargets;
-    // The fallback key never leaks onto the wire — only the coordinates move.
-    expect(targets?.[0]).toEqual({ x: 0.4, y: 0.6, radius: 0.08 });
-    expect(targets?.[1]).toEqual(legacyContent.correctTargets[1]);
+    // The op reached the backfilled target: only its coordinates moved, its
+    // label and color stayed, and its neighbour is untouched.
+    expect(targets?.[0]).toEqual({
+      id: mintedId,
+      x: 0.4,
+      y: 0.6,
+      radius: 0.08,
+      label: "Rivendell",
+      color: paletteColorAt(0),
+    });
+    expect(targets?.[1]).toEqual({
+      ...legacyContent.correctTargets[1],
+      color: paletteColorAt(1),
+    });
   });
 
   it("ignores an op addressed to a target that no longer exists", async () => {

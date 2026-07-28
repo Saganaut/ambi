@@ -62,7 +62,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   if (!question) return <EmptySelect title="Axis" />;
 
   const { items, correctPositions, tolerance } = question;
-  const placedCount = items.filter((item) => item.id && correctPositions[item.id]).length;
+  const placedCount = items.filter((item) => correctPositions[item.id]).length;
   const fullyAssigned = items.length > 0 && placedCount === items.length;
 
   const selectItem = (itemId: string | undefined) => {
@@ -147,10 +147,10 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             >
               <DragDropWrapper onReorder={editor.handleItemDragEnd}>
                 {items.map((item, index) => {
-                  const hasTarget = item.id != null && correctPositions[item.id] != null;
+                  const hasTarget = correctPositions[item.id] != null;
                   return (
                     <PlacementRow
-                      key={item.id ?? index}
+                      key={item.id}
                       item={item}
                       index={index}
                       color={resolveDatumColor(item.color, index)}
@@ -159,8 +159,8 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                       scored={hasTarget}
                       draggable
                       gripLabel={`Reorder item ${(index + 1).toString()}`}
-                      selected={item.id != null && composer.selectedItemId === item.id}
-                      menuOpen={item.id != null && composer.openMenuId === item.id}
+                      selected={composer.selectedItemId === item.id}
+                      menuOpen={composer.openMenuId === item.id}
                       canRemove={editor.canRemoveItem}
                       primaryAction={{
                         label: hasTarget ? "Clear target" : "Set target",
@@ -177,7 +177,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                         selectItem(item.id);
                       }}
                       onMenuOpenChange={(open) => {
-                        composer.setOpenMenuId(open ? (item.id ?? null) : null);
+                        composer.setOpenMenuId(open ? item.id : null);
                         if (open) selectItem(item.id);
                       }}
                       onScheduleLabel={(label) => {

@@ -16,12 +16,20 @@
 // and reindexes the ones behind it. Grading is EXACT (all placements must
 // match), so `scoreMode` has no authoring knob — `buildDefaultContent` fixes it
 // and the editor never writes it.
+//
+// Item identity — id AND color — is a stored fact, minted at creation and
+// repaired on load for legacy content (`useItemIdentityBackfill`). Nothing here
+// derives either from an item's position, so reordering the bank renumbers it
+// without moving or repainting a single chip.
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 
+import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
 import type { AppImage, GridItem } from "@deck/store/deckApi.gen";
 
+import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { buildDefaultGridItem } from "../utils/slideContent";
+import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** A matrix needs at least one row and one column … */
@@ -54,7 +62,8 @@ interface GridQuestionView {
   prompt: string;
   rowLabels: string[];
   colLabels: string[];
-  items: GridItem[];
+  /** The bank, every item carrying the id its target cell is keyed by. */
+  items: Identified<GridItem>[];
   /** Target cell per item id ({@code "rowIndex,colIndex"}). */
   correctCells: Record<string, string>;
 }
@@ -129,6 +138,12 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
   const content = slide?.content;
   const items = content?.items ?? [];
 
+  // Freeze legacy items' ids and colors into the content once, on load.
+  useItemIdentityBackfill(slideId, content?.items, (backfilled) => {
+    editor.updateSlideContent({ items: backfilled });
+    editor.flush();
+  });
+
   const labelsOf = (axis: GridAxis): string[] =>
     (axis === "row" ? content?.rowLabels : content?.colLabels) ?? [];
   const labelPatch = (axis: GridAxis, labels: string[]) =>
@@ -140,7 +155,10 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
         prompt: slide.title,
         rowLabels: content?.rowLabels ?? [],
         colLabels: content?.colLabels ?? [],
-        items,
+        // An id-less item is unaddressable — it cannot be labeled, colored,
+        // placed or removed — so it is withheld rather than rendered inert.
+        // The backfill above mints its id on the very next render.
+        items: items.filter((item): item is Identified<GridItem> => item.id != null),
         correctCells: content?.correctCells ?? {},
       }
     : undefined;
@@ -185,11 +203,15 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
 
   const addItem = (cell?: string) => {
     if (!canAddItem) return;
-    const item = buildDefaultGridItem();
-    editor.updateSlideContent((prev) => ({
-      items: [...prev.items, item],
-      ...(item.id && cell ? { correctCells: { ...prev.correctCells, [item.id]: cell } } : {}),
-    }));
+    // Minted inside the updater so the color is picked against the freshest
+    // draft: two adds inside one debounce window can't claim the same slot.
+    editor.updateSlideContent((prev) => {
+      const item = buildDefaultGridItem(nextPaletteColor(prev.items.map((each) => each.color)));
+      return {
+        items: [...prev.items, item],
+        ...(item.id && cell ? { correctCells: { ...prev.correctCells, [item.id]: cell } } : {}),
+      };
+    });
     editor.flush();
   };
 
@@ -224,8 +246,9 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     editor.flush();
   };
 
-  // Display order only: `correctCells` is keyed by item id, so a reorder never
-  // disturbs where the items are placed — it only renumbers and recolors them.
+  // Display order only: `correctCells` is keyed by item id and each item owns
+  // its color, so a reorder never disturbs where the items are placed and
+  // never repaints them — it only renumbers them.
   const handleItemDragEnd = (event: DragEndEvent) => {
     if (event.canceled) return;
     const { source } = event.operation;

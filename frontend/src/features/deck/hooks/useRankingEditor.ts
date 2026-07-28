@@ -13,11 +13,19 @@
 // structural edit — add, remove, drag-reorder — rebuilds `correctOrder` from
 // the current item order to keep the two in lockstep. A label-only edit leaves
 // the order untouched.
+//
+// Item identity — id AND color — is a stored fact, minted at creation and
+// repaired on load for legacy content (`useItemIdentityBackfill`); the pill
+// color is the item's own, so reordering the list renumbers it (which here IS
+// the answer) without repainting it.
 import type { AppImage, RankItem } from "@deck/store/deckApi.gen";
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 
+import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
+import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { buildDefaultRankItem } from "../utils/slideContent";
+import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** A ranking needs at least two items to be a real ordering … */
@@ -32,7 +40,8 @@ interface RankingQuestionView {
   id: string;
   /** The prompt text — stored in `slide.title`, not in the content. */
   prompt: string;
-  items: RankItem[];
+  /** The list, every item carrying the id `correctOrder` records it by. */
+  items: Identified<RankItem>[];
   /** Item ids in the correct order, top → bottom (mirrors `items` order). */
   correctOrder: string[];
 }
@@ -67,8 +76,9 @@ interface UseRankingEditorResult {
   removeItem: (itemId: string | undefined) => void;
 }
 
-/** Item ids in list order, dropping any without an id (defensive). */
-const orderOf = (items: RankItem[]): string[] =>
+/** Item ids in list order, dropping any without an id (defensive: the load-time
+ *  backfill mints one for every item, so nothing should be dropped here). */
+const orderOf = (items: readonly RankItem[]): string[] =>
   items.map((item) => item.id).filter((id): id is string => id != null);
 
 const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResult => {
@@ -82,6 +92,14 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
   const content = slide?.content;
   const items = content?.items ?? [];
 
+  // Freeze legacy items' ids and colors into the content once, on load, and
+  // rebuild `correctOrder` from the repaired list in the same write — an item
+  // that had no id was silently missing from the order until now.
+  useItemIdentityBackfill(slideId, content?.items, (backfilled) => {
+    editor.updateSlideContent({ items: backfilled, correctOrder: orderOf(backfilled) });
+    editor.flush();
+  });
+
   const canAddItem = items.length < MAX_RANKING_ITEMS;
   const canRemove = items.length > MIN_RANKING_ITEMS;
 
@@ -89,7 +107,10 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
     ? {
         id: slide.id,
         prompt: slide.title,
-        items,
+        // An id-less item is unaddressable and absent from `correctOrder`, so
+        // it is withheld rather than rendered inert; the backfill above mints
+        // its id on the very next render.
+        items: items.filter((item): item is Identified<RankItem> => item.id != null),
         correctOrder: content?.correctOrder ?? [],
       }
     : undefined;
@@ -98,8 +119,13 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
 
   const addItem = () => {
     if (!canAddItem) return;
+    // The color is picked against the freshest draft, so two adds inside one
+    // debounce window can't both claim the same palette slot.
     editor.updateSlideContent((prev) => {
-      const next = [...prev.items, buildDefaultRankItem()];
+      const next = [
+        ...prev.items,
+        buildDefaultRankItem(nextPaletteColor(prev.items.map((item) => item.color))),
+      ];
       return { items: next, correctOrder: orderOf(next) };
     });
     editor.flush();

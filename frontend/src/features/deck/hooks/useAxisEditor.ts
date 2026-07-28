@@ -15,13 +15,21 @@
 // INSIDE_RADIUS (every keyed item within `tolerance` of its target), so
 // `scoreMode` has no authoring knob — `buildDefaultContent` fixes it and the
 // editor never writes it.
+//
+// Item identity — id AND color — is a stored fact, minted at creation and
+// repaired on load for legacy content (`useItemIdentityBackfill`). Nothing here
+// derives either from an item's position, so reordering the bank renumbers it
+// without moving or repainting a single target.
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 
+import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
 import type { AppImage, AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 
+import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { clamp01 } from "../utils/placement";
 import { buildDefaultAxisItem } from "../utils/slideContent";
+import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** At least one item to place … */
@@ -52,7 +60,8 @@ interface AxisQuestionView {
   xHighLabel: string;
   yLowLabel: string;
   yHighLabel: string;
-  items: AxisItem[];
+  /** The bank, every item carrying the id its target is keyed by. */
+  items: Identified<AxisItem>[];
   /** Target point per item id, normalized to [0, 1] on both axes. */
   correctPositions: Record<string, AxisPoint>;
   /** Normalized radius around each target that counts as correct. */
@@ -102,6 +111,12 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
   const content = slide?.content;
   const items = content?.items ?? [];
 
+  // Freeze legacy items' ids and colors into the content once, on load.
+  useItemIdentityBackfill(slideId, content?.items, (backfilled) => {
+    editor.updateSlideContent({ items: backfilled });
+    editor.flush();
+  });
+
   const labelField = (axis: AxisAxis, end: AxisEnd) =>
     axis === "x"
       ? end === "low"
@@ -119,7 +134,10 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
         xHighLabel: content?.xHighLabel ?? "",
         yLowLabel: content?.yLowLabel ?? "",
         yHighLabel: content?.yHighLabel ?? "",
-        items,
+        // An id-less item is unaddressable — it cannot be labeled, colored,
+        // placed or removed — so it is withheld rather than rendered inert.
+        // The backfill above mints its id on the very next render.
+        items: items.filter((item): item is Identified<AxisItem> => item.id != null),
         correctPositions: content?.correctPositions ?? {},
         tolerance: content?.tolerance ?? AXIS_TOLERANCE_DEFAULT,
       }
@@ -136,7 +154,14 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
 
   const addItem = () => {
     if (!canAddItem) return;
-    editor.updateSlideContent((prev) => ({ items: [...prev.items, buildDefaultAxisItem()] }));
+    // The color is picked against the freshest draft, so two adds inside one
+    // debounce window can't both claim the same palette slot.
+    editor.updateSlideContent((prev) => ({
+      items: [
+        ...prev.items,
+        buildDefaultAxisItem(nextPaletteColor(prev.items.map((item) => item.color))),
+      ],
+    }));
     editor.flush();
   };
 

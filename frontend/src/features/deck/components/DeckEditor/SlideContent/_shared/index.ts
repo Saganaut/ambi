@@ -43,4 +43,4 @@ export type {
   UsePointerPlacementOptions,
   UsePointerPlacementResult,
 } from "./placement/usePointerPlacement";
-export type { NormalizedPoint, PlaceableItem } from "./placement/placement.types";
+export type { Identified, NormalizedPoint, PlaceableItem } from "./placement/placement.types";

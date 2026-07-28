@@ -262,10 +262,12 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   claims all the room. **Select a row, then press/drag on the plane** →
   `getBoundingClientRect` → normalized point → `setTargetPosition` (committed
   on release). Placed markers — a numbered dot in the item's resolved color
-  (`resolveDatumColor(item.color, index)`: the authored override, or a
-  palette default from the shared 6-color palette — one distinct color per
-  item at the `MAX_AXIS_ITEMS = 6` cap, with a darker-lightness second cycle
-  kept as a defensive fallback should the cap ever rise), growing a label
+  (`resolveDatumColor(item.color, index)`: the item's stored color — stamped
+  at creation by `nextPaletteColor` from the shared 6-color palette, one
+  distinct color per item at the `MAX_AXIS_ITEMS = 6` cap, with a
+  darker-lightness second cycle kept as a defensive fallback should the cap
+  ever rise; the positional fallback is dead weight once
+  `useItemIdentityBackfill` has run), growing a label
   pill only when the item is labeled, dot centered on the target — can be
   dragged directly (pointer capture) or tapped to toggle their row's
   selection. Every placed marker renders its tolerance circle in the same

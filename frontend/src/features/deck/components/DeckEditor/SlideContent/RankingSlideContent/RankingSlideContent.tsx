@@ -80,7 +80,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
         <DragDropWrapper onReorder={handleItemDragEnd}>
           {question.items.map((item, idx) => (
             <PlacementRow
-              key={item.id ?? idx}
+              key={item.id}
               item={item}
               index={idx}
               color={resolveDatumColor(item.color, idx)}
@@ -89,10 +89,10 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
               scored
               draggable
               gripLabel={`Reorder item ${(idx + 1).toString()}`}
-              menuOpen={item.id != null && composer.openMenuId === item.id}
+              menuOpen={composer.openMenuId === item.id}
               canRemove={canRemove}
               onMenuOpenChange={(open) => {
-                composer.setOpenMenuId(open ? (item.id ?? null) : null);
+                composer.setOpenMenuId(open ? item.id : null);
               }}
               onScheduleLabel={(label) => {
                 scheduleItem(item.id, { ...item, label });

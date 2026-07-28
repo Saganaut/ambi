@@ -1,7 +1,9 @@
 // Pins the Axis editor's structural invariant (spec: axis-slides): the
 // `correctPositions` answer key is keyed only by ids of live items — removing
-// an item must drop its target — and target writes stay inside the normalized
-// [0, 1] plane. Also pins the AXIS default-content shape `buildDefaultContent`
+// an item must drop its target — target writes stay inside the normalized
+// [0, 1] plane, and a new item is minted with the lowest palette color its
+// siblings have not claimed (a stored fact, so reordering the bank can never
+// repaint it). Also pins the AXIS default-content shape `buildDefaultContent`
 // mints for a brand-new slide (collect-only, INSIDE_RADIUS fixed).
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
@@ -13,6 +15,7 @@ import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
 
 import { emptySplitApi, apiBaseUrl } from "@/shared/store/emptyApi";
+import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import {
   deckApi,
   type AxisContent,
@@ -31,9 +34,11 @@ const axisContent: AxisContent = {
   xHighLabel: "Reckless",
   yLowLabel: "Humble",
   yHighLabel: "Proud",
+  // Migrated content: every item carries its id and its own color, so the
+  // load-time identity backfill has nothing to repair and writes nothing.
   items: [
-    { id: "item_a", label: "Samwise" },
-    { id: "item_b", label: "Pippin" },
+    { id: "item_a", label: "Samwise", color: paletteColorAt(0) },
+    { id: "item_b", label: "Pippin", color: paletteColorAt(1) },
   ],
   correctPositions: {
     item_a: { x: 0.2, y: 0.15 },
@@ -145,7 +150,7 @@ describe("useAxisEditor structural ops", () => {
     );
   });
 
-  it("addItem appends a fresh item without touching existing targets", async () => {
+  it("addItem appends a fresh item, colored from the lowest free palette slot", async () => {
     const result = await renderUseAxisEditor();
 
     act(() => {
@@ -157,6 +162,8 @@ describe("useAxisEditor structural ops", () => {
     expect(content?.items).toHaveLength(3);
     expect(content?.items[2].id).toBeTruthy();
     expect(content?.items[2].label).toBe("");
+    // Slots 0 and 1 are taken by the two existing items.
+    expect(content?.items[2].color).toBe(paletteColorAt(2));
     expect(content?.correctPositions).toEqual(axisContent.correctPositions);
   });
 
@@ -169,7 +176,8 @@ describe("useAxisEditor structural ops", () => {
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     let content = axisContentOf(lastPutBody);
     expect(content?.items.find((item) => item.id === "item_a")?.color).toBe("#ff8800");
-    expect(content?.items.find((item) => item.id === "item_b")?.color).toBeUndefined();
+    // The sibling keeps its own stored color — an override touches one item.
+    expect(content?.items.find((item) => item.id === "item_b")?.color).toBe(paletteColorAt(1));
 
     const image = { external: true, externalSrc: "https://example.test/pippin.png" };
     act(() => {

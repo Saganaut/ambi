@@ -133,7 +133,6 @@ const AxisPlaneEditor = ({
       {endpointInput("x", "high", "xHigh", "X high", styles.endpointRight)}
       {question.items.map((item, index) => {
         const itemId = item.id;
-        if (!itemId) return null;
         const point = surface.pointFor(itemId, question.correctPositions[itemId]);
         if (!point) return null;
         const label = item.label?.trim() ?? "";

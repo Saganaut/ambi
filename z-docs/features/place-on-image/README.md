@@ -134,11 +134,14 @@ Axis, Place-on-Image, and Grid build on — see
   the placement surface) and a "Targets" card (the shared `ToleranceField` in
   the header, one `PlacementRow` per target, add/remove). The rows are
   **draggable by their grip**, wrapped in a `DragDropWrapper` like Axis's and
-  Grid's banks: row order drives each marker's number and palette default, so
-  reordering is how an author renumbers and recolors the set
+  Grid's banks: row order drives each marker's number, so reordering is how an
+  author renumbers the set — and renumbering is all it does. Each target owns
+  its coordinates and the color minted for it at creation
+  (`nextPaletteColor`, backfilled for legacy targets by
+  `useItemIdentityBackfill` on load), so no marker moves or changes hue
   (`usePlaceOnImageEditor`'s `handleItemDragEnd` splices `correctTargets` by
-  index — positional rather than id-addressed, which keeps targets authored
-  before ids reached the wire reorderable too). Each row wraps the shared
+  index — positional rather than id-addressed, because a drop only ever states
+  "the row at this position moved to that one"). Each row wraps the shared
   `ItemField` — the label doubles as the popover trigger, and the menu holds
   the shared color palette/custom-color modal, image upload/clear, and delete;
   there is no kind-specific `primaryAction`, since a target exists only by

@@ -23,4 +23,12 @@ interface PlaceableItem {
   color?: string;
 }
 
-export type { NormalizedPoint, PlaceableItem };
+/**
+ * An item past the editors' load-time identity backfill
+ * (`useItemIdentityBackfill`): its client id is guaranteed present, so rows,
+ * markers, React keys and `useSortable` all address it directly instead of
+ * falling back to its array position.
+ */
+type Identified<T extends { id?: string }> = T & { id: string };
+
+export type { Identified, NormalizedPoint, PlaceableItem };

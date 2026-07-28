@@ -104,7 +104,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   const { rowLabels, colLabels, items, correctCells } = question;
 
-  const placedCount = items.filter((item) => item.id && correctCells[item.id]).length;
+  const placedCount = items.filter((item) => correctCells[item.id]).length;
   const fullyPlaced = items.length > 0 && placedCount === items.length;
 
   /** Human name of a cell id, e.g. "Forest × Small". */
@@ -114,9 +114,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   };
 
   // The armed item — the one a cell's "Place here" button would place.
-  const armedIndex = items.findIndex(
-    (item) => item.id != null && item.id === composer.selectedItemId,
-  );
+  const armedIndex = items.findIndex((item) => item.id === composer.selectedItemId);
   const armedItem = armedIndex >= 0 ? items[armedIndex] : undefined;
   const armedItemName = armedItem ? itemNameOf(armedItem, armedIndex) : null;
 
@@ -223,9 +221,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   />
                   {colLabels.map((_, col) => {
                     const cell = cellId(row, col);
-                    const placed = items.filter(
-                      (item) => item.id && correctCells[item.id] === cell,
-                    );
+                    const placed = items.filter((item) => correctCells[item.id] === cell);
                     return (
                       <GridCellEditable
                         key={cell}
@@ -240,7 +236,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                       >
                         {placed.map((item) => {
                           const index = items.indexOf(item);
-                          const itemId = item.id ?? "";
+                          const itemId = item.id;
                           return (
                             <GridCellChip
                               key={itemId}
@@ -283,7 +279,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 displayIndex={carriedIndex + 1}
                 color={resolveDatumColor(carried.color, carriedIndex)}
                 label={carried.label}
-                imageSrc={resolveImageUrl(carried.image, "SM", carried.id ?? "", 200, 200, false)}
+                imageSrc={resolveImageUrl(carried.image, "SM", carried.id, 200, 200, false)}
                 clientX={gesture.drag.value.clientX}
                 clientY={gesture.drag.value.clientY}
               />
@@ -311,10 +307,10 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             >
               <DragDropWrapper onReorder={editor.handleItemDragEnd}>
                 {items.map((item, index) => {
-                  const cell = item.id != null ? correctCells[item.id] : undefined;
+                  const cell = correctCells[item.id];
                   return (
                     <PlacementRow
-                      key={item.id ?? index}
+                      key={item.id}
                       item={item}
                       index={index}
                       color={resolveDatumColor(item.color, index)}
@@ -323,8 +319,8 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                       scored={cell != null}
                       draggable
                       gripLabel={`Reorder item ${(index + 1).toString()}`}
-                      selected={item.id != null && composer.selectedItemId === item.id}
-                      menuOpen={item.id != null && composer.openMenuId === item.id}
+                      selected={composer.selectedItemId === item.id}
+                      menuOpen={composer.openMenuId === item.id}
                       canRemove={editor.canRemoveItem}
                       // An unplaced item shows no cell name and no check — the
                       // absent pair says "unplaced" without a word for it.
@@ -334,11 +330,11 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                         )
                       }
                       onSelect={() => {
-                        if (item.id) composer.setSelectedItemId(item.id);
+                        composer.setSelectedItemId(item.id);
                       }}
                       onMenuOpenChange={(open) => {
-                        composer.setOpenMenuId(open ? (item.id ?? null) : null);
-                        if (open && item.id) composer.setSelectedItemId(item.id);
+                        composer.setOpenMenuId(open ? item.id : null);
+                        if (open) composer.setSelectedItemId(item.id);
                       }}
                       onScheduleLabel={(label) => {
                         editor.scheduleItemLabel(item.id, label);

@@ -36,10 +36,20 @@ from the `_shared` barrel:
 - `_shared/_shared.module.css` — the two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, and the `ItemCard` / `ItemList` chrome. `PlacementRow` brings its own module instead, since its chrome is no longer `ItemCard`'s.
 
 Item colors come from one resolver, `resolveDatumColor(item.color, index)`
-(`shared/components/Charts/optionPalette.ts`): the authored override, else a
+(`shared/components/Charts/optionPalette.ts`): the item's stored color, else a
 palette default by list position, with a darker second cycle past the palette's
 six colors. The play-time boards use the same call, so a chip in the editor and
-its counterpart on the board are the same color. Drag-end events are reduced by
+its counterpart on the board are the same color.
+
+For the placement kinds (Axis, Grid, Ranking, Place-on-Image) the stored color
+is always present, so the positional fallback never fires: `nextPaletteColor`
+stamps the lowest free palette slot on an item as it is **created**, and
+`useItemIdentityBackfill` (`features/deck/hooks/`) freezes the id and color of
+legacy items into the content in one write the first time such a slide is
+opened — a color-less item keeps the palette default its current position was
+already rendering. Reordering a bank therefore renumbers it and nothing else:
+the answer keys are id-keyed (or, for Place-on-Image, carried on the target
+itself) and the colors travel with the items. Drag-end events are reduced by
 the shared `resolveDragEnd` / `BANK_DROPPABLE_ID` seam in
 `shared/utils/dragDrop.ts`, shared with the live-session boards.
 

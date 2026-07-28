@@ -36,3 +36,28 @@ export const paletteColorAt = (index: number): string => {
 /** The datum's own colour, or the palette default for its position. */
 export const resolveDatumColor = (datumColor: string | undefined, index: number): string =>
   datumColor ?? paletteColorAt(index);
+
+/**
+ * How many visually distinct colours the cycle yields before it repeats: the
+ * six swatches at the first lightness, then the same six at the second.
+ */
+const DISTINCT_PALETTE_COLORS = MAX_OPTION_COLORS * 2;
+
+/**
+ * The lowest palette slot whose colour nothing in `usedColors` already carries.
+ *
+ * This is what an editor stamps on a datum it is CREATING, so the datum's
+ * colour is a stored fact rather than a function of its position — reordering a
+ * list then renumbers it without repainting it. A custom colour the author
+ * picked is not a palette entry, so it occupies no slot and never blocks one.
+ * Once every distinct colour is spoken for the cycle simply continues, where a
+ * repeat is unavoidable.
+ */
+export const nextPaletteColor = (usedColors: readonly (string | undefined)[]): string => {
+  const used = new Set(usedColors.filter((color): color is string => color != null));
+  for (let slot = 0; slot < DISTINCT_PALETTE_COLORS; slot += 1) {
+    const candidate = paletteColorAt(slot);
+    if (!used.has(candidate)) return candidate;
+  }
+  return paletteColorAt(used.size);
+};

@@ -16,8 +16,10 @@
  *   - "Targets" card: the tolerance percent input (2–50 %, every circle
  *     resizes live) in the header; one row per target — the shared
  *     `PlacementRow`, draggable by its grip because row order drives each
- *     marker's number and palette default, so reordering is how an author
- *     renumbers and recolors the set — plus an "Add target" affordance (drops
+ *     marker's number, so reordering is how an author renumbers the set. It
+ *     renumbers and nothing else: each target owns its coordinates and the
+ *     color minted for it at creation, so no marker moves or changes hue —
+ *     plus an "Add target" affordance (drops
  *     at the centre). Every row is `scored`: a target exists only by being
  *     placed, so there is no per-row answer to set. This composer owns which
  *     row's menu is open (at most one).
