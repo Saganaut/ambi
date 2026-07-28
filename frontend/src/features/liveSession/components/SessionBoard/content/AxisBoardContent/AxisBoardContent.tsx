@@ -26,22 +26,17 @@
 // as rendered — so screen y inverts on the way in and back out again on render,
 // the same frame the editor's `AxisPlaneEditor` and the grader work in. The
 // draft placements are round-local, keyed off the slide id.
+import { DragDropProvider, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import {
-  DragDropProvider,
-  useDraggable,
-  useDroppable,
-  type DragEndEvent,
-} from "@dnd-kit/react";
 
-import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { AxisItemView, AxisPoint, SlideView } from "../../../../store/liveSessionApi.gen";
-import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
+import type { AxisItemView, AxisPoint, SlideView } from "../../../../store/liveSessionApi.gen";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { seededShuffle } from "../seededShuffle";
 import styles from "./AxisBoardContent.module.css";
 
@@ -120,14 +115,15 @@ const DraggableChip = ({
   return (
     <button
       ref={ref}
-      type='button'
+      type="button"
       className={[className, isDragging ? styles.dragging : ""].filter(Boolean).join(" ")}
       style={{ "--chip-accent": accent, ...style } as CSSProperties}
       disabled={disabled}
       aria-label={ariaLabel}
       aria-pressed={ariaPressed}
       onClick={onClick}
-      onKeyDown={onKeyDown}>
+      onKeyDown={onKeyDown}
+    >
       {children}
     </button>
   );
@@ -144,10 +140,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   // stable on this device all round; the authored order drives the numbers and
   // the palette colors.
   const axisItems = axis?.items;
-  const items = useMemo(
-    () => seededShuffle(axisItems ?? [], slideId),
-    [axisItems, slideId],
-  );
+  const items = useMemo(() => seededShuffle(axisItems ?? [], slideId), [axisItems, slideId]);
 
   const planeRef = useRef<HTMLDivElement | null>(null);
 
@@ -166,8 +159,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   // locks (the backend forces maxSelections=0), so submitting never freezes
   // the surface — only the round moving to results does.
   const canPlace = interactive && mode !== "results";
-  const allPlaced =
-    items.length > 0 && items.every((item) => item.id && placements[item.id]);
+  const allPlaced = items.length > 0 && items.every((item) => item.id && placements[item.id]);
 
   const submit = () => {
     if (!canPlace || !allPlaced) return;
@@ -323,7 +315,8 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
             <PlaneSurface
               planeRef={planeRef}
               armed={canPlace && heldItemId != null}
-              dropDisabled={!canPlace}>
+              dropDisabled={!canPlace}
+            >
               {showCounts && heatCells}
 
               {/* The participant's own placed chips, one per item. */}
@@ -357,7 +350,8 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                         return rest;
                       });
                       setHeldItemId(itemId);
-                    }}>
+                    }}
+                  >
                     {badgeOf(item)}
                   </DraggableChip>
                 );
@@ -368,9 +362,9 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                   it). */}
               {canPlace && heldItemId != null && (
                 <button
-                  type='button'
+                  type="button"
                   className={styles.placeTarget}
-                  aria-label='Place on the plane'
+                  aria-label="Place on the plane"
                   onClick={placeAt}
                 />
               )}
@@ -401,7 +395,8 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                     ariaPressed={heldItemId === item.id}
                     onClick={() => {
                       setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
-                    }}>
+                    }}
+                  >
                     {badgeOf(item)}
                   </DraggableChip>
                 ))
@@ -411,7 +406,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
               )}
             </BoardBank>
             {submitted && <p className={styles.submittedNote}>Answer submitted ✓</p>}
-            <Btn size='sm' variant='brand' disabled={!allPlaced} onClick={submit}>
+            <Btn size="sm" variant="brand" disabled={!allPlaced} onClick={submit}>
               {submitted ? "Update answer" : "Submit answer"}
             </Btn>
           </div>
@@ -429,7 +424,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
  * answerable moments.
  */
 interface PlaneSurfaceProps {
-  planeRef: React.MutableRefObject<HTMLDivElement | null>;
+  planeRef: React.RefObject<HTMLDivElement | null>;
   armed: boolean;
   dropDisabled: boolean;
   children: ReactNode;
@@ -451,7 +446,8 @@ const PlaneSurface = ({ planeRef, armed, dropDisabled, children }: PlaneSurfaceP
         isDropTarget ? styles.planeDropTarget : "",
       ]
         .filter(Boolean)
-        .join(" ")}>
+        .join(" ")}
+    >
       {children}
     </div>
   );
@@ -473,9 +469,8 @@ const BoardBank = ({ dropDisabled, children }: BoardBankProps) => {
   return (
     <div
       ref={ref}
-      className={[styles.bank, isDropTarget ? styles.bankDropTarget : ""]
-        .filter(Boolean)
-        .join(" ")}>
+      className={[styles.bank, isDropTarget ? styles.bankDropTarget : ""].filter(Boolean).join(" ")}
+    >
       {children}
     </div>
   );
