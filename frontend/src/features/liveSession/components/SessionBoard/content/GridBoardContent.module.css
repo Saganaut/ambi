@@ -79,13 +79,6 @@
         z-index: 1;
         display: inline-flex;
         align-items: center;
-        gap: var(--gap-xs);
-        padding: var(--p-xs);
-        border: var(--border-size-md) solid var(--chip-accent);
-        border-radius: var(--radius-full);
-        background-color: var(--bg-surface);
-        color: var(--text-primary);
-        font-weight: 600;
 
         /* Whole-chip drag source: keep the pointer from scrolling mid-drag. */
         touch-action: none;
@@ -144,13 +137,6 @@
 
         display: inline-flex;
         align-items: center;
-        gap: var(--gap-xs);
-        padding: var(--p-xs);
-        border: var(--border-size-md) solid var(--chip-accent);
-        border-radius: var(--radius-full);
-        background-color: var(--bg-surface-raised);
-        color: var(--text-primary);
-        font-weight: 600;
 
         /* Whole-chip drag source: keep the pointer from scrolling mid-drag. */
         touch-action: none;
@@ -166,9 +152,8 @@
       }
 
       .held {
-        border-color: var(--edge-brand);
-        background-color: var(--bg-brand);
-        color: var(--text-on-brand);
+        /* Armed for placement: a ring around the badge using the item's color. */
+        box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
       }
     }
 
@@ -193,13 +178,5 @@
   /* The chip being dragged: dim it so the drop target reads clearly. */
   .dragging {
     opacity: 0.6;
-  }
-
-  /* Authored item image, shown inside its chip beside the label. */
-  .chipImage {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: var(--radius-full);
-    object-fit: cover;
   }
 }

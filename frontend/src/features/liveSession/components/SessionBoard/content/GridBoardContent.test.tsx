@@ -48,7 +48,7 @@ const renderContent = (mode: BoardQuestionMode = "prompt", interactive = true) =
 
 /** Pick `chip` from the bank, then place it via the named cell target. */
 const place = async (chip: string, cellName: RegExp) => {
-  await userEvent.click(screen.getByRole("button", { name: chip }));
+  await userEvent.click(screen.getByRole("button", { name: new RegExp(chip) }));
   await userEvent.click(screen.getByRole("button", { name: cellName }));
 };
 
@@ -107,7 +107,7 @@ describe("GridBoardContent placing", () => {
     renderContent("prompt", false);
 
     expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Bat" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Bat/ })).not.toBeInTheDocument();
   });
 
   it("keeps chips as plain buttons so the tap/keyboard path stays operable", async () => {
@@ -115,7 +115,7 @@ describe("GridBoardContent placing", () => {
     // click can drive (a quick click never crosses the drag threshold).
     renderContent();
 
-    const bat = screen.getByRole("button", { name: "Bat" });
+    const bat = screen.getByRole("button", { name: /Bat/ });
     expect(bat.tagName).toBe("BUTTON");
     expect(bat).not.toBeDisabled();
 
@@ -149,12 +149,11 @@ describe("GridBoardContent placing", () => {
     };
     render(<GridBoardContent slide={withImage} mode="prompt" interactive />);
 
-    // A labeled chip: the visible label is the whole accessible name (the
-    // img alt is empty so the name doesn't read doubled), image still shown.
-    const chip = screen.getByRole("button", { name: "Bat" });
+    // A labeled chip: the visible label is shown inside the badge, image also included.
+    const chip = screen.getByRole("button", { name: /Bat/ });
     expect(chip.querySelector("img")).toHaveAttribute("src", "https://img.test/bat.png");
-    // An image-only chip falls back to the img alt for its name.
-    expect(screen.getByRole("button", { name: "Item" })).toBeInTheDocument();
+    // An image-only chip has aria-label "Item N — drag to a cell" (no parens) for accessibility.
+    expect(screen.getByRole("button", { name: /^Item \d+ — drag to a cell$/ })).toBeInTheDocument();
   });
 });
 

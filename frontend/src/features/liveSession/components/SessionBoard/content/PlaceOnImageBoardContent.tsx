@@ -43,6 +43,7 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import type { PlaceItemView, PlacePoint, SlideView } from "../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
+import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { seededShuffle } from "./seededShuffle";
 import styles from "./PlaceOnImageBoardContent.module.css";
@@ -277,29 +278,22 @@ const PlaceOnImageBoardContent = ({
       ? results.outcomes.find((o) => o.participantId === viewerParticipantId)
       : undefined;
 
-  // Chip accent: the authored color override, else the shared palette by the
-  // item's AUTHORED position (pre-shuffle), so a pin matches its revealed target.
+  // The item's 0-based position in the AUTHORED (pre-shuffle) item list — the
+  // badge's display index and the shared palette default, so a pin's number
+  // and color match its revealed target regardless of the bank's shuffle.
+  const authoredIndexOf = (item: PlaceItemView): number =>
+    (authoredItems ?? []).findIndex((authored) => authored.id === item.id);
+
   const accentOf = (item: PlaceItemView): string =>
-    resolveDatumColor(
-      item.color,
-      (authoredItems ?? []).findIndex((authored) => authored.id === item.id),
-    );
+    resolveDatumColor(item.color, authoredIndexOf(item));
 
   const labelOf = (label: string | undefined): string => label?.trim() || "Item";
 
-  // A chip face is the item's image (when authored) beside its label; the img
-  // alt carries the accessible name only when no visible label would.
-  const chipFace = (item: PlaceItemView) => {
-    const label = item.label?.trim();
-    return item.imageUrl ? (
-      <>
-        <img className={styles.chipImage} src={item.imageUrl} alt={label ? "" : "Item"} />
-        {label && <span>{label}</span>}
-      </>
-    ) : (
-      label || "Item"
-    );
-  };
+  // A pin/pill shape as soon as a label or thumbnail joins the disc — MarkerBadge
+  // decides this internally too, but the wrapper needs to know in order to
+  // offset itself so the DISC (not the pill) lands on the placement point.
+  const isPillItem = (item: PlaceItemView): boolean =>
+    Boolean(item.label?.trim()) || Boolean(item.imageUrl);
 
   const bank = items.filter((item) => !(item.id && placements[item.id]));
 
@@ -352,7 +346,10 @@ const PlaceOnImageBoardContent = ({
 
           {/* Revealed target circles: centre at (x, y), width/height = radius*2
               as the same percentage of the (non-square) box, so it renders as
-              the exact ellipse the normalized-distance grader accepts. */}
+              the exact ellipse the normalized-distance grader accepts. Each
+              target's own marker is a non-interactive MarkerBadge, matching the
+              editor's placed markers; the wrapper offsets a labeled badge so
+              its DISC — not the pill — lands on the target centre. */}
           {revealedTargets.map((target, index) => {
             const x = target.x ?? 0;
             const y = target.y ?? 0;
@@ -377,13 +374,13 @@ const PlaceOnImageBoardContent = ({
                   }}
                   aria-hidden="true"
                 />
-                {label ? (
-                  <span className={styles.targetLabel} style={position}>
-                    {label}
-                  </span>
-                ) : (
-                  <span className={styles.targetDot} style={position} aria-hidden="true" />
-                )}
+                <span
+                  className={[styles.targetMarker, label ? styles.targetMarkerLabeled : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                  style={position}>
+                  <MarkerBadge displayIndex={index + 1} color={color} label={label} />
+                </span>
               </span>
             );
           })}
@@ -397,7 +394,12 @@ const PlaceOnImageBoardContent = ({
               <DraggableChip
                 key={itemId}
                 itemId={itemId}
-                className={styles.placedPin}
+                className={[
+                  styles.placedPin,
+                  isPillItem(item) ? styles.placedPinLabeled : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 accent={accentOf(item)}
                 disabled={!canPlace}
                 ariaLabel={`Pick ${labelOf(item.label)} back up (arrow keys nudge it)`}
@@ -414,7 +416,13 @@ const PlaceOnImageBoardContent = ({
                   });
                   setHeldItemId(itemId);
                 }}>
-                {chipFace(item)}
+                <MarkerBadge
+                  className={styles.chipBadge}
+                  displayIndex={authoredIndexOf(item) + 1}
+                  color={accentOf(item)}
+                  label={item.label}
+                  imageSrc={item.imageUrl}
+                />
               </DraggableChip>
             );
           })}
@@ -453,13 +461,20 @@ const PlaceOnImageBoardContent = ({
                           .join(" ")}
                         accent={accentOf(item)}
                         disabled={!canPlace}
+                        ariaLabel={labelOf(item.label)}
                         ariaPressed={heldItemId === item.id}
                         onClick={() => {
                           setHeldItemId((prev) =>
                             prev === item.id ? null : (item.id ?? null),
                           );
                         }}>
-                        {chipFace(item)}
+                        <MarkerBadge
+                          className={styles.chipBadge}
+                          displayIndex={authoredIndexOf(item) + 1}
+                          color={accentOf(item)}
+                          label={item.label}
+                          imageSrc={item.imageUrl}
+                        />
                       </DraggableChip>
                     ))
                   )}

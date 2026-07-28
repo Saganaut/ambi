@@ -1,11 +1,13 @@
 // Tests for the Axis board: tap-to-select from the bank + tap-at-point-to-place
-// on the plane (normalized, y-inverted coordinates), submit gated on all items
-// placed, resubmit-until-lock, pick-back-up, arrow-key nudging, the 10×10 heat
-// aggregation from the quantized itemId@bx,by tally keys, and the read-only
-// projected view. The session connection and the live read model are mocked,
-// with the read model mutable per test. jsdom reports zero-size rects, so the
-// plane's rect is stubbed to a 100×100 box at the origin — tap coordinates
-// then read directly as percentages.
+// on the plane (normalized, y-inverted coordinates), the numbered MarkerBadge
+// chips, submit gated on all items placed, resubmit-until-lock, pick-back-up,
+// arrow-key nudging, the 10×10 heat aggregation from the quantized itemId@bx,by
+// tally keys, and the read-only projected view. The session connection and the
+// live read model are mocked, with the read model mutable per test. jsdom
+// reports zero-size rects, so the plane's rect is stubbed to a 100×100 box at
+// the origin — tap coordinates then read directly as percentages. (Drag is
+// dnd-kit's primary path but isn't exercised in jsdom; the tap fallback drives
+// the same placement state, mirroring the Place-on-Image board's test.)
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -104,6 +106,20 @@ describe("AxisBoardContent placing", () => {
       answerType: "AxisAnswer",
       placements: { sam: { x: 0.2, y: 0.25 }, bor: { x: 0.7, y: 0.75 } },
     });
+  });
+
+  it("chips carry the item's AUTHORED number beside its label", async () => {
+    renderContent();
+
+    // The bank is shuffled, but the badge numbers follow the authored order.
+    expect(screen.getByRole("button", { name: "Samwise" })).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: "Boromir" })).toHaveTextContent("2");
+
+    // The number travels with the item onto the plane.
+    await place("Samwise", 20, 75);
+    expect(screen.getByRole("button", { name: /Pick Samwise back up/ })).toHaveTextContent(
+      "1",
+    );
   });
 
   it("submit stays gated until every item is placed", async () => {

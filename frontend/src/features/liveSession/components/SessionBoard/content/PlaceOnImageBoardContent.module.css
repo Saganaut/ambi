@@ -100,36 +100,20 @@
     }
   }
 
-  /* An unlabeled target's centre marker. */
-  .targetDot {
-    --dot-size: 0.75rem;
-
+  /* The target's own marker: a non-interactive MarkerBadge centred on the
+     target point, matching the editor's placed markers. It contributes no
+     chrome of its own — MarkerBadge owns the disc/pill look — only position
+     and the geometry that keeps the DISC (not the pill) on the graded point,
+     same recipe as the editor's `.markerLabeled` (`--marker-badge-disc-inset`,
+     published in tokens.css). */
+  .targetMarker {
     position: absolute;
-    width: var(--dot-size);
-    height: var(--dot-size);
     transform: translate(-50%, -50%);
-    border: var(--border-size-sm) solid oklch(99% 0 0deg);
-    border-radius: var(--radius-full);
-    background-color: var(--target-color);
     pointer-events: none;
   }
 
-  /* A labeled target grows a pill at its centre point. */
-  .targetLabel {
-    position: absolute;
-    max-width: 9rem;
-    padding: var(--p-xs);
-    transform: translate(-50%, -50%);
-    border: var(--border-size-sm) solid var(--target-color);
-    border-radius: var(--radius-full);
-    background-color: var(--bg-surface-raised);
-    color: var(--target-color);
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    pointer-events: none;
+  .targetMarkerLabeled {
+    transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
   }
 
   /* Full-image tap target, shown only while an item is held (tap fallback) — the
@@ -144,30 +128,23 @@
     cursor: crosshair;
   }
 
-  /* The participant's own placed pin, one per item: a compact chip in the item's
-     accent color, centred on its normalized point, above the scatter/targets.
-     Drag to move, tap to pick back up; `--chip-accent` is JS-set (fallback
-     declared here). */
+  /* The participant's own placed pin, one per item: a bare wrapper around the
+     MarkerBadge, centred on its normalized point, above the scatter/targets.
+     It contributes no chrome of its own — MarkerBadge owns the disc/pill look
+     — only position, drag/tap interactivity, and the geometry that keeps the
+     DISC (not the pill) on the graded point, same recipe as the editor's
+     `.markerLabeled` (`--marker-badge-disc-inset`, published in tokens.css). */
   .placedPin {
-    --chip-accent: var(--bg-brand);
-
     position: absolute;
     z-index: 3;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: var(--gap-xs);
     max-width: 9rem;
-    padding: var(--p-xs);
+    padding: 0;
     transform: translate(-50%, -50%);
-    border: var(--border-size-md) solid oklch(99% 0 0deg);
+    border: none;
     border-radius: var(--radius-full);
-    background-color: var(--chip-accent);
-    color: var(--text-on-brand);
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-shadow: var(--shadow-sm);
+    background: none;
     cursor: grab;
 
     &:disabled {
@@ -175,15 +152,20 @@
     }
   }
 
+  .placedPinLabeled {
+    transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
+  }
+
   .dragging {
     opacity: 0.5;
   }
 
-  .chipImage {
-    width: 1.25rem;
-    height: 1.25rem;
-    border-radius: var(--radius-sm);
-    object-fit: cover;
+  /* The badge inside a chip is decorative: the chip button itself is the
+     pointer target. Without this, the badge's thumbnail would be hit-testable
+     and the browser's native image drag could hijack the placement gesture —
+     same recipe as the editor's `GridCellChip`. */
+  .chipBadge {
+    pointer-events: none;
   }
 
   .actions {
@@ -200,25 +182,27 @@
       justify-content: center;
       gap: var(--gap-sm);
 
+      /* A bare wrapper around the MarkerBadge — MarkerBadge owns the pill
+         chrome. The wrapper's own border-radius contributes no visible chrome
+         (background is none); it only matches the badge's shape so the `.held`
+         ring below follows it, same recipe as the editor's `.marker`. */
       .bankChip {
         --chip-accent: var(--bg-brand);
 
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: var(--gap-xs);
-        padding: var(--p-xs);
-        border: var(--border-size-md) solid var(--edge-subtle);
+        padding: 0;
+        border: none;
         border-radius: var(--radius-full);
-        background-color: var(--bg-surface-raised);
-        color: var(--text-primary);
-        font-weight: 600;
+        background: none;
         cursor: grab;
       }
 
+      /* Held (armed for tap-to-place): a ring in the item's color around the
+         badge, rather than the badge's own chrome — the same recipe as the
+         editor's placement marker selection ring. */
       .held {
-        border-color: var(--chip-accent);
-        background-color: var(--chip-accent);
-        color: var(--text-on-brand);
+        box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
       }
     }
 

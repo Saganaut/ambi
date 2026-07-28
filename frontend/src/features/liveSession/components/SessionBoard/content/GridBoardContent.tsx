@@ -31,6 +31,7 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
+import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { seededShuffle } from "./seededShuffle";
 import styles from "./GridBoardContent.module.css";
@@ -226,27 +227,15 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
   const labelOf = (labels: string[], index: number, fallback: string): string =>
     labels[index]?.trim() || `${fallback} ${(index + 1).toString()}`;
 
-  // Chip accent: the authored color override, else the shared palette by the
-  // item's AUTHORED position (pre-shuffle), so chips match the editor's colors.
-  const accentOf = (item: GridItemView): string =>
-    resolveDatumColor(
-      item.color,
-      (gridItems ?? []).findIndex((authored) => authored.id === item.id),
-    );
-
-  // A chip face is the item's image (when authored) beside its label. The img
-  // alt carries the accessible name only when no visible label would — a
-  // labeled chip's name must not read doubled ("Bat Bat").
-  const chipFace = (item: GridItemView) => {
-    const label = item.label?.trim();
-    return item.imageUrl ? (
-      <>
-        <img className={styles.chipImage} src={item.imageUrl} alt={label ? "" : "Item"} />
-        {label && <span>{label}</span>}
-      </>
-    ) : (
-      label || "Item"
-    );
+  // Compute the authored (pre-shuffle) index and resolve the chip's color
+  // together, so both the numbered disc and the border/fill use the same index
+  // in the palette.
+  const getChipIndexAndColor = (item: GridItemView): { authoredIndex: number; color: string } => {
+    const authoredIndex = (gridItems ?? []).findIndex((authored) => authored.id === item.id);
+    return {
+      authoredIndex,
+      color: resolveDatumColor(item.color, authoredIndex),
+    };
   };
 
   return (
@@ -288,26 +277,34 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                   cellId={cell}
                   heat={showCounts ? total / highestTotal : 0}
                   dropDisabled={!canPlace}>
-                  {placedHere.map((item) => (
-                    <DraggableChip
-                      key={item.id}
-                      itemId={item.id ?? ""}
-                      className={styles.placedChip}
-                      accent={accentOf(item)}
-                      disabled={!canPlace}
-                      dragDisabled={!canPlace}
-                      ariaLabel={`Pick ${item.label?.trim() || "item"} back up from ${cellName}`}
-                      onClick={() => {
-                        if (!item.id) return;
-                        setPlacements((prev) => {
-                          const { [item.id ?? ""]: _lifted, ...rest } = prev;
-                          return rest;
-                        });
-                        setHeldItemId(item.id);
-                      }}>
-                      {chipFace(item)}
-                    </DraggableChip>
-                  ))}
+                  {placedHere.map((item) => {
+                    const { authoredIndex, color } = getChipIndexAndColor(item);
+                    return (
+                      <DraggableChip
+                        key={item.id}
+                        itemId={item.id ?? ""}
+                        className={styles.placedChip}
+                        accent={color}
+                        disabled={!canPlace}
+                        dragDisabled={!canPlace}
+                        ariaLabel={`Pick ${item.label?.trim() || "item"} back up from ${cellName}`}
+                        onClick={() => {
+                          if (!item.id) return;
+                          setPlacements((prev) => {
+                            const { [item.id ?? ""]: _lifted, ...rest } = prev;
+                            return rest;
+                          });
+                          setHeldItemId(item.id);
+                        }}>
+                        <MarkerBadge
+                          displayIndex={authoredIndex + 1}
+                          color={color}
+                          label={item.label}
+                          imageSrc={item.imageUrl}
+                        />
+                      </DraggableChip>
+                    );
+                  })}
                   {showCounts && total > 0 && (
                     <span className={styles.count} aria-label={`${total.toString()} placements`}>
                       {total}
@@ -340,28 +337,37 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                   {bank.length === 0 ? (
                     <span className={styles.hint}>All items placed.</span>
                   ) : (
-                    bank.map((item) => (
-                      <DraggableChip
-                        key={item.id}
-                        itemId={item.id ?? ""}
-                        className={[
-                          styles.bankChip,
-                          heldItemId === item.id ? styles.held : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        accent={accentOf(item)}
-                        disabled={!canPlace}
-                        dragDisabled={!canPlace}
-                        ariaPressed={heldItemId === item.id}
-                        onClick={() => {
-                          setHeldItemId((prev) =>
-                            prev === item.id ? null : (item.id ?? null),
-                          );
-                        }}>
-                        {chipFace(item)}
-                      </DraggableChip>
-                    ))
+                    bank.map((item) => {
+                      const { authoredIndex, color } = getChipIndexAndColor(item);
+                      return (
+                        <DraggableChip
+                          key={item.id}
+                          itemId={item.id ?? ""}
+                          className={[
+                            styles.bankChip,
+                            heldItemId === item.id ? styles.held : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          accent={color}
+                          disabled={!canPlace}
+                          dragDisabled={!canPlace}
+                          ariaLabel={`Item ${(authoredIndex + 1).toString()}${item.label ? ` (${item.label})` : ""} — drag to a cell`}
+                          ariaPressed={heldItemId === item.id}
+                          onClick={() => {
+                            setHeldItemId((prev) =>
+                              prev === item.id ? null : (item.id ?? null),
+                            );
+                          }}>
+                          <MarkerBadge
+                            displayIndex={authoredIndex + 1}
+                            color={color}
+                            label={item.label}
+                            imageSrc={item.imageUrl}
+                          />
+                        </DraggableChip>
+                      );
+                    })
                   )}
                   {heldItemId != null && (
                     <span className={styles.hint}>Now tap a cell to place it.</span>

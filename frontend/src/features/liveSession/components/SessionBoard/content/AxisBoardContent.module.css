@@ -1,3 +1,8 @@
+/* The item chips are `MarkerBadge`s, which own every pixel of their pill
+   chrome — border, fill, padding, typography, the numbered disc. The wrapper
+   buttons below add only what the badge refuses to know about: where the chip
+   sits, that it can be grabbed, and what state it is in (held, dragging). */
+
 .axisBoardContent {
   display: flex;
   flex-direction: column;
@@ -57,10 +62,20 @@
     border-radius: var(--radius-md);
     background-color: var(--bg-surface-raised);
     overflow: hidden;
+
+    /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+    touch-action: none;
   }
 
+  /* An item is held: the next tap anywhere on the plane places it. */
   .planeArmed {
     outline: var(--border-size-md) dashed var(--edge-brand);
+  }
+
+  /* A dragged chip is over the plane — dropping it lands at the pointer. */
+  .planeDropTarget {
+    outline: var(--border-size-md) dashed var(--edge-brand);
+    outline-offset: calc(-1 * var(--border-size-md));
   }
 
   /* One translucent cell of the 10×10 live heat overlay (only non-empty
@@ -75,8 +90,10 @@
     pointer-events: none;
   }
 
-  /* Full-plane tap target, shown only while an item is held — the second tap
-     carries the placement coordinates. */
+  /* Full-plane tap target, shown only while an item is held (tap fallback) —
+     the second tap carries the placement coordinates. Sits above the heat
+     overlay but below the placed chips, so a placed chip stays tappable and
+     draggable. */
   .placeTarget {
     position: absolute;
     inset: 0;
@@ -86,24 +103,48 @@
     cursor: crosshair;
   }
 
+  /* The participant's own placed chip, centred on its normalized point: a bare
+     box wrapped tight around the badge, contributing no chrome of its own.
+     `--chip-accent` is JS-set (the fallback below is the required in-file
+     declaration). */
   .placedChip {
+    --chip-accent: var(--text-accent);
+
     position: absolute;
     z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0;
     transform: translate(-50%, -50%);
-    max-width: 9rem;
-    padding: var(--p-xs);
     border: none;
     border-radius: var(--radius-full);
-    background-color: var(--bg-brand);
-    color: var(--text-on-brand);
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    background: none;
+    cursor: grab;
+
+    /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+    touch-action: none;
+
+    &:active {
+      cursor: grabbing;
+    }
 
     &:disabled {
       cursor: default;
     }
+  }
+
+  /* Labeled variant: the badge draws itself as a pill, which puts its disc off
+     to the leading edge, so the chip shifts left by the badge's published
+     edge-to-disc-centre distance to keep the DISC — the graded point — on the
+     coordinate. The pill's own vertical centre is the disc's, so -50% holds. */
+  .placedChipLabeled {
+    transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
+  }
+
+  /* The chip whose ghost is currently following the pointer. */
+  .dragging {
+    opacity: 0.5;
   }
 
   .actions {
@@ -119,21 +160,42 @@
       justify-content: center;
       gap: var(--gap-sm);
 
+      /* Same bare wrapper as a placed chip, minus the positioning. */
       .bankChip {
-        padding: var(--p-xs);
-        border: var(--border-size-md) solid var(--edge-subtle);
+        --chip-accent: var(--text-accent);
+
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        padding: 0;
+        border: none;
         border-radius: var(--radius-full);
-        background-color: var(--bg-surface-raised);
-        color: var(--text-primary);
-        font-weight: 600;
-        cursor: pointer;
+        background: none;
+        cursor: grab;
+
+        /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+        touch-action: none;
+
+        &:active {
+          cursor: grabbing;
+        }
+
+        &:disabled {
+          cursor: default;
+        }
       }
 
+      /* Held for the tap flow: a ring in the item's own color, the same
+         affordance the editor's selected marker wears. */
       .held {
-        border-color: var(--edge-brand);
-        background-color: var(--bg-brand);
-        color: var(--text-on-brand);
+        box-shadow: 0 0 0 var(--space-half)
+          color-mix(in oklab, var(--chip-accent) 35%, transparent);
       }
+    }
+
+    .bankDropTarget {
+      outline: var(--border-size-md) dashed var(--edge-brand);
+      outline-offset: var(--gap-xs);
     }
 
     .hint {
