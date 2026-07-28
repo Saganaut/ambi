@@ -24,9 +24,9 @@ import {
   DrawingCanvas,
   type DrawingCanvasHandle,
 } from "@/shared/components/DrawingCanvas/DrawingCanvas";
-import { Btn } from "@ui/Buttons/Btn";
 import { extractErrorMessage } from "@utils/utils";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import styles from "./DrawingBoardContent.module.css";
 
 interface DrawingBoardContentProps {
@@ -146,22 +146,18 @@ const DrawingBoardContent = ({ slide, mode, interactive }: DrawingBoardContentPr
 
       {error && <p className={styles.error}>{error}</p>}
       <div className={styles.actions}>
-        {submitState === "submitted" && (
-          <p className={styles.sent}>Drawing sent — you can keep tweaking it.</p>
-        )}
-        <Btn
-          size='sm'
-          variant='brand'
+        <BoardSubmitBar
+          submitted={submitState === "submitted"}
           disabled={isEmpty || submitState === "saving"}
-          onClick={() => {
+          onSubmit={() => {
             void submit();
-          }}>
-          {submitState === "saving"
-            ? "Sending…"
-            : submitState === "submitted"
-              ? "Update drawing"
-              : "Submit drawing"}
-        </Btn>
+          }}
+          // An in-flight send is neither idle nor submitted: the note stays
+          // hidden and the button says so while it's on the wire.
+          idleLabel={submitState === "saving" ? "Sending…" : "Submit drawing"}
+          resubmitLabel='Update drawing'
+          submittedNote='Drawing sent — you can keep tweaking it.'
+        />
       </div>
     </div>
   );

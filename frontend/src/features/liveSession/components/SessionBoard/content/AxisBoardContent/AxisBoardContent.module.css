@@ -153,11 +153,5 @@
     .held {
       box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
     }
-
-    .submittedNote {
-      margin: 0;
-      color: var(--text-success);
-      font-weight: 600;
-    }
   }
 }

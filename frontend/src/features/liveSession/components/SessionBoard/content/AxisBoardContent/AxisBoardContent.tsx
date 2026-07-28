@@ -27,13 +27,13 @@ import { useMemo, type CSSProperties } from "react";
 
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
-import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "@utils/placementGeometry";
 import type { AxisItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { BoardBank } from "../BoardBank/BoardBank";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { PlacementSurface } from "../PlacementSurface/PlacementSurface";
@@ -269,10 +269,14 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                 </DraggableChip>
               ))}
             </BoardBank>
-            {submitted && <p className={styles.submittedNote}>Answer submitted ✓</p>}
-            <Btn size="sm" variant="brand" disabled={!allPlaced} onClick={submit}>
-              {submitted ? "Update answer" : "Submit answer"}
-            </Btn>
+            <BoardSubmitBar
+              submitted={submitted}
+              disabled={!allPlaced}
+              onSubmit={submit}
+              idleLabel="Submit answer"
+              resubmitLabel="Update answer"
+              submittedNote="Answer submitted ✓"
+            />
           </div>
         )}
       </DragDropProvider>

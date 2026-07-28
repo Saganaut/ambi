@@ -26,8 +26,8 @@ import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./MatchingBoardContent.module.css";
@@ -240,16 +240,20 @@ const MatchingBoardContent = ({ slide, mode, interactive }: MatchingBoardContent
 
       {canMatch && (
         <div className={styles.actions}>
-          {submitted && <p className={styles.submittedNote}>Answer submitted ✓</p>}
-          {heldLeftId != null && (
-            <span className={styles.hint}>Now tap a card on the right to match it.</span>
-          )}
-          {!allMatched && heldLeftId == null && (
-            <span className={styles.hint}>Match every pair to submit.</span>
-          )}
-          <Btn size='sm' variant='brand' disabled={!allMatched} onClick={submit}>
-            {submitted ? "Update answer" : "Submit answer"}
-          </Btn>
+          <BoardSubmitBar
+            submitted={submitted}
+            disabled={!allMatched}
+            onSubmit={submit}
+            idleLabel='Submit answer'
+            resubmitLabel='Update answer'
+            submittedNote='Answer submitted ✓'>
+            {heldLeftId != null && (
+              <span className={styles.hint}>Now tap a card on the right to match it.</span>
+            )}
+            {!allMatched && heldLeftId == null && (
+              <span className={styles.hint}>Match every pair to submit.</span>
+            )}
+          </BoardSubmitBar>
         </div>
       )}
     </div>

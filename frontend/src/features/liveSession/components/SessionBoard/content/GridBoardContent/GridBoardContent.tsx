@@ -25,10 +25,10 @@ import type { GridItemView, SlideView } from "../../../../store/liveSessionApi.g
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { BoardBank } from "../BoardBank/BoardBank";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
@@ -254,44 +254,42 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
 
         {interactive && mode !== "results" && (
           <div className={styles.actions}>
-            {submitted ? (
-              <p className={styles.submittedNote}>Answer locked in ✓</p>
-            ) : (
-              <>
-                <BoardBank
-                  dropDisabled={!canPlace}
-                  emptyHint="All items placed."
-                  heldHint={heldItemId != null ? "Now tap a cell to place it." : null}>
-                  {bank.map((item) => {
-                    const { authoredIndex, color } = getChipIndexAndColor(item);
-                    return (
-                      <DraggableChip
-                        key={item.id}
-                        itemId={item.id ?? ""}
-                        className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
-                          .filter(Boolean)
-                          .join(" ")}
-                        accent={color}
-                        disabled={!canPlace}
-                        ariaLabel={`Item ${(authoredIndex + 1).toString()}${item.label ? ` (${item.label})` : ""} — drag to a cell`}
-                        ariaPressed={heldItemId === item.id}
-                        onClick={() => {
-                          setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
-                        }}>
-                        <MarkerBadge
-                          displayIndex={authoredIndex + 1}
-                          color={color}
-                          label={item.label}
-                        />
-                      </DraggableChip>
-                    );
-                  })}
-                </BoardBank>
-                <Btn size='sm' variant='brand' disabled={!allPlaced} onClick={submit}>
-                  Lock in answer
-                </Btn>
-              </>
-            )}
+            <BoardSubmitBar
+              submitted={submitted}
+              disabled={!allPlaced}
+              onSubmit={submit}
+              idleLabel='Lock in answer'
+              submittedNote='Answer locked in ✓'>
+              <BoardBank
+                dropDisabled={!canPlace}
+                emptyHint="All items placed."
+                heldHint={heldItemId != null ? "Now tap a cell to place it." : null}>
+                {bank.map((item) => {
+                  const { authoredIndex, color } = getChipIndexAndColor(item);
+                  return (
+                    <DraggableChip
+                      key={item.id}
+                      itemId={item.id ?? ""}
+                      className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
+                        .filter(Boolean)
+                        .join(" ")}
+                      accent={color}
+                      disabled={!canPlace}
+                      ariaLabel={`Item ${(authoredIndex + 1).toString()}${item.label ? ` (${item.label})` : ""} — drag to a cell`}
+                      ariaPressed={heldItemId === item.id}
+                      onClick={() => {
+                        setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
+                      }}>
+                      <MarkerBadge
+                        displayIndex={authoredIndex + 1}
+                        color={color}
+                        label={item.label}
+                      />
+                    </DraggableChip>
+                  );
+                })}
+              </BoardBank>
+            </BoardSubmitBar>
           </div>
         )}
       </DragDropProvider>

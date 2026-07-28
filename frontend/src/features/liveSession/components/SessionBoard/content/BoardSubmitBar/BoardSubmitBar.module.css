@@ -1,0 +1,9 @@
+/* One line of success-colored confirmation text. The bar never spaces or
+   positions itself — the board's own `.actions` row or column does, and the
+   button's chrome is `Btn`'s — so only the note's typography lives here. */
+
+.note {
+  margin: 0;
+  color: var(--text-success);
+  font-weight: 600;
+}

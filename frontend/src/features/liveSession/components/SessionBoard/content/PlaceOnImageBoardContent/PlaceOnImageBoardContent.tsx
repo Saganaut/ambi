@@ -32,11 +32,11 @@ import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import type { PlaceItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "@utils/placementGeometry";
 import { BoardBank } from "../BoardBank/BoardBank";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { PlacementSurface } from "../PlacementSurface/PlacementSurface";
@@ -312,41 +312,39 @@ const PlaceOnImageBoardContent = ({
 
         {interactive && mode !== "results" && (
           <div className={styles.actions}>
-            {submitted ? (
-              <p className={styles.submitted}>Answer locked in ✓</p>
-            ) : (
-              <>
-                <BoardBank
-                  dropDisabled={!canPlace}
-                  emptyHint="All items placed."
-                  heldHint={heldItemId != null ? "Now tap the image to place it." : null}>
-                  {bank.map((item) => (
-                    <DraggableChip
-                      key={item.id}
-                      itemId={item.id ?? ""}
-                      className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
-                        .filter(Boolean)
-                        .join(" ")}
-                      accent={accentOf(item)}
-                      disabled={!canPlace}
-                      ariaLabel={labelOf(item.label)}
-                      ariaPressed={heldItemId === item.id}
-                      onClick={() => {
-                        toggleHold(item.id);
-                      }}>
-                      <MarkerBadge
-                        displayIndex={authoredIndexOf(item) + 1}
-                        color={accentOf(item)}
-                        label={item.label}
-                      />
-                    </DraggableChip>
-                  ))}
-                </BoardBank>
-                <Btn size='sm' variant='brand' disabled={!allPlaced} onClick={submit}>
-                  Lock in answer
-                </Btn>
-              </>
-            )}
+            <BoardSubmitBar
+              submitted={submitted}
+              disabled={!allPlaced}
+              onSubmit={submit}
+              idleLabel='Lock in answer'
+              submittedNote='Answer locked in ✓'>
+              <BoardBank
+                dropDisabled={!canPlace}
+                emptyHint="All items placed."
+                heldHint={heldItemId != null ? "Now tap the image to place it." : null}>
+                {bank.map((item) => (
+                  <DraggableChip
+                    key={item.id}
+                    itemId={item.id ?? ""}
+                    className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
+                      .filter(Boolean)
+                      .join(" ")}
+                    accent={accentOf(item)}
+                    disabled={!canPlace}
+                    ariaLabel={labelOf(item.label)}
+                    ariaPressed={heldItemId === item.id}
+                    onClick={() => {
+                      toggleHold(item.id);
+                    }}>
+                    <MarkerBadge
+                      displayIndex={authoredIndexOf(item) + 1}
+                      color={accentOf(item)}
+                      label={item.label}
+                    />
+                  </DraggableChip>
+                ))}
+              </BoardBank>
+            </BoardSubmitBar>
           </div>
         )}
       </DragDropProvider>

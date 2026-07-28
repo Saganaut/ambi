@@ -22,8 +22,8 @@ import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
 import { formatScaleValue, positionToValue } from "@/shared/utils/scaleValue";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./ScalesBoardContent.module.css";
@@ -197,13 +197,17 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
 
       {canRate && (
         <div className={styles.actions}>
-          {submitted && <p className={styles.submittedNote}>Answer submitted ✓</p>}
-          {!allTouched && (
-            <span className={styles.hint}>Rate every statement to submit.</span>
-          )}
-          <Btn size='sm' variant='brand' disabled={!allTouched} onClick={submit}>
-            {submitted ? "Update answer" : "Submit answer"}
-          </Btn>
+          <BoardSubmitBar
+            submitted={submitted}
+            disabled={!allTouched}
+            onSubmit={submit}
+            idleLabel='Submit answer'
+            resubmitLabel='Update answer'
+            submittedNote='Answer submitted ✓'>
+            {!allTouched && (
+              <span className={styles.hint}>Rate every statement to submit.</span>
+            )}
+          </BoardSubmitBar>
         </div>
       )}
     </div>

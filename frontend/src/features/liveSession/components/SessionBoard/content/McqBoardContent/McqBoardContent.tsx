@@ -21,7 +21,7 @@ import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { useCappedSelection } from "../useCappedSelection";
 import styles from "./McqBoardContent.module.css";
 
@@ -140,22 +140,16 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
 
       {interactive && mode !== "results" && (
         <div className={styles.actions}>
-          {submitted ? (
-            <p className={styles.submitted}>Answer locked in ✓</p>
-          ) : (
-            <>
-              {maxSelections !== 1 && (
-                <span className={styles.hint}>{selectionHint(maxSelections)}</span>
-              )}
-              <Btn
-                size='sm'
-                variant='brand'
-                disabled={selected.length === 0}
-                onClick={submit}>
-                Lock in answer
-              </Btn>
-            </>
-          )}
+          <BoardSubmitBar
+            submitted={submitted}
+            disabled={selected.length === 0}
+            onSubmit={submit}
+            idleLabel='Lock in answer'
+            submittedNote='Answer locked in ✓'>
+            {maxSelections !== 1 && (
+              <span className={styles.hint}>{selectionHint(maxSelections)}</span>
+            )}
+          </BoardSubmitBar>
         </div>
       )}
     </div>

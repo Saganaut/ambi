@@ -23,7 +23,7 @@ import type { RankItemView, SlideView } from "../../../../store/liveSessionApi.g
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
+import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
 import { findViewerOutcome } from "../viewerOutcome";
@@ -252,13 +252,13 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
 
       {interactive && mode === "prompt" && (
         <div className={styles.actions}>
-          {submitted ? (
-            <p className={styles.submittedNote}>Answer locked in ✓</p>
-          ) : (
-            <Btn size='sm' variant='brand' disabled={!canRank} onClick={submit}>
-              Lock in answer
-            </Btn>
-          )}
+          <BoardSubmitBar
+            submitted={submitted}
+            disabled={!canRank}
+            onSubmit={submit}
+            idleLabel='Lock in answer'
+            submittedNote='Answer locked in ✓'
+          />
         </div>
       )}
     </div>

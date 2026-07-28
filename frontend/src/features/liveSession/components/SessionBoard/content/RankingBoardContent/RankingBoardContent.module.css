@@ -155,11 +155,5 @@
     align-items: center;
     justify-content: center;
     gap: var(--gap-md);
-
-    .submittedNote {
-      margin: 0;
-      color: var(--text-success);
-      font-weight: 600;
-    }
   }
 }

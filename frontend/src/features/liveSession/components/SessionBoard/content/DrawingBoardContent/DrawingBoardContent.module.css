@@ -35,12 +35,6 @@
     gap: var(--gap-md);
   }
 
-  .sent {
-    margin: 0;
-    color: var(--text-success);
-    font-weight: 600;
-  }
-
   .error {
     margin: 0;
     color: var(--text-error);
