@@ -1,0 +1,18 @@
+/* One centered line of verdict text. The banner never spaces or positions
+   itself — the board's own column layout does — so only the typography and the
+   success/error color live here. */
+
+.outcomeCorrect,
+.outcomeWrong {
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+}
+
+.outcomeCorrect {
+  color: var(--text-success);
+}
+
+.outcomeWrong {
+  color: var(--text-error);
+}

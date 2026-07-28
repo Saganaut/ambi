@@ -33,7 +33,9 @@ import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
+import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
+import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./GridBoardContent.module.css";
 
 interface GridBoardContentProps {
@@ -218,9 +220,7 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
 
   // The viewer's own scored outcome, once results are revealed.
   const myOutcome =
-    mode === "results" && results?.slideId === slideId
-      ? results.outcomes.find((o) => o.participantId === viewerParticipantId)
-      : undefined;
+    mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
   const bank = items.filter((item) => !(item.id && placements[item.id]));
 
@@ -240,13 +240,11 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
 
   return (
     <div className={styles.gridBoardContent}>
-      {myOutcome && (
-        <p className={myOutcome.correct ? styles.outcomeCorrect : styles.outcomeWrong}>
-          {myOutcome.correct
-            ? "You sorted everything correctly ✓"
-            : "Not quite — some placements were off."}
-        </p>
-      )}
+      <OutcomeBanner
+        outcome={myOutcome}
+        correctText="You sorted everything correctly ✓"
+        wrongText="Not quite — some placements were off."
+      />
 
       {/* DragDropProvider directly (not DragDropWrapper): the matrix and the
           bank share one drag context so chips move freely between them. */}

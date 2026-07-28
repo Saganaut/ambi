@@ -28,6 +28,8 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
+import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
+import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./MatchingBoardContent.module.css";
 
 interface MatchingBoardContentProps {
@@ -104,8 +106,8 @@ const MatchingBoardContent = ({ slide, mode, interactive }: MatchingBoardContent
   // The viewer's own scored outcome, once results are revealed — only a scored
   // round has a verdict; a collect-only round reveals nothing to be wrong about.
   const myOutcome =
-    scored && mode === "results" && results?.slideId === slideId
-      ? results.outcomes.find((o) => o.participantId === viewerParticipantId)
+    scored && mode === "results"
+      ? findViewerOutcome(results, slideId, viewerParticipantId)
       : undefined;
 
   const cardLabel = (card: { label?: string }, index: number): string =>
@@ -129,13 +131,11 @@ const MatchingBoardContent = ({ slide, mode, interactive }: MatchingBoardContent
 
   return (
     <div className={styles.matchingBoardContent}>
-      {myOutcome && (
-        <p className={myOutcome.correct ? styles.outcomeCorrect : styles.outcomeWrong}>
-          {myOutcome.correct
-            ? "You matched every pair ✓"
-            : "Not quite — some pairs were off."}
-        </p>
-      )}
+      <OutcomeBanner
+        outcome={myOutcome}
+        correctText="You matched every pair ✓"
+        wrongText="Not quite — some pairs were off."
+      />
 
       <div className={styles.columns}>
         <ul className={styles.column}>

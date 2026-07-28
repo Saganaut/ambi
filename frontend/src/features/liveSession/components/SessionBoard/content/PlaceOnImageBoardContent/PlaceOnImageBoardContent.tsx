@@ -47,7 +47,9 @@ import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
+import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
+import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./PlaceOnImageBoardContent.module.css";
 
 /**
@@ -281,9 +283,7 @@ const PlaceOnImageBoardContent = ({
 
   // The viewer's own scored outcome, once results are revealed.
   const myOutcome =
-    mode === "results" && results?.slideId === slideId
-      ? results.outcomes.find((o) => o.participantId === viewerParticipantId)
-      : undefined;
+    mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
   // The item's 0-based position in the AUTHORED (pre-shuffle) item list — the
   // badge's display index and the shared palette default, so a pin's number
@@ -313,13 +313,11 @@ const PlaceOnImageBoardContent = ({
 
   return (
     <div className={styles.placeOnImageBoardContent}>
-      {myOutcome && (
-        <p className={myOutcome.correct ? styles.outcomeCorrect : styles.outcomeWrong}>
-          {myOutcome.correct
-            ? "You placed everything on target ✓"
-            : "Not quite — some pins missed the mark."}
-        </p>
-      )}
+      <OutcomeBanner
+        outcome={myOutcome}
+        correctText="You placed everything on target ✓"
+        wrongText="Not quite — some pins missed the mark."
+      />
 
       {/* DragDropProvider directly (not DragDropWrapper): the image and the bank
           share one drag context so chips move freely between them. */}

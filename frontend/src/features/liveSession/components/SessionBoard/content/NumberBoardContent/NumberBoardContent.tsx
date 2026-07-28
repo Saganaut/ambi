@@ -31,6 +31,8 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
+import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
+import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./NumberBoardContent.module.css";
 
 /** Bucket count of the results histogram. */
@@ -168,20 +170,15 @@ const NumberBoardContent = ({ slide, mode, interactive }: NumberBoardContentProp
       ? Math.min(100, Math.max(0, ((correctNum - lo) / (hi - lo)) * 100))
       : 50;
 
-    const myOutcome = revealed?.outcomes.find(
-      (o) => o.participantId === viewerParticipantId,
-    );
+    const myOutcome = findViewerOutcome(revealed, slideId, viewerParticipantId);
 
     return (
       <div className={styles.numberBoardContent}>
-        {myOutcome && (
-          <p
-            className={
-              myOutcome.correct ? styles.outcomeCorrect : styles.outcomeWrong
-            }>
-            {myOutcome.correct ? "You nailed it ✓" : "Not quite."}
-          </p>
-        )}
+        <OutcomeBanner
+          outcome={myOutcome}
+          correctText="You nailed it ✓"
+          wrongText="Not quite."
+        />
 
         {totalResponses === 0 ? (
           <p className={styles.note}>No responses were submitted this round.</p>

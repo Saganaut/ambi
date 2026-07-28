@@ -24,7 +24,9 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
+import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
+import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./RankingBoardContent.module.css";
 
 interface RankingBoardContentProps {
@@ -114,9 +116,7 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
 
   // The viewer's own scored outcome, once results are revealed.
   const myOutcome =
-    mode === "results" && results?.slideId === slideId
-      ? results.outcomes.find((o) => o.participantId === viewerParticipantId)
-      : undefined;
+    mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
   // Aggregate ranking: order rows by each item's mean submitted position. Items
   // with no votes sink to the bottom in authored order.
@@ -160,13 +160,11 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
 
   return (
     <div className={styles.rankingBoardContent}>
-      {myOutcome && (
-        <p className={myOutcome.correct ? styles.outcomeCorrect : styles.outcomeWrong}>
-          {myOutcome.correct
-            ? "You ranked everything correctly ✓"
-            : "Not quite — your order was off."}
-        </p>
-      )}
+      <OutcomeBanner
+        outcome={myOutcome}
+        correctText="You ranked everything correctly ✓"
+        wrongText="Not quite — your order was off."
+      />
 
       {showAggregate ? (
         <ol className={styles.ranked}>

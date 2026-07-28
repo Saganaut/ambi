@@ -24,6 +24,8 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { formatScaleValue, positionToValue } from "@/shared/utils/scaleValue";
+import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
+import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./ScalesBoardContent.module.css";
 
 /**
@@ -114,22 +116,18 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
 
   // The viewer's own scored outcome, once results are revealed.
   const myOutcome =
-    mode === "results" && results?.slideId === slideId
-      ? results.outcomes.find((o) => o.participantId === viewerParticipantId)
-      : undefined;
+    mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
   const leftAnchor = scales?.leftLabel?.trim() || min.toString();
   const rightAnchor = scales?.rightLabel?.trim() || max.toString();
 
   return (
     <div className={styles.scalesBoardContent}>
-      {myOutcome && (
-        <p className={myOutcome.correct ? styles.outcomeCorrect : styles.outcomeWrong}>
-          {myOutcome.correct
-            ? "You rated everything on target ✓"
-            : "Not quite — some ratings were off."}
-        </p>
-      )}
+      <OutcomeBanner
+        outcome={myOutcome}
+        correctText="You rated everything on target ✓"
+        wrongText="Not quite — some ratings were off."
+      />
 
       <ul className={styles.statements}>
         {items.map((item, index) => {

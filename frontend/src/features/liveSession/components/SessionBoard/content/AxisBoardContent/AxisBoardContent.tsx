@@ -39,7 +39,9 @@ import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
 import type { AxisItemView, AxisPoint, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
+import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./AxisBoardContent.module.css";
 
 /**
@@ -247,9 +249,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
 
   // The viewer's own scored outcome, once results are revealed.
   const myOutcome =
-    mode === "results" && results?.slideId === slideId
-      ? results.outcomes.find((o) => o.participantId === viewerParticipantId)
-      : undefined;
+    mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
   const bank = items.filter((item) => !(item.id && placements[item.id]));
 
@@ -303,13 +303,11 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
 
   return (
     <div className={styles.axisBoardContent}>
-      {myOutcome && (
-        <p className={myOutcome.correct ? styles.outcomeCorrect : styles.outcomeWrong}>
-          {myOutcome.correct
-            ? "You placed everything on target ✓"
-            : "Not quite — some placements were off."}
-        </p>
-      )}
+      <OutcomeBanner
+        outcome={myOutcome}
+        correctText="You placed everything on target ✓"
+        wrongText="Not quite — some placements were off."
+      />
 
       {/* DragDropProvider directly (not DragDropWrapper): the plane and the bank
           share one drag context so chips move freely between them. */}

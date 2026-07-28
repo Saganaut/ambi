@@ -11,21 +11,6 @@
   width: 100%;
   min-height: 0;
 
-  .outcomeCorrect,
-  .outcomeWrong {
-    margin: 0;
-    text-align: center;
-    font-weight: 600;
-  }
-
-  .outcomeCorrect {
-    color: var(--text-success);
-  }
-
-  .outcomeWrong {
-    color: var(--text-error);
-  }
-
   .planeFrame {
     display: flex;
     flex-direction: column;
