@@ -1,13 +1,14 @@
 /**
  * One placed point on a placement surface: a `MarkerBadge` carrying the item's
- * number and color, the pill chrome its label grows into, and the tolerance
- * region the grader accepts.
+ * number and color, plus the tolerance region the grader accepts.
  *
- * The number always shows so the marker reads against its row's index pill;
- * the pill only grows when the item carries a real label, and its offset keeps
- * the badge's disc — not the pill — on the placement point. Positioning goes
- * through `toRenderStyle`, so the caller hands over the point in the surface's
- * own grading space and states the surface's orientation once via `invertY`.
+ * The badge owns how it looks — the disc, and the pill it becomes once the item
+ * carries a real label. This wrapper owns only where it sits and how it reacts:
+ * the number always shows so the marker reads against its row's index pill, and
+ * the labeled variant is offset so the badge's disc — not the pill — lands on
+ * the placement point. Positioning goes through `toRenderStyle`, so the caller
+ * hands over the point in the surface's own grading space and states the
+ * surface's orientation once via `invertY`.
  */
 import type { CSSProperties, PointerEventHandler } from "react";
 

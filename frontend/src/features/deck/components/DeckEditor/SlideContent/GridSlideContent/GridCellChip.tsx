@@ -1,16 +1,16 @@
 /**
- * An item's token inside a matrix cell: `MarkerBadge` — the same numbered disc
- * and resolved color the item's row shows — wrapped in the pill that makes it
- * draggable. The whole chip is the drag source (there is no room for a
- * separate grip at this size), so drag it to another cell to move the
- * placement, or onto the "Items" column to unplace it.
+ * An item's token inside a matrix cell: `MarkerBadge` — the same numbered disc,
+ * resolved color, and pill the item shows wherever it is placed — wrapped in a
+ * button that makes it draggable. The wrapper adds nothing to the look: the
+ * whole chip is the drag source (there is no room for a separate grip at this
+ * size), so drag it to another cell to move the placement, or onto the "Items"
+ * column to unplace it.
  *
  * Clicking arms the item instead, the pointer-free path's other half: an armed
  * item is placed by pressing a cell's "Place here" button. A quick click never
  * crosses dnd-kit's pointer-sensor threshold, so the two inputs never conflict.
  */
 import { useDraggable } from "@dnd-kit/react";
-import type { CSSProperties } from "react";
 
 import type { GridItem } from "@deck/store/deckApi.gen";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
@@ -40,7 +40,6 @@ const GridCellChip = ({ item, index, color, selected, onSelect }: GridCellChipPr
       ref={ref}
       type="button"
       className={[styles.chip, isDragging ? styles.chipDragging : ""].filter(Boolean).join(" ")}
-      style={{ "--chip-accent": color } as CSSProperties}
       aria-pressed={selected}
       aria-label={`Item ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to another cell`}
       onClick={onSelect}

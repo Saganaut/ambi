@@ -1,10 +1,17 @@
-/* The badge row only: disc, thumbnail, label. Everything around it — the pill
-   border a chip draws, the absolute positioning a placement marker needs, drag
-   affordances — belongs to the wrapper, so this module sets no box of its own
-   beyond letting the label truncate inside whatever width it is given.
+/* MarkerBadge dictates its own complete visual identity: the pill chrome
+   (border, background, padding, radius), the typography inside it, and the
+   disc's geometry. Wrappers add only position, interactivity, and state, so
+   the badge reads identically wherever it lands — a draggable chip in a matrix
+   cell, a marker pinned to a placement surface.
 
-   Font size, weight, and label color are inherited on purpose: each wrapper
-   already establishes those for its own chrome, and the badge matches it. */
+   Two shapes, chosen from content alone. Nothing but the number renders a bare
+   disc (the placement marker's dot); a label and/or a thumbnail grows it into
+   a pill. Callers never ask for a shape.
+
+   The pill's geometry is published through the --marker-badge-* tokens in
+   tokens.css, because a labeled placement marker has to offset itself by the
+   distance from the pill's edge to the DISC's centre to stay on the graded
+   point. */
 
 .badge {
   /* Fallback for the inline value set from the item's resolved color. */
@@ -13,10 +20,25 @@
   display: inline-flex;
   align-items: center;
   gap: var(--gap-xs);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
 
   /* Shrink below the disc + label intrinsic width so the label can ellipsis. */
   min-width: 0;
   max-width: 100%;
+}
+
+/* The pill shape: everything the disc alone doesn't need. The fill is opaque
+   so a label stays readable over a photo, and the accent border carries the
+   item's color — which is also the only thing separating the pill from a
+   surface painted the same raised fill (the Axis plane). */
+.pill {
+  padding: var(--marker-badge-pad) var(--marker-badge-pad-end) var(--marker-badge-pad)
+    var(--marker-badge-pad);
+  border: var(--marker-badge-border-size) solid var(--marker-badge-color);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
 }
 
 /* The numbered disc, tying a placed item to its row's index pill. The light
@@ -44,7 +66,11 @@
   object-fit: cover;
 }
 
+/* Capping the label rather than the whole badge keeps a long label from
+   stretching a free-floating marker, while still letting the pill shrink
+   further when its container is narrower (a chip in a small matrix cell). */
 .label {
+  max-width: 7rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -235,24 +235,21 @@
 
 /* ── Placed chips ───────────────────────────────────────────────────────── */
 
-/* An item's token inside a cell: the pill chrome around a `MarkerBadge`, which
-   draws the number and color the item's row shows. A whole-body drag source
-   (matching the live-session board's placed chip, so authoring and play read
-   the same). */
+/* An item's token inside a cell: a `MarkerBadge` — which draws the number,
+   color, and pill chrome the item is recognised by everywhere — made draggable
+   as a whole body. The button contributes no chrome of its own; it is a bare
+   box wrapped tight around the badge, rounded only so the armed outline below
+   follows the badge's shape. */
 .chip {
-  /* Fallback for the inline value set from the item's resolved color. */
-  --chip-accent: var(--text-accent);
-
   display: inline-flex;
   align-items: center;
+
+  /* Layout, not chrome: chips wrap inside a cell and must not overflow it. */
   max-width: 100%;
-  padding: var(--p-xs);
-  border: var(--border-size-md) solid var(--chip-accent);
+  padding: 0;
+  border: none;
   border-radius: var(--radius-full);
-  background-color: var(--bg-surface-raised);
-  color: var(--text-primary);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  background: none;
 
   /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
   touch-action: none;

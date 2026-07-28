@@ -1,3 +1,6 @@
+// The badge decides its own shape from the content it is given: `Default` is
+// the bare disc, everything below is the pill. Nothing here passes chrome —
+// there is no prop for it.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { MarkerBadge } from "./MarkerBadge";
 
@@ -14,20 +17,23 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Nothing but the number: a bare disc, no pill chrome. */
 export const Default: Story = {};
 
 export const Labeled: Story = {
   args: { label: "North gate" },
 };
 
+/** A thumbnail alone is enough to grow the pill — a label isn't required. */
+export const ThumbnailOnly: Story = {
+  args: { imageSrc: "https://picsum.photos/seed/marker/80/80" },
+};
+
 export const WithThumbnail: Story = {
   args: { label: "North gate", imageSrc: "https://picsum.photos/seed/marker/80/80" },
 };
 
+/** The badge caps its own label, so it truncates with no help from the caller. */
 export const Truncating: Story = {
-  render: (args) => (
-    <div style={{ maxWidth: "9rem" }}>
-      <MarkerBadge {...args} label="A label far too long for the space it is given" />
-    </div>
-  ),
+  args: { label: "A label far too long for the space it is given" },
 };
