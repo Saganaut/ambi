@@ -15,7 +15,6 @@ import type { PointerEventHandler } from "react";
 
 import type { GridItem } from "@deck/store/deckApi.gen";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
-import { resolveImageUrl } from "@utils/image";
 import styles from "./GridSlideContent.module.css";
 
 interface GridCellChipProps {
@@ -48,7 +47,6 @@ const GridCellChip = ({
 }: GridCellChipProps) => {
   const displayIndex = index + 1;
   const label = item.label?.trim();
-  const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id ?? "", 200, 200, false);
 
   return (
     <button
@@ -66,13 +64,7 @@ const GridCellChip = ({
         if (event.detail === 0) onSelect();
       }}
     >
-      <MarkerBadge
-        className={styles.chipBadge}
-        displayIndex={displayIndex}
-        color={color}
-        label={label}
-        imageSrc={thumbnailSrc}
-      />
+      <MarkerBadge className={styles.chipBadge} displayIndex={displayIndex} color={color} label={label} />
     </button>
   );
 };

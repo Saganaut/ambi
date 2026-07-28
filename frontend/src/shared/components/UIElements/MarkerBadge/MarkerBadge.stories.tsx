@@ -24,15 +24,6 @@ export const Labeled: Story = {
   args: { label: "North gate" },
 };
 
-/** A thumbnail alone is enough to grow the pill — a label isn't required. */
-export const ThumbnailOnly: Story = {
-  args: { imageSrc: "https://picsum.photos/seed/marker/80/80" },
-};
-
-export const WithThumbnail: Story = {
-  args: { label: "North gate", imageSrc: "https://picsum.photos/seed/marker/80/80" },
-};
-
 /** The badge caps its own label, so it truncates with no help from the caller. */
 export const Truncating: Story = {
   args: { label: "A label far too long for the space it is given" },

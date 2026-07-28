@@ -1,14 +1,14 @@
-// The complete look of a placed item: a numbered disc in the item's color, an
-// optional thumbnail, and an optional truncating label, inside the pill chrome
-// and typography the badge itself owns. Pure view — it holds no state, takes
-// no event handlers, and never positions itself. Callers wrap it in whatever
-// interactive chrome they need (a draggable chip, a marker button on a
-// placement surface) and keep drag, selection, positioning, and the styling of
-// their own states there; nothing about how the badge looks is theirs to set.
+// The complete look of a placed item: a numbered disc in the item's color and
+// an optional truncating label, inside the pill chrome and typography the
+// badge itself owns. Pure view — it holds no state, takes no event handlers,
+// and never positions itself. Callers wrap it in whatever interactive chrome
+// they need (a draggable chip, a marker button on a placement surface) and
+// keep drag, selection, positioning, and the styling of their own states
+// there; nothing about how the badge looks is theirs to set.
 //
 // The shape follows the content: a bare disc when the number is all there is,
-// a pill as soon as a label or a thumbnail joins it. That is deliberately not
-// a prop — the same content has to look the same in every context.
+// a pill as soon as a label joins it. That is deliberately not a prop — the
+// same content has to look the same in every context.
 //
 // The disc's light ring keeps the number legible on top of an arbitrary
 // backdrop (a photo, a colored cell), which is why every user gets it.
@@ -23,15 +23,13 @@ interface MarkerBadgeProps {
   color: string;
   /** Text beside the disc; blank or whitespace-only renders no label. */
   label?: string;
-  /** Thumbnail between the disc and the label; absent renders no image. */
-  imageSrc?: string | null;
   /** Extra class for the wrapper's own hooks (e.g. pointer-events). */
   className?: string;
 }
 
-const MarkerBadge = ({ displayIndex, color, label, imageSrc, className }: MarkerBadgeProps) => {
+const MarkerBadge = ({ displayIndex, color, label, className }: MarkerBadgeProps) => {
   const trimmedLabel = label?.trim();
-  const isPill = Boolean(trimmedLabel) || Boolean(imageSrc);
+  const isPill = Boolean(trimmedLabel);
 
   return (
     <span
@@ -41,10 +39,6 @@ const MarkerBadge = ({ displayIndex, color, label, imageSrc, className }: Marker
       <span className={styles.disc} aria-hidden="true">
         {displayIndex}
       </span>
-      {/* Decorative, and never a drag source of its own: an <img> is natively
-          draggable, and that gesture would compete with (and win over) the
-          placement drag of whatever chip carries the badge. */}
-      {imageSrc && <img className={styles.image} src={imageSrc} alt="" draggable={false} />}
       {trimmedLabel && <span className={styles.label}>{trimmedLabel}</span>}
     </span>
   );

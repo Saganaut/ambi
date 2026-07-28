@@ -5,8 +5,8 @@
    cell, a marker pinned to a placement surface.
 
    Two shapes, chosen from content alone. Nothing but the number renders a bare
-   disc (the placement marker's dot); a label and/or a thumbnail grows it into
-   a pill. Callers never ask for a shape.
+   disc (the placement marker's dot); a label grows it into a pill. Callers
+   never ask for a shape.
 
    The pill's geometry is published through the --marker-badge-* tokens in
    tokens.css, because a labeled placement marker has to offset itself by the
@@ -55,15 +55,6 @@
   background-color: var(--marker-badge-color);
   color: oklch(99% 0 0deg);
   font-weight: 700;
-}
-
-/* The item's thumbnail, sized to the disc so the two read as one row. */
-.image {
-  flex: none;
-  width: var(--marker-badge-disc-size);
-  height: var(--marker-badge-disc-size);
-  border-radius: var(--radius-full);
-  object-fit: cover;
 }
 
 /* Capping the label rather than the whole badge keeps a long label from

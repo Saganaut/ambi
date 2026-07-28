@@ -135,7 +135,7 @@ describe("GridBoardContent placing", () => {
     expect(placed).not.toBeDisabled();
   });
 
-  it("renders an authored item image inside its chip, keeping the label as its name", () => {
+  it("renders no thumbnail inside a chip, even for an item that carries an image", () => {
     const withImage: SlideView = {
       ...slide,
       grid: {
@@ -149,10 +149,10 @@ describe("GridBoardContent placing", () => {
     };
     render(<GridBoardContent slide={withImage} mode="prompt" interactive />);
 
-    // A labeled chip: the visible label is shown inside the badge, image also included.
+    // The badge is number + label only — an item's image never joins the chip.
     const chip = screen.getByRole("button", { name: /Bat/ });
-    expect(chip.querySelector("img")).toHaveAttribute("src", "https://img.test/bat.png");
-    // An image-only chip has aria-label "Item N — drag to a cell" (no parens) for accessibility.
+    expect(chip.querySelector("img")).not.toBeInTheDocument();
+    // An image-only chip still has aria-label "Item N — drag to a cell" (no parens).
     expect(screen.getByRole("button", { name: /^Item \d+ — drag to a cell$/ })).toBeInTheDocument();
   });
 });

@@ -50,7 +50,6 @@ import {
   useGridEditor,
 } from "@deck/hooks/useGridEditor";
 import type { GridItem } from "@deck/store/deckApi.gen";
-import { resolveImageUrl } from "@utils/image";
 import {
   EmptySelect,
   ItemList,
@@ -279,7 +278,6 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 displayIndex={carriedIndex + 1}
                 color={resolveDatumColor(carried.color, carriedIndex)}
                 label={carried.label}
-                imageSrc={resolveImageUrl(carried.image, "SM", carried.id, 200, 200, false)}
                 clientX={gesture.drag.value.clientX}
                 clientY={gesture.drag.value.clientY}
               />

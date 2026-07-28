@@ -289,11 +289,10 @@ const PlaceOnImageBoardContent = ({
 
   const labelOf = (label: string | undefined): string => label?.trim() || "Item";
 
-  // A pin/pill shape as soon as a label or thumbnail joins the disc — MarkerBadge
-  // decides this internally too, but the wrapper needs to know in order to
-  // offset itself so the DISC (not the pill) lands on the placement point.
-  const isPillItem = (item: PlaceItemView): boolean =>
-    Boolean(item.label?.trim()) || Boolean(item.imageUrl);
+  // A pin/pill shape as soon as a label joins the disc — MarkerBadge decides
+  // this internally too, but the wrapper needs to know in order to offset
+  // itself so the DISC (not the pill) lands on the placement point.
+  const isPillItem = (item: PlaceItemView): boolean => Boolean(item.label?.trim());
 
   const bank = items.filter((item) => !(item.id && placements[item.id]));
 
@@ -421,7 +420,6 @@ const PlaceOnImageBoardContent = ({
                   displayIndex={authoredIndexOf(item) + 1}
                   color={accentOf(item)}
                   label={item.label}
-                  imageSrc={item.imageUrl}
                 />
               </DraggableChip>
             );
@@ -473,7 +471,6 @@ const PlaceOnImageBoardContent = ({
                           displayIndex={authoredIndexOf(item) + 1}
                           color={accentOf(item)}
                           label={item.label}
-                          imageSrc={item.imageUrl}
                         />
                       </DraggableChip>
                     ))

@@ -17,7 +17,6 @@ interface GridPlacementGhostProps {
   /** Resolved item color, shared with the row's index pill. */
   color: string;
   label?: string;
-  imageSrc?: string | null;
   /** Viewport coordinates of the pointer carrying it. */
   clientX: number;
   clientY: number;
@@ -27,7 +26,6 @@ const GridPlacementGhost = ({
   displayIndex,
   color,
   label,
-  imageSrc,
   clientX,
   clientY,
 }: GridPlacementGhostProps) => (
@@ -36,7 +34,7 @@ const GridPlacementGhost = ({
     style={{ left: `${clientX.toString()}px`, top: `${clientY.toString()}px` }}
     aria-hidden="true"
   >
-    <MarkerBadge displayIndex={displayIndex} color={color} label={label} imageSrc={imageSrc} />
+    <MarkerBadge displayIndex={displayIndex} color={color} label={label} />
   </span>
 );
 

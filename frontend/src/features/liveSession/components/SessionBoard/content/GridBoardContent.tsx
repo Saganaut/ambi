@@ -301,7 +301,6 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                           displayIndex={authoredIndex + 1}
                           color={color}
                           label={item.label}
-                          imageSrc={item.imageUrl}
                         />
                       </DraggableChip>
                     );
@@ -365,7 +364,6 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                             displayIndex={authoredIndex + 1}
                             color={color}
                             label={item.label}
-                            imageSrc={item.imageUrl}
                           />
                         </DraggableChip>
                       );
