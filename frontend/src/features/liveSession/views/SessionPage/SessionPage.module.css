@@ -1,8 +1,8 @@
+/* No blanket `* { border: none }` here. A descendant reset that broad matches
+   every component the dashboard hosts and quietly strips borders they own —
+   it is what was erasing the accent pill border off every `MarkerBadge` chip
+   on the placement boards. The element resets belong in index.css. */
 .sessionDashboard {
-  * {
-    border: none;
-  }
-
   width: 100%;
   height: 100%;
   position: relative;

@@ -7,7 +7,6 @@
   flex-direction: column;
   width: 100%;
   padding: var(--gap-sm);
-  border: 1px dashed yellow;
 
   .actions {
     flex-wrap: nowrap;

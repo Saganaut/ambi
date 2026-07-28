@@ -41,7 +41,10 @@ const MarkerBadge = ({ displayIndex, color, label, imageSrc, className }: Marker
       <span className={styles.disc} aria-hidden="true">
         {displayIndex}
       </span>
-      {imageSrc && <img className={styles.image} src={imageSrc} alt="" />}
+      {/* Decorative, and never a drag source of its own: an <img> is natively
+          draggable, and that gesture would compete with (and win over) the
+          placement drag of whatever chip carries the badge. */}
+      {imageSrc && <img className={styles.image} src={imageSrc} alt="" draggable={false} />}
       {trimmedLabel && <span className={styles.label}>{trimmedLabel}</span>}
     </span>
   );

@@ -142,6 +142,16 @@
     transform: translate(calc(-1 * var(--marker-badge-disc-inset)), -50%);
   }
 
+  /* The badge inside a chip is decorative: the chip button itself is the
+     pointer target. Without this, dnd-kit's pointer sensor refuses to arm —
+     its default `preventActivation` treats a press that lands on anything but
+     the draggable element as a press on interactive chrome (it resolves the
+     target with `closest("button")`, which finds the chip itself). Same
+     recipe as the Place-on-Image board and the editor's `GridCellChip`. */
+  .chipBadge {
+    pointer-events: none;
+  }
+
   /* The chip whose ghost is currently following the pointer. */
   .dragging {
     opacity: 0.5;

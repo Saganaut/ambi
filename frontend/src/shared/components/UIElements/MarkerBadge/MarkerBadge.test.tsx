@@ -51,6 +51,8 @@ describe("MarkerBadge", () => {
       const image = container.querySelector("img");
       expect(image).toHaveAttribute("src", "https://example.test/thumb.png");
       expect(image).toHaveAttribute("alt", "");
+      // Never a native drag source: it would hijack a carrying chip's gesture.
+      expect(image).toHaveAttribute("draggable", "false");
     });
 
     it("renders no image without a source", () => {

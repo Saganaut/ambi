@@ -297,6 +297,7 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                           setHeldItemId(item.id);
                         }}>
                         <MarkerBadge
+                          className={styles.chipBadge}
                           displayIndex={authoredIndex + 1}
                           color={color}
                           label={item.label}
@@ -360,6 +361,7 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                             );
                           }}>
                           <MarkerBadge
+                            className={styles.chipBadge}
                             displayIndex={authoredIndex + 1}
                             color={color}
                             label={item.label}

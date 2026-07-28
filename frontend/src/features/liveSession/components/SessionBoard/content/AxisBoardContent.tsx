@@ -271,7 +271,12 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   const badgeOf = (item: AxisItemView) => {
     const index = authoredIndexOf(item);
     return (
-      <MarkerBadge displayIndex={index + 1} color={paletteColorAt(index)} label={item.label} />
+      <MarkerBadge
+        className={styles.chipBadge}
+        displayIndex={index + 1}
+        color={paletteColorAt(index)}
+        label={item.label}
+      />
     );
   };
 
