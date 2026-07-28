@@ -3,11 +3,13 @@
    what makes its surface that surface — the box it occupies, its background,
    its overlays — and joins `.surface` / `.surfaceArmed` onto it.
 
-   Marker geometry is the load-bearing part: the numbered DOT's centre — not
-   the label pill's — sits on the placement point, matching where the grader
-   measures. The tolerance region takes its diameter from the surface's width
-   and a fixed 1:1 aspect ratio, so it stays circular on a non-square surface
-   without pretending the grading space is anisotropic. */
+   Marker geometry is the load-bearing part: the centre of the badge's numbered
+   DISC — not the label pill's — sits on the placement point, matching where
+   the grader measures. Its size is the shared `--marker-badge-disc-size`
+   token, so the offset below stays in step with `MarkerBadge`. The tolerance
+   region takes its diameter from the surface's width and a fixed 1:1 aspect
+   ratio, so it stays circular on a non-square surface without pretending the
+   grading space is anisotropic. */
 
 /* ── The placement surface ──────────────────────────────────────────────── */
 
@@ -58,14 +60,11 @@
   }
 }
 
-/* Bare marker: just the numbered dot, centred on the placement point. */
+/* Bare marker: just the badge's numbered disc, centred on the placement point. */
 .marker {
-  --dot-size: 1.375rem;
-
   position: absolute;
   display: inline-flex;
   align-items: center;
-  gap: var(--gap-xs);
   padding: 0;
   transform: translate(-50%, -50%);
   border: none;
@@ -88,42 +87,21 @@
   box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--placement-color) 35%, transparent);
 }
 
-/* Labeled variant: pill chrome around dot + text; the transform keeps the
-   dot's centre — not the pill's — on the placement point (border + padding sit
-   left of the dot inside the border-box). */
+/* Labeled variant: pill chrome around the badge; the transform keeps the
+   badge's disc centre — not the pill's — on the placement point (border +
+   padding sit left of the disc inside the border-box). */
 .markerLabeled {
   max-width: 9rem;
 
   /* (4px, 8px, 4px, 4px) has no --p-* equivalent — sanctioned one-off on the raw scale */
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
   transform: translate(
-    calc(-1 * (var(--border-size-sm) + var(--space-1) + var(--dot-size) / 2)),
+    calc(-1 * (var(--border-size-sm) + var(--space-1) + var(--marker-badge-disc-size) / 2)),
     -50%
   );
   border: var(--border-size-sm) solid var(--placement-color);
   border-radius: var(--radius-full);
   background-color: var(--bg-surface-raised);
-}
-
-/* The numbered dot itself, tying the marker to its row's index pill. */
-.markerDot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: var(--dot-size);
-  height: var(--dot-size);
-  border: var(--border-size-sm) solid oklch(99% 0 0deg);
-  border-radius: var(--radius-full);
-  background-color: var(--placement-color);
-  color: oklch(99% 0 0deg);
-  font-weight: 700;
-}
-
-.markerLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* The not-yet-committed placement following the pointer. */

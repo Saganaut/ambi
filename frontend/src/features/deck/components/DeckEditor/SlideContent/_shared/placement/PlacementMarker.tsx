@@ -1,14 +1,17 @@
 /**
- * One placed point on a placement surface: a numbered dot in the item's color,
- * its optional label pill, and the tolerance region the grader accepts.
+ * One placed point on a placement surface: a `MarkerBadge` carrying the item's
+ * number and color, the pill chrome its label grows into, and the tolerance
+ * region the grader accepts.
  *
  * The number always shows so the marker reads against its row's index pill;
- * the pill only grows when the item carries a real label. Positioning goes
+ * the pill only grows when the item carries a real label, and its offset keeps
+ * the badge's disc — not the pill — on the placement point. Positioning goes
  * through `toRenderStyle`, so the caller hands over the point in the surface's
  * own grading space and states the surface's orientation once via `invertY`.
  */
 import type { CSSProperties, PointerEventHandler } from "react";
 
+import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { toRenderStyle } from "./placementGeometry";
 import type { NormalizedPoint } from "./placement.types";
 import styles from "./placement.module.css";
@@ -54,14 +57,7 @@ const PlacementMarker = ({
   const markerClass = [styles.marker, trimmedLabel ? styles.markerLabeled : ""]
     .filter(Boolean)
     .join(" ");
-  const markerBody = (
-    <>
-      <span className={styles.markerDot} aria-hidden="true">
-        {displayIndex}
-      </span>
-      {trimmedLabel && <span className={styles.markerLabel}>{trimmedLabel}</span>}
-    </>
-  );
+  const markerBody = <MarkerBadge displayIndex={displayIndex} color={color} label={trimmedLabel} />;
 
   return (
     <span className={styles.markerGroup} style={{ "--placement-color": color } as CSSProperties}>

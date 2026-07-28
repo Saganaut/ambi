@@ -235,16 +235,16 @@
 
 /* ── Placed chips ───────────────────────────────────────────────────────── */
 
-/* An item's token inside a cell: numbered like — and colored to match — its
-   row's index pill, and a whole-body drag source (matching the live-session
-   board's placed chip, so authoring and play read the same). */
+/* An item's token inside a cell: the pill chrome around a `MarkerBadge`, which
+   draws the number and color the item's row shows. A whole-body drag source
+   (matching the live-session board's placed chip, so authoring and play read
+   the same). */
 .chip {
   /* Fallback for the inline value set from the item's resolved color. */
   --chip-accent: var(--text-accent);
 
   display: inline-flex;
   align-items: center;
-  gap: var(--gap-xs);
   max-width: 100%;
   padding: var(--p-xs);
   border: var(--border-size-md) solid var(--chip-accent);
@@ -269,43 +269,13 @@
   outline-offset: var(--space-half);
 }
 
-/* The chip's contents are decorative: they must not be the pointer target.
+/* The badge inside the chip is decorative: it must not be the pointer target.
    dnd-kit refuses to start a drag whose `pointerdown` landed on a child of a
    native <button> (its `preventActivation` resolves the target with
    `closest("button")` and treats the hit as a click on a control), so a chip
    grabbed by its label would never drag. */
-.chipIndex,
-.chipImage,
-.chipLabel {
+.chipBadge {
   pointer-events: none;
-}
-
-/* The chip's number, tying it to its row's index pill. */
-.chipIndex {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: var(--radius-full);
-  background-color: var(--chip-accent);
-  color: oklch(99% 0 0deg);
-  font-weight: 700;
-}
-
-.chipImage {
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: var(--radius-full);
-  object-fit: cover;
-}
-
-.chipLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* The chip being dragged: dim it so the drop target reads clearly. */

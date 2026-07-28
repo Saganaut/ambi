@@ -1,0 +1,51 @@
+/* The badge row only: disc, thumbnail, label. Everything around it — the pill
+   border a chip draws, the absolute positioning a placement marker needs, drag
+   affordances — belongs to the wrapper, so this module sets no box of its own
+   beyond letting the label truncate inside whatever width it is given.
+
+   Font size, weight, and label color are inherited on purpose: each wrapper
+   already establishes those for its own chrome, and the badge matches it. */
+
+.badge {
+  /* Fallback for the inline value set from the item's resolved color. */
+  --marker-badge-color: var(--text-accent);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-xs);
+
+  /* Shrink below the disc + label intrinsic width so the label can ellipsis. */
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The numbered disc, tying a placed item to its row's index pill. The light
+   ring keeps the number readable against an arbitrary backdrop. */
+.disc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--marker-badge-disc-size);
+  height: var(--marker-badge-disc-size);
+  border: var(--border-size-sm) solid oklch(99% 0 0deg);
+  border-radius: var(--radius-full);
+  background-color: var(--marker-badge-color);
+  color: oklch(99% 0 0deg);
+  font-weight: 700;
+}
+
+/* The item's thumbnail, sized to the disc so the two read as one row. */
+.image {
+  flex: none;
+  width: var(--marker-badge-disc-size);
+  height: var(--marker-badge-disc-size);
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

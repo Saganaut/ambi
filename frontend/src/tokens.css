@@ -468,6 +468,11 @@
   /* --- component sizes * --- */
   --navbar-height: 80px;
 
+  /* MarkerBadge's numbered disc. Global because callers place the disc's
+     centre themselves (a placement marker offsets its label pill by half this
+     size to keep the disc — not the pill — on the graded point). */
+  --marker-badge-disc-size: 1.375rem;
+
   /* --- Transitions & Timing --- */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 150ms;
