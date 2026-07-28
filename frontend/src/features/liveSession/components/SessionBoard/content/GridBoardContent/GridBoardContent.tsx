@@ -19,12 +19,7 @@
 // pointer sensor only starts a drag past a movement/hold threshold, so a plain
 // click still toggles the held state.
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import {
-  DragDropProvider,
-  useDraggable,
-  useDroppable,
-  type DragEndEvent,
-} from "@dnd-kit/react";
+import { DragDropProvider, useDroppable, type DragEndEvent } from "@dnd-kit/react";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import type { GridItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
@@ -33,6 +28,8 @@ import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
+import { BoardBank } from "../BoardBank/BoardBank";
+import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
 import { findViewerOutcome } from "../viewerOutcome";
@@ -82,74 +79,6 @@ const BoardCell = ({ cellId, heat, dropDisabled, children }: BoardCellProps) => 
       style={{ "--cell-heat": heat } as CSSProperties}>
       {children}
     </div>
-  );
-};
-
-/**
- * The item bank as a drop target: a placed chip dragged here is un-placed.
- * Uses the reserved {@link BANK_DROPPABLE_ID} sentinel, which cannot collide
- * with a cell id (always comma-bearing) or an item id (a UUID).
- */
-interface BoardBankProps {
-  dropDisabled: boolean;
-  children: ReactNode;
-}
-const BoardBank = ({ dropDisabled, children }: BoardBankProps) => {
-  const { ref, isDropTarget } = useDroppable({
-    id: BANK_DROPPABLE_ID,
-    disabled: dropDisabled,
-  });
-  return (
-    <div
-      ref={ref}
-      className={[styles.bank, isDropTarget ? styles.bankDropTarget : ""]
-        .filter(Boolean)
-        .join(" ")}>
-      {children}
-    </div>
-  );
-};
-
-/**
- * An item chip that is both a plain button (tap flow) and a whole-body drag
- * source (drag flow). A quick click never crosses the pointer sensor's
- * activation threshold, so `onClick` keeps toggling the held / pick-up state.
- */
-interface ChipProps {
-  itemId: string;
-  className: string;
-  accent: string;
-  disabled: boolean;
-  dragDisabled: boolean;
-  ariaLabel?: string;
-  ariaPressed?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}
-const DraggableChip = ({
-  itemId,
-  className,
-  accent,
-  disabled,
-  dragDisabled,
-  ariaLabel,
-  ariaPressed,
-  onClick,
-  children,
-}: ChipProps) => {
-  const { ref, isDragging } = useDraggable({ id: itemId, disabled: dragDisabled });
-  return (
-    <button
-      ref={ref}
-      type='button'
-      className={[className, isDragging ? styles.dragging : ""].filter(Boolean).join(" ")}
-      style={{ "--chip-accent": accent } as CSSProperties}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      aria-pressed={ariaPressed}
-      onClick={onClick}>
-      {children}
-    </button>
   );
 };
 
@@ -284,7 +213,6 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                         className={styles.placedChip}
                         accent={color}
                         disabled={!canPlace}
-                        dragDisabled={!canPlace}
                         ariaLabel={`Pick ${item.label?.trim() || "item"} back up from ${cellName}`}
                         onClick={() => {
                           if (!item.id) return;
@@ -295,7 +223,6 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                           setHeldItemId(item.id);
                         }}>
                         <MarkerBadge
-                          className={styles.chipBadge}
                           displayIndex={authoredIndex + 1}
                           color={color}
                           label={item.label}
@@ -331,45 +258,34 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
               <p className={styles.submittedNote}>Answer locked in ✓</p>
             ) : (
               <>
-                <BoardBank dropDisabled={!canPlace}>
-                  {bank.length === 0 ? (
-                    <span className={styles.hint}>All items placed.</span>
-                  ) : (
-                    bank.map((item) => {
-                      const { authoredIndex, color } = getChipIndexAndColor(item);
-                      return (
-                        <DraggableChip
-                          key={item.id}
-                          itemId={item.id ?? ""}
-                          className={[
-                            styles.bankChip,
-                            heldItemId === item.id ? styles.held : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          accent={color}
-                          disabled={!canPlace}
-                          dragDisabled={!canPlace}
-                          ariaLabel={`Item ${(authoredIndex + 1).toString()}${item.label ? ` (${item.label})` : ""} — drag to a cell`}
-                          ariaPressed={heldItemId === item.id}
-                          onClick={() => {
-                            setHeldItemId((prev) =>
-                              prev === item.id ? null : (item.id ?? null),
-                            );
-                          }}>
-                          <MarkerBadge
-                            className={styles.chipBadge}
-                            displayIndex={authoredIndex + 1}
-                            color={color}
-                            label={item.label}
-                          />
-                        </DraggableChip>
-                      );
-                    })
-                  )}
-                  {heldItemId != null && (
-                    <span className={styles.hint}>Now tap a cell to place it.</span>
-                  )}
+                <BoardBank
+                  dropDisabled={!canPlace}
+                  emptyHint="All items placed."
+                  heldHint={heldItemId != null ? "Now tap a cell to place it." : null}>
+                  {bank.map((item) => {
+                    const { authoredIndex, color } = getChipIndexAndColor(item);
+                    return (
+                      <DraggableChip
+                        key={item.id}
+                        itemId={item.id ?? ""}
+                        className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
+                          .filter(Boolean)
+                          .join(" ")}
+                        accent={color}
+                        disabled={!canPlace}
+                        ariaLabel={`Item ${(authoredIndex + 1).toString()}${item.label ? ` (${item.label})` : ""} — drag to a cell`}
+                        ariaPressed={heldItemId === item.id}
+                        onClick={() => {
+                          setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
+                        }}>
+                        <MarkerBadge
+                          displayIndex={authoredIndex + 1}
+                          color={color}
+                          label={item.label}
+                        />
+                      </DraggableChip>
+                    );
+                  })}
                 </BoardBank>
                 <Btn size='sm' variant='brand' disabled={!allPlaced} onClick={submit}>
                   Lock in answer

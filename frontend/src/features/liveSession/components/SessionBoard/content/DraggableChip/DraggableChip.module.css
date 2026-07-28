@@ -1,0 +1,20 @@
+/* The chip is a bare wrapper: its badge owns the pill chrome and the caller's
+   own class owns position and state, so the only rules here are the two the
+   caller must not be able to forget. */
+
+/* Whatever the chip wraps is decorative: the chip button itself is the pointer
+   target. Without this, dnd-kit's pointer sensor refuses to arm — its default
+   `preventActivation` treats a press that lands on anything but the draggable
+   element as a press on interactive chrome (it resolves the target with
+   `closest("button")`, which finds the chip itself) — and a badge carrying an
+   image would additionally offer the browser's native image drag. Same recipe
+   as the editor's `GridCellChip`. */
+.chip > * {
+  pointer-events: none;
+}
+
+/* The chip whose ghost is currently following the pointer: dim it so the drop
+   target reads clearly. */
+.dragging {
+  opacity: 0.5;
+}

@@ -29,13 +29,8 @@
 // (0, 0) is the image's top-left, y NOT inverted — the same frame the editor's
 // `PlaceOnImageSurface` and `RoundEvaluator.gradePlaceOnImage` work in. The
 // draft placements and locked state are round-local, keyed off the slide id.
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import {
-  DragDropProvider,
-  useDraggable,
-  useDroppable,
-  type DragEndEvent,
-} from "@dnd-kit/react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
 
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
@@ -47,7 +42,10 @@ import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
+import { BoardBank } from "../BoardBank/BoardBank";
+import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
+import { PlacementSurface, SURFACE_DROPPABLE_ID } from "../PlacementSurface/PlacementSurface";
 import { seededShuffle } from "../seededShuffle";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./PlaceOnImageBoardContent.module.css";
@@ -62,13 +60,6 @@ const PLACE_TALLY_BUCKETS = 20;
 
 /** Arrow-key nudge step for a focused placed pin, in normalized units. */
 const KEYBOARD_NUDGE_STEP = 0.02;
-
-/**
- * Reserved droppable id for the backing image. Item ids are backend-minted
- * UUIDs and the bank uses its own comma-free sentinel, so this comma-free
- * sentinel can never collide with either.
- */
-const SURFACE_DROPPABLE_ID = "surface";
 
 /**
  * The image's orientation, handed to the shared geometry at every call site:
@@ -112,53 +103,6 @@ const scatterDots = (optionCounts: Record<string, number>): ScatterDot[] => {
     dots.push({ key: bucket, bx, by, count });
   }
   return dots;
-};
-
-/**
- * An item chip that is both a plain button (tap flow) and a whole-body drag
- * source (drag flow), mirroring the Grid board's chip. A quick click never
- * crosses the pointer sensor's activation threshold, so `onClick` keeps
- * toggling the held / pick-up state.
- */
-interface ChipProps {
-  itemId: string;
-  className: string;
-  accent: string;
-  disabled: boolean;
-  ariaLabel?: string;
-  ariaPressed?: boolean;
-  style?: CSSProperties;
-  onClick: () => void;
-  onKeyDown?: (event: React.KeyboardEvent) => void;
-  children: ReactNode;
-}
-const DraggableChip = ({
-  itemId,
-  className,
-  accent,
-  disabled,
-  ariaLabel,
-  ariaPressed,
-  style,
-  onClick,
-  onKeyDown,
-  children,
-}: ChipProps) => {
-  const { ref, isDragging } = useDraggable({ id: itemId, disabled });
-  return (
-    <button
-      ref={ref}
-      type='button'
-      className={[className, isDragging ? styles.dragging : ""].filter(Boolean).join(" ")}
-      style={{ "--chip-accent": accent, ...style } as CSSProperties}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      aria-pressed={ariaPressed}
-      onClick={onClick}
-      onKeyDown={onKeyDown}>
-      {children}
-    </button>
-  );
 };
 
 const PlaceOnImageBoardContent = ({
@@ -322,10 +266,15 @@ const PlaceOnImageBoardContent = ({
       {/* DragDropProvider directly (not DragDropWrapper): the image and the bank
           share one drag context so chips move freely between them. */}
       <DragDropProvider onDragEnd={handleDragEnd}>
-        <PlaceSurface
+        <PlacementSurface
           surfaceRef={surfaceRef}
-          armed={canPlace && heldItemId != null}
-          dropDisabled={!canPlace}>
+          dropDisabled={!canPlace}
+          className={[
+            styles.surface,
+            canPlace && heldItemId != null ? styles.surfaceArmed : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}>
           {/* The img is the box: block-level, full width, intrinsic ratio
               height, so the normalized overlay coordinates land where the grader
               measures. */}
@@ -420,7 +369,6 @@ const PlaceOnImageBoardContent = ({
                   setHeldItemId(itemId);
                 }}>
                 <MarkerBadge
-                  className={styles.chipBadge}
                   displayIndex={authoredIndexOf(item) + 1}
                   color={accentOf(item)}
                   label={item.label}
@@ -439,7 +387,7 @@ const PlaceOnImageBoardContent = ({
               onClick={placeAt}
             />
           )}
-        </PlaceSurface>
+        </PlacementSurface>
 
         {interactive && mode !== "results" && (
           <div className={styles.actions}>
@@ -447,41 +395,31 @@ const PlaceOnImageBoardContent = ({
               <p className={styles.submitted}>Answer locked in ✓</p>
             ) : (
               <>
-                <BoardBank dropDisabled={!canPlace}>
-                  {bank.length === 0 ? (
-                    <span className={styles.hint}>All items placed.</span>
-                  ) : (
-                    bank.map((item) => (
-                      <DraggableChip
-                        key={item.id}
-                        itemId={item.id ?? ""}
-                        className={[
-                          styles.bankChip,
-                          heldItemId === item.id ? styles.held : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        accent={accentOf(item)}
-                        disabled={!canPlace}
-                        ariaLabel={labelOf(item.label)}
-                        ariaPressed={heldItemId === item.id}
-                        onClick={() => {
-                          setHeldItemId((prev) =>
-                            prev === item.id ? null : (item.id ?? null),
-                          );
-                        }}>
-                        <MarkerBadge
-                          className={styles.chipBadge}
-                          displayIndex={authoredIndexOf(item) + 1}
-                          color={accentOf(item)}
-                          label={item.label}
-                        />
-                      </DraggableChip>
-                    ))
-                  )}
-                  {heldItemId != null && (
-                    <span className={styles.hint}>Now tap the image to place it.</span>
-                  )}
+                <BoardBank
+                  dropDisabled={!canPlace}
+                  emptyHint="All items placed."
+                  heldHint={heldItemId != null ? "Now tap the image to place it." : null}>
+                  {bank.map((item) => (
+                    <DraggableChip
+                      key={item.id}
+                      itemId={item.id ?? ""}
+                      className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
+                        .filter(Boolean)
+                        .join(" ")}
+                      accent={accentOf(item)}
+                      disabled={!canPlace}
+                      ariaLabel={labelOf(item.label)}
+                      ariaPressed={heldItemId === item.id}
+                      onClick={() => {
+                        setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
+                      }}>
+                      <MarkerBadge
+                        displayIndex={authoredIndexOf(item) + 1}
+                        color={accentOf(item)}
+                        label={item.label}
+                      />
+                    </DraggableChip>
+                  ))}
                 </BoardBank>
                 <Btn size='sm' variant='brand' disabled={!allPlaced} onClick={submit}>
                   Lock in answer
@@ -491,66 +429,6 @@ const PlaceOnImageBoardContent = ({
           </div>
         )}
       </DragDropProvider>
-    </div>
-  );
-};
-
-/**
- * The backing image as a drop target: a chip dragged here drops its pin at the
- * pointer. Owns the droppable frame and the live drop-highlight; the image,
- * overlays and pins come in as children. The forwarded {@link surfaceRef}
- * measures the box for normalized coordinates. Dropping is disabled outside the
- * answerable moments.
- */
-interface PlaceSurfaceProps {
-  surfaceRef: React.MutableRefObject<HTMLDivElement | null>;
-  armed: boolean;
-  dropDisabled: boolean;
-  children: ReactNode;
-}
-const PlaceSurface = ({ surfaceRef, armed, dropDisabled, children }: PlaceSurfaceProps) => {
-  const { ref, isDropTarget } = useDroppable({
-    id: SURFACE_DROPPABLE_ID,
-    disabled: dropDisabled,
-  });
-  return (
-    <div
-      ref={(element) => {
-        surfaceRef.current = element;
-        ref(element);
-      }}
-      className={[
-        styles.surface,
-        armed ? styles.surfaceArmed : "",
-        isDropTarget ? styles.surfaceDropTarget : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}>
-      {children}
-    </div>
-  );
-};
-
-/**
- * The item bank as a drop target: a placed pin dragged here is un-placed. Uses
- * the reserved {@link BANK_DROPPABLE_ID} sentinel.
- */
-interface BoardBankProps {
-  dropDisabled: boolean;
-  children: ReactNode;
-}
-const BoardBank = ({ dropDisabled, children }: BoardBankProps) => {
-  const { ref, isDropTarget } = useDroppable({
-    id: BANK_DROPPABLE_ID,
-    disabled: dropDisabled,
-  });
-  return (
-    <div
-      ref={ref}
-      className={[styles.bank, isDropTarget ? styles.bankDropTarget : ""]
-        .filter(Boolean)
-        .join(" ")}>
-      {children}
     </div>
   );
 };

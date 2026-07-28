@@ -26,8 +26,8 @@
 // as rendered — so screen y inverts on the way in and back out again on render,
 // the same frame the editor's `AxisPlaneEditor` and the grader work in. The
 // draft placements are round-local, keyed off the slide id.
-import { DragDropProvider, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
@@ -39,7 +39,10 @@ import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
 import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
 import type { AxisItemView, AxisPoint, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { BoardBank } from "../BoardBank/BoardBank";
+import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
+import { PlacementSurface, SURFACE_DROPPABLE_ID } from "../PlacementSurface/PlacementSurface";
 import { seededShuffle } from "../seededShuffle";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./AxisBoardContent.module.css";
@@ -54,13 +57,6 @@ const AXIS_TALLY_BUCKETS = 10;
 
 /** Arrow-key nudge step for a focused placed chip, in normalized units. */
 const KEYBOARD_NUDGE_STEP = 0.02;
-
-/**
- * Reserved droppable id for the plane. Item ids are backend-minted UUIDs and
- * the bank uses its own comma-free sentinel, so this sentinel can never collide
- * with either.
- */
-const SURFACE_DROPPABLE_ID = "plane";
 
 /**
  * The plane's orientation, handed to the shared geometry at every call site:
@@ -87,55 +83,6 @@ const bucketTotals = (optionCounts: Record<string, number>): Record<string, numb
     totals[bucket] = (totals[bucket] ?? 0) + count;
   }
   return totals;
-};
-
-/**
- * An item chip that is both a plain button (tap flow) and a whole-body drag
- * source (drag flow), mirroring the Place-on-Image board's chip. A quick click
- * never crosses the pointer sensor's activation threshold, so `onClick` keeps
- * toggling the held / pick-up state. The chip's look is entirely the
- * `MarkerBadge` it wraps; this button adds position, interactivity and state.
- */
-interface ChipProps {
-  itemId: string;
-  className: string;
-  accent: string;
-  disabled: boolean;
-  ariaLabel?: string;
-  ariaPressed?: boolean;
-  style?: CSSProperties;
-  onClick: () => void;
-  onKeyDown?: (event: React.KeyboardEvent) => void;
-  children: ReactNode;
-}
-const DraggableChip = ({
-  itemId,
-  className,
-  accent,
-  disabled,
-  ariaLabel,
-  ariaPressed,
-  style,
-  onClick,
-  onKeyDown,
-  children,
-}: ChipProps) => {
-  const { ref, isDragging } = useDraggable({ id: itemId, disabled });
-  return (
-    <button
-      ref={ref}
-      type="button"
-      className={[className, isDragging ? styles.dragging : ""].filter(Boolean).join(" ")}
-      style={{ "--chip-accent": accent, ...style } as CSSProperties}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      aria-pressed={ariaPressed}
-      onClick={onClick}
-      onKeyDown={onKeyDown}
-    >
-      {children}
-    </button>
-  );
 };
 
 const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) => {
@@ -269,12 +216,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   const badgeOf = (item: AxisItemView) => {
     const index = authoredIndexOf(item);
     return (
-      <MarkerBadge
-        className={styles.chipBadge}
-        displayIndex={index + 1}
-        color={paletteColorAt(index)}
-        label={item.label}
-      />
+      <MarkerBadge displayIndex={index + 1} color={paletteColorAt(index)} label={item.label} />
     );
   };
 
@@ -316,10 +258,12 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
           <span className={styles.axisLabelYHigh}>{endpointOf(axis?.yHighLabel, "High")}</span>
           <div className={styles.planeRow}>
             <span className={styles.axisLabelX}>{endpointOf(axis?.xLowLabel, "Low")}</span>
-            <PlaneSurface
-              planeRef={planeRef}
-              armed={canPlace && heldItemId != null}
+            <PlacementSurface
+              surfaceRef={planeRef}
               dropDisabled={!canPlace}
+              className={[styles.plane, canPlace && heldItemId != null ? styles.planeArmed : ""]
+                .filter(Boolean)
+                .join(" ")}
             >
               {showCounts && heatCells}
 
@@ -372,7 +316,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                   onClick={placeAt}
                 />
               )}
-            </PlaneSurface>
+            </PlacementSurface>
             <span className={styles.axisLabelX}>{endpointOf(axis?.xHighLabel, "High")}</span>
           </div>
           <span className={styles.axisLabelYLow}>{endpointOf(axis?.yLowLabel, "Low")}</span>
@@ -380,34 +324,31 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
 
         {interactive && mode !== "results" && (
           <div className={styles.actions}>
-            <BoardBank dropDisabled={!canPlace}>
-              {bank.length === 0 ? (
-                <span className={styles.hint}>All items placed.</span>
-              ) : (
-                bank.map((item) => (
-                  <DraggableChip
-                    key={item.id}
-                    itemId={item.id ?? ""}
-                    className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
-                      .filter(Boolean)
-                      .join(" ")}
-                    accent={paletteColorAt(authoredIndexOf(item))}
-                    disabled={!canPlace}
-                    // The badge's own label is the visible name; spelling it out
-                    // here keeps an unlabeled item (a bare disc) nameable too.
-                    ariaLabel={labelOf(item.label)}
-                    ariaPressed={heldItemId === item.id}
-                    onClick={() => {
-                      setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
-                    }}
-                  >
-                    {badgeOf(item)}
-                  </DraggableChip>
-                ))
-              )}
-              {heldItemId != null && (
-                <span className={styles.hint}>Now tap the plane to place it.</span>
-              )}
+            <BoardBank
+              dropDisabled={!canPlace}
+              emptyHint="All items placed."
+              heldHint={heldItemId != null ? "Now tap the plane to place it." : null}
+            >
+              {bank.map((item) => (
+                <DraggableChip
+                  key={item.id}
+                  itemId={item.id ?? ""}
+                  className={[styles.bankChip, heldItemId === item.id ? styles.held : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                  accent={paletteColorAt(authoredIndexOf(item))}
+                  disabled={!canPlace}
+                  // The badge's own label is the visible name; spelling it out
+                  // here keeps an unlabeled item (a bare disc) nameable too.
+                  ariaLabel={labelOf(item.label)}
+                  ariaPressed={heldItemId === item.id}
+                  onClick={() => {
+                    setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
+                  }}
+                >
+                  {badgeOf(item)}
+                </DraggableChip>
+              ))}
             </BoardBank>
             {submitted && <p className={styles.submittedNote}>Answer submitted ✓</p>}
             <Btn size="sm" variant="brand" disabled={!allPlaced} onClick={submit}>
@@ -416,66 +357,6 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
           </div>
         )}
       </DragDropProvider>
-    </div>
-  );
-};
-
-/**
- * The plane as a drop target: a chip dragged here lands at the pointer. Owns the
- * droppable frame and the live drop-highlight; the heat overlay, placed chips
- * and tap target come in as children. The forwarded {@link planeRef} measures
- * the box for normalized coordinates. Dropping is disabled outside the
- * answerable moments.
- */
-interface PlaneSurfaceProps {
-  planeRef: React.RefObject<HTMLDivElement | null>;
-  armed: boolean;
-  dropDisabled: boolean;
-  children: ReactNode;
-}
-const PlaneSurface = ({ planeRef, armed, dropDisabled, children }: PlaneSurfaceProps) => {
-  const { ref, isDropTarget } = useDroppable({
-    id: SURFACE_DROPPABLE_ID,
-    disabled: dropDisabled,
-  });
-  return (
-    <div
-      ref={(element) => {
-        planeRef.current = element;
-        ref(element);
-      }}
-      className={[
-        styles.plane,
-        armed ? styles.planeArmed : "",
-        isDropTarget ? styles.planeDropTarget : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      {children}
-    </div>
-  );
-};
-
-/**
- * The item bank as a drop target: a placed chip dragged here is un-placed. Uses
- * the reserved {@link BANK_DROPPABLE_ID} sentinel.
- */
-interface BoardBankProps {
-  dropDisabled: boolean;
-  children: ReactNode;
-}
-const BoardBank = ({ dropDisabled, children }: BoardBankProps) => {
-  const { ref, isDropTarget } = useDroppable({
-    id: BANK_DROPPABLE_ID,
-    disabled: dropDisabled,
-  });
-  return (
-    <div
-      ref={ref}
-      className={[styles.bank, isDropTarget ? styles.bankDropTarget : ""].filter(Boolean).join(" ")}
-    >
-      {children}
     </div>
   );
 };

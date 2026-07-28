@@ -116,57 +116,37 @@
     align-items: center;
     gap: var(--gap-md);
 
-    .bank {
-      display: flex;
-      flex-wrap: wrap;
+    /* Same bare wrapper as a placed chip; the border-radius only matches the
+       badge's shape so the `.held` ring below follows it. Lives beside the
+       bank rather than inside it — the bank row itself is `BoardBank`'s. */
+    .bankChip {
+      /* Fallback for the inline value set from the item's resolved color. */
+      --chip-accent: var(--edge-subtle);
+
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: var(--gap-sm);
-      border-radius: var(--radius-md);
+      max-width: 100%;
+      padding: 0;
+      border: none;
+      border-radius: var(--radius-full);
+      background: none;
 
-      .bankChip {
-        /* Fallback for the inline value set from the item's resolved color. */
-        --chip-accent: var(--edge-subtle);
+      /* Whole-chip drag source: keep the pointer from scrolling mid-drag. */
+      touch-action: none;
+      cursor: grab;
 
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-
-        /* Same bare wrapper as a placed chip; the border-radius only matches
-           the badge's shape so the `.held` ring below follows it. */
-        padding: 0;
-        border: none;
-        border-radius: var(--radius-full);
-        background: none;
-
-        /* Whole-chip drag source: keep the pointer from scrolling mid-drag. */
-        touch-action: none;
-        cursor: grab;
-
-        &:active {
-          cursor: grabbing;
-        }
-
-        &:disabled {
-          cursor: default;
-        }
+      &:active {
+        cursor: grabbing;
       }
 
-      .held {
-        /* Armed for placement: a ring around the badge using the item's color. */
-        box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
+      &:disabled {
+        cursor: default;
       }
     }
 
-    /* Live drop target while a placed chip drags back onto the bank. */
-    .bankDropTarget {
-      outline: var(--border-size-md) dashed var(--text-accent);
-      outline-offset: calc(-1 * var(--space-1));
-    }
-
-    .hint {
-      color: var(--text-secondary);
-      font-size: var(--font-size-sm);
+    .held {
+      /* Armed for placement: a ring around the badge using the item's color. */
+      box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
     }
 
     .submittedNote {
@@ -174,21 +154,5 @@
       color: var(--text-success);
       font-weight: 600;
     }
-  }
-
-  /* The badge inside a chip is decorative: the chip button itself is the
-     pointer target. Without this, dnd-kit's pointer sensor refuses to arm —
-     its default `preventActivation` treats a press that lands on anything but
-     the draggable element as a press on interactive chrome (it resolves the
-     target with `closest("button")`, which finds the chip itself) — and the
-     badge's thumbnail would additionally offer the browser's native image
-     drag. Same recipe as the editor's `GridCellChip`. */
-  .chipBadge {
-    pointer-events: none;
-  }
-
-  /* The chip being dragged: dim it so the drop target reads clearly. */
-  .dragging {
-    opacity: 0.6;
   }
 }

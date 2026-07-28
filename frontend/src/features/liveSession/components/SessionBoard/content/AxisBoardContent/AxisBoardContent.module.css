@@ -1,7 +1,8 @@
 /* The item chips are `MarkerBadge`s, which own every pixel of their pill
    chrome — border, fill, padding, typography, the numbered disc. The wrapper
    buttons below add only what the badge refuses to know about: where the chip
-   sits, that it can be grabbed, and what state it is in (held, dragging). */
+   sits, that it can be grabbed, and whether it is held. The dragging state and
+   the badge's pointer-events guard are `DraggableChip`'s own. */
 
 .axisBoardContent {
   display: flex;
@@ -52,15 +53,10 @@
     touch-action: none;
   }
 
-  /* An item is held: the next tap anywhere on the plane places it. */
+  /* An item is held: the next tap anywhere on the plane places it. (The
+     live drop highlight is `PlacementSurface`'s own.) */
   .planeArmed {
     outline: var(--border-size-md) dashed var(--edge-brand);
-  }
-
-  /* A dragged chip is over the plane — dropping it lands at the pointer. */
-  .planeDropTarget {
-    outline: var(--border-size-md) dashed var(--edge-brand);
-    outline-offset: calc(-1 * var(--border-size-md));
   }
 
   /* One translucent cell of the 10×10 live heat overlay (only non-empty
@@ -120,75 +116,42 @@
     }
   }
 
-  /* The badge inside a chip is decorative: the chip button itself is the
-     pointer target. Without this, dnd-kit's pointer sensor refuses to arm —
-     its default `preventActivation` treats a press that lands on anything but
-     the draggable element as a press on interactive chrome (it resolves the
-     target with `closest("button")`, which finds the chip itself). Same
-     recipe as the Place-on-Image board and the editor's `GridCellChip`. */
-  .chipBadge {
-    pointer-events: none;
-  }
-
-  /* The chip whose ghost is currently following the pointer. */
-  .dragging {
-    opacity: 0.5;
-  }
-
   .actions {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--gap-md);
 
-    .bank {
-      display: flex;
-      flex-wrap: wrap;
+    /* Same bare wrapper as a placed chip, minus the positioning. Lives beside
+       the bank rather than inside it — the bank row itself is `BoardBank`'s. */
+    .bankChip {
+      --chip-accent: var(--text-accent);
+
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: var(--gap-sm);
+      max-width: 100%;
+      padding: 0;
+      border: none;
+      border-radius: var(--radius-full);
+      background: none;
+      cursor: grab;
 
-      /* Same bare wrapper as a placed chip, minus the positioning. */
-      .bankChip {
-        --chip-accent: var(--text-accent);
+      /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+      touch-action: none;
 
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-        padding: 0;
-        border: none;
-        border-radius: var(--radius-full);
-        background: none;
-        cursor: grab;
-
-        /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
-        touch-action: none;
-
-        &:active {
-          cursor: grabbing;
-        }
-
-        &:disabled {
-          cursor: default;
-        }
+      &:active {
+        cursor: grabbing;
       }
 
-      /* Held for the tap flow: a ring in the item's own color, the same
-         affordance the editor's selected marker wears. */
-      .held {
-        box-shadow: 0 0 0 var(--space-half)
-          color-mix(in oklab, var(--chip-accent) 35%, transparent);
+      &:disabled {
+        cursor: default;
       }
     }
 
-    .bankDropTarget {
-      outline: var(--border-size-md) dashed var(--edge-brand);
-      outline-offset: var(--gap-xs);
-    }
-
-    .hint {
-      color: var(--text-secondary);
-      font-size: var(--font-size-sm);
+    /* Held for the tap flow: a ring in the item's own color, the same
+       affordance the editor's selected marker wears. */
+    .held {
+      box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
     }
 
     .submittedNote {

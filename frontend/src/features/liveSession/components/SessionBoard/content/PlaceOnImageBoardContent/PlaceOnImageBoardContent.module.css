@@ -27,13 +27,10 @@
     touch-action: none;
   }
 
+  /* An item is held: the next tap anywhere on the image places it. (The live
+     drop highlight is `PlacementSurface`'s own.) */
   .surfaceArmed {
     cursor: crosshair;
-  }
-
-  .surfaceDropTarget {
-    outline: var(--border-size-md) dashed var(--edge-brand);
-    outline-offset: calc(-1 * var(--border-size-md));
   }
 
   .surfaceImage {
@@ -130,18 +127,6 @@
     }
   }
 
-  .dragging {
-    opacity: 0.5;
-  }
-
-  /* The badge inside a chip is decorative: the chip button itself is the
-     pointer target. Without this, the badge's thumbnail would be hit-testable
-     and the browser's native image drag could hijack the placement gesture —
-     same recipe as the editor's `GridCellChip`. */
-  .chipBadge {
-    pointer-events: none;
-  }
-
   .actions {
     display: flex;
     flex-direction: column;
@@ -149,45 +134,28 @@
     gap: var(--gap-md);
     width: 100%;
 
-    .bank {
-      display: flex;
-      flex-wrap: wrap;
+    /* A bare wrapper around the MarkerBadge — MarkerBadge owns the pill
+       chrome. The wrapper's own border-radius contributes no visible chrome
+       (background is none); it only matches the badge's shape so the `.held`
+       ring below follows it, same recipe as the editor's `.marker`. Lives
+       beside the bank rather than inside it — the bank row is `BoardBank`'s. */
+    .bankChip {
+      --chip-accent: var(--bg-brand);
+
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: var(--gap-sm);
-
-      /* A bare wrapper around the MarkerBadge — MarkerBadge owns the pill
-         chrome. The wrapper's own border-radius contributes no visible chrome
-         (background is none); it only matches the badge's shape so the `.held`
-         ring below follows it, same recipe as the editor's `.marker`. */
-      .bankChip {
-        --chip-accent: var(--bg-brand);
-
-        display: inline-flex;
-        align-items: center;
-        padding: 0;
-        border: none;
-        border-radius: var(--radius-full);
-        background: none;
-        cursor: grab;
-      }
-
-      /* Held (armed for tap-to-place): a ring in the item's color around the
-         badge, rather than the badge's own chrome — the same recipe as the
-         editor's placement marker selection ring. */
-      .held {
-        box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
-      }
+      padding: 0;
+      border: none;
+      border-radius: var(--radius-full);
+      background: none;
+      cursor: grab;
     }
 
-    .bankDropTarget {
-      outline: var(--border-size-md) dashed var(--edge-brand);
-      outline-offset: var(--gap-xs);
-    }
-
-    .hint {
-      color: var(--text-secondary);
-      font-size: var(--font-size-sm);
+    /* Held (armed for tap-to-place): a ring in the item's color around the
+       badge, rather than the badge's own chrome — the same recipe as the
+       editor's placement marker selection ring. */
+    .held {
+      box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--chip-accent) 35%, transparent);
     }
 
     .submitted {

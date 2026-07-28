@@ -1,0 +1,9 @@
+/* The surface's own look is the board's (a square plane, an image box); the one
+   rule shared by every board that has one lives here. */
+
+/* A dragged chip is over the surface — dropping it lands at the pointer. The
+   outline is inset so it never spills past a clipped image box. */
+.dropTarget {
+  outline: var(--border-size-md) dashed var(--edge-brand);
+  outline-offset: calc(-1 * var(--border-size-md));
+}

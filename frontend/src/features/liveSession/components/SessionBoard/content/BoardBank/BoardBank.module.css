@@ -1,0 +1,24 @@
+/* The bank holds the chips a participant hasn't placed yet. It contributes no
+   chrome of its own — the chips are `MarkerBadge`s — only the wrapping row and
+   the drop highlight. */
+
+.bank {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-sm);
+}
+
+/* Live drop target while a placed chip drags back onto the bank. The outline
+   sits outside the row so it never crowds the chips. */
+.bankDropTarget {
+  outline: var(--border-size-md) dashed var(--edge-brand);
+  outline-offset: var(--gap-xs);
+}
+
+/* Both bank hints — the all-placed line and the tap-somewhere prompt. */
+.hint {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
