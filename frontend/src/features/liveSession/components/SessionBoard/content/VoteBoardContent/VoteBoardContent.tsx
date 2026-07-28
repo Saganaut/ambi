@@ -12,7 +12,7 @@
 // votes can't sway the room.
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { SlideView } from "../../../store/liveSessionApi.gen";
+import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import styles from "./VoteBoardContent.module.css";
 
 interface VoteBoardContentProps {

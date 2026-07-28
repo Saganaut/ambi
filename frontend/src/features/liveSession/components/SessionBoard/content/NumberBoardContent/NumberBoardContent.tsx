@@ -26,10 +26,10 @@
 // bound the input and scale the chart, but never the answer, score mode, or
 // tolerance (those are grading-only, dropped by NumberConfigView).
 import { useEffect, useMemo, useState } from "react";
-import type { SlideView } from "../../../store/liveSessionApi.gen";
+import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { BoardQuestionMode } from "../resolveBoardStage";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import styles from "./NumberBoardContent.module.css";
 

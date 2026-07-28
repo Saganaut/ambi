@@ -17,7 +17,7 @@
 // The canvas is keyed by slideId so navigating rounds always starts a fresh
 // drawing (its element state is component-internal).
 import { useEffect, useRef, useState } from "react";
-import type { SlideView } from "../../../store/liveSessionApi.gen";
+import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import {
@@ -26,7 +26,7 @@ import {
 } from "@/shared/components/DrawingCanvas/DrawingCanvas";
 import { Btn } from "@ui/Buttons/Btn";
 import { extractErrorMessage } from "@utils/utils";
-import type { BoardQuestionMode } from "../resolveBoardStage";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import styles from "./DrawingBoardContent.module.css";
 
 interface DrawingBoardContentProps {

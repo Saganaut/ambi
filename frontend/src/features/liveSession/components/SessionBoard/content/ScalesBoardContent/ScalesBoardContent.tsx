@@ -18,10 +18,10 @@
 // raw 0..1 position. Statements render in authored order — order is
 // presentational for Scales, so (unlike item banks) there is no seeded shuffle.
 import { useEffect, useMemo, useState } from "react";
-import type { SlideView } from "../../../store/liveSessionApi.gen";
+import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { BoardQuestionMode } from "../resolveBoardStage";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { formatScaleValue, positionToValue } from "@/shared/utils/scaleValue";
 import styles from "./ScalesBoardContent.module.css";

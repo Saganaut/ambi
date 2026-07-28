@@ -11,19 +11,19 @@
  */
 import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import type { SlideView } from "../../../store/liveSessionApi.gen";
-import { AxisBoardContent } from "../content/AxisBoardContent";
-import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder";
-import { DrawingBoardContent } from "../content/DrawingBoardContent";
-import { GridBoardContent } from "../content/GridBoardContent";
-import { MatchingBoardContent } from "../content/MatchingBoardContent";
-import { McqBoardContent } from "../content/McqBoardContent";
-import { NumberBoardContent } from "../content/NumberBoardContent";
-import { PlaceOnImageBoardContent } from "../content/PlaceOnImageBoardContent";
-import { QAndABoardContent } from "../content/QAndABoardContent";
-import { RankingBoardContent } from "../content/RankingBoardContent";
-import { ScalesBoardContent } from "../content/ScalesBoardContent";
-import { TextBoardContent } from "../content/TextBoardContent";
-import { VoteBoardContent } from "../content/VoteBoardContent";
+import { AxisBoardContent } from "../content/AxisBoardContent/AxisBoardContent";
+import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder/BoardContentPlaceholder";
+import { DrawingBoardContent } from "../content/DrawingBoardContent/DrawingBoardContent";
+import { GridBoardContent } from "../content/GridBoardContent/GridBoardContent";
+import { MatchingBoardContent } from "../content/MatchingBoardContent/MatchingBoardContent";
+import { McqBoardContent } from "../content/McqBoardContent/McqBoardContent";
+import { NumberBoardContent } from "../content/NumberBoardContent/NumberBoardContent";
+import { PlaceOnImageBoardContent } from "../content/PlaceOnImageBoardContent/PlaceOnImageBoardContent";
+import { QAndABoardContent } from "../content/QAndABoardContent/QAndABoardContent";
+import { RankingBoardContent } from "../content/RankingBoardContent/RankingBoardContent";
+import { ScalesBoardContent } from "../content/ScalesBoardContent/ScalesBoardContent";
+import { TextBoardContent } from "../content/TextBoardContent/TextBoardContent";
+import { VoteBoardContent } from "../content/VoteBoardContent/VoteBoardContent";
 import type { BoardQuestionMode } from "../resolveBoardStage";
 import styles from "./BoardQuestion.module.css";
 

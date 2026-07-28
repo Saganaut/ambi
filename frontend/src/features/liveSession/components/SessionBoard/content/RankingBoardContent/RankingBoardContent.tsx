@@ -19,12 +19,12 @@
 // grid/matching boards.
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
-import type { RankItemView, SlideView } from "../../../store/liveSessionApi.gen";
+import type { RankItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { BoardQuestionMode } from "../resolveBoardStage";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
-import { seededShuffle } from "./seededShuffle";
+import { seededShuffle } from "../seededShuffle";
 import styles from "./RankingBoardContent.module.css";
 
 interface RankingBoardContentProps {

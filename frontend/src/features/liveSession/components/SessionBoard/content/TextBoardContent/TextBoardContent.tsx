@@ -21,13 +21,13 @@
 // nobody matched is still disclosed. Word-cloud slides are unscored, so no
 // grading UI ever renders for them.
 import { useEffect, useMemo, useState } from "react";
-import type { SlideView } from "../../../store/liveSessionApi.gen";
-import { liveSessionValidation } from "../../../store/liveSessionValidationConstants";
+import type { SlideView } from "../../../../store/liveSessionApi.gen";
+import { liveSessionValidation } from "../../../../store/liveSessionValidationConstants";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
 import { wordFrequencies } from "@/shared/components/Charts/adapters/words";
-import type { BoardQuestionMode } from "../resolveBoardStage";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import styles from "./TextBoardContent.module.css";
 

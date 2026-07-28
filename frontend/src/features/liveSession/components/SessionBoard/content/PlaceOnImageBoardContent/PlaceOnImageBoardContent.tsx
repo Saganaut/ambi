@@ -40,12 +40,12 @@ import {
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { PlaceItemView, PlacePoint, SlideView } from "../../../store/liveSessionApi.gen";
-import type { BoardQuestionMode } from "../resolveBoardStage";
+import type { PlaceItemView, PlacePoint, SlideView } from "../../../../store/liveSessionApi.gen";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
-import { seededShuffle } from "./seededShuffle";
+import { seededShuffle } from "../seededShuffle";
 import styles from "./PlaceOnImageBoardContent.module.css";
 
 /**

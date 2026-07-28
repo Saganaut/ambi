@@ -17,12 +17,12 @@
 // distribution comes from the live `optionCounts` tally; the correct option is
 // disclosed only once the results are revealed (`results.correctOption`).
 import { useEffect, useState } from "react";
-import type { SlideView } from "../../../store/liveSessionApi.gen";
+import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { BoardQuestionMode } from "../resolveBoardStage";
+import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
-import { useCappedSelection } from "./useCappedSelection";
+import { useCappedSelection } from "../useCappedSelection";
 import styles from "./McqBoardContent.module.css";
 
 interface McqBoardContentProps {
