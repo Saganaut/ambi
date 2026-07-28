@@ -1,9 +1,11 @@
 /* GridSlideContent — author UI for Grid (drag-into-matrix) slides: the matrix
    beside its item bank. Only the matrix is this file's own — in-place editable
    axis label pills (hover for the delete ×), "+" affordances to grow either
-   axis, droppable cells holding the placed items' chips, and the place
-   affordance. The two-column frame, the item rows, and their chrome come from
-   the shared placement kit (`_shared/_shared.module.css`). */
+   axis, the cells holding the placed items' chips, the place affordance, and
+   the ghost a placement gesture carries. The two-column frame, the item rows,
+   and their chrome come from the shared placement kit
+   (`_shared/_shared.module.css`), whose `placement.module.css` also lends the
+   matrix its armed outline. */
 
 /* ── Matrix frame ───────────────────────────────────────────────────────── */
 
@@ -22,6 +24,9 @@
     auto;
   gap: var(--gap-md);
   align-items: stretch;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-gesture. */
+  touch-action: none;
 }
 
 .headerTrailer {
@@ -154,10 +159,15 @@
   padding: var(--p-square-xs);
   border-radius: var(--radius-md);
   background-color: var(--bg-surface);
+
+  /* A drag across the matrix must not smear a text selection behind it; the
+     cell holds no editable text (the axis labels sit outside it). */
+  user-select: none;
 }
 
-/* Live drop target while an item drags over the cell. */
-.cellDropTarget {
+/* The cell a placement gesture's pointer is currently over — where a release
+   would land the item it is carrying. */
+.cellHovered {
   outline: var(--border-size-md) dashed var(--text-accent);
   outline-offset: calc(-1 * var(--space-1));
 }
@@ -236,9 +246,9 @@
 /* ── Placed chips ───────────────────────────────────────────────────────── */
 
 /* An item's token inside a cell: a `MarkerBadge` — which draws the number,
-   color, and pill chrome the item is recognised by everywhere — made draggable
-   as a whole body. The button contributes no chrome of its own; it is a bare
-   box wrapped tight around the badge, rounded only so the armed outline below
+   color, and pill chrome the item is recognised by everywhere — grabbed as a
+   whole body. The button contributes no chrome of its own; it is a bare box
+   wrapped tight around the badge, rounded only so the armed outline below
    follows the badge's shape. */
 .chip {
   display: inline-flex;
@@ -266,37 +276,35 @@
   outline-offset: var(--space-half);
 }
 
-/* The badge inside the chip is decorative: it must not be the pointer target.
-   dnd-kit refuses to start a drag whose `pointerdown` landed on a child of a
-   native <button> (its `preventActivation` resolves the target with
-   `closest("button")` and treats the hit as a click on a control), so a chip
-   grabbed by its label would never drag. */
+/* The badge inside the chip is decorative: the chip itself is the pointer
+   target. Without this, the badge's thumbnail would be hit-testable and the
+   browser's native image drag could hijack the placement gesture. */
 .chipBadge {
   pointer-events: none;
 }
 
-/* The chip being dragged: dim it so the drop target reads clearly. */
-.chipDragging {
-  opacity: 0.6;
+/* The chip whose ghost is in flight: dim it so the ghost reads as the item. */
+.chipGhosted {
+  opacity: 0.4;
 }
 
-/* ── Item bank ──────────────────────────────────────────────────────────── */
+/* ── The carried ghost ──────────────────────────────────────────────────── */
 
-/* The item rows, which double as the un-place drop target: a chip dragged out
-   of a cell and onto this column drops its cell assignment. */
-.bank {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-sm);
-  border-radius: var(--radius-md);
+/* The item a gesture is carrying, following the pointer in viewport
+   coordinates — fixed, so a chip dragged past the matrix to unplace it is
+   never clipped by an ancestor's overflow. Centred on the pointer rather than
+   disc-anchored like a placement marker: the matrix grades by which cell the
+   pointer is in, not by an exact point, and the hovered cell says so too.
+   Inert, so it never blocks the hit-test underneath it. */
+.ghost {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  transform: translate(-50%, -50%);
+  opacity: 0.8;
+  pointer-events: none;
 }
 
-/* Live drop target while a placed chip drags back over the bank — mirrors
-   `.cellDropTarget` so both drop zones read the same. */
-.bankDropTarget {
-  outline: var(--border-size-md) dashed var(--text-accent);
-  outline-offset: calc(-1 * var(--space-1));
-}
+/* ── Item rows ──────────────────────────────────────────────────────────── */
 
 /* Which cell a row's item sits in (or "Unplaced"), trailing inside the row. */
 .rowMeta {

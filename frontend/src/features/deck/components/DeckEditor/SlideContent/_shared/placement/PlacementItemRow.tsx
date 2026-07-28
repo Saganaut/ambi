@@ -3,10 +3,9 @@
  * field with its popover menu, an image thumbnail when one is set, and an
  * optional trailing meta slot (e.g. Grid's cell name).
  *
- * Purely presentational and free of drag machinery — the rules of hooks make a
- * "sortable or draggable?" prop impossible, so the two dnd flavours are thin
- * wrappers (`SortablePlacementRow`, `DraggablePlacementRow`) that feed this
- * row a `rootRef`, a `grip`, and a `dragging` flag.
+ * Purely presentational and free of drag machinery — `SortablePlacementRow` is
+ * the thin dnd wrapper that feeds this row a `rootRef`, a `grip`, and a
+ * `dragging` flag, so a list that doesn't reorder can render the row bare.
  *
  * Clicking anywhere on the row selects it; the keyboard path is focusing the
  * label field, which both selects the row (via `onMenuOpenChange`) and opens

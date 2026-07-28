@@ -39,7 +39,16 @@ const GridAxisLabel = ({
   const position = (index + 1).toString();
 
   return (
-    <div className={[styles.axisLabel, axis === "col" ? styles.axisLabelCol : ""].filter(Boolean).join(" ")}>
+    // The pill sits inside the matrix, so a press on it must not fall through
+    // and start a placement gesture underneath.
+    <div
+      className={[styles.axisLabel, axis === "col" ? styles.axisLabelCol : ""]
+        .filter(Boolean)
+        .join(" ")}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+      }}
+    >
       <input
         type="text"
         className={styles.axisLabelInput}

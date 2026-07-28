@@ -16,6 +16,9 @@
 // and reindexes the ones behind it. Grading is EXACT (all placements must
 // match), so `scoreMode` has no authoring knob — `buildDefaultContent` fixes it
 // and the editor never writes it.
+import type { DragEndEvent } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/react/sortable";
+
 import type { AppImage, GridItem } from "@deck/store/deckApi.gen";
 
 import { buildDefaultGridItem } from "../utils/slideContent";
@@ -93,6 +96,8 @@ interface UseGridEditorResult {
   setItemColor: (itemId: string | undefined, color: string) => void;
   /** Set or clear (empty AppImage) the item's image. Immediate. */
   setItemImage: (itemId: string | undefined, image: AppImage) => void;
+  /** @dnd-kit drop handler for the item list (bank display order only). */
+  handleItemDragEnd: (event: DragEndEvent) => void;
   /** Assign (cell id) or clear (null) the item's target cell. Immediate. */
   setTargetCell: (itemId: string | undefined, cell: string | null) => void;
 }
@@ -219,6 +224,23 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     editor.flush();
   };
 
+  // Display order only: `correctCells` is keyed by item id, so a reorder never
+  // disturbs where the items are placed — it only renumbers and recolors them.
+  const handleItemDragEnd = (event: DragEndEvent) => {
+    if (event.canceled) return;
+    const { source } = event.operation;
+    if (!isSortable(source)) return;
+    const { initialIndex, index } = source;
+    if (initialIndex === index) return;
+    editor.updateSlideContent((prev) => {
+      const next = prev.items.slice();
+      const [moved] = next.splice(initialIndex, 1);
+      next.splice(index, 0, moved);
+      return { items: next };
+    });
+    editor.flush();
+  };
+
   const setTargetCell = (itemId: string | undefined, cell: string | null) => {
     if (!itemId) return;
     editor.updateSlideContent((prev) => {
@@ -247,6 +269,7 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     scheduleItemLabel,
     setItemColor,
     setItemImage,
+    handleItemDragEnd,
     setTargetCell,
   };
 };

@@ -1,9 +1,10 @@
 /**
  * `PlacementItemRow` made reorderable by its grip — for editors whose row
- * order is itself meaningful (Axis's bank display order).
+ * order is itself meaningful (the Axis and Grid banks' display order, which
+ * fixes each item's number and palette color).
  *
- * Separate from `DraggablePlacementRow` because the rules of hooks forbid one
- * component switching between `useSortable` and `useDraggable` on a prop.
+ * A wrapper rather than a prop on the row because the rules of hooks forbid a
+ * component turning `useSortable` on and off.
  */
 import { useSortable } from "@dnd-kit/react/sortable";
 import { Bars2Icon } from "@heroicons/react/24/outline";

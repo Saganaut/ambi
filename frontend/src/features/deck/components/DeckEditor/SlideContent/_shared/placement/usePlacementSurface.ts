@@ -1,6 +1,7 @@
 /**
- * The pointer machinery every placement surface shares: press-to-place,
- * drag-to-move, and tap-to-select, in normalized coordinates.
+ * A placement surface measured in normalized [0, 1] coordinates: the shared
+ * pointer gestures of `usePointerPlacement`, resolved against the box of the
+ * element `surfaceRef` is attached to.
  *
  * A hook rather than a component because the surrounding markup diverges (Axis
  * overlays endpoint pills on a square plane, Place-on-Image sizes itself from
@@ -10,22 +11,15 @@
  * Place-on-Image the `PENDING_PLACEMENT_KEY` sentinel because its new target
  * has no id until it is committed.
  *
- * Both gestures use pointer capture so a drag that leaves the surface keeps
- * tracking, and both commit exactly once, on release: the live point lives in
- * local state until then, so a drag never floods the editor with writes. A
- * marker press under `DRAG_THRESHOLD_PX` of travel is a tap, not a nudge —
- * that's what routes it to `onMarkerTap` instead of `onMarkerCommit`.
+ * Grid does not compose this hook: its matrix is not a continuous space, so it
+ * resolves a press to a cell instead (`useGridCellPlacement`, over the same
+ * `usePointerPlacement`).
  */
-import {
-  useRef,
-  useState,
-  type DOMAttributes,
-  type PointerEventHandler,
-  type RefObject,
-} from "react";
+import { useRef, type RefObject } from "react";
 
-import { DRAG_THRESHOLD_PX, normalizeToBox } from "./placementGeometry";
+import { normalizeToBox } from "./placementGeometry";
 import type { NormalizedPoint } from "./placement.types";
+import { usePointerPlacement, type SurfacePointerHandlers } from "./usePointerPlacement";
 
 /** Stands in for a not-yet-created entity while its first placement is dragged. */
 const PENDING_PLACEMENT_KEY = "__pending__";
@@ -49,11 +43,6 @@ interface UsePlacementSurfaceOptions {
   onMarkerTap?: (key: string) => void;
 }
 
-type SurfacePointerHandlers = Pick<
-  DOMAttributes<HTMLElement>,
-  "onPointerDown" | "onPointerMove" | "onPointerUp"
->;
-
 interface UsePlacementSurfaceResult {
   /** Attach to the element whose box defines the normalized space. */
   surfaceRef: RefObject<HTMLDivElement | null>;
@@ -74,91 +63,23 @@ const usePlacementSurface = ({
 }: UsePlacementSurfaceOptions): UsePlacementSurfaceResult => {
   const surfaceRef = useRef<HTMLDivElement>(null);
 
-  const [drag, setDrag] = useState<PlacementDrag | null>(null);
-  const pressRef = useRef<{ key: string; startX: number; startY: number; moved: boolean }>({
-    key: "",
-    startX: 0,
-    startY: 0,
-    moved: false,
+  const placement = usePointerPlacement<NormalizedPoint>({
+    resolve: (clientX, clientY) =>
+      normalizeToBox(surfaceRef.current?.getBoundingClientRect(), clientX, clientY, invertY),
+    pendingKey,
+    onSurfaceCommit,
+    onMarkerCommit,
+    onMarkerTap,
   });
-
-  const pointFromClient = (clientX: number, clientY: number): NormalizedPoint | null =>
-    normalizeToBox(surfaceRef.current?.getBoundingClientRect(), clientX, clientY, invertY);
-
-  // Press on open surface: place at the pointer and keep following it,
-  // committing once on release.
-  const handleSurfacePointerDown: PointerEventHandler<HTMLElement> = (event) => {
-    const key = pendingKey();
-    if (key == null) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (!point) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setDrag({ key, point });
-  };
-
-  const handleSurfacePointerMove: PointerEventHandler<HTMLElement> = (event) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point) setDrag((prev) => (prev ? { key: prev.key, point } : prev));
-  };
-
-  const handleSurfacePointerUp: PointerEventHandler<HTMLElement> = (event) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point && drag) onSurfaceCommit(drag.key, point);
-    setDrag(null);
-  };
-
-  const handleMarkerPointerDown =
-    (key: string): PointerEventHandler<HTMLElement> =>
-    (event) => {
-      // Keep the press from also starting a placement on the surface underneath.
-      event.stopPropagation();
-      event.currentTarget.setPointerCapture(event.pointerId);
-      pressRef.current = { key, startX: event.clientX, startY: event.clientY, moved: false };
-    };
-
-  const handleMarkerPointerMove: PointerEventHandler<HTMLElement> = (event) => {
-    const press = pressRef.current;
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    if (
-      !press.moved &&
-      Math.hypot(event.clientX - press.startX, event.clientY - press.startY) < DRAG_THRESHOLD_PX
-    ) {
-      return;
-    }
-    press.moved = true;
-    const point = pointFromClient(event.clientX, event.clientY);
-    if (point) setDrag({ key: press.key, point });
-  };
-
-  const handleMarkerPointerUp: PointerEventHandler<HTMLElement> = (event) => {
-    const press = pressRef.current;
-    // A sloppy click (under the threshold) must not nudge the placement.
-    if (press.moved) {
-      const point = pointFromClient(event.clientX, event.clientY);
-      if (point) onMarkerCommit(press.key, point);
-      setDrag(null);
-    } else {
-      onMarkerTap?.(press.key);
-    }
-    pressRef.current.moved = false;
-  };
 
   return {
     surfaceRef,
-    surfaceProps: {
-      onPointerDown: handleSurfacePointerDown,
-      onPointerMove: handleSurfacePointerMove,
-      onPointerUp: handleSurfacePointerUp,
-    },
-    markerProps: (key) => ({
-      onPointerDown: handleMarkerPointerDown(key),
-      onPointerMove: handleMarkerPointerMove,
-      onPointerUp: handleMarkerPointerUp,
-    }),
-    drag,
-    pointFor: (key, stored) => (drag?.key === key ? drag.point : stored),
+    surfaceProps: placement.surfaceProps,
+    markerProps: placement.markerProps,
+    // Named `point` rather than the generic `value` — this surface's callers
+    // read a coordinate, not "whatever is being placed".
+    drag: placement.drag && { key: placement.drag.key, point: placement.drag.value },
+    pointFor: placement.valueFor,
   };
 };
 

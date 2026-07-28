@@ -17,7 +17,6 @@ export { useSlideComposerState } from "./useSlideComposerState";
 export type { ComposerQuestion, SlideComposerState } from "./useSlideComposerState";
 
 // ── Placement kit (Axis, Place-on-Image, Grid) ──────────────────────────
-export { DraggablePlacementRow } from "./placement/DraggablePlacementRow";
 export { PlacementItemRow } from "./placement/PlacementItemRow";
 export type { PlacementItemRowProps } from "./placement/PlacementItemRow";
 export { PlacementMarker } from "./placement/PlacementMarker";
@@ -36,4 +35,11 @@ export type {
   UsePlacementSurfaceOptions,
   UsePlacementSurfaceResult,
 } from "./placement/usePlacementSurface";
+export { usePointerPlacement } from "./placement/usePointerPlacement";
+export type {
+  PointerPlacement,
+  SurfacePointerHandlers,
+  UsePointerPlacementOptions,
+  UsePointerPlacementResult,
+} from "./placement/usePointerPlacement";
 export type { NormalizedPoint, PlaceableItem } from "./placement/placement.types";

@@ -19,21 +19,28 @@
  *
  * Placement has two inputs, both resolved here. Arm-then-click: selecting a
  * row arms that item, and a cell's "Place here" button places it — the
- * pointer-free path. Drag: a row's grip drops the item onto any cell, and a
- * placed chip moves between cells or lands on the "Items" column to unplace.
- * One `DragDropProvider` spans both columns; because an item is draggable from
- * its row AND its chip, the chip's dnd id is prefixed (see `gridDragIds.ts`).
+ * pointer-free path. Press-drag (the same gesture the Axis plane uses, resolved
+ * to a cell instead of a point — see `useGridCellPlacement`): with an item
+ * armed, a press anywhere on the matrix carries its ghost to the cell released
+ * over, and a placed chip is pressed and dragged straight to another cell — or
+ * off the matrix, which unplaces it. Releasing over no cell abandons a fresh
+ * placement without writing.
+ *
+ * The two inputs can fire for one gesture (an empty cell IS its "Place here"
+ * button, so a click on it is also a press on the matrix), hence the single
+ * `assignCell` both go through: re-placing an item where it already sits is a
+ * no-op, so the redundant half writes nothing.
  *
  * Grading is EXACT (every placement must match `correctCells`), so the footer
  * nudges until every item has a cell; `scoreMode` has no authoring knob.
  */
 import { ArrowUturnLeftIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
 import { Fragment, type CSSProperties } from "react";
 
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
   GRID_ITEM_LABEL_MAX,
   MAX_GRID_ITEMS,
@@ -42,23 +49,24 @@ import {
   useGridEditor,
 } from "@deck/hooks/useGridEditor";
 import type { GridItem } from "@deck/store/deckApi.gen";
-import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
+import { resolveImageUrl } from "@utils/image";
 import {
-  DraggablePlacementRow,
   EmptySelect,
   ItemList,
   ScoringFooter,
   SettingsCard,
+  SortablePlacementRow,
   useSlideComposerState,
 } from "../_shared";
+import placement from "../_shared/placement/placement.module.css";
 import shared from "../_shared/_shared.module.css";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import { GridAxisLabel } from "./GridAxisLabel";
 import { GridCellChip } from "./GridCellChip";
 import { GridCellEditable } from "./GridCellEditable";
-import { GridItemBank } from "./GridItemBank";
-import { itemIdFromDragId } from "./gridDragIds";
+import { GridPlacementGhost } from "./GridPlacementGhost";
+import { useGridCellPlacement } from "./useGridCellPlacement";
 import styles from "./GridSlideContent.module.css";
 
 /** Display name for an axis label, falling back to its 1-based position. */
@@ -74,6 +82,22 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { question } = editor;
   const openPicker = useGalleryPicker();
   const composer = useSlideComposerState(question);
+
+  /** Move an item to a cell — or out of the matrix (null) — writing only a change. */
+  const assignCell = (itemId: string, cell: string | null) => {
+    const current = editor.question?.correctCells[itemId] ?? null;
+    if (current === cell) return;
+    editor.setTargetCell(itemId, cell);
+  };
+
+  const gesture = useGridCellPlacement({
+    armedItemId: composer.selectedItemId,
+    onPlace: assignCell,
+    onMoveChip: assignCell,
+    onTapChip: (itemId) => {
+      composer.setSelectedItemId((held) => (held === itemId ? null : itemId));
+    },
+  });
 
   if (!question) return <EmptySelect title="Grid" />;
 
@@ -100,21 +124,10 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     if (itemId && composer.selectedItemId === itemId) composer.setSelectedItemId(null);
   };
 
-  // Drops land either on a cell (place/move) or on the "Items" column (unplace);
-  // the dragged item may have come from its row or from its placed chip.
-  const handleDragEnd = (event: DragEndEvent) => {
-    const drop = resolveDragEnd(event);
-    if (!drop) return;
-    const itemId = itemIdFromDragId(drop.itemId);
-    const current = correctCells[itemId];
-    if (drop.targetId === BANK_DROPPABLE_ID) {
-      if (current == null) return;
-      editor.setTargetCell(itemId, null);
-      return;
-    }
-    if (current === drop.targetId) return;
-    editor.setTargetCell(itemId, drop.targetId);
-  };
+  // The item whose ghost is in flight, if any — drawn under the pointer until
+  // the gesture commits.
+  const carriedIndex = gesture.drag ? items.findIndex((item) => item.id === gesture.drag?.key) : -1;
+  const carried = carriedIndex >= 0 ? items[carriedIndex] : undefined;
 
   return (
     <SlideContentWrapper
@@ -139,210 +152,224 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         )
       }
     >
-      {/* DragDropProvider directly (not DragDropWrapper): this is a free drag
-          onto droppable cells and the item bank, not a single-list reorder.
-          It spans both columns so a chip can be dragged out of the matrix and
-          onto the "Items" column to unplace it. */}
-      <DragDropProvider onDragEnd={handleDragEnd}>
-        <div className={shared.editorRow}>
-          <div className={shared.editorColumnWide}>
-            <SettingsCard
-              title="Grid"
-              action={
-                <span className={shared.placedCount}>
-                  {placedCount} of {items.length} placed
-                </span>
-              }
+      <div className={shared.editorRow}>
+        <div className={shared.editorColumnWide}>
+          <SettingsCard
+            title="Grid"
+            action={
+              <span className={shared.placedCount}>
+                {placedCount} of {items.length} placed
+              </span>
+            }
+          >
+            {/* The placement surface; the pointer-free path is each cell's
+                "Place here" button. */}
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+            <div
+              className={[styles.matrix, armedItem ? placement.surfaceArmed : ""]
+                .filter(Boolean)
+                .join(" ")}
+              style={{ "--grid-cols": colLabels.length } as CSSProperties}
+              {...gesture.matrixProps}
             >
-              <div
-                className={styles.matrix}
-                style={{ "--grid-cols": colLabels.length } as CSSProperties}
-              >
-                <span />
-                {colLabels.map((label, col) => (
-                  <GridAxisLabel
-                    key={`${question.id}-col-${col.toString()}-${colLabels.length.toString()}`}
-                    axis="col"
-                    index={col}
-                    value={label}
-                    canRemove={editor.canRemoveLabel("col")}
-                    onScheduleLabel={(next) => {
-                      editor.scheduleLabel("col", col, next);
-                    }}
-                    onFlush={editor.flush}
-                    onRemove={() => {
-                      editor.removeLabel("col", col);
-                    }}
-                  />
-                ))}
-                <span className={styles.headerTrailer}>
-                  {editor.canAddLabel("col") && (
-                    <button
-                      type="button"
-                      className={styles.axisAdd}
-                      aria-label="Add column"
-                      onClick={() => {
-                        editor.addLabel("col");
-                      }}
-                    >
-                      <PlusIcon className={styles.axisAddIcon} aria-hidden="true" />
-                    </button>
-                  )}
-                </span>
-                {rowLabels.map((rowLabel, row) => (
-                  <Fragment
-                    key={`${question.id}-row-${row.toString()}-${rowLabels.length.toString()}`}
-                  >
-                    <GridAxisLabel
-                      axis="row"
-                      index={row}
-                      value={rowLabel}
-                      canRemove={editor.canRemoveLabel("row")}
-                      onScheduleLabel={(next) => {
-                        editor.scheduleLabel("row", row, next);
-                      }}
-                      onFlush={editor.flush}
-                      onRemove={() => {
-                        editor.removeLabel("row", row);
-                      }}
-                    />
-                    {colLabels.map((_, col) => {
-                      const cell = cellId(row, col);
-                      const placed = items.filter(
-                        (item) => item.id && correctCells[item.id] === cell,
-                      );
-                      return (
-                        <GridCellEditable
-                          key={cell}
-                          cell={cell}
-                          cellName={cellNameOf(cell)}
-                          hasItems={placed.length > 0}
-                          armedItemName={armedItemName}
-                          onPlaceArmed={() => {
-                            editor.setTargetCell(composer.selectedItemId ?? undefined, cell);
-                          }}
-                        >
-                          {placed.map((item) => {
-                            const index = items.indexOf(item);
-                            return (
-                              <GridCellChip
-                                key={item.id}
-                                item={item}
-                                index={index}
-                                color={resolveDatumColor(item.color, index)}
-                                selected={item.id === composer.selectedItemId}
-                                onSelect={() => {
-                                  composer.setSelectedItemId((held) =>
-                                    held === item.id ? null : (item.id ?? null),
-                                  );
-                                }}
-                              />
-                            );
-                          })}
-                        </GridCellEditable>
-                      );
-                    })}
-                    <span />
-                  </Fragment>
-                ))}
-                {editor.canAddLabel("row") && (
+              <span />
+              {colLabels.map((label, col) => (
+                <GridAxisLabel
+                  key={`${question.id}-col-${col.toString()}-${colLabels.length.toString()}`}
+                  axis="col"
+                  index={col}
+                  value={label}
+                  canRemove={editor.canRemoveLabel("col")}
+                  onScheduleLabel={(next) => {
+                    editor.scheduleLabel("col", col, next);
+                  }}
+                  onFlush={editor.flush}
+                  onRemove={() => {
+                    editor.removeLabel("col", col);
+                  }}
+                />
+              ))}
+              <span className={styles.headerTrailer}>
+                {editor.canAddLabel("col") && (
                   <button
                     type="button"
-                    className={styles.rowAdd}
-                    aria-label="Add row"
+                    className={styles.axisAdd}
+                    aria-label="Add column"
                     onClick={() => {
-                      editor.addLabel("row");
+                      editor.addLabel("col");
                     }}
                   >
                     <PlusIcon className={styles.axisAddIcon} aria-hidden="true" />
-                    <span>Add row</span>
                   </button>
                 )}
-              </div>
-            </SettingsCard>
-          </div>
-
-          <div className={shared.editorColumnNarrow}>
-            <SettingsCard
-              title="Items"
-              action={
-                <span className={shared.cardHeaderHint}>
-                  Select a row, then click a cell — or drag its grip.
-                </span>
-              }
-            >
-              <ItemList
-                addLabel={
-                  editor.canAddItem ? "Add item" : `Maximum ${MAX_GRID_ITEMS.toString()} items`
-                }
-                canAdd={editor.canAddItem}
-                onAdd={() => {
-                  editor.addItem();
-                }}
-              >
-                <GridItemBank>
-                  {items.map((item, index) => {
-                    const cell = item.id != null ? correctCells[item.id] : undefined;
+              </span>
+              {rowLabels.map((rowLabel, row) => (
+                <Fragment
+                  key={`${question.id}-row-${row.toString()}-${rowLabels.length.toString()}`}
+                >
+                  <GridAxisLabel
+                    axis="row"
+                    index={row}
+                    value={rowLabel}
+                    canRemove={editor.canRemoveLabel("row")}
+                    onScheduleLabel={(next) => {
+                      editor.scheduleLabel("row", row, next);
+                    }}
+                    onFlush={editor.flush}
+                    onRemove={() => {
+                      editor.removeLabel("row", row);
+                    }}
+                  />
+                  {colLabels.map((_, col) => {
+                    const cell = cellId(row, col);
+                    const placed = items.filter(
+                      (item) => item.id && correctCells[item.id] === cell,
+                    );
                     return (
-                      <DraggablePlacementRow
-                        key={item.id ?? index}
-                        item={item}
-                        index={index}
-                        color={resolveDatumColor(item.color, index)}
-                        itemNoun="Item"
-                        labelMaxLength={GRID_ITEM_LABEL_MAX}
-                        gripLabel={`Drag item ${(index + 1).toString()} onto a cell`}
-                        selected={item.id != null && composer.selectedItemId === item.id}
-                        menuOpen={item.id != null && composer.openMenuId === item.id}
-                        canRemove={editor.canRemoveItem}
-                        meta={
-                          <span className={styles.rowMeta}>
-                            {cell == null ? "Unplaced" : cellNameOf(cell)}
-                          </span>
-                        }
-                        primaryAction={
-                          cell == null
-                            ? undefined
-                            : {
-                                label: "Clear cell",
-                                icon: ArrowUturnLeftIcon,
-                                pressed: true,
-                                onSelect: () => {
-                                  composer.setOpenMenuId(null);
-                                  editor.setTargetCell(item.id, null);
-                                },
-                              }
-                        }
-                        onSelect={() => {
-                          if (item.id) composer.setSelectedItemId(item.id);
+                      <GridCellEditable
+                        key={cell}
+                        cellName={cellNameOf(cell)}
+                        hasItems={placed.length > 0}
+                        armedItemName={armedItemName}
+                        hovered={gesture.drag?.value.cell === cell}
+                        cellRef={gesture.registerCell(cell)}
+                        onPlaceArmed={() => {
+                          if (composer.selectedItemId) assignCell(composer.selectedItemId, cell);
                         }}
-                        onMenuOpenChange={(open) => {
-                          composer.setOpenMenuId(open ? (item.id ?? null) : null);
-                          if (open && item.id) composer.setSelectedItemId(item.id);
-                        }}
-                        onScheduleLabel={(label) => {
-                          editor.scheduleItemLabel(item.id, label);
-                        }}
-                        onFlush={editor.flush}
-                        onSetColor={(color) => {
-                          editor.setItemColor(item.id, color);
-                        }}
-                        onSetImage={(image) => {
-                          editor.setItemImage(item.id, image);
-                        }}
-                        onRemove={() => {
-                          removeItem(item.id);
-                        }}
-                        openPicker={openPicker}
-                      />
+                      >
+                        {placed.map((item) => {
+                          const index = items.indexOf(item);
+                          const itemId = item.id ?? "";
+                          return (
+                            <GridCellChip
+                              key={itemId}
+                              item={item}
+                              index={index}
+                              color={resolveDatumColor(item.color, index)}
+                              selected={itemId === composer.selectedItemId}
+                              dragging={gesture.drag?.key === itemId}
+                              onSelect={() => {
+                                composer.setSelectedItemId((held) =>
+                                  held === itemId ? null : itemId,
+                                );
+                              }}
+                              {...gesture.chipProps(itemId)}
+                            />
+                          );
+                        })}
+                      </GridCellEditable>
                     );
                   })}
-                </GridItemBank>
-              </ItemList>
-            </SettingsCard>
-          </div>
+                  <span />
+                </Fragment>
+              ))}
+              {editor.canAddLabel("row") && (
+                <button
+                  type="button"
+                  className={styles.rowAdd}
+                  aria-label="Add row"
+                  onClick={() => {
+                    editor.addLabel("row");
+                  }}
+                >
+                  <PlusIcon className={styles.axisAddIcon} aria-hidden="true" />
+                  <span>Add row</span>
+                </button>
+              )}
+            </div>
+            {carried && gesture.drag && (
+              <GridPlacementGhost
+                displayIndex={carriedIndex + 1}
+                color={resolveDatumColor(carried.color, carriedIndex)}
+                label={carried.label}
+                imageSrc={resolveImageUrl(carried.image, "SM", carried.id ?? "", 200, 200, false)}
+                clientX={gesture.drag.value.clientX}
+                clientY={gesture.drag.value.clientY}
+              />
+            )}
+          </SettingsCard>
         </div>
-      </DragDropProvider>
+
+        <div className={shared.editorColumnNarrow}>
+          <SettingsCard
+            title="Items"
+            action={
+              <span className={shared.cardHeaderHint}>
+                Select a row, then drag on the matrix to drop it in a cell.
+              </span>
+            }
+          >
+            <ItemList
+              addLabel={
+                editor.canAddItem ? "Add item" : `Maximum ${MAX_GRID_ITEMS.toString()} items`
+              }
+              canAdd={editor.canAddItem}
+              onAdd={() => {
+                editor.addItem();
+              }}
+            >
+              <DragDropWrapper onReorder={editor.handleItemDragEnd}>
+                {items.map((item, index) => {
+                  const cell = item.id != null ? correctCells[item.id] : undefined;
+                  return (
+                    <SortablePlacementRow
+                      key={item.id ?? index}
+                      item={item}
+                      index={index}
+                      color={resolveDatumColor(item.color, index)}
+                      itemNoun="Item"
+                      labelMaxLength={GRID_ITEM_LABEL_MAX}
+                      gripLabel={`Reorder item ${(index + 1).toString()}`}
+                      selected={item.id != null && composer.selectedItemId === item.id}
+                      menuOpen={item.id != null && composer.openMenuId === item.id}
+                      canRemove={editor.canRemoveItem}
+                      meta={
+                        <span className={styles.rowMeta}>
+                          {cell == null ? "Unplaced" : cellNameOf(cell)}
+                        </span>
+                      }
+                      primaryAction={
+                        cell == null
+                          ? undefined
+                          : {
+                              label: "Clear cell",
+                              icon: ArrowUturnLeftIcon,
+                              pressed: true,
+                              onSelect: () => {
+                                composer.setOpenMenuId(null);
+                                editor.setTargetCell(item.id, null);
+                              },
+                            }
+                      }
+                      onSelect={() => {
+                        if (item.id) composer.setSelectedItemId(item.id);
+                      }}
+                      onMenuOpenChange={(open) => {
+                        composer.setOpenMenuId(open ? (item.id ?? null) : null);
+                        if (open && item.id) composer.setSelectedItemId(item.id);
+                      }}
+                      onScheduleLabel={(label) => {
+                        editor.scheduleItemLabel(item.id, label);
+                      }}
+                      onFlush={editor.flush}
+                      onSetColor={(color) => {
+                        editor.setItemColor(item.id, color);
+                      }}
+                      onSetImage={(image) => {
+                        editor.setItemImage(item.id, image);
+                      }}
+                      onRemove={() => {
+                        removeItem(item.id);
+                      }}
+                      openPicker={openPicker}
+                    />
+                  );
+                })}
+              </DragDropWrapper>
+            </ItemList>
+          </SettingsCard>
+        </div>
+      </div>
     </SlideContentWrapper>
   );
 };

@@ -277,11 +277,13 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   bookkeeping and the markers come from the shared placement kit (see below).
 - **Rows and markers come from the shared placement kit**
   (`SlideContent/_shared/placement/`), which Axis, [Place-on-Image](../place-on-image/README.md),
-  and Grid all build on: `usePlacementSurface` (press-to-place,
-  drag-to-move, tap-to-select, all in normalized coordinates, parameterized
-  by `invertY` — Axis inverts, the others don't), `PlacementMarker` (numbered
+  and Grid all build on: `usePointerPlacement` (press-to-place,
+  drag-to-move, tap-to-select, pointer capture, one commit on release),
+  `usePlacementSurface` (that gesture resolved to normalized coordinates,
+  parameterized by `invertY` — Axis inverts, Place-on-Image doesn't, and Grid
+  resolves to a cell instead), `PlacementMarker` (numbered
   dot + optional label pill + tolerance circle), `PlacementItemRow` plus its
-  `SortablePlacementRow` / `DraggablePlacementRow` dnd wrappers, and
+  `SortablePlacementRow` dnd wrapper, and
   `ToleranceField` (the ×100 / ÷100 percent wrapper around `NumberInput`).
   Axis renders `SortablePlacementRow` with an inline `primaryAction` for the
   "Set target" / "Clear target" toggle; there is no Axis-specific row or

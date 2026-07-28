@@ -1,21 +1,21 @@
 /**
  * An item's token inside a matrix cell: `MarkerBadge` — the same numbered disc,
  * resolved color, and pill the item shows wherever it is placed — wrapped in a
- * button that makes it draggable. The wrapper adds nothing to the look: the
- * whole chip is the drag source (there is no room for a separate grip at this
- * size), so drag it to another cell to move the placement, or onto the "Items"
- * column to unplace it.
+ * button the pointer grabs. The wrapper adds nothing to the look: the whole
+ * chip is the drag source (there is no room for a separate grip at this size),
+ * so press it and drag to another cell to move the placement, or off the matrix
+ * to unplace it.
  *
- * Clicking arms the item instead, the pointer-free path's other half: an armed
- * item is placed by pressing a cell's "Place here" button. A quick click never
- * crosses dnd-kit's pointer-sensor threshold, so the two inputs never conflict.
+ * A press that never travels is a tap that arms/disarms the item instead —
+ * settled on `pointerup` by the placement gesture, which is why the click here
+ * only serves the keyboard: `detail === 0` marks the activation that sent no
+ * pointer events (Enter/Space), the one case the gesture never saw.
  */
-import { useDraggable } from "@dnd-kit/react";
+import type { PointerEventHandler } from "react";
 
 import type { GridItem } from "@deck/store/deckApi.gen";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { resolveImageUrl } from "@utils/image";
-import { chipDragId } from "./gridDragIds";
 import styles from "./GridSlideContent.module.css";
 
 interface GridCellChipProps {
@@ -26,23 +26,45 @@ interface GridCellChipProps {
   color: string;
   /** Whether this item is armed for placement. */
   selected: boolean;
+  /** Whether this chip's ghost is currently following the pointer. */
+  dragging: boolean;
+  /** Arm/disarm the item — keyboard activation only (see the header). */
   onSelect: () => void;
+  onPointerDown?: PointerEventHandler<HTMLElement>;
+  onPointerMove?: PointerEventHandler<HTMLElement>;
+  onPointerUp?: PointerEventHandler<HTMLElement>;
 }
 
-const GridCellChip = ({ item, index, color, selected, onSelect }: GridCellChipProps) => {
-  const { ref, isDragging } = useDraggable({ id: chipDragId(item.id ?? "") });
+const GridCellChip = ({
+  item,
+  index,
+  color,
+  selected,
+  dragging,
+  onSelect,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+}: GridCellChipProps) => {
   const displayIndex = index + 1;
   const label = item.label?.trim();
   const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id ?? "", 200, 200, false);
 
   return (
     <button
-      ref={ref}
       type="button"
-      className={[styles.chip, isDragging ? styles.chipDragging : ""].filter(Boolean).join(" ")}
+      className={[styles.chip, dragging ? styles.chipGhosted : ""].filter(Boolean).join(" ")}
       aria-pressed={selected}
-      aria-label={`Item ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to another cell`}
-      onClick={onSelect}
+      aria-label={`Item ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to a cell`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onClick={(event) => {
+        // Selection is settled on pointerup; keep the click from falling
+        // through to the matrix and from toggling the selection back.
+        event.stopPropagation();
+        if (event.detail === 0) onSelect();
+      }}
     >
       <MarkerBadge
         className={styles.chipBadge}
