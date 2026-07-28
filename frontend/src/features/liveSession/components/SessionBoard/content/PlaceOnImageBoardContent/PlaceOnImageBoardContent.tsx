@@ -15,38 +15,33 @@
 // answer key) stay hidden until reveal. Item i's pin is graded against target
 // i's own circle.
 //
-// Placement has two layered inputs, mirroring the Grid board. Pointer/touch DRAG
-// is the primary path (drag a bank chip onto the image to drop its pin at the
-// pointer, drag a placed pin to move it or back to the bank to un-place),
-// resolved through the shared `resolveDragEnd` seam plus the drop pointer
-// position. Tap-to-place is the small-screen / keyboard / AT fallback: tap a
-// bank chip to hold it, then tap the image to drop its pin; arrow keys nudge a
-// focused placed pin. The two never conflict — dnd-kit's pointer sensor only
-// starts a drag past a movement/hold threshold, so a plain click still toggles
-// the held state.
+// Placement input — the drag / tap / arrow-key engine and the round-local draft
+// it maintains — is `useBoardPlacement`, shared with the Axis board (the other
+// continuous-surface board); this component owns only how the image, its scatter
+// / revealed targets and the pins render. The map is one-shot — locking freezes
+// the surface — so the hook takes `lockOnSubmit: true`.
 //
 // Coordinates are normalized [0, 1] in screen space over the image box —
 // (0, 0) is the image's top-left, y NOT inverted — the same frame the editor's
 // `PlaceOnImageSurface` and `RoundEvaluator.gradePlaceOnImage` work in. The
 // draft placements and locked state are round-local, keyed off the slide id.
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
+import { useMemo, type CSSProperties } from "react";
+import { DragDropProvider } from "@dnd-kit/react";
 
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
-import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
-import type { PlaceItemView, PlacePoint, SlideView } from "../../../../store/liveSessionApi.gen";
+import type { PlaceItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
-import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
-import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
+import { toRenderStyle } from "@utils/placementGeometry";
 import { BoardBank } from "../BoardBank/BoardBank";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
-import { PlacementSurface, SURFACE_DROPPABLE_ID } from "../PlacementSurface/PlacementSurface";
+import { PlacementSurface } from "../PlacementSurface/PlacementSurface";
 import { seededShuffle } from "../seededShuffle";
+import { useBoardPlacement } from "../useBoardPlacement";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./PlaceOnImageBoardContent.module.css";
 
@@ -57,9 +52,6 @@ import styles from "./PlaceOnImageBoardContent.module.css";
  * as `AXIS_TALLY_BUCKETS` in the Axis board).
  */
 const PLACE_TALLY_BUCKETS = 20;
-
-/** Arrow-key nudge step for a focused placed pin, in normalized units. */
-const KEYBOARD_NUDGE_STEP = 0.02;
 
 /**
  * The image's orientation, handed to the shared geometry at every call site:
@@ -113,7 +105,6 @@ const PlaceOnImageBoardContent = ({
   const slideId = slide.id ?? "";
   const imageUrl = slide.placeOnImage?.imageUrl ?? null;
 
-  const { sendAnswer } = useSessionConnection();
   const { optionCounts, results, viewerParticipantId, placeTargets } =
     useLiveSessionQuery();
 
@@ -125,94 +116,29 @@ const PlaceOnImageBoardContent = ({
     [authoredItems, slideId],
   );
 
-  const surfaceRef = useRef<HTMLDivElement | null>(null);
-
-  // Round-local placement draft: itemId → normalized point. Cleared when the
-  // round (slide) changes.
-  const [placements, setPlacements] = useState<Record<string, PlacePoint>>({});
-  const [heldItemId, setHeldItemId] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  useEffect(() => {
-    setPlacements({});
-    setHeldItemId(null);
-    setSubmitted(false);
-  }, [slideId]);
-
-  const canPlace = interactive && !submitted && mode !== "results";
-  const allPlaced =
-    items.length > 0 && items.every((item) => item.id && placements[item.id]);
-
-  const submit = () => {
-    if (!canPlace || !allPlaced) return;
-    sendAnswer(slideId, { answerType: "PlaceOnImageAnswer", placements });
-    setSubmitted(true);
-  };
-
-  // Resolve a drag onto the image (place / move at the drop pointer) or onto the
-  // bank (un-place), no-op'ing a drop with no coordinate. The drop coordinate
-  // comes from dnd-kit's live pointer position, not the discrete droppable id.
-  const handleDragEnd = (event: DragEndEvent) => {
-    const drop = resolveDragEnd(event);
-    if (!drop || !canPlace) return;
-    const { itemId, targetId } = drop;
-    // An id-less item renders with an empty draggable id (PlaceItemView.id is
-    // optional); never let that key into the placement map.
-    if (!itemId) return;
-    if (targetId === BANK_DROPPABLE_ID) {
-      if (!placements[itemId]) return;
-      setPlacements((prev) => {
-        const { [itemId]: _lifted, ...rest } = prev;
-        return rest;
-      });
-    } else if (targetId === SURFACE_DROPPABLE_ID) {
-      const pointer = event.operation.position.current;
-      const point = normalizeToBox(
-        surfaceRef.current?.getBoundingClientRect(),
-        pointer.x,
-        pointer.y,
-        INVERT_Y,
-      );
-      if (!point) return;
-      setPlacements((prev) => ({ ...prev, [itemId]: point }));
-    }
-    if (heldItemId === itemId) setHeldItemId(null);
-  };
-
-  // Tap fallback: with an item held, tapping the image drops its pin at the tap.
-  const placeAt = (event: React.MouseEvent<HTMLElement>) => {
-    if (!canPlace || heldItemId == null) return;
-    const point = normalizeToBox(
-      surfaceRef.current?.getBoundingClientRect(),
-      event.clientX,
-      event.clientY,
-      INVERT_Y,
-    );
-    if (!point) return;
-    setPlacements((prev) => ({ ...prev, [heldItemId]: point }));
-    setHeldItemId(null);
-  };
-
-  const nudge = (itemId: string) => (event: React.KeyboardEvent) => {
-    if (!canPlace) return;
-    const deltas: Record<string, [number, number]> = {
-      ArrowLeft: [-KEYBOARD_NUDGE_STEP, 0],
-      ArrowRight: [KEYBOARD_NUDGE_STEP, 0],
-      // Top-left origin: ArrowUp decreases y, ArrowDown increases it.
-      ArrowUp: [0, -KEYBOARD_NUDGE_STEP],
-      ArrowDown: [0, KEYBOARD_NUDGE_STEP],
-    };
-    const delta = deltas[event.key];
-    if (!delta) return;
-    event.preventDefault();
-    setPlacements((prev) => {
-      const current = prev[itemId];
-      if (!current) return prev;
-      return {
-        ...prev,
-        [itemId]: clampPoint({ x: current.x + delta[0], y: current.y + delta[1] }),
-      };
-    });
-  };
+  // The map is single-shot: locking it in freezes the surface for the rest of
+  // the round (`lockOnSubmit: true`), unlike the re-submittable Axis plane.
+  const {
+    placements,
+    heldItemId,
+    submitted,
+    canPlace,
+    allPlaced,
+    surfaceRef,
+    handleDragEnd,
+    placeAt,
+    nudge,
+    toggleHold,
+    liftItem,
+    submit,
+  } = useBoardPlacement({
+    slideId,
+    items,
+    answerable: interactive && mode !== "results",
+    lockOnSubmit: true,
+    invertY: INVERT_Y,
+    buildAnswer: (placed) => ({ answerType: "PlaceOnImageAnswer", placements: placed }),
+  });
 
   const showScatter = mode === "results" || mode === "liveResults";
   const dots = showScatter ? scatterDots(optionCounts) : [];
@@ -361,12 +287,7 @@ const PlaceOnImageBoardContent = ({
                 style={toRenderStyle(point, INVERT_Y)}
                 onKeyDown={nudge(itemId)}
                 onClick={() => {
-                  if (!canPlace) return;
-                  setPlacements((prev) => {
-                    const { [itemId]: _lifted, ...rest } = prev;
-                    return rest;
-                  });
-                  setHeldItemId(itemId);
+                  liftItem(itemId);
                 }}>
                 <MarkerBadge
                   displayIndex={authoredIndexOf(item) + 1}
@@ -411,7 +332,7 @@ const PlaceOnImageBoardContent = ({
                       ariaLabel={labelOf(item.label)}
                       ariaPressed={heldItemId === item.id}
                       onClick={() => {
-                        setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
+                        toggleHold(item.id);
                       }}>
                       <MarkerBadge
                         displayIndex={authoredIndexOf(item) + 1}

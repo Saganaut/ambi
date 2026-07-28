@@ -12,38 +12,33 @@
 //                   themselves are not revealed yet — no event carries a
 //                   map-shaped answer key (follow-up F1, same seam as D5).
 //
-// Placement has two layered inputs, mirroring the Place-on-Image board — the
-// other continuous-surface board. Pointer/touch DRAG is the primary path (drag a
-// bank chip onto the plane to drop it at the pointer, drag a placed chip to move
-// it or back to the bank to un-place), resolved through the shared
-// `resolveDragEnd` seam plus the drop pointer position. Tap-to-place is the
-// small-screen / keyboard / AT fallback: tap a bank chip to hold it, then tap
-// the plane to drop it at the tap; arrow keys nudge a focused placed chip. The
-// two never conflict — dnd-kit's pointer sensor only starts a drag past a
-// movement/hold threshold, so a plain click still toggles the held state.
+// Placement input — the drag / tap / arrow-key engine and the round-local draft
+// it maintains — is `useBoardPlacement`, shared with the Place-on-Image board
+// (the other continuous-surface board); this component owns only how the plane,
+// its heat overlay and the chips render. The plane stays answerable after a
+// submit, so the hook takes `lockOnSubmit: false`.
 //
 // Coordinates are normalized [0, 1] with (0, 0) the low/low corner — bottom-left
-// as rendered — so screen y inverts on the way in and back out again on render,
-// the same frame the editor's `AxisPlaneEditor` and the grader work in. The
-// draft placements are round-local, keyed off the slide id.
-import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+// as rendered — so screen y inverts on the way in (`invertY`) and back out again
+// on render, the same frame the editor's `AxisPlaneEditor` and the grader work
+// in. The draft placements are round-local, keyed off the slide id.
+import { DragDropProvider } from "@dnd-kit/react";
+import { useMemo, type CSSProperties } from "react";
 
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
-import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import { Btn } from "@ui/Buttons/Btn";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
-import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
-import { clampPoint, normalizeToBox, toRenderStyle } from "@utils/placementGeometry";
-import type { AxisItemView, AxisPoint, SlideView } from "../../../../store/liveSessionApi.gen";
+import { toRenderStyle } from "@utils/placementGeometry";
+import type { AxisItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { BoardBank } from "../BoardBank/BoardBank";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
-import { PlacementSurface, SURFACE_DROPPABLE_ID } from "../PlacementSurface/PlacementSurface";
+import { PlacementSurface } from "../PlacementSurface/PlacementSurface";
 import { seededShuffle } from "../seededShuffle";
+import { useBoardPlacement } from "../useBoardPlacement";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./AxisBoardContent.module.css";
 
@@ -54,9 +49,6 @@ import styles from "./AxisBoardContent.module.css";
  * keep-in-sync discipline as `NON_SCORABLE_SLIDE_TYPES` in slideContent.ts).
  */
 const AXIS_TALLY_BUCKETS = 10;
-
-/** Arrow-key nudge step for a focused placed chip, in normalized units. */
-const KEYBOARD_NUDGE_STEP = 0.02;
 
 /**
  * The plane's orientation, handed to the shared geometry at every call site:
@@ -89,7 +81,6 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   const slideId = slide.id ?? "";
   const axis = slide.axis;
 
-  const { sendAnswer } = useSessionConnection();
   const { optionCounts, results, viewerParticipantId } = useLiveSessionQuery();
 
   // The bank is shuffled per round, seeded by the slide id so the order is
@@ -98,97 +89,30 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   const axisItems = axis?.items;
   const items = useMemo(() => seededShuffle(axisItems ?? [], slideId), [axisItems, slideId]);
 
-  const planeRef = useRef<HTMLDivElement | null>(null);
-
-  // Round-local placement draft: itemId → normalized point. Cleared when the
-  // round changes.
-  const [placements, setPlacements] = useState<Record<string, AxisPoint>>({});
-  const [heldItemId, setHeldItemId] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  useEffect(() => {
-    setPlacements({});
-    setHeldItemId(null);
-    setSubmitted(false);
-  }, [slideId]);
-
   // Unlike single-shot kinds, a placement map may be re-sent until the round
   // locks (the backend forces maxSelections=0), so submitting never freezes
-  // the surface — only the round moving to results does.
-  const canPlace = interactive && mode !== "results";
-  const allPlaced = items.length > 0 && items.every((item) => item.id && placements[item.id]);
-
-  const submit = () => {
-    if (!canPlace || !allPlaced) return;
-    sendAnswer(slideId, { answerType: "AxisAnswer", placements });
-    setSubmitted(true);
-  };
-
-  // Resolve a drag onto the plane (place / move at the drop pointer) or onto the
-  // bank (un-place), no-op'ing a drop with no coordinate. The drop coordinate
-  // comes from dnd-kit's live pointer position, not the discrete droppable id.
-  const handleDragEnd = (event: DragEndEvent) => {
-    const drop = resolveDragEnd(event);
-    if (!drop || !canPlace) return;
-    const { itemId, targetId } = drop;
-    // An id-less item renders with an empty draggable id (AxisItemView.id is
-    // optional); never let that key into the placement map — the tap flow
-    // guards the same way.
-    if (!itemId) return;
-    if (targetId === BANK_DROPPABLE_ID) {
-      if (!placements[itemId]) return;
-      setPlacements((prev) => {
-        const { [itemId]: _lifted, ...rest } = prev;
-        return rest;
-      });
-    } else if (targetId === SURFACE_DROPPABLE_ID) {
-      const pointer = event.operation.position.current;
-      const point = normalizeToBox(
-        planeRef.current?.getBoundingClientRect(),
-        pointer.x,
-        pointer.y,
-        INVERT_Y,
-      );
-      if (!point) return;
-      setPlacements((prev) => ({ ...prev, [itemId]: point }));
-    }
-    if (heldItemId === itemId) setHeldItemId(null);
-  };
-
-  // Tap fallback: with an item held, tapping the plane drops it at the tap.
-  const placeAt = (event: React.MouseEvent<HTMLElement>) => {
-    if (!canPlace || heldItemId == null) return;
-    const point = normalizeToBox(
-      planeRef.current?.getBoundingClientRect(),
-      event.clientX,
-      event.clientY,
-      INVERT_Y,
-    );
-    if (!point) return;
-    setPlacements((prev) => ({ ...prev, [heldItemId]: point }));
-    setHeldItemId(null);
-  };
-
-  const nudge = (itemId: string) => (event: React.KeyboardEvent) => {
-    if (!canPlace) return;
-    const deltas: Record<string, [number, number]> = {
-      ArrowLeft: [-KEYBOARD_NUDGE_STEP, 0],
-      ArrowRight: [KEYBOARD_NUDGE_STEP, 0],
-      // Bottom-left origin: ArrowUp increases y, ArrowDown decreases it.
-      ArrowUp: [0, KEYBOARD_NUDGE_STEP],
-      ArrowDown: [0, -KEYBOARD_NUDGE_STEP],
-    };
-    const delta = deltas[event.key];
-    if (!delta) return;
-    event.preventDefault();
-    setPlacements((prev) => {
-      const current = prev[itemId];
-      if (!current) return prev;
-      return {
-        ...prev,
-        [itemId]: clampPoint({ x: current.x + delta[0], y: current.y + delta[1] }),
-      };
-    });
-  };
+  // the surface — only the round moving to results does (`lockOnSubmit: false`).
+  const {
+    placements,
+    heldItemId,
+    submitted,
+    canPlace,
+    allPlaced,
+    surfaceRef: planeRef,
+    handleDragEnd,
+    placeAt,
+    nudge,
+    toggleHold,
+    liftItem,
+    submit,
+  } = useBoardPlacement({
+    slideId,
+    items,
+    answerable: interactive && mode !== "results",
+    lockOnSubmit: false,
+    invertY: INVERT_Y,
+    buildAnswer: (placed) => ({ answerType: "AxisAnswer", placements: placed }),
+  });
 
   const showCounts = mode === "results" || mode === "liveResults";
   const totals = showCounts ? bucketTotals(optionCounts) : {};
@@ -292,12 +216,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                     style={toRenderStyle(point, INVERT_Y)}
                     onKeyDown={nudge(itemId)}
                     onClick={() => {
-                      if (!canPlace) return;
-                      setPlacements((prev) => {
-                        const { [itemId]: _lifted, ...rest } = prev;
-                        return rest;
-                      });
-                      setHeldItemId(itemId);
+                      liftItem(itemId);
                     }}
                   >
                     {badgeOf(item)}
@@ -343,7 +262,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                   ariaLabel={labelOf(item.label)}
                   ariaPressed={heldItemId === item.id}
                   onClick={() => {
-                    setHeldItemId((prev) => (prev === item.id ? null : (item.id ?? null)));
+                    toggleHold(item.id);
                   }}
                 >
                   {badgeOf(item)}
