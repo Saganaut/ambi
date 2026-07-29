@@ -439,6 +439,21 @@ class LiveSessionOrchestratorTest {
         assertThat(publishedEvent()).isInstanceOf(RoundStarted.class);
     }
 
+    @Test
+    void openClearsAnswersTogetherWithTheTally() {
+        givenSlideWithMode(ResultsDisplayMode.MANUAL);
+
+        orchestrator.startRound(SID, SLIDE);
+
+        // A reopen must never leave prior answers beside an emptied tally: the
+        // resubmit reconciliation would decrement missing hash fields and
+        // publish zero/negative counts, so no heat renders.
+        verify(tallyStore).clear(SID, SLIDE);
+        verify(voteStore).clear(SID, SLIDE);
+        verify(answerStore).clear(SID, SLIDE);
+        verify(qandaHostAnswers).clear(SID, SLIDE);
+    }
+
     private void givenSlideWithMode(ResultsDisplayMode mode) {
         Slide slide = new Slide();
         slide.setId(SLIDE);

@@ -570,7 +570,8 @@ public class LiveSessionOrchestrator {
     // ── Round control ────────────────────────────────────────────────────────
 
     /**
-     * Opens {@code slideId} for submissions, clearing any prior round's tallies.
+     * Opens {@code slideId} for submissions, clearing any prior round's tallies
+     * and answers.
      * The initial phase comes from the slide's {@link ResultsDisplayMode}:
      * {@code IMMEDIATE} opens live ({@link RoundPhase#SUBMIT_LIVE}), everything else
      * opens hidden ({@link RoundPhase#SUBMIT}). Publishes {@code RoundStarted}.
@@ -777,7 +778,7 @@ public class LiveSessionOrchestrator {
 
             // Freeze + score the round, then persist (durable-before-notify). Redis
             // answers/tally are kept — the Mongo copy is the durable one, and the live
-            // data stays available for a restart; it clears on restart/session end.
+            // data stays readable through reveal; it clears on (re)open/session end.
             scoreAndPersistRound(sessionId, slideId, current.roundStartedAt());
 
             if (closed.publicId() != null) {
@@ -1191,8 +1192,9 @@ public class LiveSessionOrchestrator {
      * hold the session lock. Operates on an already-resolved session + slide so a
      * navigation caller ({@link #advance}/{@link #goTo}) can resolve the next slide
      * and open it under one lock — {@link SessionLocks} is not reentrant, so opening
-     * could not take its own lock. Clears the round's tally (and answers on a
-     * restart), saves the fresh {@link LiveRoundState}, and publishes the event for
+     * could not take its own lock. Clears the round's tally, votes, and answers so
+     * every open — first, reopen, or restart — starts clean, saves the fresh
+     * {@link LiveRoundState}, and publishes the event for
      * the phase entered: {@code RoundRestarted} on a restart, else
      * {@code LiveResultsShown} (opened live) or {@code RoundStarted} (opened hidden).
      *
@@ -1204,12 +1206,14 @@ public class LiveSessionOrchestrator {
         RoundPhase phase = initialPhaseFor(session, slide);
         LiveRoundState current = roundStateStore.load(sessionId)
                 .orElseGet(() -> LiveRoundState.idle(session.getPublicId()));
+        // Every open starts the round from scratch — tally, votes, and answers clear
+        // together. Clearing the tally while answers survived a reopen let the
+        // resubmit reconciliation decrement an emptied hash, publishing zero or
+        // negative counts (see TallyStore.decrement's ≥ 0 invariant).
         tallyStore.clear(sessionId, slideId);
         voteStore.clear(sessionId, slideId);
-        if (restart) {
-            answerStore.clear(sessionId, slideId);
-            qandaHostAnswers.clear(sessionId, slideId);
-        }
+        answerStore.clear(sessionId, slideId);
+        qandaHostAnswers.clear(sessionId, slideId);
         Settings.AnswerSettings effectiveAnswer =
                 Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
         LiveRoundState started = current.startedRound(slideId, Instant.now(), phase,
