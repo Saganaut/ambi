@@ -355,26 +355,43 @@ is on the `FloatingPopover` path.
 component serves participant and projector via the established
 `mode`/`interactive` props (the `GridBoardContent` pattern).
 
-- **Tap-to-select, tap-at-point-to-place.** Bank of chip buttons, seeded
-  shuffle by slide id — note `seededShuffle` is a private const in
-  `GridBoardContent.tsx`, so the AXIS commit extracts it to a shared module
-  (or duplicates the ~12 lines); tap to hold
-  (`aria-pressed`), tap the plane to place at the tap's normalized
-  coordinates, tap a placed chip to pick it back up. No drag needed — for a
-  continuous surface the second tap inherently carries the coordinates, which
-  sidesteps the drag complexity and nested-button pitfalls GRID's
-  tap-to-place already avoids.
+- **Drag primary, tap-to-place fallback.** Bank of `DraggableChip` buttons
+  (`SessionBoard/content/DraggableChip/`), seeded shuffle by slide id via the
+  shared `content/seededShuffle.ts` (also used by Grid, Place-on-Image, and
+  Ranking). Dragging a bank chip onto the `PlacementSurface` drops it at the
+  pointer; dragging a placed chip moves it or, dropped back on the
+  `BoardBank`, un-places it. The tap path stays the small-screen / keyboard /
+  AT fallback: tap a bank chip to hold it (`aria-pressed`), tap the plane to
+  place at the tap's normalized coordinates, tap a placed chip to pick it
+  back up.
 - **Keyboard path**: placed chips are real buttons; arrow keys nudge the
   focused chip in 2 % steps.
-- Round-local draft `Record<itemId, {x, y}>`, reset on `slideId` change;
-  Submit gated on all items placed;
-  `sendAnswer(slideId, { answerType: "AxisAnswer", placements })`; resubmit
-  allowed until lock (the `maxSelections = 0` override).
+- Each chip's content is a `MarkerBadge` (`shared/components/UIElements/MarkerBadge/`,
+  the numbered-disc-plus-optional-label view shared with the deck editor's
+  `PlacementMarker`); the wrapper composes the badge's own published
+  `.anchored` / `.anchoredLabeled` classes so a labeled chip's DISC — not the
+  pill — stays on the graded point, per the badge's own module. The
+  submit button + confirmation note come from the shared `BoardSubmitBar`
+  (`content/BoardSubmitBar/`) and the unplaced-item row from `BoardBank`
+  (`content/BoardBank/`).
+- All of the above — the round-local `Record<itemId, {x, y}>` draft, the
+  held/submitted state, drag/tap/nudge handling, and the surface ref — lives
+  in the shared `useBoardPlacement` hook (`content/useBoardPlacement.ts`),
+  not in `AxisBoardContent.tsx` itself; the hook is also what the
+  Place-on-Image board runs on (see [its README](../place-on-image/README.md)),
+  parameterized by `invertY` and `lockOnSubmit`. Submit is gated on all items
+  placed; `sendAnswer(slideId, { answerType: "AxisAnswer", placements })`;
+  resubmit allowed until lock (the `maxSelections = 0` override,
+  `lockOnSubmit: false`).
 - **liveResults / results**: a 10 × 10 translucent heat overlay aggregated
-  from the `itemId@bx,by` tally keys (the bucket-split analogue of
-  `GridBoardContent.cellTotals`), plus the viewer's own placed chips; on
-  `results`, the own-outcome banner from `ResultsRevealed.outcomes`. No
-  correct-target overlay in v1 (follow-up F1).
+  from the `itemId@bx,by` tally keys via the shared
+  `content/answerTally.ts` (`tallyTotalsByBucket`, `AXIS_TALLY_BUCKETS` —
+  also shared with the Scales board's bucket strips, since both mirror the
+  same backend `AnswerTallyKeys.AXIS_TALLY_BUCKETS`), plus the viewer's own
+  placed chips; on `results`, the own-outcome banner from
+  `ResultsRevealed.outcomes` via the shared `OutcomeBanner` component and
+  `findViewerOutcome` helper (`content/viewerOutcome.ts`). No correct-target
+  overlay in v1 (follow-up F1).
 - **Projector** (non-interactive): plane + heat only.
 
 ## Results visualization

@@ -2,7 +2,9 @@
 
 **Rule:** Every hook in a feature is exactly one of three kinds, and the kind is
 legible from its name. Components and views read and write feature state only
-through these hooks — never the generated RTK Query endpoints directly.
+through these hooks — never the generated RTK Query endpoints directly. The
+one narrow exception is the **shared interaction-state hook** carved out
+below — it isn't a CQRS hook at all, because it touches no server state.
 
 This is the **CQRS** seam of the architecture: the data layer is split into
 read-only **query hooks** and write-only **mutate hooks** over the RTK Query
@@ -72,6 +74,38 @@ yet; splitting it out is a known TODO, see
 - A view-model hook is imported only by its view. It exists so a panel that needs
   both a slice read and its writes can take a single import instead of wiring
   `useDeckQuery` + `useDeckImageMutate` itself.
+
+## Shared interaction-state hooks (the one carve-out)
+
+A fourth shape exists alongside the three CQRS kinds: a hook that owns
+**round-local or gesture-local interaction state shared by several sibling
+components**, and touches neither the RTK Query cache nor any other server
+state. It fits none of the three kinds above — it is not a query (it derives
+nothing from the cache), not a mutate (its writes, if any, are local
+`useState`, not a server command), and not a view-model (it has no one owning
+view; several peer components import it directly).
+
+- **Named `use<Noun>`, not `use<Entity>Query/Mutate/Editor`** — the ordinary
+  naming rules don't apply since the hook is neither an entity accessor nor a
+  single screen's composition. `useCappedSelection` (a capped multi-select
+  toggle) and `useBoardPlacement` (the drag/tap/nudge placement engine) are
+  the two live-session examples, both at
+  `SessionBoard/content/` — beside, not above, the sibling board components
+  that import them.
+- **Owns no server state and reads no cache.** Everything it holds is
+  `useState`/`useRef` local to the hook instance; a server write it triggers
+  (`useBoardPlacement.submit` calls `sendAnswer`) is a pass-through to a
+  connection object the caller supplies, not a mutate hook's cache-reconciled
+  command.
+- **Deliberately multi-consumer.** Unlike a view-model hook (imported only by
+  its one view), a shared interaction-state hook exists *because* two or more
+  sibling components need the identical stateful behavior — `useBoardPlacement`
+  is the Axis and Place-on-Image boards' shared placement engine, not either
+  one's private hook promoted.
+- **Lives beside its consumers**, not in a shared hooks directory — it is
+  scoped to the one family of components that uses it, following the same
+  "shared code sits at the nearest common ancestor" placement as the
+  components themselves.
 
 ## Status
 

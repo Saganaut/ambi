@@ -373,13 +373,13 @@ idioms.
   button flips to "Update answer" with an "Answer submitted ✓" note; the
   surface never freezes except on `mode === "results"`.
 - **liveResults / results**: a 10-bucket heat strip under each statement's
-  track, aggregated from the `statementId@b` tally keys by a scales-local
-  `statementBucketTotals(optionCounts)` helper (split on `"@"`, group by
-  statement id, normalize intensity per statement). Mirror the bucket count
-  as `SCALES_TALLY_BUCKETS = 10` with the standard keep-in-sync comment
-  pointing at `AnswerTallyKeys.AXIS_TALLY_BUCKETS` (or import the constant
-  the axis board already mirrors — implementer's choice, with a comment
-  either way).
+  track, aggregated from the `statementId@bucket` tally keys by the shared
+  `content/answerTally.ts` helper `tallyTotalsBySlot(optionCounts,
+  AXIS_TALLY_BUCKETS)` — SCALES imports the same `AXIS_TALLY_BUCKETS = 10`
+  constant the axis board mirrors rather than keeping its own copy (the
+  frontend's former separate `SCALES_TALLY_BUCKETS` is gone now that it's
+  confirmed to share the one backend `AnswerTallyKeys.AXIS_TALLY_BUCKETS`
+  constant with AXIS).
 - **results**: the own-outcome banner from `results.outcomes` (grid/axis
   wording). No target reveal in v1 — that is the **shared follow-up F1** in
   the [axis spec](../axis-slides/README.md).

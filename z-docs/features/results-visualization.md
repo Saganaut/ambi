@@ -107,7 +107,7 @@ tally) · ❌ not mapped, no component yet. "Mapped" = present in
 | **RANKING** | `List<String>` order | Avg-rank bar, or position-distribution stacked bar / bump | ♻️ reuses BarChart |
 | **SCALES** | `Map<id,Double>` normalized positions (see [scales redesign](scales-slides/README.md)) | Per-statement bucketed strip/histogram, or mean±spread per item | 🚧 post-round diverging-bar placeholder; live per-statement 10-bucket strips built on the board — see [scales slides](scales-slides/README.md) |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap, or per-item stacked bar | 🚧 post-round heatmap placeholder; live per-cell shading built on the board (`GridBoardContent`) |
-| **PLACE_ON_IMAGE** | `double x,y` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder |
+| **PLACE_ON_IMAGE** | `Map<itemId,{x,y}>` | Scatter / heatmap overlay on the image | 🚧 image-overlay placeholder; live density scatter + revealed-target circles built on the board (`PlaceOnImageBoardContent`) — see [place-on-image slides](place-on-image/README.md) |
 | **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item color (needs raw placements — follow-up F2), or bucketed heatmap | 🚧 heatmap placeholder; live 10×10 bucket heat built on the board — see [axis slides](axis-slides/README.md) |
 | **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or Sankey | 🚧 post-round heatmap placeholder (Sankey deferred); live per-pair connection counts built on the board (`MatchingBoardContent`) |
 | **ALLOCATION** | `Map<optionId,Integer>` | Avg-points grouped / 100%-stacked bar | ♻️ reuses BarChart |
@@ -169,8 +169,12 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   the fallback. The live board (`GridBoardContent`) already shades each cell by
   its live placement count during `liveResults`/`results`; the post-round
   heatmap chart is the still-missing piece.
-- **PLACE_ON_IMAGE** — normalized `x,y` pins. Overlay a **scatter/heatmap on the
-  image** with the `correctTargets` circles drawn. Needs an image-aware renderer.
+- **PLACE_ON_IMAGE** — normalized `x,y` pins, one per authored target. Overlay
+  a **scatter/heatmap on the image** with the `correctTargets` circles drawn;
+  needs an image-aware renderer for the post-round chart. The live board
+  (`PlaceOnImageBoardContent`) already fills in a live density scatter from
+  the quantized pin tally during `liveResults`/`results` and discloses the
+  target circles on reveal — see [place-on-image slides](place-on-image/README.md#board-ux).
 - **AXIS** *(spec only)* — normalized `x,y` per item on a labeled plane. A
   **scatter with per-item color** (targets + tolerance circles drawn once
   revealed) reads best; the 10×10 bucketed heat the live board shows is the

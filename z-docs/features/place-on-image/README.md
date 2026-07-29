@@ -6,12 +6,12 @@ image; it's [Axis](../axis-slides/README.md)'s sibling — same normalized
 image standing in for the plane. Axis's README treats PLACE_ON_IMAGE as its
 model precedent; this doc covers the parts specific to PLACE_ON_IMAGE itself.
 
-**Status: authoring only.** The content model and grader predate this doc; the
-authoring surface (editor) landed afterwards. The live-session side — a
-participant-safe config view, answer validation, a board component, and a
-results chart — does not exist yet (see [Status](#status--gaps) below), so a
-PLACE_ON_IMAGE slide can be built in the deck editor but not yet played in a
-live session.
+**Status: implemented (v1).** The content model, grader, and authoring surface
+landed first; the live-session side — participant-safe config view, answer
+validation, live board, and pin tally — landed afterwards (`c3615da`, "add
+live place-on-image board"). A PLACE_ON_IMAGE slide can be authored in the
+deck editor and played in a live session end to end. Only the post-round
+results chart remains unbuilt (see [Status / gaps](#status--gaps) below).
 
 ## Model
 
@@ -48,40 +48,92 @@ the grader and the marker flips y.
 
 ### Answer payload
 
-`session/answer/payload/PlaceOnImageAnswer.java` — a single point, not a map
-(one pin per slide, unlike Axis's per-item map):
+`session/answer/payload/PlaceOnImageAnswer.java` — a per-target map, like
+Axis's `AxisAnswer` (one pin per authored target, not one pin per slide):
 
 ```java
-public record PlaceOnImageAnswer(double x, double y) implements AnswerPayload {
+/** Placement of each item id at a normalized (0..1) pin on the image. */
+public record PlaceOnImageAnswer(Map<String, PlacePoint> placements) implements AnswerPayload {
   @Override public SlideType slideType() { return SlideType.PLACE_ON_IMAGE; }
 }
 ```
 
+`PlacePoint(double x, double y)` (`SlideContentTypes.java`) is
+Place-on-Image's own point record — structurally identical to Axis's
+`AxisPoint` but kept distinct per kind, the same one-record-per-kind
+convention `AxisItem`/`Target` follow.
+
 ## Grading
 
-`RoundEvaluator.gradePlaceOnImage` — correct if the pin lands inside **any**
-target's circle (not "every target", unlike Axis's all-or-nothing map match):
+`RoundEvaluator.gradePlaceOnImage` mirrors `gradeAxis`'s loop-over-answer-key:
+**every** target's own pin must land inside that target's own radius (each
+target carries its own radius rather than one shared plane tolerance, but the
+all-or-nothing shape is identical to Axis's map match):
 
 ```java
 private static boolean gradePlaceOnImage(PlaceOnImageContent content, PlaceOnImageAnswer answer) {
-    if (content.scoreMode() != ScoreMode.INSIDE_RADIUS || content.correctTargets() == null) {
+    if (content.scoreMode() != ScoreMode.INSIDE_RADIUS
+            || content.correctTargets() == null || content.correctTargets().isEmpty()
+            || answer.placements() == null) {
         return false;
     }
     for (Target target : content.correctTargets()) {
-        if (Math.hypot(answer.x() - target.x(), answer.y() - target.y()) <= target.radius()) {
-            return true;
+        PlacePoint placed = answer.placements().get(target.id());
+        if (placed == null || Math.hypot(placed.x() - target.x(),
+                placed.y() - target.y()) > target.radius()) {
+            return false;
         }
     }
-    return false;
+    return true;
 }
 ```
 
+- **All-or-nothing over every target** — a missing or off-target pin for any
+  one target fails the whole round, the same single `ParticipantOutcome.correct`
+  boolean shape Axis uses.
 - **`INSIDE_RADIUS` is the only implemented mode** — `NEAREST` and `DISTANCE`
   are declared on `ScoreMode` but return `false` across `RoundEvaluator` today,
   same as Axis.
 - **A target-less slide is legitimate collect-only** — an empty
   `correctTargets` list always grades `false`, making the slide an unscored
   "drop a pin" prompt (the Scales/Axis collect-only convention).
+
+## Live pipeline
+
+### Participant-safe view
+
+`session/event/dto/PlaceOnImageConfigView.java`, wired as `SlideView.placeOnImage`:
+the backing image's presigned `imageUrl` plus one `PlaceItemView(id, label,
+imageUrl, color)` per authored target — never the targets' `x`/`y`/`radius`,
+which stay the answer key until reveal.
+
+### Answer validation
+
+`LiveSessionAnswerService.validatePlaceOnImage`, mirroring `validateAxis`: at
+least one item placed, every placement key one of the slide's target ids,
+every point finite and within `[0, 1]`. `PlaceOnImageAnswer` also joins the
+whole-map resubmit override (`effectiveMaxSelections = 0`) alongside
+`GridAnswer`/`AxisAnswer`/`ScalesAnswer`/… — the backend itself accepts a
+resubmitted map; it is only `PlaceOnImageBoardContent`'s own
+`lockOnSubmit: true` that freezes the UI after the first submit (see
+[Board UX](#board-ux)).
+
+### Live tally — quantized buckets
+
+`AnswerTallyKeys` quantizes each pin into a **`PLACE_TALLY_BUCKETS = 20`**
+bucket grid (finer than Axis/Scales' shared 10-bucket resolution, since the
+scatter reads over a backing image), one `itemId@bx,by` key per placement —
+otherwise the same `@`-separator / `TallyStore` / resubmit-reconciliation
+pipeline Axis's [live tally section](../axis-slides/README.md#live-tally--quantized-buckets)
+describes.
+
+### Reveal
+
+`ResultsRevealed.placeTargets` (`session/event/dto/PlaceTargetView.java`) — one
+`PlaceTargetView(id, x, y, radius, label, color)` per authored target,
+disclosed only once the round enters results, so the board can draw the
+correct-location circles. The snapshot service carries the same list for a
+client that joins mid-reveal.
 
 ## Editor UX
 
@@ -185,6 +237,45 @@ Axis, Place-on-Image, and Grid build on — see
   `SLIDE_TYPE_LABELS.PLACE_ON_IMAGE: "Place on Image"`; a `slideTypeGraphics`
   tile; one `deckMockData.ts` fixture.
 
+## Board UX
+
+`PlaceOnImageBoardContent.tsx` (+ module.css + test) in
+`SessionBoard/content/`, wired as `case "PLACE_ON_IMAGE"` in
+`BoardQuestion.tsx`. One component serves participant and projector via the
+established `mode`/`interactive` props (the `AxisBoardContent` pattern).
+
+- **Drag primary, tap-to-place fallback**, identical interaction model to
+  Axis: a bank of `DraggableChip` buttons (seeded shuffle by slide id via the
+  shared `content/seededShuffle.ts`) drags onto the `PlacementSurface` (the
+  backing `<img>`) or taps to hold-then-tap-to-place; arrow keys nudge a
+  focused placed pin. All of this — the round-local `Record<itemId, {x, y}>`
+  draft, held/submitted state, and drag/tap/nudge handling — lives in the
+  shared `useBoardPlacement` hook (`content/useBoardPlacement.ts`), the same
+  one Axis runs on (see [its README](../axis-slides/README.md#board-ux)),
+  parameterized here as `invertY: false` (the image's top-left origin, unlike
+  the Axis plane's bottom-left) and `lockOnSubmit: true` — a **UI** decision:
+  the backend accepts a resubmitted map like Axis does (see
+  [Answer validation](#answer-validation)), but the board freezes the surface
+  once the whole map is locked in rather than offering an "Update answer"
+  affordance.
+- Submit is gated on all items placed; `sendAnswer(slideId, { answerType:
+  "PlaceOnImageAnswer", placements })`; the button reads "Lock in answer" and
+  the confirmation note "Answer locked in ✓" (`BoardSubmitBar`, one-shot shape
+  — no `resubmitLabel`).
+- **liveResults / results**: a density scatter — one dot per occupied
+  `itemId@bx,by` tally bucket (`content/answerTally.ts`'s
+  `tallyTotalsByBucket`, `PLACE_TALLY_BUCKETS`), sized/opacity-scaled by share
+  of the busiest bucket — fills in over the image; a participant who hasn't
+  locked in may still place pins. On `results`, the authored target circles
+  are disclosed from `ResultsRevealed.placeTargets` (or the snapshot's copy
+  for a late joiner): each drawn as the exact normalized ellipse the grader
+  accepts, with a non-interactive `MarkerBadge` at its centre (the badge's own
+  published `.anchored`/`.anchoredLabeled` classes keeping the DISC, not the
+  pill, on the target point) — plus the viewer's own outcome banner
+  (`OutcomeBanner`/`findViewerOutcome`, `content/viewerOutcome.ts`) from the
+  round result.
+- **Projector** (non-interactive): image + scatter/target-reveal only.
+
 ## `GalleryPicker` `cropAspect: "source"`
 
 The shared `useGalleryPicker` → `GalleryPicker` → `UploadTab` →
@@ -200,28 +291,14 @@ its fixed-shape crop.
 
 ## Status / gaps
 
-The content model, grader, and (as of this doc) the authoring surface exist.
-The live-session side does not — verified against the current code, not
-planned or in progress:
+The content model, grader, authoring surface, and full live-session pipeline
+(participant view, answer validation, live board, pin tally, reveal) all
+exist — see [Live pipeline](#live-pipeline) and [Board UX](#board-ux) above.
+One gap remains, verified against the current code:
 
-- **No participant-safe config view.** `SlideView.java`'s `from(...)` factory
-  has a branch per playable kind (`McqContent`, `QAndAContent`, `GridContent`,
-  `AxisContent`, `ScalesContent`, `MatchingContent`, `DrawingContent`) but none
-  for `PlaceOnImageContent` — a live session never sends players the image or
-  targets to look at.
-- **No answer validation.** `LiveSessionAnswerService.validatePayload` has a
-  dedicated `validate*` method per playable kind; PLACE_ON_IMAGE falls through
-  the comment "other content types are stored as-is; their tally/validation
-  lands with scoring."
-- **No live board component.** `BoardQuestion.tsx` has a `case` for MCQ,
-  Q_AND_A, GRID, AXIS, SCALES, MATCHING, and DRAWING — none for
-  PLACE_ON_IMAGE.
 - **No results chart.** `Charts/registry.ts`:
   `PLACE_ON_IMAGE: { supportedViz: ["IMAGE_OVERLAY", "HEATMAP", "NONE"], implemented: false }`
   — see the [results-visualization](../results-visualization.md) per-type
   note (image-aware scatter/heatmap overlay, needs an image-aware renderer).
-
-Building out the live pipeline (participant view, validation, board, tally,
-chart) is the natural next slice of work, following the staged pattern Axis's
-[implementation checklist](../axis-slides/README.md#implementation-checklist)
-used (model + authoring → answer pipeline → live board).
+  The live board's own scatter and target-reveal (above) already cover the
+  in-session view; this gap is only the post-round/editor results chart.
