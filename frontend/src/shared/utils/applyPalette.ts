@@ -6,12 +6,12 @@
 //
 // A null/legacy spec (e.g. an old two-hue spec with no `palette`) clears the
 // vars, so the element falls back to the brand defaults baked into tokens.css.
-import type { CSSProperties } from "react";
 import type { Palette, ThemeSpec } from "@features/theme/store/themeApi.gen";
+import type { CSSProperties } from "react";
 
 // Palette field → CSS custom property. The order is irrelevant; the keys must
 // match the generated `Palette` type exactly.
-const ROLE_VARS: ReadonlyArray<readonly [keyof Palette, string]> = [
+const ROLE_VARS: readonly [keyof Palette, string][] = [
   ["canvas", "--role-canvas"],
   ["surface", "--role-surface"],
   ["surfaceRaised", "--role-surface-raised"],
@@ -76,9 +76,7 @@ export function paletteStyle(spec?: ThemeSpec | null): CSSProperties | undefined
 }
 
 /** The `data-appearance` value for a spec, or `undefined` if it has no palette. */
-export function appearanceValue(
-  spec?: ThemeSpec | null,
-): "dark" | "light" | undefined {
+export function appearanceValue(spec?: ThemeSpec | null): "dark" | "light" | undefined {
   if (!spec?.palette) return undefined;
   return spec.appearance === "DARK" ? "dark" : "light";
 }

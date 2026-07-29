@@ -29,11 +29,7 @@ import type {
 } from "./liveSessionEvents";
 
 /** Connection status of the underlying STOMP client (driven by the socket layer). */
-export type ConnectionState =
-  | "idle"
-  | "connecting"
-  | "connected"
-  | "disconnected";
+export type ConnectionState = "idle" | "connecting" | "connected" | "disconnected";
 
 /** The scored result of the current round, from the last `ResultsRevealed`. */
 export interface RoundResults {
@@ -205,10 +201,15 @@ const liveSessionSlice = createSlice({
           state.roster = e.roster;
           break;
         case "ParticipantLeft":
-        case "ParticipantRemoved":
+        case "ParticipantRemoved": {
           state.roster = e.roster;
-          delete state.participants[e.participantId];
+          // delete state.participants[e.participantId];
+
+          const { [e.participantId]: _removed, ...remainingParticipants } = state.participants;
+          state.participants = remainingParticipants;
+
           break;
+        }
         case "ParticipantReconnected":
           if (e.participant.participantId != null) {
             state.participants[e.participant.participantId] = e.participant;

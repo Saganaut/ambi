@@ -9,11 +9,11 @@
  */
 import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
 import { contrastToneFor } from "@/shared/utils/color";
+import { SlideTypeGraphicSvg } from "@deck/components/SlideTypeGraphics/SlideTypeGraphic";
 import { SlideCanvasProvider } from "@deck/contexts/SlideCanvasContext";
 import { type SlideType } from "@deck/store/deckEnums.gen";
 import type { CSSProperties, ReactNode } from "react";
 import { ImageSlot } from "../../ImageSlot";
-import { SlideTypeGraphicSvg } from "../../Slides/SlideTypeGraphics/SlideTypeGraphic";
 import { SlideCanvasFooter } from "./SlideCanvasFooter";
 import styles from "./SlideDisplay.module.css";
 

@@ -8,15 +8,20 @@
 // Every image here belongs to the caller (it's *their* gallery), so there are no
 // owner-vs-shared affordances — just add and remove. Org-shared galleries are a
 // separate surface and aren't managed from this tab.
-import { useMemo, useState } from "react";
+import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
+import { useConfirm } from "@components/ConfirmDialog/useConfirm";
+import {
+  type GalleryImageResponse,
+  useGetMyGalleryQuery,
+  useListImagesQuery,
+  useRemoveImageMutation,
+} from "@features/gallery/store/galleryApi.gen";
+import { useGalleryPicker } from "@hooks/useGalleryPicker";
 import { Btn } from "@ui/Buttons/Btn";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
-import { useConfirm } from "@components/ConfirmDialog/useConfirm";
-import { useGalleryPicker } from "@hooks/useGalleryPicker";
-import { type GalleryImageResponse, useGetMyGalleryQuery, useListImagesQuery, useRemoveImageMutation } from "@features/gallery/store/galleryApi.gen";
-import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
 import { resolveImageUrl } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
+import { useMemo, useState } from "react";
 import accountStyles from "./AccountPage.module.css";
 import styles from "./GallerySection.module.css";
 
@@ -47,7 +52,12 @@ const GallerySection = () => {
   // closes the modal on pick; the gallery cache-sync rule keeps this list
   // current, so there's nothing else to do here.
   const handleAdd = () => {
-    openPicker(() => {}, { title: "Add image" });
+    openPicker(
+      () => {
+        console.log("not impelmented?");
+      },
+      { title: "Add image" },
+    );
   };
 
   const handleDelete = async (image: GalleryImageResponse) => {
@@ -76,19 +86,20 @@ const GallerySection = () => {
         {thumb ? (
           <img src={thumb} alt={name} className={styles.thumb} />
         ) : (
-          <div className={styles.thumb} aria-hidden='true' />
+          <div className={styles.thumb} aria-hidden="true" />
         )}
         <p className={styles.cardName} title={name}>
           {name}
         </p>
         <div className={styles.cardActions}>
           <Btn
-            size='sm'
-            variant='error'
-            fill='ghost'
+            size="sm"
+            variant="error"
+            fill="ghost"
             onClick={() => {
               void handleDelete(image);
-            }}>
+            }}
+          >
             Delete
           </Btn>
         </div>
@@ -109,8 +120,8 @@ const GallerySection = () => {
 
       {!isLoading && images.length === 0 && (
         <EmptyState
-          title='No images yet'
-          message='Add images here, then pick them when authoring slides.'
+          title="No images yet"
+          message="Add images here, then pick them when authoring slides."
           action={
             <Btn onClick={handleAdd} disabled={!galleryId}>
               Add your first image
