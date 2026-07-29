@@ -4,11 +4,9 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 
-// TODO(migration): page not yet implemented (element→slide / liveSession migration)
-function ScheduledSessionsPage() {
-  return <div>Scheduled sessions — under construction.</div>;
-}
-
 export const Route = createFileRoute("/_authenticated/scheduled")({
-  component: ScheduledSessionsPage,
+  // TODO(migration): page not yet implemented (element→slide / liveSession migration)
+  component: function ScheduledSessionsPage() {
+    return <div>Scheduled sessions — under construction.</div>;
+  },
 });

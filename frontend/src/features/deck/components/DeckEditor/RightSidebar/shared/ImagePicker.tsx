@@ -44,7 +44,7 @@ const ImagePicker = ({
           {hasImage && thumbnailSrc ? (
             <img src={thumbnailSrc} alt='' />
           ) :
-            <div className={styles.imageTileEmpty} style={{ '--emptyBackground': `url(${(placeholderBackgroundImageUrl)})` } as React.CSSProperties}>
+            <div className={styles.imageTileEmpty} style={{ '--empty-background': `url(${(placeholderBackgroundImageUrl)})` } as React.CSSProperties}>
 
               <div>
                 <PhotoIcon aria-hidden='true' />

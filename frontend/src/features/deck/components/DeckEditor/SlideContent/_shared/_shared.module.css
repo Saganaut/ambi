@@ -17,9 +17,10 @@
   width: 100%;
 
   /* Follow the canvas's resolved over-background text color so the prompt stays
-     legible on a solid color or a frosted plate. Defaults to the theme text
-     color, so a plain themed slide is unchanged. */
-  --text-primary: var(--canvas-on-bg);
+     legible on a solid color or a frosted plate. Falls back to the theme
+     foreground role (--text-primary's own default — naming it here directly
+     avoids a self-referencing cycle), so a plain themed slide is unchanged. */
+  --text-primary: var(--canvas-on-bg, var(--role-foreground));
 }
 
 .promptField {

@@ -5,11 +5,9 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 
-// TODO(migration): page not yet implemented (element→slide / liveSession migration)
-function InvitePage() {
-  return <div>Invite — under construction.</div>;
-}
-
 export const Route = createFileRoute("/invite/$token")({
-  component: InvitePage,
+  // TODO(migration): page not yet implemented (element→slide / liveSession migration)
+  component: function InvitePage() {
+    return <div>Invite — under construction.</div>;
+  },
 });

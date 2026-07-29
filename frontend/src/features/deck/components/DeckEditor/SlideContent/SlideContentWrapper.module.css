@@ -28,8 +28,8 @@
     padding: var(--p-square-xs);
     border-bottom: none;
     border-radius: var(--radius-md);
-    background: var(--contrast-plate-bg);
-    backdrop-filter: var(--contrast-plate-blur);
+    background: var(--contrast-plate-bg, color-mix(in oklch, black 42%, transparent));
+    backdrop-filter: var(--contrast-plate-blur, blur(8px) brightness(0.62));
   }
 
   .title {
@@ -37,8 +37,9 @@
     font-family: var(--font-heading);
     font-size: var(--font-size-md);
     font-weight: 700;
+
     /* Resolved over-background text color; defaults to --text-primary. */
-    color: var(--canvas-on-bg);
+    color: var(--canvas-on-bg, var(--text-primary));
   }
 
   .description {
@@ -50,12 +51,14 @@
   /* On the plate the theme's --text-secondary can wash out, so pin the
      description to a dimmed cut of the resolved light-on-dark text color. */
   .header.overImage .description {
-    color: color-mix(in oklch, var(--canvas-on-bg) 78%, transparent);
+    color: var(--canvas-on-bg, var(--text-primary));
+    opacity: 0.78;
   }
 
   .body {
     display: flex;
     flex-direction: row;
+
     /* No `gap`: the centered ImageSlots stay mounted (collapsed) here, so the
        spacing lives on each active slot's inner-facing margin instead — see
        ImageSlot.module.css — and collapses with it when empty. */

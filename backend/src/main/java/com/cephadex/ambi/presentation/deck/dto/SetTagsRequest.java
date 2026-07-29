@@ -33,8 +33,7 @@ public record SetTagsRequest(
                 max = ValidationConstants.TAG_MAX_LENGTH) String> tags) {
 
     /** A defensive, order-preserving copy of the submitted tags. */
-        @SuppressWarnings("Convert2Diamond")
     public Set<String> tags() {
-        return tags == null ? new LinkedHashSet<String>() : new LinkedHashSet<String>(tags);
+        return tags == null ? new LinkedHashSet<>() : new LinkedHashSet<>(tags);
     }
 }

@@ -21,6 +21,7 @@
     width: clamp(9rem, 22vh, 15rem);
     height: auto;
     border-radius: var(--radius-md);
+
     /* A QR needs a light quiet zone to scan reliably, even in dark mode. */
     background: #fff;
     padding: var(--p-square-sm);
