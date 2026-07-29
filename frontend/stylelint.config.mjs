@@ -75,8 +75,7 @@ export default {
     // Spacing must route through the semantic tiers (--gap-*, --p-*, --stack-*,
     // --gutter-*); raw --space-* is only for defining those tokens in tokens.css
     // and for true one-offs (absolute offsets, scroll margins), which live in
-    // properties this rule doesn't cover. Warning severity while the sanctioned
-    // leftovers are worked off; graduates to error once they're resolved.
+    // properties this rule doesn't cover.
     // See z-docs/rules/styling/spacing-hierarchy.md.
     "declaration-property-value-disallowed-list": [
       {
