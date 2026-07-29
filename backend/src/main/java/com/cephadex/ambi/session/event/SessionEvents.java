@@ -153,6 +153,22 @@ public final class SessionEvents {
                 terminal);
     }
 
+    /**
+     * The same {@code REVEAL_RESULTS} transition with an empty payload, for a round
+     * that closed with no persisted {@link RoundResult} — Redis round state and the
+     * Mongo results store have drifted (a reseeded database, or an earlier persist
+     * that failed). There is nothing to score, but the phase moved, so an event must
+     * still go out: no persisted lifecycle transition without a published event.
+     *
+     * <p>Carries the live scoreboard and {@code terminal} so the board can still
+     * reach the podium; the round-specific payloads (outcomes, counts, answer key,
+     * drawings, place targets) are empty or absent because no record exists.
+     */
+    public static ResultsRevealed resultsRevealedWithoutRecord(String slideId, List<Participant> roster,
+            boolean terminal) {
+        return new ResultsRevealed(slideId, List.of(), Map.of(), null, scoreboard(roster), null, null, terminal);
+    }
+
     /** The fresh reopened round, read off the just-saved state (slide id, phase, start, deadline). */
     public static RoundRestarted roundRestarted(LiveRoundState state) {
         return new RoundRestarted(state.currentSlideId(), state.phase(), state.roundStartedAt(), state.deadline());

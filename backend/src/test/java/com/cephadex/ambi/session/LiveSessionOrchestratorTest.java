@@ -256,6 +256,7 @@ class LiveSessionOrchestratorTest {
     @Test
     void revealResultsFromClosedTransitions() {
         stubPhase(RoundPhase.REVEAL_RESPONSES);
+        stubScorableSession();
 
         orchestrator.revealResults(SID, SLIDE);
 
@@ -1016,6 +1017,53 @@ class LiveSessionOrchestratorTest {
                 });
         // Not a drawing round → no gallery payload.
         assertThat(event.drawings()).isNull();
+    }
+
+    @Test
+    void revealResultsRejectsASlideThatIsNotTheCurrentRound() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES); // current round is SLIDE
+
+        assertThatThrownBy(() -> orchestrator.revealResults(SID, "other-slide"))
+                .isInstanceOf(ConflictException.class);
+
+        // A stale host call must leave the current round's phase alone, and publish nothing.
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void revealResultsWithoutAPersistedRecordStillPublishesTheTransition() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES);
+        // Store drift: the round closed, but no RoundResult was ever persisted.
+        when(roundResults.find(SID, SLIDE)).thenReturn(Optional.empty());
+
+        Participant player = Participant.join("user-1", "Player One", null, null);
+        Slide slide = slideWithId(SLIDE);
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of(slide)); // only slide → last → terminal
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getRoster()).thenReturn(List.of(player.getParticipantId()));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        when(participants.findAllById(List.of(player.getParticipantId()))).thenReturn(List.of(player));
+
+        orchestrator.revealResults(SID, SLIDE);
+
+        assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESULTS);
+        // No record to reveal, but the phase moved — the event carries the transition.
+        ResultsRevealed event = (ResultsRevealed) publishedEvent();
+        assertThat(event.slideId()).isEqualTo(SLIDE);
+        assertThat(event.outcomes()).isEmpty();
+        assertThat(event.optionCounts()).isEmpty();
+        assertThat(event.correctOption()).isNull();
+        assertThat(event.drawings()).isNull();
+        assertThat(event.placeTargets()).isNull();
+        assertThat(event.terminal()).isTrue();
+        assertThat(event.scoreboard()).singleElement()
+                .satisfies(entry -> {
+                    assertThat(entry.participantId()).isEqualTo(player.getParticipantId());
+                    assertThat(entry.displayName()).isEqualTo("Player One");
+                });
     }
 
     // ── F4 guard: reject opening a second slide while one is open ─────────────

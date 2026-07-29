@@ -12,7 +12,7 @@ an add-on (see [Deferred: durable event log](#deferred-durable-event-log-add-on)
 
 ---
 
-## Current state (backend §1 landed 2026-07-29; frontend verified 2026-07-27)
+## Current state (backend §1–§2 landed 2026-07-29; frontend verified 2026-07-27)
 
 **Backend.** Twenty `SessionEvent` record types behind a sealed interface
 (`session/event/SessionEvent.java`), built only through the `SessionEvents` static
@@ -37,10 +37,14 @@ field, and the socket opens only after the snapshot resolves
 
 **Known defects this spec fixes:**
 
-1. **Silent `REVEAL_RESULTS` transition** — `LiveSessionOrchestrator.revealResults`
-   (`LiveSessionOrchestrator.java:1000-1030`) persists the phase change unconditionally
-   but returns without publishing any event when no `RoundResult` exists. Connected
-   clients never learn the phase changed.
+1. ~~**Silent `REVEAL_RESULTS` transition**~~ — **Fixed** (2026-07-29).
+   `LiveSessionOrchestrator.revealResults` persisted the phase change unconditionally
+   but returned without publishing any event when no `RoundResult` existed, so
+   connected clients never learned the phase changed. Two fixes: a slide-match
+   precondition (409 `ROUND_NOT_CURRENT`) closes the main path into that branch — a
+   stale host call naming a non-current slide moving the current round's phase — and
+   the remaining store-drift case now publishes an empty-payload `ResultsRevealed`
+   instead of returning silently (§2).
 2. **Snapshot→subscribe gap** — events broadcast between the snapshot read and the STOMP
    subscription completing are lost undetectably.
 3. **Reconnect loss** — STOMP auto-reconnect (`reconnectDelay: 3000`) resubscribes but
@@ -88,10 +92,23 @@ public record SessionEventEnvelope(
 
 ### 2. Every successful transition publishes (backend)
 
-Fix `revealResults`: when no `RoundResult` exists, still publish an event carrying the
-phase transition (a `ResultsRevealed` with empty payload, or an explicit variant — decide
-in implementation). Invariant going forward: **no persisted lifecycle transition without
-a published event.**
+**Done** (2026-07-29). `revealResults` gained two things:
+
+- A **slide-match precondition**, checked before any state mutation: `slideId` must be
+  the round state's `currentSlideId`, else `ConflictException("ROUND_NOT_CURRENT")` →
+  409 (the same precondition `submitAnswer` already applied). This was the main
+  reachable path into the no-result branch — a stale or racing host call would drive
+  the *current* round to `REVEAL_RESULTS` while looking up the *other* slide's result.
+- An **empty-payload publish** for what remains: a closed round with no persisted
+  `RoundResult` (Redis round state drifted from the results store). It publishes
+  `ResultsRevealed` via `SessionEvents.resultsRevealedWithoutRecord` — empty
+  `outcomes`/`optionCounts`, null `correctOption`/`drawings`/`placeTargets`, real
+  `scoreboard` and `terminal`. **No new event variant**: the reducer already handles
+  the empty payload, so a variant would have cost a frontend contract change for no
+  gain. Only an unpublishable round (`publicId == null`, no routing id) still bails.
+
+Invariant going forward: **no persisted lifecycle transition without a published
+event.**
 
 ### 3. Snapshot/socket reconciliation (frontend)
 
@@ -169,7 +186,9 @@ replay). Nothing in the work below may preclude it.
 Tracked on the [Ambi Dev board](https://trello.com/b/nH50o6jt/ambi-dev); order matters
 where noted.
 
-1. **Fix `revealResults` silent transition** — bug fix, independent, ship first (§2).
+1. **Fix `revealResults` silent transition** — bug fix, independent (§2). **Done**
+   (2026-07-29): slide-match precondition (409 `ROUND_NOT_CURRENT`) plus an
+   empty-payload `ResultsRevealed` for the store-drift case; no frontend change.
 2. **Presentation-cue layer + completion animation** — frontend-only, no backend
    dependency; dedup hardening lands with item 4 (§4).
 3. **Backend event envelope + sequencing + snapshot `lastSequence`** — the contract

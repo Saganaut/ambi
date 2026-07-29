@@ -997,9 +997,23 @@ public class LiveSessionOrchestrator {
      * <p>Combined parent+child results for a follow-up round are a seam: the
      * {@code resultsRevealed} factory takes a single record, so v1 publishes the
      * child's own result (open-decisions B3).
+     *
+     * <p>A round that closed with no persisted {@link RoundResult} (Redis round state
+     * drifted from the results store) still publishes — an empty-payload
+     * {@code ResultsRevealed} — so the phase change never lands silently.
+     *
+     * @throws ConflictException if {@code slideId} is not the current round's slide;
+     *                           a stale host call must not move another round's phase
      */
     public void revealResults(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
+            // A stale or racing host call naming a slide the session has already left
+            // would otherwise drive the CURRENT round to REVEAL_RESULTS while reading
+            // the other slide's result — same precondition submitAnswer applies.
+            if (!slideId.equals(current.currentSlideId())) {
+                throw new ConflictException("ROUND_NOT_CURRENT", "this slide is not the current round");
+            }
+
             // Revealing results also closes an open round: score it once here, on
             // the transition out of the two not-yet-scored states — open, or VOTE
             // (a voting round defers scoring past the close so the final vote
@@ -1013,20 +1027,26 @@ public class LiveSessionOrchestrator {
                 scoreAndPersistRound(sessionId, slideId, current.roundStartedAt());
             }
 
-            // Read the result scored at close (or just now); publish it. A slide
-            // that produced no scored record (nothing to reveal) still advances the
-            // phase but sends no reveal payload.
-            RoundResult result = roundResults.find(sessionId, slideId).orElse(null);
-            if (result == null || current.publicId() == null) {
+            // Read the result scored at close (or just now); publish it. Only an
+            // unpublishable round (no routing id) bails out — a missing record means
+            // the stores drifted, and the phase moved either way, so that case
+            // publishes the transition with an empty payload rather than nothing.
+            if (current.publicId() == null) {
                 return;
             }
+            RoundResult result = roundResults.find(sessionId, slideId).orElse(null);
             LiveSession session = requireSession(sessionId);
             List<Participant> roster = participants.findAllById(session.getRoster());
             boolean terminal = isLastRound(session, slideId);
-            List<DrawingSubmissionView> drawings = drawingSubmissions(session, slideId, roster);
-            List<PlaceTargetView> placeTargets = placeOnImageTargets(session, slideId);
-            publisher.publish(current.publicId(),
-                    SessionEvents.resultsRevealed(result, roster, drawings, placeTargets, terminal));
+            SessionEvent event;
+            if (result == null) {
+                event = SessionEvents.resultsRevealedWithoutRecord(slideId, roster, terminal);
+            } else {
+                List<DrawingSubmissionView> drawings = drawingSubmissions(session, slideId, roster);
+                List<PlaceTargetView> placeTargets = placeOnImageTargets(session, slideId);
+                event = SessionEvents.resultsRevealed(result, roster, drawings, placeTargets, terminal);
+            }
+            publisher.publish(current.publicId(), event);
         }));
     }
 

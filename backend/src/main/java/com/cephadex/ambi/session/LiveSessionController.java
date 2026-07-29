@@ -222,7 +222,10 @@ public class LiveSessionController {
         hostService.revealResponses(id, slideId, principal);
     }
 
-    /** Reveals the scored results for a round (host only); closes + scores an open round first. */
+    /**
+     * Reveals the scored results for a round (host only); closes + scores an open
+     * round first. 409 when {@code slideId} is not the session's current round.
+     */
     @PostMapping("/{id}/rounds/{slideId}/reveal-results")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void revealResults(
