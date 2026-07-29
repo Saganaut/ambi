@@ -1014,6 +1014,13 @@ public class LiveSessionOrchestrator {
                 throw new ConflictException("ROUND_NOT_CURRENT", "this slide is not the current round");
             }
 
+            // Resolved before anything is written: a session missing from Mongo while
+            // its Redis round state survives must abort with no persisted transition,
+            // rather than leaving REVEAL_RESULTS saved and no event published. The
+            // current slide is already known to the deck snapshot (validated when the
+            // round opened), so this is the last resolution here that can fail.
+            LiveSession session = requireSession(sessionId);
+
             // Revealing results also closes an open round: score it once here, on
             // the transition out of the two not-yet-scored states — open, or VOTE
             // (a voting round defers scoring past the close so the final vote
@@ -1035,7 +1042,6 @@ public class LiveSessionOrchestrator {
                 return;
             }
             RoundResult result = roundResults.find(sessionId, slideId).orElse(null);
-            LiveSession session = requireSession(sessionId);
             List<Participant> roster = participants.findAllById(session.getRoster());
             boolean terminal = isLastRound(session, slideId);
             SessionEvent event;

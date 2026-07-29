@@ -1026,8 +1026,11 @@ class LiveSessionOrchestratorTest {
         assertThatThrownBy(() -> orchestrator.revealResults(SID, "other-slide"))
                 .isInstanceOf(ConflictException.class);
 
-        // A stale host call must leave the current round's phase alone, and publish nothing.
+        // A stale host call must leave the current round untouched: no phase change,
+        // no consumed timer, no scoring, nothing published.
         verify(roundStateStore, never()).save(any(), any());
+        verify(deadlines, never()).cancel(any());
+        verify(roundResults, never()).persist(any(), any(), any());
         verify(publisher, never()).publish(any(), any());
     }
 

@@ -80,6 +80,7 @@ Role/relationship violation:
 | `SESSION_NOT_IN_LOBBY` | Action requires the session to be in the lobby stage |
 | `HOST_CANNOT_LEAVE` | Host attempted to leave their own session |
 | `ROUND_NOT_OPEN` | Action requires an open round |
+| `ROUND_NOT_CURRENT` | Action names a slide that isn't the session's current round |
 | `ROUND_NOT_TIMED` | Timer pause/resume on a round with no auto-close timer |
 | `QUESTION_LIMIT_REACHED` | Participant hit the Q&A round's per-player question cap |
 | `ROUND_ALREADY_SCORED` | Round has already been scored |
