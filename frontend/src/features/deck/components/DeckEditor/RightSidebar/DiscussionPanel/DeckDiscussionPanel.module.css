@@ -61,5 +61,5 @@
 .pager {
   display: flex;
   justify-content: center;
-  margin-top: var(--space-3);
+  margin-top: var(--gap-md);
 }

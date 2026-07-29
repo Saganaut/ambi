@@ -27,7 +27,7 @@
 
       .wordButton {
         position: relative;
-        padding: 0 var(--space-1);
+        padding: 0 var(--gap-xs);
         border: none;
         background: none;
         color: var(--text-primary);
@@ -42,7 +42,7 @@
           position: absolute;
           inset-block-start: -0.35em;
           inset-inline-end: -0.5em;
-          padding: 0 var(--space-1);
+          padding: 0 var(--gap-xs);
           border-radius: var(--radius-sm);
           background-color: var(--bg-surface-raised);
           color: var(--text-secondary);

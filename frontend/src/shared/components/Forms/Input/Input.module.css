@@ -20,6 +20,10 @@ input[type="radio"] {
 }
 
 .inputContainer {
+  /* Row held free below the field so the info/error message has somewhere to
+     land without the field jumping when it appears. */
+  --message-reserve: var(--space-6);
+
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -28,7 +32,7 @@ input[type="radio"] {
   width: 100%;
 
   &.withBottomPadding {
-    padding-bottom: var(--space-6);
+    padding-bottom: var(--message-reserve);
   }
 
   &.labelAbove {
@@ -38,7 +42,7 @@ input[type="radio"] {
   }
 
   label {
-    padding-left: var(--space-1);
+    padding-left: var(--gap-xs);
     font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--text-secondary);

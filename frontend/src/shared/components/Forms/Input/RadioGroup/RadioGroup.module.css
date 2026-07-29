@@ -19,7 +19,7 @@
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-muted);
-  padding-bottom: var(--space-2);
+  padding-bottom: var(--gap-sm);
 }
 
 .radioGroupOptions {

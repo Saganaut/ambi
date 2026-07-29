@@ -10,7 +10,7 @@
 }
 
 .answersLabel {
-  padding-left: var(--space-1);
+  padding-left: var(--gap-xs);
 }
 
 .tagList {

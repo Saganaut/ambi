@@ -42,7 +42,7 @@
 
 /* The endpoint inputs read as centered label pills floating on the plane. */
 .endpointPill input {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--gap-xs) var(--gap-sm);
   text-align: center;
   font-size: var(--font-size-xs);
   font-weight: 600;

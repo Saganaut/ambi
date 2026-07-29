@@ -6,7 +6,7 @@
   gap: var(--gap-xs);
   width: 100%;
   min-height: 10rem;
-  padding: var(--space-6);
+  padding: var(--gutter-md);
   border: var(--border-size-sm) dashed var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-subtle);

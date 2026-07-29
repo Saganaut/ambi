@@ -16,8 +16,8 @@
     grid-template-columns: 3fr 1fr;
     border-radius: var(--radius-sm);
 
-    /* (4px, 8px) has no --p-* equivalent — sanctioned one-off on the raw scale */
-    padding: var(--space-1) var(--space-2);
+    /* (4px, 8px) has no --p-* set — composed per axis on the --gap-* ladder */
+    padding: var(--gap-xs) var(--gap-sm);
 
     .name {
       display: flex;

@@ -111,7 +111,7 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-base);
   font-weight: 700;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--p-md);
   border-radius: var(--radius-md);
   border: var(--border-size-sm) solid var(--cyan-500);
   background: var(--cyan-500);
@@ -133,7 +133,7 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-base);
   font-weight: 700;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--p-md);
   border-radius: var(--radius-md);
   border: var(--border-size-sm) solid var(--violet-500);
   background: transparent;

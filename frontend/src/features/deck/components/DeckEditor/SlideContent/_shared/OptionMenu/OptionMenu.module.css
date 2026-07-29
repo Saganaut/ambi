@@ -17,14 +17,14 @@
     text-transform: uppercase;
     text-align: left;
     color: var(--text-muted);
-    padding: var(--space-1) var(--space-1) var(--space-2);
+    padding: var(--gap-xs) var(--gap-xs) var(--gap-sm);
   }
 
   .swatchStrip {
     display: flex;
     align-items: center;
     gap: var(--gap-sm);
-    padding: 0 var(--space-1) var(--space-1);
+    padding: 0 var(--gap-xs) var(--gap-xs);
   }
 
   .chip {

@@ -56,7 +56,7 @@
 .tabCount {
   font-size: var(--font-size-xs);
   font-weight: 500;
-  padding: 0 var(--space-2);
+  padding: 0 var(--gap-sm);
   border-radius: var(--radius-full);
   background-color: var(--bg-subtle);
   color: var(--text-muted);

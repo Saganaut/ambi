@@ -44,7 +44,7 @@
 
 .savings {
   font-size: var(--font-size-xs);
-  padding: var(--space-half) var(--space-2);
+  padding: var(--gap-xxs) var(--gap-sm);
   border-radius: var(--radius-full);
   background: var(--bg-success);
   color: var(--text-success);

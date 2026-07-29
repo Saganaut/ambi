@@ -49,7 +49,7 @@
 
 .cardBadge {
   background: var(--bg-canvas);
-  padding: 0 var(--space-1);
+  padding: 0 var(--gap-xs);
   border-radius: var(--radius-sm);
 }
 

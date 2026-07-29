@@ -81,7 +81,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-2) var(--space-4);
+    padding: var(--gap-sm) var(--gap-lg);
   }
 
   .title {

@@ -2,7 +2,7 @@
   --card-width: 300px;
 
   display: flex;
-  padding: var(--space-2);
+  padding: var(--gap-sm);
   flex-direction: column;
   transition: padding var(--duration-base) ease-in-out;
 
@@ -54,10 +54,11 @@
 
     /* Bleed the scroll viewport past the card gutter so the slide cards'
        drop shadows aren't clipped at the scroll edges. */
-    --shadow-bleed: calc(-1 * var(--space-2));
+    --shadow-bleed-size: var(--gap-sm);
+    --shadow-bleed: calc(-1 * var(--shadow-bleed-size));
 
     margin: var(--shadow-bleed);
-    padding: var(--space-2);
+    padding: var(--shadow-bleed-size);
 
     .slideThumbnailWrapper {
       position: relative;
@@ -73,7 +74,7 @@
       .followUpThumbnailWrapper {
         position: relative;
         margin-top: var(--gap-sm);
-        margin-left: var(--space-6);
+        margin-left: var(--gap-xl);
 
         &::before {
           content: "";
@@ -96,7 +97,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--gap-sm);
   border-radius: var(--radius-md);
   padding: var(--p-md);
   background-color: var(--bg-surface);

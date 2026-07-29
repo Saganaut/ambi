@@ -28,7 +28,7 @@
     .leftControlButtons {
       width: 100%;
       display: flex;
-      gap: var(--space-2);
+      gap: var(--gap-sm);
     }
 
     .titleDeck {
@@ -42,7 +42,7 @@
     .rightControlButtons {
       display: flex;
       align-items: center;
-      gap: var(--space-2);
+      gap: var(--gap-sm);
 
       .startError {
         font-size: var(--font-size-sm);
@@ -57,10 +57,14 @@
   }
 
   .slideCanvasContainer {
+    /* Scroll clearance so the floating slide action bar never covers the
+       canvas's last row of content. */
+    --floating-bar-clearance: var(--space-16);
+
     /* background-color: var(--bg-canvas); */
     display: flex;
-    padding: var(--space-2);
-    padding-bottom: var(--space-16);
+    padding: var(--gap-sm);
+    padding-bottom: var(--floating-bar-clearance);
     position: relative;
     min-width: 0;
     min-height: 0;

@@ -171,8 +171,8 @@
   margin-right: auto;
 
   .mineBadge {
-    /* (2px, 8px) has no --p-pill-* equivalent — sanctioned one-off on the raw scale */
-    padding: var(--space-half) var(--space-2);
+    /* (2px, 8px) has no --p-pill-* equivalent — composed per axis from --gap-* */
+    padding: var(--gap-xxs) var(--gap-sm);
     border-radius: var(--radius-full);
     background: var(--bg-secondary);
     color: var(--text-accent);

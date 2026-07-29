@@ -2,10 +2,14 @@
    :has() drives all visual state so no JS class toggling is needed. */
 
 .checkboxContainer {
+  /* Row held free below the control so the absolutely positioned .message has
+     somewhere to land without overlapping whatever follows. */
+  --message-reserve: var(--space-6);
+
   display: flex;
   align-items: center;
   gap: var(--gap-sm);
-  padding-bottom: var(--space-6);
+  padding-bottom: var(--message-reserve);
   position: relative;
 
   .message {
@@ -49,7 +53,7 @@
 }
 
 .checkboxContainer.stretch {
-  padding-block: var(--space-1);
+  padding-block: var(--gap-xs);
 }
 
 .checkboxContainer.stretch .checkboxWrap {

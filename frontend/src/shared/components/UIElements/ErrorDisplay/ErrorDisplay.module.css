@@ -102,7 +102,7 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   font-weight: 700;
-  padding: var(--space-3) var(--space-6);
+  padding: var(--gap-md) var(--gap-xl);
   border-radius: var(--radius-md);
   border: var(--border-size-sm) solid var(--border-error);
   background: var(--bg-error);
@@ -120,7 +120,7 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   font-weight: 700;
-  padding: var(--space-3) var(--space-6);
+  padding: var(--gap-md) var(--gap-xl);
   border-radius: var(--radius-md);
   border: var(--border-size-sm) solid var(--border-default);
   background: transparent;

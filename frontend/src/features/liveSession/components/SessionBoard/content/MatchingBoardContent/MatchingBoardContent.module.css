@@ -81,7 +81,7 @@
 
     max-width: 100%;
     overflow: hidden;
-    padding: 0 var(--space-2);
+    padding: 0 var(--gap-sm);
     border-radius: var(--radius-full);
     border: var(--border-size-sm) solid var(--link-accent);
     color: var(--text-secondary);
@@ -100,7 +100,7 @@
   /* One chip per left card players connected here, in that card's accent. */
   .countChip {
     min-width: 1.5rem;
-    padding: 0 var(--space-1);
+    padding: 0 var(--gap-xs);
     border-radius: var(--radius-full);
     border: var(--border-size-sm) solid var(--link-accent, var(--edge-subtle));
     color: var(--text-secondary);

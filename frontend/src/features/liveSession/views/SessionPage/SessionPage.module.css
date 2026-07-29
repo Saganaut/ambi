@@ -23,15 +23,17 @@
     }
 
     .innerDisplay {
+      /* Bottom clearance for the absolutely-positioned SessionControls overlay
+         (min-height 50px, so --stack-xl 48px would collide). */
+      --controls-clearance: var(--space-16);
+
       display: flex;
       flex: 1;
       background-color: var(--bg-canvas);
 
-      /* Top inset on the gutter ladder. Sanctioned one-offs on the raw scale:
-         inline hugs the board edges (8px, below the --gutter-* ladder) and the
-         bottom clears the absolutely-positioned SessionControls overlay
-         (min-height 50px, so --stack-xl 48px would collide). */
-      padding: var(--gutter-sm) var(--space-2) var(--space-16);
+      /* Top inset on the gutter ladder; inline hugs the board edges (8px, below
+         the --gutter-* ladder), bottom clears the floating controls. */
+      padding: var(--gutter-sm) var(--gap-sm) var(--controls-clearance);
 
       .sessionBoard {
         display: flex;

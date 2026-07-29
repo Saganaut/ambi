@@ -106,7 +106,7 @@
 .dropdownList {
   list-style: none;
   margin: 0;
-  padding: var(--space-1) 0;
+  padding: var(--gap-xs) 0;
   max-height: 200px;
   overflow-y: auto;
 }
@@ -162,8 +162,8 @@
   align-items: center;
   gap: var(--gap-xs);
 
-  /* (2px, 8px) has no --p-pill-* equivalent — sanctioned one-off on the raw scale */
-  padding: var(--space-half) var(--space-2);
+  /* (2px, 8px) has no --p-pill-* equivalent — composed per axis on the gap tier */
+  padding: var(--gap-xxs) var(--gap-sm);
   background-color: var(--bg-subtle);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);

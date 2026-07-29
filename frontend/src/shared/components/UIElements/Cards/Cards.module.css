@@ -62,7 +62,7 @@
   position: absolute;
   top: var(--space-2);
   right: var(--space-2);
-  padding: var(--space-half) var(--space-2);
+  padding: var(--gap-xxs) var(--gap-sm);
   font-size: var(--font-size-xs);
   font-weight: 700;
   text-transform: uppercase;

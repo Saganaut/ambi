@@ -130,7 +130,7 @@
   font-size: var(--font-size-xs);
   text-align: center;
   min-height: 0;
-  padding-block: var(--space-1);
+  padding-block: var(--gap-xs);
   white-space: pre;
   overflow-x: hidden;
 }

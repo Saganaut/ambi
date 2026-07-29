@@ -18,7 +18,7 @@
   color: var(--text-muted);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--gap-md);
 }
 
 .eyebrow::before {
@@ -31,7 +31,7 @@
   font-size: clamp(var(--font-size-xl), 5vw, var(--font-size-2xl));
   font-weight: 900;
   color: var(--text-primary);
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--gap-md);
   line-height: 1.1;
 }
 
@@ -73,7 +73,7 @@
   color: var(--text-muted);
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--gap-md);
 }
 
 .tocList {
@@ -91,7 +91,7 @@
   color: var(--text-secondary);
   text-decoration: none;
   display: block;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--gap-xs) var(--gap-sm);
   border-left: var(--border-size-sm) solid var(--border-subtle);
   transition: all var(--duration-fast);
 }
@@ -99,7 +99,7 @@
 .tocLink:hover {
   color: var(--text-primary);
   border-left-color: var(--red-500);
-  padding-left: var(--space-3);
+  padding-left: var(--gap-md);
 }
 
 /* ── Article body ───────────────────────────────────────────────── */

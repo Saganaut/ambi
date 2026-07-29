@@ -80,7 +80,7 @@
 
 .badge {
   font-size: var(--font-size-xs);
-  padding: var(--space-half) var(--space-2);
+  padding: var(--gap-xxs) var(--gap-sm);
   border-radius: var(--radius-sm);
   font-weight: 600;
 }
@@ -105,7 +105,7 @@
 
 .cardActionBtn {
   font-size: var(--font-size-xs);
-  padding: var(--p-xs) var(--space-3);
+  padding: var(--gap-xs) var(--gap-md) var(--gap-md);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -252,7 +252,7 @@
 
 .orgDividerText {
   background: var(--bg-surface);
-  padding: 0 var(--space-3);
+  padding: 0 var(--gap-md);
   position: relative;
   z-index: 1;
 }
@@ -265,7 +265,7 @@
 
 .orgInput {
   flex: 1;
-  padding: var(--p-sm) var(--space-3);
+  padding: var(--p-asym-sm);
   border: var(--border-size-sm) solid var(--border-default);
   border-radius: var(--radius-md);
   background: transparent;

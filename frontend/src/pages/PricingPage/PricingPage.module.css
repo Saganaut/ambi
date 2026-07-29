@@ -17,7 +17,7 @@
   color: var(--text-muted);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--gap-md);
 }
 
 .eyebrow::before {

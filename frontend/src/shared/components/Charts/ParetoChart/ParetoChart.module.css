@@ -61,7 +61,7 @@
   display: flex;
   list-style: none;
   margin: 0;
-  padding: 0 var(--space-2);
+  padding: 0 var(--gap-sm);
   justify-content: space-between;
   gap: var(--gap-sm);
 }
@@ -73,8 +73,8 @@
   align-items: center;
 
   /* Hairline tick-to-label stack under dense chart columns; --gap-xs (4px)
-     detaches the label from its column — sanctioned one-off on the raw scale */
-  gap: var(--space-half);
+     detaches the label from its column */
+  gap: var(--gap-xxs);
   min-width: 0;
   flex: 1;
 }
@@ -99,7 +99,7 @@
   font-size: var(--font-size-xs);
   text-align: center;
   min-height: 0;
-  padding-block: var(--space-1);
+  padding-block: var(--gap-xs);
   white-space: pre;
   overflow-x: hidden;
 }

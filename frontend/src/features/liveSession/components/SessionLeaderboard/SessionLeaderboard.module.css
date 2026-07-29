@@ -24,7 +24,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding-left: var(--space-3);
+  padding-left: var(--gap-md);
 
   .leaderboardTitle {
     font-size: var(--font-size-lg);

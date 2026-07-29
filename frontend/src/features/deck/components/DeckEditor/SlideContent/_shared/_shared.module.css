@@ -6,7 +6,7 @@
      - Surfaces ride on --bg-surface / --bg-surface-raised — no box-shadow.
      - Edges use --edge-* tokens; state colors (focus, correct) live on the
        outline so they don't shift layout.
-     - Spacing snaps to --space-* tokens; never hardcoded px.
+     - Spacing snaps to the semantic tokens (--p-*, --gap-*); never hardcoded px.
 */
 
 /* ─── PromptField ──────────────────────────────────────────────────────── */
@@ -24,7 +24,7 @@
 
 .promptField {
   min-height: 4.5rem;
-  padding-top: var(--space-2);
+  padding-top: var(--gap-sm);
 }
 
 /* ─── SectionHeader ────────────────────────────────────────────────────── */
@@ -34,7 +34,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-md);
-  padding: var(--space-1) 0;
+  padding: var(--gap-xs) 0;
 }
 
 .sectionLabel {

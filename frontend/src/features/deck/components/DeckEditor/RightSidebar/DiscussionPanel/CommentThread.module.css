@@ -58,7 +58,7 @@
 }
 
 .resolvedBadge {
-  padding: var(--space-half) var(--space-2);
+  padding: var(--gap-xxs) var(--gap-sm);
   border-radius: var(--radius-full);
   background: var(--bg-secondary);
   color: var(--text-accent);
@@ -117,7 +117,7 @@
 .editedTag {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
-  margin-left: var(--space-1);
+  margin-left: var(--gap-xs);
 }
 
 .commentBody {
@@ -148,7 +148,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--gap-xs);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--gap-xs) var(--gap-sm);
   background: transparent;
   border: 2px solid transparent;
   border-radius: var(--radius-full);

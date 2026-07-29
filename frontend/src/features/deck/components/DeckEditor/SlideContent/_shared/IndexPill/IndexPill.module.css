@@ -35,6 +35,6 @@
   justify-content: start;
   width: fit-content;
   height: 1.5rem;
-  padding: 0 var(--space-2);
+  padding: 0 var(--gap-sm);
   color: var(--text-primary);
 }

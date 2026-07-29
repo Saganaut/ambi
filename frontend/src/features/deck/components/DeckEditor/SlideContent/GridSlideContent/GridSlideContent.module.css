@@ -76,7 +76,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-half);
+  padding: var(--gap-xxs);
   border: none;
   border-radius: var(--radius-full);
   background-color: var(--bg-surface-raised);

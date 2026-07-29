@@ -6,7 +6,7 @@
 
 | Tier      | Tokens                                             | Use for                                                                |
 | --------- | -------------------------------------------------- | ---------------------------------------------------------------------- |
-| Component | `--p-*` shape sets, `--gap-xs…xl`                  | Inside a control: button padding, icon–label gap, fields within a form |
+| Component | `--p-*` shape sets, `--gap-xxs…xl`                 | Inside a control: button padding, icon–label gap, fields within a form |
 | Layout    | `--stack-sm…xl`, `--gutter-sm…xl`, `--gutter-fluid` | Between sibling cards/panels/sections; a region's own edge inset       |
 
 - `--stack-*` **separates siblings** — grid/flex `gap` between cards, panels, page sections.
@@ -35,9 +35,11 @@
 ## Enforcement
 
 `frontend/stylelint.config.mjs` bans `var(--space-*)` in `padding*`, `margin*`, and `gap` properties
-(`declaration-property-value-disallowed-list`, currently *warning* severity while the remaining
-sanctioned one-offs are worked off). Positioned offsets (`top`/`inset-*`), `scroll-margin`, and the
-token definitions in `tokens.css` are outside the rule's property set by design.
+(`declaration-property-value-disallowed-list`, *error* severity). Positioned offsets
+(`top`/`inset-*`), `scroll-margin`, and token definitions — including named component-local
+custom properties such as a `--floating-bar-clearance: var(--space-16)` that document a
+deliberate one-off — are outside the rule's property set by design; a ratified one-off that
+must stay on a flagged property carries a `stylelint-disable-next-line` with a reason.
 
 ## Reference example
 

@@ -83,7 +83,6 @@ export default {
         "/^(padding|margin|gap|row-gap|column-gap)/": [/var\(--space-/],
       },
       {
-        severity: "warning",
         message:
           "Use semantic spacing tokens (--gap-*, --p-*, --stack-*, --gutter-*) instead of raw --space-* (spacing-hierarchy rule)",
       },

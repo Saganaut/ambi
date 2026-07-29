@@ -34,7 +34,7 @@
 }
 
 .empty {
-  padding: var(--space-8) 0;
+  padding: var(--gutter-lg) 0;
   text-align: center;
   color: var(--text-secondary);
 }

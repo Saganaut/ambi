@@ -65,7 +65,7 @@
 .chart .optionControls textarea {
   min-height: 0;
   font-size: var(--font-size-sm);
-  padding-block: var(--space-1);
+  padding-block: var(--gap-xs);
   white-space: pre;
   overflow-x: hidden;
 }

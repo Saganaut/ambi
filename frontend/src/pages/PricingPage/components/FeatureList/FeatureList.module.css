@@ -24,7 +24,7 @@
   justify-content: center;
   width: 1.25rem;
   height: 1.25rem;
-  margin-top: var(--space-half);
+  margin-top: var(--gap-xxs);
   border-radius: var(--radius-full);
   background: var(--bg-success);
   color: var(--text-success);

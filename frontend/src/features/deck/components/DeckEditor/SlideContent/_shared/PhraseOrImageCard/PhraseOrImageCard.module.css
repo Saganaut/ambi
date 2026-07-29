@@ -31,7 +31,7 @@
 }
 
 .kindBadge {
-  padding: 0 var(--space-2);
+  padding: 0 var(--gap-sm);
   font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
