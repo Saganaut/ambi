@@ -12,4 +12,4 @@ CSS, tokens, and design-system conventions. Full explanation: [frontend/STYLES.m
 8. **Spacing hierarchy** — Component-internal spacing uses `--p-*` / `--gap-*`; spacing between and around large components uses the layout tier (`--stack-*` / `--gutter-*`), with outer spacing always at least one ladder step larger than inner. — [details](styling/spacing-hierarchy.md)
 9. **Elevation over borders** — Prefer a soft `--shadow-*` drop shadow over a border to separate a surface; borders stay only for focus, status semantics, true dividers, and the `bordered` button fill. — [details](styling/elevation-over-borders.md)
 10. **Accessibility** — Use semantic HTML with keyboard support and correct ARIA. No `window.alert` / `prompt` / `confirm` — use the shared modal / popover patterns.
-11. **Lint** — Stylelint and oxlint must pass before commit (`lint:all` in the pre-commit hook).
+11. **Lint** — Stylelint and the fast oxlint pass must be clean before every commit (`lint:css` + `lint:fast` in the pre-commit hook); the full type-aware lint and typecheck are enforced at the feature gate, `scripts/check-feature.sh`. — see [testing-and-ci](../infrastructure/testing-and-ci.md)

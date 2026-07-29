@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsgo -b && vite build",
     "lint": "oxlint --type-aware --type-check .",
+    "lint:fast": "oxlint .",
     "check": "npm run typecheck && npm run lint",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:all": "npm run lint && npm run lint:css",

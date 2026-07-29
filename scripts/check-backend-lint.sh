@@ -24,6 +24,11 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 BACKEND="$REPO_ROOT/backend"
 PREFS="$BACKEND/.settings/org.eclipse.jdt.core.prefs"
 
+# Shared with scripts/check-feature.sh and scripts/pre-push — concurrent sessions
+# would otherwise stack Maven/ECJ JVMs and freeze the machine, so every
+# JVM-heavy invocation below runs one at a time under this lock.
+LOCK="/tmp/ambi-backend-${USER:-$(id -un)}.lock"
+
 RELEASE="$(sed -n 's/^org.eclipse.jdt.core.compiler.source=//p' "$PREFS")"
 RELEASE="${RELEASE:-26}"
 
@@ -51,11 +56,25 @@ fi
 echo "▶ Backend null-analysis (Eclipse JDT $(basename "$ECJ"))..."
 
 # --- Build the compile classpath (includes Lombok) ---------------------------
+# Resolving it costs a full Maven JVM startup, so it is cached under target/
+# (git-ignored) keyed on the hash of pom.xml: the classpath can only change when
+# the POM does. Routine flows no longer run `mvn clean`, so the cache survives;
+# if target/ is wiped it simply regenerates on the next run.
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-(cd "$BACKEND" && ./mvnw -q dependency:build-classpath \
-    -Dmdep.includeScope=test -Dmdep.outputFile="$TMP/cp.txt")
-CP="$(cat "$TMP/cp.txt")"
+
+POM_SHA="$(sha256sum "$BACKEND/pom.xml" | cut -d' ' -f1)"
+CP_CACHE="$BACKEND/target/ecj-classpath-$POM_SHA.txt"
+
+if [[ ! -s "$CP_CACHE" ]]; then
+  # Write to the temp dir first, then move into place, so an interrupted run
+  # can never leave a truncated cache behind.
+  (cd "$BACKEND" && flock "$LOCK" ./mvnw -q dependency:build-classpath \
+      -Dmdep.includeScope=test -Dmdep.outputFile="$TMP/cp.txt")
+  mkdir -p "$BACKEND/target"
+  mv "$TMP/cp.txt" "$CP_CACHE"
+fi
+CP="$(cat "$CP_CACHE")"
 
 # Lombok lives on that classpath; run it as an agent so @Getter/@Builder/etc.
 # members exist during analysis (mirrors how the IDE's Lombok support works).
@@ -72,7 +91,7 @@ find "$BACKEND/src/main/java" "$BACKEND/src/test/java" -name '*.java' > "$TMP/sr
 # -proc:none: Lombok runs via the agent, not as an annotation processor.
 # JVM "WARNING:" lines (Lombok's use of sun.misc.Unsafe) are filtered out.
 set +e
-java -javaagent:"$LOMBOK"=ECJ -jar "$ECJ" \
+flock "$LOCK" java -javaagent:"$LOMBOK"=ECJ -jar "$ECJ" \
   -cp "$CP" -source "$RELEASE" -target "$RELEASE" \
   -properties "$PREFS" -proc:none -d none \
   @"$TMP/srcs.txt" 2>&1 | grep -v '^WARNING: ' > "$TMP/out.txt"

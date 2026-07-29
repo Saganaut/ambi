@@ -1,6 +1,6 @@
 # Testing & CI
 
-Test stacks for both layers and the local pre-commit / pre-push git hooks.
+Test stacks for both layers and the local verification tiers (pre-commit hook, per-feature gate, pre-push hook).
 
 > Rule-level testing conventions (don't change a test to make it pass, etc.) live in [backend-rules](../rules/backend-rules.md) and [frontend-rules](../rules/frontend-rules.md).
 
@@ -53,24 +53,34 @@ PNGs are written to `frontend/.screenshots/` (git-ignored). The script (`fronten
 
 ## CI
 
-There is no GitHub Actions (or other hosted) CI configured yet — no `.github/` workflow exists in the repo. Correctness is instead enforced locally via the committed `scripts/pre-commit` and `scripts/pre-push` git hooks (see below), which every contributor installs once per clone.
+There is no GitHub Actions (or other hosted) CI configured yet — no `.github/` workflow exists in the repo. Correctness is instead enforced locally, in three tiers (see below), which every contributor installs/runs.
 
-## Local git hooks
+## Local enforcement tiers
 
-Two hook scripts are committed in `scripts/`. Install both once per clone:
+Verification is split so that the cheap checks run constantly and the expensive JVM-heavy ones run once per feature. Install the two hooks once per clone:
 
 ```bash
 ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
 ln -sf ../../scripts/pre-push   .git/hooks/pre-push
 ```
 
-- **pre-commit** — on every commit, runs the frontend typecheck, `lint:all` (oxlint + Stylelint), the backend `mvn compile`, the backend null-analysis check via [`scripts/check-backend-lint.sh`](../../scripts/check-backend-lint.sh), and the documentation checks via [`scripts/check-docs.sh`](../../scripts/check-docs.sh) (reachability + markdownlint). The commit is blocked if any step fails.
-- **pre-push** — runs both test suites only when pushing to `main`. Pushes to other branches are unaffected.
+| Tier                                                           | When                                              | What it runs                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fast** — [`scripts/pre-commit`](../../scripts/pre-commit)     | Automatically, on every commit                    | `npm run lint:fast` (plain oxlint, no type-aware pass), `npm run lint:css` (Stylelint), and the documentation checks via [`scripts/check-docs.sh`](../../scripts/check-docs.sh) (reachability + markdownlint). No JVM, no typecheck — it finishes in seconds. The commit is blocked if any step fails.                                |
+| **Feature gate** — [`scripts/check-feature.sh`](../../scripts/check-feature.sh) | Manually, once per completed feature change — after implementation, before commit and review | `npm run typecheck`, `npm run lint:all` (type-aware oxlint + Stylelint), the backend `./mvnw compile` (**incremental** — no `clean`), the backend null-analysis via [`scripts/check-backend-lint.sh`](../../scripts/check-backend-lint.sh), and the documentation checks. Run it until clean; it is the real quality gate. |
+| **Push** — [`scripts/pre-push`](../../scripts/pre-push)         | Automatically, on push to `main`                  | Both test suites (`npm run test:run`, `./mvnw test -q`). Pushes to other branches are unaffected.                                                                                                                                                                                                                                    |
 
-The documentation checks can also be run on their own at any time: `./scripts/check-docs.sh`.
+Either of the standalone scripts can be run on its own at any time: `./scripts/check-docs.sh`, `./scripts/check-backend-lint.sh`, `./scripts/check-feature.sh`.
+
+### Keeping the heavy tier cheap
+
+Two mechanisms stop the feature gate from monopolising the machine:
+
+- **Serialized JVMs.** Several agent sessions often work the repo at once, and stacked Maven/ECJ JVMs freeze it. Every JVM-heavy invocation (`mvnw compile` in the feature gate, `mvnw dependency:build-classpath` and the ECJ run in `check-backend-lint.sh`, `mvnw test` in `pre-push`) is wrapped in `flock` on a shared `/tmp/ambi-backend-$USER.lock`, so only one runs at a time. Blocking is intentional — the waiting run proceeds as soon as the lock frees.
+- **Cached ECJ classpath.** `check-backend-lint.sh` used to spend a whole Maven JVM startup just resolving the compile classpath. It now caches the result at `backend/target/ecj-classpath-<sha256-of-pom.xml>.txt` (git-ignored) and skips Maven entirely on a hit. The key is the POM hash, so the cache invalidates exactly when dependencies can change; because routine flows no longer run `mvn clean`, it persists, and a wiped `target/` just regenerates it.
 
 ## Backend null-analysis (Eclipse JDT)
 
 The IDE's Java "Problems" panel surfaces Eclipse JDT null-analysis warnings — unused imports, and "needs unchecked conversion via method descriptor" on method references under Spring's `@NonNull`/`@Nullable` defaults (see `backend/.settings/org.eclipse.jdt.core.prefs` and the `java.compile.nullAnalysis.mode` VS Code setting). `javac` (and therefore `mvn compile`) does **not** report these, so [`scripts/check-backend-lint.sh`](../../scripts/check-backend-lint.sh) reproduces them on the CLI: it runs the same JDT batch compiler the Red Hat Java extension bundles, with those prefs and Lombok wired in as a Java agent, and fails on any warning.
 
-Run it on demand: `./scripts/check-backend-lint.sh`. It requires the Red Hat Java extension (its batch compiler is auto-detected), or an `ECJ_JAR` pointing at a compatible `org.eclipse.jdt.core.compiler.batch_*.jar`. When neither is found the script **skips** (exit 0) rather than failing, so it never blocks a commit in a headless environment.
+It runs as part of the feature gate, and on demand: `./scripts/check-backend-lint.sh`. It requires the Red Hat Java extension (its batch compiler is auto-detected), or an `ECJ_JAR` pointing at a compatible `org.eclipse.jdt.core.compiler.batch_*.jar`. When neither is found the script **skips** (exit 0) rather than failing, so it never blocks work in a headless environment.

@@ -21,4 +21,4 @@ JavaScript/TypeScript linting is done with [oxlint](https://oxc.rs/docs/guide/us
 npm run lint
 ```
 
-CSS is linted separately with Stylelint (`npm run lint:css`); `npm run lint:all` runs both.
+CSS is linted separately with Stylelint (`npm run lint:css`); `npm run lint:all` runs both. `npm run lint:fast` is the same oxlint run without the type-aware pass — it's what the pre-commit hook uses, while `lint:all` runs at the per-feature gate (`scripts/check-feature.sh`).

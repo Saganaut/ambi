@@ -126,7 +126,7 @@ called out honestly: *solid* (works end-to-end), *partial* (real but incomplete)
 | Data | MongoDB (durable), Redis (sessions, live-game runtime, tallies, deadlines), Garage S3 (media) |
 | Realtime | STOMP over WebSocket, server broadcast-only |
 | Contracts | SpringDoc OpenAPI → `npm run generate` (API client, validation constants, enums); generated artifacts committed, never hand-edited |
-| Quality gates | Local pre-commit/pre-push hooks: typecheck, oxlint, Stylelint, backend null-analysis, doc-lint, full test suites on push to main |
+| Quality gates | Tiered local checks: pre-commit hook (fast oxlint, Stylelint, doc-lint), per-feature `scripts/check-feature.sh` (typecheck, type-aware lint, backend compile + null-analysis, docs), pre-push hook (full test suites on push to main) |
 
 See [infrastructure](infrastructure/README.md) for the full picture and
 [glossary](glossary.md) for domain vocabulary.

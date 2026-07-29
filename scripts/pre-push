@@ -5,6 +5,10 @@ set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
+# Shared with scripts/check-feature.sh and scripts/check-backend-lint.sh — one
+# Maven/ECJ JVM at a time per user, so concurrent sessions can't freeze the box.
+LOCK="/tmp/ambi-backend-${USER:-$(id -un)}.lock"
+
 while read -r local_ref local_sha remote_ref remote_sha; do
   if [[ "$remote_ref" == "refs/heads/main" ]]; then
     echo "🔎 Push to main detected — running test suites..."
@@ -15,7 +19,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 
     echo ""
     echo "▶ Backend tests"
-    (cd "$REPO_ROOT/backend" && ./mvnw test -q)
+    (cd "$REPO_ROOT/backend" && flock "$LOCK" ./mvnw test -q)
 
     echo ""
     echo "✅ All tests passed — push proceeding."

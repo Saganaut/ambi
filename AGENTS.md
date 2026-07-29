@@ -12,7 +12,7 @@ An interactive presentation platform: presenters author decks of interactive sli
 
 Every completed feature change follows the same three steps — do not skip the last two:
 
-1. **Implement** the change, following the rules in [`z-docs/rules/`](z-docs/rules/README.md).
+1. **Implement** the change, following the rules in [`z-docs/rules/`](z-docs/rules/README.md), then run [`scripts/check-feature.sh`](scripts/check-feature.sh) (typecheck, full lint, backend compile, null-analysis, docs) until it's clean — the pre-commit hook only runs the fast tier.
 2. **Commit it** — invoke the `git-commit-author` agent to stage only the relevant files and write a convention-following message. Do not bypass the pre-commit hooks.
 3. **Review it** — invoke the `code-reviewer` agent to review the resulting commit (`HEAD`) against the task's intent, the project rules/style, and functional correctness. It issues a read-only findings report; act on any blocking findings (which restarts this loop) before moving on.
 
