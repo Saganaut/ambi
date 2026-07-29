@@ -33,6 +33,7 @@ import { useState } from "react";
 import type { DeckResponse, SlideResponse } from "@deck/store/deckApi.gen";
 import type { FollowUpMode } from "@deck/store/deckEnums.gen";
 import { followUpModesFor, groupIntoUnits } from "../utils/followUp";
+import { selectionAfterRemoval } from "../utils/slideSelection";
 
 import { useLiveSession } from "@/features/liveSession/hooks/useLiveSession";
 import { useDeckMutate } from "./useDeckMutate";
@@ -72,6 +73,11 @@ interface UseDeckEditorResult {
    * content type (the inspector can change it after); no-ops if none is.
    */
   addFollowUp: (parentSlideId: string, mode?: FollowUpMode) => void;
+  /**
+   * Remove a slide (cascading to its attached follow-up server-side). If that
+   * takes the selected slide with it, the selection moves to the previous slide
+   * in the rail — or off the URL entirely when there is no previous slide.
+   */
   removeSlide: (slideId: string) => void;
   /** Move a slide to a new zero-based position (drag-and-drop in the rail). */
   reorder: (slideId: string, toIndex: number) => void;
@@ -118,7 +124,7 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
     isLoading: slidesLoading,
     addSlide: appendSlide,
     addFollowUp: attachFollowUp,
-    removeSlide,
+    removeSlide: deleteSlide,
     reorder,
   } = useSlide(deckId);
 
@@ -161,8 +167,14 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   const selectedSlideId = slideId;
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId);
 
-  const selectSlide = (slideId: string) => {
+  // Point the route at a slide, or — with `undefined` — at none: TanStack Router
+  // drops undefined search keys, so the id leaves the URL entirely.
+  const setRouteSlideId = (slideId: string | undefined) => {
     void navigate({ search: (prev) => ({ ...prev, slideId: slideId }) });
+  };
+
+  const selectSlide = (slideId: string) => {
+    setRouteSlideId(slideId);
   };
 
   const addSlide = (options?: AddSlideOptions) => {
@@ -180,6 +192,18 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
     const newId = attachFollowUp(parentSlideId, resolvedMode);
     selectSlide(newId);
     scrollThumbnailIntoView(newId);
+  };
+
+  // Deleting the selected slide would strand the route on a slide that no longer
+  // exists, so re-aim `slideId` at the row above it (or clear it when the first
+  // slide goes). The verdict is computed from the pre-removal collection, before
+  // the optimistic patch splices it out; removals that spare the selection leave
+  // the URL untouched.
+  const removeSlide = (slideId: string) => {
+    const selection = selectionAfterRemoval(slides, slideId, selectedSlideId);
+    deleteSlide(slideId);
+    if (selection.action === "keep") return;
+    setRouteSlideId(selection.action === "select" ? selection.slideId : undefined);
   };
 
   // ── Drag-to-reorder (left rail) ────────────────────────────────────────────

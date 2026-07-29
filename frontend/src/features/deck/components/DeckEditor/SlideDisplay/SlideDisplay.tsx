@@ -140,8 +140,19 @@ const SlideDisplay = () => {
   );
   // useEffect justification: If there's no slideId in the URL, but there are slides in the deck
   // Load that slide id so it can be picked up by the rest of the component.
+  // The ref keeps this a *first landing* only: once the editor has ever held a
+  // selection, an empty slideId is a deliberate clear (deleting the first slide
+  // leaves nothing before it — see `useDeckEditor.removeSlide`) and re-selecting
+  // would put an id back in the URL the author just removed.
+  const hasSelected = React.useRef(slideId != null);
   React.useEffect(() => {
-    if (!slideId && slides && slides.length > 0) {
+    if (slideId) {
+      hasSelected.current = true;
+      return;
+    }
+    if (hasSelected.current) return;
+    if (slides && slides.length > 0) {
+      hasSelected.current = true;
       navigate({
         search: { slideId: slides[0].id },
         replace: true,
