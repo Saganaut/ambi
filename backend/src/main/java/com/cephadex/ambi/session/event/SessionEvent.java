@@ -48,4 +48,43 @@ public sealed interface SessionEvent
         PresenceChanged, RoundStarted, LiveResultsShown, TallyUpdated, QAndAUpdated, SubmissionsLocked,
         VotingOpened, VoteCast, ResponsesRevealed, ResultsRevealed, RoundRestarted, TimerPaused, TimerResumed,
         LiveSessionEnded, LiveSessionCancelled {
+
+    /**
+     * This event type's static {@link SessionEventKind classification}. Nothing
+     * branches on it today — it exists so the deferred durable event log has a
+     * persistence filter that is decided per type, at compile time, rather than
+     * by a hand-maintained list somewhere downstream (see
+     * {@code z-docs/features/live-session-events.md} §"Deferred: durable event
+     * log").
+     *
+     * <p>The switch is exhaustive over the permitted types <strong>with no
+     * {@code default} branch on purpose</strong>: adding a twenty-first event
+     * type is a compile error here until it has been classified.
+     */
+    default SessionEventKind kind() {
+        return switch (this) {
+            // Superseded state replacements: only the newest value matters.
+            case TallyUpdated _ -> SessionEventKind.EPHEMERAL;
+            case VoteCast _ -> SessionEventKind.EPHEMERAL;
+            case PresenceChanged _ -> SessionEventKind.EPHEMERAL;
+            case QAndAUpdated _ -> SessionEventKind.EPHEMERAL;
+            // Session/round transitions: each occurrence is a step in the history.
+            case LiveSessionStarted _ -> SessionEventKind.LIFECYCLE;
+            case LiveSessionEnded _ -> SessionEventKind.LIFECYCLE;
+            case LiveSessionCancelled _ -> SessionEventKind.LIFECYCLE;
+            case ParticipantJoined _ -> SessionEventKind.LIFECYCLE;
+            case ParticipantLeft _ -> SessionEventKind.LIFECYCLE;
+            case ParticipantReconnected _ -> SessionEventKind.LIFECYCLE;
+            case ParticipantRemoved _ -> SessionEventKind.LIFECYCLE;
+            case RoundStarted _ -> SessionEventKind.LIFECYCLE;
+            case RoundRestarted _ -> SessionEventKind.LIFECYCLE;
+            case LiveResultsShown _ -> SessionEventKind.LIFECYCLE;
+            case SubmissionsLocked _ -> SessionEventKind.LIFECYCLE;
+            case VotingOpened _ -> SessionEventKind.LIFECYCLE;
+            case ResponsesRevealed _ -> SessionEventKind.LIFECYCLE;
+            case ResultsRevealed _ -> SessionEventKind.LIFECYCLE;
+            case TimerPaused _ -> SessionEventKind.LIFECYCLE;
+            case TimerResumed _ -> SessionEventKind.LIFECYCLE;
+        };
+    }
 }

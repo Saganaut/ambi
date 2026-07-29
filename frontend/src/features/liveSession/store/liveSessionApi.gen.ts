@@ -636,6 +636,7 @@ export type SessionSnapshotResponse = {
   viewerIsHost?: boolean;
   showRoomCodeInHeader?: boolean;
   showJoinInfoInResults?: boolean;
+  lastSequence?: number;
 };
 export const {
   useCreateMutation,

@@ -49,6 +49,7 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * @param viewerIsHost          whether the caller is the session host
  * @param showRoomCodeInHeader  whether the deck's invite settings show the room code in the persistent header
  * @param showJoinInfoInResults whether the deck's invite settings show the QR + room code on the results screen
+ * @param lastSequence          the sequence of the last event emitted at (or before) the state this snapshot reflects, so the client can tell whether the next {@code SessionEventEnvelope} it receives applies cleanly ({@code sequence == lastSequence + 1}) or it has missed something; {@code 0} when no event has been emitted for the session yet (or the counter's TTL has lapsed) — i.e. "nothing to reconcile against"
  */
 public record SessionSnapshotResponse(
         String sessionId,
@@ -72,5 +73,6 @@ public record SessionSnapshotResponse(
         String viewerParticipantId,
         boolean viewerIsHost,
         boolean showRoomCodeInHeader,
-        boolean showJoinInfoInResults) {
+        boolean showJoinInfoInResults,
+        long lastSequence) {
 }

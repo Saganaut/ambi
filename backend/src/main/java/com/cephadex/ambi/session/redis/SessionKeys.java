@@ -83,6 +83,17 @@ public class SessionKeys {
     }
 
     /**
+     * Key for a session's monotonic event counter. Unlike the other keys here it is
+     * addressed by the session's <strong>publicId</strong>, not its internal id:
+     * that is the id events are published and routed under
+     * ({@code EventPublisher.publish}), so keying the counter the same way keeps the
+     * publisher's allocation and the snapshot's read on one key.
+     */
+    public String eventSequenceKey(String publicId) {
+        return props.getEventSequence().getNamespace() + ":" + publicId;
+    }
+
+    /**
      * Key of the single global deadline ZSET (ADR 002). Unlike the other keys it
      * is not per-session: the scheduler leader polls one sorted set whose members
      * ({@link SessionDeadline}) carry the session identity themselves.

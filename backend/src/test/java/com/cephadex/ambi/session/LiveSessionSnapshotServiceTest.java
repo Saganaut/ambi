@@ -47,6 +47,7 @@ import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
+import com.cephadex.ambi.session.redis.EventSequenceStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.PresenceStore;
@@ -69,6 +70,7 @@ class LiveSessionSnapshotServiceTest {
     private AnswerStore answerStore;
     private VoteStore voteStore;
     private QAndAHostAnswerStore qandaHostAnswers;
+    private EventSequenceStore eventSequences;
     private LiveSessionSnapshotService service;
 
     private AmbiPrincipal caller;
@@ -87,9 +89,10 @@ class LiveSessionSnapshotServiceTest {
         answerStore = mock(AnswerStore.class);
         voteStore = mock(VoteStore.class);
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
+        eventSequences = mock(EventSequenceStore.class);
         service = new LiveSessionSnapshotService(sessions, participants, participantResolver,
                 roundStateStore, tallyStore, presenceStore, answerStore, voteStore, qandaHostAnswers,
-                mock(ImageUrlResolver.class));
+                eventSequences, mock(ImageUrlResolver.class));
 
         caller = new AmbiPrincipal(IdentityState.GUEST, "user-1", "pub-user", UserLevel.GUEST,
                 AuthProvider.INTERNAL, null, null, "sid-1");
@@ -135,6 +138,29 @@ class LiveSessionSnapshotServiceTest {
         // No deck settings stubbed in this test — invite flags default to false.
         assertThat(snap.showRoomCodeInHeader()).isFalse();
         assertThat(snap.showJoinInfoInResults()).isFalse();
+    }
+
+    @Test
+    void snapshotCarriesTheSessionsLastEventSequence() {
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+        // Keyed by the publicId — the same id events are published and routed under,
+        // not the internal session id.
+        when(eventSequences.lastSequence("pub-1")).thenReturn(12L);
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.lastSequence()).isEqualTo(12L);
+    }
+
+    @Test
+    void lastSequenceIsZeroWhenNoEventHasBeenPublished() {
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+        // Absent counter key: the store reports 0, i.e. nothing to reconcile against.
+        when(eventSequences.lastSequence("pub-1")).thenReturn(0L);
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.lastSequence()).isZero();
     }
 
     @Test

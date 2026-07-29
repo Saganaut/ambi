@@ -20,6 +20,7 @@ plain `StringRedisTemplate` ops, namespaced keys, no lock library.
 | [`AnswerStore`](AnswerStore.java) | Per-round in-flight answers as a Redis Hash (one field per participant; re-submit overwrites), flushed to Mongo at round close. |
 | [`VoteStore`](VoteStore.java) / [`VoteOption`](VoteOption.java) | Per-round best-answer voting (D3): a cast-votes Hash (one field per voter; re-vote overwrites) plus the opaque-option-id → `VoteOption` mapping Hash, which keeps each option's author server-side only. Folds into scoring at reveal; never flushed to Mongo. |
 | [`PresenceStore`](PresenceStore.java) / [`Presence`](Presence.java) | Per-session live participant presence (connection status + last-seen) as a Redis Hash. |
+| [`EventSequenceStore`](EventSequenceStore.java) | Read side of the per-session monotonic event counter (the sequence on every broadcast envelope). Allocation is write-only from `RedisEventPublisher`'s atomic Lua script, so this store never bumps it. |
 | [`SessionDeadline`](SessionDeadline.java) | A typed ZSET member (ADR 002) — `close:{sid}:{slideId}`, `hostAway:{sid}`, or `graceCancel:{sid}` — the scheduler-fired transition it represents. |
 | [`DeadlineStore`](DeadlineStore.java) | The global deadline ZSET (ADR 002): `schedule`/`cancel` entries, and the atomic Lua `popDue` the leader drains. |
 | [`SessionKeys`](SessionKeys.java) | Builds the namespaced keys from a `SessionId`. |
@@ -70,6 +71,7 @@ session").
 | Tally | `ambi:session:tally:<sessionId>:<slideId>` (Hash) | `ambi.session.tally.namespace` |
 | Answers | `ambi:session:answers:<sessionId>:<slideId>` (Hash) | `ambi.session.answers.namespace` |
 | Presence | `ambi:session:presence:<sessionId>` (Hash) | `ambi.session.presence.namespace` |
+| Event sequence | `ambi:session:eventseq:<publicId>` (counter — keyed by publicId, not sessionId) | `ambi.session.event-sequence.namespace` |
 | Deadlines (ADR 002) | `ambi:session:deadlines` (global ZSET, no TTL) | `ambi.session.deadlines.key` |
 | Deadline leader (ADR 002) | `ambi:session:deadline-leader` (SET NX PX, 15s lease) | `ambi.session.deadlines.leader-key` |
 

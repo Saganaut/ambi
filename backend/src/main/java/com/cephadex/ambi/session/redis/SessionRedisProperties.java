@@ -25,6 +25,7 @@ public class SessionRedisProperties {
     private final QandaHostAnswers qandaHostAnswers = new QandaHostAnswers();
     private final Presence presence = new Presence();
     private final Events events = new Events();
+    private final EventSequence eventSequence = new EventSequence();
     private final Deadlines deadlines = new Deadlines();
 
     @Data
@@ -193,5 +194,26 @@ public class SessionRedisProperties {
          * its own subscribers.
          */
         private String channel = "ambi:session:events";
+    }
+
+    @Data
+    public static class EventSequence {
+        /**
+         * Redis key namespace for a session's monotonic event counter. Each session
+         * keeps one plain string counter at {@code <namespace>:<publicId>} — keyed by
+         * the <em>publicId</em>, the same id the events are published and routed
+         * under, so the counter the publisher bumps and the one the snapshot reads
+         * are the same key. Bumped with {@code INCR} inside the publisher's
+         * allocate-and-publish script, so a sequence can never be handed out without
+         * its event going onto the channel.
+         */
+        private String namespace = "ambi:session:eventseq";
+        /**
+         * TTL on a session's event counter — the same abandoned-session backstop as
+         * the state TTL. Refreshed on every allocation, so it outlives the session
+         * only by this window; once it expires the counter restarts at 1 and clients
+         * re-seed from a snapshot (which reads the same absent key as 0).
+         */
+        private Duration ttl = Duration.ofHours(6);
     }
 }

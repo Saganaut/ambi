@@ -12,18 +12,23 @@ an add-on (see [Deferred: durable event log](#deferred-durable-event-log-add-on)
 
 ---
 
-## Current state (verified 2026-07-27)
+## Current state (backend §1 landed 2026-07-29; frontend verified 2026-07-27)
 
 **Backend.** Twenty `SessionEvent` record types behind a sealed interface
 (`session/event/SessionEvent.java`), built only through the `SessionEvents` static
-factory. Publish path: `LiveSessionOrchestrator` → `EventPublisher.publish(sessionId,
-event)` → `RedisEventPublisher` wraps in `EventEnvelope(publicId, event)` → Redis channel
-`ambi:session:events` → `LiveSessionStompRelay.onMessage` deserializes and forwards
-**only the bare event** to `/topic/liveSession/{publicId}`. No eventId, sequence number,
-or envelope timestamp exists anywhere on the wire. Events are fire-and-forget: no durable
-log, no replay endpoint (`LiveSessionController.java:64-65` — "deltas with no replay").
+factory and each statically classified `LIFECYCLE`/`EPHEMERAL` by `SessionEvent.kind()`.
+Publish path: `LiveSessionOrchestrator` → `EventPublisher.publish(publicId, event)` →
+`RedisEventPublisher` mints a `SessionEventEnvelope(eventId, sequence, occurredAt,
+event)` — allocating the per-session sequence and publishing in one atomic Lua step —
+wraps it in `EventEnvelope(publicId, envelope)` → Redis channel `ambi:session:events` →
+`LiveSessionStompRelay.onMessage` deserializes and forwards **the envelope, routing
+`publicId` stripped**, to `/topic/liveSession/{publicId}`. `SessionSnapshotResponse`
+carries `lastSequence` (0 when the counter key is absent). Events are still
+fire-and-forget: no durable log, no replay endpoint (`LiveSessionController.java:64-65` —
+"deltas with no replay").
 
-**Frontend.** Redux Toolkit slice (`liveSessionSlice.ts`); every STOMP message is
+**Frontend.** Unchanged so far — it still reads the STOMP payload as a bare event.
+Redux Toolkit slice (`liveSessionSlice.ts`); every STOMP message is
 dispatched once as `eventReceived` and reduced into current state via one switch
 (`liveSessionSlice.ts:194-338`), then discarded. No dedup, no gap detection, no sequence
 tracking. The REST snapshot (`GET /api/liveSessions/{id}`) carries no sequence/version
@@ -168,7 +173,11 @@ where noted.
 2. **Presentation-cue layer + completion animation** — frontend-only, no backend
    dependency; dedup hardening lands with item 4 (§4).
 3. **Backend event envelope + sequencing + snapshot `lastSequence`** — the contract
-   change (§1).
+   change (§1). **Done** (2026-07-29): allocation and publish are one Lua step rather
+   than lock-ordered, because five orchestrator publish sites are deliberately
+   lock-free; the lifecycle/ephemeral classification landed with no runtime effect, as
+   the seam for item 5. The frontend still consumes the bare `event` field — item 4
+   switches it to the envelope.
 4. **Frontend envelope handling: dedup, gap detection, reconciliation** — depends on
    item 3 (§3).
 5. **Durable event log add-on** — deferred; do not start without a product need

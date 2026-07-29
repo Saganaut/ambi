@@ -140,9 +140,9 @@ sequenceDiagram
     ORCH->>R: tallyStore.tally (HGETALL)
     ORCH->>PUB: publish TallyUpdated(slideId, counts)
     API-->>Part: 202 Accepted (no body)
-    PUB->>R: convertAndSend ambi:session:events
+    PUB->>R: Lua: INCR ambi:session:eventseq:{publicId} + PUBLISH ambi:session:events
     R->>RELAY: message on channel
-    RELAY->>WS: /topic/liveSession/{publicId} → TallyUpdated
+    RELAY->>WS: /topic/liveSession/{publicId} → SessionEventEnvelope(TallyUpdated)
 ```
 
 ## Redis stores at runtime
@@ -159,6 +159,7 @@ flowchart LR
         PRES[["presence<br/>ambi:session:presence:{sid} · HSET"]]
         DEAD[["deadlines (ADR 002)<br/>ambi:session:deadlines · global ZSET, no TTL"]]
         LEADER[["deadline-leader (ADR 002)<br/>ambi:session:deadline-leader · SET NX PX · 15s lease"]]
+        EVSEQ[["eventSequence<br/>ambi:session:eventseq:{publicId} · INCR"]]
         CHAN(("pub/sub<br/>ambi:session:events"))
     end
     SCHED["DeadlineScheduler<br/>(leader only)"]
@@ -172,7 +173,8 @@ flowchart LR
     SCHED -->|claim/renew| LEADER
     SCHED -->|pop due (Lua)| DEAD
     SCHED -->|"closeSubmissions ·<br/>hostPresenceLost · hostGraceExpired"| ORCH
-    ORCH -->|publish| CHAN
+    ORCH -->|"publish (atomic INCR + PUBLISH)"| EVSEQ
+    ORCH -->|"publish (atomic INCR + PUBLISH)"| CHAN
 ```
 
 ## Event catalog

@@ -20,7 +20,7 @@ flowchart TB
     subgraph app["Backend instance(s)"]
         ORCH["LiveSessionOrchestrator<br/>every transition:<br/>1. withLock → 2. R/W Redis<br/>3. R/W Mongo → 4. publish event"]
         SCHED["DeadlineScheduler<br/>runs on every instance;<br/>only the leader (Redis lease) drains deadlines"]
-        PUB["EventPublisher → RedisEventPublisher<br/>serialize EventEnvelope(publicId, event)"]
+        PUB["EventPublisher → RedisEventPublisher<br/>mint SessionEventEnvelope(eventId · sequence · occurredAt · event)<br/>INCR sequence + PUBLISH in one Lua step"]
         RELAY["LiveSessionStompRelay<br/>(MessageListener on every instance)"]
         BROKER["Spring SimpleBroker<br/>/topic/liveSession/{publicId}<br/>(in-memory, local subs only)"]
     end
@@ -38,6 +38,7 @@ flowchart TB
         TALLY[["tally — HINCRBY per option · 6h"]]
         ANSW[["answers — HSET by participantId · 6h"]]
         PRES[["presence — HSET by participantId · 6h"]]
+        EVSEQ[["eventseq — INCR per session (by publicId) · 6h"]]
         DEAD[["deadlines — ZSET, score = due epochMillis<br/>close:{sid}:{slideId} · hostAway:{sid} · graceCancel:{sid}"]]
         LEADER[["deadline-leader — SET NX PX lease · 15s"]]
         CHAN(("pub/sub channel<br/>ambi:session:events"))
@@ -61,7 +62,8 @@ flowchart TB
     SCHED -->|dispatch: closeSubmissions ·<br/>hostPresenceLost · hostGraceExpired| ORCH
 
     ORCH -->|publish event| PUB
-    PUB -->|convertAndSend JSON| CHAN
+    PUB -->|atomic INCR + PUBLISH JSON envelope| EVSEQ
+    PUB -->|atomic INCR + PUBLISH JSON envelope| CHAN
     CHAN -->|fan-out to ALL instances| RELAY
     RELAY -->|convertAndSend<br/>/topic/liveSession/{publicId}| BROKER
     BROKER -->|push event| WS
@@ -95,9 +97,9 @@ sequenceDiagram
     ORCH->>LOCK: release (Lua compare-and-delete)
     deactivate LOCK
 
-    PUB->>CHAN: convertAndSend EventEnvelope(publicId, event)
+    PUB->>CHAN: Lua: INCR eventseq → PUBLISH EventEnvelope(publicId, envelope)
     CHAN-->>RELAY: deliver to every instance's relay
-    RELAY->>BROKER: convertAndSend /topic/liveSession/{publicId}, event
+    RELAY->>BROKER: convertAndSend /topic/liveSession/{publicId}, envelope (publicId stripped)
     BROKER-->>Clients: RoundStarted pushed to local subscribers
 ```
 

@@ -28,6 +28,7 @@ import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
 import com.cephadex.ambi.session.redis.AnswerStore;
+import com.cephadex.ambi.session.redis.EventSequenceStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
@@ -61,12 +62,13 @@ public class LiveSessionSnapshotService {
     private final AnswerStore answerStore;
     private final VoteStore voteStore;
     private final QAndAHostAnswerStore qandaHostAnswers;
+    private final EventSequenceStore eventSequences;
     private final ImageUrlResolver imageUrls;
 
     public LiveSessionSnapshotService(LiveSessionRepository sessions, ParticipantRepository participants,
             ParticipantResolver participantResolver, LiveRoundStateStore roundStateStore, TallyStore tallyStore,
             PresenceStore presenceStore, AnswerStore answerStore, VoteStore voteStore,
-            QAndAHostAnswerStore qandaHostAnswers, ImageUrlResolver imageUrls) {
+            QAndAHostAnswerStore qandaHostAnswers, EventSequenceStore eventSequences, ImageUrlResolver imageUrls) {
         this.sessions = sessions;
         this.participants = participants;
         this.participantResolver = participantResolver;
@@ -76,6 +78,7 @@ public class LiveSessionSnapshotService {
         this.answerStore = answerStore;
         this.voteStore = voteStore;
         this.qandaHostAnswers = qandaHostAnswers;
+        this.eventSequences = eventSequences;
         this.imageUrls = imageUrls;
     }
 
@@ -96,6 +99,14 @@ public class LiveSessionSnapshotService {
                 .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
         // Authorization: resolve throws if the caller isn't on the roster.
         Participant viewer = participantResolver.resolve(session, principal);
+
+        // Read the event counter *before* the state below, so lastSequence can only
+        // lag the assembled view, never lead it. An event that publishes mid-assembly
+        // has already written its state change, so the client re-applies an event
+        // whose effect it already has (events are idempotent state replacements) —
+        // whereas reporting a sequence ahead of the state would make the client
+        // discard that event as stale and lose the change for good.
+        long lastSequence = eventSequences.lastSequence(session.getPublicId());
 
         LiveRoundState roundState = roundStateStore.load(sessionId).orElseGet(LiveRoundState::idle);
         Map<String, Presence> presence = presenceStore.all(sessionId);
@@ -187,7 +198,8 @@ public class LiveSessionSnapshotService {
                 viewer.getParticipantId(),
                 session.isHost(viewer.getParticipantId()),
                 showRoomCodeInHeader,
-                showJoinInfoInResults);
+                showJoinInfoInResults,
+                lastSequence);
     }
 
     /**
