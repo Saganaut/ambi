@@ -18,6 +18,13 @@
 // its heat overlay and the chips render. The plane stays answerable after a
 // submit, so the hook takes `lockOnSubmit: false`.
 //
+// The plane wears the same chrome the editor's `AxisPlaneEditor` draws — a
+// bordered square quartered by two centre lines, with the four endpoint labels
+// overlaid as pills inside its edges — so an author recognises their own plane
+// on the board. Board and editor implement their views separately, sharing only
+// primitives, so that chrome is restated here rather than pushed into the
+// (deliberately chrome-free) shared `PlacementSurface`.
+//
 // Coordinates are normalized [0, 1] with (0, 0) the low/low corner — bottom-left
 // as rendered — so screen y inverts on the way in (`invertY`) and back out again
 // on render, the same frame the editor's `AxisPlaneEditor` and the grader work
@@ -120,6 +127,17 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
     );
   };
 
+  // One endpoint label, overlaid as a read-only pill inside the plane's edge —
+  // the same four-corner-free layout the editor's `AxisPlaneEditor` draws (Y
+  // high/low top/bottom, X low/high left/right), minus the editing affordance.
+  // The pills are inert (`pointer-events: none` in CSS), so one never swallows
+  // a placement tap or a chip drop.
+  const endpointLabel = (edgeClass: string, text: string) => (
+    <span className={[styles.endpointOverlay, edgeClass].join(" ")}>
+      <span className={styles.endpointPill}>{text}</span>
+    </span>
+  );
+
   // Only non-empty buckets render, so the heat layer stays a handful of nodes
   // rather than a hundred.
   const heatCells = Object.entries(totals).map(([bucketKey, total]) => {
@@ -156,67 +174,71 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
           share one drag context so chips move freely between them. */}
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.planeFrame}>
-          <span className={styles.axisLabelYHigh}>{labelOrFallback(axis?.yHighLabel, "High")}</span>
-          <div className={styles.planeRow}>
-            <span className={styles.axisLabelX}>{labelOrFallback(axis?.xLowLabel, "Low")}</span>
-            <PlacementSurface
-              surfaceRef={planeRef}
-              dropDisabled={!canPlace}
-              className={[styles.plane, canPlace && heldItemId != null ? styles.planeArmed : ""]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {showCounts && heatCells}
+          <PlacementSurface
+            surfaceRef={planeRef}
+            dropDisabled={!canPlace}
+            className={[styles.plane, canPlace && heldItemId != null ? styles.planeArmed : ""]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {/* The quartering centre lines, first so every overlay above paints
+                over them. Decoration only — the axes' meaning is the labels'. */}
+            <span className={styles.planeAxisLineX} aria-hidden="true" />
+            <span className={styles.planeAxisLineY} aria-hidden="true" />
 
-              {/* The participant's own placed chips, one per item. */}
-              {items.map((item) => {
-                const itemId = item.id;
-                const point = itemId ? placements[itemId] : undefined;
-                if (!itemId || !point) return null;
-                // The badge's own anchoring classes keep its DISC — the graded
-                // point — on the coordinate, whichever shape the badge takes.
-                const labeled = Boolean(item.label?.trim());
-                const itemName = labelOrFallback(item.label, "Item");
-                return (
-                  <DraggableChip
-                    key={itemId}
-                    itemId={itemId}
-                    className={[
-                      styles.placedChip,
-                      markerStyles.anchored,
-                      labeled ? markerStyles.anchoredLabeled : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    accent={paletteColorAt(authoredIndexOf(item))}
-                    disabled={!canPlace}
-                    ariaLabel={`Pick ${itemName} back up (arrow keys nudge it)`}
-                    style={toRenderStyle(point, INVERT_Y)}
-                    onKeyDown={nudge(itemId)}
-                    onClick={() => {
-                      liftItem(itemId);
-                    }}
-                  >
-                    {badgeOf(item)}
-                  </DraggableChip>
-                );
-              })}
+            {endpointLabel(styles.endpointTop, labelOrFallback(axis?.yHighLabel, "High"))}
+            {endpointLabel(styles.endpointBottom, labelOrFallback(axis?.yLowLabel, "Low"))}
+            {endpointLabel(styles.endpointLeft, labelOrFallback(axis?.xLowLabel, "Low"))}
+            {endpointLabel(styles.endpointRight, labelOrFallback(axis?.xHighLabel, "High"))}
 
-              {/* Full-plane tap target, shown only while an item is held — the
-                  tap carries the placement coordinates (drag places without
-                  it). */}
-              {canPlace && heldItemId != null && (
-                <button
-                  type="button"
-                  className={styles.placeTarget}
-                  aria-label="Place on the plane"
-                  onClick={placeAt}
-                />
-              )}
-            </PlacementSurface>
-            <span className={styles.axisLabelX}>{labelOrFallback(axis?.xHighLabel, "High")}</span>
-          </div>
-          <span className={styles.axisLabelYLow}>{labelOrFallback(axis?.yLowLabel, "Low")}</span>
+            {showCounts && heatCells}
+
+            {/* The participant's own placed chips, one per item. */}
+            {items.map((item) => {
+              const itemId = item.id;
+              const point = itemId ? placements[itemId] : undefined;
+              if (!itemId || !point) return null;
+              // The badge's own anchoring classes keep its DISC — the graded
+              // point — on the coordinate, whichever shape the badge takes.
+              const labeled = Boolean(item.label?.trim());
+              const itemName = labelOrFallback(item.label, "Item");
+              return (
+                <DraggableChip
+                  key={itemId}
+                  itemId={itemId}
+                  className={[
+                    styles.placedChip,
+                    markerStyles.anchored,
+                    labeled ? markerStyles.anchoredLabeled : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  accent={paletteColorAt(authoredIndexOf(item))}
+                  disabled={!canPlace}
+                  ariaLabel={`Pick ${itemName} back up (arrow keys nudge it)`}
+                  style={toRenderStyle(point, INVERT_Y)}
+                  onKeyDown={nudge(itemId)}
+                  onClick={() => {
+                    liftItem(itemId);
+                  }}
+                >
+                  {badgeOf(item)}
+                </DraggableChip>
+              );
+            })}
+
+            {/* Full-plane tap target, shown only while an item is held — the
+                tap carries the placement coordinates (drag places without
+                it). */}
+            {canPlace && heldItemId != null && (
+              <button
+                type="button"
+                className={styles.placeTarget}
+                aria-label="Place on the plane"
+                onClick={placeAt}
+              />
+            )}
+          </PlacementSurface>
         </div>
 
         {interactive && mode !== "results" && (

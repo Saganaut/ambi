@@ -2,8 +2,10 @@
 // on the plane (normalized, y-inverted coordinates), the numbered MarkerBadge
 // chips, submit gated on all items placed, resubmit-until-lock, pick-back-up,
 // arrow-key nudging, the 10×10 heat aggregation from the quantized itemId@bx,by
-// tally keys, and the read-only projected view. The session connection and the
-// live read model are mocked, with the read model mutable per test. jsdom
+// tally keys, the plane's own chrome (crosshair axis lines + the four endpoint
+// label pills overlaid inside its edges), and the read-only projected view. The
+// session connection and the live read model are mocked, with the read model
+// mutable per test. jsdom
 // reports zero-size rects, so the plane's rect is stubbed to a 100×100 box at
 // the origin — tap coordinates then read directly as percentages. (Drag is
 // dnd-kit's primary path but isn't exercised in jsdom; the tap fallback drives
@@ -34,6 +36,9 @@ vi.mock("@/features/liveSession/hooks/useLiveSessionQuery", () => ({
 }));
 
 import { AxisBoardContent } from "./AxisBoardContent";
+// The plane's chrome carries no accessible handle (it is decoration), so the
+// few structural assertions below reach it by its own generated class names.
+import styles from "./AxisBoardContent.module.css";
 
 const slide: SlideView = {
   id: "el-0",
@@ -48,6 +53,13 @@ const slide: SlideView = {
       { id: "bor", label: "Boromir" },
     ],
   },
+};
+
+/** Same shape, every endpoint label left unset — the fallbacks then show. */
+const unlabeledSlide: SlideView = {
+  id: "el-1",
+  contentType: "AXIS",
+  axis: { items: [{ id: "sam", label: "Samwise" }] },
 };
 
 const RECT = {
@@ -196,6 +208,52 @@ describe("AxisBoardContent placing", () => {
 
     expect(screen.queryByRole("button", { name: "Submit answer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Samwise" })).not.toBeInTheDocument();
+  });
+});
+
+describe("AxisBoardContent plane chrome", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    h.query.optionCounts = {};
+    h.query.results = null;
+    h.query.viewerParticipantId = "p-me";
+  });
+
+  it("quarters the plane with the two decorative axis lines", () => {
+    const { container } = renderContent();
+
+    const plane = container.querySelector<HTMLElement>(`.${styles.plane}`);
+    const lineX = plane?.querySelector<HTMLElement>(`.${styles.planeAxisLineX}`) ?? null;
+    const lineY = plane?.querySelector<HTMLElement>(`.${styles.planeAxisLineY}`) ?? null;
+
+    // Pure decoration: inside the plane, and hidden from assistive tech.
+    expect(lineX).toHaveAttribute("aria-hidden", "true");
+    expect(lineY).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("overlays the four configured endpoint labels inside the plane", () => {
+    const { container } = renderContent();
+
+    const plane = container.querySelector<HTMLElement>(`.${styles.plane}`);
+    for (const label of ["Proud", "Humble", "Cautious", "Reckless"]) {
+      expect(plane).toContainElement(screen.getByText(label));
+    }
+  });
+
+  it("falls back to Low / High for the endpoints an author left unset", () => {
+    render(<AxisBoardContent slide={unlabeledSlide} mode="prompt" interactive />);
+
+    // Both low ends and both high ends, one pill each.
+    expect(screen.getAllByText("Low")).toHaveLength(2);
+    expect(screen.getAllByText("High")).toHaveLength(2);
+  });
+
+  it("keeps the labels on the projected view, where nothing is answerable", () => {
+    const { container } = renderContent("prompt", false);
+
+    const plane = container.querySelector<HTMLElement>(`.${styles.plane}`);
+    expect(plane).toContainElement(screen.getByText("Proud"));
+    expect(plane?.querySelector(`.${styles.planeAxisLineX}`)).toBeInTheDocument();
   });
 });
 

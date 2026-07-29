@@ -12,45 +12,108 @@
   width: 100%;
   min-height: 0;
 
+  /* Centres the plane in the board column — the axis labels live inside the
+     plane now, so this wrapper holds nothing else. */
   .planeFrame {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--gap-sm);
   }
 
-  .planeRow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--gap-sm);
-    width: 100%;
-  }
-
-  .axisLabelX,
-  .axisLabelYHigh,
-  .axisLabelYLow {
-    color: var(--text-secondary);
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
-
-  .axisLabelX {
-    flex: 0 1 8rem;
-    text-align: center;
-  }
-
+  /* The plane reads as a plane, not a blank panel: its raised fill matches the
+     canvas in the light theme, so the border is what draws its edges. Same
+     chrome the editor's placement surface wears. */
   .plane {
     position: relative;
     flex: 0 1 auto;
     width: min(100%, 26rem);
     aspect-ratio: 1;
+    border: var(--border-size-sm) solid var(--edge-primary);
     border-radius: var(--radius-md);
     background-color: var(--bg-surface-raised);
     overflow: hidden;
 
     /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
     touch-action: none;
+  }
+
+  /* Faint centre lines quarter the plane so a placement reads as a position on
+     two axes rather than a dot on a square — the editor plane's own crosshair.
+     First in the DOM and un-layered, so the heat overlay, the pills and the
+     chips all paint over them. */
+  .planeAxisLineX,
+  .planeAxisLineY {
+    position: absolute;
+    background-color: var(--border-subtle);
+    pointer-events: none;
+  }
+
+  .planeAxisLineX {
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: var(--space-px);
+  }
+
+  .planeAxisLineY {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: var(--space-px);
+  }
+
+  /* The four endpoint labels, overlaid inside the plane's edges (Y high/low
+     top/bottom, X low/high left/right) — the editor's layout, read-only. They
+     sit above the heat overlay but below the tap target and the chips, and
+     never take the pointer, so placement is untouched. */
+  .endpointOverlay {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .endpointTop {
+    top: var(--space-2);
+    left: 50%;
+    width: 55%;
+    transform: translateX(-50%);
+  }
+
+  .endpointBottom {
+    bottom: var(--space-2);
+    left: 50%;
+    width: 55%;
+    transform: translateX(-50%);
+  }
+
+  .endpointLeft {
+    top: 50%;
+    left: var(--space-2);
+    width: 34%;
+    transform: translateY(-50%);
+  }
+
+  .endpointRight {
+    top: 50%;
+    right: var(--space-2);
+    width: 34%;
+    transform: translateY(-50%);
+  }
+
+  /* A centered label pill floating on the plane, matching the editor's endpoint
+     inputs. Long labels wrap inside the pill rather than spilling over an axis. */
+  .endpointPill {
+    max-width: 100%;
+    padding: var(--gap-xs) var(--gap-sm);
+    border-radius: var(--radius-full);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-align: center;
+    overflow-wrap: anywhere;
   }
 
   /* An item is held: the next tap anywhere on the plane places it. (The
