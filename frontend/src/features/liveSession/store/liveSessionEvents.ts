@@ -253,3 +253,27 @@ export type SessionEvent =
 
 /** The `type` discriminator values. */
 export type SessionEventType = SessionEvent["type"];
+
+/**
+ * The wrapper every broadcast event arrives in (backend
+ * `session/event/SessionEventEnvelope.java`). Minted at the single publish
+ * choke point, so no event reaches the topic bare.
+ *
+ * `sequence` is strictly monotonic per session and pairs with the snapshot's
+ * `lastSequence`: `sequence === lastSequence + 1` is the "applies cleanly"
+ * condition, a lower value is a stale redelivery, and a higher one means events
+ * were missed (see `liveSessionSlice`). `eventId` is the dedup key that survives
+ * a duplicate delivery of the same sequence.
+ *
+ * The routing `publicId` is deliberately absent — it stays on the backend's
+ * internal envelope.
+ */
+export interface SessionEventEnvelope {
+  /** Unique per emission (a random UUID) — the dedup key. */
+  eventId: string;
+  /** The session's monotonic event counter, allocated atomically with the publish. */
+  sequence: number;
+  /** When the envelope was minted (ISO-8601). */
+  occurredAt: string;
+  event: SessionEvent;
+}

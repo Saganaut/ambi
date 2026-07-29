@@ -1,13 +1,21 @@
 // The live read model for a session, fed by the socket. `SessionConnectionProvider`
-// seeds it once from the REST snapshot (`seed`), then dispatches every
-// `SessionEvent` from the STOMP topic through `eventReceived`; the single reducer
-// switch below is the one auditable place where each event mutates the view. The
-// read hook `useLiveSessionQuery` selects from here — nothing reads the socket or
-// the snapshot query directly.
+// seeds it from the REST snapshot (`seed`), then dispatches every
+// `SessionEventEnvelope` from the STOMP topic through `eventReceived`; the single
+// `applyEvent` switch below is the one auditable place where each event mutates
+// the view. The read hook `useLiveSessionQuery` selects from here — nothing reads
+// the socket or the snapshot query directly.
 //
 // The snapshot and the events describe the same shape (same participant-safe
 // DTOs), so seeding then patching is coherent: a client that (re)connects
 // mid-session lands on the current state and stays live from there.
+//
+// Reconciliation (the envelope's `sequence`/`eventId`): the snapshot's
+// `lastSequence` says which event the seeded state reflects, so an envelope
+// applies only when it continues that run exactly (`lastSequence + 1`). Anything
+// older is a redelivery and is dropped; anything newer means events were missed,
+// so it is buffered and `resyncNeeded` asks the provider for a fresh snapshot —
+// the buffer then replays on top of the re-seed. The reducers stay pure: the
+// flag is the whole interface to the refetch, which the provider owns.
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import type {
@@ -26,7 +34,23 @@ import type {
   ParticipantOutcome,
   RoundPhase,
   SessionEvent,
+  SessionEventEnvelope,
 } from "./liveSessionEvents";
+
+/**
+ * How many recently applied `eventId`s are remembered as a dedup backstop. A
+ * duplicate delivery normally fails the sequence check anyway; this catches the
+ * one case that wouldn't — a redelivery arriving after a re-seed rewound
+ * `lastSequence`. Sized for a few seconds of the busiest stream (tallies).
+ */
+const APPLIED_EVENT_ID_LIMIT = 64;
+
+/**
+ * How many out-of-order envelopes are held while a re-seed is pending. Past the
+ * cap the freshest are dropped: they are the least likely to become contiguous,
+ * and the snapshot the gap already triggered supersedes them regardless.
+ */
+const PENDING_EVENT_LIMIT = 64;
 
 /** Connection status of the underlying STOMP client (driven by the socket layer). */
 export type ConnectionState = "idle" | "connecting" | "connected" | "disconnected";
@@ -104,6 +128,25 @@ export interface LiveSessionState {
   showRoomCodeInHeader: boolean;
   /** Whether the deck's invite settings show join info on the results screen. */
   showJoinInfoInResults: boolean;
+  /**
+   * The sequence of the last event this state reflects — from the snapshot on
+   * `seed`, then bumped by each applied envelope. 0 before anything has been
+   * emitted for the session.
+   */
+  lastSequence: number;
+  /**
+   * Envelopes that arrived ahead of {@link lastSequence} + 1, ascending. They
+   * are replayed the moment the run becomes contiguous — either because the
+   * missing envelope turns up or because a fresh snapshot re-seeds past it.
+   */
+  pendingEvents: SessionEventEnvelope[];
+  /** Recently applied event ids, oldest first — the duplicate-delivery backstop. */
+  appliedEventIds: string[];
+  /**
+   * A gap was detected: the provider should refetch the snapshot and re-seed.
+   * Clears itself as soon as {@link pendingEvents} drains contiguously.
+   */
+  resyncNeeded: boolean;
 }
 
 const initialState: LiveSessionState = {
@@ -135,6 +178,10 @@ const initialState: LiveSessionState = {
   connection: "idle",
   showRoomCodeInHeader: false,
   showJoinInfoInResults: false,
+  lastSequence: 0,
+  pendingEvents: [],
+  appliedEventIds: [],
+  resyncNeeded: false,
 };
 
 const liveSessionSlice = createSlice({
@@ -180,162 +227,37 @@ const liveSessionSlice = createSlice({
       state.placeTargets = s.placeTargets ?? null;
       state.finalScoreboard = null;
       state.cancelReason = null;
+      // The snapshot is authoritative for everything up to its own sequence, so
+      // buffered envelopes it already reflects are redundant; the rest replay on
+      // top of it, and whatever is left over (still a gap) keeps `resyncNeeded`
+      // set so the provider fetches again.
+      state.lastSequence = s.lastSequence ?? 0;
+      state.pendingEvents = state.pendingEvents
+        .filter((envelope) => envelope.sequence > state.lastSequence)
+        .sort((a, b) => a.sequence - b.sequence);
+      drainPendingEvents(state);
     },
 
     /**
-     * Apply one broadcast event. The `phase` is inferred from which event
-     * arrives — each corresponds to a round-phase transition — so it stays in
-     * step with the same value the snapshot would report.
+     * Apply one broadcast envelope, if it is the next one in the session's run.
+     * A stale or duplicate delivery is dropped; one from beyond the next
+     * sequence is buffered for replay after a re-seed (see the module header).
      */
-    eventReceived(state, action: PayloadAction<SessionEvent>) {
-      const e = action.payload;
-      switch (e.type) {
-        case "LiveSessionStarted":
-          state.status = e.status;
-          state.phase = e.phase;
-          break;
-        case "ParticipantJoined":
-          if (e.participant.participantId != null) {
-            state.participants[e.participant.participantId] = e.participant;
-          }
-          state.roster = e.roster;
-          break;
-        case "ParticipantLeft":
-        case "ParticipantRemoved": {
-          state.roster = e.roster;
-          // delete state.participants[e.participantId];
+    eventReceived(state, action: PayloadAction<SessionEventEnvelope>) {
+      const envelope = action.payload;
+      if (isDuplicate(state, envelope)) return;
+      if (envelope.sequence <= state.lastSequence) return;
 
-          const { [e.participantId]: _removed, ...remainingParticipants } = state.participants;
-          state.participants = remainingParticipants;
-
-          break;
-        }
-        case "ParticipantReconnected":
-          if (e.participant.participantId != null) {
-            state.participants[e.participant.participantId] = e.participant;
-          }
-          break;
-        case "PresenceChanged": {
-          const p = state.participants[e.participantId];
-          if (p) p.connectionStatus = e.status;
-          break;
-        }
-        case "RoundStarted":
-          state.currentSlideId = e.slideId;
-          state.currentSlide = e.slide;
-          state.roundStartedAt = e.roundStartedAt;
-          state.roundDeadline = e.deadline;
-          state.timerPausedAt = null;
-          state.optionCounts = {};
-          state.qAndAQuestions = [];
-          resetVoting(state);
-          state.results = null;
-          state.placeTargets = null;
-          state.phase = "SUBMIT";
-          break;
-        case "LiveResultsShown":
-          state.currentSlideId = e.slideId;
-          // Carrying a slide means a fresh round opened live (not the mid-round
-          // go-live toggle) — reset the pause stamp along with the round state.
-          if (e.slide) {
-            state.currentSlide = e.slide;
-            state.timerPausedAt = null;
-          }
-          state.roundStartedAt = e.roundStartedAt;
-          state.roundDeadline = e.deadline;
-          state.optionCounts = e.optionCounts;
-          state.phase = "SUBMIT_LIVE";
-          break;
-        case "TallyUpdated":
-          // Ignore a tally addressed to a slide we're no longer showing.
-          if (e.slideId === state.currentSlideId) {
-            state.optionCounts = e.optionCounts;
-          }
-          break;
-        case "QAndAUpdated":
-          // Full-state like TallyUpdated; same stale-slide guard.
-          if (e.slideId === state.currentSlideId) {
-            state.qAndAQuestions = e.questions;
-          }
-          break;
-        case "SubmissionsLocked":
-          state.phase = "LOCKED";
-          break;
-        case "VotingOpened":
-          if (e.slideId === state.currentSlideId) {
-            resetVoting(state);
-            state.voteOptions = e.options;
-            state.phase = "VOTE";
-          }
-          break;
-        case "VoteCast":
-          if (e.slideId === state.currentSlideId) {
-            state.votesCast = e.votesCast;
-          }
-          break;
-        case "ResponsesRevealed":
-          state.optionCounts = e.optionCounts;
-          state.phase = "REVEAL_RESPONSES";
-          break;
-        case "ResultsRevealed":
-          state.results = {
-            slideId: e.slideId,
-            outcomes: e.outcomes,
-            optionCounts: e.optionCounts,
-            correctOption: e.correctOption,
-            scoreboard: e.scoreboard,
-            drawings: e.drawings ?? null,
-            placeTargets: e.placeTargets ?? null,
-            terminal: e.terminal,
-          };
-          // Mirror the reveal into the snapshot seam too, so both live and
-          // late-joining clients read targets from the same field (the
-          // component prefers `results.placeTargets` but falls back here).
-          state.placeTargets = e.placeTargets ?? null;
-          // The reveal's durable counts supersede the live tally only when the
-          // kind is durably tallied at all — grid (and other non-MCQ) rounds
-          // aren't yet (open-decisions D5), and wiping the live counts here
-          // would blank the board until a snapshot re-seed.
-          if (Object.keys(e.optionCounts).length > 0) {
-            state.optionCounts = e.optionCounts;
-          }
-          state.scoreboard = e.scoreboard;
-          state.phase = "REVEAL_RESULTS";
-          break;
-        case "RoundRestarted":
-          state.currentSlideId = e.slideId;
-          state.roundStartedAt = e.roundStartedAt;
-          state.roundDeadline = e.deadline;
-          state.timerPausedAt = null;
-          state.phase = e.phase;
-          state.optionCounts = {};
-          state.qAndAQuestions = [];
-          resetVoting(state);
-          state.results = null;
-          state.placeTargets = null;
-          break;
-        case "TimerPaused":
-          if (e.slideId === state.currentSlideId) {
-            state.timerPausedAt = e.pausedAt;
-            state.roundDeadline = e.deadline;
-          }
-          break;
-        case "TimerResumed":
-          if (e.slideId === state.currentSlideId) {
-            state.timerPausedAt = null;
-            state.roundDeadline = e.deadline;
-          }
-          break;
-        case "LiveSessionEnded":
-          state.status = "FINISHED";
-          state.finalScoreboard = e.finalScoreboard;
-          state.scoreboard = e.finalScoreboard;
-          break;
-        case "LiveSessionCancelled":
-          state.status = "CANCELLED";
-          state.cancelReason = e.reason;
-          break;
+      if (envelope.sequence > state.lastSequence + 1) {
+        bufferPendingEvent(state, envelope);
+        state.resyncNeeded = true;
+        return;
       }
+
+      applyEnvelope(state, envelope);
+      // A buffered run can become contiguous the moment the missing envelope
+      // lands — replaying it here spares a snapshot round-trip.
+      drainPendingEvents(state);
     },
 
     /**
@@ -357,6 +279,212 @@ const liveSessionSlice = createSlice({
     },
   },
 });
+
+/**
+ * Apply one broadcast event to the read model. The `phase` is inferred from
+ * which event arrives — each corresponds to a round-phase transition — so it
+ * stays in step with the same value the snapshot would report.
+ *
+ * The single switch every event passes through, whether it arrived in order
+ * (`eventReceived`) or was buffered across a gap and replayed after a re-seed.
+ */
+function applyEvent(state: LiveSessionState, e: SessionEvent) {
+  switch (e.type) {
+    case "LiveSessionStarted":
+      state.status = e.status;
+      state.phase = e.phase;
+      break;
+    case "ParticipantJoined":
+      if (e.participant.participantId != null) {
+        state.participants[e.participant.participantId] = e.participant;
+      }
+      state.roster = e.roster;
+      break;
+    case "ParticipantLeft":
+    case "ParticipantRemoved": {
+      state.roster = e.roster;
+      // delete state.participants[e.participantId];
+
+      const { [e.participantId]: _removed, ...remainingParticipants } = state.participants;
+      state.participants = remainingParticipants;
+
+      break;
+    }
+    case "ParticipantReconnected":
+      if (e.participant.participantId != null) {
+        state.participants[e.participant.participantId] = e.participant;
+      }
+      break;
+    case "PresenceChanged": {
+      const p = state.participants[e.participantId];
+      if (p) p.connectionStatus = e.status;
+      break;
+    }
+    case "RoundStarted":
+      state.currentSlideId = e.slideId;
+      state.currentSlide = e.slide;
+      state.roundStartedAt = e.roundStartedAt;
+      state.roundDeadline = e.deadline;
+      state.timerPausedAt = null;
+      state.optionCounts = {};
+      state.qAndAQuestions = [];
+      resetVoting(state);
+      state.results = null;
+      state.placeTargets = null;
+      state.phase = "SUBMIT";
+      break;
+    case "LiveResultsShown":
+      state.currentSlideId = e.slideId;
+      // Carrying a slide means a fresh round opened live (not the mid-round
+      // go-live toggle) — reset the pause stamp along with the round state.
+      if (e.slide) {
+        state.currentSlide = e.slide;
+        state.timerPausedAt = null;
+      }
+      state.roundStartedAt = e.roundStartedAt;
+      state.roundDeadline = e.deadline;
+      state.optionCounts = e.optionCounts;
+      state.phase = "SUBMIT_LIVE";
+      break;
+    case "TallyUpdated":
+      // Ignore a tally addressed to a slide we're no longer showing.
+      if (e.slideId === state.currentSlideId) {
+        state.optionCounts = e.optionCounts;
+      }
+      break;
+    case "QAndAUpdated":
+      // Full-state like TallyUpdated; same stale-slide guard.
+      if (e.slideId === state.currentSlideId) {
+        state.qAndAQuestions = e.questions;
+      }
+      break;
+    case "SubmissionsLocked":
+      state.phase = "LOCKED";
+      break;
+    case "VotingOpened":
+      if (e.slideId === state.currentSlideId) {
+        resetVoting(state);
+        state.voteOptions = e.options;
+        state.phase = "VOTE";
+      }
+      break;
+    case "VoteCast":
+      if (e.slideId === state.currentSlideId) {
+        state.votesCast = e.votesCast;
+      }
+      break;
+    case "ResponsesRevealed":
+      state.optionCounts = e.optionCounts;
+      state.phase = "REVEAL_RESPONSES";
+      break;
+    case "ResultsRevealed":
+      state.results = {
+        slideId: e.slideId,
+        outcomes: e.outcomes,
+        optionCounts: e.optionCounts,
+        correctOption: e.correctOption,
+        scoreboard: e.scoreboard,
+        drawings: e.drawings ?? null,
+        placeTargets: e.placeTargets ?? null,
+        terminal: e.terminal,
+      };
+      // Mirror the reveal into the snapshot seam too, so both live and
+      // late-joining clients read targets from the same field (the
+      // component prefers `results.placeTargets` but falls back here).
+      state.placeTargets = e.placeTargets ?? null;
+      // The reveal's durable counts supersede the live tally only when the
+      // kind is durably tallied at all — grid (and other non-MCQ) rounds
+      // aren't yet (open-decisions D5), and wiping the live counts here
+      // would blank the board until a snapshot re-seed.
+      if (Object.keys(e.optionCounts).length > 0) {
+        state.optionCounts = e.optionCounts;
+      }
+      state.scoreboard = e.scoreboard;
+      state.phase = "REVEAL_RESULTS";
+      break;
+    case "RoundRestarted":
+      state.currentSlideId = e.slideId;
+      state.roundStartedAt = e.roundStartedAt;
+      state.roundDeadline = e.deadline;
+      state.timerPausedAt = null;
+      state.phase = e.phase;
+      state.optionCounts = {};
+      state.qAndAQuestions = [];
+      resetVoting(state);
+      state.results = null;
+      state.placeTargets = null;
+      break;
+    case "TimerPaused":
+      if (e.slideId === state.currentSlideId) {
+        state.timerPausedAt = e.pausedAt;
+        state.roundDeadline = e.deadline;
+      }
+      break;
+    case "TimerResumed":
+      if (e.slideId === state.currentSlideId) {
+        state.timerPausedAt = null;
+        state.roundDeadline = e.deadline;
+      }
+      break;
+    case "LiveSessionEnded":
+      state.status = "FINISHED";
+      state.finalScoreboard = e.finalScoreboard;
+      state.scoreboard = e.finalScoreboard;
+      break;
+    case "LiveSessionCancelled":
+      state.status = "CANCELLED";
+      state.cancelReason = e.reason;
+      break;
+  }
+}
+
+/**
+ * Has this exact emission already been seen? The sequence check catches ordinary
+ * redeliveries; this catches the one it can't — a duplicate arriving after a
+ * re-seed rewound `lastSequence` past it — and stops a buffered envelope being
+ * held twice.
+ */
+function isDuplicate(state: LiveSessionState, envelope: SessionEventEnvelope): boolean {
+  return (
+    state.appliedEventIds.includes(envelope.eventId) ||
+    state.pendingEvents.some((pending) => pending.eventId === envelope.eventId)
+  );
+}
+
+/** Apply an envelope's event and advance the run past it. */
+function applyEnvelope(state: LiveSessionState, envelope: SessionEventEnvelope) {
+  applyEvent(state, envelope.event);
+  state.lastSequence = envelope.sequence;
+  state.appliedEventIds.push(envelope.eventId);
+  if (state.appliedEventIds.length > APPLIED_EVENT_ID_LIMIT) {
+    state.appliedEventIds.splice(0, state.appliedEventIds.length - APPLIED_EVENT_ID_LIMIT);
+  }
+}
+
+/** Hold an envelope that arrived past the gap, keeping the buffer ascending and capped. */
+function bufferPendingEvent(state: LiveSessionState, envelope: SessionEventEnvelope) {
+  const at = state.pendingEvents.findIndex((pending) => pending.sequence > envelope.sequence);
+  if (at === -1) state.pendingEvents.push(envelope);
+  else state.pendingEvents.splice(at, 0, envelope);
+  // Overflow drops from the far end: those are the least likely to become
+  // contiguous, and the pending re-seed supersedes them anyway.
+  if (state.pendingEvents.length > PENDING_EVENT_LIMIT) {
+    state.pendingEvents.length = PENDING_EVENT_LIMIT;
+  }
+}
+
+/**
+ * Replay buffered envelopes while they continue the run, then republish the
+ * verdict: a non-empty buffer still means a gap, so `resyncNeeded` stays set
+ * until the missing envelopes arrive or a snapshot re-seeds past them.
+ */
+function drainPendingEvents(state: LiveSessionState) {
+  while (state.pendingEvents[0]?.sequence === state.lastSequence + 1) {
+    const next = state.pendingEvents.shift();
+    if (next) applyEnvelope(state, next);
+  }
+  state.resyncNeeded = state.pendingEvents.length > 0;
+}
 
 /** Clear the voting sub-state when a round (re)opens or voting starts afresh. */
 function resetVoting(state: LiveSessionState) {

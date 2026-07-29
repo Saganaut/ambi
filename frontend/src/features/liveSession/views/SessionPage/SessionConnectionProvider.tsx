@@ -34,6 +34,14 @@ import styles from "./SessionConnectionProvider.module.css";
  */
 const HEARTBEAT_INTERVAL_MS = 10_000;
 
+/**
+ * How long a detected gap waits before the snapshot is refetched. Coalesces a
+ * burst of out-of-order arrivals into one fetch, and rate-limits the retry when
+ * the fresh snapshot still doesn't close the gap (the slice keeps the flag set
+ * until it does).
+ */
+const RESYNC_REFETCH_DELAY_MS = 250;
+
 interface SessionConnectionProviderProps {
   /** The session id — carried by the `$sessionId` route param; the REST/snapshot key. */
   sessionId: string;
@@ -45,7 +53,13 @@ const SessionConnectionProvider = ({
   children,
 }: SessionConnectionProviderProps) => {
   const dispatch = useAppDispatch();
-  const { data: snapshot, isLoading, error } = useSnapshotQuery({ id: sessionId });
+  const {
+    data: snapshot,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useSnapshotQuery({ id: sessionId });
 
   // The command surface: each send maps to one REST mutation keyed on this
   // session's id (the effect comes back over the socket). Built inline — the
@@ -105,6 +119,26 @@ const SessionConnectionProvider = ({
     if (snapshot) dispatch(seed(snapshot));
   }, [snapshot, dispatch]);
 
+  // Re-seed whenever the slice reports missed events. The snapshot is the only
+  // way back to a coherent state — the topic has no replay — and the slice
+  // replays whatever it buffered on top of the fresh seed, keeping the flag set
+  // if a gap survives (which schedules another attempt). Refetching is the
+  // hook's own `refetch`, not a cache invalidation (see rtk-query-cache rules);
+  // it is read through a ref so the socket effect below can share it without
+  // taking on RTK Query's identity churn as a dependency.
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+  const resyncNeeded = useAppSelector((state) => state.liveSession.resyncNeeded);
+  useEffect(() => {
+    if (!resyncNeeded || isFetching) return;
+    const timer = setTimeout(() => {
+      void refetchRef.current();
+    }, RESYNC_REFETCH_DELAY_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [resyncNeeded, isFetching]);
+
   // Liveness heartbeat while the session is live (server-debounced). Presence
   // feeds the roster display, and a host's beats arm the host-disconnect watch
   // that auto-pauses timed rounds (ADR 002/F5) — so send one immediately, then
@@ -130,15 +164,23 @@ const SessionConnectionProvider = ({
     };
   }, [beating, sessionId]);
 
-  // Open the socket once the snapshot has given us the topic key (publicId).
-  // Keyed on publicId so a snapshot refetch doesn't churn the connection; resets
-  // the slice when the page unmounts.
+  // Open the socket once the snapshot has given us the topic key (publicId) —
+  // snapshot-first is forced, since publicId is only known from the snapshot.
+  // The window between the snapshot read and the subscription is covered by the
+  // slice's gap detection: the first envelope past `lastSequence + 1` triggers
+  // the re-seed above. Keyed on publicId so a snapshot refetch doesn't churn the
+  // connection; resets the slice when the page unmounts.
   const publicId = snapshot?.publicId;
   useEffect(() => {
     if (!publicId) return;
     const close = openLiveSessionSocket(publicId, {
-      onEvent: (event) => dispatch(eventReceived(event)),
+      onEvent: (envelope) => dispatch(eventReceived(envelope)),
       onConnectionChange: (status) => dispatch(connectionChanged(status)),
+      // Everything broadcast during the drop was missed silently, so close that
+      // window the same way a gap is closed — with a fresh snapshot.
+      onReconnect: () => {
+        void refetchRef.current();
+      },
     });
     return () => {
       close();

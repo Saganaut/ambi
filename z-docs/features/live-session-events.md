@@ -12,7 +12,7 @@ an add-on (see [Deferred: durable event log](#deferred-durable-event-log-add-on)
 
 ---
 
-## Current state (backend §1–§2 landed 2026-07-29; frontend verified 2026-07-27)
+## Current state (backend §1–§2 and frontend §3 landed 2026-07-29)
 
 **Backend.** Twenty `SessionEvent` record types behind a sealed interface
 (`session/event/SessionEvent.java`), built only through the `SessionEvents` static
@@ -27,13 +27,19 @@ carries `lastSequence` (0 when the counter key is absent). Events are still
 fire-and-forget: no durable log, no replay endpoint (`LiveSessionController.java:64-65` —
 "deltas with no replay").
 
-**Frontend.** Unchanged so far — it still reads the STOMP payload as a bare event.
-Redux Toolkit slice (`liveSessionSlice.ts`); every STOMP message is
-dispatched once as `eventReceived` and reduced into current state via one switch
-(`liveSessionSlice.ts:194-338`), then discarded. No dedup, no gap detection, no sequence
-tracking. The REST snapshot (`GET /api/liveSessions/{id}`) carries no sequence/version
-field, and the socket opens only after the snapshot resolves
-(`SessionConnectionProvider.tsx:137-147`).
+**Frontend.** Reads the STOMP payload as a `SessionEventEnvelope` (hand-typed in
+`liveSessionEvents.ts` beside the event union, since neither is in the OpenAPI schema).
+`liveSessionSlice` tracks `lastSequence` — seeded from the snapshot — and applies an
+envelope only at `lastSequence + 1`; a stale sequence or an `eventId` already in the
+64-entry applied ring is dropped, and anything past the gap is buffered (ascending,
+capped at 64) behind a `resyncNeeded` flag. `SessionConnectionProvider` refetches the
+snapshot off that flag (debounced 250ms) and off the socket's `onReconnect` signal —
+the socket module's first-connect-vs-resubscribe distinction, since stompjs' `onConnect`
+fires for both. `seed` then drops buffered envelopes the fresh snapshot already reflects
+and replays the rest through the same `applyEvent` switch, clearing the flag only if the
+buffer drains contiguously. Connect order stays snapshot-first (the topic key `publicId`
+is only known from the snapshot); the gap check covers that race. Still no durable log
+and no replay endpoint (`LiveSessionController.java:64-65`).
 
 **Known defects this spec fixes:**
 
@@ -45,11 +51,13 @@ field, and the socket opens only after the snapshot resolves
    stale host call naming a non-current slide moving the current round's phase — and
    the remaining store-drift case now publishes an empty-payload `ResultsRevealed`
    instead of returning silently (§2).
-2. **Snapshot→subscribe gap** — events broadcast between the snapshot read and the STOMP
-   subscription completing are lost undetectably.
-3. **Reconnect loss** — STOMP auto-reconnect (`reconnectDelay: 3000`) resubscribes but
-   nothing refetches the snapshot; events missed during a disconnect are lost for the
-   rest of the session.
+2. ~~**Snapshot→subscribe gap**~~ — **Fixed** (2026-07-29). Events broadcast between the
+   snapshot read and the STOMP subscription completing are no longer lost undetectably:
+   the first envelope past `lastSequence + 1` is buffered, sets `resyncNeeded`, and the
+   provider re-seeds from a fresh snapshot (§3).
+3. ~~**Reconnect loss**~~ — **Fixed** (2026-07-29). STOMP auto-reconnect
+   (`reconnectDelay: 3000`) now reports the resubscribe to the provider (`onReconnect`),
+   which refetches the snapshot, so the disconnect window closes with a re-seed (§3).
 
 ---
 
@@ -124,7 +132,10 @@ Close the gap and reconnect defects using the sequence:
 - Preferred connect order becomes subscribe-first: open the socket, buffer envelopes,
   fetch the snapshot, drop buffered envelopes with `sequence <= lastSequence`, apply the
   rest. (If snapshot-first is kept, the gap check plus refetch-on-gap still closes the
-  race — it just costs an extra snapshot fetch when the race fires.)
+  race — it just costs an extra snapshot fetch when the race fires.) **Kept
+  snapshot-first** (2026-07-29): the topic key `publicId` is itself carried by the
+  snapshot, so subscribe-first would need a second source for it; the buffer/replay path
+  is the same either way.
 - Regenerate frontend API/type artifacts after the backend contract change
   (`npm run generate` — see
   [generated-artifacts](../rules/frontend/generated-artifacts.md)); the hand-maintained
@@ -198,6 +209,12 @@ where noted.
    the seam for item 5. The frontend still consumes the bare `event` field — item 4
    switches it to the envelope.
 4. **Frontend envelope handling: dedup, gap detection, reconciliation** — depends on
-   item 3 (§3).
+   item 3 (§3). **Done** (2026-07-29): sequence gating plus a 64-entry applied-`eventId`
+   ring and a 64-envelope pending buffer in the slice, both bounds chosen to cover a few
+   seconds of the busiest stream (tallies) — past them the snapshot re-seed is the
+   recovery, not the buffer. The reducer's event switch became the internal `applyEvent`
+   helper so an in-order arrival and a post-re-seed replay take the identical path.
+   Reducers stayed pure: `resyncNeeded` is the whole interface to the refetch, which the
+   provider owns via the query hook's own `refetch`.
 5. **Durable event log add-on** — deferred; do not start without a product need
    (§Deferred).
