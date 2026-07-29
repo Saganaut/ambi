@@ -1,6 +1,6 @@
 // Dashed "New Deck" tile rendered at the end of the deck grid — same
 // create-and-open flow as the header button, offered where the eye already is.
-import { PlusIcon } from "@heroicons/react/24/outline";
+import PlusIcon from "@assets/icons/action/plus.svg?react";
 
 import styles from "./MyDecksPage.module.css";
 import { useCreateDeck } from "../../hooks/useCreateDeck";

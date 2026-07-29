@@ -1,9 +1,8 @@
 // Deck card wired with its per-deck actions (Ambi DS "Deck Card" actions row:
 // present, edit, delete) and the right-click context menu.
-// Heroicons here are the sanctioned placeholders (see icons-rules.md §7): the
-// designer-shipped eye/edit/delete SVGs hard-code colors or are fill-based,
-// which the stroke-oriented Btn/IconBtn CSS can't render.
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import EyeIcon from "@assets/icons/action/eye.svg?react";
+import PencilIcon from "@assets/icons/action/edit.svg?react";
+import TrashIcon from "@assets/icons/action/delete.svg?react";
 
 import styles from "./MyDecksPage.module.css";
 import { DeckResponse } from "@deck/store/deckApi.gen";
