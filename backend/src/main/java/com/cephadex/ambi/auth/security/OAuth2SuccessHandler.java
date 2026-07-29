@@ -65,13 +65,16 @@ import jakarta.servlet.http.HttpServletResponse;
  * for guest-upgrade detection.
  */
 @Component
-public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler {
+public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GoogleOAuth2SuccessHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
-    /** The {@code OAuth2User} attribute keys we depend on (Google's OIDC claims). */
+    /** OIDC claims (Google, Microsoft) we depend on. */
     private static final String CLAIM_SUB = "sub";
     private static final String CLAIM_EMAIL = "email";
+    /** Discord {@code users/@me} attributes (plain OAuth2 — no OIDC claims). */
+    private static final String DISCORD_ATTR_ID = "id";
+    private static final String DISCORD_ATTR_VERIFIED = "verified";
 
     /**
      * SPA routes the state-aware redirect targets (frontend
@@ -83,13 +86,15 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     /** Maps a Spring Security registration id to our internal {@link AuthProvider}. */
     private static final Map<String, AuthProvider> PROVIDER_BY_REGISTRATION_ID = Map.of(
-            "google", AuthProvider.GOOGLE);
+            "google", AuthProvider.GOOGLE,
+            "discord", AuthProvider.DISCORD,
+            "microsoft", AuthProvider.MICROSOFT);
 
     private final AuthProperties props;
     private final RedisTokenSessionService tokenService;
     private final UserService userService;
 
-    public GoogleOAuth2SuccessHandler(AuthProperties props,
+    public OAuth2SuccessHandler(AuthProperties props,
             RedisTokenSessionService tokenService,
             UserService userService) {
         this.props = props;
@@ -111,10 +116,10 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         }
 
         OAuth2User oauthUser = oauthToken.getPrincipal();
-        String externalProviderId = stringAttribute(oauthUser, CLAIM_SUB);
-        String email = stringAttribute(oauthUser, CLAIM_EMAIL);
+        String externalProviderId = externalProviderId(provider, oauthUser);
+        String email = emailOrNull(provider, oauthUser);
         if (externalProviderId == null || externalProviderId.isBlank()) {
-            log.warn("OAuth principal missing required 'sub' claim");
+            log.warn("OAuth principal for {} missing its external-id attribute", provider);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
@@ -283,6 +288,42 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 .secure(secure)
                 .sameSite(props.getCookie().getSameSite())
                 .path(props.getCookie().getPath());
+    }
+
+    // ── per-provider claim resolution ────────────────────────────────────────
+
+    /**
+     * The provider's stable external account id: the OIDC {@code sub} for
+     * Google and Microsoft, the immutable snowflake {@code id} for Discord.
+     */
+    private static String externalProviderId(AuthProvider provider, OAuth2User user) {
+        return switch (provider) {
+            case GOOGLE, MICROSOFT -> stringAttribute(user, CLAIM_SUB);
+            case DISCORD -> stringAttribute(user, DISCORD_ATTR_ID);
+            // Never a registration id (see PROVIDER_BY_REGISTRATION_ID); the
+            // null return trips the caller's fail-closed guard if it ever is.
+            case INTERNAL -> null;
+        };
+    }
+
+    /**
+     * The account email, or {@code null} when the provider has none to give.
+     * Downstream tolerates a missing email in every branch (guests have none;
+     * the unique email index is partial), so absence is passed through, not an
+     * error. Discord alone reports verification ({@code verified}) — an
+     * unverified email is treated as absent because registration/upgrade stamp
+     * {@code emailVerifiedAt}, and Discord accounts may hold addresses their
+     * owner never proved. Microsoft's {@code preferred_username} is
+     * deliberately NOT used as a fallback: it is mutable and not guaranteed to
+     * be an email (may be a phone number or UPN), so a missing {@code email}
+     * claim stays null.
+     */
+    private static String emailOrNull(AuthProvider provider, OAuth2User user) {
+        if (provider == AuthProvider.DISCORD
+                && !Boolean.TRUE.equals(user.getAttributes().get(DISCORD_ATTR_VERIFIED))) {
+            return null;
+        }
+        return stringAttribute(user, CLAIM_EMAIL);
     }
 
     private static String stringAttribute(OAuth2User user, String key) {

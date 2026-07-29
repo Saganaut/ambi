@@ -28,9 +28,9 @@ import jakarta.servlet.http.HttpServletResponse;
  * requested page.
  */
 @Component
-public class GoogleOAuth2FailureHandler implements AuthenticationFailureHandler {
+public class OAuth2FailureHandler implements AuthenticationFailureHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GoogleOAuth2FailureHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(OAuth2FailureHandler.class);
 
     /**
      * SPA route that surfaces the failure (frontend
@@ -40,7 +40,7 @@ public class GoogleOAuth2FailureHandler implements AuthenticationFailureHandler 
 
     private final AuthProperties props;
 
-    public GoogleOAuth2FailureHandler(AuthProperties props) {
+    public OAuth2FailureHandler(AuthProperties props) {
         this.props = props;
     }
 
@@ -53,7 +53,7 @@ public class GoogleOAuth2FailureHandler implements AuthenticationFailureHandler 
         } else {
             log.warn("OAuth2 sign-in failed: {}", exception.getMessage());
         }
-        // Mirror GoogleOAuth2SuccessHandler#buildFrontendUrl: scheme + authority
+        // Mirror OAuth2SuccessHandler#buildFrontendUrl: scheme + authority
         // from the configured frontend origin, path appended verbatim.
         URI origin = URI.create(props.getCors().getFrontendOrigin());
         response.sendRedirect(origin.getScheme() + "://" + origin.getAuthority() + LOGIN_ERROR_PATH);

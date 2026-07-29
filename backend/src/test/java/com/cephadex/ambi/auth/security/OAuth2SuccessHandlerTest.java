@@ -33,14 +33,16 @@ import com.cephadex.ambi.user.enums.UserLevel;
 import jakarta.servlet.http.Cookie;
 
 /**
- * Pins the post-OAuth branching of {@link GoogleOAuth2SuccessHandler}:
+ * Pins the post-OAuth branching of {@link OAuth2SuccessHandler}:
  * existing-User reuse (Inv 8 idempotency), closed-account reopen,
  * guest-upgrade-in-place (Inv 1, no {@code guestId} from input), and
  * fall-through to PRE_REGISTRATION when no User exists. Session id is rotated
  * in every branch (Inv 4) and the AMBI_RU return-path cookie is consumed and
- * cleared on the way out.
+ * cleared on the way out. Per-provider claim mapping (Google/Microsoft OIDC
+ * {@code sub} vs Discord {@code id}, Discord's verified-email gate, no
+ * {@code preferred_username} fallback for Microsoft) is pinned alongside.
  */
-class GoogleOAuth2SuccessHandlerTest {
+class OAuth2SuccessHandlerTest {
 
     private static final String SUB = "google-sub-1";
     private static final String EMAIL = "user@example.com";
@@ -48,7 +50,7 @@ class GoogleOAuth2SuccessHandlerTest {
     private AuthProperties props;
     private RedisTokenSessionService tokenService;
     private UserService userService;
-    private GoogleOAuth2SuccessHandler handler;
+    private OAuth2SuccessHandler handler;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +59,7 @@ class GoogleOAuth2SuccessHandlerTest {
         props.getCors().setFrontendOrigin("http://localhost:5173");
         tokenService = mock(RedisTokenSessionService.class);
         userService = mock(UserService.class);
-        handler = new GoogleOAuth2SuccessHandler(props, tokenService, userService);
+        handler = new OAuth2SuccessHandler(props, tokenService, userService);
 
         // Default rotate stub — captures the seed in tests that care.
         when(tokenService.rotate(any(), any(), anyBoolean()))
@@ -239,6 +241,75 @@ class GoogleOAuth2SuccessHandlerTest {
         assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/register");
     }
 
+    // ── per-provider claim mapping ───────────────────────────────────────────
+
+    @Test
+    void discordPrincipalMapsSnowflakeIdAndVerifiedEmail() throws Exception {
+        when(userService.findByProviderAndSubject(any(), any())).thenReturn(Optional.empty());
+
+        handler.onAuthenticationSuccess(oauthCallbackRequest(), new MockHttpServletResponse(),
+                token("discord", "id", Map.of("id", "190591966575984640", "email", EMAIL, "verified", true)));
+
+        AmbiPrincipal seed = captureRotateSeed();
+        assertThat(seed.provider()).isEqualTo(AuthProvider.DISCORD);
+        assertThat(seed.externalProviderId()).isEqualTo("190591966575984640");
+        assertThat(seed.email()).isEqualTo(EMAIL);
+        verify(userService).findByProviderAndSubject(AuthProvider.DISCORD, "190591966575984640");
+    }
+
+    @Test
+    void discordUnverifiedEmailIsTreatedAsAbsent() throws Exception {
+        when(userService.findByProviderAndSubject(any(), any())).thenReturn(Optional.empty());
+
+        handler.onAuthenticationSuccess(oauthCallbackRequest(), new MockHttpServletResponse(),
+                token("discord", "id", Map.of("id", "190591966575984640", "email", EMAIL, "verified", false)));
+
+        // Registration/upgrade stamp emailVerifiedAt, so an unproven address
+        // must not travel — the flow still proceeds, just email-less.
+        AmbiPrincipal seed = captureRotateSeed();
+        assertThat(seed.state()).isEqualTo(IdentityState.PRE_REGISTRATION);
+        assertThat(seed.email()).isNull();
+    }
+
+    @Test
+    void microsoftPrincipalMapsOidcSubAndEmail() throws Exception {
+        when(userService.findByProviderAndSubject(any(), any())).thenReturn(Optional.empty());
+
+        handler.onAuthenticationSuccess(oauthCallbackRequest(), new MockHttpServletResponse(),
+                token("microsoft", "sub", Map.of("sub", "ms-sub-1", "email", EMAIL)));
+
+        AmbiPrincipal seed = captureRotateSeed();
+        assertThat(seed.provider()).isEqualTo(AuthProvider.MICROSOFT);
+        assertThat(seed.externalProviderId()).isEqualTo("ms-sub-1");
+        assertThat(seed.email()).isEqualTo(EMAIL);
+        verify(userService).findByProviderAndSubject(AuthProvider.MICROSOFT, "ms-sub-1");
+    }
+
+    @Test
+    void microsoftMissingEmailStaysNullWithoutPreferredUsernameFallback() throws Exception {
+        when(userService.findByProviderAndSubject(any(), any())).thenReturn(Optional.empty());
+
+        // preferred_username is mutable and not guaranteed to be an email
+        // (phone/UPN) — it must never masquerade as one.
+        handler.onAuthenticationSuccess(oauthCallbackRequest(), new MockHttpServletResponse(),
+                token("microsoft", "sub", Map.of("sub", "ms-sub-1", "preferred_username", "user@example.com")));
+
+        AmbiPrincipal seed = captureRotateSeed();
+        assertThat(seed.state()).isEqualTo(IdentityState.PRE_REGISTRATION);
+        assertThat(seed.email()).isNull();
+    }
+
+    @Test
+    void unmappedRegistrationIdFailsClosedWithoutRotation() throws Exception {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationSuccess(oauthCallbackRequest(), response,
+                token("github", "id", Map.of("id", "x", "email", EMAIL)));
+
+        assertThat(response.getStatus()).isEqualTo(500);
+        verify(tokenService, never()).rotate(any(), any(), anyBoolean());
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private AmbiPrincipal captureRotateSeed() {
@@ -253,14 +324,19 @@ class GoogleOAuth2SuccessHandlerTest {
         return request;
     }
 
+    /** The default Google principal most branching tests run with. */
     private static OAuth2AuthenticationToken oauthToken() {
-        Map<String, Object> attrs = Map.of(
+        return token("google", "sub", Map.of(
                 "sub", SUB,
                 "email", EMAIL,
-                "name", "Test User");
+                "name", "Test User"));
+    }
+
+    private static OAuth2AuthenticationToken token(String registrationId, String nameAttribute,
+            Map<String, Object> attrs) {
         OAuth2User principal = new DefaultOAuth2User(
-                List.of(new SimpleGrantedAuthority("OAUTH2_USER")), attrs, "sub");
-        return new OAuth2AuthenticationToken(principal, principal.getAuthorities(), "google");
+                List.of(new SimpleGrantedAuthority("OAUTH2_USER")), attrs, nameAttribute);
+        return new OAuth2AuthenticationToken(principal, principal.getAuthorities(), registrationId);
     }
 
     private static User registeredUser(String id, UserLevel level, boolean closed) {

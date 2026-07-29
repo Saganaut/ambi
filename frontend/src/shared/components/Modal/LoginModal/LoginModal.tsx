@@ -11,8 +11,8 @@
  * is promoted in place from its session cookie, not a query param. The backend
  * redirects back to the SPA at `returnUrl` with the session cookies set.
  * Additional providers plug in as another entry in PROVIDERS — keep them
- * visually consistent. Providers without a backend integration yet stay
- * listed as disabled placeholders (`enabled: false`).
+ * visually consistent. A provider without a backend integration yet can be
+ * listed as a disabled placeholder (`enabled: false`) until its flow ships.
  */
 import { apiBaseUrl } from "@store/emptyApi";
 import { toLocalReturnUrl } from "@utils/returnUrl";
@@ -90,13 +90,13 @@ const PROVIDERS = [
     id: "discord",
     label: "Continue with Discord",
     Glyph: DiscordGlyph,
-    enabled: false,
+    enabled: true,
   },
   {
     id: "microsoft",
     label: "Continue with Microsoft",
     Glyph: MicrosoftGlyph,
-    enabled: false,
+    enabled: true,
   },
 ] as const;
 

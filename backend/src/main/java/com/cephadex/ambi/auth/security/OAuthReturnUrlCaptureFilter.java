@@ -19,7 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * sign-in (e.g. {@code GET /oauth2/authorization/google?returnUrl=/decks/abc})
  * and stashes the <em>sanitized</em> value in a short-lived HttpOnly
  * {@value #COOKIE_NAME} cookie. The
- * {@link com.cephadex.ambi.auth.security.GoogleOAuth2SuccessHandler} reads and
+ * {@link com.cephadex.ambi.auth.security.OAuth2SuccessHandler} reads and
  * clears the cookie on callback, satisfying Inv 2 (returnUrl sanitization) and
  * Inv 3 (carry the value <em>through the OAuth round-trip</em>, not via a
  * state-mutating GET writing to a session).

@@ -29,7 +29,7 @@ flowchart LR
     subgraph services["Services"]
         AS["AuthService"]
         TS["RedisTokenSessionService"]
-        GOSH["GoogleOAuth2SuccessHandler"]
+        GOSH["OAuth2SuccessHandler"]
         USVC["UserService"]
         ORR["OrgRoleResolver"]
         DS["DeckService"]
@@ -55,12 +55,12 @@ flowchart LR
         MONGO[("MongoDB")]
         REDIS[("Redis")]
         OBJ[("Garage / S3")]
-        GOOG["Google OAuth"]
+        IDP["Google / Discord / Microsoft OAuth"]
     end
 
     AUTH --> AS --> TS --> REDIS
     AS --> USVC
-    OAUTH2 -.-> GOOG
+    OAUTH2 -.-> IDP
     OAUTH2 --> GOSH --> TS
     GOSH --> USVC
     USER --> USVC --> MONGO

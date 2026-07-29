@@ -10,7 +10,7 @@ When adding backend tests, use the test starters already present in `pom.xml` �
 
 ### Test environment variables
 
-In local dev `scripts/ambi.sh` sources `dev.env` into the environment before launching the backend, but that file is neither sourced nor present during test execution. All required values are instead provided in `src/test/resources/application-test.properties` with test-safe defaults (real local Docker credentials for Mongo/Redis, dummy values for Google OAuth and S3). **Do not add real OAuth or S3 credentials to that file** — dummy values are sufficient because tests do not perform real OAuth or S3 operations.
+In local dev `scripts/ambi.sh` sources `dev.env` into the environment before launching the backend, but that file is neither sourced nor present during test execution. All required values are instead provided in `src/test/resources/application-test.properties` with test-safe defaults (real local Docker credentials for Mongo/Redis, dummy values for the Google/Discord/Microsoft OAuth clients and S3). **Do not add real OAuth or S3 credentials to that file** — dummy values are sufficient because tests do not perform real OAuth or S3 operations.
 
 Backend tests require Docker to be running (`docker compose up -d`) because `@SpringBootTest` controller tests connect to the real local MongoDB and Redis.
 
@@ -35,9 +35,9 @@ Co-locate test files with the component they test (e.g., `Btn.test.tsx` next to 
 
 A headless [Playwright](https://playwright.dev/) harness captures full-page screenshots of the running app so UI changes can be verified visually — including the behind-login pages (decks, editor, present, live sessions).
 
-The obstacle is auth: only a `REGISTERED` user reaches those pages, a guest cannot, and real Google OAuth is not headless-friendly. To bridge it, the backend exposes a **DEV-only** login shortcut:
+The obstacle is auth: only a `REGISTERED` user reaches those pages, a guest cannot, and none of the OAuth providers (Google, Discord, Microsoft) is headless-friendly. To bridge it, the backend exposes a **DEV-only** login shortcut:
 
-- `POST /api/dev/login` — mints a real registered session (sets `AMBI_AT`/`AMBI_RT`) for a fixed, self-seeding internal dev account (`devuser`, provider `INTERNAL`, subject `dev-login`). No Google credentials and no seed run are required; the account is created on first call and reused thereafter.
+- `POST /api/dev/login` — mints a real registered session (sets `AMBI_AT`/`AMBI_RT`) for a fixed, self-seeding internal dev account (`devuser`, provider `INTERNAL`, subject `dev-login`). No OAuth credentials and no seed run are required; the account is created on first call and reused thereafter.
 - It is gated by `@Profile("DEV")` (`DevAuthController` + `DevSecurityConfig`), so the beans **do not exist under the `PROD` profile** — the endpoint is absent in production. Its dedicated `/api/dev/**` filter chain is CSRF-exempt so a plain `POST` works.
 
 Run it (infra + backend on the `DEV` profile + frontend dev server must all be up; one-time `npx playwright install chromium`):

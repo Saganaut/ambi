@@ -31,7 +31,7 @@ flowchart TB
         Garage["Garage (S3-compat)\nport 3900"]
     end
 
-    GoogleOAuth(["Google OAuth 2.0"])
+    GoogleOAuth(["Google / Discord / Microsoft OAuth"])
 
     Browser --> Vite
     Vite -- "REST / WebSocket" --> SpringBoot
@@ -118,7 +118,7 @@ flowchart TB
         LImage["IMAGE_PROCESSING\nimage_processing.py"]
     end
 
-    GoogleOAuth(["Google OAuth 2.0"])
+    GoogleOAuth(["Google / Discord / Microsoft OAuth"])
 
     Browser --> Vite
     Vite -- REST --> SpringBoot
@@ -238,7 +238,7 @@ flowchart TB
     end
 
     Redis_AWS[("ElastiCache Redis\nCache + Sessions")]
-    GoogleOAuth(["Google OAuth 2.0"])
+    GoogleOAuth(["Google / Discord / Microsoft OAuth"])
 
     Browser -- HTTPS --> ALB
     ALB --> EC2

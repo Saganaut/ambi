@@ -21,7 +21,7 @@ flowchart TB
     AMBI["Ambi<br/>Competitive brain-games platform<br/>React 19 SPA + Spring Boot 4 API"]
 
     subgraph ext["External services"]
-        GOOG["Google OAuth 2.0"]
+        IDP["Google / Discord / Microsoft OAuth"]
     end
 
     subgraph stores["State"]
@@ -35,7 +35,7 @@ flowchart TB
     HOST -->|author decks, host sessions| AMBI
     PART -->|join by room code, answer| AMBI
 
-    AMBI -->|OAuth login| GOOG
+    AMBI -->|OAuth login| IDP
     AMBI --> MONGO
     AMBI --> REDIS
     AMBI --> S3
@@ -66,7 +66,7 @@ flowchart LR
     SVC -->|"sessions, cache, locks, pub/sub"| REDIS[("Redis :6379")]
     WS -.->|"cross-instance fan-out"| REDIS
     MEDIA -->|"put/get, presign"| S3[("Garage S3 :3900")]
-    REST -->|"OAuth code exchange"| GOOG["Google OAuth"]
+    REST -->|"OAuth code exchange"| IDP2["Google / Discord / Microsoft OAuth"]
 ```
 
 ## Deployment topology

@@ -7,6 +7,8 @@ Local dev secrets live in `dev.env` at the project root (copy from `example.env`
 | Variable                                       | Used By                                        |
 | ----------------------------------------------- | ---------------------------------------------- |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`     | Backend (OAuth) — `spring.security.oauth2.client.registration.google.*` |
+| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`   | Backend (OAuth) — `spring.security.oauth2.client.registration.discord.*` |
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Backend (OAuth) — `spring.security.oauth2.client.registration.microsoft.*` |
 | `AMBI_JWT_SIGNING_KEY`                          | Backend — `ambi.auth.token.signing-key` (HMAC signing key for access/refresh tokens; dev falls back to an insecure built-in default, **must** be overridden in production) |
 | `FRONTEND_ORIGIN`                               | Backend — `ambi.auth.cors.frontend-origin` (default `http://localhost:5173`) |
 | `ENV`                                           | Backend — `spring.profiles.active=${ENV:DEV}` (selects the active Spring profile, e.g. `DEV`/`PROD`/`test`) |
@@ -36,13 +38,6 @@ Local dev secrets live in `dev.env` at the project root (copy from `example.env`
 | `LOGGING_LEVEL_ROOT`   | Backend — Spring Boot relaxed binding to `logging.level.root` (no explicit properties entry; set via env only) |
 | `AWS_ENDPOINT_URL`     | Backend — read by the AWS SDK's standard env chain to point CloudWatch-bound clients at LocalStack in dev (unset in production so the SDK uses real AWS endpoints) |
 | `AWS_REGION`           | Backend — read by the AWS SDK's standard env chain                                          |
-
-## OAuth providers (scaffolded, not yet functional)
-
-| Variable                                             | Notes                                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------------------------ |
-| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`         | Present in `example.env` with setup instructions, but not wired into `application.properties` yet |
-| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET`     | Present in `example.env` with setup instructions, but not wired into `application.properties` yet |
 
 ## Frontend
 

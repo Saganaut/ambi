@@ -27,7 +27,7 @@ Conventions: see [frontend-rules](../rules/frontend-rules.md) and [styling-rules
 | Build           | Maven (`./mvnw`)                   |
 | Database        | MongoDB (Spring Data)              |
 | Cache / Pub-Sub | Redis (also backs Spring Session)  |
-| Auth            | Spring Security + Google OAuth 2.0 |
+| Auth            | Spring Security + OAuth2 (Google, Discord, Microsoft) |
 | API docs        | SpringDoc OpenAPI v3               |
 | Boilerplate     | Lombok                             |
 
@@ -41,4 +41,4 @@ Endpoints are prefixed `/api` and documented live at **`http://localhost:8080/sw
 
 ## Authentication
 
-Google OAuth + guest sessions, cookie-based with Spring Session backed by Redis.
+Google / Discord / Microsoft OAuth + guest sessions, cookie-based with Spring Session backed by Redis.

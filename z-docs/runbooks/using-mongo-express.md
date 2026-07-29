@@ -31,7 +31,7 @@ Then open **http://localhost:8081**.
 After running the sample-data seeder (`scripts/seed-sample-data.sh`), confirm the data landed:
 
 1. Open the `decks` or `slides` collection.
-2. Check that documents exist with the expected `createdBy` field matching your Google user ID.
+2. Check that documents exist with the expected `createdBy` field matching your logged-in user ID.
 
 The seeder is idempotent — re-running it will not create duplicates.
 

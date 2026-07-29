@@ -27,8 +27,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import com.cephadex.ambi.auth.security.CookieAuthenticationFilter;
-import com.cephadex.ambi.auth.security.GoogleOAuth2FailureHandler;
-import com.cephadex.ambi.auth.security.GoogleOAuth2SuccessHandler;
+import com.cephadex.ambi.auth.security.OAuth2FailureHandler;
+import com.cephadex.ambi.auth.security.OAuth2SuccessHandler;
 import com.cephadex.ambi.auth.security.OAuthReturnUrlCaptureFilter;
 import com.cephadex.ambi.auth.service.RedisTokenSessionService;
 import com.cephadex.ambi.config.MdcLoggingFilter;
@@ -53,23 +53,23 @@ public class SecurityConfig {
     private final AuthProperties props;
     private final CookieAuthenticationFilter cookieAuthenticationFilter;
     private final OAuthReturnUrlCaptureFilter oauthReturnUrlCaptureFilter;
-    private final GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler;
-    private final GoogleOAuth2FailureHandler googleOAuth2FailureHandler;
+    private final OAuth2SuccessHandler oauth2SuccessHandler;
+    private final OAuth2FailureHandler oauth2FailureHandler;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
     public SecurityConfig(AuthProperties props,
             RedisTokenSessionService tokenService,
             UserService userService,
-            GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler,
-            GoogleOAuth2FailureHandler googleOAuth2FailureHandler,
+            OAuth2SuccessHandler oauth2SuccessHandler,
+            OAuth2FailureHandler oauth2FailureHandler,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) {
         this.props = props;
         // Constructed inline (not @Beans) so Spring Boot does not also register
         // them as plain servlet filters outside the security chain.
         this.cookieAuthenticationFilter = new CookieAuthenticationFilter(props, tokenService, userService);
         this.oauthReturnUrlCaptureFilter = new OAuthReturnUrlCaptureFilter(props);
-        this.googleOAuth2SuccessHandler = googleOAuth2SuccessHandler;
-        this.googleOAuth2FailureHandler = googleOAuth2FailureHandler;
+        this.oauth2SuccessHandler = oauth2SuccessHandler;
+        this.oauth2FailureHandler = oauth2FailureHandler;
         this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
@@ -135,8 +135,8 @@ public class SecurityConfig {
                 // and issues cookies; failure sends the SPA's login-error page instead
                 // of Spring's default /login?error (not an SPA route).
                 .oauth2Login(oauth -> oauth
-                        .successHandler(googleOAuth2SuccessHandler)
-                        .failureHandler(googleOAuth2FailureHandler))
+                        .successHandler(oauth2SuccessHandler)
+                        .failureHandler(oauth2FailureHandler))
                 // Resolve identity from the cookie just before authorization is checked.
                 .addFilterBefore(cookieAuthenticationFilter, AuthorizationFilter.class)
                 // Capture returnUrl on the OAuth redirect leg (Inv 2/3) before Spring's

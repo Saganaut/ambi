@@ -12,22 +12,22 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import com.cephadex.ambi.auth.config.AuthProperties;
 
 /**
- * Pins the failure-path redirect of {@link GoogleOAuth2FailureHandler}: every
+ * Pins the failure-path redirect of {@link OAuth2FailureHandler}: every
  * failure lands on the SPA's {@code /login-error} page on the configured
  * frontend origin (never Spring's default {@code /login?error}), and no
  * cookies are touched — the AMBI_RU return-path cookie survives for a retry.
  */
-class GoogleOAuth2FailureHandlerTest {
+class OAuth2FailureHandlerTest {
 
     private static final String FRONTEND_ORIGIN = "http://localhost:5173";
 
-    private GoogleOAuth2FailureHandler handler;
+    private OAuth2FailureHandler handler;
 
     @BeforeEach
     void setUp() {
         AuthProperties props = new AuthProperties();
         props.getCors().setFrontendOrigin(FRONTEND_ORIGIN);
-        handler = new GoogleOAuth2FailureHandler(props);
+        handler = new OAuth2FailureHandler(props);
     }
 
     @Test

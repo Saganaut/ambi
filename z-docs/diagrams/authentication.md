@@ -5,9 +5,15 @@ Cookie-based auth with Redis as the authoritative session store. Access
 session is **stateless** — every request is validated against Redis.
 
 Key classes: `SecurityConfig`, `CookieAuthenticationFilter`,
-`GoogleOAuth2SuccessHandler`, `OAuthReturnUrlCaptureFilter`,
+`OAuth2SuccessHandler`, `OAuthReturnUrlCaptureFilter`,
 `RedisTokenSessionService`, `AmbiPrincipal`. Related: [Domain Model](domain-model.md),
 [Frontend Architecture](frontend-architecture.md#auth-state-machine).
+
+Three providers are wired: Google and Microsoft (both OIDC), and Discord
+(plain OAuth2). The success-handler flow below is identical for all three —
+only the per-provider claim mapping differs (see the class's Javadoc): Google
+and Microsoft key on the OIDC `sub`, Discord keys on its `id`; an unverified
+Discord email is treated as absent.
 
 ## Identity state machine
 
@@ -36,7 +42,7 @@ stateDiagram-v2
     end note
 ```
 
-## Google OAuth 2.0 login
+## OAuth 2.0 login (Google shown; Discord/Microsoft are identical)
 
 ```mermaid
 sequenceDiagram
@@ -45,7 +51,7 @@ sequenceDiagram
     participant CAP as OAuthReturnUrlCaptureFilter
     participant SEC as Spring Security<br/>OAuth2 filter
     participant GOOG as Google
-    participant SH as GoogleOAuth2SuccessHandler
+    participant SH as OAuth2SuccessHandler
     participant TS as RedisTokenSessionService
     participant DB as MongoDB (users)
     participant R as Redis

@@ -11,7 +11,7 @@ POST http://localhost:8080/api/dev/login
 ```
 
 - **DEV profile only.** The controller (`DevAuthController`) and its filter chain (`DevSecurityConfig`) are gated by `@Profile("DEV")`, so the beans **do not exist under `PROD`** — the route 404s in production.
-- **Self-seeding.** On first call it find-or-creates a fixed registered user (username `devuser`, provider `INTERNAL`, subject `dev-login`, email `dev@ambi.local`); later calls reuse it. No Google credentials and no seed run required.
+- **Self-seeding.** On first call it find-or-creates a fixed registered user (username `devuser`, provider `INTERNAL`, subject `dev-login`, email `dev@ambi.local`); later calls reuse it. No OAuth credentials and no seed run required.
 - **What it returns.** `200` with a registered `MeResponse` body and two `Set-Cookie` headers — `AMBI_AT` (access JWT) and `AMBI_RT` (refresh) — exactly like a real login. A registered `USER` satisfies the `hasRole("USER")` guard, so all behind-login pages open.
 - It cannot be triggered by typing a URL in the address bar: that's a `GET`, and the cookies are `HttpOnly` (JS can't set them, the browser must receive them from the response).
 
