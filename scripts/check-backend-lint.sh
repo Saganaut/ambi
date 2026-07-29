@@ -67,12 +67,18 @@ POM_SHA="$(sha256sum "$BACKEND/pom.xml" | cut -d' ' -f1)"
 CP_CACHE="$BACKEND/target/ecj-classpath-$POM_SHA.txt"
 
 if [[ ! -s "$CP_CACHE" ]]; then
-  # Write to the temp dir first, then move into place, so an interrupted run
-  # can never leave a truncated cache behind.
-  (cd "$BACKEND" && flock "$LOCK" ./mvnw -q dependency:build-classpath \
-      -Dmdep.includeScope=test -Dmdep.outputFile="$TMP/cp.txt")
+  # Stage the file next to the cache (same filesystem) so the final mv is an
+  # atomic rename(2) — an interrupted run can never leave a truncated cache
+  # behind. /tmp is a different mount (tmpfs), where mv would copy in place.
+  # The cache is re-checked under the lock: a concurrent cold run may have
+  # just built it, in which case the Maven invocation is skipped entirely.
   mkdir -p "$BACKEND/target"
-  mv "$TMP/cp.txt" "$CP_CACHE"
+  CP_TMP="$(mktemp "$BACKEND/target/.ecj-classpath-tmp.XXXXXX")"
+  trap 'rm -rf "$TMP" "$CP_TMP"' EXIT
+  (cd "$BACKEND" && CP_CACHE="$CP_CACHE" CP_TMP="$CP_TMP" flock "$LOCK" bash -c \
+      '[[ -s "$CP_CACHE" ]] || { ./mvnw -q dependency:build-classpath \
+          -Dmdep.includeScope=test -Dmdep.outputFile="$CP_TMP" \
+          && mv "$CP_TMP" "$CP_CACHE"; }')
 fi
 CP="$(cat "$CP_CACHE")"
 

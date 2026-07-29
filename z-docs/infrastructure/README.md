@@ -9,7 +9,7 @@ Notes on the local dev stack (Docker Compose, MongoDB, Redis, Garage/S3) and per
 - [Key entry points](key-entry-points.md) — The files worth knowing first when navigating the codebase.
 - [Gotchas](gotchas.md) — Non-obvious behaviours (codegen, Docker, seeding, `dev.env`).
 - [Infrastructure overview](infrastructure.md) — Full notes on Docker services, persistence, sessions, and deployment-relevant details.
-- [Testing & CI](testing-and-ci.md) — Backend + frontend test stacks, CI status, pre-commit / pre-push git hooks.
+- [Testing & CI](testing-and-ci.md) — Backend + frontend test stacks, CI status, and the local enforcement tiers (fast pre-commit hook, per-feature gate, pre-push tests).
 
 ## Per-directory READMEs (live next to their code)
 
