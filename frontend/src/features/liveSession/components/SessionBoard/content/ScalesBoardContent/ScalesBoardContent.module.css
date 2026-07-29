@@ -90,13 +90,14 @@
   }
 
   .heatCell {
-    /* 0..1 share of the statement's busiest bucket — shades like a heatmap. */
-    --bucket-heat: 0;
+    /* Fallback for the inline 0..1 share of the statement's busiest bucket —
+       shades like a heatmap. Named `--heat` on every board's heat surface. */
+    --heat: 0;
 
     flex: 1;
     border-radius: var(--radius-sm);
     background-color: var(--bg-brand);
-    opacity: calc(0.12 + var(--bucket-heat) * 0.6);
+    opacity: calc(0.12 + var(--heat) * 0.6);
   }
 
   .actions {

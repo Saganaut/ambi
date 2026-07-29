@@ -23,7 +23,9 @@ import type { RankItemView, SlideView } from "../../../../store/liveSessionApi.g
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { tallyTotalsBySlot } from "../answerTally";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
+import { indexedLabel, labelOrFallback } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
 import { findViewerOutcome } from "../viewerOutcome";
@@ -34,28 +36,6 @@ interface RankingBoardContentProps {
   mode: BoardQuestionMode;
   interactive: boolean;
 }
-
-/**
- * Sum the live per-`itemId@position` tally into per-item position arrays
- * (index = 0-based rank slot) — the ranking analogue of the grid/scales board's
- * cell/bucket totals. Positions outside the item range are ignored.
- */
-const itemPositionTotals = (
-  optionCounts: Record<string, number>,
-  slotCount: number,
-): Record<string, number[]> => {
-  const totals: Record<string, number[]> = {};
-  for (const [key, count] of Object.entries(optionCounts)) {
-    if (count <= 0) continue;
-    const [itemId, positionStr] = key.split("@");
-    if (!itemId || positionStr === undefined) continue;
-    const position = Number(positionStr);
-    if (!Number.isInteger(position) || position < 0 || position >= slotCount) continue;
-    const arr = totals[itemId] ?? (totals[itemId] = Array<number>(slotCount).fill(0));
-    arr[position] += count;
-  }
-  return totals;
-};
 
 const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentProps) => {
   const slideId = slide.id ?? "";
@@ -118,11 +98,11 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
   const myOutcome =
     mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
-  // Aggregate ranking: order rows by each item's mean submitted position. Items
-  // with no votes sink to the bottom in authored order.
-  const positionTotals = showAggregate
-    ? itemPositionTotals(optionCounts, items.length)
-    : {};
+  // Aggregate ranking: order rows by each item's mean submitted position, read
+  // off per-item arrays indexed by the 0-based rank slot the tally keyed on
+  // (positions outside the item range are dropped). Items with no votes sink to
+  // the bottom in authored order.
+  const positionTotals = showAggregate ? tallyTotalsBySlot(optionCounts, items.length) : {};
   const rankedRows = items
     .map((item, authoredIndex) => {
       const id = item.id ?? "";
@@ -153,7 +133,7 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
       </span>
     ) : (
       <span className={styles.face}>
-        <span className={styles.label}>{label || fallback}</span>
+        <span className={styles.label}>{labelOrFallback(label, fallback)}</span>
       </span>
     );
   };
@@ -198,7 +178,7 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
                       <span
                         key={position}
                         className={styles.heatCell}
-                        style={{ "--cell-heat": total / highest } as CSSProperties}
+                        style={{ "--heat": total / highest } as CSSProperties}
                       />
                     );
                   })}
@@ -212,7 +192,7 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
           {order.map((id, index) => {
             const item = itemById(id);
             if (!item) return null;
-            const label = item.label?.trim() || `Item ${(index + 1).toString()}`;
+            const label = indexedLabel(item.label, "Item", index);
             return (
               <li
                 key={id || index}

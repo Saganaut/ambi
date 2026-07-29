@@ -141,13 +141,14 @@
   }
 
   .heatCell {
-    /* 0..1 share of the item's busiest position — shades like a heatmap. */
-    --cell-heat: 0;
+    /* Fallback for the inline 0..1 share of the item's busiest position —
+       shades like a heatmap. Named `--heat` on every board's heat surface. */
+    --heat: 0;
 
     flex: 1;
     border-radius: var(--radius-sm);
     background-color: var(--row-accent);
-    opacity: calc(0.12 + var(--cell-heat) * 0.6);
+    opacity: calc(0.12 + var(--heat) * 0.6);
   }
 
   .actions {

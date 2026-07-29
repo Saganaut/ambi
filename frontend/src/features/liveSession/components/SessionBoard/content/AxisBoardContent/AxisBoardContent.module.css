@@ -62,12 +62,13 @@
   /* One translucent cell of the 10×10 live heat overlay (only non-empty
      buckets render). Sits under the chips so placements stay tappable. */
   .heatCell {
-    /* 0..1 share of the busiest bucket — shades the cell like a heatmap. */
-    --bucket-heat: 0;
+    /* Fallback for the inline 0..1 share of the busiest bucket — shades the
+       cell like a heatmap. Named `--heat` on every board's heat surface. */
+    --heat: 0;
 
     position: absolute;
     background-color: var(--bg-brand);
-    opacity: calc(var(--bucket-heat) * 0.35);
+    opacity: calc(var(--heat) * 0.35);
     pointer-events: none;
   }
 

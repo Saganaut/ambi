@@ -35,23 +35,18 @@ import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "@utils/placementGeometry";
+import type { BucketCoordinates } from "../answerTally";
+import { PLACE_TALLY_BUCKETS, parseBucketKey, tallyTotalsByBucket } from "../answerTally";
 import { BoardBank } from "../BoardBank/BoardBank";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
+import { labelOrFallback } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { PlacementSurface } from "../PlacementSurface/PlacementSurface";
 import { seededShuffle } from "../seededShuffle";
 import { useBoardPlacement } from "../useBoardPlacement";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./PlaceOnImageBoardContent.module.css";
-
-/**
- * Bucket count per axis of the live tally's quantization grid. Manual mirror of
- * the backend's `AnswerTallyKeys.PLACE_TALLY_BUCKETS` (it is not a request-DTO
- * bound, so it does not flow through codegen — the same keep-in-sync discipline
- * as `AXIS_TALLY_BUCKETS` in the Axis board).
- */
-const PLACE_TALLY_BUCKETS = 20;
 
 /**
  * The image's orientation, handed to the shared geometry at every call site:
@@ -66,33 +61,23 @@ interface PlaceOnImageBoardContentProps {
   interactive: boolean;
 }
 
-/** One occupied tally bucket, decoded from an `itemId@bx,by` key. */
-interface ScatterDot {
+/** One occupied tally bucket, decoded from an `itemId@bucketX,bucketY` key. */
+interface ScatterDot extends BucketCoordinates {
   key: string;
-  bx: number;
-  by: number;
   count: number;
 }
 
 /**
- * Sum the live per-`itemId@bucketX,bucketY` tally into per-bucket density dots
- * (dropping empty / malformed keys) — the item-prefix-split analogue of the
- * Axis board's `bucketTotals`, so the scatter reads where pins landed across
- * every item.
+ * Collapse the live per-`itemId@bucketX,bucketY` tally onto the buckets
+ * themselves, then decode each one into a density dot (dropping malformed
+ * keys), so the scatter reads where pins landed across every item.
  */
 const scatterDots = (optionCounts: Record<string, number>): ScatterDot[] => {
-  const totals: Record<string, number> = {};
-  for (const [key, count] of Object.entries(optionCounts)) {
-    if (count <= 0) continue;
-    const bucket = key.split("@")[1];
-    if (!bucket) continue;
-    totals[bucket] = (totals[bucket] ?? 0) + count;
-  }
   const dots: ScatterDot[] = [];
-  for (const [bucket, count] of Object.entries(totals)) {
-    const [bx, by] = bucket.split(",").map(Number);
-    if (!Number.isInteger(bx) || !Number.isInteger(by)) continue;
-    dots.push({ key: bucket, bx, by, count });
+  for (const [bucketKey, count] of Object.entries(tallyTotalsByBucket(optionCounts))) {
+    const bucket = parseBucketKey(bucketKey);
+    if (!bucket) continue;
+    dots.push({ key: bucketKey, ...bucket, count });
   }
   return dots;
 };
@@ -142,7 +127,7 @@ const PlaceOnImageBoardContent = ({
 
   const showScatter = mode === "results" || mode === "liveResults";
   const dots = showScatter ? scatterDots(optionCounts) : [];
-  const maxCount = Math.max(1, ...dots.map((d) => d.count));
+  const maxCount = Math.max(1, ...dots.map((dot) => dot.count));
 
   // Revealed target circles: prefer the live event's copy for this slide, else
   // the snapshot seam (a client that joined mid-reveal — see the slice).
@@ -163,8 +148,6 @@ const PlaceOnImageBoardContent = ({
 
   const accentOf = (item: PlaceItemView): string =>
     resolveDatumColor(item.color, authoredIndexOf(item));
-
-  const labelOf = (label: string | undefined): string => label?.trim() || "Item";
 
   // A pin/pill shape as soon as a label joins the disc — MarkerBadge decides
   // this internally too, but the wrapper needs to know in order to offset
@@ -214,8 +197,8 @@ const PlaceOnImageBoardContent = ({
               className={styles.scatterDot}
               style={
                 {
-                  left: `${(((dot.bx + 0.5) / PLACE_TALLY_BUCKETS) * 100).toString()}%`,
-                  top: `${(((dot.by + 0.5) / PLACE_TALLY_BUCKETS) * 100).toString()}%`,
+                  left: `${(((dot.bucketX + 0.5) / PLACE_TALLY_BUCKETS) * 100).toString()}%`,
+                  top: `${(((dot.bucketY + 0.5) / PLACE_TALLY_BUCKETS) * 100).toString()}%`,
                   "--dot-share": dot.count / maxCount,
                 } as CSSProperties
               }
@@ -270,6 +253,7 @@ const PlaceOnImageBoardContent = ({
             const itemId = item.id;
             const point = itemId ? placements[itemId] : undefined;
             if (!itemId || !point) return null;
+            const itemName = labelOrFallback(item.label, "Item");
             return (
               <DraggableChip
                 key={itemId}
@@ -283,7 +267,7 @@ const PlaceOnImageBoardContent = ({
                   .join(" ")}
                 accent={accentOf(item)}
                 disabled={!canPlace}
-                ariaLabel={`Pick ${labelOf(item.label)} back up (arrow keys nudge it)`}
+                ariaLabel={`Pick ${itemName} back up (arrow keys nudge it)`}
                 style={toRenderStyle(point, INVERT_Y)}
                 onKeyDown={nudge(itemId)}
                 onClick={() => {
@@ -331,7 +315,7 @@ const PlaceOnImageBoardContent = ({
                       .join(" ")}
                     accent={accentOf(item)}
                     disabled={!canPlace}
-                    ariaLabel={labelOf(item.label)}
+                    ariaLabel={labelOrFallback(item.label, "Item")}
                     ariaPressed={heldItemId === item.id}
                     onClick={() => {
                       toggleHold(item.id);
@@ -352,4 +336,4 @@ const PlaceOnImageBoardContent = ({
   );
 };
 
-export { PLACE_TALLY_BUCKETS, PlaceOnImageBoardContent };
+export { PlaceOnImageBoardContent };

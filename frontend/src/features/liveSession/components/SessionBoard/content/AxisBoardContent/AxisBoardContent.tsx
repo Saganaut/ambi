@@ -32,23 +32,17 @@ import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "@utils/placementGeometry";
 import type { AxisItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { AXIS_TALLY_BUCKETS, parseBucketKey, tallyTotalsByBucket } from "../answerTally";
 import { BoardBank } from "../BoardBank/BoardBank";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
+import { labelOrFallback } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { PlacementSurface } from "../PlacementSurface/PlacementSurface";
 import { seededShuffle } from "../seededShuffle";
 import { useBoardPlacement } from "../useBoardPlacement";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./AxisBoardContent.module.css";
-
-/**
- * Bucket count per axis of the live tally's quantization grid. Manual mirror
- * of the backend's `AnswerTallyKeys.AXIS_TALLY_BUCKETS` (it is not a
- * request-DTO bound, so it does not flow through codegen — the same
- * keep-in-sync discipline as `NON_SCORABLE_SLIDE_TYPES` in slideContent.ts).
- */
-const AXIS_TALLY_BUCKETS = 10;
 
 /**
  * The plane's orientation, handed to the shared geometry at every call site:
@@ -62,20 +56,6 @@ interface AxisBoardContentProps {
   mode: BoardQuestionMode;
   interactive: boolean;
 }
-
-/**
- * Sum the live per-`itemId@bucketX,bucketY` tally into per-bucket totals
- * (keyed `"bx,by"`) — the bucket-split analogue of grid's `cellTotals`.
- */
-const bucketTotals = (optionCounts: Record<string, number>): Record<string, number> => {
-  const totals: Record<string, number> = {};
-  for (const [key, count] of Object.entries(optionCounts)) {
-    const bucket = key.split("@")[1];
-    if (!bucket || count <= 0) continue;
-    totals[bucket] = (totals[bucket] ?? 0) + count;
-  }
-  return totals;
-};
 
 const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) => {
   const slideId = slide.id ?? "";
@@ -115,7 +95,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   });
 
   const showCounts = mode === "results" || mode === "liveResults";
-  const totals = showCounts ? bucketTotals(optionCounts) : {};
+  const totals = showCounts ? tallyTotalsByBucket(optionCounts) : {};
   const highestTotal = Math.max(1, ...Object.values(totals));
 
   // The viewer's own scored outcome, once results are revealed.
@@ -123,10 +103,6 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
     mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
   const bank = items.filter((item) => !(item.id && placements[item.id]));
-
-  const labelOf = (label: string | undefined): string => label?.trim() || "Item";
-  const endpointOf = (label: string | undefined, fallback: string): string =>
-    label?.trim() || fallback;
 
   // The item's AUTHORED position (pre-shuffle): the shuffled bank still shows
   // the number and color the editor's plane gave the item.
@@ -146,20 +122,21 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
 
   // Only non-empty buckets render, so the heat layer stays a handful of nodes
   // rather than a hundred.
-  const heatCells = Object.entries(totals).map(([bucket, total]) => {
-    const [bx, by] = bucket.split(",").map(Number);
-    if (!Number.isInteger(bx) || !Number.isInteger(by)) return null;
+  const heatCells = Object.entries(totals).map(([bucketKey, total]) => {
+    const bucket = parseBucketKey(bucketKey);
+    if (!bucket) return null;
+    const { bucketX, bucketY } = bucket;
     return (
       <span
-        key={bucket}
+        key={bucketKey}
         className={styles.heatCell}
         style={
           {
-            left: `${((bx / AXIS_TALLY_BUCKETS) * 100).toString()}%`,
-            top: `${((1 - (by + 1) / AXIS_TALLY_BUCKETS) * 100).toString()}%`,
+            left: `${((bucketX / AXIS_TALLY_BUCKETS) * 100).toString()}%`,
+            top: `${((1 - (bucketY + 1) / AXIS_TALLY_BUCKETS) * 100).toString()}%`,
             width: `${(100 / AXIS_TALLY_BUCKETS).toString()}%`,
             height: `${(100 / AXIS_TALLY_BUCKETS).toString()}%`,
-            "--bucket-heat": total / highestTotal,
+            "--heat": total / highestTotal,
           } as CSSProperties
         }
         aria-label={`${total.toString()} placements`}
@@ -179,9 +156,9 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
           share one drag context so chips move freely between them. */}
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.planeFrame}>
-          <span className={styles.axisLabelYHigh}>{endpointOf(axis?.yHighLabel, "High")}</span>
+          <span className={styles.axisLabelYHigh}>{labelOrFallback(axis?.yHighLabel, "High")}</span>
           <div className={styles.planeRow}>
-            <span className={styles.axisLabelX}>{endpointOf(axis?.xLowLabel, "Low")}</span>
+            <span className={styles.axisLabelX}>{labelOrFallback(axis?.xLowLabel, "Low")}</span>
             <PlacementSurface
               surfaceRef={planeRef}
               dropDisabled={!canPlace}
@@ -199,6 +176,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                 // The badge's own anchoring classes keep its DISC — the graded
                 // point — on the coordinate, whichever shape the badge takes.
                 const labeled = Boolean(item.label?.trim());
+                const itemName = labelOrFallback(item.label, "Item");
                 return (
                   <DraggableChip
                     key={itemId}
@@ -212,7 +190,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                       .join(" ")}
                     accent={paletteColorAt(authoredIndexOf(item))}
                     disabled={!canPlace}
-                    ariaLabel={`Pick ${labelOf(item.label)} back up (arrow keys nudge it)`}
+                    ariaLabel={`Pick ${itemName} back up (arrow keys nudge it)`}
                     style={toRenderStyle(point, INVERT_Y)}
                     onKeyDown={nudge(itemId)}
                     onClick={() => {
@@ -236,9 +214,9 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                 />
               )}
             </PlacementSurface>
-            <span className={styles.axisLabelX}>{endpointOf(axis?.xHighLabel, "High")}</span>
+            <span className={styles.axisLabelX}>{labelOrFallback(axis?.xHighLabel, "High")}</span>
           </div>
-          <span className={styles.axisLabelYLow}>{endpointOf(axis?.yLowLabel, "Low")}</span>
+          <span className={styles.axisLabelYLow}>{labelOrFallback(axis?.yLowLabel, "Low")}</span>
         </div>
 
         {interactive && mode !== "results" && (
@@ -259,7 +237,7 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
                   disabled={!canPlace}
                   // The badge's own label is the visible name; spelling it out
                   // here keeps an unlabeled item (a bare disc) nameable too.
-                  ariaLabel={labelOf(item.label)}
+                  ariaLabel={labelOrFallback(item.label, "Item")}
                   ariaPressed={heldItemId === item.id}
                   onClick={() => {
                     toggleHold(item.id);
@@ -284,4 +262,4 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
   );
 };
 
-export { AXIS_TALLY_BUCKETS, AxisBoardContent };
+export { AxisBoardContent };

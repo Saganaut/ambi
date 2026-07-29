@@ -23,18 +23,12 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { formatScaleValue, positionToValue } from "@/shared/utils/scaleValue";
+import { AXIS_TALLY_BUCKETS, tallyTotalsBySlot } from "../answerTally";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
+import { indexedLabel, labelOrFallback } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./ScalesBoardContent.module.css";
-
-/**
- * Bucket count of the live tally's quantization strip. Manual mirror of the
- * backend's `AnswerTallyKeys.AXIS_TALLY_BUCKETS` (shared across AXIS and
- * SCALES; it is not a request-DTO bound, so it does not flow through codegen —
- * the same keep-in-sync discipline as the axis board's mirror).
- */
-const SCALES_TALLY_BUCKETS = 10;
 
 /** Sliders open at the track midpoint until the player actually moves one. */
 const MIDPOINT = 0.5;
@@ -44,26 +38,6 @@ interface ScalesBoardContentProps {
   mode: BoardQuestionMode;
   interactive: boolean;
 }
-
-/**
- * Sum the live per-`statementId@bucket` tally into per-statement bucket arrays
- * (index = bucket) — the strip analogue of the grid/axis board's cell totals.
- */
-const statementBucketTotals = (
-  optionCounts: Record<string, number>,
-): Record<string, number[]> => {
-  const totals: Record<string, number[]> = {};
-  for (const [key, count] of Object.entries(optionCounts)) {
-    if (count <= 0) continue;
-    const [statementId, bucketStr] = key.split("@");
-    if (!statementId || bucketStr === undefined) continue;
-    const bucket = Number(bucketStr);
-    if (!Number.isInteger(bucket) || bucket < 0 || bucket >= SCALES_TALLY_BUCKETS) continue;
-    const arr = totals[statementId] ?? (totals[statementId] = Array<number>(SCALES_TALLY_BUCKETS).fill(0));
-    arr[bucket] += count;
-  }
-  return totals;
-};
 
 const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProps) => {
   const slideId = slide.id ?? "";
@@ -112,14 +86,16 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
   };
 
   const showCounts = mode === "results" || mode === "liveResults";
-  const totals = showCounts ? statementBucketTotals(optionCounts) : {};
+  // Per-statement bucket arrays, indexed by the quantized position the backend
+  // keyed on: SCALES shares the AXIS bucket resolution (one constant there).
+  const totals = showCounts ? tallyTotalsBySlot(optionCounts, AXIS_TALLY_BUCKETS) : {};
 
   // The viewer's own scored outcome, once results are revealed.
   const myOutcome =
     mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
-  const leftAnchor = scales?.leftLabel?.trim() || min.toString();
-  const rightAnchor = scales?.rightLabel?.trim() || max.toString();
+  const leftAnchor = labelOrFallback(scales?.leftLabel, min.toString());
+  const rightAnchor = labelOrFallback(scales?.rightLabel, max.toString());
 
   return (
     <div className={styles.scalesBoardContent}>
@@ -134,7 +110,7 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
           const statementId = item.id ?? "";
           const position = draft[statementId] ?? MIDPOINT;
           const scaleValue = positionToValue(position, min, max);
-          const label = item.label?.trim() || `Statement ${(index + 1).toString()}`;
+          const label = indexedLabel(item.label, "Statement", index);
           const bucketArr = totals[statementId];
           const highest = bucketArr ? Math.max(1, ...bucketArr) : 1;
 
@@ -165,13 +141,13 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
                   )}
                   {showCounts && (
                     <div className={styles.heatStrip}>
-                      {Array.from({ length: SCALES_TALLY_BUCKETS }, (_, bucket) => {
+                      {Array.from({ length: AXIS_TALLY_BUCKETS }, (_, bucket) => {
                         const total = bucketArr?.[bucket] ?? 0;
                         return (
                           <span
                             key={bucket}
                             className={styles.heatCell}
-                            style={{ "--bucket-heat": total / highest } as React.CSSProperties}
+                            style={{ "--heat": total / highest } as React.CSSProperties}
                             aria-label={
                               total > 0
                                 ? `${label}: ${total.toString()} at bucket ${(bucket + 1).toString()}`
@@ -214,4 +190,4 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
   );
 };
 
-export { SCALES_TALLY_BUCKETS, ScalesBoardContent };
+export { ScalesBoardContent };

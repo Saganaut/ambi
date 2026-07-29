@@ -28,6 +28,7 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
+import { indexedLabel } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./MatchingBoardContent.module.css";
@@ -111,7 +112,7 @@ const MatchingBoardContent = ({ slide, mode, interactive }: MatchingBoardContent
       : undefined;
 
   const cardLabel = (card: { label?: string }, index: number): string =>
-    card.label?.trim() || `Card ${(index + 1).toString()}`;
+    indexedLabel(card.label, "Card", index);
 
   // Left-card lookups for the connection badges and count chips.
   const leftDisplay = new Map(

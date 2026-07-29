@@ -27,9 +27,11 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import { BANK_DROPPABLE_ID, resolveDragEnd } from "@utils/dragDrop";
+import { tallyTotalsByBucket } from "../answerTally";
 import { BoardBank } from "../BoardBank/BoardBank";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
+import { indexedLabel } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { seededShuffle } from "../seededShuffle";
 import { findViewerOutcome } from "../viewerOutcome";
@@ -44,17 +46,6 @@ interface GridBoardContentProps {
 /** The backend cell-id shape ({@code "rowIndex,colIndex"}). */
 const cellIdOf = (row: number, col: number): string =>
   `${row.toString()},${col.toString()}`;
-
-/** Sum the live per-`itemId@cell` tally into per-cell totals. */
-const cellTotals = (optionCounts: Record<string, number>): Record<string, number> => {
-  const totals: Record<string, number> = {};
-  for (const [key, count] of Object.entries(optionCounts)) {
-    const cell = key.split("@")[1];
-    if (!cell || count <= 0) continue;
-    totals[cell] = (totals[cell] ?? 0) + count;
-  }
-  return totals;
-};
 
 /**
  * A matrix cell that is also a drop target. Owns only the droppable frame and
@@ -76,7 +67,7 @@ const BoardCell = ({ cellId, heat, dropDisabled, children }: BoardCellProps) => 
       className={[styles.cell, isDropTarget ? styles.cellDropTarget : ""]
         .filter(Boolean)
         .join(" ")}
-      style={{ "--cell-heat": heat } as CSSProperties}>
+      style={{ "--heat": heat } as CSSProperties}>
       {children}
     </div>
   );
@@ -144,7 +135,7 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
   };
 
   const showCounts = mode === "results" || mode === "liveResults";
-  const totals = showCounts ? cellTotals(optionCounts) : {};
+  const totals = showCounts ? tallyTotalsByBucket(optionCounts) : {};
   const highestTotal = Math.max(1, ...Object.values(totals));
 
   // The viewer's own scored outcome, once results are revealed.
@@ -152,9 +143,6 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
     mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
   const bank = items.filter((item) => !(item.id && placements[item.id]));
-
-  const labelOf = (labels: string[], index: number, fallback: string): string =>
-    labels[index]?.trim() || `${fallback} ${(index + 1).toString()}`;
 
   // Compute the authored (pre-shuffle) index and resolve the chip's color
   // together, so both the numbered disc and the border/fill use the same index
@@ -184,12 +172,12 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
           <span />
           {colLabels.map((_, col) => (
             <span key={`col-${col.toString()}`} className={styles.header}>
-              {labelOf(colLabels, col, "Column")}
+              {indexedLabel(colLabels[col], "Column", col)}
             </span>
           ))}
           {rowLabels.map((_, row) => [
             <span key={`row-${row.toString()}`} className={styles.header}>
-              {labelOf(rowLabels, row, "Row")}
+              {indexedLabel(rowLabels[row], "Row", row)}
             </span>,
             ...colLabels.map((__, col) => {
               const cell = cellIdOf(row, col);
@@ -197,7 +185,9 @@ const GridBoardContent = ({ slide, mode, interactive }: GridBoardContentProps) =
                 (item) => item.id && placements[item.id] === cell,
               );
               const total = totals[cell] ?? 0;
-              const cellName = `${labelOf(rowLabels, row, "Row")} × ${labelOf(colLabels, col, "Column")}`;
+              const rowName = indexedLabel(rowLabels[row], "Row", row);
+              const colName = indexedLabel(colLabels[col], "Column", col);
+              const cellName = `${rowName} × ${colName}`;
               return (
                 <BoardCell
                   key={`cell-${cell}`}

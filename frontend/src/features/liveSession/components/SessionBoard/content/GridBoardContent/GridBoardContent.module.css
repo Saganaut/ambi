@@ -33,8 +33,9 @@
     }
 
     .cell {
-      /* 0..1 live share of placements — shades the cell like a heatmap. */
-      --cell-heat: 0;
+      /* Fallback for the inline 0..1 live share of placements — shades the cell
+         like a heatmap. Named `--heat` on every board's heat surface. */
+      --heat: 0;
 
       position: relative;
       display: flex;
@@ -52,7 +53,7 @@
         inset: 0;
         border-radius: inherit;
         background-color: var(--bg-brand);
-        opacity: calc(var(--cell-heat) * 0.35);
+        opacity: calc(var(--heat) * 0.35);
         pointer-events: none;
       }
 
