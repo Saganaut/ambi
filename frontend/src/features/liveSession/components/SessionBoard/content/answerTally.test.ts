@@ -59,6 +59,10 @@ describe("tallyTotalsBySlot", () => {
     expect(tallyTotalsBySlot({ "item-a": 4 }, 3)).toEqual({});
   });
 
+  it("ignores an empty slot suffix", () => {
+    expect(tallyTotalsBySlot({ "item-a@": 4 }, 3)).toEqual({});
+  });
+
   it("ignores a non-integer slot", () => {
     expect(tallyTotalsBySlot({ "item-a@1.5": 4, "item-a@x": 4 }, 3)).toEqual({});
   });

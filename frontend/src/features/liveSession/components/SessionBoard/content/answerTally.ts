@@ -86,7 +86,7 @@ const tallyTotalsBySlot = (
   for (const [key, count] of Object.entries(optionCounts)) {
     if (count <= 0) continue;
     const [itemId, slotPart] = key.split(TALLY_KEY_SEPARATOR);
-    if (!itemId || slotPart === undefined) continue;
+    if (!itemId || !slotPart) continue;
     const slot = Number(slotPart);
     if (!Number.isInteger(slot) || slot < 0 || slot >= slotCount) continue;
     const slots = totals[itemId] ?? (totals[itemId] = Array<number>(slotCount).fill(0));
