@@ -144,7 +144,7 @@ const SlideDisplay = () => {
   // selection, an empty slideId is a deliberate clear (deleting the first slide
   // leaves nothing before it — see `useDeckEditor.removeSlide`) and re-selecting
   // would put an id back in the URL the author just removed.
-  const hasSelected = React.useRef(slideId != null);
+  const hasSelected = React.useRef(Boolean(slideId));
   React.useEffect(() => {
     if (slideId) {
       hasSelected.current = true;

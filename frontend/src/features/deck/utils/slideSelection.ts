@@ -47,8 +47,13 @@ const cascadeOf = (
  *
  * Only a removal that takes the selected slide with it moves the selection —
  * deleting some other slide leaves the URL untouched. When it does, the
- * selection walks *backwards* in rail order to the nearest surviving slide;
- * with nothing before it, the selection is cleared even if later slides remain.
+ * selection steps back to the rail row above the removed slide; with nothing
+ * above it, the selection is cleared even if later slides remain.
+ *
+ * The row above is always a survivor: a unit's follow-up is emitted directly
+ * after its own head, so the only cascade member that can precede the removed
+ * slide is a follow-up whose parent is the removed slide — and that follow-up
+ * is emitted *after* it, never before.
  */
 const selectionAfterRemoval = (
   slides: SlideResponse[],
@@ -64,13 +69,10 @@ const selectionAfterRemoval = (
 
   const order = railOrder(slides);
   const removedIndex = order.findIndex((slide) => slide.id === removedSlideId);
-  for (let i = removedIndex - 1; i >= 0; i--) {
-    const candidate = order[i];
-    if (!cascade.has(candidate.id)) {
-      return { action: "select", slideId: candidate.id };
-    }
-  }
-  return { action: "clear" };
+  const previous = order[removedIndex - 1];
+  return previous
+    ? { action: "select", slideId: previous.id }
+    : { action: "clear" };
 };
 
 export { selectionAfterRemoval };

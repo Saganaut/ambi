@@ -168,9 +168,14 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId);
 
   // Point the route at a slide, or — with `undefined` — at none: TanStack Router
-  // drops undefined search keys, so the id leaves the URL entirely.
-  const setRouteSlideId = (slideId: string | undefined) => {
-    void navigate({ search: (prev) => ({ ...prev, slideId: slideId }) });
+  // drops undefined search keys, so the id leaves the URL entirely. `replace`
+  // overwrites the current history entry instead of pushing a new one, for
+  // corrections the user never chose and must not be able to step back into.
+  const setRouteSlideId = (
+    slideId: string | undefined,
+    { replace = false }: { replace?: boolean } = {},
+  ) => {
+    void navigate({ search: (prev) => ({ ...prev, slideId: slideId }), replace });
   };
 
   const selectSlide = (slideId: string) => {
@@ -198,12 +203,15 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   // exists, so re-aim `slideId` at the row above it (or clear it when the first
   // slide goes). The verdict is computed from the pre-removal collection, before
   // the optimistic patch splices it out; removals that spare the selection leave
-  // the URL untouched.
+  // the URL untouched. The re-aim replaces the history entry — the deleted
+  // slide's URL is dead, so Back must not restore it.
   const removeSlide = (slideId: string) => {
     const selection = selectionAfterRemoval(slides, slideId, selectedSlideId);
     deleteSlide(slideId);
     if (selection.action === "keep") return;
-    setRouteSlideId(selection.action === "select" ? selection.slideId : undefined);
+    setRouteSlideId(selection.action === "select" ? selection.slideId : undefined, {
+      replace: true,
+    });
   };
 
   // ── Drag-to-reorder (left rail) ────────────────────────────────────────────
