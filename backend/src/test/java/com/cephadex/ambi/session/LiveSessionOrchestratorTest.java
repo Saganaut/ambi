@@ -251,6 +251,35 @@ class LiveSessionOrchestratorTest {
         assertThat(publishedEvent()).isInstanceOf(ResponsesRevealed.class);
     }
 
+    @Test
+    void revealResponsesRejectsASlideThatIsNotTheCurrentRound() {
+        // Already showing responses: the slide-match check runs ahead of the
+        // idempotence short-circuit, so a stale call still 409s instead of passing.
+        stubPhase(RoundPhase.SUBMIT_LIVE); // current round is SLIDE
+
+        assertThatThrownBy(() -> orchestrator.revealResponses(SID, "other-slide"))
+                .isInstanceOf(ConflictException.class);
+
+        // A stale host call must leave the current round untouched: no phase change,
+        // no tally read, nothing published.
+        verify(roundStateStore, never()).save(any(), any());
+        verify(tallyStore, never()).tally(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void revealResponsesRejectsAnIdleSessionWithNoOpenRound() {
+        // Idle state carries no currentSlideId — there is no round to show yet.
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(LiveRoundState.idle(PUB)));
+
+        assertThatThrownBy(() -> orchestrator.revealResponses(SID, SLIDE))
+                .isInstanceOf(ConflictException.class);
+
+        verify(roundStateStore, never()).save(any(), any());
+        verify(tallyStore, never()).tally(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
     // ── revealResults: reveal (closing an open round first) ──────────────────
 
     @Test

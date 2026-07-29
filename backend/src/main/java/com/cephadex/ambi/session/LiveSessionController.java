@@ -213,7 +213,10 @@ public class LiveSessionController {
         hostService.openVoting(id, slideId, principal);
     }
 
-    /** Shows the response distribution for a round (host only); never the answer key. */
+    /**
+     * Shows the response distribution for a round (host only); never the answer key.
+     * 409 when {@code slideId} is not the session's current round.
+     */
     @PostMapping("/{id}/rounds/{slideId}/reveal-responses")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void revealResponses(

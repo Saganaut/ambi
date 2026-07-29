@@ -50,7 +50,8 @@ and no replay endpoint (`LiveSessionController.java:64-65`).
    precondition (409 `ROUND_NOT_CURRENT`) closes the main path into that branch — a
    stale host call naming a non-current slide moving the current round's phase — and
    the remaining store-drift case now publishes an empty-payload `ResultsRevealed`
-   instead of returning silently (§2).
+   instead of returning silently (§2). The same precondition now guards
+   `revealResponses` as well (2026-07-29).
 2. ~~**Snapshot→subscribe gap**~~ — **Fixed** (2026-07-29). Events broadcast between the
    snapshot read and the STOMP subscription completing are no longer lost undetectably:
    the first envelope past `lastSequence + 1` is buffered, sets `resyncNeeded`, and the
@@ -114,6 +115,13 @@ public record SessionEventEnvelope(
   `scoreboard` and `terminal`. **No new event variant**: the reducer already handles
   the empty payload, so a variant would have cost a frontend contract change for no
   gain. Only an unpublishable round (`publicId == null`, no routing id) still bails.
+
+`revealResponses` carries the same slide-match precondition (2026-07-29): it tallied the
+*passed* slide but flipped the *current* round's phase, so a stale host call could publish
+one slide's distribution as another round's transition. The check runs ahead of the
+idempotence short-circuit — a stale call on an already-showing round 409s rather than
+passing silently — and it also rejects a reveal before any round has opened (an idle
+session has no `currentSlideId`).
 
 Invariant going forward: **no persisted lifecycle transition without a published
 event.**
@@ -199,7 +207,8 @@ where noted.
 
 1. **Fix `revealResults` silent transition** — bug fix, independent (§2). **Done**
    (2026-07-29): slide-match precondition (409 `ROUND_NOT_CURRENT`) plus an
-   empty-payload `ResultsRevealed` for the store-drift case; no frontend change.
+   empty-payload `ResultsRevealed` for the store-drift case; no frontend change. The
+   precondition was extended to `revealResponses` (2026-07-29).
 2. **Presentation-cue layer + completion animation** — frontend-only, no backend
    dependency; dedup hardening lands with item 4 (§4).
 3. **Backend event envelope + sequencing + snapshot `lastSequence`** — the contract

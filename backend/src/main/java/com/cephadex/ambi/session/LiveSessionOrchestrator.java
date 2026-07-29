@@ -953,9 +953,22 @@ public class LiveSessionOrchestrator {
      * publishes {@code ResponsesRevealed}). Idempotent — a no-op if responses are
      * already showing. Never exposes the answer key (that is results, and requires
      * {@link #revealResults}).
+     *
+     * @throws ConflictException if {@code slideId} is not the current round's slide;
+     *                           a stale host call must not move another round's phase
      */
     public void revealResponses(String sessionId, String slideId) {
         locks.withLock(sessionId, () -> roundStateStore.load(sessionId).ifPresent(current -> {
+            // A stale or racing host call naming a slide the session has already left
+            // would otherwise flip the CURRENT round's phase while publishing the other
+            // slide's tally — same precondition revealResults applies. Checked ahead of
+            // the idempotence short-circuit so a stale call still 409s rather than
+            // passing silently, and an idle session (null currentSlideId) is rejected
+            // too: there is no round to show responses for yet.
+            if (!slideId.equals(current.currentSlideId())) {
+                throw new ConflictException("ROUND_NOT_CURRENT", "this slide is not the current round");
+            }
+
             if (current.phase().showsResponses()) {
                 return; // already showing — idempotent
             }
@@ -996,7 +1009,9 @@ public class LiveSessionOrchestrator {
      *
      * <p>Combined parent+child results for a follow-up round are a seam: the
      * {@code resultsRevealed} factory takes a single record, so v1 publishes the
-     * child's own result (open-decisions B3).
+     * child's own result (open-decisions B3). The parent-side half of that rule — a
+     * parent with an attached follow-up is never taken straight to results — is
+     * documented intent, not yet enforced here; it lands with the combined reveal.
      *
      * <p>A round that closed with no persisted {@link RoundResult} (Redis round state
      * drifted from the results store) still publishes — an empty-payload
