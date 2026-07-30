@@ -1,10 +1,12 @@
 // Follow-up presentation + answer surface for the board. A follow-up round is an
 // ordinary REGULAR round whose candidate cards were minted from its *parent*
-// round's submissions (MCQ parent → the parent's own options; TEXT → deduped
-// submissions; DRAWING → the drawings) and snapshotted server-side when the
-// round opened. They arrive on the slide as `followUp.options`, in snapshot
-// order — deliberately NOT shuffled (v1 decision): every device shows the one
-// board, so the order is part of the shared reference frame.
+// round's submissions — the mapping is parent-content-type-specific (MCQ mints
+// its own options; every other scorable parent type mints distinct submissions)
+// and lives entirely on the backend (`FollowUpOptions.mint`) — and snapshotted
+// server-side when the round opened. They arrive on the slide as
+// `followUp.options`, in snapshot order — deliberately NOT shuffled (v1
+// decision): every device shows the one board, so the order is part of the
+// shared reference frame.
 //
 // One component covers every moment, switched by `mode`:
 //   - prompt      → candidate cards; pickable when `interactive` (participant on

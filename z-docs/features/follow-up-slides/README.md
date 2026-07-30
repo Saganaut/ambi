@@ -52,16 +52,15 @@ client reconciles its cache from the response, like a move).
 backend enum (`presentation/slide/enums/FollowUpMode.java`) is the
 authoritative validator:
 
-| Mode               | Valid parents            | Question it asks                                                                  |
-| ------------------ | ------------------------ | --------------------------------------------------------------------------------- |
-| `PREDICT_POPULAR`  | `MCQ`                    | Which option was picked most?                                                     |
-| `BEST_ANSWER_VOTE` | `MCQ`, `TEXT`, `DRAWING` | Which submission was best? (vote — picked options on MCQ, free-form answers else) |
+| Mode               | Valid parents                                                                                    | Question it asks                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `PREDICT_POPULAR`  | `MCQ`                                                                                              | Which option was picked most?                                                     |
+| `BEST_ANSWER_VOTE` | every scorable parent except `FOLLOW_UP` itself: `MCQ`, `TEXT`, `DRAWING`, `NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`, `PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION` | Which submission was best? (vote — picked options on MCQ, a compact text summary on every other kind) |
 
-`MCQ`, `TEXT`, and `DRAWING` slides are all creatable in the editor today, so
-a follow-up can attach to any of them. `MCQ` is the only parent with more
-than one valid mode — the author picks one when adding the follow-up and can
-change it in the inspector; `TEXT` and `DRAWING` parents are
-`BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` gets the same runtime as
+Any scorable slide type can attach a `BEST_ANSWER_VOTE` follow-up. `MCQ` is
+the only parent with more than one valid mode — the author picks one when
+adding the follow-up and can change it in the inspector; every other parent
+type is `BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` gets the same runtime as
 `PREDICT_POPULAR` — see [Runtime](#runtime) — the mode only changes the
 board's prompt text; neither mode scores in v1 (see
 [Missing Features](../missing-features.md)).
@@ -111,9 +110,21 @@ ids, same order, no submitters); a TEXT parent dedupes submissions under the
 parent's own trim/case normalization (`TextContent.normalize`), unioning
 authors onto whichever submission's wording landed first; a DRAWING parent
 mints one candidate per submitted image, keyed by its stored `srcKey`. Every
-candidate's id is a UUID hashed from the content it stands for, never random,
-so re-minting over the same submissions reproduces the same set — a round
-restart doesn't orphan votes already cast against it.
+other scorable parent kind (`NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`,
+`PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION`) has no submission a board can show
+verbatim, so its answers are rendered into a compact text summary built from
+the parent's own authored labels — a number with its unit, a ranking as
+`"Alpha > Beta > Gamma"`, a match as `"Alpha ↔ X · Beta ↔ Y"`, a grid
+placement as `"Alpha → Mammal/Africa"`, an allocation as `"Alpha 60 · Beta 40"`
+(points, not percentages), a scale position denormalized to scale units, and
+an axis/place-on-image placement as whole-percent coordinates. That rendered
+summary doubles as both the candidate's display text and its dedup key, so
+two submissions that render identically merge into one candidate. Every
+candidate's id is a UUID hashed from the content it stands for (the summary
+text for these kinds), never random, so re-minting over the same submissions
+reproduces the same set — a round restart doesn't orphan votes already cast
+against it. See `FollowUpOptions`'s class Javadoc and its `summaryOf`
+overloads for the exact per-type formats.
 
 **Snapshot, not re-mint-per-read.** The mint runs once, when the follow-up
 round opens, and is written to Redis (`FollowUpOptionStore`,

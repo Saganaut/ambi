@@ -72,7 +72,7 @@ no static answer key, same as `FollowUpAnswer`, `QAndAAnswer`, and
 `isScorableSlideType`/`canHaveFollowUp` treat it like any other question, and
 it *can* carry a follow-up), but nothing scores the drawing itself without
 one. `FollowUpMode.BEST_ANSWER_VOTE` lists `DRAWING` as a valid parent type
-(alongside `MCQ` and `TEXT`) — see
+(as does every other scorable slide type) — see
 [follow-up slides](../follow-up-slides/README.md#modes) — and its
 live-session runtime is built: the follow-up round mints one candidate per
 submitted drawing, participants pick their favorite, and the reveal badges the

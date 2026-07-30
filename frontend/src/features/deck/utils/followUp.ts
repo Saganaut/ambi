@@ -16,7 +16,19 @@ import type { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
  * `deckEnums.gen.ts` breaks compilation here until its row is added.
  */
 const FOLLOW_UP_MODE_PARENTS = {
-  BEST_ANSWER_VOTE: ["MCQ", "TEXT", "DRAWING"],
+  BEST_ANSWER_VOTE: [
+    "MCQ",
+    "TEXT",
+    "DRAWING",
+    "NUMBER",
+    "RANKING",
+    "SCALES",
+    "GRID",
+    "AXIS",
+    "PLACE_ON_IMAGE",
+    "MATCHING",
+    "ALLOCATION",
+  ],
   PREDICT_POPULAR: ["MCQ"],
 } as const satisfies Record<FollowUpMode, readonly SlideType[]>;
 

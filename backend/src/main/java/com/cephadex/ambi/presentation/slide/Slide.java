@@ -102,7 +102,8 @@ public class Slide {
 
     // The typed, polymorphic body keyed by the slide's contentType. Spring Data
     // writes a `_class` hint for the concrete subtype (e.g. McqContent) so it
-    // round-trips through Mongo; only MCQ is wired in so far.
+    // round-trips through Mongo. Every SlideType has a registered subtype — the
+    // one place to add another is SlideContent's @JsonSubTypes/@Schema pair.
     @Field("content")
     private SlideContent content;
 

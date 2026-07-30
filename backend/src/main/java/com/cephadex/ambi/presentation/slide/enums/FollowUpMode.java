@@ -14,10 +14,16 @@ import java.util.Set;
 public enum FollowUpMode {
 
     /**
-     * Vote for the best submission from the parent round — free-form answers
-     * on TEXT/DRAWING parents, the options participants picked on MCQ parents.
+     * Vote for the best submission from the parent round. Valid on every
+     * scorable parent except {@code FOLLOW_UP} itself (no chains): the candidates
+     * are the options participants picked on an MCQ parent, their free-form
+     * answers on TEXT/DRAWING, and a compact text summary of each submission on
+     * the structured kinds (see {@code FollowUpOptions.mint}).
      */
-    BEST_ANSWER_VOTE(EnumSet.of(SlideType.MCQ, SlideType.TEXT, SlideType.DRAWING)),
+    BEST_ANSWER_VOTE(EnumSet.of(SlideType.MCQ, SlideType.TEXT, SlideType.DRAWING,
+            SlideType.NUMBER, SlideType.RANKING, SlideType.SCALES, SlideType.GRID,
+            SlideType.AXIS, SlideType.PLACE_ON_IMAGE, SlideType.MATCHING,
+            SlideType.ALLOCATION)),
 
     /** Predict which of the parent's options was picked most. */
     PREDICT_POPULAR(EnumSet.of(SlideType.MCQ));
