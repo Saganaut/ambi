@@ -12,7 +12,7 @@ There are **four layers** that decide what a pixel looks like, from broadest to 
 
 | Layer                         | Defined in                                                                                                           | What it sets                                                                                              |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Theme roles                   | inline `--role-*` on `<html>` / a scope wrapper (written by `applyPalette`); brand-light defaults in `tokens.css` (`:root`) | The 16 raw colour inputs a theme provides (`--role-canvas`, `--role-primary`, `--role-red`, …)           |
+| Theme roles                   | inline `--role-*` on `<html>` / a scope wrapper (written by `applyPalette`); brand light **and** dark defaults in `tokens.css`, selected by `data-appearance` | The 16 raw colour inputs a theme provides (`--role-canvas`, `--role-primary`, `--role-red`, …)           |
 | Semantic tokens               | `frontend/src/tokens.css` (`:root, [data-appearance]`)                                                               | `--bg-canvas`, `--text-primary`, `--border-default`, … — each **derived from the roles** via `color-mix()` |
 | Component manifest + variants | `**/*.module.css`                                                                                                    | Each component declares local vars (`--color`, `--padding`, …) and flips them via its own variant/size **classes** |
 | Component styles              | `**/*.module.css`                                                                                                    | Properties read from the component's local vars                                                          |
@@ -23,7 +23,7 @@ A theme provides **16 role colours**; `tokens.css` fans them out into ~50 semant
 
 ## 2. Theming — roles + appearance (not classes)
 
-A theme is a **palette of 16 role colours plus an intrinsic light/dark appearance** — there is no separate light/dark toggle and there are no `theme-*` classes. `tokens.css` `:root` ships the built-in **brand-light** palette as defaults; a theme overrides it by setting the 16 `--role-*` custom properties (and a `data-appearance` flag) on a target element, and every semantic token re-derives automatically.
+A theme is a **palette of 16 role colours plus an intrinsic light/dark appearance** — there is no separate light/dark toggle and there are no `theme-*` classes. `tokens.css` ships the built-in **brand** palette in both appearances — a light set on `:root, [data-appearance="light"]` and a dark set on `[data-appearance="dark"]`, so the un-themed app is brand-light and `data-appearance="dark"` alone is enough for a complete dark UI. A theme overrides whichever set applies by setting the 16 `--role-*` custom properties (and a `data-appearance` flag) on a target element; inline styles out-rank both blocks, and every semantic token re-derives automatically.
 
 **How it's applied:**
 
@@ -33,7 +33,7 @@ A theme is a **palette of 16 role colours plus an intrinsic light/dark appearanc
 
 **The 16 roles** (written by `applyPalette`): `--role-canvas`, `--role-surface`, `--role-surface-raised`, `--role-subtle`, `--role-foreground`, `--role-muted-foreground`, `--role-primary`, `--role-on-primary`, `--role-accent`, `--role-accent-secondary`, `--role-border`, `--role-border-subtle`, `--role-red`, `--role-green`, `--role-yellow`, `--role-blue`.
 
-**Appearance overrides** — only the handful of tokens that can't auto-adapt from the role mixes are redefined under `[data-appearance="light"]` / `[data-appearance="dark"]` (the `--edge-tint` and `--shadow`). Both are written out so a light scope nested in a dark global (or vice-versa) resets correctly.
+**Appearance overrides** — the two blocks at the bottom of `tokens.css` hold the brand palette's 16 `--role-*` defaults for each appearance, plus the handful of tokens that can't auto-adapt from the role mixes (`--edge-tint`, `color-scheme`). Both are written out so a light scope nested in a dark global (or vice-versa) resets correctly. They have identical specificity, so **the dark block must stay last in the file** — source order is what lets it win.
 
 > **The four status roles are a dual-purpose accent palette, not pure status.** `--role-red/green/yellow/blue` feed the status tokens (`--bg-error`, `--text-success`, …) **and** are used directly as chart series colours (`ParetoChart`, `DotPlot`, `LineChart`, `BarChart` read `var(--role-green)` etc.) **and** are shown to users as named "Red / Green / Yellow / Blue" swatches in the theme editor (`src/shared/utils/roleColors.ts`). They're kept colour-named deliberately — naming them `error/success/…` would misdescribe the chart and swatch uses.
 

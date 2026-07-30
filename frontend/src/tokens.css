@@ -134,7 +134,13 @@
   --tolopea-500: oklch(from #190042 55% c h);
   --tolopea-600: oklch(from #190042 42% c h);
   --tolopea-700: oklch(from #190042 30% c h);
-  --tolopea-800: oklch(from #190042 20% c h);
+
+  /* 25%, not 20%: the seed's own lightness is ~19.7%, so a 20% step 800 was a  */
+
+  /* duplicate of 900 and left no usable rung between them. 25% restores the    */
+
+  /* even 30/25/20 ladder the dark appearance's canvas→surface step needs.      */
+  --tolopea-800: oklch(from #190042 25% c h);
   --tolopea-900: oklch(from #190042 l c h);
   --cyan-100: oklch(from #54fff1 97% calc(c * 0.25) h);
   --cyan-200: oklch(from #54fff1 93% calc(c * 0.45) h);
@@ -148,34 +154,23 @@
 
   /* ─── Theme Role Palette ──────────────────────────────────────────────────── */
 
-  /* The 16 colour roles a theme provides. The defaults below ARE the built-in   */
+  /* The 16 colour roles a theme provides. They are NOT declared here — the      */
 
-  /* "brand" theme (a light appearance). Curated themes (Catppuccin, Dracula,    */
+  /* built-in brand palette ships two appearances, so the defaults live in the   */
 
-  /* …) override these by setting --role-* inline on <html> (global) or on a     */
+  /* "Appearance Overrides" section at the bottom of this file (light on         */
 
-  /* scope wrapper (per-deck) via the JS palette applier. Every semantic token   */
+  /* `:root, [data-appearance="light"]`, dark on `[data-appearance="dark"]`).    */
 
-  /* below derives from these roles, so re-skinning the whole UI is just         */
+  /* Curated themes (Catppuccin, Dracula, …) override whichever set applies by   */
 
-  /* swapping these 16 values + the data-appearance flag.                        */
+  /* setting --role-* inline on <html> (global) or on a scope wrapper (per-deck) */
 
-  --role-canvas: var(--zinc-100);
-  --role-surface: var(--tolopea-100);
-  --role-surface-raised: var(--zinc-100);
-  --role-subtle: var(--violet-200);
-  --role-foreground: var(--tolopea-900);
-  --role-muted-foreground: var(--zinc-700);
-  --role-primary: var(--violet-500);
-  --role-on-primary: var(--violet-100);
-  --role-accent: var(--cyan-500);
-  --role-accent-secondary: var(--orange-500);
-  --role-border: var(--violet-800);
-  --role-border-subtle: var(--violet-200);
-  --role-red: var(--red-500);
-  --role-green: var(--green-500);
-  --role-yellow: var(--yellow-500);
-  --role-blue: var(--blue-500);
+  /* via the JS palette applier — inline styles beat both blocks. Every semantic */
+
+  /* token below derives from these roles, so re-skinning the whole UI is just   */
+
+  /* swapping the 16 values + the data-appearance flag.                          */
 }
 
 /* ─── Semantic Tokens (derived from roles) ──────────────────────────────── */
@@ -186,9 +181,11 @@
 
 /* theme. Mixes are toward --role-canvas / --role-foreground, both of which     */
 
-/* already encode the theme's light/dark character — so most tokens need no     */
+/* already encode the theme's light/dark character — so no token here needs a   */
 
-/* per-appearance override (only --edge-tint and --shadow do).                  */
+/* per-appearance override; only the roles themselves and --edge-tint differ    */
+
+/* between appearances, and both live in "Appearance Overrides" below.          */
 
 /* Declared on :root AND on every themed scope. The palette applier sets        */
 
@@ -202,7 +199,9 @@
 
 /* theme sets --role-* but these tokens, computed once at :root, keep the       */
 
-/* global values. The role defaults and static design tokens stay :root-only.   */
+/* global values. The static design tokens (spacing, type, radii, …) stay       */
+
+/* :root-only; the role defaults live in "Appearance Overrides" below.          */
 
 :root,
 [data-appearance] {
@@ -500,26 +499,103 @@
 
 /* ─── Appearance Overrides ──────────────────────────────────────────────────── */
 
+/* The two halves of the built-in brand palette. Each block declares a full set  */
+
+/* of 16 --role-* defaults plus the handful of tokens that can't auto-adapt from */
+
+/* the role mixes (the edge tint, which mixes toward an explicit black/white).   */
+
 /* The palette applier sets data-appearance on whatever element it themes (the   */
 
-/* <html> for the global theme, a scope wrapper for a per-deck theme). Only the   */
+/* <html> for the global theme, a scope wrapper for a per-deck theme), so an     */
 
-/* tokens that can't auto-adapt from the role mixes live here: the edge tint      */
+/* un-themed app gets the light block via :root, a `dark` scope gets the dark    */
 
-/* (which mixes toward an explicit black/white). Both light and dark are written  */
+/* one, and a light scope nested inside a dark global (or vice-versa) resets     */
 
-/* out so a light scope nested inside a dark global (or vice-versa) resets         */
+/* cleanly instead of inheriting the wrong appearance. A curated theme writes    */
 
-/* correctly rather than inheriting the wrong value. The drop shadow is           */
+/* its own --role-* inline on the same element; inline styles out-rank both      */
 
-/* appearance-independent (same soft shadow everywhere), so it stays in :root.    */
+/* blocks, so custom palettes are unaffected by these defaults.                  */
 
+/* The drop shadow is appearance-independent (same soft shadow everywhere), so   */
+
+/* it stays in :root.                                                            */
+
+/* ORDERING IS LOAD-BEARING: [data-appearance="light"] and                       */
+
+/* [data-appearance="dark"] have identical specificity (0,1,0), so the dark      */
+
+/* block only wins on a dark-themed element because it comes second. Keep dark   */
+
+/* last, and don't move :root out of the light selector — it is what makes the   */
+
+/* light palette the un-themed default.                                          */
+
+:root,
 [data-appearance="light"] {
+  --role-canvas: var(--zinc-100);
+  --role-surface: var(--tolopea-100);
+  --role-surface-raised: var(--zinc-100);
+  --role-subtle: var(--violet-200);
+  --role-foreground: var(--tolopea-900);
+  --role-muted-foreground: var(--zinc-700);
+  --role-primary: var(--violet-500);
+  --role-on-primary: var(--violet-100);
+  --role-accent: var(--cyan-500);
+  --role-accent-secondary: var(--orange-500);
+  --role-border: var(--violet-800);
+  --role-border-subtle: var(--violet-200);
+  --role-red: var(--red-500);
+  --role-green: var(--green-500);
+  --role-yellow: var(--yellow-500);
+  --role-blue: var(--blue-500);
+
+  /* Edges darken the fill in light appearance. */
   --edge-tint: black;
   --bg-display-only: var(--role-canvas);
+
+  /* Keeps UA-rendered chrome (form controls, scrollbars, the canvas behind the */
+
+  /* page) in step with the palette. Scoped per appearance rather than declared  */
+
+  /* once as `light dark`, which would hand the choice to the OS preference.     */
+  color-scheme: light;
 }
 
+/* The same brand identity — violet primary, cyan accent, orange CTA — with the  */
+
+/* surface ladder read off the deep end of the tolopea ramp instead of the       */
+
+/* near-white end, and every ink/status role stepped one rung lighter (-400      */
+
+/* where light uses -500) so it carries on a dark canvas. The mapping mirrors    */
+
+/* the light block role-for-role — including subtle == border-subtle, the same   */
+
+/* pairing light makes with violet-200 — so the derived tokens land at matching  */
+
+/* contrast ratios rather than needing a second set of hand-tuned mixes.         */
+
 [data-appearance="dark"] {
+  --role-canvas: var(--tolopea-900);
+  --role-surface: var(--tolopea-800);
+  --role-surface-raised: var(--tolopea-700);
+  --role-subtle: var(--violet-800);
+  --role-foreground: var(--zinc-100);
+  --role-muted-foreground: var(--zinc-500);
+  --role-primary: var(--violet-400);
+  --role-on-primary: var(--tolopea-900);
+  --role-accent: var(--cyan-400);
+  --role-accent-secondary: var(--orange-400);
+  --role-border: var(--violet-300);
+  --role-border-subtle: var(--violet-800);
+  --role-red: var(--red-400);
+  --role-green: var(--green-400);
+  --role-yellow: var(--yellow-400);
+  --role-blue: var(--blue-400);
+
   /* In dark appearance, edges lighten the bg rather than darken it. The         */
 
   /* --edge-* definitions reference var(--edge-tint), so flipping this one value */
@@ -527,4 +603,7 @@
   /* recomputes every edge token automatically.                                  */
   --edge-tint: white;
   --bg-display-only: var(--role-canvas);
+
+  /* See the light block — same reasoning, opposite value. */
+  color-scheme: dark;
 }
