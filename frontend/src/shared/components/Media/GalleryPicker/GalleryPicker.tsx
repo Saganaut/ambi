@@ -11,7 +11,9 @@
 // enables the footer's Insert and Delete actions) rather than inserting, so a
 // stray click can't drop an image onto the canvas and images can be pruned
 // without a trip to Account → Gallery. Double-clicking a tile is the fast path
-// and inserts straight away. Deleting confirms inline in the footer — the
+// and inserts straight away; from the keyboard, Enter/Space on the tile that's
+// already selected does the same, so reaching Insert never means tabbing past
+// the rest of the grid. Deleting confirms inline in the footer — the
 // picker occupies the app's one global modal slot, so a confirm dialog would
 // evict it (see useGalleryPickerSelection).
 //
@@ -22,7 +24,7 @@
 // caller whose slot takes the image's own shape (Place-on-Image's backing
 // image) passes cropAspect="source" instead, so uploads keep their aspect
 // ratio rather than being clipped to a frame.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
 import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
@@ -79,10 +81,14 @@ const GalleryPicker = ({
   // Deselect-on-outside-click. A click that lands on a control (a tile, a tab,
   // one of the footer buttons) keeps its own semantics; a click on inert chrome
   // — the search row, the grid's padding, the picker's own gutters — means "not
-  // that one after all" and clears the selection. Keyboard users toggle the
-  // same selection off by re-activating the tile.
+  // that one after all" and clears the selection. The footer is exempt as a
+  // whole, not just its buttons: the delete confirmation's prompt is a bare
+  // <span role="status">, and clicking the very text asking "delete this?"
+  // must not quietly cancel the thing it's asking about.
+  const footerRef = useRef<HTMLDivElement>(null);
   const handlePickerClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.target instanceof Element && event.target.closest("button")) {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target && (target.closest("button") || footerRef.current?.contains(target))) {
       return;
     }
     selection.clear();
@@ -135,7 +141,7 @@ const GalleryPicker = ({
           ariaLabel='Image source'
         />
       </ErrorBoundary>
-      <div className={styles.formActions}>
+      <div className={styles.formActions} ref={footerRef}>
         {selection.isConfirmingDelete ? (
           <>
             <span className={styles.confirmPrompt} role='status'>

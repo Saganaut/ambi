@@ -1,10 +1,13 @@
 // Behavioural tests for the picker's two-step gallery flow: a click selects
 // (rather than inserting) and arms the contextual Insert/Delete actions, a
-// second click or a click outside the grid clears it, a double click inserts
-// straight away, and Delete confirms inline and removes the image without
-// leaving the modal. The gallery reads/writes run for real against MSW on a
-// fresh RTK Query store per test, with the gallery cache-sync rules registered
-// so a delete splices the tile out of the cached page.
+// second click or a click outside the grid clears it, a double click — or a
+// second Enter on the focused tile — inserts straight away, and Delete confirms
+// inline and removes the image without leaving the modal. Also covers the
+// awkward edges: a failed delete rolling back, a selection made while a delete
+// is in flight surviving it, and clicks on the confirmation's own prompt text
+// being inert. The gallery reads/writes run for real against MSW on a fresh RTK
+// Query store per test, with the gallery cache-sync rules registered so a
+// delete splices the tile out of the cached page.
 import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -196,6 +199,102 @@ describe("GalleryPicker", () => {
 
     expect(deleted).toEqual([]);
     expect(await tile("Sunset")).toHaveAttribute("aria-pressed", "true");
+    expect(deleteBtn()).toBeEnabled();
+  });
+
+  it("inserts on a second Enter without ever reaching the Insert button", async () => {
+    const user = userEvent.setup();
+    const { onPick } = renderPicker();
+
+    const sunsetTile = await tile("Sunset");
+    sunsetTile.focus();
+    await user.keyboard("{Enter}");
+
+    expect(sunsetTile).toHaveAttribute("aria-pressed", "true");
+    expect(onPick).not.toHaveBeenCalled();
+
+    await user.keyboard("{Enter}");
+
+    expect(onPick).toHaveBeenCalledTimes(1);
+    expect(onPick).toHaveBeenCalledWith(sunset.image);
+  });
+
+  it("ignores clicks on the delete confirmation's prompt text", async () => {
+    const user = userEvent.setup();
+    renderPicker();
+
+    await user.click(await tile("Sunset"));
+    await user.click(deleteBtn());
+
+    // The prompt is a bare <span role="status">, not a button — clicking the
+    // very question must not silently answer it by clearing the selection.
+    await user.click(screen.getByRole("status"));
+
+    expect(screen.getByRole("button", { name: "Confirm delete" })).toBeInTheDocument();
+    expect(await tile("Sunset")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("reports a failed delete and puts the image back, staying open", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.delete(`${apiBaseUrl}/api/galleries/g1/images/:imageId`, () =>
+        HttpResponse.json({ detail: "Image is still in use." }, { status: 409 }),
+      ),
+    );
+    const { onPick, onClose } = renderPicker();
+
+    await user.click(await tile("Sunset"));
+    await user.click(deleteBtn());
+    await user.click(screen.getByRole("button", { name: "Confirm delete" }));
+
+    expect(await screen.findByText("Image is still in use.")).toBeInTheDocument();
+    // The optimistic splice rolled back: both tiles are present, the target is
+    // still selected, and the confirmation stays armed for a retry.
+    expect(await tile("Sunset")).toHaveAttribute("aria-pressed", "true");
+    expect(await tile("Harbour")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm delete" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+    expect(deleted).toEqual([]);
+    expect(onPick).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps a selection made while a delete is still in flight", async () => {
+    const user = userEvent.setup();
+    let release = () => {
+      /* replaced below */
+    };
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.delete(
+        `${apiBaseUrl}/api/galleries/g1/images/:imageId`,
+        async ({ params }) => {
+          await gate;
+          deleted.push(String(params.imageId));
+          return new HttpResponse(null, { status: 204 });
+        },
+      ),
+    );
+    renderPicker();
+
+    await user.click(await tile("Sunset"));
+    await user.click(deleteBtn());
+    await user.click(screen.getByRole("button", { name: "Confirm delete" }));
+
+    // Nothing disables the grid mid-delete, so move the selection on before the
+    // server answers; the resolution must not stomp it.
+    await user.click(await tile("Harbour"));
+    expect(await tile("Harbour")).toHaveAttribute("aria-pressed", "true");
+
+    release();
+    await waitFor(() => {
+      expect(deleted).toEqual(["gi-1"]);
+    });
+
+    expect(await tile("Harbour")).toHaveAttribute("aria-pressed", "true");
+    expect(insertBtn()).toBeEnabled();
     expect(deleteBtn()).toBeEnabled();
   });
 });

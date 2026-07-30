@@ -1,7 +1,8 @@
 // Behavioural tests for the Gallery tab's two interaction modes: the two-step
 // selection the image picker opts into (single click selects, double click
-// picks) and the legacy click-to-pick the AvatarPicker still relies on. The
-// listImages read runs for real against MSW on a fresh RTK Query store per test.
+// picks, Enter on the selected tile picks) and the legacy click-to-pick the
+// AvatarPicker still relies on, where Enter picks in one step. The listImages
+// read runs for real against MSW on a fresh RTK Query store per test.
 import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -127,6 +128,29 @@ describe("GalleryTab", () => {
     expect(onPick).toHaveBeenCalledWith(sunset.image);
   });
 
+  it("selects on Enter and picks on a second Enter", async () => {
+    const user = userEvent.setup();
+    const { onPick, onSelect } = renderTab();
+
+    (await tile("Sunset")).focus();
+    await user.keyboard("{Enter}");
+
+    expect(onSelect).toHaveBeenCalledWith(sunset);
+    expect(onPick).not.toHaveBeenCalled();
+  });
+
+  it("picks with Enter on the already-selected tile rather than deselecting", async () => {
+    const user = userEvent.setup();
+    const { onPick, onSelect } = renderTab({ selectedId: "gi-1" });
+
+    (await tile("Sunset")).focus();
+    await user.keyboard("{Enter}");
+
+    expect(onPick).toHaveBeenCalledTimes(1);
+    expect(onPick).toHaveBeenCalledWith(sunset.image);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it("picks on a single click when selection mode is off", async () => {
     const user = userEvent.setup();
     const { onPick } = renderTab({ selectable: false });
@@ -136,6 +160,17 @@ describe("GalleryTab", () => {
     expect(sunsetTile).not.toHaveAttribute("aria-pressed");
 
     await user.click(sunsetTile);
+
+    expect(onPick).toHaveBeenCalledTimes(1);
+    expect(onPick).toHaveBeenCalledWith(sunset.image);
+  });
+
+  it("picks on a single Enter when selection mode is off", async () => {
+    const user = userEvent.setup();
+    const { onPick } = renderTab({ selectable: false });
+
+    (await tile("Sunset")).focus();
+    await user.keyboard("{Enter}");
 
     expect(onPick).toHaveBeenCalledTimes(1);
     expect(onPick).toHaveBeenCalledWith(sunset.image);

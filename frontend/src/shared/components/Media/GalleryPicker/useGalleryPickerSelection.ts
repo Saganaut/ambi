@@ -33,19 +33,33 @@ interface GalleryPickerSelection {
   confirmDelete: () => Promise<void>;
 }
 
+/**
+ * Which tile is selected and whether its deletion is armed. The two are held in
+ * one state object rather than two `useState`s because they always have to move
+ * together: the grid stays live during a delete round-trip, so the resolution
+ * has to decide "is the user still pointed at the image I deleted?" and answer
+ * for both fields at once — two independent setters can't read each other's
+ * pending value and would stomp a selection made mid-flight.
+ */
+interface SelectionState {
+  image: GalleryImageResponse | null;
+  isConfirmingDelete: boolean;
+}
+
+const NO_SELECTION: SelectionState = { image: null, isConfirmingDelete: false };
+
 const useGalleryPickerSelection = (
   galleryId?: string,
 ): GalleryPickerSelection => {
-  const [selected, setSelected] = useState<GalleryImageResponse | null>(null);
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [state, setState] = useState<SelectionState>(NO_SELECTION);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [removeImage, { isLoading: isDeleting }] = useRemoveImageMutation();
+  const { image: selected, isConfirmingDelete } = state;
 
   // Any change of selection retires a pending confirmation and its error, so
   // the footer can never offer to delete an image the user has moved on from.
   const select = useCallback((image: GalleryImageResponse | null) => {
-    setSelected(image);
-    setIsConfirmingDelete(false);
+    setState({ image, isConfirmingDelete: false });
     setDeleteError(null);
   }, []);
 
@@ -54,22 +68,31 @@ const useGalleryPickerSelection = (
   }, [select]);
 
   const requestDelete = useCallback(() => {
-    setIsConfirmingDelete(true);
+    setState((prev) =>
+      prev.image ? { ...prev, isConfirmingDelete: true } : prev,
+    );
     setDeleteError(null);
   }, []);
 
   const cancelDelete = useCallback(() => {
-    setIsConfirmingDelete(false);
+    setState((prev) => ({ ...prev, isConfirmingDelete: false }));
   }, []);
 
   const confirmDelete = useCallback(async () => {
     if (!galleryId || !selected) return;
+    const deletedId = selected.id;
     setDeleteError(null);
     try {
-      await removeImage({ id: galleryId, imageId: selected.id }).unwrap();
-      setSelected(null);
-      setIsConfirmingDelete(false);
+      await removeImage({ id: galleryId, imageId: deletedId }).unwrap();
+      // Nothing disables the grid while the request is in flight, so by the
+      // time it resolves the user may have selected — and even armed a delete
+      // on — a different tile. Only retire the selection when it's still the
+      // image that just went away.
+      setState((prev) => (prev.image?.id === deletedId ? NO_SELECTION : prev));
     } catch (err: unknown) {
+      // The confirmation stays armed on failure so the user can retry or
+      // cancel, and the message stands even if they've moved on — the delete
+      // really did fail and the tile really did come back.
       setDeleteError(extractErrorMessage(err, "Failed to delete image."));
     }
   }, [galleryId, selected, removeImage]);

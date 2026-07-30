@@ -7,7 +7,15 @@
 //     by the AvatarPicker, whose gallery tab has no contextual action bar.
 //   • two-step selection (pass onSelect) — a single click only *selects* the
 //     tile, so the parent can offer Insert/Delete against it; a double-click is
-//     the power-user fast path that picks immediately.
+//     the power-user fast path that picks immediately, and re-clicking the
+//     selected tile deselects it.
+//
+// Keyboard parity for the two-step mode: activating a tile with Enter/Space
+// selects it, and activating the *already-selected* tile picks it — the
+// keyboard twin of the double-click fast path. Without that, the only route
+// from a focused tile to the parent's Insert button would be tabbing past every
+// remaining tile in the grid. Keyboard activation is told apart from a mouse
+// click by `event.detail`, which is 0 for Enter/Space and ≥1 for a real click.
 import { useMemo, useState } from "react";
 import CheckIcon from "@assets/icons/status/check-solid.svg?react";
 import { Input } from "@components/Forms/Input/Input/Input";
@@ -36,7 +44,8 @@ interface GalleryTabProps {
   /**
    * Opt into two-step selection. When supplied, a single click selects the tile
    * (re-clicking the selected one reports null to deselect) instead of picking,
-   * and only a double-click fires `onPick`. Omit it for click-to-pick.
+   * and only a double-click — or Enter/Space on the already-selected tile —
+   * fires `onPick`. Omit it for click-to-pick.
    */
   onSelect?: (image: GalleryImageResponse | null) => void;
 }
@@ -95,16 +104,31 @@ const GalleryTab = ({
         // mode the tile is a plain action button and carries no pressed state.
         aria-pressed={selectable ? isSelected : undefined}
         onClick={(event) => {
-          // The second click of a double-click would otherwise toggle the
-          // selection straight back off; leave it alone and let onDoubleClick
-          // do the picking.
-          if (selectable && event.detail > 1) return;
           if (!onSelect) {
             onPick(img.image);
             return;
           }
+          // Enter/Space report detail 0. Activating an already-selected tile
+          // from the keyboard picks it, mirroring the double-click fast path;
+          // deselecting stays a mouse gesture (re-click, or click off the
+          // grid), so no keystroke can silently disarm the footer's actions.
+          if (event.detail === 0) {
+            if (isSelected) onPick(img.image);
+            else onSelect(img);
+            return;
+          }
+          // The second click of a double-click would otherwise toggle the
+          // selection straight back off; leave it alone and let onDoubleClick
+          // do the picking.
+          if (event.detail > 1) return;
           onSelect(isSelected ? null : img);
         }}
+        // Double-clicking a tile that was *already* selected shows a brief
+        // deselect: the first click toggles it off before `dblclick` fires.
+        // Nothing in the event stream says a second click is coming, so the
+        // only way to suppress it would be to defer every toggle behind a
+        // double-click timer — machinery this codebase has no precedent for,
+        // for a flicker that ends with the picker closing anyway.
         onDoubleClick={
           selectable
             ? () => {
