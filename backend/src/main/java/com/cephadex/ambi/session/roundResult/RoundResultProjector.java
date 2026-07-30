@@ -54,4 +54,13 @@ public class RoundResultProjector {
     public List<RoundResult> all(String sessionId) {
         return roundResults.findByIdSid(sessionId);
     }
+
+    /**
+     * The round's durably flushed answers — the fallback when Redis has aged out.
+     * Empty until the round is closed and scored ({@link #persist} is what flushes
+     * them), so a still-open round reads its answers from the Redis store instead.
+     */
+    public List<Answer> answersOf(String sessionId, String slideId) {
+        return answers.findBySessionIdAndSlideId(sessionId, slideId);
+    }
 }

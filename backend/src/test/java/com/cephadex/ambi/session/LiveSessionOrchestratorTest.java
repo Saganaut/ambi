@@ -43,9 +43,13 @@ import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
+import com.cephadex.ambi.presentation.slide.content.TextContent;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.presentation.slide.enums.Tool;
 import com.cephadex.ambi.session.answer.Answer;
@@ -76,6 +80,7 @@ import com.cephadex.ambi.session.event.TimerPaused;
 import com.cephadex.ambi.session.event.TimerResumed;
 import com.cephadex.ambi.session.event.VoteCast;
 import com.cephadex.ambi.session.event.VotingOpened;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -84,6 +89,7 @@ import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.DeadlineStore;
+import com.cephadex.ambi.session.redis.FollowUpOptionStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
@@ -109,6 +115,10 @@ class LiveSessionOrchestratorTest {
     private static final String SID = "session-1";
     private static final String SLIDE = "slide-1";
     private static final String PUB = "pub-1";
+    /** The parent of the follow-up pair the follow-up tests navigate. */
+    private static final String PARENT = "parent-1";
+    /** The follow-up attached to {@link #PARENT}. */
+    private static final String CHILD = "child-1";
 
     private LiveSessionRepository repo;
     private ParticipantRepository participants;
@@ -118,6 +128,7 @@ class LiveSessionOrchestratorTest {
     private AnswerStore answerStore;
     private VoteStore voteStore;
     private QAndAHostAnswerStore qandaHostAnswers;
+    private FollowUpOptionStore followUpOptions;
     private EventPublisher publisher;
     private RoundResultProjector roundResults;
     private ImageUrlResolver imageUrls;
@@ -137,6 +148,7 @@ class LiveSessionOrchestratorTest {
         voteStore = mock(VoteStore.class);
         presenceStore = mock(PresenceStore.class);
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
+        followUpOptions = mock(FollowUpOptionStore.class);
         publisher = mock(EventPublisher.class);
         roundResults = mock(RoundResultProjector.class);
         imageUrls = mock(ImageUrlResolver.class);
@@ -153,8 +165,8 @@ class LiveSessionOrchestratorTest {
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
-                tallyStore, voteStore, presenceStore, qandaHostAnswers, publisher, roundResults, imageUrls, storage,
-                codec, deadlines, new SessionRedisProperties());
+                tallyStore, voteStore, presenceStore, qandaHostAnswers, followUpOptions, publisher, roundResults,
+                imageUrls, storage, codec, deadlines, new SessionRedisProperties());
     }
 
     private void stubPhase(RoundPhase phase) {
@@ -1146,6 +1158,242 @@ class LiveSessionOrchestratorTest {
 
         assertThat(opened.getId()).isEqualTo("s1");
         assertThat(publishedEvent()).isInstanceOf(RoundStarted.class);
+    }
+
+    // ── Follow-up rounds (B3) ────────────────────────────────────────────────
+
+    /**
+     * A TEXT parent linked to its follow-up. Built on a <em>real</em> {@link Deck}
+     * (the sibling fixtures mock it) so the parent/child link is validated exactly
+     * as it is at runtime — both back-pointers plus {@code FollowUpContent} — and
+     * the snapshot order is the authored one.
+     */
+    private LiveSession followUpSession(String... trailingSlideIds) {
+        Slide parent = slideWithId(PARENT);
+        parent.setSortOrder("a");
+        parent.setContent(new TextContent(Set.of(), MatchMode.EXACT, false, true, null));
+        parent.setChildId(CHILD);
+        Slide child = slideWithId(CHILD);
+        child.setSortOrder("b");
+        child.setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        child.setParentId(PARENT);
+
+        Deck deck = new Deck();
+        deck.addSlide(parent);
+        deck.addSlide(child);
+        char rank = 'c';
+        for (String id : trailingSlideIds) {
+            Slide trailing = slideWithId(id);
+            trailing.setSortOrder(String.valueOf(rank++));
+            deck.addSlide(trailing);
+        }
+
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        return session;
+    }
+
+    /** One submission of the parent round, at a fixed instant so minting is deterministic. */
+    private static Answer parentAnswer(String participantId, String text) {
+        Answer answer = new Answer();
+        answer.setParticipantId(participantId);
+        answer.setSessionId(SID);
+        answer.setSlideId(PARENT);
+        answer.setSubmittedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        answer.setPayload(new TextAnswer(text));
+        return answer;
+    }
+
+    private FollowUpOptionSet savedCandidates(String slideId) {
+        ArgumentCaptor<FollowUpOptionSet> captor = ArgumentCaptor.forClass(FollowUpOptionSet.class);
+        verify(followUpOptions).save(eq(SID), eq(slideId), captor.capture());
+        return captor.getValue();
+    }
+
+    /** The parent round is scored, so its follow-up is playable. */
+    private void stubScoredParent() {
+        Slide parent = slideWithId(PARENT);
+        when(roundResults.find(SID, PARENT))
+                .thenReturn(Optional.of(RoundResult.compute(SID, parent, List.of(), Instant.now())));
+    }
+
+    @Test
+    void openingAFollowUpSnapshotsTheCandidatesMintedFromTheParentRound() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of(parentAnswer("p-1", "Paris")));
+
+        orchestrator.startRound(SID, CHILD);
+
+        assertThat(savedCandidates(CHILD).options()).singleElement().satisfies(option -> {
+            assertThat(option.text()).isEqualTo("Paris");
+            assertThat(option.authorParticipantIds()).containsExactly("p-1");
+        });
+        // The board must exist before the round is announced: the snapshot is
+        // written ahead of the publish, never after it.
+        InOrder inOrder = inOrder(followUpOptions, publisher);
+        inOrder.verify(followUpOptions).clear(SID, CHILD);
+        inOrder.verify(followUpOptions).save(eq(SID), eq(CHILD), any());
+        inOrder.verify(publisher).publish(eq(PUB), any());
+    }
+
+    @Test
+    void openingAFollowUpFallsBackToTheDurableParentAnswersWhenRedisIsEmpty() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+        // The parent's Redis answers aged out under the session TTL; the flushed
+        // Mongo copy is what the candidates are minted from.
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of());
+        when(roundResults.answersOf(SID, PARENT)).thenReturn(List.of(parentAnswer("p-2", "Berlin")));
+
+        orchestrator.startRound(SID, CHILD);
+
+        assertThat(savedCandidates(CHILD).options()).singleElement()
+                .satisfies(option -> assertThat(option.text()).isEqualTo("Berlin"));
+    }
+
+    @Test
+    void openingAParentClearsItsFollowUpChildsRoundState() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        orchestrator.startRound(SID, PARENT);
+
+        // Replaying a parent replays the pair: the child's stale board must not
+        // stay addressable behind the re-run parent.
+        verify(answerStore).clear(SID, CHILD);
+        verify(tallyStore).clear(SID, CHILD);
+        verify(voteStore).clear(SID, CHILD);
+        verify(followUpOptions).clear(SID, CHILD);
+        // The parent is not itself a follow-up — nothing is minted for it.
+        verify(followUpOptions, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void revealResultsOnAParentWithAFollowUpIsBlocked() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        assertThatThrownBy(() -> orchestrator.revealResults(SID, PARENT))
+                .isInstanceOf(ConflictException.class)
+                .satisfies(e -> assertThat(((ConflictException) e).getCode())
+                        .isEqualTo("REVEAL_BLOCKED_BY_FOLLOW_UP"));
+
+        // Rejected before any write: the parent's results are the follow-up's to
+        // present, so the round is left exactly where it was.
+        verify(roundStateStore, never()).save(any(), any());
+        verify(roundResults, never()).persist(any(), any(), any());
+        verify(deadlines, never()).cancel(any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void revealResultsOnTheFollowUpItselfSucceeds() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, CHILD, Instant.now(), null, null, 0L, false)));
+        Slide child = slideWithId(CHILD);
+        when(roundResults.find(SID, CHILD))
+                .thenReturn(Optional.of(RoundResult.compute(SID, child, List.of(), Instant.now())));
+
+        orchestrator.revealResults(SID, CHILD);
+
+        assertThat(savedState().phase()).isEqualTo(RoundPhase.REVEAL_RESULTS);
+        ResultsRevealed event = (ResultsRevealed) publishedEvent();
+        assertThat(event.slideId()).isEqualTo(CHILD);
+    }
+
+    @Test
+    void advanceFromAScoredParentOpensTheFollowUpWithMintedCandidates() {
+        followUpSession();
+        stubScoredParent();
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of(parentAnswer("p-1", "Paris")));
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo(CHILD);
+        assertThat(savedCandidates(CHILD).options()).hasSize(1);
+        assertThat(publishedEvent()).isInstanceOf(RoundStarted.class);
+    }
+
+    @Test
+    void advanceSkipsAFollowUpWhoseParentWasNeverScored() {
+        followUpSession("s3");
+        // No RoundResult for the parent — the follow-up has nothing to build on.
+        when(roundResults.find(SID, PARENT)).thenReturn(Optional.empty());
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo("s3");
+        verify(followUpOptions, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void advanceSkipsAFollowUpThatMintsNoCandidates() {
+        followUpSession("s3");
+        stubScoredParent();
+        // Scored, but nobody submitted anything votable — an empty board is worse
+        // than no board.
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of());
+        when(roundResults.answersOf(SID, PARENT)).thenReturn(List.of());
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo("s3");
+        verify(followUpOptions, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void advancePastASkippedTerminalFollowUpEndsTheDeck() {
+        followUpSession(); // the follow-up is the last slide of the snapshot
+        when(roundResults.find(SID, PARENT)).thenReturn(Optional.empty());
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        // Skipping off the end is an exhausted snapshot like any other — null,
+        // no round opened, nothing published.
+        assertThat(orchestrator.advance(SID)).isNull();
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void restartingAFollowUpReMintsItsCandidates() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of(parentAnswer("p-1", "Paris")));
+
+        orchestrator.restartRound(SID, CHILD);
+
+        // The mint is deterministic, so the re-run board is the same board — but it
+        // is re-snapshotted rather than left behind.
+        InOrder inOrder = inOrder(followUpOptions);
+        inOrder.verify(followUpOptions).clear(SID, CHILD);
+        inOrder.verify(followUpOptions).save(eq(SID), eq(CHILD), any());
+        assertThat(savedCandidates(CHILD).options()).hasSize(1);
+    }
+
+    @Test
+    void endingTheSessionClearsFollowUpCandidatesForEverySlide() {
+        LiveSession session = followUpSession();
+        when(session.isTerminal()).thenReturn(false);
+        when(session.getRoster()).thenReturn(List.of());
+        when(participants.findAllById(any())).thenReturn(List.of());
+
+        orchestrator.endLiveSession(SID);
+
+        verify(followUpOptions).clear(SID, PARENT);
+        verify(followUpOptions).clear(SID, CHILD);
     }
 
     @Test

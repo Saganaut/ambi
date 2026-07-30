@@ -107,5 +107,16 @@ answer path — submit, live tally (`AnswerTallyKeys`), and
 round's own free-text submissions. A pick is re-castable until the round
 closes (the answer service zeroes `maxSelections` for it) and grades a
 permanent `false` in `RoundEvaluator.isCorrect`, since v1 has no answer key.
-What's still missing is the host/participant runtime wiring: opening a
-follow-up round off its resolved parent and the board UI.
+
+`LiveSessionOrchestrator` wires the round itself. Opening a follow-up
+snapshots its candidates first — minted from the parent round's answers (Redis,
+falling back to the flushed Mongo copy) and saved to `FollowUpOptionStore`
+before the round-started event is published. Opening the *parent* is a replay of
+the pair, so the child's per-round Redis state is cleared with it. The parent
+never reveals: `revealResults` on a slide with an attached follow-up is rejected
+(`409 REVEAL_BLOCKED_BY_FOLLOW_UP`) — the host closes it and advances, and the
+follow-up round is where the parent's results are presented. Navigation skips a
+follow-up that can't be played (parent never scored, or its submissions mint no
+candidates) rather than opening an empty board, while `goTo` still rejects the
+named slide outright (`409 PARENT_ROUND_NOT_SCORED`). What's still missing is
+carrying the candidates on the round event and the board UI.

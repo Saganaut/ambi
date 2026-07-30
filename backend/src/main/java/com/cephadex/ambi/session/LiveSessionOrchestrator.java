@@ -46,6 +46,8 @@ import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.VoteOptionView;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
+import com.cephadex.ambi.session.followUp.FollowUpOptions;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -54,6 +56,7 @@ import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.DeadlineStore;
+import com.cephadex.ambi.session.redis.FollowUpOptionStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
@@ -86,23 +89,29 @@ import com.cephadex.ambi.user.Avatar;
  *
  * <h2>Round phases</h2>
  * A standalone slide runs {@code SUBMIT → REVEAL_RESPONSES → REVEAL_RESULTS}. A
- * linked parent/child slide pair runs the parent through
- * {@code SUBMIT → REVEAL_RESPONSES}, advances into the child round, and only then
- * shows the combined {@code REVEAL_RESULTS}; a parent is never taken straight to
- * results. Whether a round is a follow-up is resolved statelessly from
- * {@link Slide#getParentId()} on the open slide — nothing extra is carried in
- * {@link LiveRoundState}. A best-answer/deception round instead runs
- * {@code SUBMIT → VOTE → REVEAL_RESULTS} (D3): {@link #openVoting} closes
- * submissions <em>without scoring</em> and collects votes, which fold into the
- * scoring that then runs on the reveal transition.
+ * follow-up child is a <strong>regular round of its own</strong> — same
+ * {@code SUBMIT → … → REVEAL_RESULTS} run, with the candidates minted from its
+ * parent's submissions when it opens and the participant's pick travelling the
+ * ordinary answer path. Its parent therefore stops at
+ * {@code SUBMIT → REVEAL_RESPONSES} and advances into the child without ever
+ * revealing: a reveal on a parent is rejected
+ * ({@code REVEAL_BLOCKED_BY_FOLLOW_UP}), because the follow-up round is where the
+ * parent's results are presented. Whether a round is a follow-up is resolved
+ * statelessly from the deck snapshot's validated link ({@link Deck#isAttachedFollowUp})
+ * — nothing extra is carried in {@link LiveRoundState}. The separate {@code VOTE}
+ * phase is unrelated: a best-answer/deception round runs
+ * {@code SUBMIT → VOTE → REVEAL_RESULTS} (D3), where {@link #openVoting} closes
+ * submissions <em>without scoring</em> and collects votes on the round's own
+ * free-text submissions, which fold into the scoring that then runs on the reveal
+ * transition.
  *
  * <p><strong>Status:</strong> the full orchestrator surface is wired — session
  * lifecycle, roster, presence/reconnect, the round lifecycle (open → close+score →
- * reveal), best-answer/deception voting (D3), server-owned navigation, and the
- * auto-close round timers of ADR 002 (deadlines in a Redis ZSET drained by
- * {@link DeadlineScheduler}, pause/resume, and the host-disconnect grace policy).
- * The one remaining deferred seam (combined follow-up reveal, B3) is noted at its
- * call site in {@link #revealResults}.
+ * reveal), best-answer/deception voting (D3), server-owned navigation including
+ * the follow-up auto-skip, and the auto-close round timers of ADR 002 (deadlines
+ * in a Redis ZSET drained by {@link DeadlineScheduler}, pause/resume, and the
+ * host-disconnect grace policy). The one remaining deferred seam (combined
+ * follow-up reveal, B3) is noted at its call site in {@link #revealResults}.
  */
 @Service
 public class LiveSessionOrchestrator {
@@ -118,6 +127,7 @@ public class LiveSessionOrchestrator {
     private final VoteStore voteStore;
     private final PresenceStore presenceStore;
     private final QAndAHostAnswerStore qandaHostAnswers;
+    private final FollowUpOptionStore followUpOptions;
     private final EventPublisher publisher;
     private final RoundResultProjector roundResults;
     private final ImageUrlResolver imageUrls;
@@ -155,8 +165,8 @@ public class LiveSessionOrchestrator {
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
             VoteStore voteStore, PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers,
-            EventPublisher publisher, RoundResultProjector roundResults, ImageUrlResolver imageUrls,
-            S3StorageService storage, RedisJsonCodec codec, DeadlineStore deadlines,
+            FollowUpOptionStore followUpOptions, EventPublisher publisher, RoundResultProjector roundResults,
+            ImageUrlResolver imageUrls, S3StorageService storage, RedisJsonCodec codec, DeadlineStore deadlines,
             SessionRedisProperties redisProps) {
         this.repo = repo;
         this.participants = participants;
@@ -167,6 +177,7 @@ public class LiveSessionOrchestrator {
         this.voteStore = voteStore;
         this.presenceStore = presenceStore;
         this.qandaHostAnswers = qandaHostAnswers;
+        this.followUpOptions = followUpOptions;
         this.publisher = publisher;
         this.roundResults = roundResults;
         this.imageUrls = imageUrls;
@@ -184,6 +195,16 @@ public class LiveSessionOrchestrator {
      */
     private String slideItemImageUrl(AppImage image) {
         return imageUrls.displayUrl(image, ImageSizeOptions.MD);
+    }
+
+    /**
+     * Resolves a follow-up candidate's image to the URL its board renders — LG,
+     * the same tier {@link #votableOption} and {@link #drawingSubmissions} use,
+     * because a candidate minted from a drawing is the submitted drawing itself
+     * and the follow-up board projects.
+     */
+    private String followUpCandidateImageUrl(AppImage image) {
+        return imageUrls.displayUrl(image, ImageSizeOptions.LG);
     }
 
     // ── Session lifecycle ────────────────────────────────────────────────────
@@ -1000,20 +1021,19 @@ public class LiveSessionOrchestrator {
      * published — and scoring still runs exactly once, on the open→closed
      * transition, so a round already closed at its own close is not re-scored.
      *
-     * <p>For a follow-up child round ({@link Slide#getParentId()} present) the
-     * combined parent+child results are assembled from the deck snapshot + persisted
-     * results; a slide with a {@code childId} reveals into its child first via
-     * {@link #advance} (open-decisions B3).
+     * <p><strong>A parent with an attached follow-up is never taken to results</strong>
+     * (open-decisions B3): its results are what the follow-up round presents, so a
+     * reveal on the parent is rejected with {@code REVEAL_BLOCKED_BY_FOLLOW_UP}
+     * before anything is written or published — the host closes the parent and
+     * advances into the child instead.
      *
      * <p>Publishes the {@link RoundResult} already scored at close (this method never
      * re-scores). {@code terminal} is set when this is the last round of the deck
      * snapshot, the cue for the final podium.
      *
-     * <p>Combined parent+child results for a follow-up round are a seam: the
+     * <p>Combined parent+child results for a follow-up round remain a seam: the
      * {@code resultsRevealed} factory takes a single record, so v1 publishes the
-     * child's own result (open-decisions B3). The parent-side half of that rule — a
-     * parent with an attached follow-up is never taken straight to results — is
-     * documented intent, not yet enforced here; it lands with the combined reveal.
+     * child's own result (open-decisions B3).
      *
      * <p>A round that closed with no persisted {@link RoundResult} (Redis round state
      * drifted from the results store) still publishes — an empty-payload
@@ -1037,6 +1057,18 @@ public class LiveSessionOrchestrator {
             // current slide is already known to the deck snapshot (validated when the
             // round opened), so this is the last resolution here that can fail.
             LiveSession session = requireSession(sessionId);
+
+            // A parent whose follow-up presents its results has no reveal of its own
+            // (B3). Rejected here — after the round-match check, before any write or
+            // publish — so a mis-clicked reveal leaves the round exactly as it was
+            // and the host can close and advance into the child instead. The lookup
+            // is tolerant (attachedFollowUp treats a null slide as unlinked): a slide
+            // missing from the snapshot simply isn't a parent.
+            Deck deck = session.getDeck();
+            if (deck.attachedFollowUp(deck.findSlide(slideId).orElse(null)).isPresent()) {
+                throw new ConflictException("REVEAL_BLOCKED_BY_FOLLOW_UP",
+                        "this slide's results are shown by its follow-up round — close it and advance instead");
+            }
 
             // Revealing results also closes an open round: score it once here, on
             // the transition out of the two not-yet-scored states — open, or VOTE
@@ -1241,6 +1273,12 @@ public class LiveSessionOrchestrator {
      * the phase entered: {@code RoundRestarted} on a restart, else
      * {@code LiveResultsShown} (opened live) or {@code RoundStarted} (opened hidden).
      *
+     * <p>A follow-up round additionally snapshots its candidates here — minted
+     * from the parent round's submissions and saved <em>before</em> the publish, so
+     * the set the board votes on exists as soon as the round is announced. Opening
+     * the other side of a pair (a parent that has a follow-up) is a replay of the
+     * pair and clears the child's round state with it.
+     *
      * @return the slide the round opened on
      */
     private Slide openRoundUnlocked(LiveSession session, Slide slide, boolean restart) {
@@ -1253,12 +1291,22 @@ public class LiveSessionOrchestrator {
         // together. Clearing the tally while answers survived a reopen let the
         // resubmit reconciliation decrement an emptied hash, publishing zero or
         // negative counts (see TallyStore.decrement's ≥ 0 invariant).
-        tallyStore.clear(sessionId, slideId);
-        voteStore.clear(sessionId, slideId);
-        answerStore.clear(sessionId, slideId);
-        qandaHostAnswers.clear(sessionId, slideId);
+        clearRoundRedis(sessionId, slideId);
+        Deck deck = session.getDeck();
+        if (deck.isAttachedFollowUp(slide)) {
+            // Snapshot the candidates the moment the round opens, before anything is
+            // published: the board votes on this exact set, so it must be readable
+            // by every consumer of the round-started event — including the event
+            // itself, which will carry it.
+            followUpOptions.save(sessionId, slideId, mintFollowUpOptions(session, slide));
+        }
+        // Opening a slide that HAS a follow-up is a replay of the pair: the child's
+        // round state from the previous run goes with it. The child re-mints its
+        // candidates on its own open anyway, so this is hygiene — it stops a
+        // replayed parent from leaving a stale, still-addressable child board behind.
+        deck.attachedFollowUp(slide).ifPresent(child -> clearRoundRedis(sessionId, child.getId()));
         Settings.AnswerSettings effectiveAnswer =
-                Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
+                Settings.effectiveAnswerSettings(deck.getSettings(), slide.getSettings());
         LiveRoundState started = current.startedRound(slideId, Instant.now(), phase,
                 timerDurationMs(effectiveAnswer));
         roundStateStore.save(sessionId, started);
@@ -1284,6 +1332,61 @@ public class LiveSessionOrchestrator {
         }
         publisher.publish(session.getPublicId(), event);
         return slide;
+    }
+
+    /**
+     * Drops every per-slide Redis key of one round — answers, tally, votes, Q&amp;A
+     * host answers, and the follow-up candidate snapshot. The set is identical
+     * wherever a round's live state has to go (an open/reopen, the sibling child
+     * of a replayed parent, session teardown), so it lives here rather than being
+     * spelled out three times and drifting when a store is added.
+     */
+    private void clearRoundRedis(String sessionId, String slideId) {
+        answerStore.clear(sessionId, slideId);
+        tallyStore.clear(sessionId, slideId);
+        voteStore.clear(sessionId, slideId);
+        qandaHostAnswers.clear(sessionId, slideId);
+        followUpOptions.clear(sessionId, slideId);
+    }
+
+    /**
+     * The answers a parent round collected, as the follow-up's candidates are
+     * minted from them: the Redis copy first, falling back to the durable one.
+     * Redis holds a round's answers from its open until the session ends — only a
+     * replay of that same round clears them — while the Mongo copy exists from the
+     * moment the round was closed and scored ({@code RoundResultProjector.persist}
+     * flushes it). So the fallback covers the snapshot having aged out under its
+     * TTL on a long-running session, and the Redis read covers a parent that
+     * somehow reaches the follow-up unscored.
+     */
+    private List<Answer> parentAnswers(String sessionId, String parentId) {
+        List<Answer> live = answerStore.answers(sessionId, parentId);
+        return live.isEmpty() ? roundResults.answersOf(sessionId, parentId) : live;
+    }
+
+    /**
+     * Mints the candidate set for {@code followUpSlide} from its parent round's
+     * submissions. The caller must have established that the slide is a valid
+     * attached follow-up ({@link Deck#isAttachedFollowUp}), so its parent id is
+     * present and resolves against the same snapshot.
+     */
+    private FollowUpOptionSet mintFollowUpOptions(LiveSession session, Slide followUpSlide) {
+        String parentId = followUpSlide.getParentId();
+        Slide parent = session.getDeck().findSlide(parentId).orElse(null);
+        return FollowUpOptions.mint(parent, parentAnswers(session.getId(), parentId),
+                this::followUpCandidateImageUrl);
+    }
+
+    /**
+     * Whether a follow-up round has anything to play: its parent round is scored
+     * (the same fact {@link #goTo} rejects on) <em>and</em> its parent's
+     * submissions mint at least one candidate. Used by {@link #resolveNextSlide}'s
+     * auto-skip — a follow-up that fails either test is stepped over rather than
+     * opened as an empty board.
+     */
+    private boolean followUpPlayable(LiveSession session, Slide slide) {
+        return roundResults.find(session.getId(), slide.getParentId()).isPresent()
+                && !mintFollowUpOptions(session, slide).options().isEmpty();
     }
 
     /**
@@ -1378,24 +1481,45 @@ public class LiveSessionOrchestrator {
      * the snapshot is exhausted. Because {@code Deck.addFollowUp} places a child
      * immediately after its parent, plain "next in sorted order" already yields the
      * parent→child step and then the slide after the child (open-decisions B3).
+     *
+     * <p><strong>Unplayable follow-ups are skipped.</strong> A follow-up whose
+     * parent round was never played (so never scored) or whose parent's submissions
+     * mint no candidates has nothing to put on a board, so navigation steps over it
+     * to the slide after — running off the end if it was the last, which ends the
+     * deck exactly as an exhausted snapshot does. The skip is deliberately silent:
+     * only {@link #goTo}, where the host named the slide, rejects the same
+     * situation outright ({@code PARENT_ROUND_NOT_SCORED}).
      */
     private Slide resolveNextSlide(LiveSession session, String currentSlideId) {
         List<Slide> ordered = session.getDeck().getSlides().stream()
                 .sorted(SlideRankService.ordering())
                 .toList();
-        if (ordered.isEmpty()) {
-            return null;
+        Deck deck = session.getDeck();
+        for (int i = nextIndex(ordered, currentSlideId); i < ordered.size(); i++) {
+            Slide candidate = ordered.get(i);
+            if (!deck.isAttachedFollowUp(candidate) || followUpPlayable(session, candidate)) {
+                return candidate;
+            }
         }
+        return null;
+    }
+
+    /**
+     * Where {@link #resolveNextSlide} starts looking: the position after
+     * {@code currentSlideId}, or the head of the deck when no round has opened yet
+     * — or when the current slide isn't in the snapshot at all (shouldn't happen;
+     * starting over beats stalling).
+     */
+    private static int nextIndex(List<Slide> ordered, String currentSlideId) {
         if (currentSlideId == null) {
-            return ordered.get(0);
+            return 0;
         }
         for (int i = 0; i < ordered.size(); i++) {
             if (currentSlideId.equals(ordered.get(i).getId())) {
-                return i + 1 < ordered.size() ? ordered.get(i + 1) : null;
+                return i + 1;
             }
         }
-        // Current slide not found in the snapshot (shouldn't happen) — start over.
-        return ordered.get(0);
+        return 0;
     }
 
     /** Whether {@code slideId} is the last slide of the deck snapshot's sorted order. */
@@ -1452,9 +1576,9 @@ public class LiveSessionOrchestrator {
     }
 
     /**
-     * Drops every Redis key for a now-terminal session (state, presence, per-round
-     * answers/tallies) and its pending deadline entries, so no timer can fire into
-     * a finished session.
+     * Drops every Redis key for a now-terminal session (state, presence, and each
+     * slide's round state via {@link #clearRoundRedis}) and its pending deadline
+     * entries, so no timer can fire into a finished session.
      */
     private void clearSessionRedis(LiveSession session) {
         String sessionId = session.getId();
@@ -1468,10 +1592,7 @@ public class LiveSessionOrchestrator {
         roundStateStore.clear(sessionId);
         presenceStore.clear(sessionId);
         for (Slide slide : session.getDeck().getSlides()) {
-            answerStore.clear(sessionId, slide.getId());
-            tallyStore.clear(sessionId, slide.getId());
-            voteStore.clear(sessionId, slide.getId());
-            qandaHostAnswers.clear(sessionId, slide.getId());
+            clearRoundRedis(sessionId, slide.getId());
         }
     }
 
