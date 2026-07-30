@@ -156,6 +156,51 @@ class FollowUpOptionsTest {
     }
 
     @Test
+    void restartRemintOverReorderedAnswersReproducesIdenticalIdsAndOrderForTextParent() {
+        Slide parent = slideWith(text(false, true));
+        Answer parisEarly = answer("p-1", new TextAnswer("Paris"), 100);
+        Answer lyon = answer("p-3", new TextAnswer("Lyon"), 200);
+        Answer parisLate = answer("p-2", new TextAnswer("paris"), 300);
+
+        FollowUpOptionSet first = FollowUpOptions.mint(parent, List.of(parisEarly, lyon, parisLate), URLS);
+        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.of(parisLate, parisEarly, lyon), URLS);
+
+        assertThat(first.options()).extracting(option -> option.text()).containsExactly("Paris", "Lyon");
+        assertThat(second.options()).isEqualTo(first.options());
+        assertThat(second.options()).extracting(option -> option.optionId())
+                .containsExactlyElementsOf(first.options().stream().map(option -> option.optionId()).toList());
+    }
+
+    @Test
+    void restartRemintOverReorderedAnswersReproducesIdenticalIdsAndOrderForDrawingParent() {
+        Slide parent = slideWith(drawing());
+        Answer one = answer("p-1", new DrawingAnswer(image("s3/one.png")), 100);
+        Answer two = answer("p-2", new DrawingAnswer(image("s3/two.png")), 200);
+        Answer duplicateOfOne = answer("p-3", new DrawingAnswer(image("s3/one.png")), 300);
+
+        FollowUpOptionSet first = FollowUpOptions.mint(parent, List.of(one, two, duplicateOfOne), URLS);
+        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.of(duplicateOfOne, one, two), URLS);
+
+        assertThat(second.options()).isEqualTo(first.options());
+        assertThat(second.options()).extracting(option -> option.optionId())
+                .containsExactlyElementsOf(first.options().stream().map(option -> option.optionId()).toList());
+    }
+
+    @Test
+    void answersWithNullSubmittedAtOrNullParticipantIdSortLastRatherThanThrowing() {
+        Slide parent = slideWith(text(false, true));
+        Answer first = answer("p-1", new TextAnswer("first"), 50);
+        Answer nullSubmittedAt = answerWithNullSubmittedAt("p-x", new TextAnswer("null-submitted-at"));
+        Answer nullSubmittedAtAndParticipant = answerWithNullSubmittedAt(null, new TextAnswer("null-participant"));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent,
+                List.of(nullSubmittedAtAndParticipant, nullSubmittedAt, first), URLS).options();
+
+        assertThat(options).extracting(option -> option.text())
+                .containsExactly("first", "null-submitted-at", "null-participant");
+    }
+
+    @Test
     void unsupportedParentKindAndNoParentMintNothing() {
         assertThat(FollowUpOptions.mint(slideWith(new QAndAContent(null, false)), List.of(), URLS).options())
                 .isEmpty();
@@ -171,7 +216,7 @@ class FollowUpOptionsTest {
         assertThat(FollowUpOptionSet.empty().byId("opt-a")).isNull();
     }
 
-    // --- fixtures ----------------------------------------------------------
+    // ── fixtures ───────────────────────────────────────────────────────────────
 
     private static Slide slideWith(SlideContent content) {
         Slide slide = new Slide();
@@ -208,6 +253,15 @@ class FollowUpOptionsTest {
         answer.setSessionId("session-1");
         answer.setSlideId("parent-slide");
         answer.setSubmittedAt(START.plusMillis(submittedAfterMs));
+        answer.setPayload(payload);
+        return answer;
+    }
+
+    private static Answer answerWithNullSubmittedAt(String participantId, AnswerPayload payload) {
+        Answer answer = new Answer();
+        answer.setParticipantId(participantId);
+        answer.setSessionId("session-1");
+        answer.setSlideId("parent-slide");
         answer.setPayload(payload);
         return answer;
     }
