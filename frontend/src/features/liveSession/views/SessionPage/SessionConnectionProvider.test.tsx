@@ -70,6 +70,14 @@ const roundStarted = (slide: SlideView, startedAt: string): SessionEvent => ({
   deadline: null,
 });
 
+const roundRestarted = (slideId: string, startedAt: string): SessionEvent => ({
+  type: "RoundRestarted",
+  slideId,
+  phase: "SUBMIT",
+  roundStartedAt: startedAt,
+  deadline: null,
+});
+
 // The state the server would report once that round is open.
 let served: SessionSnapshotResponse = snapshot();
 let snapshotRequests = 0;
@@ -164,6 +172,50 @@ describe("SessionConnectionProvider follow-up snapshot refetch", () => {
     // The re-seed doesn't re-arm the effect: still exactly one refetch.
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(snapshotRequests).toBe(2);
+  });
+
+  it("refetches again when the same follow-up round restarts", async () => {
+    const store = await renderProvider();
+    expect(snapshotRequests).toBe(1);
+
+    // Open the follow-up round first — same setup as the "opens" case above.
+    served = snapshot({
+      currentSlideId: "slide-fu",
+      currentSlide: followUpSlide,
+      currentRoundStartedAt: "2026-07-01T10:05:00Z",
+      myFollowUpOptionId: "opt-a",
+      lastSequence: 2,
+    });
+    deliver(2, roundStarted(followUpSlide, "2026-07-01T10:05:00Z"));
+    await waitFor(() => {
+      expect(store.getState().liveSession.myFollowUpOptionId).toBe("opt-a");
+    });
+    expect(snapshotRequests).toBe(2);
+
+    // The host restarts the SAME follow-up slide: fresh candidates (a new
+    // `myFollowUpOptionId`) under a new `roundStartedAt`. The guard key
+    // (`${slideId}@${roundStartedAt}`) must see this as a new round even
+    // though the slide id hasn't changed, and fire a second refetch.
+    served = snapshot({
+      currentSlideId: "slide-fu",
+      currentSlide: followUpSlide,
+      currentRoundStartedAt: "2026-07-01T10:06:00Z",
+      myFollowUpOptionId: "opt-b",
+      lastSequence: 3,
+    });
+    deliver(3, roundRestarted("slide-fu", "2026-07-01T10:06:00Z"));
+
+    await waitFor(() => {
+      expect(store.getState().liveSession.roundStartedAt).toBe("2026-07-01T10:06:00Z");
+    });
+    await waitFor(() => {
+      expect(store.getState().liveSession.myFollowUpOptionId).toBe("opt-b");
+    });
+    expect(snapshotRequests).toBe(3);
+
+    // The re-seed doesn't re-arm the effect: still exactly two refetches total.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(snapshotRequests).toBe(3);
   });
 
   it("does not refetch when an ordinary round opens", async () => {
