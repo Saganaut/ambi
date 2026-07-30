@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import com.cephadex.ambi.session.SessionTypes.RoundResultId;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.AnswerRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -38,8 +39,18 @@ public class RoundResultProjector {
      * result is derived from, so they must survive even if a later write fails),
      * then the score-mutated {@code roster}, then the record itself (keyed by
      * {@code (sessionId, slideId)}, so a re-close upserts rather than duplicates).
+     * <p>
+     * The answer flush is a <em>replace</em>, not an append: the round's existing
+     * documents are deleted before the new batch is saved. Flushed answers have no
+     * id yet, so every save inserts — and a replayed round (the host reopens an
+     * already-scored slide, which clears its Redis state) would otherwise leave the
+     * superseded run behind, making {@link #answersOf} return the union of both.
+     * Deleting first is the Mongo counterpart of that Redis clear and matches the
+     * record's own upsert semantics: re-scoring a round replaces it wholesale.
      */
     public void persist(RoundResult result, List<Participant> roster, List<Answer> flushed) {
+        RoundResultId id = result.id();
+        answers.deleteBySessionIdAndSlideId(id.sid(), id.slideId());
         answers.saveAll(flushed);
         participants.saveAll(roster);
         roundResults.save(result);
@@ -59,6 +70,8 @@ public class RoundResultProjector {
      * The round's durably flushed answers — the fallback when Redis has aged out.
      * Empty until the round is closed and scored ({@link #persist} is what flushes
      * them), so a still-open round reads its answers from the Redis store instead.
+     * Always exactly the latest scored run of the round: {@link #persist} replaces
+     * the batch rather than appending to it.
      */
     public List<Answer> answersOf(String sessionId, String slideId) {
         return answers.findBySessionIdAndSlideId(sessionId, slideId);

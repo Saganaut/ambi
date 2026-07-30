@@ -15,4 +15,12 @@ public interface AnswerRepository extends MongoRepository<Answer, String> {
     List<Answer> findBySessionId(String sessionId);
 
     List<Answer> findBySessionIdAndSlideId(String sessionId, String slideId);
+
+    /**
+     * Drops one round's durable answers. Flushed answers carry no stable id, so a
+     * re-scored round would otherwise insert a second batch alongside the first;
+     * the flush deletes before it saves so the collection always holds exactly the
+     * latest run of {@code (sessionId, slideId)}.
+     */
+    void deleteBySessionIdAndSlideId(String sessionId, String slideId);
 }

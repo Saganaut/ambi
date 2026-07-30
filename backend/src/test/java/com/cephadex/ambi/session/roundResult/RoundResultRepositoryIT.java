@@ -103,6 +103,23 @@ class RoundResultRepositoryIT {
         assertThat(answers.findBySessionIdAndSlideId(SID, "other")).isEmpty();
     }
 
+    @Test
+    void answersDeleteBySessionAndSlideDropsOnlyThatRound() {
+        // The round-close flush deletes before it saves, so a replayed round's
+        // durable answers are replaced rather than duplicated; the delete must stay
+        // scoped to its own (session, slide) pair.
+        answers.save(answer("p-1"));
+        answers.save(answer("p-2"));
+        Answer otherRound = answer("p-3");
+        otherRound.setSlideId("it-slide-2");
+        answers.save(otherRound);
+
+        answers.deleteBySessionIdAndSlideId(SID, SLIDE);
+
+        assertThat(answers.findBySessionIdAndSlideId(SID, SLIDE)).isEmpty();
+        assertThat(answers.findBySessionIdAndSlideId(SID, "it-slide-2")).hasSize(1);
+    }
+
     private static Answer answer(String participantId) {
         Answer a = new Answer();
         a.setParticipantId(participantId);
