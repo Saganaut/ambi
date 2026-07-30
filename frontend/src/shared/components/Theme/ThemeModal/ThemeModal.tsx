@@ -18,6 +18,7 @@ import { CheckIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useThemes } from "@hooks/useThemes";
 import type { ThemeResponse } from "@features/theme/store/themeApi.gen";
 import { PALETTE_PREVIEW_ROLES } from "@features/theme/palette";
+import { appearanceValue, paletteStyle, roleVar } from "@utils/applyPalette";
 import { ThemeEditor, type ThemeEditorSubmit } from "./ThemeEditor";
 import styles from "./ThemeModal.module.css";
 
@@ -39,8 +40,12 @@ interface ThemeCardProps {
 // Compact row card (DS Figma 627-3461): theme-canvas background with the name
 // on the left and the palette as overlapping pips on the right. The card
 // itself is the Apply control; Edit/Delete float in on hover or focus so the
-// resting state stays quiet. Colors come from the theme's own palette via
-// inline styles — the CSS values only back up palette-less specs.
+// resting state stays quiet.
+//
+// The card is a theme scope: it carries the theme's palette as inline role vars
+// plus its appearance flag, and paints itself from var(--role-*). That is one
+// path for both kinds of theme — a curated palette paints from its own inline
+// vars, a palette-less default from the tokens.css block its flag selects.
 const ThemeCard = ({
   theme,
   isActive,
@@ -48,7 +53,7 @@ const ThemeCard = ({
   onEdit,
   onDelete,
 }: ThemeCardProps) => {
-  const palette = theme.spec?.palette;
+  const spec = theme.spec;
   const canManage = theme.permissions.canManage;
 
   return (
@@ -56,7 +61,8 @@ const ThemeCard = ({
       <button
         type='button'
         className={`${styles.card} ${isActive ? styles.cardActive : ""}`}
-        style={{ background: palette?.canvas, color: palette?.foreground }}
+        style={paletteStyle(spec)}
+        data-appearance={appearanceValue(spec)}
         aria-pressed={isActive}
         onClick={isActive ? undefined : onApply}>
         <span className={styles.cardName} title={theme.name}>
@@ -70,10 +76,7 @@ const ThemeCard = ({
             <span
               key={role}
               className={styles.pip}
-              style={{
-                background: palette?.[role] ?? "transparent",
-                borderColor: palette?.canvas ?? "transparent",
-              }}
+              style={{ background: `var(${roleVar(role)})` }}
             />
           ))}
         </span>

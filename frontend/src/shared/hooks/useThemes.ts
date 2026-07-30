@@ -5,10 +5,14 @@
 // in `store/enhancements/theme.ts`, so it applies no matter who calls a
 // mutation — these handlers stay thin.
 //
+// The presets lead with the two client-side defaults (see defaultThemes): they
+// have no server representation, so nothing fetches them.
+//
 // `listMyThemes` is auth-gated, so it is skipped for anyone not registered
 // (mirrors `useTheme`): a 401 there would trip the login-prompt funnel, and a
 // guest has no personal themes to show anyway.
 import { useCreateThemeMutation, useDeleteThemeMutation, useListBuiltInThemesQuery, useListMyThemesQuery, useUpdateThemeMutation, type ThemeResponse, type ThemeSpec } from "@features/theme/store/themeApi.gen";
+import { DEFAULT_THEMES, isDefaultThemeName } from "@features/theme/defaultThemes";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 
 export interface CreateThemeInput {
@@ -27,8 +31,16 @@ export function useThemes() {
   const userState = useCurrentUser();
   const isRegistered = userState.state === "registered";
 
-  const { data: builtInThemes = [], isLoading: loadingBuiltIn } =
+  const { data: seededBuiltIns = [], isLoading: loadingBuiltIn } =
     useListBuiltInThemesQuery();
+  // The stored "Ambi Light"/"Ambi Dark" preset documents are the defaults'
+  // predecessors — dropped by name so the picker never lists either twice. The
+  // backend stops seeding them shortly; this stays as belt and braces, since a
+  // database seeded before that still holds them.
+  const builtInThemes = [
+    ...DEFAULT_THEMES,
+    ...seededBuiltIns.filter((theme) => !isDefaultThemeName(theme.name)),
+  ];
   const { data: myThemes = [], isLoading: loadingMine } = useListMyThemesQuery(
     undefined,
     { skip: !isRegistered },

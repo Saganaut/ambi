@@ -3,9 +3,15 @@
 // semantic token from them (see applyPalette).
 import type { Palette } from "@features/theme/store/themeApi.gen";
 
-// A neutral light palette used as the starting point when authoring a new theme
-// (or when an old, palette-less spec is opened in the editor). Hex so the native
-// colour inputs accept it directly.
+// The theme editor's authoring seed: the 16 roles pre-filled with a neutral
+// light palette, so "New theme" opens on something coherent to edit rather than
+// 16 blanks (it also fills the gaps when a palette-less spec is opened for
+// editing). Hex because `<input type="color">` accepts nothing else.
+//
+// It is NOT the app's built-in look — that lives in tokens.css and is exposed as
+// the Ambi Light / Ambi Dark defaults (see defaultThemes), which carry no
+// palette at all. Nothing reads these values as brand colours, so this seed is
+// free to drift from the stylesheet.
 export const DEFAULT_PALETTE: Palette = {
   canvas: "#ffffff",
   surface: "#f2f2f2",

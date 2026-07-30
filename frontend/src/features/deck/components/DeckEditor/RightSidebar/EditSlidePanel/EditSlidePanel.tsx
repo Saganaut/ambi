@@ -12,10 +12,8 @@ import {
   usePromoteClearedBackgroundColorToDeckMutation,
   usePromoteClearedBackgroundImageToDeckMutation,
 } from "@deck/store/deckApi.gen";
+import { useBackgroundSwatches } from "@features/theme/hooks/useBackgroundSwatches";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
-import { DEFAULT_PALETTE } from "@features/theme/palette";
-import type { Palette } from "@features/theme/store/themeApi.gen";
-import type { ColorValue } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
 import { ColorPicker } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
 import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
@@ -27,40 +25,6 @@ import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSectio
 import { ImagePicker } from "../shared/ImagePicker";
 import settingsPanel from "../shared/SettingsPanel.module.css";
 import styles from "./EditSlidePanel.module.css";
-
-// The palette roles offered as background quick-pick swatches — the theme's
-// surface tones (canvas → subtle), the ones that read as backgrounds. Ordered
-// lightest-surface-first.
-const BACKGROUND_SURFACE_ROLES: (keyof Palette)[] = [
-  "canvas",
-  "surface",
-  "surfaceRaised",
-  "subtle",
-];
-
-// The background field is backend-validated to a 6-digit hex (#RRGGBB); a theme
-// *may* author a role in another CSS format, so only offer hex-safe swatches.
-const HEX6_RX = /^#[0-9a-fA-F]{6}$/;
-
-// Background quick-pick swatches sourced from the active theme's surface roles,
-// so a presenter's quick picks are the deck's own theme colors. Palette roles
-// are stored as hex and commit straight through to the (hex-only) color field.
-// Deduped (a theme may map two surface roles to the same hex — the swatch grid
-// keys by color, so duplicates would collide). Recent colors and the custom
-// picker (ColorPicker's rainbow tile) cover everything outside this set.
-const backgroundSwatchesFor = (palette: Palette): ColorValue[] => {
-  const seen = new Set<string>();
-  const swatches: ColorValue[] = [];
-  for (const role of BACKGROUND_SURFACE_ROLES) {
-    const color = palette[role];
-    if (typeof color !== "string" || !HEX6_RX.test(color)) continue;
-    const key = color.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    swatches.push(color as ColorValue);
-  }
-  return swatches;
-};
 
 const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const { slides, getSlide, setSlideImage, clearSlideImage, hideSlideBackground } =
@@ -204,16 +168,12 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const [promoteBackgroundColor] = usePromoteBackgroundColorToDeckMutation();
   const [promoteClearedBackgroundColor] = usePromoteClearedBackgroundColorToDeckMutation();
   const recentColors = useRecentColors();
-  // The theme painting this deck's canvas (deck theme supersedes the global one);
-  // its surface roles become the quick-pick swatches. No deck theme → the neutral
-  // default palette, so there are always hex-safe surface picks to offer.
+  // The theme painting this deck's canvas (deck theme supersedes the global
+  // one); its surface roles become the quick-pick swatches, so a presenter's
+  // quick picks are the deck's own colors. Recent colors and the custom picker
+  // (ColorPicker's rainbow tile) cover everything outside that set.
   const { spec: deckThemeSpec } = useDeckTheme(deck?.themeId);
-  const themeSwatches = backgroundSwatchesFor(deckThemeSpec?.palette ?? DEFAULT_PALETTE);
-  // A theme *may* author its surfaces in a non-hex CSS format (Palette allows
-  // any CSS color); that would filter out to nothing, so fall back to the
-  // default palette's (always-hex) surfaces to keep quick picks on offer.
-  const backgroundSwatches =
-    themeSwatches.length > 0 ? themeSwatches : backgroundSwatchesFor(DEFAULT_PALETTE);
+  const backgroundSwatches = useBackgroundSwatches(deckThemeSpec);
 
   if (!slide) return null;
 

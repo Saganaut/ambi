@@ -20,7 +20,7 @@ import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { useDeckMutate } from "@/features/deck/hooks/useDeckMutate";
 import { useDeckQuery } from "@/features/deck/hooks/useDeckQuery";
 import { useDeckImageMutate } from "@/features/deck/hooks/useDeckImageMutate";
-import { useGetThemeQuery } from "@/features/theme/store/themeApi.gen";
+import { useDeckTheme } from "@/features/theme/hooks/useDeckTheme";
 import { ThemeModal } from "@/shared/components/Theme/ThemeModal/ThemeModal";
 import { Btn } from "@/shared/components/UIElements/Buttons/Btn";
 import { ColorOptionBtn } from "@ui/Buttons/ColorOptionBtn";
@@ -49,11 +49,9 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
   const { openModal, closeModal } = useModal();
 
   const themeId = deck?.themeId;
-  // Resolve the applied theme's name for the summary line; skipped when unset.
-  const { data: activeTheme } = useGetThemeQuery(
-    { id: themeId ?? "" },
-    { skip: !themeId },
-  );
+  // The same resolution the canvas paints with, reused here for the summary
+  // line — a default theme resolves client-side, anything else from the cache.
+  const { theme: activeTheme, style: themeStyle, appearance } = useDeckTheme(themeId);
 
   // updateDeck merges this partial over the deck's current metadata, so this
   // both applies a theme and clears it back to the deck's (global) default
@@ -82,10 +80,12 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
       <p className={styles.empty}>
         {themeId ? (activeTheme?.name ?? "Custom theme") : "No theme applied."}
       </p>
-      {/* Read-only preview of the applied theme's palette roles; each swatch
-          paints itself from the live var(--role-*) cascade. */}
+      {/* Read-only preview of the applied theme's palette roles. The row is
+          itself a theme scope (the sidebar sits outside the canvas one), so the
+          swatches read the deck theme's roles off the live cascade rather than
+          the global theme's. */}
       {themeId && (
-        <div className={styles.themeColors}>
+        <div className={styles.themeColors} style={themeStyle} data-appearance={appearance}>
           {THEME_COLOR_ROLES.map((role) => (
             <ColorOptionBtn
               key={role.role}

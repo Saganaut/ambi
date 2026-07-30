@@ -12,6 +12,7 @@ import { ThemeModal } from "@components/Theme/ThemeModal/ThemeModal";
 import { useGetMeQuery } from "@auth/store/userApi.gen";
 import { useUpdatePreferencesMutation } from "@account/store/accountApi.gen";
 import { type ThemeResponse } from "@features/theme/store/themeApi.gen";
+import { defaultThemeIdForSpec } from "@features/theme/defaultThemes";
 import styles from "./AccountPage.module.css";
 
 const AccountThemeSection = () => {
@@ -36,7 +37,16 @@ const AccountThemeSection = () => {
   const openThemeModal = () => {
     openModal({
       title: "Theme",
-      content: <ThemeModal onApply={applyTheme} onClose={closeModal} />,
+      content: (
+        <ThemeModal
+          // Preferences store a spec, not a theme id, so "which card is active"
+          // is only answerable for the two defaults — a saved palette could have
+          // come from any theme, or from one since edited or deleted.
+          activeThemeId={defaultThemeIdForSpec(profile?.preferences?.theme)}
+          onApply={applyTheme}
+          onClose={closeModal}
+        />
+      ),
     });
   };
 

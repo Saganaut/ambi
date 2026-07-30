@@ -42,8 +42,10 @@
 
 /* Compact row card: the theme's canvas color fills the card, the name sits
  * left, and the palette shows as overlapping pips on the right (DS Figma
- * 627-3461). Card colors are set inline from the theme's palette; the values
- * here are fallbacks for palette-less specs. */
+ * 627-3461). The card element is the theme's own scope — ThemeCard writes its
+ * palette there as inline --role-* vars and flags its appearance — so painting
+ * from the role vars works for a curated palette and a palette-less default
+ * alike. */
 
 .cardWrap {
   position: relative;
@@ -62,8 +64,8 @@
   border: 1px solid transparent;
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: var(--shadow-sm, 0 3px 10px #14141447);
-  background: var(--surface, #fff);
-  color: var(--text-primary, #222);
+  background: var(--role-canvas, #fff);
+  color: var(--role-foreground, #222);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -89,8 +91,8 @@
   text-overflow: ellipsis;
 }
 
-/* Overlapping palette pips; the 2px ring is inline-colored to the theme's
- * canvas so the overlap reads cleanly on any card color. */
+/* Overlapping palette pips; the 2px ring takes the theme's canvas so the
+ * overlap reads cleanly on any card color. */
 .pips {
   --pip-overlap: -0.5625rem;
 
@@ -101,7 +103,7 @@
 .pip {
   width: 1.125rem;
   height: 1.125rem;
-  border: 2px solid transparent;
+  border: 2px solid var(--role-canvas, transparent);
   border-radius: var(--radius-full, 9999px);
 }
 
