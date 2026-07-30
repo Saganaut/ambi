@@ -14,7 +14,7 @@ import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
 
 type DefaultNoChartSegmentProps = ChartSegmentRenderProps;
-
+//TODO: is render menu still necessary? I think it has been replaced by render label with menu?
 const McqOptionEditable = ({
   sortIndex,
   displayAsPercentage,
@@ -48,30 +48,31 @@ const McqOptionEditable = ({
       className={`${styles.card} ${isCorrect ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
     >
       <div className={styles.topRow}>
-        <div className={styles.textColumn}>
-          <IndexPill value={displayIndex} variant="bare" />
-          <div
-            className={styles.interactiveZone}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            {renderLabelWithMenu ? (
-              renderLabelWithMenu(datum)
-            ) : (
-              <span className={styles.label}>{datum.text ?? ""}</span>
-            )}
-          </div>
+        <div>
+          <IndexPill value={displayIndex} variant="square" color={color} />
+        </div>
+        <div
+          className={styles.interactiveZone}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          {renderLabelWithMenu ? (
+            renderLabelWithMenu(datum)
+          ) : (
+            <span className={styles.label}>{datum.text ?? ""}</span>
+          )}
         </div>
         <div className={styles.imgThumbnail} style={thumbnailSrc ? {} : { backgroundColor: color }}>
           {thumbnailSrc && <img src={thumbnailSrc} alt="" />}
         </div>
       </div>
-
-      <ProgressBar value={100} color={color} />
-      <div className={styles.footer}>
+      <div className={styles.bottomRow}>
+        <ProgressBar value={_sharePct} color={color} />
+        {displayAsPercentage && <span className={styles.percentage}>{_sharePct}%</span>}
         <CorrectBadge isCorrect={isCorrect} />
-        {renderMenu?.(datum)}
+
+        {/* <div className={styles.footer}>{renderMenu?.(datum)}</div> */}
       </div>
     </div>
   );

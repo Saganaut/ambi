@@ -48,8 +48,6 @@
     color: var(--text-secondary);
   }
 
-  /* On the plate the theme's --text-secondary can wash out, so pin the
-     description to a dimmed cut of the resolved light-on-dark text color. */
   .header.overImage .description {
     color: var(--canvas-on-bg, var(--text-primary));
     opacity: 0.78;
@@ -58,20 +56,13 @@
   .body {
     display: flex;
     flex-direction: row;
-
-    /* No `gap`: the centered ImageSlots stay mounted (collapsed) here, so the
-       spacing lives on each active slot's inner-facing margin instead — see
-       ImageSlot.module.css — and collapses with it when empty. */
     width: 100%;
     min-width: 0;
     min-height: 0;
-
-    /* The body owns the scroll (the gutter above is already reserved for it),
-       so a tall editor scrolls behind the pinned footer instead of being
-       clipped by the canvas's overflow: hidden. */
     overflow-y: auto;
     scrollbar-gutter: stable;
     height: 100%;
+    padding: var(--p-sm);
 
     .innerBody {
       display: flex;

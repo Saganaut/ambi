@@ -1,12 +1,3 @@
-/* McqOptionEditable — option card. Owns:
-     - the card frame (border + correct-state highlight)
-     - the top row (index pill + option text + image/color thumbnail)
-     - the footer slots for the correct-answer badge and the option menu's
-       anchor (the menu itself lives in _shared/OptionMenu and opens when the
-       option's label field takes focus)
-   McqSlideContent renders these inside a CSS grid and does not draw any
-   per-option chrome itself. */
-
 .card {
   position: relative;
   display: flex;
@@ -20,6 +11,7 @@
   min-height: 0;
   outline: 2px solid transparent;
   outline-offset: 4px;
+  box-shadow: var(--shadow-sm);
   transition:
     border-color var(--duration-fast, 150ms) ease-out,
     background-color var(--duration-fast, 150ms) ease-out,
@@ -29,9 +21,9 @@
     border-color: var(--border-default);
   }
 
-  &.cardCorrect {
+  /* &.cardCorrect {
     outline-color: var(--orange-400);
-  }
+  } */
 
   &.isDragging {
     opacity: 0.6;
@@ -43,59 +35,70 @@
     align-items: center;
     justify-content: space-between;
   }
-}
 
-.topRow {
-  display: flex;
-  min-width: 0;
-  justify-content: space-between;
-  align-items: stretch;
-  gap: var(--gap-xs);
-  width: 100%;
-
-  /* Fill the card's remaining vertical space so the bounded textarea
-     inside `.textColumn` has a real height to fit into. */
-  flex: 1;
-  min-height: 0;
-
-  .textColumn {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
+  .topRow {
     display: flex;
-    flex-direction: column;
+    min-width: 0;
+    justify-content: space-between;
+    align-items: stretch;
     gap: var(--gap-xs);
+    width: 100%;
+    flex: 1;
+    min-height: 0;
 
-    /* The interactiveZone that wraps the TextArea takes the remaining
+    .textColumn {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap-xs);
+
+      /* The interactiveZone that wraps the TextArea takes the remaining
        vertical space inside the column so the textarea (which sets
        `height: 100%` via its `noAutoGrow` mode) has a bounded slot to
        fill. Scoped to the text-column descendant so any other use of the
        class stays intrinsically sized. */
-    .interactiveZone {
-      flex: 1;
-      min-height: 0;
+      .interactiveZone {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        width: 100%;
+      }
+    }
+
+    .imgThumbnail {
       display: flex;
+      align-items: end;
+      transition: background-color var(--duration-base) var(--ease-out);
+
+      img {
+        border-radius: var(--radius-md);
+        overflow: clip;
+        height: 100%;
+        aspect-ratio: 1;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        display: block;
+        object-fit: cover;
+
+        @container (width <= 300px) {
+          /* height: 50px; */
+        }
+      }
     }
   }
 
-  .imgThumbnail {
+  .bottomRow {
     display: flex;
-    align-items: end;
-    transition: background-color var(--duration-base) var(--ease-out);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-xs);
 
-    img {
-      border-radius: var(--radius-md);
-      overflow: clip;
-      height: 100%;
-      aspect-ratio: 1;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      display: block;
-
-      @container (width <= 300px) {
-        /* height: 50px; */
-      }
+    .percentage {
+      font: var(--font-mono);
+      font-size: var(--font-size-xs);
     }
   }
 }

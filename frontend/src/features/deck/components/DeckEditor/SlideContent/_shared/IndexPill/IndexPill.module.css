@@ -6,9 +6,15 @@
                    where the surrounding card already carries the visual weight. */
 
 .indexPill {
+  --background-color: var(--bg-surface-raised);
+  --text-color: var(--text-secondary);
+
   border-radius: var(--radius-full);
+  font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   font-weight: 700;
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 .solid {
@@ -18,23 +24,35 @@
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
-  background-color: var(--bg-surface-raised);
-  color: var(--text-secondary);
 }
 
 /* Colored fill (set inline by the consumer): fix the numeral to near-white —
    palette fills are mid-lightness in every theme, so themed text could clash.
    Double class so the override beats the variants regardless of source order. */
-.indexPill.tinted {
+
+/* .indexPill.tinted {
   color: oklch(99% 0 0deg);
-}
+} */
 
 .bare {
+  --text-color: var(--text-primary);
+
   display: flex;
   align-items: start;
   justify-content: start;
   width: fit-content;
   height: 1.5rem;
   padding: 0 var(--gap-sm);
-  color: var(--text-primary);
+}
+
+.square {
+  --text-color: var(--background-color);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-xs);
+  border-radius: var(--radius-md);
+  background-color: oklch(from var(--background-color) l c h / 20%);
+  color: var(--text-color);
 }
