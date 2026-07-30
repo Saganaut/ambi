@@ -32,7 +32,7 @@ import { QAndAOptionsSection } from "../EditSlideSections/QAndAOptionsSection";
 import { RankingOptionsSection } from "../EditSlideSections/RankingOptionsSection";
 import { SlideOptionsSection } from "../EditSlideSections/SlideOptionsSection";
 import { TextOptionsSection } from "../EditSlideSections/TextOptionsSection";
-import { resolveAnswerSettings, RESULTS_DISPLAY_MODE_OPTIONS } from "../shared/settingsDefaults";
+import { getResultsDisplayModeOptions, resolveAnswerSettings } from "../shared/settingsDefaults";
 import styles from "../shared/SettingsPanel.module.css";
 
 import { ANSWER_SETTINGS_DEFAULTS as D } from "../shared/settingsDefaults";
@@ -253,7 +253,9 @@ const AnswerPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
               compact
               id={`${idPrefix}-display-results-mode`}
               label="Reveal results"
-              options={RESULTS_DISPLAY_MODE_OPTIONS}
+              options={getResultsDisplayModeOptions(
+                form.displayResultsMode ?? D.displayResultsMode,
+              )}
               value={[form.displayResultsMode ?? D.displayResultsMode]}
               onChange={(vals) => {
                 if (vals[0]) {
