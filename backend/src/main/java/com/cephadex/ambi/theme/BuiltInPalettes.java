@@ -14,35 +14,17 @@ import com.cephadex.ambi.theme.enums.ThemeAppearance;
  * <p>Each palette names the 16 {@link Palette} roles directly; the frontend
  * derives the remaining semantic tokens. Colours are the canonical hex values
  * published by each scheme.
+ *
+ * <p><strong>The brand looks are deliberately absent.</strong> "Ambi Light" and
+ * "Ambi Dark" are client-side defaults whose colours live in
+ * {@code frontend/src/tokens.css}; a stored copy could only drift from the
+ * stylesheet that actually paints the app. They are never persisted as themes —
+ * see {@link Themes} for the reserved ids a deck may hold instead.
  */
 public final class BuiltInPalettes {
 
     private BuiltInPalettes() {
     }
-
-    /** Ambi Light — the brand default (light). Mirrors the role defaults baked
-     *  into tokens.css, so it reads as the app's out-of-the-box look. */
-    public static final ThemeSpec AMBI_LIGHT = new ThemeSpec(
-            ThemeAppearance.LIGHT,
-            new Palette(
-                    "#ffffff", "#f2f2f2", "#ffffff", "#e6e6e6",
-                    "#1f1633", "#5c5c66",
-                    "#6019ff", "#f5f5f5", "#0c8ea3", "#ff6e0b",
-                    "#3a1f7a", "#c9bfe6",
-                    "#d8362a", "#2f9e44", "#e8b400", "#1e66f5"),
-            null, null);
-
-    /** Ambi Dark — the brand default (dark): the same violet/orange identity on a
-     *  deep canvas. */
-    public static final ThemeSpec AMBI_DARK = new ThemeSpec(
-            ThemeAppearance.DARK,
-            new Palette(
-                    "#160a2e", "#211248", "#2d1a5e", "#0f0720",
-                    "#f5f2ff", "#a59fc4",
-                    "#7c4dff", "#160a2e", "#3fd5e8", "#ff8a3d",
-                    "#3a2a6e", "#2a1d52",
-                    "#ff6b6b", "#5ed27e", "#f2c14e", "#6a8cff"),
-            null, null);
 
     /** Catppuccin Mocha — the dark flagship flavour. */
     public static final ThemeSpec CATPPUCCIN_MOCHA = new ThemeSpec(
@@ -116,8 +98,6 @@ public final class BuiltInPalettes {
      */
     public static Map<String, ThemeSpec> all() {
         Map<String, ThemeSpec> presets = new LinkedHashMap<>();
-        presets.put("Ambi Light", AMBI_LIGHT);
-        presets.put("Ambi Dark", AMBI_DARK);
         presets.put("Catppuccin Mocha", CATPPUCCIN_MOCHA);
         presets.put("Catppuccin Latte", CATPPUCCIN_LATTE);
         presets.put("Dracula", DRACULA);

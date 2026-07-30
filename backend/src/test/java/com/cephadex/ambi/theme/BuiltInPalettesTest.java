@@ -18,9 +18,8 @@ class BuiltInPalettesTest {
     void allPresetsAreCompleteAndWellFormed() {
         Map<String, ThemeSpec> presets = BuiltInPalettes.all();
 
-        assertThat(presets).hasSize(8);
+        assertThat(presets).hasSize(6);
         assertThat(presets).containsKeys(
-                "Ambi Light", "Ambi Dark",
                 "Catppuccin Mocha", "Catppuccin Latte", "Dracula",
                 "One Dark", "Gruvbox Dark", "Gruvbox Light");
 
@@ -39,6 +38,16 @@ class BuiltInPalettesTest {
                         .matches("#[0-9a-fA-F]{3,8}");
             }
         });
+    }
+
+    /**
+     * The brand looks are client-side themes painted from tokens.css; a stored
+     * copy could only drift from it, so no persisted preset may claim the name.
+     */
+    @Test
+    void noPresetIsABrandDefault() {
+        assertThat(BuiltInPalettes.all().keySet())
+                .noneMatch(name -> name.startsWith("Ambi"));
     }
 
     private static String[] roles(Palette p) {

@@ -77,6 +77,7 @@ Role/relationship violation:
 | Code | Meaning |
 | --- | --- |
 | `FOLLOW_UP_EXISTS` | Slide already has a follow-up slide |
+| `THEME_ID_RESERVED` | Theme create used an id reserved for a client-side default theme (`ambi-light` / `ambi-dark`) |
 | `SESSION_NOT_LIVE` | Action requires a live session, but it isn't live |
 | `SESSION_NOT_IN_LOBBY` | Action requires the session to be in the lobby stage |
 | `HOST_CANNOT_LEAVE` | Host attempted to leave their own session |

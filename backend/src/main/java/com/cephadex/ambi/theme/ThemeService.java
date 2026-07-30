@@ -13,6 +13,7 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.Ownership;
 import com.cephadex.ambi.common.ViewerPermissions;
 import com.cephadex.ambi.common.enums.OwnershipType;
+import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.org.OrgRoleResolver;
@@ -44,10 +45,21 @@ public class ThemeService {
      * {@code organizationId} creates a personal theme owned by the caller; a
      * non-blank one creates an org-owned theme, which requires the caller to be
      * an OWNER/ADMIN of that org.
+     *
+     * @throws ConflictException if {@code id} is one of the {@link Themes}
+     *                           reserved ids — those name client-side defaults
+     *                           and must stay unresolvable in the collection, so
+     *                           the conflict is raised ahead of the insert
+     *                           rather than left to the {@code _id} index (which
+     *                           the controller swallows as an idempotent resend)
      */
     public Theme create(String id, String name, String organizationId, ThemeSpec spec,
             AmbiPrincipal principal) {
         String userId = requireUserId(principal);
+        if (Themes.isReservedId(id)) {
+            throw new ConflictException("THEME_ID_RESERVED",
+                    "This theme id is reserved for a built-in theme");
+        }
 
         Theme theme = new Theme();
         theme.setId(id);
@@ -116,7 +128,12 @@ public class ThemeService {
         return themeRepository.findByOrganizationId(orgId);
     }
 
-    /** App-provided preset themes, available to everyone. */
+    /**
+     * App-provided preset themes, available to everyone. The two brand defaults
+     * ("Ambi Light" / "Ambi Dark") are intentionally absent — they are
+     * client-side themes resolved from the stylesheet, not stored rows; see
+     * {@link Themes}.
+     */
     public List<Theme> listBuiltIn() {
         return themeRepository.findByBuiltInTrue();
     }

@@ -17,6 +17,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import com.cephadex.ambi.auth.enums.AuthProvider;
@@ -42,6 +45,7 @@ import com.cephadex.ambi.theme.BuiltInPalettes;
 import com.cephadex.ambi.theme.Theme;
 import com.cephadex.ambi.theme.ThemeRepository;
 import com.cephadex.ambi.theme.ThemeSpec;
+import com.cephadex.ambi.theme.Themes;
 import com.cephadex.ambi.user.User;
 import com.cephadex.ambi.user.UserRepository;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -63,12 +67,20 @@ import com.cephadex.ambi.user.enums.UserLevel;
  * <strong>Idempotency.</strong> Everything is keyed on a natural identity
  * (username / deck {@code publicId} / built-in theme name) and created only
  * when
- * absent, so re-running never duplicates and never deletes. We deliberately
+ * absent, so re-running never duplicates. We deliberately
  * check-then-create rather than lean on DB uniqueness:
  * {@code auto-index-creation}
  * is off and an {@link ApplicationRunner} fires before
  * {@code UserIndexInitializer}
  * has built the {@code users} indexes, so they cannot be relied on here.
+ *
+ * <p>
+ * The one deletion the seeder performs is <em>retiring</em> a built-in theme:
+ * a {@code builtIn} document whose name has dropped out of
+ * {@link BuiltInPalettes#all()} is removed and every deck still pointing at it
+ * is repointed first (the withdrawn brand presets to the reserved client-side
+ * ids in {@link Themes}, anything else back to no theme). Nothing a user
+ * authored is ever deleted.
  *
  * <p>
  * <strong>{@code seed.clear=true}.</strong> Drops {@code decks}, {@code themes}
@@ -147,14 +159,18 @@ public class SampleDataSeeder implements ApplicationRunner {
 
     /** App-provided presets everyone can use. Keyed by name for deck references. */
     private Map<String, Theme> seedBuiltInThemes() {
-        Map<String, Theme> existing = new LinkedHashMap<>();
-        for (Theme t : themeRepository.findByBuiltInTrue()) {
-            existing.put(t.getName(), t);
-        }
-
         // Curated full palettes after the popular VSCode / terminal schemes, so the
         // theme picker has a real built-in selection out of the box.
         Map<String, ThemeSpec> presets = BuiltInPalettes.all();
+
+        Map<String, Theme> existing = new LinkedHashMap<>();
+        for (Theme t : themeRepository.findByBuiltInTrue()) {
+            if (presets.containsKey(t.getName())) {
+                existing.put(t.getName(), t);
+            } else {
+                retireBuiltInTheme(t);
+            }
+        }
 
         Map<String, Theme> result = new LinkedHashMap<>();
         for (Map.Entry<String, ThemeSpec> e : presets.entrySet()) {
@@ -170,6 +186,34 @@ public class SampleDataSeeder implements ApplicationRunner {
             result.put(e.getKey(), theme);
         }
         return result;
+    }
+
+    /** The withdrawn brand presets, mapped to the reserved id that replaces them. */
+    private static final Map<String, String> RETIRED_THEME_REPLACEMENTS = Map.of(
+            "Ambi Light", Themes.DEFAULT_LIGHT_ID,
+            "Ambi Dark", Themes.DEFAULT_DARK_ID);
+
+    /**
+     * Delete a built-in whose name is no longer a preset, repointing every deck
+     * that still references it first so none is left with a dangling themeId.
+     * The brand presets moved client-side, so their decks take the matching
+     * reserved id; any other retired preset leaves its decks with no theme.
+     *
+     * <p>The repoint runs as a raw {@code updateMulti} rather than a
+     * load-and-save: it must not depend on the decks deserializing cleanly,
+     * which is exactly what a schema drift makes unreliable.
+     */
+    private void retireBuiltInTheme(Theme theme) {
+        String replacement = RETIRED_THEME_REPLACEMENTS.get(theme.getName());
+        Update update = replacement == null
+                ? new Update().unset("themeId")
+                : new Update().set("themeId", replacement);
+        long repointed = mongoTemplate
+                .updateMulti(new Query(Criteria.where("themeId").is(theme.getId())), update, Deck.class)
+                .getModifiedCount();
+        themeRepository.delete(theme);
+        log.info("Retired built-in theme '{}' — {} deck(s) repointed to {}",
+                theme.getName(), repointed, replacement == null ? "no theme" : replacement);
     }
 
     // ── Users ──────────────────────────────────────────────────────────────────
@@ -217,7 +261,7 @@ public class SampleDataSeeder implements ApplicationRunner {
 
         ensurePublicDeck("sample-fellowship-trivia", "Tolkien Trivia: The Fellowship",
                 "Test your knowledge of the Fellowship of the Ring.",
-                frodoId, themes.get("Middle-earth Light"), Set.of("lotr", "trivia", "easy"),
+                frodoId, presetId(themes, "Gruvbox Light"), Set.of("lotr", "trivia", "easy"),
                 "fellowship", now, List.of(
                         mcq("What is the name of Bilbo's sword?",
                                 "Sting glows blue when orcs are near.", Difficulty.EASY, frodoId,
@@ -238,7 +282,9 @@ public class SampleDataSeeder implements ApplicationRunner {
 
         ensurePublicDeck("sample-creatures-middle-earth", "Creatures of Middle-earth",
                 "Beasts, monsters, and the folk of Middle-earth.",
-                gandalfId, themes.get("Mordor Dark"), Set.of("lotr", "creatures", "medium"),
+                // On the client-side brand default, so the seeded data exercises a
+                // deck themed by a reserved id rather than a stored theme document.
+                gandalfId, Themes.DEFAULT_DARK_ID, Set.of("lotr", "creatures", "medium"),
                 "creatures", now, List.of(
                         mcq("What kind of creature was Gollum, originally?",
                                 "Sméagol was a Stoor, a kind of hobbit.", Difficulty.MEDIUM, gandalfId,
@@ -261,7 +307,7 @@ public class SampleDataSeeder implements ApplicationRunner {
 
         ensurePublicDeck("sample-battles-middle-earth", "Battles of Middle-earth",
                 "From Helm's Deep to the Pelennor Fields.",
-                aragornId, themes.get("Rivendell"), Set.of("lotr", "battles", "hard"),
+                aragornId, presetId(themes, "Catppuccin Mocha"), Set.of("lotr", "battles", "hard"),
                 "battles", now, List.of(
                         mcq("Where was the Battle of the Hornburg fought?",
                                 "Better known as Helm's Deep.", Difficulty.MEDIUM, aragornId,
@@ -300,7 +346,7 @@ public class SampleDataSeeder implements ApplicationRunner {
             }
             Deck deck = buildDeck("sample-personal-" + user.getId(), "My First Deck",
                     "A private starter deck — edit or delete it.",
-                    user.getId(), themes.get("Middle-earth Light"), Set.of("starter"),
+                    user.getId(), presetId(themes, "Catppuccin Latte"), Set.of("starter"),
                     PublishStatus.DRAFT, DeckVisibility.PRIVATE, null, now, List.of(
                             mcq("Which hobbit carried the One Ring to Mordor?",
                                     "Samwise carried Frodo, but Frodo bore the Ring.",
@@ -314,15 +360,29 @@ public class SampleDataSeeder implements ApplicationRunner {
 
     // ── Deck / slide builders ───────────────────────────────────────────────────
 
+    /**
+     * The stored id of a seeded built-in preset. Sample decks name their theme by
+     * its display name, so a preset renamed in {@link BuiltInPalettes} leaves the
+     * deck unthemed rather than pointing at nothing.
+     */
+    private static String presetId(Map<String, Theme> themes, String presetName) {
+        Theme theme = themes.get(presetName);
+        if (theme == null) {
+            log.warn("Sample deck references unknown built-in theme '{}'", presetName);
+            return null;
+        }
+        return theme.getId();
+    }
+
     /** Build, save (if absent by publicId) and return a PUBLIC + PUBLISHED deck. */
     private Deck ensurePublicDeck(String publicId, String name, String description, String ownerId,
-            Theme theme, Set<String> tags, String coverSeed, Instant now, List<Slide> slides) {
+            String themeId, Set<String> tags, String coverSeed, Instant now, List<Slide> slides) {
         Deck existing = deckRepository.findByPublicId(publicId).orElse(null);
         if (existing != null) {
             return existing;
         }
         AppImage cover = picsumCover(coverSeed, name);
-        Deck deck = buildDeck(publicId, name, description, ownerId, theme, tags,
+        Deck deck = buildDeck(publicId, name, description, ownerId, themeId, tags,
                 PublishStatus.PUBLISHED, DeckVisibility.PUBLIC, cover, now, slides);
         deck = deckRepository.save(deck);
         log.info("Seeded deck '{}' ({} slides)", name, slides.size());
@@ -330,7 +390,7 @@ public class SampleDataSeeder implements ApplicationRunner {
     }
 
     private Deck buildDeck(String publicId, String name, String description, String ownerId,
-            Theme theme, Set<String> tags, PublishStatus status, DeckVisibility visibility,
+            String themeId, Set<String> tags, PublishStatus status, DeckVisibility visibility,
             AppImage cover, Instant now, List<Slide> slides) {
         Deck deck = new Deck();
         deck.setId(UUID.randomUUID().toString());
@@ -338,7 +398,7 @@ public class SampleDataSeeder implements ApplicationRunner {
         deck.setName(name);
         deck.setDescription(description);
         deck.setCoverImage(cover);
-        deck.setThemeId(theme != null ? theme.getId() : null);
+        deck.setThemeId(themeId);
         deck.setPublishStatus(status);
         deck.setVisibility(visibility);
         deck.setPublishedAt(status == PublishStatus.PUBLISHED ? now : null);
