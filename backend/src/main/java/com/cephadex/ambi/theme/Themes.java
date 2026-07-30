@@ -6,8 +6,8 @@ import java.util.Set;
  * The reserved theme ids that name the app's two built-in looks, "Ambi Light"
  * and "Ambi Dark".
  *
- * <p>These are values {@code Deck.themeId} (or a user's preference) may hold,
- * but they are <em>never</em> rows in the {@code themes} collection: the client
+ * <p>These are values {@code Deck.themeId} may hold, but they are
+ * <em>never</em> rows in the {@code themes} collection: the client
  * resolves them entirely from {@code frontend/src/tokens.css}, so no lookup
  * against {@link ThemeRepository} will ever — or should ever — find them. Every
  * real theme id is a client-minted UUID, so the two namespaces cannot collide;
