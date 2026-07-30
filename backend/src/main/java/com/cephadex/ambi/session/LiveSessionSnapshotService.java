@@ -11,16 +11,21 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
+import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 import com.cephadex.ambi.session.event.SessionEvents;
+import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.SlideView;
 import com.cephadex.ambi.session.event.dto.VoteOptionView;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
@@ -29,6 +34,7 @@ import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.EventSequenceStore;
+import com.cephadex.ambi.session.redis.FollowUpOptionStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.Presence;
@@ -62,13 +68,15 @@ public class LiveSessionSnapshotService {
     private final AnswerStore answerStore;
     private final VoteStore voteStore;
     private final QAndAHostAnswerStore qandaHostAnswers;
+    private final FollowUpOptionStore followUpOptions;
     private final EventSequenceStore eventSequences;
     private final ImageUrlResolver imageUrls;
 
     public LiveSessionSnapshotService(LiveSessionRepository sessions, ParticipantRepository participants,
             ParticipantResolver participantResolver, LiveRoundStateStore roundStateStore, TallyStore tallyStore,
             PresenceStore presenceStore, AnswerStore answerStore, VoteStore voteStore,
-            QAndAHostAnswerStore qandaHostAnswers, EventSequenceStore eventSequences, ImageUrlResolver imageUrls) {
+            QAndAHostAnswerStore qandaHostAnswers, FollowUpOptionStore followUpOptions,
+            EventSequenceStore eventSequences, ImageUrlResolver imageUrls) {
         this.sessions = sessions;
         this.participants = participants;
         this.participantResolver = participantResolver;
@@ -78,6 +86,7 @@ public class LiveSessionSnapshotService {
         this.answerStore = answerStore;
         this.voteStore = voteStore;
         this.qandaHostAnswers = qandaHostAnswers;
+        this.followUpOptions = followUpOptions;
         this.eventSequences = eventSequences;
         this.imageUrls = imageUrls;
     }
@@ -131,13 +140,27 @@ public class LiveSessionSnapshotService {
         String myVoteOptionId = null;
         Integer votesCast = null;
         List<PlaceTargetView> placeTargets = null;
+        String myFollowUpOptionId = null;
         if (currentSlideId != null) {
-            var slide = session.getDeck().findSlide(currentSlideId).orElse(null);
+            Deck deck = session.getDeck();
+            var slide = deck.findSlide(currentSlideId).orElse(null);
             if (slide != null) {
                 Settings.AnswerSettings effective =
-                        Settings.effectiveAnswerSettings(session.getDeck().getSettings(), slide.getSettings());
+                        Settings.effectiveAnswerSettings(deck.getSettings(), slide.getSettings());
+                // Same follow-up dimension the round-started event carried, rebuilt
+                // from the same Redis snapshot, so a reconnecting player seeds the
+                // exact board the deltas patch — plus their own authored card, which
+                // is per-viewer and can only travel here.
+                FollowUpConfigView followUp = null;
+                if (deck.isAttachedFollowUp(slide) && slide.getContent() instanceof FollowUpContent followUpContent) {
+                    FollowUpOptionSet candidates = followUpOptions.load(sessionId, currentSlideId);
+                    followUp = FollowUpConfigView.from(followUpContent,
+                            deck.findSlide(slide.getParentId()).orElse(null), candidates);
+                    myFollowUpOptionId = authoredOptionId(candidates, viewer.getParticipantId());
+                }
                 currentSlide = SlideView.from(slide, effective,
-                        img -> imageUrls.displayUrl(img, ImageSizeOptions.MD));
+                        img -> imageUrls.displayUrl(img, ImageSizeOptions.MD),
+                        followUp, deck.attachedFollowUp(slide).isPresent());
                 if (currentSlide.contentType() == SlideType.Q_AND_A) {
                     // Same participant-safe assembly the QAndAUpdated deltas use, so the
                     // seeded list and every patch agree (incl. the anonymize stripping).
@@ -193,6 +216,7 @@ public class LiveSessionSnapshotService {
                 myVoteOptionId,
                 votesCast,
                 placeTargets,
+                myFollowUpOptionId,
                 rosterViews,
                 SessionEvents.scoreboard(roster),
                 viewer.getParticipantId(),
@@ -200,6 +224,21 @@ public class LiveSessionSnapshotService {
                 showRoomCodeInHeader,
                 showJoinInfoInResults,
                 lastSequence);
+    }
+
+    /**
+     * The candidate on a follow-up board that {@code participantId} authored, or
+     * {@code null} if they authored none. First match wins: a participant's
+     * submission merges into exactly one candidate, so there can be no second.
+     */
+    private static String authoredOptionId(FollowUpOptionSet candidates, String participantId) {
+        for (FollowUpOption candidate : candidates.options()) {
+            if (candidate.authorParticipantIds() != null
+                    && candidate.authorParticipantIds().contains(participantId)) {
+                return candidate.optionId();
+            }
+        }
+        return null;
     }
 
     /**

@@ -29,6 +29,7 @@ import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.session.answer.Answer;
@@ -43,6 +44,7 @@ import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
+import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.VoteOptionView;
@@ -1323,12 +1325,16 @@ public class LiveSessionOrchestrator {
         }
         SessionEvent event;
         if (restart) {
+            // RoundRestarted carries no slide — the client already has this round's
+            // view (and its follow-up config) from the event that opened it.
             event = SessionEvents.roundRestarted(started);
         } else if (phase == RoundPhase.SUBMIT_LIVE) {
             event = SessionEvents.liveResultsShown(started, slide, tallyStore.tally(sessionId, slideId),
-                    effectiveAnswer, this::slideItemImageUrl);
+                    effectiveAnswer, this::slideItemImageUrl, followUpConfig(session, slide),
+                    deck.attachedFollowUp(slide).isPresent());
         } else {
-            event = SessionEvents.roundStarted(started, slide, effectiveAnswer, this::slideItemImageUrl);
+            event = SessionEvents.roundStarted(started, slide, effectiveAnswer, this::slideItemImageUrl,
+                    followUpConfig(session, slide), deck.attachedFollowUp(slide).isPresent());
         }
         publisher.publish(session.getPublicId(), event);
         return slide;
@@ -1375,6 +1381,24 @@ public class LiveSessionOrchestrator {
         Slide parent = session.getDeck().findSlide(parentId).orElse(null);
         return FollowUpOptions.mint(parent, parentAnswers(session.getId(), parentId),
                 this::followUpCandidateImageUrl);
+    }
+
+    /**
+     * The follow-up dimension of {@code slide}'s round for its {@code SlideView} —
+     * {@code null} unless the slide is a validated attached follow-up.
+     *
+     * <p>Reads the candidates back from the snapshot {@link #openRoundUnlocked}
+     * just saved rather than re-minting them: the board every client renders — and
+     * every pick is validated against — must be the one Redis holds, so a parent
+     * whose answers moved on cannot leave two different boards in play.
+     */
+    private FollowUpConfigView followUpConfig(LiveSession session, Slide slide) {
+        Deck deck = session.getDeck();
+        if (!deck.isAttachedFollowUp(slide) || !(slide.getContent() instanceof FollowUpContent content)) {
+            return null;
+        }
+        return FollowUpConfigView.from(content, deck.findSlide(slide.getParentId()).orElse(null),
+                followUpOptions.load(session.getId(), slide.getId()));
     }
 
     /**

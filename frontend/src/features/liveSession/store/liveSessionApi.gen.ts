@@ -521,6 +521,17 @@ export type PlaceOnImageConfigView = {
   imageUrl?: string;
   items?: PlaceItemView[];
 };
+export type FollowUpOptionView = {
+  optionId?: string;
+  text?: string;
+  imageUrl?: string;
+};
+export type FollowUpConfigView = {
+  mode?: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
+  parentSlideId?: string;
+  parentTitle?: string;
+  options?: FollowUpOptionView[];
+};
 export type AnswerSettingsView = {
   maxSelections?: number;
   displayResultsAsPercentage?: boolean;
@@ -562,6 +573,8 @@ export type SlideView = {
   text?: TextConfigView;
   number?: NumberConfigView;
   placeOnImage?: PlaceOnImageConfigView;
+  followUp?: FollowUpConfigView;
+  hasFollowUp?: boolean;
   answerSettings?: AnswerSettingsView;
 };
 export type QAndAQuestionView = {
@@ -630,6 +643,7 @@ export type SessionSnapshotResponse = {
   myVoteOptionId?: string;
   votesCast?: number;
   placeTargets?: PlaceTargetView[];
+  myFollowUpOptionId?: string;
   roster?: ParticipantView[];
   scoreboard?: ScoreboardEntry[];
   viewerParticipantId?: string;

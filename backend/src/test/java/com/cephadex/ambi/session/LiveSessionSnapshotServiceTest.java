@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
@@ -35,9 +37,12 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Axis
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.LiveSessionLifecycle;
@@ -48,6 +53,7 @@ import com.cephadex.ambi.session.participant.ParticipantResolver;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.EventSequenceStore;
+import com.cephadex.ambi.session.redis.FollowUpOptionStore;
 import com.cephadex.ambi.session.redis.LiveRoundState;
 import com.cephadex.ambi.session.redis.LiveRoundStateStore;
 import com.cephadex.ambi.session.redis.PresenceStore;
@@ -70,6 +76,7 @@ class LiveSessionSnapshotServiceTest {
     private AnswerStore answerStore;
     private VoteStore voteStore;
     private QAndAHostAnswerStore qandaHostAnswers;
+    private FollowUpOptionStore followUpOptions;
     private EventSequenceStore eventSequences;
     private LiveSessionSnapshotService service;
 
@@ -89,10 +96,11 @@ class LiveSessionSnapshotServiceTest {
         answerStore = mock(AnswerStore.class);
         voteStore = mock(VoteStore.class);
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
+        followUpOptions = mock(FollowUpOptionStore.class);
         eventSequences = mock(EventSequenceStore.class);
         service = new LiveSessionSnapshotService(sessions, participants, participantResolver,
                 roundStateStore, tallyStore, presenceStore, answerStore, voteStore, qandaHostAnswers,
-                eventSequences, mock(ImageUrlResolver.class));
+                followUpOptions, eventSequences, mock(ImageUrlResolver.class));
 
         caller = new AmbiPrincipal(IdentityState.GUEST, "user-1", "pub-user", UserLevel.GUEST,
                 AuthProvider.INTERNAL, null, null, "sid-1");
@@ -244,6 +252,102 @@ class LiveSessionSnapshotServiceTest {
         assertThat(snap.voteOptions()).isNull();
         assertThat(snap.myVoteOptionId()).isNull();
         assertThat(snap.votesCast()).isNull();
+    }
+
+    /**
+     * A follow-up round open on {@code slide-followup}, chained off {@code slide-1}
+     * and holding a two-candidate board authored by {@code host-1} and
+     * {@code player-2}.
+     */
+    private void givenOpenFollowUpRound() {
+        Slide parent = mock(Slide.class);
+        when(parent.getId()).thenReturn("slide-1");
+        when(parent.getTitle()).thenReturn("Name a capital");
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-followup");
+        when(slide.getParentId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-followup")).thenReturn(Optional.of(slide));
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(parent));
+        when(deck.isAttachedFollowUp(slide)).thenReturn(true);
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                "pub-1", RoundPhase.SUBMIT, "slide-followup", Instant.parse("2026-07-01T10:00:00Z"), null, null,
+                0L, false)));
+        when(followUpOptions.load(SID, "slide-followup")).thenReturn(new FollowUpOptionSet(List.of(
+                new FollowUpOption("cand-1", "Minas Tirith", null, Set.of("player-2")),
+                new FollowUpOption("cand-2", "Osgiliath", null, Set.of("host-1")))));
+    }
+
+    @Test
+    void followUpRoundSnapshotCarriesTheBoardAndTheViewersOwnCandidate() {
+        givenOpenFollowUpRound();
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        // The rehydrated board is the saved snapshot, in its minted order, naming
+        // the parent round it reads.
+        assertThat(snap.currentSlide()).isNotNull();
+        assertThat(snap.currentSlide().followUp()).isNotNull();
+        assertThat(snap.currentSlide().followUp().mode()).isEqualTo(FollowUpMode.BEST_ANSWER_VOTE);
+        assertThat(snap.currentSlide().followUp().parentSlideId()).isEqualTo("slide-1");
+        assertThat(snap.currentSlide().followUp().parentTitle()).isEqualTo("Name a capital");
+        assertThat(snap.currentSlide().followUp().options()).extracting("optionId")
+                .containsExactly("cand-1", "cand-2");
+        // The viewer (host-1) authored the second candidate — per-participant, so it
+        // travels only here, never on the broadcast board.
+        assertThat(snap.myFollowUpOptionId()).isEqualTo("cand-2");
+    }
+
+    @Test
+    void followUpRoundSnapshotHasNoOwnCandidateForANonAuthor() {
+        givenOpenFollowUpRound();
+        // The viewer joined after the parent round, so no candidate is theirs.
+        Participant latecomer = participant("late-9", "Latecomer");
+        when(participantResolver.resolve(session, caller)).thenReturn(latecomer);
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.currentSlide().followUp().options()).hasSize(2);
+        assertThat(snap.myFollowUpOptionId()).isNull();
+    }
+
+    @Test
+    void nonFollowUpRoundSnapshotCarriesNoFollowUpFields() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                "pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        assertThat(snap.currentSlide().followUp()).isNull();
+        assertThat(snap.currentSlide().hasFollowUp()).isFalse();
+        assertThat(snap.myFollowUpOptionId()).isNull();
+    }
+
+    @Test
+    void aParentRoundSnapshotIsMarkedAsHavingAFollowUp() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        Slide child = mock(Slide.class);
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(deck.attachedFollowUp(slide)).thenReturn(Optional.of(child));
+        when(session.getDeck()).thenReturn(deck);
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                "pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        // The host bar reads this to drop "Reveal answers" and advance into the child.
+        assertThat(snap.currentSlide().hasFollowUp()).isTrue();
+        assertThat(snap.currentSlide().followUp()).isNull();
     }
 
     @Test

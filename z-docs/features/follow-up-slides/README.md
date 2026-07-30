@@ -118,5 +118,23 @@ never reveals: `revealResults` on a slide with an attached follow-up is rejected
 follow-up round is where the parent's results are presented. Navigation skips a
 follow-up that can't be played (parent never scored, or its submissions mint no
 candidates) rather than opening an empty board, while `goTo` still rejects the
-named slide outright (`409 PARENT_ROUND_NOT_SCORED`). What's still missing is
-carrying the candidates on the round event and the board UI.
+named slide outright (`409 PARENT_ROUND_NOT_SCORED`).
+
+The board reaches the client on `SlideView`. A follow-up round's view carries
+`FollowUpConfigView` (mode, parent id/title, and the candidates as
+`FollowUpOptionView`); a slide that *has* an attached follow-up carries
+`hasFollowUp` instead, so the host bar knows the round never reveals and
+advances into the child. Both are resolved by the caller against the deck —
+`SlideView.from` has no deck — and the candidates are read back from the saved
+`FollowUpOptionStore` snapshot, never re-minted, so every consumer sees the one
+board. **`authorParticipantIds` never travels**: like `VoteOptionView`, the
+id→author mapping stays server-side, which is also what makes the self-vote
+check trustworthy. `LiveSessionSnapshotService` rebuilds the same two values for
+a late joiner and adds the per-viewer `myFollowUpOptionId` — the candidate the
+caller authored, which can only travel on the snapshot, never on a broadcast.
+
+`LiveSessionAnswerService` validates a pick against that snapshot rather than
+any authored content (the board is runtime state): a blank id or one absent from
+the round's set is a `400`, and picking one's own candidate is the same
+`409 CANNOT_VOTE_FOR_OWN_ANSWER` `submitVote` raises. What's still missing is
+the board UI.

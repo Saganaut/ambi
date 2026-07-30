@@ -56,6 +56,15 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * {@code tolerance}); a Place-on-image slide carries {@link PlaceOnImageConfigView}
  * (the backing image only, never {@code correctTargets} or {@code scoreMode}); each
  * is {@code null} for every other kind.
+ *
+ * <p>A follow-up slide carries {@link FollowUpConfigView} — the one config that is
+ * <strong>runtime state rather than slide content</strong> (the candidates minted
+ * from the parent round), so it cannot be derived from the slide and is supplied
+ * by the caller. {@code hasFollowUp} is the mirror image: it marks a slide that
+ * <em>has</em> a validated attached follow-up, so the host bar knows this round
+ * never reveals and advances from {@code LOCKED} into the child instead. Both
+ * need the deck to resolve the link, which this factory does not have — hence the
+ * widened {@link #from(Slide, Settings.AnswerSettings, Function, FollowUpConfigView, boolean)}.
  */
 public record SlideView(
         String id,
@@ -76,7 +85,19 @@ public record SlideView(
         TextConfigView text,
         NumberConfigView number,
         PlaceOnImageConfigView placeOnImage,
+        FollowUpConfigView followUp,
+        boolean hasFollowUp,
         AnswerSettingsView answerSettings) {
+
+    /**
+     * The view of a slide with no follow-up dimension to report — every call site
+     * that renders a slide outside its own live round, where the deck link is
+     * neither known nor needed.
+     */
+    public static SlideView from(Slide slide, Settings.AnswerSettings effectiveAnswer,
+            Function<AppImage, String> imageUrl) {
+        return from(slide, effectiveAnswer, imageUrl, null, false);
+    }
 
     /**
      * Builds the participant-safe view of {@code slide}, dropping every secret.
@@ -85,9 +106,12 @@ public record SlideView(
      * {@link Settings#effectiveAnswerSettings}); may be {@code null}.
      * {@code imageUrl} resolves an item's {@link AppImage} to a renderable URL
      * (see {@link MatchingConfigView} for why images travel pre-resolved).
+     * {@code followUp} is the round's runtime follow-up config ({@code null} unless
+     * this slide is an open follow-up round) and {@code hasFollowUp} whether this
+     * slide has one attached — both resolved by the caller against the deck.
      */
     public static SlideView from(Slide slide, Settings.AnswerSettings effectiveAnswer,
-            Function<AppImage, String> imageUrl) {
+            Function<AppImage, String> imageUrl, FollowUpConfigView followUp, boolean hasFollowUp) {
         SlideContent content = slide.getContent();
         List<McqOptionView> options = null;
         QAndAConfigView qAndA = null;
@@ -156,6 +180,8 @@ public record SlideView(
                 text,
                 number,
                 placeOnImage,
+                followUp,
+                hasFollowUp,
                 AnswerSettingsView.from(effectiveAnswer));
     }
 }

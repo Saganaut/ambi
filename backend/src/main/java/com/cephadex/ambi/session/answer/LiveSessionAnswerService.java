@@ -23,6 +23,7 @@ import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
@@ -48,10 +49,12 @@ import com.cephadex.ambi.session.answer.payload.PlaceOnImageAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
+import com.cephadex.ambi.session.redis.FollowUpOptionStore;
 
 /**
  * Application service behind {@code POST /api/liveSessions/{id}/answers}: turns an
@@ -60,6 +63,10 @@ import com.cephadex.ambi.session.participant.ParticipantResolver;
  * {@link Participant}, and validating the payload against the slide's content and
  * answer settings — so the orchestrator's submit path stays a lock-free, Redis-only
  * write that only needs the resolved {@code participantId} and {@code maxSelections}.
+ *
+ * <p>A follow-up round is the one exception to "validate against the slide": its
+ * board is minted at runtime, so the pick is checked against the
+ * {@link FollowUpOptionStore} snapshot instead of any authored content.
  */
 @Service
 public class LiveSessionAnswerService {
@@ -71,13 +78,16 @@ public class LiveSessionAnswerService {
     private final ParticipantResolver participantResolver;
     private final LiveSessionOrchestrator orchestrator;
     private final ImageIngestService imageIngest;
+    private final FollowUpOptionStore followUpOptions;
 
     public LiveSessionAnswerService(LiveSessionRepository sessions, ParticipantResolver participantResolver,
-            LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest) {
+            LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest,
+            FollowUpOptionStore followUpOptions) {
         this.sessions = sessions;
         this.participantResolver = participantResolver;
         this.orchestrator = orchestrator;
         this.imageIngest = imageIngest;
+        this.followUpOptions = followUpOptions;
     }
 
     /**
@@ -117,7 +127,8 @@ public class LiveSessionAnswerService {
      *
      * @throws NotFoundException   if the session or slide doesn't exist
      * @throws ConflictException   if the session isn't in progress (or the round is
-     *                             closed — surfaced by the orchestrator)
+     *                             closed — surfaced by the orchestrator), or a
+     *                             follow-up pick targets the caller's own candidate
      * @throws ForbiddenException  if the caller isn't a (non-banned) roster
      *                             participant, or the slide bars guest answers
      * @throws ValidationException if the payload doesn't fit the slide
@@ -229,6 +240,9 @@ public class LiveSessionAnswerService {
         }
         if (content instanceof TextContent text && payload instanceof TextAnswer ans) {
             validateText(text, ans);
+        }
+        if (content instanceof FollowUpContent && payload instanceof FollowUpAnswer ans) {
+            validateFollowUp(sessionId, slide.getId(), participantId, ans);
         }
         // Other content types are stored as-is; their tally/validation lands with scoring.
     }
@@ -450,6 +464,32 @@ public class LiveSessionAnswerService {
         Integer maxLength = content.maxLength();
         if (maxLength != null && text.length() > maxLength) {
             throw new ValidationException("text answer exceeds the slide's character limit");
+        }
+    }
+
+    /**
+     * A follow-up pick must name one of the candidates snapshotted when the round
+     * opened — the board is runtime state, so unlike every other kind it is
+     * validated against the Redis snapshot rather than the slide's content.
+     *
+     * <p>Picking one's <em>own</em> candidate is rejected with the same
+     * {@code CANNOT_VOTE_FOR_OWN_ANSWER} conflict {@code submitVote} raises: the
+     * condition is identical, and on a follow-up round the pick <em>is</em> the
+     * vote. Authorship only exists server-side (never on
+     * {@link com.cephadex.ambi.session.event.dto.FollowUpOptionView}), so this is
+     * the only place the check can happen.
+     */
+    private void validateFollowUp(String sessionId, String slideId, String participantId, FollowUpAnswer answer) {
+        String optionId = answer.optionId();
+        if (optionId == null || optionId.isBlank()) {
+            throw new ValidationException("an option must be selected");
+        }
+        FollowUpOption option = followUpOptions.load(sessionId, slideId).byId(optionId);
+        if (option == null) {
+            throw new ValidationException("selected option is not on this round's board");
+        }
+        if (option.authorParticipantIds() != null && option.authorParticipantIds().contains(participantId)) {
+            throw new ConflictException("CANNOT_VOTE_FOR_OWN_ANSWER", "you cannot vote for your own answer");
         }
     }
 

@@ -75,10 +75,13 @@ import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
+import com.cephadex.ambi.session.redis.FollowUpOptionStore;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -95,6 +98,7 @@ class LiveSessionAnswerServiceTest {
     private ParticipantResolver participantResolver;
     private LiveSessionOrchestrator orchestrator;
     private ImageIngestService imageIngest;
+    private FollowUpOptionStore followUpOptions;
     private LiveSessionAnswerService service;
 
     private Participant participant;
@@ -106,7 +110,9 @@ class LiveSessionAnswerServiceTest {
         participantResolver = mock(ParticipantResolver.class);
         orchestrator = mock(LiveSessionOrchestrator.class);
         imageIngest = mock(ImageIngestService.class);
-        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest);
+        followUpOptions = mock(FollowUpOptionStore.class);
+        service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest,
+                followUpOptions);
 
         participant = Participant.join("user-1", "Player One", null, null);
         registered = principal(IdentityState.REGISTERED, "user-1", UserLevel.USER);
@@ -620,6 +626,7 @@ class LiveSessionAnswerServiceTest {
     @Test
     void followUpPickBypassesTheSingleAnswerRule() {
         givenLiveSession(answerSettings(true, 1), followUpContent());
+        givenFollowUpBoard();
 
         service.submit(SID, request(new FollowUpAnswer("opt-a")), registered);
 
@@ -629,7 +636,53 @@ class LiveSessionAnswerServiceTest {
                 any(FollowUpAnswer.class), eq(0));
     }
 
+    @Test
+    void followUpPickOfAnUnknownOptionIsRejected() {
+        givenLiveSession(answerSettings(true, 1), followUpContent());
+        givenFollowUpBoard();
+
+        // The board is runtime state, so the id is checked against the round's
+        // saved snapshot rather than anything authored on the slide.
+        assertThatThrownBy(() -> service.submit(SID, request(new FollowUpAnswer("opt-ghost")), registered))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("not on this round's board");
+        verifyNoInteractions(orchestrator);
+    }
+
+    @Test
+    void followUpPickWithABlankOptionIsRejected() {
+        givenLiveSession(answerSettings(true, 1), followUpContent());
+        givenFollowUpBoard();
+
+        assertThatThrownBy(() -> service.submit(SID, request(new FollowUpAnswer("  ")), registered))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("an option must be selected");
+        verifyNoInteractions(orchestrator);
+    }
+
+    @Test
+    void followUpPickOfOnesOwnCandidateIsRejected() {
+        givenLiveSession(answerSettings(true, 1), followUpContent());
+        givenFollowUpBoard();
+
+        // Same conflict submitVote raises: on a follow-up round the pick is the
+        // vote, and authorship only exists server-side to be checked here.
+        assertThatThrownBy(() -> service.submit(SID, request(new FollowUpAnswer("opt-mine")), registered))
+                .isInstanceOf(ConflictException.class)
+                .satisfies(e -> assertThat(((ConflictException) e).getCode())
+                        .isEqualTo("CANNOT_VOTE_FOR_OWN_ANSWER"));
+        verifyNoInteractions(orchestrator);
+    }
+
     // ── fixtures ───────────────────────────────────────────────────────────────
+
+    /** The round's saved board: {@code opt-a} is someone else's, {@code opt-mine} is the caller's. */
+    private void givenFollowUpBoard() {
+        when(followUpOptions.load(SID, SLIDE)).thenReturn(new FollowUpOptionSet(List.of(
+                new FollowUpOption("opt-a", "Paris", null, java.util.Set.of("someone-else")),
+                new FollowUpOption("opt-mine", "Berlin", null,
+                        java.util.Set.of(participant.getParticipantId())))));
+    }
 
     private void givenLiveSession(AnswerSettings answer, SlideContent content) {
         Slide slide = new Slide();

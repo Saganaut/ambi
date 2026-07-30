@@ -80,6 +80,7 @@ import com.cephadex.ambi.session.event.TimerPaused;
 import com.cephadex.ambi.session.event.TimerResumed;
 import com.cephadex.ambi.session.event.VoteCast;
 import com.cephadex.ambi.session.event.VotingOpened;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
 import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
@@ -149,6 +150,9 @@ class LiveSessionOrchestratorTest {
         presenceStore = mock(PresenceStore.class);
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         followUpOptions = mock(FollowUpOptionStore.class);
+        // The real store reports an empty set for a round with no snapshot, never
+        // null — a bare mock would hand back null and mask that contract.
+        when(followUpOptions.load(anyString(), anyString())).thenReturn(FollowUpOptionSet.empty());
         publisher = mock(EventPublisher.class);
         roundResults = mock(RoundResultProjector.class);
         imageUrls = mock(ImageUrlResolver.class);
@@ -1238,6 +1242,39 @@ class LiveSessionOrchestratorTest {
         inOrder.verify(followUpOptions).clear(SID, CHILD);
         inOrder.verify(followUpOptions).save(eq(SID), eq(CHILD), any());
         inOrder.verify(publisher).publish(eq(PUB), any());
+    }
+
+    @Test
+    void followUpRoundStartedCarriesTheSavedBoardRatherThanAFreshMint() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of(parentAnswer("p-1", "Paris")));
+        // The event reads the snapshot back, so a store holding something other
+        // than what this open would mint proves the read, not a re-mint.
+        when(followUpOptions.load(SID, CHILD)).thenReturn(new FollowUpOptionSet(List.of(
+                new FollowUpOption("cand-saved", "Berlin", null, Set.of("p-9")))));
+
+        orchestrator.startRound(SID, CHILD);
+
+        RoundStarted event = (RoundStarted) publishedEvent();
+        assertThat(event.slide().followUp()).isNotNull();
+        assertThat(event.slide().followUp().mode()).isEqualTo(FollowUpMode.BEST_ANSWER_VOTE);
+        assertThat(event.slide().followUp().parentSlideId()).isEqualTo(PARENT);
+        assertThat(event.slide().followUp().options()).extracting("optionId").containsExactly("cand-saved");
+        assertThat(event.slide().hasFollowUp()).isFalse();
+    }
+
+    @Test
+    void aParentRoundIsAnnouncedAsHavingAFollowUp() {
+        followUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        orchestrator.startRound(SID, PARENT);
+
+        // The host bar reads this to drop "Reveal answers" and advance into the child.
+        RoundStarted event = (RoundStarted) publishedEvent();
+        assertThat(event.slide().hasFollowUp()).isTrue();
+        assertThat(event.slide().followUp()).isNull();
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
+import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
@@ -68,11 +69,14 @@ public final class SessionEvents {
      * Round opened hidden (entered SUBMIT); reads the slide id/start time from the
      * round state. {@code imageUrl} resolves a slide item's {@link AppImage} to a
      * renderable URL, for the config views that carry images pre-resolved (see
-     * {@code MatchingConfigView}).
+     * {@code MatchingConfigView}). {@code followUp} / {@code hasFollowUp} are the
+     * round's follow-up dimension, which only the caller can resolve against the
+     * deck (see {@link SlideView}).
      */
     public static RoundStarted roundStarted(LiveRoundState state, Slide slide, AnswerSettings effectiveAnswer,
-            Function<AppImage, String> imageUrl) {
-        return new RoundStarted(state.currentSlideId(), SlideView.from(slide, effectiveAnswer, imageUrl),
+            Function<AppImage, String> imageUrl, FollowUpConfigView followUp, boolean hasFollowUp) {
+        return new RoundStarted(state.currentSlideId(),
+                SlideView.from(slide, effectiveAnswer, imageUrl, followUp, hasFollowUp),
                 state.roundStartedAt(), state.deadline());
     }
 
@@ -83,8 +87,9 @@ public final class SessionEvents {
      */
     public static LiveResultsShown liveResultsShown(LiveRoundState state, Slide slide,
             Map<String, Integer> optionCounts, AnswerSettings effectiveAnswer,
-            Function<AppImage, String> imageUrl) {
-        return new LiveResultsShown(state.currentSlideId(), SlideView.from(slide, effectiveAnswer, imageUrl),
+            Function<AppImage, String> imageUrl, FollowUpConfigView followUp, boolean hasFollowUp) {
+        return new LiveResultsShown(state.currentSlideId(),
+                SlideView.from(slide, effectiveAnswer, imageUrl, followUp, hasFollowUp),
                 state.roundStartedAt(), Map.copyOf(optionCounts), state.deadline());
     }
 

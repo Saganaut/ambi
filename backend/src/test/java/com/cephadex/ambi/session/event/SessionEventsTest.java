@@ -17,6 +17,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
@@ -30,11 +31,15 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqO
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
+import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
 import com.cephadex.ambi.session.event.dto.SlideView;
 import com.cephadex.ambi.session.event.dto.VoteOptionView;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.redis.LiveRoundState;
@@ -143,6 +148,23 @@ class SessionEventsTest {
                 List.of("rank-3", "rank-1", "rank-2"),
                 ScoreMode.EXACT));
         return slide;
+    }
+
+    /** The follow-up chained off {@link #mcqSlide()} — its board is runtime state, not content. */
+    private static Slide followUpSlide() {
+        Slide slide = new Slide();
+        slide.setId("slide-followup");
+        slide.setTitle("Which answer was best?");
+        slide.setParentId("slide-1");
+        slide.setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        return slide;
+    }
+
+    /** Two candidates in board order, each carrying the (server-only) author it was minted from. */
+    private static FollowUpOptionSet followUpCandidates() {
+        return new FollowUpOptionSet(List.of(
+                new FollowUpOption("cand-1", "Minas Tirith", null, Set.of("player-writer-2")),
+                new FollowUpOption("cand-2", "Osgiliath", null, Set.of("player-writer-3"))));
     }
 
     // Participant-relevant fields set to distinctive values; host/scoring fields
@@ -277,7 +299,8 @@ class SessionEventsTest {
     void roundStartedEventCarriesNoAnswerKey() {
         LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.now(), null, null, 0L, false);
 
-        String json = codec.serialize(SessionEvents.roundStarted(state, mcqSlide(), answerSettings(), NO_IMAGES));
+        String json = codec.serialize(
+                SessionEvents.roundStarted(state, mcqSlide(), answerSettings(), NO_IMAGES, null, false));
 
         assertThat(json).contains("RoundStarted").contains("opt-a").contains("maxSelections");
         assertThat(json).doesNotContain("correctOptionIds");
@@ -287,8 +310,8 @@ class SessionEventsTest {
     void liveResultsShownCarriesSlideAndCountsButNoAnswerKey() {
         LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT_LIVE, "slide-1", Instant.now(), null, null, 0L, false);
 
-        String json = codec.serialize(
-                SessionEvents.liveResultsShown(state, mcqSlide(), Map.of("opt-a", 3), answerSettings(), NO_IMAGES));
+        String json = codec.serialize(SessionEvents.liveResultsShown(
+                state, mcqSlide(), Map.of("opt-a", 3), answerSettings(), NO_IMAGES, null, false));
 
         assertThat(json).contains("LiveResultsShown").contains("opt-a");
         assertThat(json).doesNotContain("correctOptionIds");
@@ -350,6 +373,59 @@ class SessionEventsTest {
         assertThat(json).doesNotContain("correctOrder");
         assertThat(json).doesNotContain("scoreMode");
         assertThat(json).doesNotContain("rank-3,rank-1,rank-2");
+    }
+
+    @Test
+    void followUpRoundStartedCarriesTheBoardInOrderButNeverAnAuthor() {
+        LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-followup", Instant.now(), null,
+                null, 0L, false);
+        Slide parent = mcqSlide();
+        FollowUpConfigView followUp = FollowUpConfigView.from(
+                (FollowUpContent) followUpSlide().getContent(), parent, followUpCandidates());
+
+        RoundStarted event = SessionEvents.roundStarted(state, followUpSlide(), answerSettings(), NO_IMAGES,
+                followUp, false);
+
+        // The board names what it is asking about and renders in minted order —
+        // everyone votes against the same numbered list.
+        assertThat(event.slide().followUp()).isNotNull();
+        assertThat(event.slide().followUp().mode()).isEqualTo(FollowUpMode.BEST_ANSWER_VOTE);
+        assertThat(event.slide().followUp().parentSlideId()).isEqualTo("slide-1");
+        assertThat(event.slide().followUp().parentTitle()).isEqualTo("Capital of Gondor?");
+        assertThat(event.slide().followUp().options()).extracting("optionId")
+                .containsExactly("cand-1", "cand-2");
+        assertThat(event.slide().followUp().options()).extracting("text")
+                .containsExactly("Minas Tirith", "Osgiliath");
+        // A follow-up round is not itself a parent.
+        assertThat(event.slide().hasFollowUp()).isFalse();
+
+        // The authorship mapping is what makes the board anonymous (and self-vote
+        // rejection trustworthy) — it must not survive onto the wire.
+        String json = codec.serialize(event);
+        assertThat(json).contains("cand-1");
+        assertThat(json).doesNotContain("authorParticipantIds");
+        assertThat(json).doesNotContain("player-writer-2");
+        assertThat(json).doesNotContain("player-writer-3");
+    }
+
+    @Test
+    void aParentRoundIsMarkedAsHavingAFollowUpAndCarriesNoBoardOfItsOwn() {
+        LiveRoundState state = new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.now(), null, null,
+                0L, false);
+
+        RoundStarted event = SessionEvents.roundStarted(state, mcqSlide(), answerSettings(), NO_IMAGES, null, true);
+
+        // The host bar reads this to drop "Reveal answers" and advance into the child.
+        assertThat(event.slide().hasFollowUp()).isTrue();
+        assertThat(event.slide().followUp()).isNull();
+    }
+
+    @Test
+    void anUnrelatedSlideCarriesNoFollowUpDimension() {
+        SlideView view = SlideView.from(textSlide(), null, NO_IMAGES);
+
+        assertThat(view.followUp()).isNull();
+        assertThat(view.hasFollowUp()).isFalse();
     }
 
     @Test

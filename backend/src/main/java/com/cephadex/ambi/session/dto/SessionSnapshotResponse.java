@@ -43,6 +43,7 @@ import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
  * @param myVoteOptionId        the option the caller has voted for this round, or {@code null} if they haven't (or outside a VOTE phase)
  * @param votesCast             how many votes have been cast so far, or {@code null} outside a VOTE phase
  * @param placeTargets          the Place-on-image round's authored correct-location circles, disclosed only once the round is revealing results (phase {@code REVEAL_RESULTS}); {@code null} otherwise, so a late joiner rehydrates the correct-location reveal exactly as the {@link com.cephadex.ambi.session.event.ResultsRevealed} delta carries it
+ * @param myFollowUpOptionId    the candidate the caller authored on a follow-up round (their own card, which they may not vote for), or {@code null} when the open round isn't a follow-up or they authored none. Per-participant, so it can only travel here — never on a broadcast event, which would de-anonymise the board
  * @param roster                every participant, in join order, with live connection status
  * @param scoreboard            current standings, ranked by points
  * @param viewerParticipantId   the calling participant's id (so the client can spot itself)
@@ -68,6 +69,7 @@ public record SessionSnapshotResponse(
         String myVoteOptionId,
         Integer votesCast,
         List<PlaceTargetView> placeTargets,
+        String myFollowUpOptionId,
         List<ParticipantView> roster,
         List<ScoreboardEntry> scoreboard,
         String viewerParticipantId,
