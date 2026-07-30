@@ -7,6 +7,14 @@
 // S3-backed AppImage — pasted URLs are fetched + stored too, not kept as bare
 // external references.
 //
+// The Gallery tab is a *two-step* surface: a single click selects a tile (which
+// enables the footer's Insert and Delete actions) rather than inserting, so a
+// stray click can't drop an image onto the canvas and images can be pruned
+// without a trip to Account → Gallery. Double-clicking a tile is the fast path
+// and inserts straight away. Deleting confirms inline in the footer — the
+// picker occupies the app's one global modal slot, so a confirm dialog would
+// evict it (see useGalleryPickerSelection).
+//
 // The gallery is the per-user singleton (`GET /api/galleries/mine`); its images
 // are the paginated sub-resource (`GET /api/galleries/{id}/images`). Callers that
 // target a fixed-shape slot (deck/slide background, avatar, …) pass cropWidth +
@@ -25,6 +33,7 @@ import {
 } from "@features/gallery/store/galleryApi.gen";
 import { GalleryTab } from "./GalleryTab";
 import { UploadTab } from "./UploadTab";
+import { useGalleryPickerSelection } from "./useGalleryPickerSelection";
 import styles from "./GalleryPicker.module.css";
 
 // Used when a caller doesn't constrain the crop to a specific slot shape.
@@ -59,6 +68,25 @@ const GalleryPicker = ({
     cropAspect ??
     (cropWidth && cropHeight ? cropWidth / cropHeight : DEFAULT_CROP_ASPECT);
   const [tab, setTab] = useState<PickerTab>(initialUrl ? "upload" : "gallery");
+  const selection = useGalleryPickerSelection(galleryId);
+  const { selected } = selection;
+  const selectedName = selected?.name ?? "this image";
+
+  const insertSelected = () => {
+    if (selected) onPick(selected.image);
+  };
+
+  // Deselect-on-outside-click. A click that lands on a control (a tile, a tab,
+  // one of the footer buttons) keeps its own semantics; a click on inert chrome
+  // — the search row, the grid's padding, the picker's own gutters — means "not
+  // that one after all" and clears the selection. Keyboard users toggle the
+  // same selection off by re-activating the tile.
+  const handlePickerClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest("button")) {
+      return;
+    }
+    selection.clear();
+  };
 
   const items: TabsItem[] = [
     {
@@ -69,6 +97,8 @@ const GalleryPicker = ({
           galleryId={galleryId}
           galleryError={galleryError}
           onPick={onPick}
+          selectedId={selected?.id}
+          onSelect={selection.select}
         />
       ),
     },
@@ -87,7 +117,7 @@ const GalleryPicker = ({
   ];
 
   return (
-    <div className={styles.picker}>
+    <div className={styles.picker} onClick={handlePickerClick}>
       <ErrorBoundary
         boundaryName="gallery-picker"
         fallback={<ErrorFallback message="Something went wrong loading the image picker." />}
@@ -98,13 +128,51 @@ const GalleryPicker = ({
           value={tab}
           onChange={(id) => {
             setTab(id as PickerTab);
+            // The grid — and so the thing the actions act on — is gone once the
+            // Upload tab is showing; don't leave them armed against it.
+            selection.clear();
           }}
           ariaLabel='Image source'
         />
       </ErrorBoundary>
       <div className={styles.formActions}>
+        {selection.isConfirmingDelete ? (
+          <>
+            <span className={styles.confirmPrompt} role='status'>
+              Delete “{selectedName}”? This can’t be undone.
+            </span>
+            <Btn
+              variant='error'
+              isLoading={selection.isDeleting}
+              onClick={() => {
+                void selection.confirmDelete();
+              }}>
+              Confirm delete
+            </Btn>
+            <Btn variant='secondary' onClick={selection.cancelDelete}>
+              Cancel
+            </Btn>
+          </>
+        ) : (
+          <>
+            <Btn variant='primary' disabled={!selected} onClick={insertSelected}>
+              Insert
+            </Btn>
+            <Btn
+              variant='error'
+              fill='ghost'
+              disabled={!selected}
+              onClick={selection.requestDelete}>
+              Delete
+            </Btn>
+          </>
+        )}
+        <span className={styles.toolbarSpacer} />
         <Btn onClick={onClose}>Close</Btn>
       </div>
+      {selection.deleteError && (
+        <p className={styles.error}>{selection.deleteError}</p>
+      )}
     </div>
   );
 };

@@ -1,7 +1,15 @@
-// Gallery tab: browse the user's stored images and pick one. Selecting a tile
-// fires onPick with the stored AppImage (no crop step — existing images are
-// already framed). Search filters by the gallery item's name.
+// Gallery tab: browse the user's stored images and pick one (no crop step —
+// existing images are already framed). Search filters by the gallery item's
+// name.
+//
+// Two interaction modes, chosen by the parent:
+//   • click-to-pick (default) — a single click fires onPick straight away. Used
+//     by the AvatarPicker, whose gallery tab has no contextual action bar.
+//   • two-step selection (pass onSelect) — a single click only *selects* the
+//     tile, so the parent can offer Insert/Delete against it; a double-click is
+//     the power-user fast path that picks immediately.
 import { useMemo, useState } from "react";
+import CheckIcon from "@assets/icons/status/check-solid.svg?react";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { Loader } from "@ui/Loader/Loader";
@@ -23,9 +31,23 @@ interface GalleryTabProps {
   /** True when the parent's gallery-singleton fetch failed (so no id is coming). */
   galleryError?: boolean;
   onPick: (image: AppImage) => void;
+  /** Id of the selected tile — only meaningful alongside `onSelect`. */
+  selectedId?: string;
+  /**
+   * Opt into two-step selection. When supplied, a single click selects the tile
+   * (re-clicking the selected one reports null to deselect) instead of picking,
+   * and only a double-click fires `onPick`. Omit it for click-to-pick.
+   */
+  onSelect?: (image: GalleryImageResponse | null) => void;
 }
 
-const GalleryTab = ({ galleryId, galleryError, onPick }: GalleryTabProps) => {
+const GalleryTab = ({
+  galleryId,
+  galleryError,
+  onPick,
+  selectedId,
+  onSelect,
+}: GalleryTabProps) => {
   const {
     data: page,
     isError: imagesError,
@@ -56,23 +78,52 @@ const GalleryTab = ({ galleryId, galleryError, onPick }: GalleryTabProps) => {
     return images.filter((img) => (img.name ?? "").toLowerCase().includes(q));
   }, [images, search]);
 
+  const selectable = onSelect !== undefined;
+
   const renderTile = (img: GalleryImageResponse) => {
     const name = img.name ?? "Untitled";
     // Picker tiles are small — SM (200px) is the right tier for the thumb.
     const thumb = resolveImageUrl(img.image, "SM", img.id, 200, 200, false);
+    const isSelected = selectable && img.id === selectedId;
     return (
       <button
         type='button'
         key={img.id}
         className={styles.tile}
-        onClick={() => {
-          onPick(img.image);
-        }}>
-        {thumb ? (
-          <img src={thumb} alt={name} className={styles.thumb} />
-        ) : (
-          <div className={styles.thumb} aria-hidden='true' />
-        )}
+        // A selectable tile is a toggle, so its state belongs on aria-pressed —
+        // which is also what the selected styling hangs off. In click-to-pick
+        // mode the tile is a plain action button and carries no pressed state.
+        aria-pressed={selectable ? isSelected : undefined}
+        onClick={(event) => {
+          // The second click of a double-click would otherwise toggle the
+          // selection straight back off; leave it alone and let onDoubleClick
+          // do the picking.
+          if (selectable && event.detail > 1) return;
+          if (!onSelect) {
+            onPick(img.image);
+            return;
+          }
+          onSelect(isSelected ? null : img);
+        }}
+        onDoubleClick={
+          selectable
+            ? () => {
+                onPick(img.image);
+              }
+            : undefined
+        }>
+        <span className={styles.thumbFrame}>
+          {thumb ? (
+            <img src={thumb} alt={name} className={styles.thumb} />
+          ) : (
+            <div className={styles.thumb} aria-hidden='true' />
+          )}
+          {isSelected && (
+            <span className={styles.tileSelectedBadge} aria-hidden='true'>
+              <CheckIcon className={styles.tileSelectedIcon} />
+            </span>
+          )}
+        </span>
         <span className={styles.tileName} title={name}>
           {name}
         </span>

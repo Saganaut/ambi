@@ -128,6 +128,44 @@
   background: var(--bg-surface-raised);
 }
 
+/* Selected tile. State lives on the native toggle attribute rather than an
+   invented modifier class — the tile is a toggle button when the picker runs in
+   two-step selection mode, and carries no aria-pressed otherwise. The border
+   here is the selection boundary (it carries meaning), with elevation added on
+   top so a selected tile also lifts off the grid. */
+.tile[aria-pressed="true"] {
+  border-color: var(--border-brand);
+  background: var(--bg-surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Positioning context for the selected badge; transparent to the tile's own
+   column layout otherwise. */
+.thumbFrame {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.tileSelectedBadge {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  color: var(--text-on-brand);
+}
+
+.tileSelectedIcon {
+  width: var(--space-3);
+  height: auto;
+}
+
 .thumb {
   width: 100%;
   aspect-ratio: 1;
@@ -215,6 +253,15 @@
 .formActions {
   display: flex;
   gap: var(--gap-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Inline delete confirmation prompt — the picker owns the app's single modal
+   slot, so the "are you sure?" step is a footer state rather than a dialog. */
+.confirmPrompt {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 /* ── Gallery tab ─────────────────────────────────────────────────────────── */
