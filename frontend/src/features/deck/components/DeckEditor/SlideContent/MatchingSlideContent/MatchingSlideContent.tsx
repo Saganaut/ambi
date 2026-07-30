@@ -7,7 +7,7 @@
  *   - "Pairs" section header with the pair count and the Scorable toggle.
  *   - A responsive grid of pair rows (2–6 pairs), each row two cards joined
  *     by a ↔ match connector; every card holds a phrase or an image.
- *   - "Add pair" affordance below the grid (`ItemList`).
+ *   - "Add pair" affordance below the grid (`AddItemCard`).
  *
  * Interaction: focusing a card's field (phrase input or image slot) opens its
  * popover menu (flip face, color, image, delete pair), the same focus-opened
@@ -22,11 +22,12 @@
  */
 import { useState } from "react";
 
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { MAX_MATCHING_PAIRS, useMatchingEditor } from "@deck/hooks/useMatchingEditor";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { EmptySelect, ItemList, ScoringFooter, SectionHeader } from "../_shared";
+import { SlideWrapper } from "../SlideWrapper";
+import { AddItemCard, EmptySelect, ScoringFooter, SectionHeader } from "../_shared";
+import shared from "../_shared/_shared.module.css";
 import type { SlideContentProps } from "../slideContentProps";
 import { MatchingPairEditable } from "./MatchingPairEditable";
 import styles from "./MatchingSlideContent.module.css";
@@ -55,7 +56,7 @@ const MatchingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { pairs, scorable } = question;
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `matching-${question.id}`,
         value: prompt,
@@ -70,10 +71,7 @@ const MatchingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         scorable ? (
           <p>Scored when a player reproduces every match.</p>
         ) : (
-          <ScoringFooter
-            visible
-            message="Toggle Scorable to award points for a correct match."
-          />
+          <ScoringFooter visible message="Toggle Scorable to award points for a correct match." />
         )
       }
     >
@@ -92,13 +90,7 @@ const MatchingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           />
         }
       />
-      <ItemList
-        addLabel={
-          editor.canAddPair ? "Add pair" : `Maximum ${MAX_MATCHING_PAIRS.toString()} pairs`
-        }
-        canAdd={editor.canAddPair}
-        onAdd={editor.addPair}
-      >
+      <div className={shared.itemList}>
         <div className={styles.pairsGrid}>
           {pairs.map((pair, index) =>
             pair.left.id ? (
@@ -123,8 +115,13 @@ const MatchingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             ) : null,
           )}
         </div>
-      </ItemList>
-    </SlideContentWrapper>
+        <AddItemCard
+          label={editor.canAddPair ? "Add pair" : `Maximum ${MAX_MATCHING_PAIRS.toString()} pairs`}
+          disabled={!editor.canAddPair}
+          onAdd={editor.addPair}
+        />
+      </div>
+    </SlideWrapper>
   );
 };
 

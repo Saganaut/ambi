@@ -7,31 +7,21 @@
  * surface it's handed and owns no hooks / store. Shares `SlideDisplay.module.css`
  * with its container (one CSS module per directory).
  */
-import { CephadexLogo } from "@/shared/components/Graphic/CephadexLogo";
 import { contrastToneFor } from "@/shared/utils/color";
-import { SlideTypeGraphicSvg } from "@deck/components/SlideTypeGraphics/SlideTypeGraphic";
 import { SlideCanvasProvider } from "@deck/contexts/SlideCanvasContext";
 import { type SlideType } from "@deck/store/deckEnums.gen";
 import type { CSSProperties, ReactNode } from "react";
 import { ImageSlot } from "../../ImageSlot";
 import { SlideCanvasFooter } from "./SlideCanvasFooter";
+import { SlideCanvasHeader } from "./SlideCanvasHeader";
 import styles from "./SlideDisplay.module.css";
 
 interface SlideCanvasProps {
-  /** Slide kind — drives the header graphic. */
   slideType: SlideType;
-  /** Per-deck theme `--role-*` overrides; falls through to the global theme. */
   themeStyle?: CSSProperties;
-  /** `light` / `dark` scope for the canvas, independent of the global theme. */
   appearance?: "light" | "dark";
-  /** Background image URL painted across the canvas. */
   backgroundUrl?: string;
-  /**
-   * Background color (hex) painted on the canvas base layer, behind the image.
-   * Empty / undefined falls back to the canvas default (`--bg-surface`).
-   */
   backgroundColor?: string;
-  /** The kind-specific authoring surface, rendered in the scrollable body. */
   children: ReactNode;
   slideContentImgUrl?: string;
 }
@@ -63,6 +53,7 @@ const SlideCanvas = ({
         {
           ...themeStyle,
           "--background-image": backgroundUrl ? `url("${backgroundUrl}")` : "none",
+          //TODO: These overrides cause theming issues, need to be resolved
           // Only override the canvas default when a color actually resolves, so a
           // colorless slide keeps `--bg-surface`. The image draws on top of this.
           ...(backgroundColor ? { "--bg-color": backgroundColor } : {}),
@@ -72,9 +63,7 @@ const SlideCanvas = ({
         } as CSSProperties
       }
     >
-      <div className={styles.slideHeader}>
-        <CephadexLogo size={"md"} /> <SlideTypeGraphicSvg slideType={slideType} />
-      </div>
+      <SlideCanvasHeader slideType={slideType} />
       <ImageSlot
         slotId={{
           start: 1,

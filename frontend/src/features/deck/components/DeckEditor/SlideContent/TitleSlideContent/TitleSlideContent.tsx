@@ -4,10 +4,10 @@
  * the shared prompt slot); the one authorable content field is an optional
  * subtitle rendered beneath it.
  */
-import { useState } from "react";
-import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { Input } from "@components/Forms/Input/Input/Input";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { useState } from "react";
+import { SlideWrapper } from "../SlideWrapper";
 import type { SlideContentProps } from "../slideContentProps";
 
 const TitleSlideContent = ({ deckId, slideId }: SlideContentProps) => {
@@ -31,14 +31,14 @@ const TitleSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   if (!slide) {
     return (
-      <SlideContentWrapper title='Title'>
+      <SlideWrapper title="Title">
         <p>Select a slide to edit.</p>
-      </SlideContentWrapper>
+      </SlideWrapper>
     );
   }
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `title-${slide.id}`,
         value: title,
@@ -48,14 +48,15 @@ const TitleSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           updateMetadata({ title: html });
         },
         onBlur: flush,
-      }}>
+      }}
+    >
       <Input
-        label='Subtitle'
+        label="Subtitle"
         id={`title-subtitle-${slide.id}`}
-        type='text'
+        type="text"
         fullWidth
         value={subtitle}
-        placeholder='Optional line shown under the title'
+        placeholder="Optional line shown under the title"
         onChange={(e) => {
           const next = e.target.value;
           setSubtitle(next);
@@ -63,7 +64,7 @@ const TitleSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         }}
         onBlur={flush}
       />
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

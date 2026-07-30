@@ -1,7 +1,4 @@
-import {
-  isFetchBaseQueryError,
-  isProblemDetail,
-} from "@shared/types/typeguards";
+import { isFetchBaseQueryError, isProblemDetail } from "@shared/types/typeguards";
 
 export interface ApiErrorInfo {
   statusCode: number;
@@ -78,4 +75,8 @@ export function camelToNormalCase(str: string): string {
   }
 
   return result;
+}
+
+export function numberToLetter(num: number): string {
+  return String.fromCharCode(96 + num);
 }

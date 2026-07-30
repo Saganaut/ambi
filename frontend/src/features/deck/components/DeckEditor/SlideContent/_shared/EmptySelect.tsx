@@ -1,7 +1,7 @@
 // Placeholder shown in any slide editor when no slide is currently selected.
 // Each editor passes the kind label as its title so the user still sees the
 // editor's identity in the centre of the canvas.
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { SlideWrapper } from "../SlideWrapper";
 import styles from "./_shared.module.css";
 
 interface EmptySelectProps {
@@ -10,9 +10,9 @@ interface EmptySelectProps {
 
 const EmptySelect = ({ title }: EmptySelectProps) => {
   return (
-    <SlideContentWrapper title={title}>
+    <SlideWrapper title={title}>
       <p className={styles.emptySelect}>Select a slide to start editing.</p>
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

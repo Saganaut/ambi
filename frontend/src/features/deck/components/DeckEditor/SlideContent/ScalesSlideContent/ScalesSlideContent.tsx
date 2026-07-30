@@ -19,6 +19,7 @@
  */
 import { useState } from "react";
 
+import { formatScaleValue } from "@/shared/utils/scaleValue";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import {
   MAX_SCALE_STATEMENTS,
@@ -26,12 +27,12 @@ import {
   SCALES_TOLERANCE_MIN_FRACTION,
   useScalesEditor,
 } from "@deck/hooks/useScalesEditor";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import { EmptySelect, ItemList, SectionHeader, SettingsCard } from "../_shared";
+import { SlideWrapper } from "../SlideWrapper";
+import { AddItemCard, EmptySelect, SectionHeader, SettingsCard } from "../_shared";
+import shared from "../_shared/_shared.module.css";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
 import { ScaleStatementEditable } from "./ScaleStatementEditable";
-import { formatScaleValue } from "@/shared/utils/scaleValue";
 import styles from "./ScalesSlideContent.module.css";
 
 interface ScalesSlideContentProps {
@@ -88,7 +89,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
   const tolerancePercent = span > 0 ? Math.round((question.tolerance / span) * 100) : 0;
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `scales-${idBase}`,
         value: prompt,
@@ -160,9 +161,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
               setTolerance((next / 100) * span);
             }}
           />
-          <span className={styles.toleranceValue}>
-            ±{formatScaleValue(question.tolerance)}
-          </span>
+          <span className={styles.toleranceValue}>±{formatScaleValue(question.tolerance)}</span>
         </div>
       </SettingsCard>
 
@@ -170,15 +169,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
         label="Statements"
         hint="drag along a statement's scale to set its correct answer"
       />
-      <ItemList
-        addLabel={
-          canAddStatement
-            ? "Add statement"
-            : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
-        }
-        canAdd={canAddStatement}
-        onAdd={addStatement}
-      >
+      <div className={shared.itemList}>
         {question.items.map((statement, idx) => (
           <ScaleStatementEditable
             key={statement.id ?? idx}
@@ -209,8 +200,17 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
             }}
           />
         ))}
-      </ItemList>
-    </SlideContentWrapper>
+        <AddItemCard
+          label={
+            canAddStatement
+              ? "Add statement"
+              : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
+          }
+          disabled={!canAddStatement}
+          onAdd={addStatement}
+        />
+      </div>
+    </SlideWrapper>
   );
 };
 

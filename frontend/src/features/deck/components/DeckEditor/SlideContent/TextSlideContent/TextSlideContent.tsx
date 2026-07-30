@@ -12,13 +12,13 @@
  * commit it as a pill; the content only ever carries trimmed, de-duplicated,
  * non-empty strings.
  */
-import { useState } from "react";
-import { Input } from "@components/Forms/Input/Input/Input";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import { Tag } from "@ui/Tag/Tag";
+import { Input } from "@components/Forms/Input/Input/Input";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { TextContent } from "@deck/store/deckApi.gen";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { Tag } from "@ui/Tag/Tag";
+import { useState } from "react";
+import { SlideWrapper } from "../SlideWrapper";
 import { ScoringFooter, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./TextSlideContent.module.css";
@@ -66,13 +66,9 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   // Local mirror state, resynced when the active slide changes ("derive state
   // during render" — safe because the new value differs from the old id).
   const [title, setTitle] = useState(slide?.title ?? "");
-  const [answers, setAnswers] = useState<string[]>(
-    slide?.content.acceptedAnswers ?? [],
-  );
+  const [answers, setAnswers] = useState<string[]>(slide?.content.acceptedAnswers ?? []);
   const [draft, setDraft] = useState("");
-  const [matchMode, setMatchMode] = useState<MatchMode>(
-    slide?.content.matchMode ?? "EXACT",
-  );
+  const [matchMode, setMatchMode] = useState<MatchMode>(slide?.content.matchMode ?? "EXACT");
   const [syncedFromId, setSyncedFromId] = useState(slide?.id);
   if (slide && syncedFromId !== slide.id) {
     setSyncedFromId(slide.id);
@@ -84,9 +80,9 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   if (!slide) {
     return (
-      <SlideContentWrapper title='Text answer'>
+      <SlideWrapper title="Text answer">
         <p>Select a slide to edit.</p>
-      </SlideContentWrapper>
+      </SlideWrapper>
     );
   }
 
@@ -125,7 +121,7 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   };
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `text-${idBase}`,
         value: title,
@@ -136,12 +132,11 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         },
         onBlur: flush,
       }}
-      footer={<ScoringFooter visible={!hasAnswers} />}>
-      <SettingsCard title='Correct answers'>
+      footer={<ScoringFooter visible={!hasAnswers} />}
+    >
+      <SettingsCard title="Correct answers">
         <div className={styles.answersField}>
-          <label
-            className={styles.answersLabel}
-            htmlFor={`text-answers-${idBase}`}>
+          <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
             Accepted answers
           </label>
           {hasAnswers && (
@@ -149,9 +144,10 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               {answers.map((answer, index) => (
                 <li key={answer}>
                   <Tag
-                    size='md'
+                    size="md"
                     onRemove={() => removeAnswer(index)}
-                    removeLabel={`Remove ${answer}`}>
+                    removeLabel={`Remove ${answer}`}
+                  >
                     {answer}
                   </Tag>
                 </li>
@@ -160,18 +156,18 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           )}
           <Input
             id={`text-answers-${idBase}`}
-            type='text'
+            type="text"
             fullWidth
             value={draft}
-            placeholder='Type an answer and press Enter'
-            infoMessage='Press Enter to add each answer. Any match scores as correct; leave empty to just collect responses.'
+            placeholder="Type an answer and press Enter"
+            infoMessage="Press Enter to add each answer. Any match scores as correct; leave empty to just collect responses."
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={commitDraft}
           />
         </div>
         <Dropdown
-          label='Matching'
+          label="Matching"
           id={`text-match-${idBase}`}
           options={MATCH_MODE_OPTIONS}
           value={[matchMode]}
@@ -183,7 +179,7 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           }}
         />
       </SettingsCard>
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

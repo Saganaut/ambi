@@ -19,21 +19,21 @@
  */
 import { useState } from "react";
 
-import { DEFAULT_DRAWING_PALETTE } from "@deck/utils/slideContent";
-import { useDrawingEditor } from "@deck/hooks/useDrawingEditor";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { useModal } from "@hooks/useModal";
 import { RadioGroup } from "@components/Forms/Input/RadioGroup/RadioGroup";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
-import { Btn } from "@ui/Buttons/Btn";
+import { useDrawingEditor } from "@deck/hooks/useDrawingEditor";
 import type { PromptPlacement, Tool } from "@deck/store/deckEnums.gen";
+import { DEFAULT_DRAWING_PALETTE } from "@deck/utils/slideContent";
+import { useModal } from "@hooks/useModal";
+import { Btn } from "@ui/Buttons/Btn";
 import { isImageEmpty, largestUrl } from "@utils/image";
 import { EmptySelect, SettingsCard, SettingsRow } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { SlideWrapper } from "../SlideWrapper";
+import styles from "./DrawingSlideContent.module.css";
 import { DrawPromptModalBody } from "./DrawPromptModalBody";
 import { PaletteEditor } from "./PaletteEditor";
-import styles from "./DrawingSlideContent.module.css";
 
 /** The player-facing tool toggles this surface offers (PEN is always on). */
 const TOOL_TOGGLES: { tool: Tool; label: string }[] = [
@@ -59,7 +59,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setPalette(question.palette);
   }
 
-  if (!question) return <EmptySelect title='Drawing' />;
+  if (!question) return <EmptySelect title="Drawing" />;
 
   const imageUrl = isImageEmpty(question.imagePrompt)
     ? null
@@ -92,7 +92,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   };
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `draw-${question.id}`,
         value: prompt,
@@ -105,27 +105,29 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
       footer={
         <p>
-          Players draw on a square canvas and their pictures are collected — pair
-          this slide with a best-answer-vote follow-up to score them.
+          Players draw on a square canvas and their pictures are collected — pair this slide with a
+          best-answer-vote follow-up to score them.
         </p>
-      }>
+      }
+    >
       <SettingsCard
-        title='Prompt image'
+        title="Prompt image"
         action={
           <span className={styles.imageActions}>
-            <Btn variant='secondary' size='sm' onClick={pickImage}>
+            <Btn variant="secondary" size="sm" onClick={pickImage}>
               {hasImage ? "Replace image" : "Choose image"}
             </Btn>
-            <Btn variant='secondary' size='sm' onClick={drawImage}>
+            <Btn variant="secondary" size="sm" onClick={drawImage}>
               Draw one
             </Btn>
             {hasImage && (
-              <Btn variant='error' fill='ghost' size='sm' onClick={editor.clearImagePrompt}>
+              <Btn variant="error" fill="ghost" size="sm" onClick={editor.clearImagePrompt}>
                 Remove
               </Btn>
             )}
           </span>
-        }>
+        }
+      >
         {hasImage ? (
           <img
             className={styles.imagePreview}
@@ -134,13 +136,13 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           />
         ) : (
           <p className={styles.imageHint}>
-            Optional — give players an image to look at or trace. Leave it off for a
-            title-only prompt.
+            Optional — give players an image to look at or trace. Leave it off for a title-only
+            prompt.
           </p>
         )}
         <RadioGroup
           name={`draw-placement-${question.id}`}
-          legend='Players see it'
+          legend="Players see it"
           options={[
             { value: "ALONGSIDE", label: "Beside the canvas" },
             { value: "BACKGROUND", label: "On the canvas, traceable" },
@@ -153,7 +155,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         />
       </SettingsCard>
 
-      <SettingsCard title='Canvas tools'>
+      <SettingsCard title="Canvas tools">
         <SettingsRow>
           {TOOL_TOGGLES.map(({ tool, label }) => (
             <Toggle
@@ -178,7 +180,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           />
         )}
       </SettingsCard>
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

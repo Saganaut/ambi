@@ -23,13 +23,13 @@
  * unscored collection (the footer says so); any target makes the slide
  * scoreable.
  */
-import { useState } from "react";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { NumberContent } from "@deck/store/deckApi.gen";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { useState } from "react";
+import { SlideWrapper } from "../SlideWrapper";
 import { EmptySelect, SettingsCard, SettingsRow } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./NumberSlideContent.module.css";
@@ -49,8 +49,7 @@ const gradingOf = (content: NumberContent): Grading =>
   content.answer == null ? "UNSCORED" : content.scoreMode === "RANGE" ? "RANGE" : "EXACT";
 
 /** Render a number for the preview chip without trailing float noise. */
-const formatNumber = (value: number) =>
-  Number.isFinite(value) ? String(value) : "0";
+const formatNumber = (value: number) => (Number.isFinite(value) ? String(value) : "0");
 
 const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { slide, updateMetadata, updateSlideContent, flush } = useSlideEditor(
@@ -62,9 +61,7 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   // Local mirrors keep the debounced inputs responsive (see TextSlideContent);
   // resynced when the active slide changes ("derive state during render").
   const [title, setTitle] = useState(slide?.title ?? "");
-  const [grading, setGrading] = useState<Grading>(
-    slide ? gradingOf(slide.content) : "UNSCORED",
-  );
+  const [grading, setGrading] = useState<Grading>(slide ? gradingOf(slide.content) : "UNSCORED");
   // A null answer (unscored) still needs a sensible seed for the value fields the
   // author reveals by switching to a scored mode.
   const [exactValue, setExactValue] = useState(slide?.content.answer ?? 0);
@@ -88,7 +85,7 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setUnit(slide.content.unit);
   }
 
-  if (!slide) return <EmptySelect title='Numeric answer' />;
+  if (!slide) return <EmptySelect title="Numeric answer" />;
 
   const idBase = slide.id;
 
@@ -132,19 +129,20 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         ? `Scored when a player's answer lands between ${formatNumber(rangeFrom)} and ${formatNumber(rangeTo)}${unitSuffix}.`
         : `Scored when a player's answer equals ${formatNumber(exactValue)}${unitSuffix}.`;
 
-  const preview = grading === "UNSCORED" ? null : (
-    <span className={styles.targetPreview}>
-      <span className={styles.targetPreviewValue}>
-        {grading === "RANGE"
-          ? `${formatNumber(rangeFrom)}–${formatNumber(rangeTo)}`
-          : formatNumber(exactValue)}
+  const preview =
+    grading === "UNSCORED" ? null : (
+      <span className={styles.targetPreview}>
+        <span className={styles.targetPreviewValue}>
+          {grading === "RANGE"
+            ? `${formatNumber(rangeFrom)}–${formatNumber(rangeTo)}`
+            : formatNumber(exactValue)}
+        </span>
+        {unit && <span className={styles.targetPreviewUnit}>{unit}</span>}
       </span>
-      {unit && <span className={styles.targetPreviewUnit}>{unit}</span>}
-    </span>
-  );
+    );
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `number-${idBase}`,
         value: title,
@@ -155,10 +153,11 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         },
         onBlur: flush,
       }}
-      footer={<p>{footerText}</p>}>
-      <SettingsCard title='Correct answer' action={preview}>
+      footer={<p>{footerText}</p>}
+    >
+      <SettingsCard title="Correct answer" action={preview}>
         <Dropdown
-          label='Accepted as correct'
+          label="Accepted as correct"
           id={`number-grading-${idBase}`}
           options={GRADING_OPTIONS}
           value={[grading]}
@@ -169,7 +168,7 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         {grading === "RANGE" && (
           <SettingsRow>
             <NumberInput
-              label='From'
+              label="From"
               id={`number-from-${idBase}`}
               value={rangeFrom}
               onChange={(next) => {
@@ -179,7 +178,7 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               onBlur={flush}
             />
             <NumberInput
-              label='To'
+              label="To"
               id={`number-to-${idBase}`}
               value={rangeTo}
               onChange={(next) => {
@@ -192,7 +191,7 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         )}
         {grading === "EXACT" && (
           <NumberInput
-            label='Correct value'
+            label="Correct value"
             id={`number-correct-${idBase}`}
             value={exactValue}
             onChange={(next) => {
@@ -203,11 +202,11 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           />
         )}
         <Input
-          label='Unit label'
+          label="Unit label"
           id={`number-unit-${idBase}`}
-          type='text'
+          type="text"
           value={unit}
-          placeholder='km, $, %'
+          placeholder="km, $, %"
           onChange={(event) => {
             const next = event.target.value;
             setUnit(next);
@@ -216,7 +215,7 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           onBlur={flush}
         />
       </SettingsCard>
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

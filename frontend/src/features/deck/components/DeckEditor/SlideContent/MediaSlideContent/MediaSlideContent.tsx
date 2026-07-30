@@ -5,17 +5,17 @@
  * {@link MediaContent} with {@code mediaType: "EMBED"}. The slide title is edited
  * through the shared prompt slot.
  */
-import { useState } from "react";
-import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
-import { Btn } from "@ui/Buttons/Btn";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { Btn } from "@ui/Buttons/Btn";
+import { useState } from "react";
+import { SlideWrapper } from "../SlideWrapper";
 import type { SlideContentProps } from "../slideContentProps";
-import { youTubeEmbedUrl } from "./youTube";
 import styles from "./MediaSlideContent.module.css";
+import { youTubeEmbedUrl } from "./youTube";
 
 const imagePreviewSrc = (image: AppImage): string | undefined =>
   image.variants?.XL ?? image.variants?.LG ?? image.externalSrc;
@@ -41,9 +41,9 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   if (!slide) {
     return (
-      <SlideContentWrapper title='Media'>
+      <SlideWrapper title="Media">
         <p>Select a slide to edit.</p>
-      </SlideContentWrapper>
+      </SlideWrapper>
     );
   }
 
@@ -62,7 +62,7 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   };
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `media-${slide.id}`,
         value: title,
@@ -72,11 +72,12 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           updateMetadata({ title: html });
         },
         onBlur: flush,
-      }}>
+      }}
+    >
       <Toggle
-        labelPosition='labelBefore'
+        labelPosition="labelBefore"
         id={`media-mode-${slide.id}`}
-        label='Embed a YouTube video instead of an image'
+        label="Embed a YouTube video instead of an image"
         checked={isYouTube}
         onChange={(e) => {
           updateSlideContent({ mediaType: e.currentTarget.checked ? "EMBED" : "IMAGE" });
@@ -87,12 +88,12 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       {isYouTube ? (
         <div className={styles.mediaBlock}>
           <Input
-            label='YouTube URL'
+            label="YouTube URL"
             id={`media-url-${slide.id}`}
-            type='text'
+            type="text"
             fullWidth
             value={url}
-            placeholder='https://www.youtube.com/watch?v=…'
+            placeholder="https://www.youtube.com/watch?v=…"
             onChange={(e) => {
               const next = e.target.value;
               setUrl(next);
@@ -104,17 +105,15 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             <div className={styles.embed}>
               <iframe
                 src={embedUrl}
-                title='YouTube preview'
-                sandbox='allow-scripts allow-same-origin allow-presentation allow-popups'
-                allow='accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+                title="YouTube preview"
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
           ) : (
             url.trim() !== "" && (
-              <p className={styles.hint}>
-                Enter a valid YouTube link to preview the video.
-              </p>
+              <p className={styles.hint}>Enter a valid YouTube link to preview the video.</p>
             )
           )}
         </div>
@@ -128,23 +127,24 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 alt={image.altText ?? "Slide media"}
               />
               <div className={styles.imageActions}>
-                <Btn size='sm' fill='bordered' variant='secondary' onClick={pickImage}>
+                <Btn size="sm" fill="bordered" variant="secondary" onClick={pickImage}>
                   Replace image
                 </Btn>
                 <Btn
-                  size='sm'
-                  fill='ghost'
-                  variant='secondary'
+                  size="sm"
+                  fill="ghost"
+                  variant="secondary"
                   onClick={() => {
                     updateSlideContent({ image: undefined });
                     flush();
-                  }}>
+                  }}
+                >
                   Remove
                 </Btn>
               </div>
             </>
           ) : (
-            <Btn fill='bordered' variant='secondary' onClick={pickImage}>
+            <Btn fill="bordered" variant="secondary" onClick={pickImage}>
               Choose image
             </Btn>
           )}
@@ -152,12 +152,12 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       )}
 
       <Input
-        label='Caption'
+        label="Caption"
         id={`media-caption-${slide.id}`}
-        type='text'
+        type="text"
         fullWidth
         value={caption}
-        placeholder='Optional caption shown below the media'
+        placeholder="Optional caption shown below the media"
         onChange={(e) => {
           const next = e.target.value;
           setCaption(next);
@@ -165,7 +165,7 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         }}
         onBlur={flush}
       />
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

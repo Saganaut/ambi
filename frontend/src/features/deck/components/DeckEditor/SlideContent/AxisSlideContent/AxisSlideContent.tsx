@@ -27,30 +27,21 @@
  * answer key is a legitimate collect-only opinion plane, so nothing blocks.
  * `scoreMode` has no authoring knob.
  */
-import { ArrowUturnLeftIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
-
-import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
-  AXIS_LABEL_MAX,
   AXIS_TOLERANCE_MAX,
   AXIS_TOLERANCE_MIN,
   MAX_AXIS_ITEMS,
   useAxisEditor,
 } from "@deck/hooks/useAxisEditor";
-import {
-  EmptySelect,
-  ItemList,
-  PlacementRow,
-  ScoringFooter,
-  SettingsCard,
-  ToleranceField,
-  useSlideComposerState,
-} from "../_shared";
+import { EmptySelect, ScoringFooter, ToleranceField, useSlideComposerState } from "../_shared";
 import shared from "../_shared/_shared.module.css";
+import { AddItemCard } from "../_shared/AddItemCard/AddItemCard";
 import type { SlideContentProps } from "../slideContentProps";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
+import { SlideWrapper } from "../SlideWrapper";
+import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
 
 const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
@@ -75,7 +66,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   };
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `axis-${question.id}`,
         value: composer.prompt,
@@ -97,25 +88,23 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         )
       }
     >
-      <div className={shared.editorRow}>
-        <div className={shared.editorColumnWide}>
-          <SettingsCard
-            title="Plane"
-            action={
-              <span className={shared.cardHeaderMeta}>
-                <span className={shared.placedCount}>
-                  {placedCount} of {items.length} placed
-                </span>
-                <ToleranceField
-                  id={`axis-tolerance-${question.id}`}
-                  value={tolerance}
-                  min={AXIS_TOLERANCE_MIN}
-                  max={AXIS_TOLERANCE_MAX}
-                  onChange={editor.setTolerance}
-                />
-              </span>
-            }
-          >
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span className={shared.placedCount}>
+              {placedCount} of {items.length} placed
+            </span>
+            <span>
+              <ToleranceField
+                id={`axis-tolerance-${question.id}`}
+                value={tolerance}
+                min={AXIS_TOLERANCE_MIN}
+                max={AXIS_TOLERANCE_MAX}
+                onChange={editor.setTolerance}
+              />
+            </span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
             <AxisPlaneEditor
               question={question}
               selectedItemId={composer.selectedItemId}
@@ -126,83 +115,62 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               onSetTargetPosition={editor.setTargetPosition}
               onFlush={editor.flush}
             />
-          </SettingsCard>
-        </div>
+          </SlideContentSection.Body>{" "}
+        </SlideContentSection>
 
-        <div className={shared.editorColumnNarrow}>
-          <SettingsCard
-            title="Items"
-            action={
-              <span className={shared.cardHeaderHint}>
-                Select a row, then drag on the plane to place its target.
-              </span>
-            }
-          >
-            <ItemList
-              addLabel={
-                editor.canAddItem ? "Add item" : `Maximum ${MAX_AXIS_ITEMS.toString()} items`
-              }
-              canAdd={editor.canAddItem}
-              onAdd={editor.addItem}
-            >
-              <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-                {items.map((item, index) => {
-                  const hasTarget = correctPositions[item.id] != null;
-                  return (
-                    <PlacementRow
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      color={resolveDatumColor(item.color, index)}
-                      itemNoun="Item"
-                      labelMaxLength={AXIS_LABEL_MAX}
-                      scored={hasTarget}
-                      draggable
-                      gripLabel={`Reorder item ${(index + 1).toString()}`}
-                      selected={composer.selectedItemId === item.id}
-                      menuOpen={composer.openMenuId === item.id}
-                      canRemove={editor.canRemoveItem}
-                      primaryAction={{
-                        label: hasTarget ? "Clear target" : "Set target",
-                        icon: hasTarget ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
-                        pressed: hasTarget,
-                        onSelect: () => {
-                          composer.setOpenMenuId(null);
-                          // Seed a fresh target at the plane's centre; the
-                          // author drags the exact spot from there.
-                          editor.setTargetPosition(item.id, hasTarget ? null : { x: 0.5, y: 0.5 });
-                        },
-                      }}
-                      onSelect={() => {
-                        selectItem(item.id);
-                      }}
-                      onMenuOpenChange={(open) => {
-                        composer.setOpenMenuId(open ? item.id : null);
-                        if (open) selectItem(item.id);
-                      }}
-                      onScheduleLabel={(label) => {
-                        editor.scheduleItemLabel(item.id, label);
-                      }}
-                      onFlush={editor.flush}
-                      onSetColor={(color) => {
-                        editor.setItemColor(item.id, color);
-                      }}
-                      onSetImage={(image) => {
-                        editor.setItemImage(item.id, image);
-                      }}
-                      onRemove={() => {
-                        removeItem(item.id);
-                      }}
-                      openPicker={openPicker}
-                    />
-                  );
-                })}
-              </DragDropWrapper>
-            </ItemList>
-          </SettingsCard>
-        </div>
-      </div>
-    </SlideContentWrapper>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <div></div>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <DragDropWrapper onReorder={editor.handleItemDragEnd}>
+              {items.map((item, index) => (
+                <AxisItemEditable
+                  key={item.id}
+                  item={item}
+                  sortIndex={index}
+                  targetPosition={correctPositions[item.id]}
+                  selected={composer.selectedItemId === item.id}
+                  menuOpen={composer.openMenuId === item.id}
+                  canRemove={editor.canRemoveItem}
+                  onSelect={() => {
+                    selectItem(item.id);
+                  }}
+                  onMenuOpenChange={(open) => {
+                    composer.setOpenMenuId(open ? item.id : null);
+                    if (open) selectItem(item.id);
+                  }}
+                  onScheduleLabel={(label) => {
+                    editor.scheduleItemLabel(item.id, label);
+                  }}
+                  onFlush={editor.flush}
+                  onSetColor={(color) => {
+                    editor.setItemColor(item.id, color);
+                  }}
+                  onSetImage={(image) => {
+                    editor.setItemImage(item.id, image);
+                  }}
+                  onSetTargetPosition={(point) => {
+                    editor.setTargetPosition(item.id, point);
+                  }}
+                  onRemove={() => {
+                    removeItem(item.id);
+                  }}
+                  openPicker={openPicker}
+                />
+              ))}
+              <AddItemCard
+                label={
+                  editor.canAddItem ? "Add item" : `Maximum ${MAX_AXIS_ITEMS.toString()} items`
+                }
+                disabled={!editor.canAddItem}
+                onAdd={editor.addItem}
+              />
+            </DragDropWrapper>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>
+    </SlideWrapper>
   );
 };
 

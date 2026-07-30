@@ -14,15 +14,15 @@
  *     surface as the body — press open image to add a target and drag it,
  *     drag markers to move them.
  *   - "Targets" card: the tolerance percent input (2–50 %, every circle
- *     resizes live) in the header; one row per target — the shared
- *     `PlacementRow`, draggable by its grip because row order drives each
- *     marker's number, so reordering is how an author renumbers the set. It
- *     renumbers and nothing else: each target owns its coordinates and the
- *     color minted for it at creation, so no marker moves or changes hue —
- *     plus an "Add target" affordance (drops
- *     at the centre). Every row is `scored`: a target exists only by being
- *     placed, so there is no per-row answer to set. This composer owns which
- *     row's menu is open (at most one).
+ *     resizes live) in the header; one row per target — a
+ *     `PlaceOnImageTargetEditable`, draggable by its grip because row order
+ *     drives each marker's number, so reordering is how an author renumbers
+ *     the set. It renumbers and nothing else: each target owns its coordinates
+ *     and the color minted for it at creation, so no marker moves or changes
+ *     hue — plus an "Add target" affordance (drops at the centre). Every row
+ *     is `scored`: a target exists only by being placed, so there is no
+ *     per-row answer to set. This composer owns which row's menu is open (at
+ *     most one).
  *
  * Targets are addressed by id throughout, so a row and its marker keep
  * pointing at the same target across adds and removals — reordering is the one
@@ -33,31 +33,29 @@
  * nudges until an image is chosen and at least one target exists — but only
  * nudges: a target-less slide is a legitimate collect-only pin drop.
  */
-import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
-import { Btn } from "@ui/Buttons/Btn";
 import {
   MAX_PLACE_TARGETS,
-  PLACE_LABEL_MAX,
   PLACE_TOLERANCE_MAX,
   PLACE_TOLERANCE_MIN,
   usePlaceOnImageEditor,
 } from "@deck/hooks/usePlaceOnImageEditor";
+import { Btn } from "@ui/Buttons/Btn";
 import { largestUrl } from "@utils/image";
 import {
+  AddItemCard,
   EmptySelect,
-  ItemList,
-  PlacementRow,
   ScoringFooter,
-  SettingsCard,
   ToleranceField,
   useSlideComposerState,
 } from "../_shared";
 import shared from "../_shared/_shared.module.css";
 import type { SlideContentProps } from "../slideContentProps";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
+import { SlideWrapper } from "../SlideWrapper";
 import { PlaceOnImageSurface } from "./PlaceOnImageSurface";
+import { PlaceOnImageTargetEditable } from "./PlaceOnImageTargetEditable";
 
 const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = usePlaceOnImageEditor(deckId, slideId);
@@ -89,7 +87,7 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   );
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `place-${question.id}`,
         value: composer.prompt,
@@ -102,16 +100,15 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
       footer={footer}
     >
-      <div className={shared.editorRow}>
-        <div className={shared.editorColumnWide}>
-          <SettingsCard
-            title="Image"
-            action={
-              <Btn variant="secondary" size="sm" onClick={pickImage}>
-                {hasImage ? "Replace image" : "Choose image"}
-              </Btn>
-            }
-          >
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Image plane</span>
+            <Btn variant="secondary" size="sm" onClick={pickImage}>
+              {hasImage ? "Replace image" : "Choose image"}
+            </Btn>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
             <PlaceOnImageSurface
               imageUrl={imageUrl}
               targets={targets}
@@ -119,77 +116,68 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               canAddTarget={editor.canAddTarget}
               onAddTarget={editor.addTarget}
               onMoveTarget={editor.moveTarget}
-            />
-          </SettingsCard>
-        </div>
+            />{" "}
+          </SlideContentSection.Body>
+        </SlideContentSection>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Targets</span>
+            <span>
+              <ToleranceField
+                id={`place-tolerance-${question.id}`}
+                value={tolerance}
+                min={PLACE_TOLERANCE_MIN}
+                max={PLACE_TOLERANCE_MAX}
+                disabled={targets.length === 0}
+                onChange={editor.setTolerance}
+              />
+            </span>
+          </SlideContentSection.Header>
 
-        <div className={shared.editorColumnNarrow}>
-          <SettingsCard
-            title="Targets"
-            action={
-              <span className={shared.cardHeaderMeta}>
-                <span className={shared.cardHeaderHint}>Press the image to add a target.</span>
-                <ToleranceField
-                  id={`place-tolerance-${question.id}`}
-                  value={tolerance}
-                  min={PLACE_TOLERANCE_MIN}
-                  max={PLACE_TOLERANCE_MAX}
-                  disabled={targets.length === 0}
-                  onChange={editor.setTolerance}
+          <div className={shared.itemList}>
+            <DragDropWrapper onReorder={editor.handleItemDragEnd}>
+              {targets.map((target, index) => (
+                <PlaceOnImageTargetEditable
+                  key={target.id}
+                  target={target}
+                  sortIndex={index}
+                  menuOpen={composer.openMenuId === target.id}
+                  canRemove
+                  onMenuOpenChange={(open) => {
+                    composer.setOpenMenuId(open ? target.id : null);
+                  }}
+                  onScheduleLabel={(label) => {
+                    editor.scheduleTargetLabel(target.id, label);
+                  }}
+                  onFlush={editor.flush}
+                  onSetColor={(color) => {
+                    editor.setTargetColor(target.id, color);
+                  }}
+                  onSetImage={(image) => {
+                    editor.setTargetImage(target.id, image);
+                  }}
+                  onRemove={() => {
+                    editor.removeTarget(target.id);
+                  }}
+                  openPicker={openPicker}
                 />
-              </span>
-            }
-          >
-            <ItemList
-              addLabel={
-                editor.canAddTarget
-                  ? "Add target"
-                  : `Maximum ${MAX_PLACE_TARGETS.toString()} targets`
-              }
-              canAdd={editor.canAddTarget}
-              onAdd={() => {
-                editor.addTarget();
-              }}
-            >
-              <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-                {targets.map((target, index) => (
-                  <PlacementRow
-                    key={target.id}
-                    item={target}
-                    index={index}
-                    color={resolveDatumColor(target.color, index)}
-                    itemNoun="Target"
-                    labelMaxLength={PLACE_LABEL_MAX}
-                    scored
-                    draggable
-                    gripLabel={`Reorder target ${(index + 1).toString()}`}
-                    menuOpen={composer.openMenuId === target.id}
-                    canRemove
-                    onMenuOpenChange={(open) => {
-                      composer.setOpenMenuId(open ? target.id : null);
-                    }}
-                    onScheduleLabel={(label) => {
-                      editor.scheduleTargetLabel(target.id, label);
-                    }}
-                    onFlush={editor.flush}
-                    onSetColor={(color) => {
-                      editor.setTargetColor(target.id, color);
-                    }}
-                    onSetImage={(image) => {
-                      editor.setTargetImage(target.id, image);
-                    }}
-                    onRemove={() => {
-                      editor.removeTarget(target.id);
-                    }}
-                    openPicker={openPicker}
-                  />
-                ))}
-              </DragDropWrapper>
-            </ItemList>
-          </SettingsCard>
-        </div>
-      </div>
-    </SlideContentWrapper>
+              ))}
+              <AddItemCard
+                label={
+                  editor.canAddTarget
+                    ? "Add target"
+                    : `Maximum ${MAX_PLACE_TARGETS.toString()} targets`
+                }
+                disabled={!editor.canAddTarget}
+                onAdd={() => {
+                  editor.addTarget();
+                }}
+              />
+            </DragDropWrapper>
+          </div>
+        </SlideContentSection>
+      </SlideContent>
+    </SlideWrapper>
   );
 };
 

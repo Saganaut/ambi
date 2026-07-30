@@ -54,7 +54,7 @@
 
     /* Inner-facing margins, not a parent gap: the wrapper body keeps `gap: 0`
        so collapsed slots stay invisible — the margin animates away with the
-       slot (see SlideContentWrapper.module.css). */
+       slot (see SlideWrapper.module.css). */
     &.leftCentered {
       max-width: 480px;
       margin-inline-end: var(--gap-md);

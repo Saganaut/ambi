@@ -12,7 +12,7 @@ interface PromptFieldProps {
   onBlur?: () => void;
   placeholder?: string;
   /** Frosted contrast plate behind the field. Driven centrally by whether the
-   *  canvas has a background image — set by {@link SlideContentWrapper}, not
+   *  canvas has a background image — set by {@link SlideWrapper}, not
    *  individual editors, so the prompt stays legible over a busy background. */
   showContrastPlate?: boolean;
 }

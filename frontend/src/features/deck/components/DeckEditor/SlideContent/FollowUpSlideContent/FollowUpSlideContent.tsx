@@ -9,11 +9,11 @@
  * as ghosted, non-interactive tiles. The mode itself is edited in the right
  * sidebar's follow-up section.
  */
-import React, { useState } from "react";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { FOLLOW_UP_MODE_LABELS, linkedParentOf } from "@deck/utils/followUp";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import React, { useState } from "react";
+import { SlideWrapper } from "../SlideWrapper";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./FollowUpSlideContent.module.css";
 
@@ -24,11 +24,7 @@ const parentDisplayName = (title: string | undefined): string => {
 };
 
 const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
-  const { slide, updateMetadata, flush } = useSlideEditor(
-    deckId,
-    slideId,
-    "FOLLOW_UP",
-  );
+  const { slide, updateMetadata, flush } = useSlideEditor(deckId, slideId, "FOLLOW_UP");
   const { slides } = useSlide(deckId);
 
   // Only the prompt needs a local mirror — typing should feel responsive while
@@ -43,9 +39,9 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   if (!slide) {
     return (
-      <SlideContentWrapper title='Follow-up'>
+      <SlideWrapper title="Follow-up">
         <p>Select a slide to edit.</p>
-      </SlideContentWrapper>
+      </SlideWrapper>
     );
   }
 
@@ -63,7 +59,7 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       : "Participants will vote for the best of the answers given in";
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `follow-up-${slide.id}`,
         value: prompt,
@@ -76,10 +72,11 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
       footer={
         <p>
-          Options are filled in from {parentDisplayName(parent?.title)} during
-          the live session — there is nothing to author here.
+          Options are filled in from {parentDisplayName(parent?.title)} during the live session —
+          there is nothing to author here.
         </p>
-      }>
+      }
+    >
       <div className={styles.modeBanner}>{FOLLOW_UP_MODE_LABELS[mode]}</div>
       {parentMcqOptions ? (
         <>
@@ -87,12 +84,10 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             className={styles.ghostOptions}
             style={
               {
-                "--cols": Math.max(
-                  Math.ceil(parentMcqOptions.length / 2),
-                  2,
-                ),
+                "--cols": Math.max(Math.ceil(parentMcqOptions.length / 2), 2),
               } as React.CSSProperties
-            }>
+            }
+          >
             {parentMcqOptions.map((option) => (
               <div key={option.id} className={styles.ghostOption}>
                 {option.text?.trim() || "Untitled option"}
@@ -105,11 +100,10 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         </>
       ) : (
         <div className={styles.ghostPlaceholder}>
-          Participants&apos; submissions on the parent slide become the options
-          here.
+          Participants&apos; submissions on the parent slide become the options here.
         </div>
       )}
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

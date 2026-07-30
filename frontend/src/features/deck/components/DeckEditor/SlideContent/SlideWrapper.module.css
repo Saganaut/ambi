@@ -1,4 +1,4 @@
-/* Styles for `SlideContentWrapper`, the layout shell shared by every
+/* Styles for `SlideWrapper`, the layout shell shared by every
    kind-specific slide editor. Slide editors in their own folders own all
    their own visuals via `_shared/` primitives; this file only carries the
    header / body / footer rhythm of the outer shell. */
@@ -68,9 +68,45 @@
       display: flex;
       flex: 1;
       flex-direction: column;
+
+      .content {
+        display: flex;
+        flex-flow: row wrap;
+        gap: var(--gap-md);
+
+        .slideContentSection {
+          flex: 1 1 250px;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+
+          .header {
+            height: var(--navbar-height);
+            display: flex;
+            flex-direction: row;
+            padding: var(--p-sm);
+            align-items: center;
+            justify-content: space-between;
+          }
+
+          .body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: var(--gap-xs);
+          }
+
+          .footer {
+            /* TODO: add this if necessary */
+            display: none;
+          }
+        }
+      }
     }
   }
 
+  /* This is a different footer, not an issue due to nesting but can be confusing - should refactor */
+  /* stylelint-disable-next-line no-descending-specificity */
   .footer {
     display: flex;
     flex-direction: column;

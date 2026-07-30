@@ -3,7 +3,7 @@
    slideBody owns its own scroll so long editors don't push the footer out. */
 
 .slideDisplay {
-  --bg-color: var(--bg-surface);
+  --bg-color: var(--bg-canvas);
   --border-color: var(--edge-surface);
   --background-image: none;
 
@@ -53,6 +53,20 @@
     border-top-right-radius: var(--radius-md);
     padding: var(--p-square-xs);
     flex-shrink: 0;
+
+    .skeletonLogo {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      background-color: var(--bg-surface);
+    }
+
+    .skeletonSlideType {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface);
+    }
   }
 
   /** TODO: Need to add custom vars for the margins here. Probably handle with styles? **/
@@ -71,6 +85,16 @@
 
     .slideChild {
       flex: 1;
+
+      .skeletonContent {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--bg-surface);
+      }
     }
   }
 
@@ -79,11 +103,19 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    justify-content: center;
     bottom: 0;
     width: 100%;
     height: var(--slide-footer-height);
     flex-shrink: 0;
     color: var(--canvas-on-bg);
     padding-right: var(--gap-lg);
+
+    .skeletonFooter {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      background-color: var(--bg-surface);
+    }
   }
 }

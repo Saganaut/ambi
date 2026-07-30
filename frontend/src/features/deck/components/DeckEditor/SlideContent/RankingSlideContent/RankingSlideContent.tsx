@@ -8,27 +8,18 @@
  * structural change so the backend stays consistent.
  *
  * There is exactly one `useRankingEditor` here; each row is a controlled
- * shared `PlacementRow` that receives its slice of the editor surface as
+ * `RankingItemEditable` that receives its slice of the editor surface as
  * props, so all writes funnel through a single draft + debounce buffer. Every
  * row is `scored`: the authored order IS the answer key, so there is nothing
  * to set per row (and hence no `primaryAction` in its menu either).
  */
-import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
-import {
-  MAX_RANKING_ITEMS,
-  RANKING_LABEL_MAX,
-  useRankingEditor,
-} from "@deck/hooks/useRankingEditor";
-import { SlideContentWrapper } from "../SlideContentWrapper";
-import {
-  EmptySelect,
-  ItemList,
-  PlacementRow,
-  SectionHeader,
-  useSlideComposerState,
-} from "../_shared";
+import { MAX_RANKING_ITEMS, useRankingEditor } from "@deck/hooks/useRankingEditor";
+import { SlideWrapper } from "../SlideWrapper";
+import { AddItemCard, EmptySelect, SectionHeader, useSlideComposerState } from "../_shared";
+import shared from "../_shared/_shared.module.css";
+import { RankingItemEditable } from "./RankingItemEditable";
 
 interface RankingSlideContentProps {
   deckId: string;
@@ -58,7 +49,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
   if (!question) return <EmptySelect title="Ranking" />;
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `rank-${question.id}`,
         value: composer.prompt,
@@ -72,23 +63,13 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
       footer={<p>Drag the grip to set the correct order — top is first.</p>}
     >
       <SectionHeader label="Items" hint="top → bottom is the correct order" />
-      <ItemList
-        addLabel={canAddItem ? "Add item" : `Maximum ${MAX_RANKING_ITEMS.toString()} items`}
-        canAdd={canAddItem}
-        onAdd={addItem}
-      >
+      <div className={shared.itemList}>
         <DragDropWrapper onReorder={handleItemDragEnd}>
           {question.items.map((item, idx) => (
-            <PlacementRow
+            <RankingItemEditable
               key={item.id}
               item={item}
-              index={idx}
-              color={resolveDatumColor(item.color, idx)}
-              itemNoun="Item"
-              labelMaxLength={RANKING_LABEL_MAX}
-              scored
-              draggable
-              gripLabel={`Reorder item ${(idx + 1).toString()}`}
+              sortIndex={idx}
               menuOpen={composer.openMenuId === item.id}
               canRemove={canRemove}
               onMenuOpenChange={(open) => {
@@ -110,9 +91,14 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
               openPicker={openPicker}
             />
           ))}
+          <AddItemCard
+            label={canAddItem ? "Add item" : `Maximum ${MAX_RANKING_ITEMS.toString()} items`}
+            disabled={!canAddItem}
+            onAdd={addItem}
+          />
         </DragDropWrapper>
-      </ItemList>
-    </SlideContentWrapper>
+      </div>
+    </SlideWrapper>
   );
 };
 

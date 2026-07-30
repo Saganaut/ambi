@@ -46,25 +46,16 @@
     flex: 1;
     min-height: 0;
 
-    .textColumn {
-      flex: 1;
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      gap: var(--gap-xs);
-
-      /* The interactiveZone that wraps the TextArea takes the remaining
+    /* The interactiveZone that wraps the TextArea takes the remaining
        vertical space inside the column so the textarea (which sets
        `height: 100%` via its `noAutoGrow` mode) has a bounded slot to
        fill. Scoped to the text-column descendant so any other use of the
        class stays intrinsically sized. */
-      .interactiveZone {
-        flex: 1;
-        min-height: 0;
-        display: flex;
-        width: 100%;
-      }
+    .interactiveZone {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      width: 100%;
     }
 
     .imgThumbnail {
@@ -100,5 +91,19 @@
       font: var(--font-mono);
       font-size: var(--font-size-xs);
     }
+  }
+}
+
+button.card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  color: var(--text-secondary);
+  border: 1px dashed var(--text-secondary);
+
+  span {
+    height: 20px;
+    width: 20px;
   }
 }

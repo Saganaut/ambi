@@ -112,8 +112,10 @@
   flex: 2 1 12rem;
 }
 
-/* ─── ItemCard / ItemList ──────────────────────────────────────────────── */
+/* ─── ItemCard / item list ─────────────────────────────────────────────── */
 
+/* The vertical stack every item-bearing editor lists its rows in, closed by an
+   `AddItemCard`. Each editor owns the container element itself. */
 .itemList {
   display: flex;
   flex-direction: column;
@@ -217,43 +219,6 @@
   flex: none;
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
-}
-
-/* ─── AddItemRow ───────────────────────────────────────────────────────── */
-
-.addItemRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-square-xs);
-  border: var(--border-size-sm) dashed var(--edge-surface);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  background-color: transparent;
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  gap: var(--gap-sm);
-  transition:
-    color var(--duration-fast) ease-out,
-    border-color var(--duration-fast) ease-out,
-    background-color var(--duration-fast) ease-out;
-}
-
-.addItemRow:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.addItemRow:hover:not(:disabled) {
-  color: var(--text-primary);
-  border-color: var(--border-default);
-  background-color: var(--bg-surface);
-}
-
-.addItemIcon {
-  width: 1rem;
-  height: 1rem;
 }
 
 /* ─── ImageBackingEditor ───────────────────────────────────────────────── */

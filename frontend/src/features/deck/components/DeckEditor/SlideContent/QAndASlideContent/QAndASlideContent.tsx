@@ -9,11 +9,11 @@
  * fields. This surface therefore edits only the prompt (slide title) and
  * reflects the panel's settings read-only in the footer.
  */
-import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { SlideWrapper } from "../SlideWrapper";
 import { EmptySelect, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./QAndASlideContent.module.css";
@@ -48,7 +48,7 @@ const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setTitle(slide.title);
   }
 
-  if (!slide) return <EmptySelect title='Q & A' />;
+  if (!slide) return <EmptySelect title="Q & A" />;
 
   const idBase = slide.id;
   const footerText = summarize(
@@ -58,7 +58,7 @@ const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
   );
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `qa-${idBase}`,
         value: title,
@@ -69,12 +69,13 @@ const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
         },
         onBlur: flush,
       }}
-      footer={<p>{footerText}</p>}>
+      footer={<p>{footerText}</p>}
+    >
       <div className={styles.pulseBanner}>
-        <ChatBubbleLeftEllipsisIcon className={styles.pulseBannerIcon} aria-hidden='true' />
+        <ChatBubbleLeftEllipsisIcon className={styles.pulseBannerIcon} aria-hidden="true" />
         <span>Open-ended round — never scored.</span>
       </div>
-      <SettingsCard title='During the round'>
+      <SettingsCard title="During the round">
         <ol className={styles.flowSteps}>
           <li>Players type questions and send them in.</li>
           <li>Submissions show on the host screen as a list or a word cloud.</li>
@@ -84,7 +85,7 @@ const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
           Moderation, response caps, and anonymity are set in the Answers panel.
         </p>
       </SettingsCard>
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

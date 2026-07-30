@@ -31,16 +31,17 @@ import {
   useAllocationEditor,
 } from "@deck/hooks/useAllocationEditor";
 import {
+  AddItemCard,
   EmptySelect,
-  ItemList,
   ScoringFooter,
   SectionHeader,
   SettingsCard,
   SettingsRow,
 } from "../_shared";
+import shared from "../_shared/_shared.module.css";
 import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
 import type { SlideContentProps } from "../slideContentProps";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { SlideWrapper } from "../SlideWrapper";
 import { AllocationOptionEditable } from "./AllocationOptionEditable";
 import styles from "./AllocationSlideContent.module.css";
 
@@ -86,8 +87,8 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const footer = fullyKeyed ? (
     answerSum === totalPoints ? (
       <p>
-        Scored when a player&apos;s split lands within ±{question.tolerancePerOption.toString()}{" "}
-        of every option&apos;s answer.
+        Scored when a player&apos;s split lands within ±{question.tolerancePerOption.toString()} of
+        every option&apos;s answer.
       </p>
     ) : (
       <ScoringFooter
@@ -103,7 +104,7 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   );
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `alloc-${question.id}`,
         value: prompt,
@@ -152,15 +153,7 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       </SettingsCard>
 
       <SectionHeader label="Options" hint="players split the pool across these options" />
-      <ItemList
-        addLabel={
-          editor.canAddOption
-            ? "Add option"
-            : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
-        }
-        canAdd={editor.canAddOption}
-        onAdd={editor.addOption}
-      >
+      <div className={shared.itemList}>
         {options.map((option, index) => (
           <AllocationOptionEditable
             key={option.id}
@@ -200,8 +193,17 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             openPicker={openPicker}
           />
         ))}
-      </ItemList>
-    </SlideContentWrapper>
+        <AddItemCard
+          label={
+            editor.canAddOption
+              ? "Add option"
+              : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
+          }
+          disabled={!editor.canAddOption}
+          onAdd={editor.addOption}
+        />
+      </div>
+    </SlideWrapper>
   );
 };
 

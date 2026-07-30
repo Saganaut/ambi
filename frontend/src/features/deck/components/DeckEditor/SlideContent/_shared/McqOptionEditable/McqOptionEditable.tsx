@@ -1,31 +1,23 @@
-/**
- * Full author surface for a single McqOption 
-
- */
 import { useSortable } from "@dnd-kit/react/sortable";
 
-import { AddOptionPopover } from "@/shared/components/Charts/AddOptionButton/AddOptionPopover";
 import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types";
 import { CorrectBadge } from "@/shared/components/Charts/CorrectBadge/CorrectBadge";
-import { Container } from "@components/Containers/Container";
+import { numberToLetter } from "@/shared/utils/utils";
+import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { IndexPill } from "../IndexPill/IndexPill";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
 
 type DefaultNoChartSegmentProps = ChartSegmentRenderProps;
-//TODO: is render menu still necessary? I think it has been replaced by render label with menu?
 const McqOptionEditable = ({
   sortIndex,
   displayAsPercentage,
   renderLabelWithMenu,
-  renderMenu,
   datum,
   highestValue,
   denominator,
   isCorrect = false,
-  addOption,
-  canAddOption,
 }: DefaultNoChartSegmentProps) => {
   const { ref: sortableRef, isDragging } = useSortable({
     id: datum.id,
@@ -43,13 +35,14 @@ const McqOptionEditable = ({
   const color = resolveOptionColor(datum.color, sortIndex);
   const displayIndex = sortIndex >= 0 ? sortIndex + 1 : 0;
 
-  const card = (
+  return (
     <div
+      ref={sortableRef}
       className={`${styles.card} ${isCorrect ? styles.cardCorrect : ""} ${isDragging ? styles.isDragging : ""}`}
     >
       <div className={styles.topRow}>
         <div>
-          <IndexPill value={displayIndex} variant="square" color={color} />
+          <IndexPill value={numberToLetter(displayIndex)} variant="square" color={color} />
         </div>
         <div
           className={styles.interactiveZone}
@@ -71,17 +64,27 @@ const McqOptionEditable = ({
         <ProgressBar value={_sharePct} color={color} />
         {displayAsPercentage && <span className={styles.percentage}>{_sharePct}%</span>}
         <CorrectBadge isCorrect={isCorrect} />
-
-        {/* <div className={styles.footer}>{renderMenu?.(datum)}</div> */}
       </div>
     </div>
   );
+};
 
+const CanAddOptionCard = ({ addOption }: { addOption: () => void }) => {
   return (
-    <Container ref={sortableRef} name="McqOptionCard">
-      {canAddOption && addOption ? <AddOptionPopover anchor={card} onAdd={addOption} /> : card}
-    </Container>
+    <button
+      onClick={() => {
+        addOption();
+      }}
+      className={`${styles.card}`}
+    >
+      <span>
+        <PlusCircleIcon />
+      </span>{" "}
+      Add option
+    </button>
   );
 };
+
+export { CanAddOptionCard };
 
 export { McqOptionEditable };

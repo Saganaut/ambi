@@ -37,5 +37,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: var(--gap-lg);
+    margin-bottom: var(--gap-sm);
   }
 }

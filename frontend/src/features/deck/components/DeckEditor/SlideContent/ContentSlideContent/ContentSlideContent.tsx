@@ -6,18 +6,18 @@
  * body HTML plus its whole-box horizontal/vertical alignment are persisted on
  * {@link RichTextContent}.
  */
-import { useState } from "react";
-import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import {
   RichTextInput,
   type HorizontalAlign,
   type VerticalAlign,
 } from "@components/Forms/Input/RichTextInput/RichTextInput";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type {
   HorizontalAlign as StoredHAlign,
   VerticalAlign as StoredVAlign,
 } from "@deck/store/deckEnums.gen";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { useState } from "react";
+import { SlideWrapper } from "../SlideWrapper";
 import type { SlideContentProps } from "../slideContentProps";
 
 // The stored alignment is the backend enum (LEFT/CENTER/RIGHT, TOP/MIDDLE/…);
@@ -41,12 +41,8 @@ const ContentSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   const [title, setTitle] = useState(slide?.title ?? "");
   const [body, setBody] = useState(slide?.content.body ?? "");
-  const [hAlign, setHAlign] = useState<HorizontalAlign>(
-    toHAlign(slide?.content.horizontalAlign),
-  );
-  const [vAlign, setVAlign] = useState<VerticalAlign>(
-    toVAlign(slide?.content.verticalAlign),
-  );
+  const [hAlign, setHAlign] = useState<HorizontalAlign>(toHAlign(slide?.content.horizontalAlign));
+  const [vAlign, setVAlign] = useState<VerticalAlign>(toVAlign(slide?.content.verticalAlign));
   const [syncedFromId, setSyncedFromId] = useState(slide?.id);
   if (slide && syncedFromId !== slide.id) {
     setSyncedFromId(slide.id);
@@ -58,14 +54,14 @@ const ContentSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   if (!slide) {
     return (
-      <SlideContentWrapper title='Content'>
+      <SlideWrapper title="Content">
         <p>Select a slide to edit.</p>
-      </SlideContentWrapper>
+      </SlideWrapper>
     );
   }
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `content-${slide.id}`,
         value: title,
@@ -75,12 +71,13 @@ const ContentSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           updateMetadata({ title: html });
         },
         onBlur: flush,
-      }}>
+      }}
+    >
       <RichTextInput
         id={`content-body-${slide.id}`}
-        variant='block'
+        variant="block"
         value={body}
-        placeholder='Write your slide content…'
+        placeholder="Write your slide content…"
         onChange={(html) => {
           setBody(html);
           updateSlideContent({ body: html });
@@ -101,7 +98,7 @@ const ContentSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           flush();
         }}
       />
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

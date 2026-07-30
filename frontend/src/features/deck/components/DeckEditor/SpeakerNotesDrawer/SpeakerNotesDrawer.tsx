@@ -9,15 +9,15 @@
  * active slide's `speakerNotes` field via {@link useSlideEditor}.
  * Edits are debounced inside the hook and flushed on blur.
  */
-import { useRef, useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
-import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import {
   RichTextInput,
   type RichTextInputHandle,
 } from "@components/Forms/Input/RichTextInput/RichTextInput";
-import styles from "./SpeakerNotesDrawer.module.css";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import { getRouteApi } from "@tanstack/react-router";
+import { useRef, useState } from "react";
+import styles from "./SpeakerNotesDrawer.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -25,15 +25,10 @@ const SpeakerNotesDrawer = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
 
-  const { slide, updateMetadata, flush } = useSlideEditor(
-    deckId,
-    slideId ?? "",
-  );
+  const { slide, updateMetadata, flush } = useSlideEditor(deckId, slideId ?? "");
 
   const [notes, setNotes] = useState<string>(slide?.speakerNotes ?? "");
-  const [syncedFromId, setSyncedFromId] = useState<string | undefined>(
-    slide?.id,
-  );
+  const [syncedFromId, setSyncedFromId] = useState<string | undefined>(slide?.id);
   const [isOpen, setIsOpen] = useState(false);
   const editorRef = useRef<RichTextInputHandle>(null);
 
@@ -41,9 +36,6 @@ const SpeakerNotesDrawer = () => {
     setSyncedFromId(slide.id);
     setNotes(slide.speakerNotes ?? "");
   }
-
-  if (slideId == null) return <p>no slide id</p>;
-  if (slide == null) return <p>Error no slide</p>;
 
   // Closing the drawer only animates `max-height` to 0 — the contenteditable
   // inside stays focused, which leaves the BubbleMenu toolbar floating in
@@ -64,43 +56,47 @@ const SpeakerNotesDrawer = () => {
   };
 
   const hasNotes = notes.trim() !== "" && notes !== "<p></p>";
+  const isReady = slideId != null && slide != null;
 
   return (
     <section
-      className={[styles.drawer, isOpen ? styles.open : ""]
-        .filter(Boolean)
-        .join(" ")}
-      aria-label='Speaker notes'>
+      className={[styles.drawer, isOpen ? styles.open : ""].filter(Boolean).join(" ")}
+      aria-label="Speaker notes"
+    >
       <button
-        type='button'
+        type="button"
         className={styles.header}
         aria-expanded={isOpen}
-        aria-controls='speaker-notes-body'
-        onClick={handleToggle}>
+        aria-controls="speaker-notes-body"
+        onClick={handleToggle}
+      >
         <span className={styles.headerLabel}>
           Speaker notes
-          {hasNotes && <span className={styles.headerDot} aria-hidden='true' />}
+          {hasNotes && <span className={styles.headerDot} aria-hidden="true" />}
         </span>
-        <span className={styles.headerChevron} aria-hidden='true'>
+        <span className={styles.headerChevron} aria-hidden="true">
           {isOpen ? <ChevronDownIcon /> : <ChevronUpIcon />}
         </span>
       </button>
 
       <div
         className={styles.body}
-        id='speaker-notes-body'
-        role='region'
-        aria-label='Speaker notes editor'
-        aria-hidden={!isOpen}>
+        id="speaker-notes-body"
+        role="region"
+        aria-label="Speaker notes editor"
+        aria-hidden={!isOpen}
+      >
         <div className={styles.bodyInner}>
-          <RichTextInput
-            ref={editorRef}
-            id={`speaker-notes-${slide.id ?? ""}`}
-            placeholder='Notes for the presenter — never shown to participants.'
-            value={notes}
-            onChange={handleNotesChange}
-            onBlur={flush}
-          />
+          {isReady && (
+            <RichTextInput
+              ref={editorRef}
+              id={`speaker-notes-${slide.id ?? ""}`}
+              placeholder="Notes for the presenter — never shown to participants."
+              value={notes}
+              onChange={handleNotesChange}
+              onBlur={flush}
+            />
+          )}
         </div>
       </div>
     </section>

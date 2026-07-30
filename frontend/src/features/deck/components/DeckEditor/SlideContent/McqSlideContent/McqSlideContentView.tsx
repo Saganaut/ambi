@@ -10,7 +10,7 @@ import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import { useState } from "react";
 import { OptionField } from "../_shared/OptionControls/OptionField";
 import { ResultsDisplaySwitch } from "../ResultsDisplaySwitch/ResultsDisplaySwitch";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { SlideWrapper } from "../SlideWrapper";
 import styles from "./McqSlideContent.module.css";
 
 interface McqSlideContentViewProps {
@@ -56,9 +56,9 @@ const McqSlideContentView = ({
 
   if (!question) {
     return (
-      <SlideContentWrapper title="Multiple choice">
+      <SlideWrapper title="Multiple choice">
         <p>Select a slide to edit.</p>
-      </SlideContentWrapper>
+      </SlideWrapper>
     );
   }
 
@@ -95,7 +95,7 @@ const McqSlideContentView = ({
   );
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `mcq-${question.id}`,
         value: prompt,
@@ -126,7 +126,7 @@ const McqSlideContentView = ({
       ) : (
         <div>Incorrect results type</div>
       )}
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

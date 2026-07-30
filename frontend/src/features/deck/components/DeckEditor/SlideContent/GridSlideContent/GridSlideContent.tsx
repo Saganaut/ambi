@@ -42,32 +42,26 @@ import { Fragment, type CSSProperties } from "react";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
-import {
-  GRID_ITEM_LABEL_MAX,
-  MAX_GRID_ITEMS,
-  cellId,
-  parseCell,
-  useGridEditor,
-} from "@deck/hooks/useGridEditor";
+import { MAX_GRID_ITEMS, cellId, parseCell, useGridEditor } from "@deck/hooks/useGridEditor";
 import type { GridItem } from "@deck/store/deckApi.gen";
 import {
+  AddItemCard,
   EmptySelect,
-  ItemList,
-  PlacementRow,
   ScoringFooter,
   SettingsCard,
   useSlideComposerState,
 } from "../_shared";
-import placement from "../_shared/placement/placement.module.css";
 import shared from "../_shared/_shared.module.css";
+import placement from "../_shared/placement/placement.module.css";
 import type { SlideContentProps } from "../slideContentProps";
-import { SlideContentWrapper } from "../SlideContentWrapper";
+import { SlideWrapper } from "../SlideWrapper";
 import { GridAxisLabel } from "./GridAxisLabel";
 import { GridCellChip } from "./GridCellChip";
 import { GridCellEditable } from "./GridCellEditable";
+import { GridItemEditable } from "./GridItemEditable";
 import { GridPlacementGhost } from "./GridPlacementGhost";
-import { useGridCellPlacement } from "./useGridCellPlacement";
 import styles from "./GridSlideContent.module.css";
+import { useGridCellPlacement } from "./useGridCellPlacement";
 
 /** Display name for an axis label, falling back to its 1-based position. */
 const labelOr = (labels: string[], index: number, axisName: string): string =>
@@ -128,7 +122,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const carried = carriedIndex >= 0 ? items[carriedIndex] : undefined;
 
   return (
-    <SlideContentWrapper
+    <SlideWrapper
       prompt={{
         idBase: `grid-${question.id}`,
         value: composer.prompt,
@@ -294,69 +288,56 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               </span>
             }
           >
-            <ItemList
-              addLabel={
-                editor.canAddItem ? "Add item" : `Maximum ${MAX_GRID_ITEMS.toString()} items`
-              }
-              canAdd={editor.canAddItem}
-              onAdd={() => {
-                editor.addItem();
-              }}
-            >
+            <div className={shared.itemList}>
               <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-                {items.map((item, index) => {
-                  const cell = correctCells[item.id];
-                  return (
-                    <PlacementRow
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      color={resolveDatumColor(item.color, index)}
-                      itemNoun="Item"
-                      labelMaxLength={GRID_ITEM_LABEL_MAX}
-                      scored={cell != null}
-                      draggable
-                      gripLabel={`Reorder item ${(index + 1).toString()}`}
-                      selected={composer.selectedItemId === item.id}
-                      menuOpen={composer.openMenuId === item.id}
-                      canRemove={editor.canRemoveItem}
-                      // An unplaced item shows no cell name and no check — the
-                      // absent pair says "unplaced" without a word for it.
-                      meta={
-                        cell == null ? undefined : (
-                          <span className={styles.rowMeta}>{cellNameOf(cell)}</span>
-                        )
-                      }
-                      onSelect={() => {
-                        composer.setSelectedItemId(item.id);
-                      }}
-                      onMenuOpenChange={(open) => {
-                        composer.setOpenMenuId(open ? item.id : null);
-                        if (open) composer.setSelectedItemId(item.id);
-                      }}
-                      onScheduleLabel={(label) => {
-                        editor.scheduleItemLabel(item.id, label);
-                      }}
-                      onFlush={editor.flush}
-                      onSetColor={(color) => {
-                        editor.setItemColor(item.id, color);
-                      }}
-                      onSetImage={(image) => {
-                        editor.setItemImage(item.id, image);
-                      }}
-                      onRemove={() => {
-                        removeItem(item.id);
-                      }}
-                      openPicker={openPicker}
-                    />
-                  );
-                })}
+                {items.map((item, index) => (
+                  <GridItemEditable
+                    key={item.id}
+                    item={item}
+                    sortIndex={index}
+                    cell={correctCells[item.id]}
+                    cellNameOf={cellNameOf}
+                    selected={composer.selectedItemId === item.id}
+                    menuOpen={composer.openMenuId === item.id}
+                    canRemove={editor.canRemoveItem}
+                    onSelect={() => {
+                      composer.setSelectedItemId(item.id);
+                    }}
+                    onMenuOpenChange={(open) => {
+                      composer.setOpenMenuId(open ? item.id : null);
+                      if (open) composer.setSelectedItemId(item.id);
+                    }}
+                    onScheduleLabel={(label) => {
+                      editor.scheduleItemLabel(item.id, label);
+                    }}
+                    onFlush={editor.flush}
+                    onSetColor={(color) => {
+                      editor.setItemColor(item.id, color);
+                    }}
+                    onSetImage={(image) => {
+                      editor.setItemImage(item.id, image);
+                    }}
+                    onRemove={() => {
+                      removeItem(item.id);
+                    }}
+                    openPicker={openPicker}
+                  />
+                ))}
+                <AddItemCard
+                  label={
+                    editor.canAddItem ? "Add item" : `Maximum ${MAX_GRID_ITEMS.toString()} items`
+                  }
+                  disabled={!editor.canAddItem}
+                  onAdd={() => {
+                    editor.addItem();
+                  }}
+                />
               </DragDropWrapper>
-            </ItemList>
+            </div>
           </SettingsCard>
         </div>
       </div>
-    </SlideContentWrapper>
+    </SlideWrapper>
   );
 };
 

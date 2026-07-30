@@ -7,7 +7,7 @@ export { SectionHeader } from "./SectionHeader";
 export { SettingsCard, SettingsRow } from "./SettingsCard";
 export { ItemCard } from "./ItemCard";
 export { ItemField } from "./ItemField/ItemField";
-export { ItemList } from "./ItemList";
+export { AddItemCard } from "./AddItemCard/AddItemCard";
 export { PhraseOrImageCard } from "./PhraseOrImageCard/PhraseOrImageCard";
 export type { PhraseOrImageItem } from "./PhraseOrImageCard/PhraseOrImageCard";
 // export { ImageBackingEditor } from "./ImageBackingEditor";

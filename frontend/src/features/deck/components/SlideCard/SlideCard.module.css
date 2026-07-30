@@ -178,7 +178,7 @@
   }
 
   .typeLabel {
-    color: var(--text-accent);
+    color: var(--role-primary);
     font-family: var(--font-sans);
     font-size: var(--font-size-xs);
     font-weight: 700;

@@ -9,18 +9,19 @@ import { SlideCanvas } from "./SlideCanvas";
 
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
-import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
 import { resolveSlideBackground, resolveSlideBackgroundColor } from "@/shared/utils/deckImages";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
+import { AsyncBoundary } from "@ui/AsyncBoundary/AsyncBoundary";
+import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
 import React, { lazy } from "react";
 import { slotMappingOptions, type SlotMapping } from "../../../contexts/ImageSlot.types";
 import { useSlide } from "../../../hooks/useSlide";
 import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
 import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
 import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
+import { SlideCanvasSkeleton } from "./SlideCanvasSkeleton";
 // The per-type authoring surfaces are lazy so only the active slide's editor is
 // in the editor chunk — the other 11 never download or parse. Each is a named
 // export, hence the `.then(...)` shim to React.lazy's default-export contract.
@@ -160,7 +161,7 @@ const SlideDisplay = () => {
     }
   }, [slideId, slides, navigate]);
 
-  if (slideId == null) return <Loader />;
+  if (slideId == null) return <SlideCanvasSkeleton />;
 
   if (slide == null) return <p> Error </p>;
   const slideContentImgUrl = slide.coverImage?.variants?.XL;
@@ -257,7 +258,7 @@ const SlideDisplay = () => {
         />
         <ChartTypePicker deckId={deckId} slideId={slideId} />
         <div></div>
-      </SlideCanvas>{" "}
+      </SlideCanvas>
     </>
   );
 };

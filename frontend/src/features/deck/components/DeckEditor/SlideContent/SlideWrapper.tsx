@@ -16,9 +16,9 @@ import { useSlideCanvas } from "@deck/contexts/useSlideCanvas";
 import type { ReactNode } from "react";
 import { ImageSlot } from "../../ImageSlot";
 import { PromptField, type PromptFieldProps } from "./_shared";
-import styles from "./SlideContentWrapper.module.css";
+import styles from "./SlideWrapper.module.css";
 
-interface SlideContentWrapperProps {
+interface SlideWrapperProps {
   title?: string;
   description?: string;
   /** Prompt-editor wiring. `showContrastPlate` is owned by the wrapper (driven by
@@ -28,13 +28,7 @@ interface SlideContentWrapperProps {
   children: ReactNode;
 }
 
-const SlideContentWrapper = ({
-  title,
-  description,
-  prompt,
-  footer,
-  children,
-}: SlideContentWrapperProps) => {
+const SlideWrapper = ({ title, description, prompt, footer, children }: SlideWrapperProps) => {
   const { hasBackgroundImage } = useSlideCanvas();
   return (
     <div className={styles.shell}>
@@ -75,4 +69,4 @@ const SlideContentWrapper = ({
   );
 };
 
-export { SlideContentWrapper };
+export { SlideWrapper };

@@ -33,7 +33,8 @@ from the `_shared` barrel:
 - `usePlacementSurface` + `PlacementMarker` + `placementGeometry.ts` — `usePointerPlacement` resolved to normalized [0, 1] coordinates over a surface's box, for the free-placement surfaces (Axis, Place-on-Image). Grid resolves the same gestures to a discrete cell instead (`useGridCellPlacement`, below).
 - `ToleranceField` — the ×100 / ÷100 percent wrapper around the shared `NumberInput`.
 - `_shared/useSlideComposerState.ts` — the prompt mirror, `selectedItemId` (the armed row), and `openMenuId`, resynced during render when the bound slide changes.
-- `_shared/_shared.module.css` — the two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, and the `ItemCard` / `ItemList` chrome. `PlacementRow` brings its own module instead, since its chrome is no longer `ItemCard`'s.
+- `_shared/AddItemCard/` — the dashed "Add …" row that closes an item list, the row-list counterpart of MCQ's `CanAddOptionCard`. Each editor renders it as the last child of its own list container, and swaps its label for the "Maximum N …" wording (plus `disabled`) once the list is at its cap.
+- `_shared/_shared.module.css` — the two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, the item-list stack (`.itemList`), and the `ItemCard` chrome. `PlacementRow` and `AddItemCard` bring their own modules instead, since their chrome is no longer `ItemCard`'s.
 
 Item colors come from one resolver, `resolveDatumColor(item.color, index)`
 (`shared/components/Charts/optionPalette.ts`): the item's stored color, else a
