@@ -1,0 +1,141 @@
+.followUpBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .callToAction {
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+  }
+
+  .parent {
+    display: flex;
+    align-items: baseline;
+    gap: var(--gap-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+
+    .parentLabel {
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .parentTitle {
+      min-width: 0;
+    }
+  }
+
+  .note {
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+  }
+
+  .options {
+    --cols: 2;
+
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+    gap: var(--gap-md);
+    flex: 1;
+    min-height: 0;
+
+    .option {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--gap-sm);
+      overflow: hidden;
+      padding: var(--p-md);
+      border-radius: var(--radius-md);
+
+      /* Reserve the state-border width so picking never reflows the grid. */
+      border: var(--border-size-md) solid transparent;
+      background-color: var(--bg-surface-raised);
+      color: var(--text-primary);
+      font-size: var(--font-size-lg);
+      text-align: center;
+
+      /* The share of picks this candidate holds, filling behind the card. */
+      .bar {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: 0;
+        background-color: var(--bg-brand);
+        opacity: 0.18;
+        transition: width 0.4s ease;
+      }
+
+      .drawing {
+        position: relative;
+        z-index: 1;
+        max-width: 100%;
+        max-height: 100%;
+        min-height: 0;
+        object-fit: contain;
+        border-radius: var(--radius-sm);
+      }
+
+      .label {
+        position: relative;
+        z-index: 1;
+      }
+
+      .mine {
+        position: relative;
+        z-index: 1;
+        color: var(--text-accent);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+      }
+
+      .topBadge {
+        position: relative;
+        z-index: 1;
+        color: var(--text-info);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+      }
+
+      .pct {
+        position: relative;
+        z-index: 1;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-secondary);
+      }
+    }
+
+    .selectable {
+      cursor: pointer;
+    }
+
+    /* State-only border: this device's current pick. */
+    .picked {
+      border-color: var(--edge-brand);
+    }
+
+    /* The viewer's own candidate — un-pickable (the backend rejects a self-pick). */
+    .own {
+      opacity: 0.7;
+    }
+
+    /* Most-picked candidate(s) at the reveal. Not a correct answer — a
+       follow-up has no answer key — so this stays off the success palette. */
+    .top {
+      background-color: var(--bg-info);
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap-md);
+  }
+}

@@ -136,5 +136,15 @@ caller authored, which can only travel on the snapshot, never on a broadcast.
 `LiveSessionAnswerService` validates a pick against that snapshot rather than
 any authored content (the board is runtime state): a blank id or one absent from
 the round's set is a `400`, and picking one's own candidate is the same
-`409 CANNOT_VOTE_FOR_OWN_ANSWER` `submitVote` raises. What's still missing is
-the board UI.
+`409 CANNOT_VOTE_FOR_OWN_ANSWER` `submitVote` raises.
+
+The board UI is `FollowUpBoardContent`, under the live session's
+`components/SessionBoard/content/`, reached from `BoardQuestion`'s
+`FOLLOW_UP` case. One component covers the prompt, live-tally, and revealed moments: the
+candidates render as cards in snapshot order (no shuffle — every device shows
+the one board), a tap plus the submit bar posts a `FollowUpAnswer` and stays
+re-castable until the round closes, and the reveal marks the most-picked
+card(s) from the counts alone (a follow-up has no answer key, so no
+correct-answer affordance ever renders). The viewer's own candidate is disabled
+and badged from `myFollowUpOptionId`, pre-empting the self-pick `409` —
+`sendAnswer` is fire-and-forget, so a rejection never surfaces to the board.
