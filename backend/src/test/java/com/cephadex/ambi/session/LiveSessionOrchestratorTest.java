@@ -51,6 +51,7 @@ import com.cephadex.ambi.presentation.slide.enums.Tool;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
+import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
@@ -359,6 +360,20 @@ class LiveSessionOrchestratorTest {
         // An MCQ pick isn't votable — there is nothing creative to judge.
         when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(
                 answerFrom("p-2", new McqAnswer(Set.of("opt-a")))));
+
+        assertThatThrownBy(() -> orchestrator.openVoting(SID, SLIDE))
+                .isInstanceOf(ConflictException.class);
+        verify(roundStateStore, never()).save(any(), any());
+        verify(voteStore, never()).saveOptions(any(), any(), any());
+    }
+
+    @Test
+    void openVotingOnAFollowUpRoundIsRejected() {
+        stubPhase(RoundPhase.SUBMIT);
+        // A follow-up pick already IS that round's answer, so it is not votable:
+        // the VOTE phase must never open on top of a follow-up board.
+        when(answerStore.answers(SID, SLIDE)).thenReturn(List.of(
+                answerFrom("p-2", new FollowUpAnswer("opt-a"))));
 
         assertThatThrownBy(() -> orchestrator.openVoting(SID, SLIDE))
                 .isInstanceOf(ConflictException.class);

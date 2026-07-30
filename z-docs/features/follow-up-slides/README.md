@@ -96,10 +96,16 @@ the mode carry into rounds with no extra model work. The runtime keys off
 `FollowUpMode` + `Slide.parentId`: hold the follow-up until the parent round
 resolves, build its options from the parent's submissions (`Round` state, not
 deck content), and score via the existing best-answer/deception point settings.
-A `FollowUpAnswer` payload variant already exists
+Options-from-submissions minting landed with `session/followUp/FollowUpOptions`
+and its Redis snapshot (`FollowUpOptionStore`). `FollowUpAnswer`
 (`session/answer/payload/FollowUpAnswer.java`, registered in the sealed
-`AnswerPayload` hierarchy and graded a permanent `false` in
-`RoundEvaluator.isCorrect`, same as `DrawingAnswer`/`QAndAAnswer`) — it's
-sealed-interface scaffolding for this future work, not yet consumed at
-runtime; the `VOTE` phase and options-from-submissions logic above are what's
-still missing.
+`AnswerPayload` hierarchy) carries the `optionId` the participant picked: on a
+follow-up round **the vote is the answer**, so a pick travels the regular
+answer path — submit, live tally (`AnswerTallyKeys`), and
+`RoundResult.optionCounts` via `RoundEvaluator.describeChoice` — and never the
+`VOTE` phase / `VoteStore`, which stays reserved for voting on the current
+round's own free-text submissions. A pick is re-castable until the round
+closes (the answer service zeroes `maxSelections` for it) and grades a
+permanent `false` in `RoundEvaluator.isCorrect`, since v1 has no answer key.
+What's still missing is the host/participant runtime wiring: opening a
+follow-up round off its resolved parent and the board UI.

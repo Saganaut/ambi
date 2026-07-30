@@ -29,6 +29,7 @@ import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
+import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
@@ -177,8 +178,8 @@ public final class RoundEvaluator {
             case ScalesAnswer a -> content instanceof ScalesContent c && gradeScales(c, a);
             case AllocationAnswer a -> content instanceof AllocationContent c && gradeAllocation(c, a);
             case PlaceOnImageAnswer a -> content instanceof PlaceOnImageContent c && gradePlaceOnImage(c, a);
-            // No static answer key: derived from parent submissions, drawn, or asked.
-            case com.cephadex.ambi.session.answer.payload.FollowUpAnswer _ -> false;
+            // No static answer key: picked from parent submissions, drawn, or asked.
+            case FollowUpAnswer _ -> false;
             case com.cephadex.ambi.session.answer.payload.DrawingAnswer _ -> false;
             case com.cephadex.ambi.session.answer.payload.QAndAAnswer _ -> false;
             case com.cephadex.ambi.session.answer.payload.QAndAQuestions _ -> false;
@@ -328,8 +329,9 @@ public final class RoundEvaluator {
     /**
      * A compact, record-friendly rendering of the participant's selection, used for
      * the round's option tallies. Only the scalar-keyed types render a value
-     * (MCQ, number, text); map/coordinate selections (matching, grid, scales,
-     * place-on-image, allocation, ranking) return null and are simply not counted.
+     * (MCQ, number, text, and a follow-up pick's option id); map/coordinate
+     * selections (matching, grid, scales, place-on-image, allocation, ranking)
+     * return null and are simply not counted.
      * {@link #correctKey} renders the correct answer in the same shape so the two
      * collate in {@code RoundResult.optionCounts}.
      */
@@ -339,6 +341,9 @@ public final class RoundEvaluator {
             case McqAnswer mcq -> joinSorted(mcq.optionIds());
             case NumberAnswer number -> String.valueOf(number.value());
             case TextAnswer text -> text.text();
+            // The pick on a follow-up board is that round's answer, so the
+            // candidate's option id is the choice.
+            case FollowUpAnswer followUp -> followUp.optionId();
             default -> null;
         };
     }

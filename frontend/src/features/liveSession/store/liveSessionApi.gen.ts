@@ -327,7 +327,7 @@ export type DrawingAnswer = {
 export type FollowUpAnswer = {
   answerType: "FollowUpAnswer";
 } & AnswerPayloadBase & {
-    text?: string;
+    optionId?: string;
   };
 export type GridAnswer = {
   answerType: "GridAnswer";

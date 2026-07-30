@@ -37,6 +37,7 @@ import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
@@ -58,11 +59,13 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Scor
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.presentation.slide.enums.Tool;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
+import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
@@ -612,6 +615,20 @@ class LiveSessionAnswerServiceTest {
         verifyNoInteractions(imageIngest);
     }
 
+    // ── Follow-up ──────────────────────────────────────────────────────────────
+
+    @Test
+    void followUpPickBypassesTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), followUpContent());
+
+        service.submit(SID, request(new FollowUpAnswer("opt-a")), registered);
+
+        // A follow-up pick is a vote, re-castable until the round closes, so the
+        // orchestrator is called with 0 (last-write-wins) rather than the deck's 1.
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(FollowUpAnswer.class), eq(0));
+    }
+
     // ── fixtures ───────────────────────────────────────────────────────────────
 
     private void givenLiveSession(AnswerSettings answer, SlideContent content) {
@@ -690,6 +707,11 @@ class LiveSessionAnswerServiceTest {
     private static DrawingContent drawingContent() {
         return new DrawingContent(null, PromptPlacement.ALONGSIDE, null,
                 List.of("#111111"), java.util.Set.of(Tool.PEN, Tool.ERASER));
+    }
+
+    /** A follow-up board; its candidates are minted at runtime, not authored. */
+    private static FollowUpContent followUpContent() {
+        return new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE);
     }
 
     /** An internal (S3-backed) AppImage with the given source key. */

@@ -69,6 +69,12 @@ public final class ValidationConstants {
     public static final int QANDA_HOST_ANSWER_MAX = 1000;
     /** Length cap on a participant's free-text / word-cloud answer submission. */
     public static final int TEXT_ANSWER_MAX = 500;
+    /**
+     * Length cap on the follow-up candidate id a participant picks. The ids are
+     * server-minted UUID strings, so this is a shape guard against oversized
+     * input rather than a meaningful limit — 36 characters plus headroom.
+     */
+    public static final int FOLLOW_UP_OPTION_ID_MAX = 64;
 
     // ── Reviews ──────────────────────────────────────────────────────────────
     /** Lowest valid star score on a deck review. */

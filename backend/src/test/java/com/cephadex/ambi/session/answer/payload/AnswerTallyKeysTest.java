@@ -87,6 +87,17 @@ class AnswerTallyKeysTest {
     }
 
     @Test
+    void followUpContributesExactlyThePickedOptionId() {
+        assertThat(AnswerTallyKeys.optionKeys(new FollowUpAnswer("opt-a")))
+                .containsExactly("opt-a");
+    }
+
+    @Test
+    void followUpWithoutAPickContributesNoKeys() {
+        assertThat(AnswerTallyKeys.optionKeys(new FollowUpAnswer(null))).isEmpty();
+    }
+
+    @Test
     void nonTallyablePayloadContributesNoKeys() {
         assertThat(AnswerTallyKeys.optionKeys(new TextAnswer("hello"))).isEmpty();
     }

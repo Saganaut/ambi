@@ -15,6 +15,11 @@ export const liveSessionValidation = {
       "minLength": 1
     }
   },
+  "FollowUpAnswer": {
+    "optionId": {
+      "maxLength": 64
+    }
+  },
   "HostAnswerRequest": {
     "answer": {
       "maxLength": 1000

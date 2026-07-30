@@ -35,7 +35,6 @@ import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerTallyKeys;
-import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
@@ -886,13 +885,16 @@ public class LiveSessionOrchestrator {
     /**
      * The votable rendering of a submission, or {@code null} for the answer kinds
      * voting doesn't apply to. Votable are the free-form/creative payloads voting
-     * exists to score (D3): free text, follow-up prompts, numbers, and drawings
-     * (as a presigned image, LG like the results gallery — vote screens project).
+     * exists to score (D3): free text, numbers, and drawings (as a presigned
+     * image, LG like the results gallery — vote screens project).
+     *
+     * <p>A follow-up submission is deliberately absent: there the pick already
+     * <em>is</em> the round's answer, so the VOTE phase must never open on top
+     * of a follow-up board.
      */
     private VoteOption votableOption(Answer answer) {
         return switch (answer.getPayload()) {
             case TextAnswer text -> new VoteOption(answer.getParticipantId(), text.text(), null);
-            case FollowUpAnswer followUp -> new VoteOption(answer.getParticipantId(), followUp.text(), null);
             case NumberAnswer number -> new VoteOption(answer.getParticipantId(),
                     String.valueOf(number.value()), null);
             case DrawingAnswer drawing -> drawing.image() == null ? null

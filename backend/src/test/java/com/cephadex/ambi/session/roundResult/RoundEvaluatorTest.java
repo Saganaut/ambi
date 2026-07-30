@@ -1,6 +1,7 @@
 package com.cephadex.ambi.session.roundResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
@@ -30,6 +32,8 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Plac
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
+import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
@@ -225,14 +229,41 @@ class RoundEvaluatorTest {
     }
 
     @Test
-    void contentWithNoStaticKeyNeverGradesCorrect() {
-        Slide slide = slideWith(mcq(Set.of("a")));
+    void followUpPickNeverGradesCorrectButTalliesAsTheChoice() {
+        Slide slide = slideWith(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
 
         AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
-                List.of(answer("p", new FollowUpAnswer("a question"), 10)), START).get(0);
+                List.of(answer("p", new FollowUpAnswer("opt-a"), 10)), START).get(0);
 
+        // v1 has no answer key on a follow-up board, but the pick IS the round's
+        // answer, so the candidate's option id collates as the tally choice.
         assertThat(eval.correct()).isFalse();
-        assertThat(eval.choice()).isNull(); // free-form: not tallied
+        assertThat(eval.choice()).isEqualTo("opt-a");
+    }
+
+    @Test
+    void followUpRoundCountsPicksPerOption() {
+        Slide slide = slideWith(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+
+        List<AnswerEvaluation> evals = RoundEvaluator.evaluate(slide, List.of(
+                answer("p1", new FollowUpAnswer("opt-a"), 100),
+                answer("p2", new FollowUpAnswer("opt-b"), 200),
+                answer("p3", new FollowUpAnswer("opt-a"), 300)), START);
+
+        RoundResult result = RoundResult.compute("session-1", slide, evals.stream()
+                .map(eval -> new ParticipantOutcome(eval.participantId(), eval.choice(), eval.correct(), 0,
+                        eval.responseTimeMs()))
+                .toList(), START);
+
+        assertThat(result.optionCounts()).containsOnly(entry("opt-a", 2), entry("opt-b", 1));
+    }
+
+    @Test
+    void correctKeyIsNullForAFollowUpSlide() {
+        // No static answer key: a follow-up board's candidates are minted at
+        // runtime, so the reveal has no correct option to line the tally up with.
+        assertThat(RoundEvaluator.correctKey(slideWith(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE))))
+                .isNull();
     }
 
     @Test

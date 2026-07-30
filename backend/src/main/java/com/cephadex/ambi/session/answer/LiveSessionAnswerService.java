@@ -40,6 +40,7 @@ import com.cephadex.ambi.session.answer.dto.SubmitVoteRequest;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
+import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
@@ -156,13 +157,16 @@ public class LiveSessionAnswerService {
         // grid, axis, scales, matching, drawing, or text submission is one whole
         // artifact, so the deck default of 1 must not make the first submission
         // final — these resubmits overwrite (last write before close wins), like
-        // a multi-select MCQ change.
+        // a multi-select MCQ change. A follow-up pick joins them for the same
+        // reason: it is a vote, re-castable until the round closes, so the deck
+        // default must not freeze the first pick.
         int effectiveMaxSelections = request.payload() instanceof GridAnswer
                 || request.payload() instanceof AxisAnswer
                 || request.payload() instanceof PlaceOnImageAnswer
                 || request.payload() instanceof ScalesAnswer
                 || request.payload() instanceof MatchingAnswer
                 || request.payload() instanceof DrawingAnswer
+                || request.payload() instanceof FollowUpAnswer
                 || request.payload() instanceof TextAnswer ? 0 : maxSelections;
         orchestrator.submitAnswer(sessionId, request.slideId(), participant.getParticipantId(),
                 request.payload(), effectiveMaxSelections);

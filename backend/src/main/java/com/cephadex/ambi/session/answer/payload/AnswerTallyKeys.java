@@ -61,7 +61,9 @@ public final class AnswerTallyKeys {
      * per ranked slot (0-based, so the board can tally how often each item
      * lands in each rank), or one {@code itemId@bucketX,bucketY} key per
      * place-on-image pin (quantized, so the board can render a per-item density
-     * scatter of where each item's pin landed). Returns an empty list for payloads
+     * scatter of where each item's pin landed), or the single picked
+     * {@code optionId} of a follow-up vote (the pick <em>is</em> that round's
+     * answer). Returns an empty list for payloads
      * that aren't tallied yet (free text, drawings, …), so the caller simply
      * counts nothing for them.
      */
@@ -105,6 +107,12 @@ public final class AnswerTallyKeys {
             return IntStream.range(0, ordered.size())
                     .mapToObj(position -> ordered.get(position) + GRID_KEY_SEPARATOR + position)
                     .toList();
+        }
+        if (payload instanceof FollowUpAnswer followUp && followUp.optionId() != null) {
+            // The pick on a follow-up board is the round's answer, so the option
+            // id is the tally key verbatim — v1 is single-select, hence exactly
+            // one key per participant.
+            return List.of(followUp.optionId());
         }
         if (payload instanceof PlaceOnImageAnswer place && place.placements() != null) {
             // One "itemId@bucketX,bucketY" key per placed pin — exactly Axis's
