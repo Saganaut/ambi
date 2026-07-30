@@ -512,11 +512,11 @@ public final class FollowUpOptions {
     }
 
     /** A normalized point as whole percentages, e.g. {@code "(30%, 70%)"}. */
-    private static String coordinates(double x, double y) {
-        if (!Double.isFinite(x) || !Double.isFinite(y)) {
+    private static String coordinates(double normalizedX, double normalizedY) {
+        if (!Double.isFinite(normalizedX) || !Double.isFinite(normalizedY)) {
             return null;
         }
-        return "(" + Math.round(x * 100) + "%, " + Math.round(y * 100) + "%)";
+        return "(" + Math.round(normalizedX * 100) + "%, " + Math.round(normalizedY * 100) + "%)";
     }
 
     /** A scale value at display precision, trailing zeros trimmed ({@code "7.5"}, {@code "3"}). */
