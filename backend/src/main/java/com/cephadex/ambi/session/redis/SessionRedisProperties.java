@@ -22,6 +22,7 @@ public class SessionRedisProperties {
     private final Tally tally = new Tally();
     private final Answers answers = new Answers();
     private final Votes votes = new Votes();
+    private final FollowUp followUp = new FollowUp();
     private final QandaHostAnswers qandaHostAnswers = new QandaHostAnswers();
     private final Presence presence = new Presence();
     private final Events events = new Events();
@@ -96,6 +97,24 @@ public class SessionRedisProperties {
         /**
          * TTL on a round's vote hashes — the same abandoned-session backstop as the
          * state TTL. Refreshed on every write.
+         */
+        private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class FollowUp {
+        /**
+         * Redis key namespace for a follow-up round's minted candidate set. Each
+         * follow-up round keeps one JSON <em>string</em> value at
+         * {@code <namespace>:<sessionId>:<slideId>} — not a Hash like the sibling
+         * round stores, because the board's option order is part of the payload.
+         * Runtime-only: the votes cast against it are ordinary answers and flush to
+         * MongoDB, the candidate snapshot itself never does.
+         */
+        private String namespace = "ambi:session:followup";
+        /**
+         * TTL on a round's candidate set — the same abandoned-session backstop as
+         * the state TTL. Refreshed on every write.
          */
         private Duration ttl = Duration.ofHours(6);
     }

@@ -66,6 +66,16 @@ public class SessionKeys {
     }
 
     /**
+     * Key for a follow-up round's minted candidate set — a single JSON value, not
+     * a hash, because the board's order is part of the payload (see
+     * {@link FollowUpOptionStore}). Same round identity as {@link #answersKey},
+     * addressed by the <strong>follow-up's</strong> slide id, not its parent's.
+     */
+    public String followUpOptionsKey(String sessionId, String slideId) {
+        return props.getFollowUp().getNamespace() + ":" + sessionId + ":" + slideId;
+    }
+
+    /**
      * Key for a Q&amp;A round's host-answer hash (one field per question id).
      * Keyed by {@code sessionId + slideId}, the same round identity as
      * {@link #answersKey}.

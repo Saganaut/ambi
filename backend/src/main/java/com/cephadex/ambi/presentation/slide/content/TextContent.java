@@ -36,4 +36,22 @@ public record TextContent(
     public SlideType contentType() {
         return SlideType.TEXT;
     }
+
+    /**
+     * {@code text} reduced to the form this slide compares on, per its own
+     * {@code trimWhitespace}/{@code caseSensitive} settings. Applied to both
+     * sides of a comparison (grading a submission against
+     * {@code acceptedAnswers}, or grouping submissions that count as the same
+     * answer), so "what settings does this slide consider equal?" is answered in
+     * one place.
+     *
+     * @return the normalized form, or {@code null} for {@code null} input
+     */
+    public String normalize(String text) {
+        if (text == null) {
+            return null;
+        }
+        String normalized = trimWhitespace ? text.strip() : text;
+        return caseSensitive ? normalized : normalized.toLowerCase();
+    }
 }

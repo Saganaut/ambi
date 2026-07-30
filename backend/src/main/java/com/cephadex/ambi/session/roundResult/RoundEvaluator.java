@@ -213,26 +213,18 @@ public final class RoundEvaluator {
         if (content.matchMode() == MatchMode.WORDCLOUD || accepted == null || accepted.isEmpty()) {
             return false;
         }
-        String submitted = normalizeText(answer.text(), content);
+        String submitted = content.normalize(answer.text());
         if (submitted == null) {
             return false;
         }
         return switch (content.matchMode()) {
-            case EXACT -> accepted.stream().anyMatch(acc -> submitted.equals(normalizeText(acc, content)));
+            case EXACT -> accepted.stream().anyMatch(acc -> submitted.equals(content.normalize(acc)));
             case CONTAINS -> accepted.stream()
-                    .map(acc -> normalizeText(acc, content))
+                    .map(content::normalize)
                     .filter(acc -> acc != null && !acc.isEmpty())
                     .anyMatch(submitted::contains);
             case WORDCLOUD -> false;
         };
-    }
-
-    private static String normalizeText(String text, TextContent content) {
-        if (text == null) {
-            return null;
-        }
-        String normalized = content.trimWhitespace() ? text.strip() : text;
-        return content.caseSensitive() ? normalized : normalized.toLowerCase();
     }
 
     private static boolean gradeRanking(RankingContent content, RankingAnswer answer) {
