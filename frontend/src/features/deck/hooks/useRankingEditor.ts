@@ -31,7 +31,7 @@ import { useSlideEditor } from "./useSlideEditor";
 /** A ranking needs at least two items to be a real ordering … */
 const MIN_RANKING_ITEMS = 2;
 /** … and is capped at eight so the shuffled play-time list stays legible. */
-const MAX_RANKING_ITEMS = 8;
+const MAX_RANKING_ITEMS = 6;
 /** `maxLength` for item label inputs (matches the other editors). */
 const RANKING_LABEL_MAX = 80;
 

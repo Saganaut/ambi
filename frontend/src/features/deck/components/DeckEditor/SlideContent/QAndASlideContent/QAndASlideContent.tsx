@@ -13,6 +13,7 @@ import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { EmptySelect, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
@@ -71,20 +72,26 @@ const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
       footer={<p>{footerText}</p>}
     >
-      <div className={styles.pulseBanner}>
-        <ChatBubbleLeftEllipsisIcon className={styles.pulseBannerIcon} aria-hidden="true" />
-        <span>Open-ended round — never scored.</span>
-      </div>
-      <SettingsCard title="During the round">
-        <ol className={styles.flowSteps}>
-          <li>Players type questions and send them in.</li>
-          <li>Submissions show on the host screen as a list or a word cloud.</li>
-          <li>Type an answer next to any question to address it live.</li>
-        </ol>
-        <p className={styles.panelHint}>
-          Moderation, response caps, and anonymity are set in the Answers panel.
-        </p>
-      </SettingsCard>
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <ChatBubbleLeftEllipsisIcon className={styles.pulseBannerIcon} aria-hidden="true" />
+            <span>Open-ended round — never scored.</span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <SettingsCard title="During the round">
+              <ol className={styles.flowSteps}>
+                <li>Players type questions and send them in.</li>
+                <li>Submissions show on the host screen as a list or a word cloud.</li>
+                <li>Type an answer next to any question to address it live.</li>
+              </ol>
+              <p className={styles.panelHint}>
+                Moderation, response caps, and anonymity are set in the Answers panel.
+              </p>
+            </SettingsCard>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>
     </SlideWrapper>
   );
 };

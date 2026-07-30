@@ -10,7 +10,7 @@
 .imageSurface {
   /* Capped so the editor row fits the slide canvas unscrolled; the height
      follows from the image's intrinsic ratio. */
-  max-width: 24rem;
+  max-width: 16rem;
 
   /* Trim the image's corners to the surface's rounded border. */
   overflow: clip;

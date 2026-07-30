@@ -18,6 +18,7 @@ import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { TextContent } from "@deck/store/deckApi.gen";
 import { Tag } from "@ui/Tag/Tag";
 import { useState } from "react";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { ScoringFooter, SettingsCard } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
@@ -134,51 +135,57 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
       footer={<ScoringFooter visible={!hasAnswers} />}
     >
-      <SettingsCard title="Correct answers">
-        <div className={styles.answersField}>
-          <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
-            Accepted answers
-          </label>
-          {hasAnswers && (
-            <ul className={styles.tagList}>
-              {answers.map((answer, index) => (
-                <li key={answer}>
-                  <Tag
-                    size="md"
-                    onRemove={() => removeAnswer(index)}
-                    removeLabel={`Remove ${answer}`}
-                  >
-                    {answer}
-                  </Tag>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Input
-            id={`text-answers-${idBase}`}
-            type="text"
-            fullWidth
-            value={draft}
-            placeholder="Type an answer and press Enter"
-            infoMessage="Press Enter to add each answer. Any match scores as correct; leave empty to just collect responses."
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={commitDraft}
-          />
-        </div>
-        <Dropdown
-          label="Matching"
-          id={`text-match-${idBase}`}
-          options={MATCH_MODE_OPTIONS}
-          value={[matchMode]}
-          onChange={(values) => {
-            const next = (values[0] as MatchMode | undefined) ?? "EXACT";
-            setMatchMode(next);
-            updateSlideContent({ matchMode: next });
-            flush();
-          }}
-        />
-      </SettingsCard>
+      {" "}
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header> </SlideContentSection.Header>{" "}
+          <SettingsCard title="Correct answers">
+            <div className={styles.answersField}>
+              <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
+                Accepted answers
+              </label>
+              {hasAnswers && (
+                <ul className={styles.tagList}>
+                  {answers.map((answer, index) => (
+                    <li key={answer}>
+                      <Tag
+                        size="md"
+                        onRemove={() => removeAnswer(index)}
+                        removeLabel={`Remove ${answer}`}
+                      >
+                        {answer}
+                      </Tag>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Input
+                id={`text-answers-${idBase}`}
+                type="text"
+                fullWidth
+                value={draft}
+                placeholder="Type an answer and press Enter"
+                infoMessage="Press Enter to add each answer. Any match scores as correct; leave empty to just collect responses."
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={commitDraft}
+              />
+            </div>
+            <Dropdown
+              label="Matching"
+              id={`text-match-${idBase}`}
+              options={MATCH_MODE_OPTIONS}
+              value={[matchMode]}
+              onChange={(values) => {
+                const next = (values[0] as MatchMode | undefined) ?? "EXACT";
+                setMatchMode(next);
+                updateSlideContent({ matchMode: next });
+                flush();
+              }}
+            />
+          </SettingsCard>
+        </SlideContentSection>
+      </SlideContent>
     </SlideWrapper>
   );
 };

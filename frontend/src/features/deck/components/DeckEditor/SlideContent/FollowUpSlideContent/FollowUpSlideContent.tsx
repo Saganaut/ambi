@@ -13,6 +13,7 @@ import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { FOLLOW_UP_MODE_LABELS, linkedParentOf } from "@deck/utils/followUp";
 import React, { useState } from "react";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./FollowUpSlideContent.module.css";
@@ -77,32 +78,41 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         </p>
       }
     >
-      <div className={styles.modeBanner}>{FOLLOW_UP_MODE_LABELS[mode]}</div>
-      {parentMcqOptions ? (
-        <>
-          <div
-            className={styles.ghostOptions}
-            style={
-              {
-                "--cols": Math.max(Math.ceil(parentMcqOptions.length / 2), 2),
-              } as React.CSSProperties
-            }
-          >
-            {parentMcqOptions.map((option) => (
-              <div key={option.id} className={styles.ghostOption}>
-                {option.text?.trim() || "Untitled option"}
+      {" "}
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <div>{FOLLOW_UP_MODE_LABELS[mode]}</div>{" "}
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            {parentMcqOptions ? (
+              <>
+                <div
+                  className={styles.ghostOptions}
+                  style={
+                    {
+                      "--cols": Math.max(Math.ceil(parentMcqOptions.length / 2), 2),
+                    } as React.CSSProperties
+                  }
+                >
+                  {parentMcqOptions.map((option) => (
+                    <div key={option.id} className={styles.ghostOption}>
+                      {option.text?.trim() || "Untitled option"}
+                    </div>
+                  ))}
+                </div>
+                <p className={styles.ghostCaption}>
+                  {ghostCaption} {parentDisplayName(parent?.title)}.
+                </p>
+              </>
+            ) : (
+              <div className={styles.ghostPlaceholder}>
+                Participants&apos; submissions on the parent slide become the options here.
               </div>
-            ))}
-          </div>
-          <p className={styles.ghostCaption}>
-            {ghostCaption} {parentDisplayName(parent?.title)}.
-          </p>
-        </>
-      ) : (
-        <div className={styles.ghostPlaceholder}>
-          Participants&apos; submissions on the parent slide become the options here.
-        </div>
-      )}
+            )}
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>
     </SlideWrapper>
   );
 };

@@ -50,7 +50,6 @@ import {
   ToleranceField,
   useSlideComposerState,
 } from "../_shared";
-import shared from "../_shared/_shared.module.css";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
@@ -134,7 +133,7 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             </span>
           </SlideContentSection.Header>
 
-          <div className={shared.itemList}>
+          <SlideContentSection.Body>
             <DragDropWrapper onReorder={editor.handleItemDragEnd}>
               {targets.map((target, index) => (
                 <PlaceOnImageTargetEditable
@@ -174,7 +173,7 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 }}
               />
             </DragDropWrapper>
-          </div>
+          </SlideContentSection.Body>
         </SlideContentSection>
       </SlideContent>
     </SlideWrapper>
