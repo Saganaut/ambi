@@ -107,6 +107,18 @@ export interface LiveSessionState {
   myVoteOptionId: string | null;
   /** Running number of votes cast in the VOTE round (never per-option counts). */
   votesCast: number;
+  /**
+   * On a follow-up round, the candidate the viewer authored (so their own card
+   * can be marked un-pickable — the backend rejects a self-vote); null when the
+   * viewer authored none, or outside a follow-up round.
+   *
+   * Per-participant, so it can only ever arrive on the REST snapshot: the STOMP
+   * topic is shared by every client, so no broadcast event may carry it and no
+   * case in `applyEvent` ever patches it. A client already connected when a
+   * follow-up round opens learns it by refetching the snapshot — see
+   * `SessionConnectionProvider`.
+   */
+  myFollowUpOptionId: string | null;
   results: RoundResults | null;
   /**
    * The revealed Place-on-Image target circles as carried by the REST snapshot —
@@ -168,6 +180,7 @@ const initialState: LiveSessionState = {
   voteOptions: [],
   myVoteOptionId: null,
   votesCast: 0,
+  myFollowUpOptionId: null,
   results: null,
   placeTargets: null,
   scoreboard: [],
@@ -214,6 +227,11 @@ const liveSessionSlice = createSlice({
       state.voteOptions = s.voteOptions ?? [];
       state.myVoteOptionId = s.myVoteOptionId ?? null;
       state.votesCast = s.votesCast ?? 0;
+      // The snapshot is the only channel for this (see the field's docs), and
+      // `seed` is also the re-seed path — every refetch (gap resync, reconnect,
+      // or the provider's follow-up refetch) lands here, so a mid-session
+      // re-seed refreshes it exactly like the first one.
+      state.myFollowUpOptionId = s.myFollowUpOptionId ?? null;
       state.scoreboard = s.scoreboard ?? [];
       state.viewerParticipantId = s.viewerParticipantId ?? null;
       state.showRoomCodeInHeader = s.showRoomCodeInHeader ?? false;
@@ -329,6 +347,9 @@ function applyEvent(state: LiveSessionState, e: SessionEvent) {
       state.optionCounts = {};
       state.qAndAQuestions = [];
       resetVoting(state);
+      // Stale for the new round, and no event can refill it — a follow-up round
+      // learns the viewer's own candidate from the snapshot refetch instead.
+      state.myFollowUpOptionId = null;
       state.results = null;
       state.placeTargets = null;
       state.phase = "SUBMIT";
@@ -411,6 +432,9 @@ function applyEvent(state: LiveSessionState, e: SessionEvent) {
       state.optionCounts = {};
       state.qAndAQuestions = [];
       resetVoting(state);
+      // Same as RoundStarted: the reopened round's candidates are minted afresh,
+      // so the viewer's own one is unknown until the next snapshot.
+      state.myFollowUpOptionId = null;
       state.results = null;
       state.placeTargets = null;
       break;

@@ -21,6 +21,12 @@
 //   - advance         → open the next round (offered when no round is open yet —
 //                      just started, so advance opens the first slide — once
 //                      results are revealed, or immediately for a display slide).
+//
+// A parent with an attached follow-up (`hasFollowUp`) flows differently: the
+// backend rejects `revealResults` on it outright (409 REVEAL_BLOCKED_BY_FOLLOW_UP)
+// because the follow-up round is where the parent's results are presented. Its
+// host flow is close → advance, so reveal is withheld in every phase and advance
+// is offered from the closed-but-unrevealed phases as well.
 //   - restart         → reopen; backend rejects a round already scored at close,
 //                      so this is gated to the still-open phases only.
 //   - pause/resumeTimer → freeze/unfreeze a timed round's auto-close countdown
@@ -56,7 +62,10 @@ const NONE: HostActions = {
  * @param timed the open round has an auto-close timer (a deadline was broadcast).
  * @param timerPaused the round timer is currently paused.
  * @param votableSlide the slide's kind mints votable options (free text, drawing,
- *   follow-up, number) — the only rounds the backend opens voting on (D3).
+ *   number) — the only rounds the backend opens voting on (D3).
+ * @param hasFollowUp the current slide has an attached follow-up slide: it never
+ *   reveals its own results (the follow-up round presents them), so the host
+ *   closes it and advances straight into the child.
  */
 export const resolveHostActions = (
   status: LiveSessionLifecycle | null,
@@ -66,6 +75,7 @@ export const resolveHostActions = (
   timed = false,
   timerPaused = false,
   votableSlide = false,
+  hasFollowUp = false,
 ): HostActions => {
   if (status !== "IN_PROGRESS") return NONE;
 
@@ -90,9 +100,12 @@ export const resolveHostActions = (
     canOpenVoting: accepting && votableSlide,
     // The backend closes + scores an open round when results are revealed (and
     // scores a VOTE round with its tallies), so this is offered while open and
-    // while voting too — every phase but REVEAL_RESULTS (already shown).
-    canRevealResults: accepting || voting || closedUnrevealed,
-    canAdvance: phase === "REVEAL_RESULTS",
+    // while voting too — every phase but REVEAL_RESULTS (already shown). A
+    // parent with a follow-up never reveals at all (the backend rejects it).
+    canRevealResults: (accepting || voting || closedUnrevealed) && !hasFollowUp,
+    // Normally the next round only opens once results are revealed; a parent
+    // with a follow-up never gets there, so it advances from the closed round.
+    canAdvance: phase === "REVEAL_RESULTS" || (hasFollowUp && closedUnrevealed),
     // Restart reopens the round; the backend rejects it once scored at close —
     // a VOTE round is not yet scored, so backing out of voting is allowed.
     canRestart: accepting || voting,

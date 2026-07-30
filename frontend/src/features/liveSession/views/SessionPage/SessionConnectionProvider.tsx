@@ -139,6 +139,39 @@ const SessionConnectionProvider = ({
     };
   }, [resyncNeeded, isFetching]);
 
+  // Refetch once when a follow-up round opens. The snapshot is the ONLY channel
+  // for `myFollowUpOptionId` — which of the round's candidates the viewer
+  // authored — because it is per-participant while the STOMP topic is shared by
+  // every client, so no broadcast event may carry it. A late joiner gets it in
+  // the snapshot it joins on; a client already connected when the round opens
+  // only ever sees `RoundStarted`, so it fetches a fresh snapshot here (which
+  // re-seeds through the same `seed` path as any other refetch).
+  //
+  // Guarded by the round the field was last obtained for — the slide id plus its
+  // start instant, so a restart of the same follow-up (fresh candidates, and the
+  // slice cleared the field) counts as a new round. Any seed already carries the
+  // field for the round it describes (first effect below), so the refetch (the
+  // second) fires at most once per follow-up round and never for another kind.
+  const followUpRound = useAppSelector((state) =>
+    state.liveSession.currentSlide?.followUp
+      ? `${state.liveSession.currentSlideId ?? ""}@${state.liveSession.roundStartedAt ?? ""}`
+      : null,
+  );
+  const seededRound = snapshot
+    ? `${snapshot.currentSlideId ?? ""}@${snapshot.currentRoundStartedAt ?? ""}`
+    : null;
+  const followUpSeededForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (seededRound != null) followUpSeededForRef.current = seededRound;
+  }, [seededRound]);
+  useEffect(() => {
+    if (followUpRound == null) return;
+    if (followUpSeededForRef.current === followUpRound) return;
+    // Claim the round before fetching so a re-render can't fire a second one.
+    followUpSeededForRef.current = followUpRound;
+    void refetchRef.current();
+  }, [followUpRound]);
+
   // Liveness heartbeat while the session is live (server-debounced). Presence
   // feeds the roster display, and a host's beats arm the host-disconnect watch
   // that auto-pauses timed rounds (ADR 002/F5) — so send one immediately, then

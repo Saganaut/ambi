@@ -134,6 +134,68 @@ describe("resolveHostActions", () => {
     }
   });
 
+  // ── Parent of a follow-up slide ──────────────────────────────────────────
+
+  // The last positional argument is `hasFollowUp`: the current slide has an
+  // attached follow-up, whose round presents this one's results.
+  const withFollowUp = (phase: RoundPhase) =>
+    resolveHostActions("IN_PROGRESS", phase, false, true, false, false, false, true);
+
+  const everyPhase: RoundPhase[] = [
+    "SUBMIT",
+    "SUBMIT_LIVE",
+    "LOCKED",
+    "VOTE",
+    "REVEAL_RESPONSES",
+    "REVEAL_RESULTS",
+  ];
+
+  it("never offers reveal-results on a slide with an attached follow-up", () => {
+    // The backend rejects it outright (409 REVEAL_BLOCKED_BY_FOLLOW_UP).
+    for (const phase of everyPhase) {
+      expect(withFollowUp(phase).canRevealResults).toBe(false);
+    }
+  });
+
+  it("offers advance on a closed parent round, before any reveal", () => {
+    // The parent's flow is close → advance into the child, so the host must be
+    // able to move on from the closed-but-unrevealed phases.
+    for (const phase of ["LOCKED", "REVEAL_RESPONSES", "REVEAL_RESULTS"] as RoundPhase[]) {
+      expect(withFollowUp(phase).canAdvance).toBe(true);
+    }
+    // Still not while the round is open — close it first.
+    for (const phase of ["SUBMIT", "SUBMIT_LIVE"] as RoundPhase[]) {
+      expect(withFollowUp(phase).canAdvance).toBe(false);
+    }
+  });
+
+  it("leaves the parent's other controls alone", () => {
+    // Only reveal and advance change; closing, restarting and going live are the
+    // ordinary round controls.
+    expect(withFollowUp("SUBMIT")).toEqual({
+      ...none,
+      canShowResponses: true,
+      canClose: true,
+      canRestart: true,
+    });
+    expect(withFollowUp("LOCKED")).toEqual({ ...none, canAdvance: true });
+  });
+
+  it("keeps the ordinary matrix when no follow-up is attached", () => {
+    // Regression guard: the new argument defaults to false and changes nothing.
+    for (const phase of everyPhase) {
+      expect(resolveHostActions("IN_PROGRESS", phase, false, true, false, false, false, false))
+        .toEqual(resolveHostActions("IN_PROGRESS", phase, false, true));
+    }
+    expect(resolveHostActions("IN_PROGRESS", "LOCKED", false, true).canRevealResults).toBe(true);
+    expect(resolveHostActions("IN_PROGRESS", "LOCKED", false, true).canAdvance).toBe(false);
+  });
+
+  // The follow-up round itself is never a votable kind, so "open voting" is
+  // withheld on it — `isVotableSlide` (asserted in resolveBoardStage.test.ts) is
+  // what SessionControls feeds into `votableSlide` here, and an unvotable slide
+  // never offers it in any phase (see the open-voting test above).
+
   // ── Timer control (ADR 002) ──────────────────────────────────────────────
 
   it("offers pause only on a running timed round, resume only on a paused one", () => {

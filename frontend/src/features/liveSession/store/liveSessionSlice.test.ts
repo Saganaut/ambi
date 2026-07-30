@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type {
   ParticipantView,
   SessionSnapshotResponse,
+  SlideView,
 } from "./liveSessionApi.gen";
 import type { SessionEvent, SessionEventEnvelope } from "./liveSessionEvents";
 import {
@@ -229,6 +230,95 @@ describe("liveSessionSlice", () => {
     expect(state.voteOptions).toHaveLength(1);
     expect(state.myVoteOptionId).toBe("opt-a");
     expect(state.votesCast).toBe(3);
+  });
+
+  // ── Follow-up rounds ─────────────────────────────────────────────────────
+
+  // Which candidate the viewer authored is per-participant, so it travels on the
+  // snapshot only — never on an event.
+  const followUpSlide: SlideView = {
+    id: "slide-fu",
+    title: "Which answer was best?",
+    contentType: "FOLLOW_UP",
+    followUp: {
+      mode: "BEST_ANSWER_VOTE",
+      parentSlideId: "slide-1",
+      parentTitle: "Q1",
+      options: [{ optionId: "opt-a", text: "mine" }],
+    },
+  };
+
+  const followUpSnapshot: SessionSnapshotResponse = {
+    ...lobbySnapshot,
+    status: "IN_PROGRESS",
+    phase: "SUBMIT",
+    currentSlideId: "slide-fu",
+    currentSlide: followUpSlide,
+    myFollowUpOptionId: "opt-a",
+  };
+
+  it("seeds the viewer's own follow-up candidate from the snapshot", () => {
+    const state = play(seed(followUpSnapshot));
+
+    expect(state.currentSlide?.followUp?.mode).toBe("BEST_ANSWER_VOTE");
+    expect(state.myFollowUpOptionId).toBe("opt-a");
+    // Absent from the snapshot (the viewer authored none) reads as null.
+    expect(play(seed(lobbySnapshot)).myFollowUpOptionId).toBeNull();
+  });
+
+  it("clears the viewer's own follow-up candidate when a round opens or restarts", () => {
+    const seeded = play(seed({ ...followUpSnapshot, lastSequence: 4 }));
+
+    const nextRound = liveSessionReducer(
+      seeded,
+      eventReceived(
+        env(5, {
+          type: "RoundStarted",
+          slideId: "slide-2",
+          slide: { id: "slide-2", title: "Q2", contentType: "MCQ" },
+          roundStartedAt: "2026-07-01T10:05:00Z",
+          deadline: null,
+        }),
+      ),
+    );
+    expect(nextRound.myFollowUpOptionId).toBeNull();
+
+    const restarted = liveSessionReducer(
+      seeded,
+      eventReceived(
+        env(5, {
+          type: "RoundRestarted",
+          slideId: "slide-fu",
+          phase: "SUBMIT",
+          roundStartedAt: "2026-07-01T10:05:00Z",
+          deadline: null,
+        }),
+      ),
+    );
+    expect(restarted.myFollowUpOptionId).toBeNull();
+  });
+
+  it("re-seeds the viewer's own follow-up candidate from a fresh snapshot", () => {
+    // The client that was already connected when the follow-up round opened
+    // learns its own candidate only when the provider refetches the snapshot.
+    const opened = play(
+      seed(lobbySnapshot),
+      ...stream({
+        type: "RoundStarted",
+        slideId: "slide-fu",
+        slide: followUpSlide,
+        roundStartedAt: "2026-07-01T10:00:00Z",
+        deadline: null,
+      }),
+    );
+    expect(opened.myFollowUpOptionId).toBeNull();
+
+    const reseeded = liveSessionReducer(
+      opened,
+      seed({ ...followUpSnapshot, lastSequence: 1 }),
+    );
+    expect(reseeded.myFollowUpOptionId).toBe("opt-a");
+    expect(reseeded.lastSequence).toBe(1);
   });
 
   it("ignores a tally addressed to a slide that is no longer current", () => {

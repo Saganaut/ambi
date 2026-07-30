@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import type { SlideView } from "../../store/liveSessionApi.gen";
 import type { RoundPhase } from "../../store/liveSessionEvents";
 import type { LiveSessionState } from "../../store/liveSessionSlice";
-import { resolveBoardStage } from "./resolveBoardStage";
+import { isVotableSlide, resolveBoardStage } from "./resolveBoardStage";
 
 const mcqSlide: SlideView = {
   id: "s1",
@@ -12,6 +12,17 @@ const mcqSlide: SlideView = {
   options: [{ id: "a", text: "A" }],
 };
 const titleSlide: SlideView = { id: "s0", contentType: "TITLE", title: "Hi" };
+const followUpSlide: SlideView = {
+  id: "s2",
+  contentType: "FOLLOW_UP",
+  title: "Which answer was best?",
+  followUp: {
+    mode: "BEST_ANSWER_VOTE",
+    parentSlideId: "s1",
+    parentTitle: "Q1",
+    options: [{ optionId: "opt-a", text: "an answer" }],
+  },
+};
 
 const baseState = (over: Partial<LiveSessionState>): LiveSessionState =>
   ({
@@ -95,6 +106,51 @@ describe("resolveBoardStage", () => {
     ] as RoundPhase[]) {
       const stage = resolveBoardStage(baseState({ phase, viewerIsHost: false }));
       if (stage.type === "question") expect(stage.interactive).toBe(false);
+    }
+  });
+
+  // ── Follow-up rounds ─────────────────────────────────────────────────────
+
+  it("never treats a follow-up round as a votable kind", () => {
+    // A follow-up's options are minted from its parent's submissions and picked
+    // through the regular answer path — the VOTE phase stays reserved for voting
+    // on the current round's own free-text submissions (D3).
+    expect(isVotableSlide(followUpSlide)).toBe(false);
+    for (const contentType of ["TEXT", "NUMBER", "DRAWING"] as const) {
+      expect(isVotableSlide({ id: "s3", contentType })).toBe(true);
+    }
+  });
+
+  it("puts a follow-up round on the prompt, interactive while it accepts picks", () => {
+    const stage = resolveBoardStage(
+      baseState({
+        currentSlide: followUpSlide,
+        currentSlideId: "s2",
+        phase: "SUBMIT",
+        viewerIsHost: false,
+      }),
+    );
+
+    expect(stage.type).toBe("question");
+    if (stage.type === "question") {
+      expect(stage.mode).toBe("prompt");
+      expect(stage.interactive).toBe(true);
+    }
+  });
+
+  it("shows results for a revealed follow-up round", () => {
+    const stage = resolveBoardStage(
+      baseState({
+        currentSlide: followUpSlide,
+        currentSlideId: "s2",
+        phase: "REVEAL_RESULTS",
+      }),
+    );
+
+    expect(stage.type).toBe("question");
+    if (stage.type === "question") {
+      expect(stage.mode).toBe("results");
+      expect(stage.interactive).toBe(false);
     }
   });
 });

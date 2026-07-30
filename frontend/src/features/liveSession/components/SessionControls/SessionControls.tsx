@@ -88,6 +88,9 @@ const SessionControls = ({ className }: SessionControlsProps) => {
     roundDeadline != null,
     timerPausedAt != null,
     currentSlide ? isVotableSlide(currentSlide) : false,
+    // A parent with an attached follow-up: reveal is withheld (the follow-up
+    // round presents the parent's results) and advance opens the child instead.
+    currentSlide?.hasFollowUp ?? false,
   );
 
   const handleEnd = async () => {

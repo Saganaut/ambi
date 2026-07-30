@@ -41,9 +41,14 @@ export const isDisplaySlide = (slide: SlideView): boolean =>
 
 // The free-form kinds whose submissions the backend can mint vote options from
 // (D3) — mirrors LiveSessionOrchestrator.votableOption.
+//
+// FOLLOW_UP is deliberately NOT one of them: a follow-up round is an ordinary
+// REGULAR round whose options were minted from its *parent's* submissions, so a
+// pick travels the regular answer path (SUBMIT → close → reveal) and the round
+// never enters the VOTE phase. The VOTE machinery here stays what it always
+// was — voting on the *current* round's own free-text submissions (D3).
 const VOTABLE_CONTENT_TYPES: SlideView["contentType"][] = [
   "TEXT",
-  "FOLLOW_UP",
   "NUMBER",
   "DRAWING",
 ];
