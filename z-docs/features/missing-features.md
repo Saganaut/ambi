@@ -34,3 +34,40 @@ FUTURE (NOT TO BE WORKED ON NOW):
 - Response segmentation
 - Response moderations
 - Reactions (we already have emojies so how can we reconcile these).
+
+## Follow-up slides (deferred)
+
+The [follow-up slide](follow-up-slides/README.md) live-session runtime shipped
+(minting, the pick-is-the-answer round, the board), but several pieces named
+in its design were deliberately left for later:
+
+- **Scoring modes.** A follow-up pick always grades `false` and awards no
+  points in v1 (`RoundEvaluator.isCorrect`'s `FollowUpAnswer` case) —
+  planned modes include *author points* (the author of the most-picked
+  submission scores) and *predictor points* (a participant who picked the
+  eventual most-popular option scores), mirroring the existing
+  best-answer/deception point settings used by the separate `VOTE`-phase
+  voting feature.
+- **Shuffle.** Candidates always render in snapshot (mint) order — no
+  per-viewer shuffle — a deliberate v1 decision
+  (`FollowUpBoardContent`), not yet revisited.
+- **Per-participant STOMP user-destination channel.** `myFollowUpOptionId`
+  (which candidate the viewer authored) can only travel on the REST
+  snapshot today, because it's per-participant while the session's STOMP
+  topic is shared by every client. `SessionConnectionProvider` works around
+  this with a one-time snapshot refetch per follow-up round
+  (keyed `slideId@roundStartedAt`); a dedicated per-user STOMP destination
+  would let this ride the broadcast instead.
+- **Historical option text.** `FollowUpOptionStore`'s Redis snapshot (6h
+  TTL) is the only place a follow-up round's candidate text/images live —
+  the persisted `RoundResult.optionCounts` only carries derived option ids.
+  Once the snapshot expires, a past follow-up round's results are still
+  countable but no longer interpretable (an id with no text/image behind
+  it). Persisting the option text/images alongside the round result would
+  fix this.
+- **`AFTER_FOLLOWUP` enum retirement.** `ResultsDisplayMode.AFTER_FOLLOWUP`
+  predates this runtime and is retired from the deck editor's
+  reveal-results dropdown (shown only as a reselectable "(legacy)" entry
+  when an existing slide already carries it). The wire enum value itself
+  is still kept for back-compat; removing it outright is future cleanup
+  once no decks reference it.

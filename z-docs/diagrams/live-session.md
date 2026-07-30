@@ -76,6 +76,12 @@ stateDiagram-v2
     end note
 ```
 
+A slide with an attached follow-up never reaches `REVEAL_RESULTS` on its own:
+`revealResults` rejects with `409 REVEAL_BLOCKED_BY_FOLLOW_UP` and the host
+closes it and advances into the child instead, which runs this same state
+machine as its own ordinary round — see
+[follow-up slides § Runtime](../features/follow-up-slides/README.md#runtime).
+
 ## Create → join → start
 
 ```mermaid
@@ -155,6 +161,8 @@ flowchart LR
         STATE[["roundState<br/>ambi:session:roundstate:{sid} · JSON"]]
         TALLY[["tally<br/>ambi:session:tally:{sid}:{slideId} · HINCRBY"]]
         ANS[["answers<br/>ambi:session:answers:{sid}:{slideId} · HSET"]]
+        VOTES[["votes (D3)<br/>ambi:session:votes:{sid}:{slideId}[:options] · HSET"]]
+        FOLLOWUP[["followup<br/>ambi:session:followup:{sid}:{slideId} · JSON string (ordered)"]]
         QANDA[["qa-host-answers<br/>ambi:session:qa-host-answers:{sid}:{slideId} · HSET, never flushed to Mongo"]]
         PRES[["presence<br/>ambi:session:presence:{sid} · HSET"]]
         DEAD[["deadlines (ADR 002)<br/>ambi:session:deadlines · global ZSET, no TTL"]]
@@ -167,6 +175,8 @@ flowchart LR
     ORCH -->|read/write| STATE
     ORCH -->|"lock-free"| TALLY
     ORCH -->|"lock-free"| ANS
+    ORCH -->|"openVoting / submitVote"| VOTES
+    ORCH -->|"mint once, on round open"| FOLLOWUP
     ORCH -->|"lock-free"| QANDA
     ORCH --> PRES
     ORCH -->|schedule/cancel| DEAD

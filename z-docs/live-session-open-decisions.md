@@ -39,11 +39,25 @@ Decisions locked this session and reflected in code:
 - **Two reveal phases.** `RoundPhase` split `REVEAL` →
   `REVEAL_RESPONSES` (answers/tally shown, unscored) and `REVEAL_RESULTS`
   (scored). Enum updated.
-- **Follow-up rounds via parent/child slides.** A parent reveals its responses,
-  play advances into the linked child round, and the combined `REVEAL_RESULTS`
-  shows both. A parent slide is never taken straight to results. Resolved
-  **statelessly** from `Slide.parentId` on the open slide — nothing extra is
-  carried in `LiveRoundState` (B3 / F2).
+- **Follow-up rounds via parent/child slides.** A parent's results are never
+  revealed on their own — the host closes it and advances into the linked
+  child round instead. A parent slide is never taken straight to results.
+  Whether a round is a follow-up is resolved **statelessly** from
+  `Slide.parentId` on the open slide — nothing extra is carried in
+  `LiveRoundState` (B3 / F2).
+
+  > **Update (2026-07-30) — the full runtime landed**
+  > (`FollowUpOptions`/`FollowUpOptionStore`/`FollowUpAnswer`); see
+  > [follow-up slides § Runtime](features/follow-up-slides/README.md#runtime).
+  > The link resolution itself is still stateless as designed, but the
+  > follow-up's *candidate set* is now genuine Redis state
+  > (`FollowUpOptionStore`, its own keyspace, separate from `LiveRoundState`),
+  > snapshotted once when the round opens so every viewer and the answer
+  > validator agree on one board. One thing this bullet originally sketched
+  > did **not** land: results are not combined — `revealResults` on the
+  > follow-up round publishes only the child's own `RoundResult`, not a merged
+  > parent+child view (an acknowledged seam noted in
+  > `LiveSessionOrchestrator.revealResults`'s javadoc).
 - **Renamed `DeckRunLifecycle` → `LiveSessionLifecycle`** and **dropped its
   `RESULTS` value** (resolves B2). The end-of-game results view is the last slide
   sitting in `RoundPhase.REVEAL_RESULTS` while the session stays `IN_PROGRESS`;
@@ -340,8 +354,15 @@ the stale comment. Treat this as a quick win (see punch list).
 > tally-key renderer) still only renders the scalar-keyed types (MCQ, Number,
 > Text); map/coordinate answers (Matching, Grid, Scales, PlaceOnImage,
 > Allocation, Ranking) grade correctly but aren't tallied as an option-count bar.
-> Drawing/Q&A/FollowUp still never grade `correct` against a static key, but
-> Drawing/FollowUp (and free text) now score through best-answer voting (D3).
+> Drawing/Q&A/FollowUp still never grade `correct` against a static key.
+> Drawing (and free text) can score through the *same-round* best-answer
+> voting below (D3). **FollowUp cannot** — its own live-session runtime
+> (2026-07-30, `session/followUp/`) deliberately never enters `RoundPhase.VOTE`
+> (a follow-up's pick already *is* its round's answer), so a follow-up round
+> always grades `false` and awards no points in v1; see
+> [follow-up slides § Runtime](features/follow-up-slides/README.md#runtime)
+> and the deferred scoring modes in
+> [Missing Features](features/missing-features.md).
 >
 > **Residuals accepted (2026-07-20):** the partial-credit score modes
 > (`CLOSEST`/`NEAREST`/`DISTANCE`/`PARTIAL`) and live-tally rendering for the
@@ -372,17 +393,25 @@ open-ended/creative types (Drawing, free text) until voting exists (D3).
 >   the `revealResults` transition, where the final tallies are in hand.
 >   Scoring still runs exactly once. On a timed round the host must open
 >   voting before the auto-close fires (opening voting cancels the timer).
-> - **Opaque option ids.** Votable submissions (free text, follow-up, number,
->   drawing) are minted random option ids at voting open; the id→author
->   mapping lives only server-side, so a deception round's client can never
->   map an option back to its author. `VoteCast` broadcasts only the running
->   count — per-option tallies would sway voters still deciding.
+> - **Opaque option ids.** Votable submissions (free text, number, drawing)
+>   are minted random option ids at voting open; the id→author mapping lives
+>   only server-side, so a deception round's client can never map an option
+>   back to its author. `VoteCast` broadcasts only the running count —
+>   per-option tallies would sway voters still deciding.
 > - **No self-votes; a re-vote overwrites** (last vote while voting is open
 >   wins), mirroring the answer-overwrite model.
 >
 > Earlier status (2026-07-20) — consciously deferred with the seams
 > (`bestAnswer`, `deceivedCount`) reserved, which is exactly where the
 > implementation later plugged in.
+>
+> **Note (2026-07-30):** a follow-up submission is *not* votable here —
+> `LiveSessionOrchestrator.votableOption` deliberately excludes
+> `FollowUpAnswer` (its javadoc: "there the pick already *is* the round's
+> answer, so the VOTE phase must never open on top of a follow-up board").
+> Follow-up slides got their own, separate best-answer mechanism instead —
+> see [D2](#d2-which-game-types-ship-in-v1) and
+> [follow-up slides § Runtime](features/follow-up-slides/README.md#runtime).
 
 **Suggestion (implemented):** add `RoundPhase.VOTE` (SUBMIT → VOTE → REVEAL), a
 `VoteStore` (Redis hash, like answers), and fold vote tallies into

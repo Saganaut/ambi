@@ -2,11 +2,14 @@
 
 A **follow-up slide** is chained off a parent scorable slide and, at live-session
 runtime, builds its question out of the parent round's participant submissions
-(e.g. the parent collects answers; the follow-up presents them as voteable
-options). **Currently implemented: authoring only** — adding, editing,
-reordering, and deleting follow-ups in the deck editor. The live-session runtime
-(consuming submissions, the `VOTE` phase) is future work; see
-[Runtime (future)](#runtime-future).
+(e.g. the parent collects answers; the follow-up presents them as pickable
+options). Authoring — adding, editing, reordering, and deleting follow-ups in
+the deck editor — and the live-session runtime — minting candidates from the
+parent round's submissions, running the follow-up as an ordinary round of its
+own, and presenting the board — are both implemented; see [Runtime](#runtime).
+**Scoring is not**: a follow-up pick always grades `false` in v1 and never
+awards points, whichever `FollowUpMode` it runs — see
+[Missing Features](../missing-features.md) for the planned scoring modes.
 
 ## Model
 
@@ -58,9 +61,10 @@ authoritative validator:
 a follow-up can attach to any of them. `MCQ` is the only parent with more
 than one valid mode — the author picks one when adding the follow-up and can
 change it in the inspector; `TEXT` and `DRAWING` parents are
-`BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` itself has no runtime yet
-regardless of parent type — see [Runtime (future)](#runtime-future) — so
-today this only pairs the slides at authoring time.
+`BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` gets the same runtime as
+`PREDICT_POPULAR` — see [Runtime](#runtime) — the mode only changes the
+board's prompt text; neither mode scores in v1 (see
+[Missing Features](../missing-features.md)).
 
 The frontend mirrors the table in
 `frontend/src/features/deck/utils/followUp.ts` (`FOLLOW_UP_MODE_PARENTS`),
@@ -89,62 +93,104 @@ rail, the optimistic move patch, and the add affordances.
   server apply the same snap-normalization, and the move/add responses carry
   the full canonical list so any divergence self-heals on reconcile.
 
-## Runtime (future)
+## Runtime
 
-Live sessions snapshot the deck's slides verbatim, so `parentId`/`childId` and
-the mode carry into rounds with no extra model work. The runtime keys off
-`FollowUpMode` + `Slide.parentId`: hold the follow-up until the parent round
-resolves, build its options from the parent's submissions (`Round` state, not
-deck content), and score via the existing best-answer/deception point settings.
-Options-from-submissions minting landed with `session/followUp/FollowUpOptions`
-and its Redis snapshot (`FollowUpOptionStore`). `FollowUpAnswer`
-(`session/answer/payload/FollowUpAnswer.java`, registered in the sealed
-`AnswerPayload` hierarchy) carries the `optionId` the participant picked: on a
-follow-up round **the vote is the answer**, so a pick travels the regular
-answer path — submit, live tally (`AnswerTallyKeys`), and
-`RoundResult.optionCounts` via `RoundEvaluator.describeChoice` — and never the
-`VOTE` phase / `VoteStore`, which stays reserved for voting on the current
-round's own free-text submissions. A pick is re-castable until the round
-closes (the answer service zeroes `maxSelections` for it) and grades a
-permanent `false` in `RoundEvaluator.isCorrect`, since v1 has no answer key.
+Live sessions snapshot the deck's slides verbatim, so `Slide.parentId`/
+`childId` and the mode carry into rounds with no extra model work. A
+follow-up round is a **regular round**, not a special phase: it runs the same
+`SUBMIT` → (optional `SUBMIT_LIVE`) → `LOCKED`/`REVEAL_RESPONSES` →
+`REVEAL_RESULTS` sequence as any other slide, and does **not** use the `VOTE`
+phase — that machinery stays reserved for voting on the *current* round's own
+free-text/drawing submissions (open-decisions D3). A follow-up's pick already
+**is** the round's answer, so it travels the ordinary answer path instead.
 
-`LiveSessionOrchestrator` wires the round itself. Opening a follow-up
-snapshots its candidates first — minted from the parent round's answers (Redis,
-falling back to the flushed Mongo copy) and saved to `FollowUpOptionStore`
-before the round-started event is published. Opening the *parent* is a replay of
-the pair, so the child's per-round Redis state is cleared with it. The parent
-never reveals: `revealResults` on a slide with an attached follow-up is rejected
-(`409 REVEAL_BLOCKED_BY_FOLLOW_UP`) — the host closes it and advances, and the
-follow-up round is where the parent's results are presented. Navigation skips a
-follow-up that can't be played (parent never scored, or its submissions mint no
-candidates) rather than opening an empty board, while `goTo` still rejects the
-named slide outright (`409 PARENT_ROUND_NOT_SCORED`).
+**Minting the candidates.** `session/followUp/FollowUpOptions` derives the
+board's candidate set from the parent slide and the answers its round
+collected: an MCQ parent hands back its own authored options verbatim (same
+ids, same order, no submitters); a TEXT parent dedupes submissions under the
+parent's own trim/case normalization (`TextContent.normalize`), unioning
+authors onto whichever submission's wording landed first; a DRAWING parent
+mints one candidate per submitted image, keyed by its stored `srcKey`. Every
+candidate's id is a UUID hashed from the content it stands for, never random,
+so re-minting over the same submissions reproduces the same set — a round
+restart doesn't orphan votes already cast against it.
 
-The board reaches the client on `SlideView`. A follow-up round's view carries
-`FollowUpConfigView` (mode, parent id/title, and the candidates as
-`FollowUpOptionView`); a slide that *has* an attached follow-up carries
-`hasFollowUp` instead, so the host bar knows the round never reveals and
-advances into the child. Both are resolved by the caller against the deck —
-`SlideView.from` has no deck — and the candidates are read back from the saved
-`FollowUpOptionStore` snapshot, never re-minted, so every consumer sees the one
-board. **`authorParticipantIds` never travels**: like `VoteOptionView`, the
-id→author mapping stays server-side, which is also what makes the self-vote
-check trustworthy. `LiveSessionSnapshotService` rebuilds the same two values for
-a late joiner and adds the per-viewer `myFollowUpOptionId` — the candidate the
-caller authored, which can only travel on the snapshot, never on a broadcast.
+**Snapshot, not re-mint-per-read.** The mint runs once, when the follow-up
+round opens, and is written to Redis (`FollowUpOptionStore`,
+`ambi:session:followup:{sessionId}:{slideId}`, 6h TTL) as a single ordered
+JSON value — a Hash has no ordering to preserve, and the board's numbered
+layout is part of what every participant shares. Every later read (the board,
+a late-joiner's snapshot, the answer validator) comes back from that saved
+snapshot, never a fresh mint, so all consumers agree on one board. The
+parent round's answers backing the mint are read from Redis if that round is
+still open, falling back to the flushed Mongo copy
+(`RoundResultProjector.answersOf`) once it has closed — persisting a round's
+answers **replaces** the prior set rather than appending, so a re-scored round
+can't leave two runs' answers layered on top of each other.
+
+**The pick is the answer.** `FollowUpAnswer { optionId }`
+(`session/answer/payload/FollowUpAnswer.java`, in the sealed `AnswerPayload`
+hierarchy) carries the candidate a participant picked, and it's re-castable
+until the round closes (the answer service zeroes `maxSelections` for it). It
+rides the regular answer/tally path — submit, live tally
+(`AnswerTallyKeys`), `RoundResult.optionCounts` via
+`RoundEvaluator.describeChoice` — never `VoteStore`. It also grades a
+permanent `false` in `RoundEvaluator.isCorrect`: v1 has no answer key and
+awards no points for a follow-up round, whichever `FollowUpMode` it runs (see
+[Missing Features](../missing-features.md) for the scoring modes that would
+change that).
+
+**The parent never reveals.** `LiveSessionOrchestrator` wires the round
+itself: opening a follow-up snapshots its candidates first — minted from the
+parent round's answers and saved to `FollowUpOptionStore` — before the
+round-started event is published, so the board is never live without its
+options. Opening the *parent* again (a restart) replays the pair, clearing
+the child's per-round Redis state with it. `revealResults` on a slide with an
+attached follow-up is rejected unconditionally, regardless of the slide's own
+`resultsDisplayMode` (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`) — the host closes the
+parent and advances, and the follow-up round is where the parent's results are
+presented. Navigation skips a follow-up that can't be played (parent never
+scored, or its submissions mint no candidates) rather than opening an empty
+board; `goTo` still rejects the named slide outright
+(`409 PARENT_ROUND_NOT_SCORED`).
+
+A pre-existing `ResultsDisplayMode.AFTER_FOLLOWUP` value predates this design
+and is retired from the deck editor's reveal-results dropdown (the wire enum
+keeps the value for back-compat): a deck authored before this runtime settled
+could still carry it on a slide, and the settings UI shows it as a
+clearly-labelled, reselectable "(legacy)" entry rather than silently dropping
+it — picking any other entry moves the slide off the legacy value for good.
+
+**On the wire.** A follow-up round's `SlideView` carries `FollowUpConfigView`
+(mode, parent id/title, and the candidates as `FollowUpOptionView`); a slide
+that *has* an attached follow-up carries `hasFollowUp` instead, so the host
+bar knows the round never reveals and advances into the child. Both are
+resolved by the caller against the deck (`SlideView.from` has no deck access),
+and the candidates are read back from the saved `FollowUpOptionStore`
+snapshot, never re-minted. **`authorParticipantIds` never travels**: like
+`VoteOptionView`, the id→author mapping stays server-side, which is also what
+makes the self-pick check trustworthy. `LiveSessionSnapshotService` adds the
+per-viewer `myFollowUpOptionId` — the candidate the caller authored — which
+can only travel on the snapshot, never a broadcast, since it's per-participant
+on a topic every client shares. The frontend provider refetches the snapshot
+once per follow-up round, keyed on `slideId@roundStartedAt`, so a client that
+was already connected when the round opened still picks the field up.
 
 `LiveSessionAnswerService` validates a pick against that snapshot rather than
-any authored content (the board is runtime state): a blank id or one absent from
-the round's set is a `400`, and picking one's own candidate is the same
+any authored content (the board is runtime state): a blank id or one absent
+from the round's set is a `400`, and picking one's own candidate is the same
 `409 CANNOT_VOTE_FOR_OWN_ANSWER` `submitVote` raises.
 
-The board UI is `FollowUpBoardContent`, under the live session's
+**Board UI.** `FollowUpBoardContent`, under the live session's
 `components/SessionBoard/content/`, reached from `BoardQuestion`'s
-`FOLLOW_UP` case. One component covers the prompt, live-tally, and revealed moments: the
-candidates render as cards in snapshot order (no shuffle — every device shows
-the one board), a tap plus the submit bar posts a `FollowUpAnswer` and stays
-re-castable until the round closes, and the reveal marks the most-picked
-card(s) from the counts alone (a follow-up has no answer key, so no
-correct-answer affordance ever renders). The viewer's own candidate is disabled
-and badged from `myFollowUpOptionId`, pre-empting the self-pick `409` —
-`sendAnswer` is fire-and-forget, so a rejection never surfaces to the board.
+`FOLLOW_UP` case, covers every moment with one component switched by mode:
+`prompt` (pickable cards), `liveResults` (the same cards with the running
+tally filling in — still pickable, since a pick stays re-castable), and
+`results` (the final distribution, most-picked card(s) badged; no
+correct-answer affordance ever renders, since a follow-up has no answer key).
+Candidates render in snapshot order — deliberately not shuffled, so every
+device shows the one board — and picking is single-select regardless of the
+parent's own answer settings. The viewer's own candidate is disabled and
+badged from `myFollowUpOptionId`, pre-empting the self-pick `409` —
+`sendAnswer` is fire-and-forget, so a rejection would never otherwise surface
+to the board.

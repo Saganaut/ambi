@@ -3,15 +3,17 @@
 A **DRAWING slide** asks players to freehand-draw on a shared square canvas
 and submit a rendered PNG. It's a survey-style, open-ended kind — there is no
 static answer key, so it's typically paired with a `BEST_ANSWER_VOTE`
-[follow-up slide](../follow-up-slides/README.md) to turn the submissions into
-a scored round.
+[follow-up slide](../follow-up-slides/README.md) to let the room pick a
+favorite from the round's submissions.
 
 **Status: implemented end to end.** Content model, authoring surface, the
 live-session answer pipeline (upload + submit + resubmit), and the post-round
-results gallery are all built. The only unbuilt piece is voting itself — a
-Drawing round is graded `correct = false` today (see
-[Grading](#grading--follow-up)), so scoring comes from a paired follow-up,
-same as a TEXT parent.
+results gallery are all built. A `BEST_ANSWER_VOTE` follow-up now runs a full
+live round on a Drawing parent's submissions too (see
+[Grading / follow-up](#grading--follow-up)) — but a Drawing round is still
+graded `correct = false` regardless: v1 never turns a follow-up's picks into
+points, so pairing a Drawing slide with a follow-up gets you a working
+"most-picked" presentation, not a scored round.
 
 ## Model
 
@@ -69,12 +71,16 @@ no static answer key, same as `FollowUpAnswer`, `QAndAAnswer`, and
 `QAndAQuestions`. A Drawing slide is still `ScorableContent` (so
 `isScorableSlideType`/`canHaveFollowUp` treat it like any other question, and
 it *can* carry a follow-up), but nothing scores the drawing itself without
-one. `FollowUpMode.BEST_ANSWER_VOTE` already lists `DRAWING` as a valid
-parent type (alongside `MCQ` and `TEXT`) — see
-[follow-up slides](../follow-up-slides/README.md#modes) — but the
-`VOTE` phase / vote tally that mode needs doesn't exist yet, so pairing a
-Drawing slide with a follow-up today only gets you the authoring-time
-pairing, not a working scored vote.
+one. `FollowUpMode.BEST_ANSWER_VOTE` lists `DRAWING` as a valid parent type
+(alongside `MCQ` and `TEXT`) — see
+[follow-up slides](../follow-up-slides/README.md#modes) — and its
+live-session runtime is built: the follow-up round mints one candidate per
+submitted drawing, participants pick their favorite, and the reveal badges the
+most-picked drawing(s). What it doesn't do is award points — a follow-up pick
+always grades `false` (see
+[follow-up slides § Runtime](../follow-up-slides/README.md#runtime)) — so
+pairing a Drawing slide with a follow-up today gets you a fully working
+best-answer *presentation*, not a scored vote.
 
 ## Shared component — `DrawingCanvas`
 
@@ -297,13 +303,14 @@ a dedicated event field and a dedicated board renderer, not a
   and round-trips through persistence/generated types, but nothing reads it
   — no editor UI, no grading, no compare view. It's reserved for a future
   compare/vote feature per its Javadoc.
-- **Grading is a permanent `false`, not a gap to close directly.** Scoring a
-  Drawing round is meant to come from a `BEST_ANSWER_VOTE` follow-up (see
-  [Grading / follow-up](#grading--follow-up)), but that mode's `VOTE` phase
-  doesn't exist yet — see [follow-up slides](../follow-up-slides/README.md#runtime-future)
-  and [live-session-open-decisions.md D3](../../live-session-open-decisions.md).
-  Until then, a Drawing round only ever collects drawings; nothing scores
-  them.
+- **Grading is a permanent `false`, not a gap to close directly.** A
+  `BEST_ANSWER_VOTE` follow-up (see [Grading / follow-up](#grading--follow-up))
+  runs a full live round on a Drawing parent's submissions, but v1's
+  follow-up runtime never awards points — see
+  [Missing Features](../missing-features.md) for the scoring modes that
+  would change that. Until then, a Drawing round only ever collects
+  drawings, and a follow-up only ever surfaces the most-picked one; nothing
+  turns either into a score.
 - **No post-round chart entry.** `DRAWING` is deliberately absent from
   `resultsRegistry` (`Charts/registry.ts`) — its results are the dedicated
   gallery above, not a `ChartDatum` visualization — see
@@ -312,7 +319,8 @@ a dedicated event field and a dedicated board renderer, not a
 ## Related
 
 - [Follow-Up Slides](../follow-up-slides/README.md) — `BEST_ANSWER_VOTE`
-  pairing, and what's still missing to actually score a Drawing round.
+  pairing and runtime, and what's still missing to actually score a Drawing
+  round.
 - [Place-on-Image Slides](../place-on-image/README.md) — the
   `cropAspect: "source"` gallery-picker option Drawing's prompt-image picker
   also uses.
