@@ -8,8 +8,9 @@ the deck editor — and the live-session runtime — minting candidates from the
 parent round's submissions, running the follow-up as an ordinary round of its
 own, and presenting the board — are both implemented; see [Runtime](#runtime).
 **Scoring is not**: a follow-up pick always grades `false` in v1 and never
-awards points, whichever `FollowUpMode` it runs — see
-[Missing Features](../missing-features.md) for the planned scoring modes.
+awards points, whichever `FollowUpMode` it runs — the designed path to scoring
+is the planned [`SPOT_THE_ANSWER`](#planned-spot_the_answer-working-name) mode
+(see also [Missing Features](../missing-features.md)).
 
 ## Model
 
@@ -74,6 +75,49 @@ drift. `utils/followUp.ts` is also the single frontend home of the pairing
 rule (`groupIntoUnits`, `attachedFollowUpOf`, `canHaveFollowUp`), shared by the
 rail, the optimistic move patch, and the add affordances.
 
+### Planned: `SPOT_THE_ANSWER` (working name)
+
+**Planned, not built.** `FollowUpMode` declares exactly two values today
+(`BEST_ANSWER_VOTE`, `PREDICT_POPULAR`); nothing below exists in code yet, and
+the working name isn't final until the enum value lands. This section records
+the settled design (confirmed 2026-07-30), not shipped behavior — the two
+built modes above are unaffected by it.
+
+A dixit-style third mode: the parent question's **authored** correct answer is
+mixed in among the participant-submitted candidates, and the room has to spot
+it.
+
+- **Valid parents** — `TEXT` slides whose content carries an answer key
+  (`TextContent.acceptedAnswers` non-empty). A TEXT parent with no answer key
+  is unscored and has no authored answer to mix in, so it stays
+  `BEST_ANSWER_VOTE` only.
+- **Minting** — at mint time the authored answer is seeded into the candidate
+  set alongside the deduped submissions, indistinguishable from them on the
+  board. Today `FollowUpOptions.fromText` mints candidates *only* from
+  `TextAnswer` submissions and never reads `acceptedAnswers`, so this is the
+  one place the mint has to change. The seeded candidate has no submitter,
+  which the existing shape already allows (an MCQ parent's authored options
+  mint with no authors either) — and, like `authorParticipantIds`, the fact
+  that a candidate *is* the authored answer must never travel to a client:
+  `FollowUpConfigView` carries no correct-answer field today, and the parent
+  itself never reveals (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`).
+- **Scoring** — this would be the **first follow-up mode to score**, and the
+  scoring is part of the settled design, not an afterthought: a participant
+  who picks the authored answer earns points, and a participant whose own
+  submission draws picks from others earns points too. The hooks are
+  `RoundEvaluator.isCorrect`'s `FollowUpAnswer` case — an unconditional
+  `false` today that never inspects `FollowUpMode` — and `RoundScorer.score`.
+  Exact point values and how they plumb through settings are left to
+  implementation.
+- **Image / dixit extension — deferred.** Running the same mode on `DRAWING`
+  (image) parents needs an authorable correct-answer *image* to mix in among
+  the submitted drawings, which no model carries today; adding one is a model
+  change on the parent content or on the follow-up itself. Deliberately
+  deferred until that model is designed.
+- **Frontend mirror** — adding the enum value breaks compilation in
+  `FOLLOW_UP_MODE_PARENTS` (`frontend/src/features/deck/utils/followUp.ts`)
+  until its row is added, so the parent-type table above can't silently drift.
+
 ## Editor UX
 
 - **Add**: "Add follow-up slide" in an eligible slide's thumbnail context menu
@@ -100,7 +144,9 @@ follow-up round is a **regular round**, not a special phase: it runs the same
 `SUBMIT` → (optional `SUBMIT_LIVE`) → `LOCKED`/`REVEAL_RESPONSES` →
 `REVEAL_RESULTS` sequence as any other slide, and does **not** use the `VOTE`
 phase — that machinery stays reserved for voting on the *current* round's own
-free-text/drawing submissions (open-decisions D3). A follow-up's pick already
+free-text/drawing submissions (open-decisions
+[D3](../../live-session-open-decisions.md#d3-best-answer--deception-are-hard-coded-off)).
+A follow-up's pick already
 **is** the round's answer, so it travels the ordinary answer path instead.
 
 **Minting the candidates.** `session/followUp/FollowUpOptions` derives the
@@ -150,6 +196,16 @@ permanent `false` in `RoundEvaluator.isCorrect`: v1 has no answer key and
 awards no points for a follow-up round, whichever `FollowUpMode` it runs (see
 [Missing Features](../missing-features.md) for the scoring modes that would
 change that).
+
+**One store for votes (direction, decided 2026-07-30).** A vote *is* an answer
+to a follow-up question, so voting features go through the answer store from
+here on — exactly as this runtime already does. The separate `VoteStore`
+behind the same-round `VOTE` phase (open-decisions
+[D3](../../live-session-open-decisions.md#d3-best-answer--deception-are-hard-coded-off))
+is unchanged and still shipped, but **deprecated in direction**: new voting
+work must not extend it, and it is eventually to be reworked onto — or
+replaced by — the answer-store pattern. Nothing about the built VOTE-phase
+feature changes today; this only settles which way new work goes.
 
 **The parent never reveals.** `LiveSessionOrchestrator` wires the round
 itself: opening a follow-up snapshots its candidates first — minted from the

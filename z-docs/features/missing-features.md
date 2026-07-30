@@ -42,12 +42,17 @@ The [follow-up slide](follow-up-slides/README.md) live-session runtime shipped
 in its design were deliberately left for later:
 
 - **Scoring modes.** A follow-up pick always grades `false` and awards no
-  points in v1 (`RoundEvaluator.isCorrect`'s `FollowUpAnswer` case) —
-  planned modes include *author points* (the author of the most-picked
-  submission scores) and *predictor points* (a participant who picked the
-  eventual most-popular option scores), mirroring the existing
-  best-answer/deception point settings used by the separate `VOTE`-phase
-  voting feature.
+  points in v1 (`RoundEvaluator.isCorrect`'s `FollowUpAnswer` case, which
+  never inspects the mode). The designed path to follow-up scoring is the
+  planned `SPOT_THE_ANSWER` mode (working name) — see
+  [follow-up slides § Planned](follow-up-slides/README.md#planned-spot_the_answer-working-name):
+  a `TEXT` parent's authored answer key is mixed in among the submitted
+  candidates, and points go both to whoever picks the authored answer and to
+  whoever's own submission draws picks. Extending it to image (`DRAWING`)
+  parents for a dixit-style board additionally needs an authorable
+  correct-answer *image*, which no model carries today. None of this is
+  built: `FollowUpMode` still declares only `BEST_ANSWER_VOTE` and
+  `PREDICT_POPULAR`.
 - **Shuffle.** Candidates always render in snapshot (mint) order — no
   per-viewer shuffle — a deliberate v1 decision
   (`FollowUpBoardContent`), not yet revisited.

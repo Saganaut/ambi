@@ -86,10 +86,14 @@ called out honestly: *solid* (works end-to-end), *partial* (real but incomplete)
 - **Interactive slide types** *(solid to partial)* — MCQ (multi-correct), axis, drawing (with
   S3-stored submissions and results gallery), grid, matching, scales, ranking, allocation,
   number, text, and Q&A with host answers and a live word-cloud view.
-- **Best-answer voting** *(solid)* — follow-up slides run as ordinary rounds; votes decide
-  the winning submission, which earns a flat `bestAnswerPoints` bonus.
-- **Prediction follow-ups** *(stub)* — `PREDICT_POPULAR` is modeled and authorable, but has
-  no scoring implementation yet.
+- **Best-answer voting** *(solid)* — the `VOTE` phase opens voting on the *current* round's
+  own free-text/number/drawing submissions; the top-voted answer earns a flat
+  `bestAnswerPoints` bonus, and answers that drew votes while being wrong earn
+  `deceptionPoints`.
+- **Follow-up rounds** *(partial)* — a follow-up slide runs as an ordinary round built from
+  the parent round's submissions (`BEST_ANSWER_VOTE` — pick the best — or `PREDICT_POPULAR`
+  — guess the most-picked option); authoring, minting, and the board are done, but a
+  follow-up pick awards no points in v1.
 
 ### Data & scoring
 

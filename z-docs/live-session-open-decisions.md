@@ -412,6 +412,16 @@ open-ended/creative types (Drawing, free text) until voting exists (D3).
 > Follow-up slides got their own, separate best-answer mechanism instead —
 > see [D2](#d2-which-game-types-ship-in-v1) and
 > [follow-up slides § Runtime](features/follow-up-slides/README.md#runtime).
+>
+> **Direction (2026-07-30):** the separate `VoteStore` is **deprecated in
+> direction** in favour of answer-store-backed voting — a vote is an answer to
+> a follow-up question, which is how the follow-up runtime already works
+> (`FollowUpAnswer` rides the ordinary answer/tally path). The shipped
+> VOTE-phase feature described above stays exactly as-is for now; the decision
+> only binds new work, which must not extend `VoteStore` and should instead
+> build on the answer store, with the existing store eventually reworked onto
+> or replaced by that pattern. See
+> [follow-up slides § Runtime](features/follow-up-slides/README.md#runtime).
 
 **Suggestion (implemented):** add `RoundPhase.VOTE` (SUBMIT → VOTE → REVEAL), a
 `VoteStore` (Redis hash, like answers), and fold vote tallies into
