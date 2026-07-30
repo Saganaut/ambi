@@ -48,8 +48,10 @@ called out honestly: *solid* (works end-to-end), *partial* (real but incomplete)
   speaker notes, and participant instructions.
 - **Rich text** *(solid)* — TipTap editing stored as sanitized HTML (DOMPurify client-side,
   OWASP sanitizer server-side).
-- **Theming** *(solid)* — 16-role color palettes with light/dark appearance and built-ins
-  (Catppuccin, Dracula, One Dark, Gruvbox); a per-user global theme with per-deck override.
+- **Theming** *(solid)* — 16-role color palettes with light/dark appearance; the default
+  "Ambi Light"/"Ambi Dark" looks are painted from `tokens.css`, plus 6 DB-backed built-in
+  presets (Catppuccin, Dracula, One Dark, Gruvbox); a per-user global theme with a per-deck
+  override on the editor canvas.
 - **Backgrounds & media** *(solid)* — layered background color/image with inherit/override
   semantics, cover images, and a gallery picker backing every image field.
 - **Settings hierarchy** *(solid)* — points, answers, audience, and invite settings resolve

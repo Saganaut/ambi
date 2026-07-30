@@ -28,7 +28,7 @@ A theme is a **palette of 16 role colours plus an intrinsic light/dark appearanc
 **How it's applied:**
 
 - **Global theme** — `useTheme` (mounted once near the app root) resolves the user's `ThemeSpec` (server `preferences.theme` for registered users, `localStorage` for guests) and calls `applyPalette(document.documentElement, spec)`, which writes the 16 inline `--role-*` vars and `data-appearance="light"|"dark"` onto `<html>`. A null spec clears them, reverting to the brand defaults. — `src/shared/hooks/useTheme.ts`, `src/shared/utils/applyPalette.ts`
-- **Per-deck scope** — `DeckThemeScope` wraps a subtree in a `display: contents` element carrying that deck's `--role-*` + `data-appearance`, so the subtree themes independently while the rest of the page keeps the global theme (the deck-editor canvas merges the same vars onto its canvas element). — `src/features/theme/components/DeckThemeScope.tsx`
+- **Per-deck scope** — the deck editor is the only surface that applies a deck's own theme today: `useDeckTheme` resolves the deck's `ThemeSpec` and `SlideDisplay` merges the `--role-*` vars + `data-appearance` directly onto its canvas element, overriding the global theme for that subtree. `DeckThemeScope` (`src/features/theme/components/DeckThemeScope.tsx`) offers the same resolution as a wrapper component for a `display: contents` subtree, documented for the whole-screen live-session surface — but nothing imports it yet, so a deck's theme does **not** currently apply to the live session (players and the host see the global/brand theme regardless of the deck's `themeId`).
 - **Authoring** — the `ThemeEditor` lets a user build a palette from the 16 role swatches. — `src/shared/components/Theme/ThemeModal/ThemeEditor.tsx`
 
 **The 16 roles** (written by `applyPalette`): `--role-canvas`, `--role-surface`, `--role-surface-raised`, `--role-subtle`, `--role-foreground`, `--role-muted-foreground`, `--role-primary`, `--role-on-primary`, `--role-accent`, `--role-accent-secondary`, `--role-border`, `--role-border-subtle`, `--role-red`, `--role-green`, `--role-yellow`, `--role-blue`.
@@ -37,7 +37,7 @@ A theme is a **palette of 16 role colours plus an intrinsic light/dark appearanc
 
 > **The four status roles are a dual-purpose accent palette, not pure status.** `--role-red/green/yellow/blue` feed the status tokens (`--bg-error`, `--text-success`, …) **and** are used directly as chart series colours (`ParetoChart`, `DotPlot`, `LineChart`, `BarChart` read `var(--role-green)` etc.) **and** are shown to users as named "Red / Green / Yellow / Blue" swatches in the theme editor (`src/shared/utils/roleColors.ts`). They're kept colour-named deliberately — naming them `error/success/…` would misdescribe the chart and swatch uses.
 
-Curated palettes (e.g. Catppuccin/Dracula) are fully supported by this mechanism — a curated theme is just a preset set of 16 roles — but none ship in code yet.
+Curated palettes are fully supported by this mechanism — a curated theme is just a preset set of 16 roles — and 6 ship today as DB-backed built-ins (Catppuccin Mocha/Latte, Dracula, One Dark, Gruvbox Dark/Light; see `backend/.../theme/BuiltInPalettes.java`). The brand appearances ("Ambi Light"/"Ambi Dark") are a separate, palette-less mechanism: they are never DB rows, and are resolved entirely from the appearance blocks above rather than a stored 16-role set — see [glossary](../z-docs/glossary.md).
 
 ---
 

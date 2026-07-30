@@ -69,7 +69,7 @@ erDiagram
         string id PK "client-minted UUID"
         string publicId "unique, sharing"
         string name
-        string themeId "ref, nullable"
+        string themeId "ref, nullable; or reserved id ambi-light/ambi-dark"
         enum visibility "PRIVATE, UNLISTED, ORG, PUBLIC"
         enum publishStatus "DRAFT, PUBLISHED, ARCHIVED"
         Ownership ownership "emb: USER|ORG"
@@ -117,7 +117,7 @@ erDiagram
     }
     THEME {
         string id PK
-        boolean builtIn
+        boolean builtIn "the 6 seeded VSCode/terminal presets only"
         Ownership ownership "emb"
         ThemeSpec spec "emb"
     }
