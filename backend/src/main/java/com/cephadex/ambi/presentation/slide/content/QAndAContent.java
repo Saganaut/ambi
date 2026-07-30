@@ -3,8 +3,9 @@ package com.cephadex.ambi.presentation.slide.content;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 
 /**
- * Open audience prompt. Non-scorable on its own; a FOLLOW_UP child slide
- * ({@code Slide.childId}) can turn the collected answers into a scorable round.
+ * Open audience prompt. Non-scorable ({@link NonScorableContent}), so it can't
+ * be a FOLLOW_UP parent — {@code FollowUpMode.modesFor(Q_AND_A)} is empty and
+ * {@code DeckService} rejects any attempt to attach a follow-up to one.
  *
  * <p>Runtime answer: each player submits free-text questions one at a time
  * ({@code QAndAAnswer}), accumulated server-side into their per-round

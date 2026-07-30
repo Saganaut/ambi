@@ -1,4 +1,5 @@
-// Options section for non-interactive slide types (TITLE, MEDIA, FOLLOW_UP).
+// Options section for non-interactive slide types (TITLE, CONTENT, MEDIA,
+// INSTRUCTION) — FOLLOW_UP routes to FollowUpOptionsSection instead.
 // TODO: The old Slide element carried resultsDisplayType, multipleSelectionsEnabled,
 // showResultsAsPercentage, showJoinInformation, showQrCode, heading,
 // participantInformation, autoAdvanceSeconds, and showResponses. None of these

@@ -330,6 +330,7 @@ export const mockMcqSlide = slide("slide_mcq", "The Ring Bearer", mcqContent, {
   section: "Round 1",
   difficulty: "EASY",
   explanation: "Frodo bore the Ring the whole journey — Sam carried it briefly in Cirith Ungol.",
+  childId: "slide_followup",
 });
 
 export const mockNumberSlide = slide("slide_number", "Nine Walkers", numberContent, {
@@ -395,8 +396,8 @@ export const mockQAndASlide = slide("slide_qanda", "Hobbit Hot Takes", qAndACont
 });
 
 export const mockFollowUpSlide = slide("slide_followup", "Tell us more", followUpContent, {
-  sortOrder: "b3",
-  parentId: "slide_qanda",
+  sortOrder: "a15",
+  parentId: "slide_mcq",
 });
 
 export const mockEndSlide = slide("slide_end", "Well done, traveller.", titleContent, {
@@ -408,6 +409,7 @@ export const mockEndSlide = slide("slide_end", "Well done, traveller.", titleCon
 export const mockAllSlides: SlideResponse[] = [
   mockTitleSlide,
   mockMcqSlide,
+  mockFollowUpSlide,
   mockNumberSlide,
   mockTextSlide,
   mockRankingSlide,
@@ -420,7 +422,6 @@ export const mockAllSlides: SlideResponse[] = [
   mockDrawingSlide,
   mockMediaSlide,
   mockQAndASlide,
-  mockFollowUpSlide,
   mockEndSlide,
 ];
 

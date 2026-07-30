@@ -70,6 +70,7 @@ Role/relationship violation:
 | `COMMENT_THREAD_NOT_FOUND` | Comment thread id doesn't resolve |
 | `USER_NOT_FOUND` | User id doesn't resolve |
 | `QUESTION_NOT_FOUND` | Q&A question id doesn't resolve within the round |
+| `VOTE_OPTION_NOT_FOUND` | Voted option id isn't one of the round's minted options |
 
 ### 409 — `ConflictException`
 
@@ -85,6 +86,10 @@ Role/relationship violation:
 | `QUESTION_LIMIT_REACHED` | Participant hit the Q&A round's per-player question cap |
 | `ROUND_ALREADY_SCORED` | Round has already been scored |
 | `ROUND_ALREADY_OPEN` | Round is already open |
+| `ROUND_ALREADY_CLOSED` | Voting can't open on a round that's already closed (and thus already scored) |
+| `NO_VOTABLE_SUBMISSIONS` | Voting can't open — no submission of the round qualifies as a votable option |
+| `VOTING_NOT_OPEN` | Vote submitted for a slide that isn't currently collecting votes |
+| `CANNOT_VOTE_FOR_OWN_ANSWER` | Caller tried to vote for their own submission |
 | `PARENT_ROUND_NOT_SCORED` | A follow-up round's parent round isn't scored yet |
 | `SESSION_ALREADY_TERMINAL` | Session has already ended |
 | `SESSION_FULL` | Session's roster is at its cap (deck `AudienceSettings.maxParticipants`, default 200) |

@@ -43,15 +43,14 @@ const attachedFollowUpOf = (
   return child.content.contentType === "FOLLOW_UP" ? child : undefined;
 };
 
-/** Whether the slide is itself a valid attached follow-up of some parent. */
-const isAttachedFollowUp = (
-  slide: SlideResponse,
+/** The slide's linked parent, if its `parentId` names one whose back-pointer agrees. */
+const linkedParentOf = (
   slides: SlideResponse[],
-): boolean => {
-  if (!slide.parentId || slide.content.contentType !== "FOLLOW_UP")
-    return false;
-  const parent = slides.find((s) => s.id === slide.parentId);
-  return parent?.childId === slide.id;
+  followUpSlide: SlideResponse,
+): SlideResponse | undefined => {
+  if (!followUpSlide.parentId) return undefined;
+  const parent = slides.find((s) => s.id === followUpSlide.parentId);
+  return parent?.childId === followUpSlide.id ? parent : undefined;
 };
 
 /**
@@ -97,7 +96,7 @@ export {
   FOLLOW_UP_MODE_LABELS,
   followUpModesFor,
   attachedFollowUpOf,
-  isAttachedFollowUp,
+  linkedParentOf,
   canHaveFollowUp,
   groupIntoUnits,
 };

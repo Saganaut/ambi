@@ -15,7 +15,7 @@ const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 interface FollowUpAttachSectionProps {
   slide: SlideResponse;
 }
-//TODO: this can only be enabled when the slide is a scorable one
+
 const FollowUpAttachSection = ({ slide }: FollowUpAttachSectionProps) => {
   const { deckId } = routeApi.useParams();
   const navigate = routeApi.useNavigate();

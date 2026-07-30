@@ -12,7 +12,7 @@
 import React, { useState } from "react";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
-import { FOLLOW_UP_MODE_LABELS } from "@deck/utils/followUp";
+import { FOLLOW_UP_MODE_LABELS, linkedParentOf } from "@deck/utils/followUp";
 import { SlideContentWrapper } from "../SlideContentWrapper";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./FollowUpSlideContent.module.css";
@@ -49,7 +49,7 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     );
   }
 
-  const parent = slides.find((s) => s.id === slide.parentId);
+  const parent = linkedParentOf(slides, slide);
   const mode = slide.content.mode;
   // For an MCQ parent the runtime option set derives from its options either
   // way (PREDICT_POPULAR votes over all of them; BEST_ANSWER_VOTE over the
