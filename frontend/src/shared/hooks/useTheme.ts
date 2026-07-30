@@ -13,6 +13,12 @@
 // localStorage also holds the boot-time optimistic cache for everyone, so the
 // first paint doesn't flash the brand default before the server look resolves.
 //
+// Three preference states, all resolved by applyPalette:
+//   • no spec (null) — no preference; the app's built-in light default.
+//   • a spec with an appearance but no palette — the built-in default of that
+//     appearance, painted by tokens.css rather than by inline role vars.
+//   • a full spec — a custom or preset palette, written inline over both.
+//
 // Mount once, near the app root (see ThemeBridge) — it renders nothing and only
 // runs the apply side-effect.
 import { useEffect, useState } from "react";
@@ -53,8 +59,8 @@ export function useTheme() {
     setSpec(profile.preferences?.theme ?? null);
   }, [isRegistered, profile]);
 
-  // Apply to <html> + refresh the boot cache. A null spec clears the role vars,
-  // reverting to the brand defaults in tokens.css.
+  // Apply to <html> + refresh the boot cache. A null spec clears the role vars
+  // and the appearance flag, reverting to the brand defaults in tokens.css.
   useEffect(() => {
     applyPalette(document.documentElement, spec);
     if (spec) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(spec));

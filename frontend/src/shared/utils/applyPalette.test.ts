@@ -1,13 +1,15 @@
 // Pins applyPalette's contract: it writes the 16 --role-* custom properties and
-// a data-appearance flag from a spec's palette, clears them for a palette-less
-// (legacy/null) spec so the element falls back to the brand defaults, and the
-// React helpers mirror that as an inline-style object.
+// a data-appearance flag from a spec's palette, drops the role vars but keeps
+// the flag for a palette-less spec (the built-in default of that appearance),
+// clears both when the spec carries neither, and the React helpers mirror that
+// as an inline-style object.
 import { describe, it, expect } from "vitest";
 import {
   applyPalette,
   appearanceValue,
   clearPalette,
   paletteStyle,
+  roleVar,
 } from "./applyPalette";
 import type { ThemeSpec } from "@features/theme/store/themeApi.gen";
 
@@ -45,12 +47,40 @@ describe("applyPalette", () => {
     expect(el.dataset.appearance).toBe("dark");
   });
 
-  it("clears role vars for a palette-less (legacy) spec", () => {
+  it("keeps the dark flag but drops the role vars for a palette-less spec", () => {
     const el = document.createElement("div");
-    applyPalette(el, spec);
-    applyPalette(el, { appearance: "LIGHT" }); // no palette → revert
+    applyPalette(el, { ...spec, appearance: "LIGHT" });
+    applyPalette(el, { appearance: "DARK" }); // no palette → built-in dark
 
     expect(el.style.getPropertyValue("--role-canvas")).toBe("");
+    expect(el.style.getPropertyValue("--role-primary")).toBe("");
+    expect(el.dataset.appearance).toBe("dark");
+  });
+
+  it("keeps the light flag but drops the role vars for a palette-less spec", () => {
+    const el = document.createElement("div");
+    applyPalette(el, spec);
+    applyPalette(el, { appearance: "LIGHT" }); // no palette → built-in light
+
+    expect(el.style.getPropertyValue("--role-canvas")).toBe("");
+    expect(el.dataset.appearance).toBe("light");
+  });
+
+  it("clears the flag too for a spec with neither palette nor appearance", () => {
+    const el = document.createElement("div");
+    applyPalette(el, spec);
+    applyPalette(el, {}); // legacy spec → inherit everything
+
+    expect(el.style.getPropertyValue("--role-canvas")).toBe("");
+    expect(el.dataset.appearance).toBeUndefined();
+  });
+
+  it("clears the flag for a null spec", () => {
+    const el = document.createElement("div");
+    applyPalette(el, spec);
+    applyPalette(el, null);
+
+    expect(el.style.getPropertyValue("--role-foreground")).toBe("");
     expect(el.dataset.appearance).toBeUndefined();
   });
 
@@ -65,7 +95,7 @@ describe("applyPalette", () => {
 
   it("light appearance is the default flag for a palette spec", () => {
     const el = document.createElement("div");
-    applyPalette(el, { ...spec, appearance: "LIGHT" });
+    applyPalette(el, { palette: spec.palette });
     expect(el.dataset.appearance).toBe("light");
   });
 });
@@ -78,9 +108,23 @@ describe("paletteStyle / appearanceValue", () => {
     expect(appearanceValue(spec)).toBe("dark");
   });
 
-  it("returns undefined for a palette-less spec", () => {
+  it("gives a palette-less spec its appearance but no style object", () => {
     expect(paletteStyle({ appearance: "DARK" })).toBeUndefined();
-    expect(appearanceValue({ appearance: "DARK" })).toBeUndefined();
+    expect(appearanceValue({ appearance: "DARK" })).toBe("dark");
+    expect(appearanceValue({ appearance: "LIGHT" })).toBe("light");
+  });
+
+  it("returns undefined for a spec with nothing to apply", () => {
     expect(paletteStyle(null)).toBeUndefined();
+    expect(appearanceValue(null)).toBeUndefined();
+    expect(appearanceValue({})).toBeUndefined();
+  });
+});
+
+describe("roleVar", () => {
+  it("maps palette fields to their CSS custom properties", () => {
+    expect(roleVar("canvas")).toBe("--role-canvas");
+    expect(roleVar("surfaceRaised")).toBe("--role-surface-raised");
+    expect(roleVar("accentSecondary")).toBe("--role-accent-secondary");
   });
 });

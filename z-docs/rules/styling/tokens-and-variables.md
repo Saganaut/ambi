@@ -5,7 +5,7 @@
 ## Tokens
 
 - Colors, spacing, and typography come from tokens in `frontend/src/tokens.css`. Never hardcode values.
-- Semantic colour tokens (`--bg-*`, `--text-*`, `--border-*`, `--action-*`) are **derived from 16 palette role vars** (`--role-canvas`, `--role-foreground`, `--role-primary`, `--role-accent`, the four `--role-{red,green,yellow,blue}` status colours, …). A theme repaints the UI by setting those `--role-*` vars (and a `data-appearance="light|dark"` flag) on an element — `<html>` for the global theme, a scope wrapper for a per-deck theme. Components never touch `--role-*` or `data-appearance`; they only consume the semantic tokens. See the **Theme** entry in the [glossary](../../glossary.md) and `frontend/src/shared/utils/applyPalette.ts`.
+- Semantic colour tokens (`--bg-*`, `--text-*`, `--border-*`, `--action-*`) are **derived from 16 palette role vars** (`--role-canvas`, `--role-foreground`, `--role-primary`, `--role-accent`, the four `--role-{red,green,yellow,blue}` status colours, …). A theme repaints the UI by setting those `--role-*` vars (and a `data-appearance="light|dark"` flag) on an element — `<html>` for the global theme, a scope wrapper for a per-deck theme. Components never touch `--role-*` or `data-appearance`; they only consume the semantic tokens. A theme spec that carries an appearance but **no** palette is the built-in default of that appearance — the applier writes only the flag and `tokens.css` supplies all 16 roles from its own light/dark blocks. See the **Theme** entry in the [glossary](../../glossary.md) and `frontend/src/shared/utils/applyPalette.ts`.
 
 ## Component variable manifest
 
