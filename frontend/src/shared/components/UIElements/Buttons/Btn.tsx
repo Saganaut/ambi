@@ -5,11 +5,12 @@
 //     filled + border, ghost = text-only).
 // Both map to nested rules under .btn in Buttons.module.css; see
 // Btn.types.ts and styling-rules.md "Named button + icon-button variants".
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import type { BtnVariant, BtnFill, BtnSize, BtnShape } from "./Btn.types";
 import styles from "./Buttons.module.css";
 
 interface BtnProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: Ref<HTMLButtonElement>;
   variant?: BtnVariant;
   fill?: BtnFill;
   size?: BtnSize;
@@ -32,10 +33,12 @@ const Btn = ({
   isLoading,
   className,
   children,
+  ref,
   ...rest
 }: BtnProps) => {
   return (
     <button
+      ref={ref}
       type={type}
       disabled={disabled || isLoading}
       data-icon-position={icon ? iconPosition : undefined}

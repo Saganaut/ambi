@@ -1,9 +1,10 @@
-// Behavior hook for Dropdown: open/close, single-vs-multi select toggling,
-// optional search-filter, click-outside dismiss, and chip-remove helpers.
-// The component file stays focused on JSX/wiring.
-import { useRef, useState } from "react";
-
-import { useClickOutside } from "@/shared/hooks/useClickOutside";
+/**
+ * Owns selection and search state for the controlled Dropdown field.
+ *
+ * Dismissal belongs to the Floating UI boundary in Dropdown so portalled
+ * options count as inside the field.
+ */
+import { useState } from "react";
 
 interface DropdownOption {
   value: string;
@@ -27,13 +28,15 @@ const useDropdown = ({
 }: UseDropdownArgs) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const filtered = searchable
     ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
     : options;
 
-  useClickOutside(containerRef, () => { setIsOpen(false); setQuery(""); }, isOpen);
+  const setOpen = (next: boolean) => {
+    setIsOpen(next);
+    if (!next) setQuery("");
+  };
 
   const toggle = (optValue: string) => {
     let next: string[];
@@ -43,15 +46,13 @@ const useDropdown = ({
         : [...value, optValue];
     } else {
       next = [optValue];
-      setIsOpen(false);
-      setQuery("");
+      setOpen(false);
     }
     onChange?.(next);
   };
 
   const handleTriggerClick = () => {
-    if (isOpen) setQuery("");
-    setIsOpen((prev) => !prev);
+    setOpen(!isOpen);
   };
 
   const removeChip = (e: React.MouseEvent, v: string) => {
@@ -68,9 +69,9 @@ const useDropdown = ({
 
   return {
     isOpen,
+    setOpen,
     query,
     setQuery,
-    containerRef,
     filtered,
     toggle,
     handleTriggerClick,

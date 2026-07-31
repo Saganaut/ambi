@@ -1,9 +1,26 @@
-// Dropdown with optional multi-select and searchable filtering of options
+/**
+ * Renders a controlled select field with optional search and multi-selection.
+ *
+ * The option panel is portalled and positioned by Floating UI so scroll and
+ * overflow ancestors cannot clip it.
+ */
+import {
+  autoUpdate,
+  flip,
+  FloatingFocusManager,
+  FloatingPortal,
+  offset,
+  shift,
+  size,
+  useDismiss,
+  useFloating,
+  useInteractions,
+} from "@floating-ui/react";
 import { useId } from "react";
+import { Btn } from "@ui/Buttons/Btn";
 import shared from "../Input.module.css";
 import styles from "./Dropdown.module.css";
 import { useDropdown, type DropdownOption } from "./useDropdown";
-import { Btn } from "@ui/Buttons/Btn";
 
 interface DropdownProps {
   options: DropdownOption[];
@@ -39,13 +56,35 @@ const Dropdown = ({
     isOpen,
     query,
     setQuery,
-    containerRef,
+    setOpen,
     filtered,
     toggle,
     handleTriggerClick,
     removeChip,
     removeChipOnKey,
   } = useDropdown({ options, value, multiple, searchable, onChange });
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: setOpen,
+    placement: "bottom-start",
+    strategy: "fixed",
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(4),
+      flip(),
+      shift({ padding: 8 }),
+      size({
+        apply({ rects, elements }) {
+          elements.floating.style.setProperty(
+            "--dropdown-reference-width",
+            `${rects.reference.width.toString()}px`,
+          );
+        },
+      }),
+    ],
+  });
+  const dismiss = useDismiss(context);
+  const { getFloatingProps } = useInteractions([dismiss]);
 
   const triggerContent =
     value.length === 0 ? (
@@ -89,9 +128,9 @@ const Dropdown = ({
       <div
         className={[styles.dropdown, compact ? styles.compact : ""]
           .filter(Boolean)
-          .join(" ")}
-        ref={containerRef}>
+          .join(" ")}>
         <Btn
+          ref={refs.setReference}
           type='button'
           id={id}
           className={styles.dropdownTrigger}
@@ -117,67 +156,81 @@ const Dropdown = ({
         </Btn>
 
         {isOpen && (
-          <div className={styles.dropdownPanel}>
-            {searchable && (
-              <div className={styles.dropdownSearch}>
-                <input
-                  type='text'
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                  }}
-                  placeholder='Search...'
-                  aria-label='Search options'
-                  // The panel is already a raised surface — opt the search
-                  // box out of the shared field chrome (bg/shadow).
-                  className={shared.noBorders}
-                  autoFocus
-                />
+          <FloatingPortal>
+            <FloatingFocusManager context={context} modal={false}>
+              <div
+                ref={refs.setFloating}
+                className={[
+                  styles.dropdownPanel,
+                  compact ? styles.compactPanel : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                style={floatingStyles}
+                {...getFloatingProps()}>
+                {searchable && (
+                  <div className={styles.dropdownSearch}>
+                    <input
+                      type='text'
+                      value={query}
+                      onChange={(e) => {
+                        setQuery(e.target.value);
+                      }}
+                      placeholder='Search...'
+                      aria-label='Search options'
+                      // The panel is already a raised surface — opt the search
+                      // box out of the shared field chrome (bg/shadow).
+                      className={shared.noBorders}
+                      autoFocus
+                    />
+                  </div>
+                )}
+                <ul
+                  id={listboxId}
+                  role='listbox'
+                  aria-multiselectable={multiple}
+                  className={styles.dropdownList}>
+                  {filtered.length === 0 ? (
+                    <li className={styles.dropdownEmpty}>No options</li>
+                  ) : (
+                    filtered.map((opt) => (
+                      <li
+                        key={opt.value}
+                        role='option'
+                        aria-selected={value.includes(opt.value)}
+                        className={[
+                          styles.dropdownOption,
+                          value.includes(opt.value) ? styles.selected : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        onClick={() => {
+                          toggle(opt.value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggle(opt.value);
+                          }
+                        }}
+                        tabIndex={0}>
+                        {multiple && (
+                          <input
+                            type='checkbox'
+                            readOnly
+                            checked={value.includes(opt.value)}
+                            tabIndex={-1}
+                            aria-hidden='true'
+                          />
+                        )}
+                        {opt.label}
+                      </li>
+                    ))
+                  )}
+                </ul>
               </div>
-            )}
-            <ul
-              id={listboxId}
-              role='listbox'
-              aria-multiselectable={multiple}
-              className={styles.dropdownList}>
-              {filtered.length === 0 ? (
-                <li className={styles.dropdownEmpty}>No options</li>
-              ) : (
-                filtered.map((opt) => (
-                  <li
-                    key={opt.value}
-                    role='option'
-                    aria-selected={value.includes(opt.value)}
-                    className={[
-                      styles.dropdownOption,
-                      value.includes(opt.value) ? styles.selected : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => {
-                      toggle(opt.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        toggle(opt.value);
-                      }
-                    }}
-                    tabIndex={0}>
-                    {multiple && (
-                      <input
-                        type='checkbox'
-                        readOnly
-                        checked={value.includes(opt.value)}
-                        tabIndex={-1}
-                        aria-hidden='true'
-                      />
-                    )}
-                    {opt.label}
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
+            </FloatingFocusManager>
+          </FloatingPortal>
         )}
 
         {(errorMessage != null || infoMessage != null) && (

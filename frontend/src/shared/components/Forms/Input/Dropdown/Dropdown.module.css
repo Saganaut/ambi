@@ -1,4 +1,4 @@
-/* Dropdown — trigger button + portaled-style panel below.
+/* Dropdown — trigger button + portalled panel.
    The trigger is built on top of the shared Btn so it inherits hover/focus
    chrome; the panel handles its own search bar, list scroll, and selected
    chips (for the multi-select variant). */
@@ -67,10 +67,9 @@
 }
 
 .dropdownPanel {
-  position: absolute;
-  top: calc(100% + var(--space-1));
-  left: 0;
-  width: 100%;
+  --dropdown-reference-width: 0px;
+
+  width: var(--dropdown-reference-width);
   background-color: var(--bg-surface-raised);
   border-radius: var(--radius-md);
   z-index: var(--z-dropdown);
@@ -84,13 +83,11 @@
 .dropdown.compact {
   width: max-content;
   flex-shrink: 0;
+}
 
-  .dropdownPanel {
-    width: max-content;
-    min-width: 100%;
-    left: auto;
-    right: 0;
-  }
+.compactPanel {
+  width: max-content;
+  min-width: var(--dropdown-reference-width);
 }
 
 .dropdownSearch {
