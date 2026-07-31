@@ -46,6 +46,15 @@ describe("ItemField", () => {
     expect(screen.queryByRole("menuitem", { name: "Custom color" })).not.toBeInTheDocument();
   });
 
+  it("hides the Color section when onSetColor is supplied without a color", () => {
+    // `color` and the handlers gate together — OptionMenuContent needs a
+    // current swatch too, so a handler-only row must not claim a section.
+    renderField({ onSetColor: vi.fn() });
+
+    expect(screen.queryByRole("group", { name: "Option color" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Custom color" })).not.toBeInTheDocument();
+  });
+
   it("hides the image controls when onSetImage is omitted", () => {
     renderField({ color: "oklch(0.65 0.4 290)", onSetColor: vi.fn() });
 

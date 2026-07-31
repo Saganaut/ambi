@@ -48,8 +48,9 @@ interface ItemFieldProps {
   /** Shown when the label is empty (e.g. "Item 3", "Target 2"). */
   placeholder: string;
   maxLength: number;
-  /** The row's resolved color (override or palette default); omit (with
-   *  `onSetColor`) for kinds whose items carry no color. */
+  /** The row's resolved color (override or palette default); required to show
+   *  the menu's Color section — omit (with `onSetColor`) for kinds whose items
+   *  carry no color. */
   color?: string;
   /** Controlled open state — the composer keeps at most one menu open. */
   open: boolean;
@@ -60,7 +61,7 @@ interface ItemFieldProps {
   /** Debounced label edit — just the new text; the parent patches the row. */
   onScheduleLabel: (label: string) => void;
   onFlush: () => void;
-  /** Omit to hide the menu's Color section. */
+  /** Pair with `color` to show the menu's Color section; omit either to hide it. */
   onSetColor?: (color: string) => void;
   /** Omit to hide the menu's image controls. */
   onSetImage?: (image: AppImage) => void;
@@ -93,7 +94,10 @@ const ItemField = ({
 
   // Sections are opt-in: a kind whose items carry no color (or no image) leaves
   // the matching props off and the menu narrows to what it can act on.
-  const showColor = onSetColor !== undefined;
+  // `color` and `onSetColor` gate together: `OptionMenuContent` only renders
+  // its Color section when it has both a current swatch and the handlers, so
+  // wiring one without the other would silently produce no section.
+  const showColor = color !== undefined && onSetColor !== undefined;
   const showImage = onSetImage !== undefined;
 
   // Local mirror keeps typing responsive; resync when the bound row changes.

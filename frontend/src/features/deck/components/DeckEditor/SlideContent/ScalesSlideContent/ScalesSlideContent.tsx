@@ -207,27 +207,25 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                 }}
                 onFlush={flush}
               />
-              <div className={styles.toleranceRow}>
-                <NumberInput
-                  compact
-                  id={`scales-tolerance-${idBase}`}
-                  label="Tolerance %"
-                  labelPosition="labelInFront"
-                  min={Math.round(SCALES_TOLERANCE_MIN_FRACTION * 100)}
-                  max={Math.round(SCALES_TOLERANCE_MAX_FRACTION * 100)}
-                  value={tolerancePercent}
-                  onChange={(next) => {
-                    setTolerance((next / 100) * span);
-                  }}
-                />
-                <span className={styles.toleranceValue}>
-                  ±{formatScaleValue(question.tolerance)}
-                </span>
-              </div>{" "}
-            </div>{" "}
+            </div>
+            <div className={styles.toleranceRow}>
+              <NumberInput
+                compact
+                id={`scales-tolerance-${idBase}`}
+                label="Tolerance %"
+                labelPosition="labelInFront"
+                min={Math.round(SCALES_TOLERANCE_MIN_FRACTION * 100)}
+                max={Math.round(SCALES_TOLERANCE_MAX_FRACTION * 100)}
+                value={tolerancePercent}
+                onChange={(next) => {
+                  setTolerance((next / 100) * span);
+                }}
+              />
+              <span className={styles.toleranceValue}>±{formatScaleValue(question.tolerance)}</span>
+            </div>
           </SlideContentSection.Body>
         </SlideContentSection>
-      </SlideContent>{" "}
+      </SlideContent>
     </SlideWrapper>
   );
 };
