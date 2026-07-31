@@ -156,6 +156,33 @@ describe("Dropdown", () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it("moves to an option by typing its label", async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown />);
+
+    await user.click(screen.getByRole("button", { name: "Accepted as correct" }));
+    await user.keyboard("a");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("option", { name: "A range of values" }),
+    );
+  });
+
+  it("moves from a search field into the filtered options with ArrowDown", async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown searchable />);
+
+    await user.click(screen.getByRole("button", { name: "Accepted as correct" }));
+    const search = screen.getByRole("textbox", { name: "Search options" });
+    expect(document.activeElement).toBe(search);
+
+    await user.keyboard("{ArrowDown}");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("option", { name: "An exact value" }),
+    );
+  });
+
   it("keeps a multiple listbox open while toggling options", async () => {
     const user = userEvent.setup();
     render(<ControlledDropdown multiple />);
