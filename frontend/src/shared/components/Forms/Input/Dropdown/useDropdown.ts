@@ -51,10 +51,6 @@ const useDropdown = ({
     onChange?.(next);
   };
 
-  const handleTriggerClick = () => {
-    setOpen(!isOpen);
-  };
-
   const removeChip = (e: React.MouseEvent, v: string) => {
     e.stopPropagation();
     onChange?.(value.filter((x) => x !== v));
@@ -74,7 +70,6 @@ const useDropdown = ({
     setQuery,
     filtered,
     toggle,
-    handleTriggerClick,
     removeChip,
     removeChipOnKey,
   };

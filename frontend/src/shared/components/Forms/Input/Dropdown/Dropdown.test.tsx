@@ -10,7 +10,17 @@ const OPTIONS = [
   { value: "range", label: "A range of values" },
 ];
 
-const ControlledDropdown = ({ searchable = false }: { searchable?: boolean }) => {
+interface ControlledDropdownProps {
+  searchable?: boolean;
+  multiple?: boolean;
+  compact?: boolean;
+}
+
+const ControlledDropdown = ({
+  searchable = false,
+  multiple = false,
+  compact = false,
+}: ControlledDropdownProps) => {
   const [value, setValue] = useState<string[]>([]);
   return (
     <Dropdown
@@ -20,6 +30,8 @@ const ControlledDropdown = ({ searchable = false }: { searchable?: boolean }) =>
       value={value}
       onChange={setValue}
       searchable={searchable}
+      multiple={multiple}
+      compact={compact}
     />
   );
 };
@@ -91,5 +103,82 @@ describe("Dropdown", () => {
     await user.click(screen.getByRole("button", { name: "Outside" }));
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("keeps the portal inside a native dialog top layer", async () => {
+    const user = userEvent.setup();
+    render(
+      <dialog open>
+        <ControlledDropdown />
+      </dialog>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Accepted as correct" }));
+
+    expect(screen.getByRole("dialog")).toContainElement(screen.getByRole("listbox"));
+  });
+
+  it("inherits custom theme properties from the trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <div style={{ "--text-secondary": "theme-text" } as React.CSSProperties}>
+        <ControlledDropdown />
+      </div>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Accepted as correct" }));
+
+    const panel = screen.getByRole("listbox").parentElement;
+    await waitFor(() => {
+      expect(panel).toHaveStyle({ "--text-secondary": "theme-text" });
+    });
+  });
+
+  it("opens and navigates options with listbox keys", async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown />);
+
+    const trigger = screen.getByRole("button", { name: "Accepted as correct" });
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("option", { name: "An exact value" }),
+    );
+
+    await user.keyboard("{End}");
+    expect(document.activeElement).toBe(
+      screen.getByRole("option", { name: "A range of values" }),
+    );
+
+    await user.keyboard("{Enter}");
+    expect(trigger).toHaveTextContent("A range of values");
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("keeps a multiple listbox open while toggling options", async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown multiple />);
+
+    await user.click(screen.getByRole("button", { name: "Accepted as correct" }));
+    await user.click(screen.getByRole("option", { name: "An exact value" }));
+
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "An exact value" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("right-aligns a compact panel with its trigger", async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown compact />);
+
+    await user.click(screen.getByRole("button", { name: "Accepted as correct" }));
+
+    expect(screen.getByRole("listbox").parentElement).toHaveAttribute(
+      "data-placement",
+      "bottom-end",
+    );
   });
 });

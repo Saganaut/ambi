@@ -12,11 +12,14 @@ import {
   offset,
   shift,
   size,
+  useClick,
   useDismiss,
   useFloating,
   useInteractions,
+  useListNavigation,
+  useTypeahead,
 } from "@floating-ui/react";
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import shared from "../Input.module.css";
 import styles from "./Dropdown.module.css";
@@ -36,6 +39,25 @@ interface DropdownProps {
   infoMessage?: string;
   id?: string;
 }
+
+const inheritTheme = (source: Element, target: HTMLElement) => {
+  const appearanceScope = source.closest<HTMLElement>("[data-appearance]");
+  if (appearanceScope?.dataset.appearance) {
+    target.dataset.appearance = appearanceScope.dataset.appearance;
+  }
+
+  const ancestors: HTMLElement[] = [];
+  for (let node = source.parentElement; node; node = node.parentElement) {
+    ancestors.unshift(node);
+  }
+  for (const ancestor of ancestors) {
+    for (const property of ancestor.style) {
+      if (property.startsWith("--")) {
+        target.style.setProperty(property, ancestor.style.getPropertyValue(property));
+      }
+    }
+  }
+};
 
 const Dropdown = ({
   options,
@@ -59,14 +81,17 @@ const Dropdown = ({
     setOpen,
     filtered,
     toggle,
-    handleTriggerClick,
     removeChip,
     removeChipOnKey,
   } = useDropdown({ options, value, multiple, searchable, onChange });
-  const { refs, floatingStyles, context } = useFloating({
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const optionRefs = useRef<(HTMLElement | null)[]>([]);
+  const optionLabels = useRef<(string | null)[]>([]);
+  const selectedIndex = filtered.findIndex((option) => value.includes(option.value));
+  const { refs, floatingStyles, context, placement } = useFloating({
     open: isOpen,
     onOpenChange: setOpen,
-    placement: "bottom-start",
+    placement: compact ? "bottom-end" : "bottom-start",
     strategy: "fixed",
     whileElementsMounted: autoUpdate,
     middleware: [
@@ -75,6 +100,9 @@ const Dropdown = ({
       shift({ padding: 8 }),
       size({
         apply({ rects, elements }) {
+          if (elements.reference instanceof Element) {
+            inheritTheme(elements.reference, elements.floating);
+          }
           elements.floating.style.setProperty(
             "--dropdown-reference-width",
             `${rects.reference.width.toString()}px`,
@@ -83,8 +111,38 @@ const Dropdown = ({
       }),
     ],
   });
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveIndex(null);
+    } else if (!searchable && activeIndex != null) {
+      optionRefs.current[activeIndex]?.focus();
+    }
+  }, [activeIndex, isOpen, searchable]);
+
+  const click = useClick(context);
   const dismiss = useDismiss(context);
-  const { getFloatingProps } = useInteractions([dismiss]);
+  const listNavigation = useListNavigation(context, {
+    listRef: optionRefs,
+    activeIndex,
+    selectedIndex: selectedIndex < 0 ? null : selectedIndex,
+    onNavigate: setActiveIndex,
+    focusItemOnOpen: !searchable,
+    loop: true,
+  });
+  const typeahead = useTypeahead(context, {
+    listRef: optionLabels,
+    activeIndex,
+    selectedIndex: selectedIndex < 0 ? null : selectedIndex,
+    onMatch: setActiveIndex,
+    enabled: !searchable,
+  });
+  const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
+    click,
+    dismiss,
+    listNavigation,
+    typeahead,
+  ]);
+  const portalRoot = refs.domReference.current?.closest("dialog") as HTMLElement | null;
 
   const triggerContent =
     value.length === 0 ? (
@@ -136,8 +194,8 @@ const Dropdown = ({
           className={styles.dropdownTrigger}
           aria-haspopup='listbox'
           aria-expanded={isOpen}
-          aria-owns={listboxId}
-          onClick={handleTriggerClick}>
+          aria-controls={isOpen ? listboxId : undefined}
+          {...getReferenceProps()}>
           {triggerContent}
           <svg
             className={[styles.chevron, isOpen ? styles.chevronOpen : ""]
@@ -156,7 +214,7 @@ const Dropdown = ({
         </Btn>
 
         {isOpen && (
-          <FloatingPortal>
+          <FloatingPortal root={portalRoot ?? undefined}>
             <FloatingFocusManager context={context} modal={false}>
               <div
                 ref={refs.setFloating}
@@ -166,6 +224,7 @@ const Dropdown = ({
                 ]
                   .filter(Boolean)
                   .join(" ")}
+                data-placement={placement}
                 style={floatingStyles}
                 {...getFloatingProps()}>
                 {searchable && (
@@ -193,7 +252,7 @@ const Dropdown = ({
                   {filtered.length === 0 ? (
                     <li className={styles.dropdownEmpty}>No options</li>
                   ) : (
-                    filtered.map((opt) => (
+                    filtered.map((opt, index) => (
                       <li
                         key={opt.value}
                         role='option'
@@ -204,16 +263,22 @@ const Dropdown = ({
                         ]
                           .filter(Boolean)
                           .join(" ")}
-                        onClick={() => {
-                          toggle(opt.value);
+                        ref={(node) => {
+                          optionRefs.current[index] = node;
+                          optionLabels.current[index] = opt.label;
                         }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
+                        {...getItemProps({
+                          onClick: () => {
                             toggle(opt.value);
-                          }
-                        }}
-                        tabIndex={0}>
+                          },
+                          onKeyDown: (event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              toggle(opt.value);
+                            }
+                          },
+                        })}
+                        tabIndex={activeIndex === index ? 0 : -1}>
                         {multiple && (
                           <input
                             type='checkbox'
