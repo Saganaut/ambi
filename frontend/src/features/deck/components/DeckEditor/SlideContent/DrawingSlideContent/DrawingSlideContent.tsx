@@ -233,7 +233,6 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         <SlideContentSection>
           <SlideContentSection.Header>
             <span>Correct answer image</span>
-            <span>Optional — players try to spot this among the drawings</span>
             <span className={styles.imageActions}>
               <Btn variant="secondary" size="sm" onClick={pickCorrectImage}>
                 {hasCorrectImage ? "Replace image" : "Choose image"}
@@ -249,14 +248,20 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             </span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
+            {/* Both hints live in the body, never the header: the section header is
+                a fixed-height flex row sized for a title plus its action buttons, so
+                prose put there wraps into — and over — the controls beside it. */}
             {hasCorrectImage ? (
-              <div className={styles.imageSection}>
-                <img
-                  className={styles.imagePreview}
-                  src={correctImageUrl}
-                  alt={question.correctImage?.altText ?? "Correct answer image"}
-                />
-              </div>
+              <>
+                <div className={styles.imageSection}>
+                  <img
+                    className={styles.imagePreview}
+                    src={correctImageUrl}
+                    alt={question.correctImage?.altText ?? "Correct answer image"}
+                  />
+                </div>
+                <p className={styles.imageHint}>Players try to spot this among the drawings.</p>
+              </>
             ) : (
               <p className={styles.imageHint}>
                 Optional — add one to unlock the &quot;Spot the answer&quot; follow-up, where the
