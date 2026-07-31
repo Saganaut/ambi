@@ -1,3 +1,5 @@
+// Covers the pure identity migration used before sortable item banks render:
+// legacy items receive stable palette colors, while complete items cause no write.
 import { describe, expect, it } from "vitest";
 
 import { paletteColorAt } from "@/shared/components/Charts/optionPalette";

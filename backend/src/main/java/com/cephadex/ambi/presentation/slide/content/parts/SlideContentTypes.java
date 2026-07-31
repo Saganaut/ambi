@@ -60,8 +60,8 @@ public class SlideContentTypes {
 
     // --------------- Scales ----------------------------------------------
 
-    /** An item to position on a scale. {@code image} and {@code color} are optional. */
-    public record ScaleItem(String id, String label, AppImage image, String color) {
+    /** An item to position on a scale. {@code color} is optional. */
+    public record ScaleItem(String id, String label, String color) {
     }
 
     // --------------- Grid ------------------------------------------------
