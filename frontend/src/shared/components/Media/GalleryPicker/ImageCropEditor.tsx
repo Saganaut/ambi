@@ -27,6 +27,8 @@ interface ImageCropEditorProps {
   aspect: number | "source";
   /** Prefill for the name field (e.g. the source filename). */
   initialName?: string;
+  /** Prefill for the alt-text field (e.g. the source image's own alt text). */
+  initialAltText?: string;
   /** True while the parent is cropping + uploading. */
   isSaving: boolean;
   /** Surfaced upload/crop error, if any. */
@@ -43,6 +45,7 @@ const ImageCropEditor = ({
   imageSrc,
   aspect,
   initialName,
+  initialAltText,
   isSaving,
   error,
   onCancel,
@@ -52,7 +55,7 @@ const ImageCropEditor = ({
   const [zoom, setZoom] = useState(1);
   const [area, setArea] = useState<PixelArea | null>(null);
   const [name, setName] = useState(initialName ?? "");
-  const [altText, setAltText] = useState("");
+  const [altText, setAltText] = useState(initialAltText ?? "");
   // The image's own ratio, learned when the media loads ("source" mode only).
   // Until then the box is square for one paint; the cropper re-fits on change.
   const [sourceAspect, setSourceAspect] = useState<number | null>(null);

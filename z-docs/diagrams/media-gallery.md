@@ -93,6 +93,35 @@ browser (`ResponseEntity<byte[]>`) for client-side canvas cropping. Ingestion
 into the gallery happens later, via a separate
 `POST /api/galleries/{id}/images/upload` (the pipeline above).
 
+## Same-origin file read — re-cropping an owned image
+
+`GET /api/galleries/{id}/images/{imageId}/file` streams a gallery image's stored
+original from our own origin, so the browser can draw an image the user already
+owns onto a canvas and re-crop it. Neither existing route can serve that:
+
+- the presigned URLs a normal read hands out point at the storage endpoint,
+  which is cross-origin and sends no CORS headers — render-only, canvas-tainting;
+- the remote-image proxy above **rejects** those URLs by design, since blocking
+  requests aimed at internal hosts is exactly what its SSRF guards are for.
+
+```mermaid
+flowchart LR
+    FE["Picker: gallery pick needing a<br/>differently shaped crop"] --> GC["GalleryController<br/>GET /{id}/images/{imageId}/file"]
+    GC --> GS["GalleryService.getImageFile — VIEW"]
+    GS --> Q{"internal image<br/>with a srcKey?"}
+    Q -->|no| NF["404 GALLERY_IMAGE_NOT_FOUND"]
+    Q -->|yes| S3["S3StorageService.get(srcKey)"]
+    S3 -->|absent| NF
+    S3 -->|StoredObject| OUT["bytes + stored content type<br/>Cache-Control: private, max-age=300"]
+    OUT --> CROP["canvas crop → POST …/images/upload<br/>(a NEW gallery image; the original is untouched)"]
+```
+
+Like the remote-image proxy, it is `@Hidden` from OpenAPI — raw bytes are not a
+typed JSON resource, so a generated RTK Query hook could only mis-parse them; the
+frontend reads it with a plain authenticated `fetch` → `Blob`
+(`fetchGalleryImageFile` in `shared/utils/imageEditing.ts`). The response is
+cached `private` because the bytes are per-user authorized.
+
 ## Deletion
 
 ```mermaid

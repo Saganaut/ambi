@@ -1,8 +1,10 @@
 // Behavioural tests for the Gallery tab's two interaction modes: the two-step
 // selection the image picker opts into (single click selects, double click
 // picks, Enter on the selected tile picks) and the legacy click-to-pick the
-// AvatarPicker still relies on, where Enter picks in one step. The listImages
-// read runs for real against MSW on a fresh RTK Query store per test.
+// AvatarPicker still relies on, where Enter picks in one step. Every path
+// reports the whole gallery item, not just its embedded image — the parent may
+// need the id and the name/alt text to re-crop the pick. The listImages read
+// runs for real against MSW on a fresh RTK Query store per test.
 import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -125,7 +127,7 @@ describe("GalleryTab", () => {
     await user.dblClick(await tile("Sunset"));
 
     expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onPick).toHaveBeenCalledWith(sunset.image);
+    expect(onPick).toHaveBeenCalledWith(sunset);
   });
 
   it("selects on Enter and picks on a second Enter", async () => {
@@ -147,7 +149,7 @@ describe("GalleryTab", () => {
     await user.keyboard("{Enter}");
 
     expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onPick).toHaveBeenCalledWith(sunset.image);
+    expect(onPick).toHaveBeenCalledWith(sunset);
     expect(onSelect).not.toHaveBeenCalled();
   });
 
@@ -162,7 +164,7 @@ describe("GalleryTab", () => {
     await user.click(sunsetTile);
 
     expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onPick).toHaveBeenCalledWith(sunset.image);
+    expect(onPick).toHaveBeenCalledWith(sunset);
   });
 
   it("picks on a single Enter when selection mode is off", async () => {
@@ -173,7 +175,7 @@ describe("GalleryTab", () => {
     await user.keyboard("{Enter}");
 
     expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onPick).toHaveBeenCalledWith(sunset.image);
+    expect(onPick).toHaveBeenCalledWith(sunset);
   });
 
   it("filters the grid by name", async () => {

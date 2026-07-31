@@ -1,7 +1,9 @@
 /**
- * Client-side image-editing helpers for the upload flow: loading a pasted URL's
- * bytes through the same-origin proxy (so the browser can crop them without
- * canvas CORS-taint) and exporting a chosen crop region to an uploadable blob.
+ * Client-side image-editing helpers for the upload flow: loading a source
+ * image's bytes from our own origin (so the browser can crop them without
+ * canvas CORS-taint) — a pasted URL through the SSRF-guarded proxy, a gallery
+ * image through its `/file` route — and exporting a chosen crop region to an
+ * uploadable blob.
  *
  * The crop rectangle is given in the source image's natural-pixel space (the
  * editor converts react-image-crop's displayed-pixel selection up to natural
@@ -19,14 +21,16 @@ export interface PixelArea {
 }
 
 /**
- * Fetch a remote image URL through the backend's SSRF-guarded proxy
- * (`GET /api/media/remote-image`) and return its bytes as a Blob. Because the
- * response is served from our own origin, the resulting object URL can be drawn
- * to a canvas and exported without tainting it. Throws an `Error` whose message
- * is safe to surface (the backend sends an RFC 9457 `detail` on rejection).
+ * GET an image-bytes endpoint of our own backend and return the payload as a
+ * Blob. Both callers below need the same shape: a credentialed same-origin
+ * request, a network failure reported as such, and an RFC 9457 `detail` lifted
+ * out of an error body when the backend sent one (falling back to `fallback`,
+ * which is written to be safe to show the user).
  */
-export const fetchRemoteImage = async (url: string): Promise<Blob> => {
-  const endpoint = `${apiBaseUrl}/api/media/remote-image?url=${encodeURIComponent(url)}`;
+const fetchImageBytes = async (
+  endpoint: string,
+  fallback: string,
+): Promise<Blob> => {
   let response: Response;
   try {
     response = await fetch(endpoint, {
@@ -37,7 +41,7 @@ export const fetchRemoteImage = async (url: string): Promise<Blob> => {
     throw new Error("Could not reach the server to fetch that image.");
   }
   if (!response.ok) {
-    let detail = "Could not fetch an image from that URL.";
+    let detail = fallback;
     try {
       const body = (await response.json()) as { detail?: string };
       if (body.detail) detail = body.detail;
@@ -48,6 +52,36 @@ export const fetchRemoteImage = async (url: string): Promise<Blob> => {
   }
   return response.blob();
 };
+
+/**
+ * Fetch a remote image URL through the backend's SSRF-guarded proxy
+ * (`GET /api/media/remote-image`) and return its bytes as a Blob. Because the
+ * response is served from our own origin, the resulting object URL can be drawn
+ * to a canvas and exported without tainting it. Throws an `Error` whose message
+ * is safe to surface (the backend sends an RFC 9457 `detail` on rejection).
+ */
+export const fetchRemoteImage = async (url: string): Promise<Blob> =>
+  fetchImageBytes(
+    `${apiBaseUrl}/api/media/remote-image?url=${encodeURIComponent(url)}`,
+    "Could not fetch an image from that URL.",
+  );
+
+/**
+ * Fetch a gallery image's stored original from our own origin
+ * (`GET /api/galleries/{id}/images/{imageId}/file`) so it can be re-cropped.
+ * The presigned URLs a gallery read hands out point at the storage endpoint,
+ * which is cross-origin and sends no CORS headers — drawing one to a canvas
+ * taints it — and the remote-image proxy above rejects that endpoint by design
+ * (it is exactly what its SSRF guards exist to block). Hence a dedicated route.
+ */
+export const fetchGalleryImageFile = async (
+  galleryId: string,
+  imageId: string,
+): Promise<Blob> =>
+  fetchImageBytes(
+    `${apiBaseUrl}/api/galleries/${encodeURIComponent(galleryId)}/images/${encodeURIComponent(imageId)}/file`,
+    "Could not load that image from your gallery.",
+  );
 
 const loadImage = (src: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {

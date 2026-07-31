@@ -1,6 +1,7 @@
-// Gallery tab: browse the user's stored images and pick one (no crop step —
-// existing images are already framed). Search filters by the gallery item's
-// name.
+// Gallery tab: browse the user's stored images and pick one. Search filters by
+// the gallery item's name. Picking reports the whole gallery item and this tab
+// takes it no further — whether the pick is inserted as-is or re-cropped first
+// is the parent's decision (see GalleryPicker's `cropGalleryPicks`).
 //
 // Two interaction modes, chosen by the parent:
 //   • click-to-pick (default) — a single click fires onPick straight away. Used
@@ -23,7 +24,6 @@ import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { Loader } from "@ui/Loader/Loader";
 import {
   useListImagesQuery,
-  type AppImage,
   type GalleryImageResponse,
 } from "@features/gallery/store/galleryApi.gen";
 import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
@@ -38,7 +38,12 @@ interface GalleryTabProps {
   galleryId?: string;
   /** True when the parent's gallery-singleton fetch failed (so no id is coming). */
   galleryError?: boolean;
-  onPick: (image: AppImage) => void;
+  /**
+   * The chosen gallery item — the whole record, not just its `image`, so a
+   * parent that post-processes the pick (the picker's crop-on-insert step) has
+   * the id to re-read its bytes by and the name/alt text to carry over.
+   */
+  onPick: (item: GalleryImageResponse) => void;
   /** Id of the selected tile — only meaningful alongside `onSelect`. */
   selectedId?: string;
   /**
@@ -105,7 +110,7 @@ const GalleryTab = ({
         aria-pressed={selectable ? isSelected : undefined}
         onClick={(event) => {
           if (!onSelect) {
-            onPick(img.image);
+            onPick(img);
             return;
           }
           // Enter/Space report detail 0. Activating an already-selected tile
@@ -113,7 +118,7 @@ const GalleryTab = ({
           // deselecting stays a mouse gesture (re-click, or click off the
           // grid), so no keystroke can silently disarm the footer's actions.
           if (event.detail === 0) {
-            if (isSelected) onPick(img.image);
+            if (isSelected) onPick(img);
             else onSelect(img);
             return;
           }
@@ -132,7 +137,7 @@ const GalleryTab = ({
         onDoubleClick={
           selectable
             ? () => {
-                onPick(img.image);
+                onPick(img);
               }
             : undefined
         }>

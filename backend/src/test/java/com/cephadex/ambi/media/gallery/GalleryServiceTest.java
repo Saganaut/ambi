@@ -29,6 +29,7 @@ import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.S3StorageService;
+import com.cephadex.ambi.media.storage.S3StorageService.StoredObject;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
@@ -177,6 +178,49 @@ class GalleryServiceTest {
     }
 
     @Test
+    void getImageFileStreamsTheStoredOriginal() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+        storedImage("img-1", internalImage("gallery/abc/original"));
+        when(storage.get("gallery/abc/original"))
+                .thenReturn(new StoredObject(new byte[] { 1, 2, 3 }, "image/png"));
+
+        StoredObject file = galleryService.getImageFile("gal-1", "img-1", principal("owner-1"));
+
+        assertThat(file.bytes()).containsExactly(1, 2, 3);
+        assertThat(file.contentType()).isEqualTo("image/png");
+    }
+
+    @Test
+    void getImageFileOfExternalReferenceThrowsNotFound() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+        storedImage("img-2", externalImage());
+
+        // An external image owns no stored object, so there is no file to serve.
+        assertThatThrownBy(() -> galleryService.getImageFile("gal-1", "img-2", principal("owner-1")))
+                .isInstanceOf(NotFoundException.class);
+        verify(storage, never()).get(any());
+    }
+
+    @Test
+    void getImageFileThrowsNotFoundWhenTheObjectIsGone() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+        storedImage("img-3", internalImage("gallery/gone/original"));
+        when(storage.get("gallery/gone/original")).thenReturn(null);
+
+        assertThatThrownBy(() -> galleryService.getImageFile("gal-1", "img-3", principal("owner-1")))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void getImageFileByStrangerIsForbidden() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+
+        assertThatThrownBy(() -> galleryService.getImageFile("gal-1", "img-1", principal("intruder")))
+                .isInstanceOf(ForbiddenException.class);
+        verify(storage, never()).get(any());
+    }
+
+    @Test
     void removeImageDeletesBackingBytesThenDocument() {
         when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
         GalleryImage image = new GalleryImage();
@@ -227,6 +271,17 @@ class GalleryServiceTest {
     private static AmbiPrincipal principal(String userId) {
         return new AmbiPrincipal(IdentityState.REGISTERED, userId, "pub-" + userId,
                 UserLevel.USER, AuthProvider.INTERNAL, null, null, "sid-" + userId);
+    }
+
+    /** Register an image in gal-1 and return it. */
+    private GalleryImage storedImage(String imageId, AppImage image) {
+        GalleryImage galleryImage = new GalleryImage();
+        galleryImage.setId(imageId);
+        galleryImage.setGalleryId("gal-1");
+        galleryImage.setImage(image);
+        when(imageRepository.findByIdAndGalleryId(imageId, "gal-1"))
+                .thenReturn(Optional.of(galleryImage));
+        return galleryImage;
     }
 
     private static Gallery personalGallery(String ownerId) {

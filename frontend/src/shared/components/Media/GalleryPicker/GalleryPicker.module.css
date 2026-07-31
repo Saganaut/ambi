@@ -282,6 +282,15 @@
   flex: 0 0 auto;
 }
 
+/* The crop-on-pick step stands where the tabs would, directly in .picker's
+   fixed-height column, so it needs the same flex plumbing the tabs carry —
+   plus its own scroll, since it has no tab panel to fall back on. */
+.cropStepFill {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* ── Upload tab: crop editor ─────────────────────────────────────────────── */
 
 .editor {

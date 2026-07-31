@@ -24,7 +24,14 @@
 // caller whose slot takes the image's own shape (Place-on-Image's backing
 // image) passes cropAspect="source" instead, so uploads keep their aspect
 // ratio rather than being clipped to a frame.
-import { useRef, useState } from "react";
+//
+// Those aspects only ever constrained the Upload tab, so a Gallery-tab pick
+// could still drop an arbitrarily shaped image into a fixed-shape slot. Callers
+// for whom that shape is load-bearing (the square slide-option thumbnails) pass
+// cropGalleryPicks: every gallery pick then routes through the same crop editor
+// first and is stored as a NEW gallery image, so the original is left intact and
+// the slot gets bytes cut to its own frame.
+import { useEffect, useRef, useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
 import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
@@ -32,7 +39,14 @@ import { Tabs, type TabsItem } from "@ui/Tabs/Tabs";
 import {
   useGetMyGalleryQuery,
   type AppImage,
+  type GalleryImageResponse,
 } from "@features/gallery/store/galleryApi.gen";
+import {
+  fetchGalleryImageFile,
+  fetchRemoteImage,
+} from "@utils/imageEditing";
+import { extractErrorMessage } from "@utils/utils";
+import { CropAndSaveStep } from "./CropAndSaveStep";
 import { GalleryTab } from "./GalleryTab";
 import { UploadTab } from "./UploadTab";
 import { useGalleryPickerSelection } from "./useGalleryPickerSelection";
@@ -52,9 +66,24 @@ interface GalleryPickerProps {
   /** "source": the crop box takes each uploaded image's own aspect ratio
    *  (wins over cropWidth/cropHeight). */
   cropAspect?: "source";
+  /**
+   * Route Gallery-tab picks through the crop editor at the caller's aspect
+   * before insertion, storing the result as a new gallery image. For slots whose
+   * shape is load-bearing (slide-option thumbnails are square); leave it off
+   * where an existing image can be inserted as it stands.
+   */
+  cropGalleryPicks?: boolean;
 }
 
 type PickerTab = "gallery" | "upload";
+
+/** A gallery pick being re-cropped: its source bytes plus the prefills it carries. */
+interface CropStep {
+  /** Object URL of the fetched source bytes; revoked when the step is left. */
+  objectUrl: string;
+  name: string;
+  altText: string;
+}
 
 const GalleryPicker = ({
   onPick,
@@ -63,6 +92,7 @@ const GalleryPicker = ({
   cropWidth,
   cropHeight,
   cropAspect,
+  cropGalleryPicks,
 }: GalleryPickerProps) => {
   const { data: gallery, isError: galleryError } = useGetMyGalleryQuery();
   const galleryId = gallery?.id;
@@ -74,8 +104,60 @@ const GalleryPicker = ({
   const { selected } = selection;
   const selectedName = selected?.name ?? "this image";
 
+  // The crop-on-pick step (cropGalleryPicks only). Its source bytes are fetched
+  // on demand, so a pick is asynchronous here in a way it never is otherwise.
+  const [cropStep, setCropStep] = useState<CropStep | null>(null);
+  const [isPreparingCrop, setIsPreparingCrop] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
+
+  // Free the blob URL when we leave the crop step or unmount (as UploadTab does
+  // for its own source).
+  useEffect(() => {
+    if (!cropStep) return;
+    return () => {
+      URL.revokeObjectURL(cropStep.objectUrl);
+    };
+  }, [cropStep]);
+
+  // Load an already-owned image's bytes from our own origin so the canvas that
+  // crops them stays untainted: internal images come from the gallery's /file
+  // route, the rare external reference from the remote-image proxy.
+  const beginCrop = async (item: GalleryImageResponse) => {
+    if (!galleryId) return;
+    setCropError(null);
+    setIsPreparingCrop(true);
+    try {
+      const { external, externalSrc } = item.image;
+      const blob =
+        external && externalSrc
+          ? await fetchRemoteImage(externalSrc)
+          : await fetchGalleryImageFile(galleryId, item.id);
+      setCropStep({
+        objectUrl: URL.createObjectURL(blob),
+        name: item.name ?? "",
+        altText: item.image.altText ?? "",
+      });
+    } catch (err: unknown) {
+      setCropError(
+        extractErrorMessage(err, "Could not load that image for cropping."),
+      );
+    } finally {
+      setIsPreparingCrop(false);
+    }
+  };
+
+  // Every gallery-tab pick funnels through here — footer Insert, tile
+  // double-click, and keyboard activation alike.
+  const handleGalleryPick = (item: GalleryImageResponse) => {
+    if (!cropGalleryPicks) {
+      onPick(item.image);
+      return;
+    }
+    void beginCrop(item);
+  };
+
   const insertSelected = () => {
-    if (selected) onPick(selected.image);
+    if (selected) handleGalleryPick(selected);
   };
 
   // Deselect-on-outside-click. A click that lands on a control (a tile, a tab,
@@ -102,7 +184,7 @@ const GalleryPicker = ({
         <GalleryTab
           galleryId={galleryId}
           galleryError={galleryError}
-          onPick={onPick}
+          onPick={handleGalleryPick}
           selectedId={selected?.id}
           onSelect={selection.select}
         />
@@ -123,61 +205,97 @@ const GalleryPicker = ({
   ];
 
   return (
-    <div className={styles.picker} onClick={handlePickerClick}>
+    // The crop step replaces the tabs *and* the footer, so nothing outside it is
+    // clickable — including the deselect-on-outside-click, which would otherwise
+    // throw away the selection Back is meant to return to.
+    <div
+      className={styles.picker}
+      onClick={cropStep ? undefined : handlePickerClick}>
       <ErrorBoundary
         boundaryName="gallery-picker"
         fallback={<ErrorFallback message="Something went wrong loading the image picker." />}
       >
-        <Tabs
-          className={styles.pickerTabs}
-          items={items}
-          value={tab}
-          onChange={(id) => {
-            setTab(id as PickerTab);
-            // The grid — and so the thing the actions act on — is gone once the
-            // Upload tab is showing; don't leave them armed against it.
-            selection.clear();
-          }}
-          ariaLabel='Image source'
-        />
-      </ErrorBoundary>
-      <div className={styles.formActions} ref={footerRef}>
-        {selection.isConfirmingDelete ? (
-          <>
-            <span className={styles.confirmPrompt} role='status'>
-              Delete “{selectedName}”? This can’t be undone.
-            </span>
-            <Btn
-              variant='error'
-              isLoading={selection.isDeleting}
-              onClick={() => {
-                void selection.confirmDelete();
-              }}>
-              Confirm delete
-            </Btn>
-            <Btn variant='secondary' onClick={selection.cancelDelete}>
-              Cancel
-            </Btn>
-          </>
+        {cropStep ? (
+          <div className={styles.cropStepFill}>
+            <CropAndSaveStep
+              objectUrl={cropStep.objectUrl}
+              aspect={aspect}
+              initialName={cropStep.name}
+              initialAltText={cropStep.altText}
+              galleryId={galleryId}
+              onSaved={(image) => {
+                setCropStep(null);
+                onPick(image);
+              }}
+              onCancel={() => {
+                setCropStep(null);
+              }}
+            />
+          </div>
         ) : (
-          <>
-            <Btn variant='primary' disabled={!selected} onClick={insertSelected}>
-              Insert
-            </Btn>
-            <Btn
-              variant='error'
-              fill='ghost'
-              disabled={!selected}
-              onClick={selection.requestDelete}>
-              Delete
-            </Btn>
-          </>
+          <Tabs
+            className={styles.pickerTabs}
+            items={items}
+            value={tab}
+            onChange={(id) => {
+              setTab(id as PickerTab);
+              // The grid — and so the thing the actions act on — is gone once
+              // the Upload tab is showing; don't leave them armed against it,
+              // nor a failure report about an image that's no longer on screen.
+              selection.clear();
+              setCropError(null);
+            }}
+            ariaLabel='Image source'
+          />
         )}
-        <span className={styles.toolbarSpacer} />
-        <Btn onClick={onClose}>Close</Btn>
-      </div>
-      {selection.deleteError && (
-        <p className={styles.error}>{selection.deleteError}</p>
+      </ErrorBoundary>
+      {/* The crop editor carries its own Back / Use image actions. */}
+      {!cropStep && (
+        <>
+          <div className={styles.formActions} ref={footerRef}>
+            {selection.isConfirmingDelete ? (
+              <>
+                <span className={styles.confirmPrompt} role='status'>
+                  Delete “{selectedName}”? This can’t be undone.
+                </span>
+                <Btn
+                  variant='error'
+                  isLoading={selection.isDeleting}
+                  onClick={() => {
+                    void selection.confirmDelete();
+                  }}>
+                  Confirm delete
+                </Btn>
+                <Btn variant='secondary' onClick={selection.cancelDelete}>
+                  Cancel
+                </Btn>
+              </>
+            ) : (
+              <>
+                <Btn
+                  variant='primary'
+                  disabled={!selected}
+                  isLoading={isPreparingCrop}
+                  onClick={insertSelected}>
+                  Insert
+                </Btn>
+                <Btn
+                  variant='error'
+                  fill='ghost'
+                  disabled={!selected}
+                  onClick={selection.requestDelete}>
+                  Delete
+                </Btn>
+              </>
+            )}
+            <span className={styles.toolbarSpacer} />
+            <Btn onClick={onClose}>Close</Btn>
+          </div>
+          {selection.deleteError && (
+            <p className={styles.error}>{selection.deleteError}</p>
+          )}
+          {cropError && <p className={styles.error}>{cropError}</p>}
+        </>
       )}
     </div>
   );

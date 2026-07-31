@@ -4,21 +4,17 @@
 // (via the SSRF-guarded backend proxy) rather than kept as a fragile external
 // reference. On success the freshly stored AppImage is handed back via onPicked
 // (and the cache-fold enhancement adds it to the Gallery tab).
+//
+// This tab owns only the *sourcing* half; everything from the crop box onwards
+// lives in CropAndSaveStep, which the Gallery tab's crop-on-pick path shares.
 import { useEffect, useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { FileUpload } from "@components/Forms/Input/FileUpload/FileUpload";
-import {
-  useUploadImageMutation,
-  type AppImage,
-} from "@features/gallery/store/galleryApi.gen";
-import {
-  fetchRemoteImage,
-  getCroppedBlob,
-  type PixelArea,
-} from "@utils/imageEditing";
+import type { AppImage } from "@features/gallery/store/galleryApi.gen";
+import { fetchRemoteImage } from "@utils/imageEditing";
 import { extractErrorMessage } from "@utils/utils";
-import { ImageCropEditor } from "./ImageCropEditor";
+import { CropAndSaveStep } from "./CropAndSaveStep";
 import styles from "./GalleryPicker.module.css";
 
 // Mirror of the backend ingest cap (`ambi.media.max-upload-bytes`, 10 MB) so the
@@ -53,18 +49,12 @@ const fileNameFromUrl = (url: string): string => {
   }
 };
 
-// getCroppedBlob emits WebP (or PNG fallback); name the File to match so the
-// backend sees a content type in its allow-list.
-const extensionForType = (type: string): string =>
-  type === "image/png" ? "png" : "webp";
-
 const UploadTab = ({
   galleryId,
   aspect,
   initialUrl,
   onPicked,
 }: UploadTabProps) => {
-  const [uploadImage, { isLoading: isSaving }] = useUploadImageMutation();
   const [source, setSource] = useState<UploadSource | null>(null);
   const [pasteUrl, setPasteUrl] = useState(initialUrl ?? "");
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
@@ -103,45 +93,19 @@ const UploadTab = ({
     }
   };
 
-  const handleConfirm = async (result: {
-    area: PixelArea;
-    name: string;
-    altText: string;
-  }) => {
-    if (!source || !galleryId) return;
-    setError(null);
-    try {
-      const blob = await getCroppedBlob(source.objectUrl, result.area);
-      const filename = `${result.name || "image"}.${extensionForType(blob.type)}`;
-      const file = new File([blob], filename, { type: blob.type });
-      const created = await uploadImage({
-        id: galleryId,
-        name: result.name || undefined,
-        altText: result.altText || undefined,
-        body: { file },
-      }).unwrap();
-      setSource(null);
-      onPicked(created.image);
-    } catch (err: unknown) {
-      setError(
-        extractErrorMessage(err, "Could not save the image. Please try again."),
-      );
-    }
-  };
-
   if (source) {
     return (
-      <ImageCropEditor
-        imageSrc={source.objectUrl}
+      <CropAndSaveStep
+        objectUrl={source.objectUrl}
         aspect={aspect}
         initialName={source.name}
-        isSaving={isSaving}
-        error={error}
+        galleryId={galleryId}
+        onSaved={(image) => {
+          setSource(null);
+          onPicked(image);
+        }}
         onCancel={() => {
           setSource(null);
-        }}
-        onConfirm={(result) => {
-          void handleConfirm(result);
         }}
       />
     );

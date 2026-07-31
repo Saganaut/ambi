@@ -12,6 +12,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.Ownership;
@@ -22,6 +23,7 @@ import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.S3StorageService;
+import com.cephadex.ambi.media.storage.S3StorageService.StoredObject;
 import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -147,6 +149,35 @@ public class GalleryService {
         Gallery gallery = getViewable(galleryId, principal);
         return imageRepository.findByIdAndGalleryId(imageId, gallery.getId())
                 .orElseThrow(() -> new NotFoundException("GALLERY_IMAGE_NOT_FOUND", "Image not found"));
+    }
+
+    /**
+     * The stored bytes of a gallery image's original (VIEW) — the same-origin
+     * read behind {@code GET /{id}/images/{imageId}/file}. The presigned URLs a
+     * normal read hands out point at the S3 endpoint, which is cross-origin and
+     * sends no CORS headers, so a browser can render them but cannot draw them
+     * to a canvas without tainting it; re-serving the bytes from our own origin
+     * is what lets the client re-crop an image it already owns.
+     *
+     * <p>An external image owns no stored object, and a missing object is a
+     * gallery item pointing at bytes that are gone (the shared-bytes caveat on
+     * {@link #removeImage}) — both are "there is no file here", reported as the
+     * same {@code GALLERY_IMAGE_NOT_FOUND} the image read itself uses.
+     */
+    public StoredObject getImageFile(String galleryId, String imageId, AmbiPrincipal principal) {
+        AppImage image = getImage(galleryId, imageId, principal).getImage();
+        if (image == null || image.isExternal() || !StringUtils.hasText(image.getSrcKey())) {
+            throw noFile();
+        }
+        StoredObject stored = storage.get(image.getSrcKey());
+        if (stored == null) {
+            throw noFile();
+        }
+        return stored;
+    }
+
+    private static NotFoundException noFile() {
+        return new NotFoundException("GALLERY_IMAGE_NOT_FOUND", "Image file not found");
     }
 
     /**

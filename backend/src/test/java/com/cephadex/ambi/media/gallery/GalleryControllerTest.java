@@ -16,12 +16,16 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -32,14 +36,17 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageIngestService;
+import com.cephadex.ambi.media.storage.S3StorageService.StoredObject;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
- * Controller-plumbing tests for the gallery upload route in isolation via
- * standalone {@code MockMvc}, mirroring {@code DeckControllerTest}. The ingest
- * pipeline and permission semantics live in their own services (mocked here);
- * this asserts the multipart route ingests bytes, delegates to the service, and
- * returns a 201. Presigning is applied centrally by {@code AppImageSerializer}
+ * Controller-plumbing tests for the gallery's two byte-carrying routes in
+ * isolation via standalone {@code MockMvc}, mirroring {@code DeckControllerTest}.
+ * The ingest pipeline and permission semantics live in their own services
+ * (mocked here); this asserts the multipart upload ingests bytes, delegates to
+ * the service and returns a 201, and that the {@code /file} read hands the
+ * stored bytes back with their own content type and a private cache directive.
+ * Presigning is applied centrally by {@code AppImageSerializer}
  * (covered in {@code AppImageJacksonTest}); standalone MockMvc uses a default
  * ObjectMapper without that module, so the response here carries the raw keys.
  */
@@ -108,6 +115,29 @@ class GalleryControllerTest {
                 .andExpect(jsonPath("$.image.variants.SM").value("gallery/x/sm.webp"));
 
         verify(imageIngestService).ingest(any(), eq("image/png"), eq("hero.png"));
+    }
+
+    @Test
+    void fileRouteStreamsStoredBytesWithTheirTypePrivatelyCached() throws Exception {
+        when(galleryService.getImageFile(eq("g1"), eq("img-1"), any()))
+                .thenReturn(new StoredObject(new byte[] { 7, 8, 9 }, "image/webp"));
+
+        mockMvc.perform(get("/api/galleries/g1/images/img-1/file"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/webp"))
+                // Per-user authorized bytes must never land in a shared cache.
+                .andExpect(header().string("Cache-Control", "max-age=300, private"))
+                .andExpect(content().bytes(new byte[] { 7, 8, 9 }));
+    }
+
+    @Test
+    void fileRouteFallsBackToOctetStreamWhenTheStoredTypeIsMissing() throws Exception {
+        when(galleryService.getImageFile(any(), any(), any()))
+                .thenReturn(new StoredObject(new byte[] { 1 }, null));
+
+        mockMvc.perform(get("/api/galleries/g1/images/img-1/file"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM));
     }
 
     @Test

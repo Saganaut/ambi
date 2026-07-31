@@ -104,6 +104,9 @@ const OptionField = ({
         initialUrl: option.image?.externalSrc,
         cropWidth: 1,
         cropHeight: 1,
+        // Option thumbnails are square: a gallery pick has to be re-cropped to
+        // that frame too, not just an upload.
+        cropGalleryPicks: true,
       },
     );
   };

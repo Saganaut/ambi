@@ -1,9 +1,11 @@
 // Behavioural tests for the Upload tab. Two source paths converge on one flow —
 // a blob URL → crop → multipart upload — so a pasted web URL is stored as owned
 // bytes (fetched through the SSRF-guarded backend proxy) rather than kept as a
-// fragile external reference. The crop editor and the image helpers are jsdom-
-// hostile (canvas / react-easy-crop), so both are stubbed; the upload mutation
-// runs for real against MSW on a fresh RTK Query store per test.
+// fragile external reference. The crop-and-save half of that flow is the shared
+// CropAndSaveStep (the Gallery tab's crop-on-pick path uses it too), so these
+// walk through it rather than around it. The crop editor and the image helpers
+// are jsdom-hostile (canvas / react-easy-crop), so both are stubbed; the upload
+// mutation runs for real against MSW on a fresh RTK Query store per test.
 import {
   describe,
   it,
@@ -31,8 +33,9 @@ vi.mock("@utils/imageEditing", () => ({
   getCroppedBlob: (...args: unknown[]) => getCroppedBlob(...args) as Promise<Blob>,
 }));
 
-// Stub the crop editor: expose its name prop and a button that fires onConfirm,
-// so a test can walk source → confirm → upload without react-easy-crop/canvas.
+// Stub the crop editor (one level down, inside CropAndSaveStep): expose its name
+// prop and a button that fires onConfirm, so a test can walk source → confirm →
+// upload without react-easy-crop/canvas.
 vi.mock("./ImageCropEditor", () => ({
   ImageCropEditor: (props: {
     initialName?: string;

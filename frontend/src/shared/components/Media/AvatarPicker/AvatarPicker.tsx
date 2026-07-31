@@ -93,8 +93,8 @@ const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
         <GalleryTab
           galleryId={galleryId}
           galleryError={galleryError}
-          onPick={(image) => {
-            onPick({ kind: "image", image });
+          onPick={(item) => {
+            onPick({ kind: "image", image: item.image });
           }}
         />
       ),

@@ -1,11 +1,14 @@
 package com.cephadex.ambi.media.gallery;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,7 +32,9 @@ import com.cephadex.ambi.media.gallery.dto.GalleryImageResponse;
 import com.cephadex.ambi.media.gallery.dto.GalleryResponse;
 import com.cephadex.ambi.media.gallery.dto.RenameGalleryRequest;
 import com.cephadex.ambi.media.storage.ImageIngestService;
+import com.cephadex.ambi.media.storage.S3StorageService.StoredObject;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 
 /**
@@ -49,6 +54,10 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/galleries")
 public class GalleryController {
+
+    // Short enough that a re-cropped-and-replaced source is never served stale
+    // for long, long enough to cover a user re-opening the picker in a sitting.
+    private static final Duration FILE_CACHE_TTL = Duration.ofMinutes(5);
 
     private final GalleryService galleryService;
     private final ImageIngestService imageIngestService;
@@ -125,6 +134,43 @@ public class GalleryController {
             @PathVariable String imageId,
             @AuthenticationPrincipal AmbiPrincipal principal) {
         return GalleryImageResponse.from(galleryService.getImage(id, imageId, principal));
+    }
+
+    /**
+     * The raw bytes of a gallery image's original (VIEW) — a same-origin read of
+     * the stored object, so the browser can draw an image it already owns onto a
+     * canvas (re-cropping it for a differently shaped slot) without tainting it.
+     * The presigned URLs a normal read hands out are cross-origin and carry no
+     * CORS headers, which makes them render-only; {@code /api/media/remote-image}
+     * is no substitute either, since its SSRF guards reject the storage endpoint.
+     *
+     * <p>Cached {@code private} and briefly: the bytes are per-user authorized,
+     * and content-addressed keys mean a hit is never stale within its lifetime.
+     *
+     * <p>{@link Hidden} from OpenAPI for the same reason as
+     * {@code RemoteImageController}: it returns raw image bytes rather than a
+     * typed JSON resource, so a generated RTK Query hook could only mis-parse it.
+     * The frontend reads it with a plain authenticated {@code fetch} → {@code Blob}.
+     */
+    @Hidden
+    @GetMapping("/{id}/images/{imageId}/file")
+    public ResponseEntity<byte[]> getImageFile(
+            @PathVariable String id,
+            @PathVariable String imageId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        StoredObject stored = galleryService.getImageFile(id, imageId, principal);
+        return ResponseEntity.ok()
+                .contentType(contentTypeOf(stored))
+                .cacheControl(CacheControl.maxAge(FILE_CACHE_TTL).cachePrivate())
+                .body(stored.bytes());
+    }
+
+    /** The stored content type, falling back to a generic image when absent. */
+    private static MediaType contentTypeOf(StoredObject stored) {
+        String contentType = stored.contentType();
+        return StringUtils.hasText(contentType)
+                ? MediaType.parseMediaType(contentType)
+                : MediaType.APPLICATION_OCTET_STREAM;
     }
 
     /**

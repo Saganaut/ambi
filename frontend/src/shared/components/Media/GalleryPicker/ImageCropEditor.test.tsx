@@ -3,6 +3,9 @@
 // known before the media loads) and re-fits to the image's own natural ratio
 // once `onMediaLoaded` reports it. react-easy-crop itself can't load media in
 // jsdom, so the Cropper is stubbed and the reported MediaSize driven by hand.
+// Also covers the details prefills, which carry a re-cropped gallery image's
+// existing name and alt text into the copy rather than making the user retype
+// them.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen, act } from "@testing-library/react";
 import type { MediaSize } from "react-easy-crop";
@@ -69,5 +72,33 @@ describe("ImageCropEditor aspect resolution", () => {
     renderEditor("source");
     act(() => fireMediaLoaded?.(mediaSize(800, 0)));
     expect(lastAspect).toBe(1);
+  });
+});
+
+describe("ImageCropEditor details prefills", () => {
+  it("prefills the name and alt-text fields from the source image", () => {
+    render(
+      <ImageCropEditor
+        imageSrc="blob:test"
+        aspect={1}
+        initialName="Sunset"
+        initialAltText="A sunset over the sea"
+        isSaving={false}
+        onCancel={() => undefined}
+        onConfirm={() => undefined}
+      />,
+    );
+
+    expect(screen.getByLabelText("Image name")).toHaveValue("Sunset");
+    expect(screen.getByLabelText("Image alt text")).toHaveValue(
+      "A sunset over the sea",
+    );
+  });
+
+  it("starts both fields empty when no prefills are given", () => {
+    renderEditor(1);
+
+    expect(screen.getByLabelText("Image name")).toHaveValue("");
+    expect(screen.getByLabelText("Image alt text")).toHaveValue("");
   });
 });

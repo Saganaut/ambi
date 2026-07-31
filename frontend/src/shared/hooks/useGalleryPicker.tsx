@@ -24,6 +24,13 @@ interface OpenPickerOptions {
   cropHeight?: number;
   /** "source": uploads keep their own aspect ratio (wins over cropWidth/cropHeight). */
   cropAspect?: "source";
+  /**
+   * Route Gallery-tab picks through the crop editor at the caller's aspect
+   * before insertion (they are otherwise inserted as they are stored, so only
+   * uploads honour cropWidth/cropHeight). For slots whose shape is
+   * load-bearing — the square slide-option thumbnails.
+   */
+  cropGalleryPicks?: boolean;
 }
 
 type OpenGalleryPicker = (
@@ -44,6 +51,7 @@ const useGalleryPicker = (): OpenGalleryPicker => {
             cropWidth={options?.cropWidth}
             cropHeight={options?.cropHeight}
             cropAspect={options?.cropAspect}
+            cropGalleryPicks={options?.cropGalleryPicks}
             onPick={(image) => {
               onPick(image);
               closeModal();
