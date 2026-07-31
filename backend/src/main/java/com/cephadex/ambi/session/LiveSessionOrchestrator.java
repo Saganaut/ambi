@@ -23,6 +23,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
+import com.cephadex.ambi.media.storage.OpaqueImageUrls;
 import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
@@ -135,6 +136,7 @@ public class LiveSessionOrchestrator {
     private final EventPublisher publisher;
     private final RoundResultProjector roundResults;
     private final ImageUrlResolver imageUrls;
+    private final OpaqueImageUrls opaqueImageUrls;
     private final S3StorageService storage;
     private final RedisJsonCodec codec;
     private final DeadlineStore deadlines;
@@ -170,8 +172,8 @@ public class LiveSessionOrchestrator {
             SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
             VoteStore voteStore, PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers,
             FollowUpOptionStore followUpOptions, EventPublisher publisher, RoundResultProjector roundResults,
-            ImageUrlResolver imageUrls, S3StorageService storage, RedisJsonCodec codec, DeadlineStore deadlines,
-            SessionRedisProperties redisProps) {
+            ImageUrlResolver imageUrls, OpaqueImageUrls opaqueImageUrls, S3StorageService storage,
+            RedisJsonCodec codec, DeadlineStore deadlines, SessionRedisProperties redisProps) {
         this.repo = repo;
         this.participants = participants;
         this.locks = locks;
@@ -185,6 +187,7 @@ public class LiveSessionOrchestrator {
         this.publisher = publisher;
         this.roundResults = roundResults;
         this.imageUrls = imageUrls;
+        this.opaqueImageUrls = opaqueImageUrls;
         this.storage = storage;
         this.codec = codec;
         this.deadlines = deadlines;
@@ -206,9 +209,24 @@ public class LiveSessionOrchestrator {
      * the same tier {@link #votableOption} and {@link #drawingSubmissions} use,
      * because a candidate minted from a drawing is the submitted drawing itself
      * and the follow-up board projects.
+     *
+     * <p><strong>Opaque, not presigned.</strong> A presigned URL is path-style,
+     * so it spells its object's key out — {@code drawing/{sessionId}/…} for a
+     * submission, {@code gallery/{uuid}/…} for an authored image. A
+     * {@code SPOT_THE_ANSWER} board mixes the two on purpose, so a URL that
+     * names its namespace hands the seeded answer to anyone reading devtools —
+     * and it is no use proxying only the seed, since being the one proxied card
+     * is the same tell. Every candidate image therefore goes out as a signed
+     * {@link OpaqueImageUrls} token instead, indistinguishable from the next.
+     * That also outlives the presigner: these URLs are frozen into the 6h
+     * {@code FollowUpOptionStore} snapshot, which a 1h presigned URL would go
+     * dead inside of. An <em>external</em> image (an authored MCQ option
+     * pointing at someone else's origin) owns no stored object to proxy, so it
+     * passes through as it always did.
      */
     private String followUpCandidateImageUrl(AppImage image) {
-        return imageUrls.displayUrl(image, ImageSizeOptions.LG);
+        String key = imageUrls.displayKey(image, ImageSizeOptions.LG);
+        return key == null ? imageUrls.displayUrl(image, ImageSizeOptions.LG) : opaqueImageUrls.url(key);
     }
 
     // ── Session lifecycle ────────────────────────────────────────────────────

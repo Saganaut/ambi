@@ -29,6 +29,8 @@ Local dev secrets live in `dev.env` at the project root (copy from `example.env`
 | `S3_BUCKET`      | Backend — `ambi.s3.bucket` (default `ambi-images`)                       |
 | `S3_ACCESS_KEY`  | Backend — `ambi.s3.access-key`                                           |
 | `S3_SECRET_KEY`  | Backend — `ambi.s3.secret-key`                                           |
+| `AMBI_OPAQUE_IMAGE_SECRET` | Backend — `ambi.media.opaque-token-secret` (HMAC secret behind the [opaque image proxy](../diagrams/media-gallery.md#opaque-image-proxy--urls-that-hide-their-key)'s tokens; dev falls back to an insecure built-in default, **must** be overridden in production, >= 32 chars — the app refuses to start otherwise) |
+| `AMBI_PUBLIC_BASE_URL` | Backend — `ambi.media.public-base-url` (origin those opaque image URLs are minted absolute against; default `http://localhost:8080`, set empty when one origin fronts both API and frontend) |
 | `S3_KEY_NAME`    | Not a Spring property — consumed only by `scripts/init-garage.sh`, which uses it as the name of the Garage API key it mints (defaults to `ambi-key` in `example.env`) |
 
 ## Observability / AWS SDK

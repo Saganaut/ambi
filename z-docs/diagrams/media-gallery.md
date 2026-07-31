@@ -4,8 +4,9 @@ Image ingest, storage, and delivery. Originals plus five WebP renditions are
 stored in Garage/S3 under a content-addressed prefix; MongoDB holds only S3
 keys, and reads are hydrated into short-lived presigned URLs.
 
-Key classes: `GalleryController`, `RemoteImageController`, `GalleryService`,
-`ImageIngestService`, `S3StorageService`, `S3Config`, `ImageUrlResolver`,
+Key classes: `GalleryController`, `RemoteImageController`,
+`OpaqueImageController`, `GalleryService`, `ImageIngestService`,
+`S3StorageService`, `S3Config`, `ImageUrlResolver`, `OpaqueImageUrls`,
 `AppImageSerializer`, `AppImageDeserializer`, `RemoteImageService`. Data shapes:
 [Domain Model — Media](domain-model.md#media). Infra:
 [infrastructure.md](../infrastructure/infrastructure.md).
@@ -121,6 +122,56 @@ typed JSON resource, so a generated RTK Query hook could only mis-parse them; th
 frontend reads it with a plain authenticated `fetch` → `Blob`
 (`fetchGalleryImageFile` in `shared/utils/imageEditing.ts`). The response is
 cached `private` because the bytes are per-user authorized.
+
+## Opaque image proxy — URLs that hide their key
+
+`GET /api/media/opaque-image?t={token}` streams a stored object addressed by a
+signed token instead of by anything the client can read. It exists for one
+problem the presigner cannot solve: a presigned URL is **path-style**, so it
+spells its object's key out — `…/drawing/{sessionId}/{participantId}/…` for a
+live-session submission, `…/gallery/{uuid}/…` for an authored image. A
+[`SPOT_THE_ANSWER` follow-up board](../features/follow-up-slides/README.md#spot_the_answer)
+mixes the two on purpose, so the URL itself would name the seeded answer to
+anyone reading devtools. Proxying only the seed would recreate the tell (being
+the one proxied card is just as distinguishing), so **every** candidate image on
+a follow-up board is served this way.
+
+```mermaid
+flowchart LR
+    OR["LiveSessionOrchestrator<br/>followUpCandidateImageUrl"] --> OU["OpaqueImageUrls.url(key)"]
+    OU -->|"base64url(exp:key).base64url(HMAC-SHA256)"| SNAP[("FollowUpOptionStore snapshot<br/>(Redis, 6h TTL)")]
+    SNAP --> IMG["Board &lt;img src&gt;"]
+    IMG --> OC["OpaqueImageController<br/>GET /api/media/opaque-image (ROLE_GUEST floor)"]
+    OC --> V{"signature valid<br/>& not expired?"}
+    V -->|no| BAD["400 VALIDATION_FAILED"]
+    V -->|yes| S3["S3StorageService.get(key)"]
+    S3 -->|absent| NF2["404 GALLERY_IMAGE_NOT_FOUND"]
+    S3 -->|StoredObject| OUT2["bytes + stored content type<br/>Cache-Control: private, max-age=3600"]
+```
+
+- **Token** — `base64url({expiryEpochSeconds}:{key}).base64url(HMAC-SHA256)`
+  under `ambi.media.opaque-token-secret` (`OpaqueImageUrls`), compared in
+  constant time. `OpaqueImageUrls` refuses to start on an unset or
+  shorter-than-32-character secret, so tokens are never forgeable by default.
+- **TTL** — `ambi.media.opaque-token-ttl`, 6h, deliberately matching the Redis
+  round-snapshot TTL these URLs get frozen into. The 1h presign TTL is the
+  shorter of the two, so a snapshot minted with presigned URLs goes dead while
+  its round is still playable; this one cannot.
+- **Reachability** — `SecurityConfig` permits the route at the same
+  `hasRole("GUEST")` floor as the live-session player commands, because guests
+  are players. The token is the authorization for the single object behind it;
+  the floor only keeps anonymous visitors out.
+- **Absolute** — minted against `ambi.media.public-base-url`, since the browser
+  rendering the URL is on the frontend's origin (a different one in dev). Blank
+  mints root-relative URLs for a single-origin deployment.
+- Like the two proxies above it is `@Hidden` from OpenAPI (raw bytes, not a
+  typed JSON resource) — but unlike them the client needs no `fetch` wrapper:
+  the URL arrives ready to use on the round payload and goes straight into an
+  `<img src>`.
+
+Ordinary image reads keep presigning: this path costs a proxied read through our
+own origin, and is only worth it where the **key namespace itself** is
+confidential.
 
 ## Deletion
 

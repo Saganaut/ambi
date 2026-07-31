@@ -21,6 +21,11 @@ import lombok.Data;
  * resolver reuses a cached URL until it is within {@link #presignRefreshMargin}
  * of expiry, so repeated reads of the same image hand back the identical string
  * (no client-side image churn) without ever serving a URL about to die.
+ *
+ * <p>The one read path that cannot presign is the opaque proxy
+ * ({@link OpaqueImageUrls}): a presigned URL spells its object's key out, which
+ * is a tell on a board that mixes authored and submitted images. Its own secret
+ * and TTL live here too.
  */
 @Data
 @ConfigurationProperties(prefix = "ambi.media")
@@ -48,6 +53,32 @@ public class MediaProperties {
      * the default holds roughly 1,600 images before eviction.
      */
     private long presignCacheMaxSize = 10_000;
+
+    /**
+     * HMAC secret behind the opaque image-proxy tokens (see
+     * {@link OpaqueImageUrls}). MUST be overridden in production — the token is
+     * a bearer capability over one S3 key, so anyone holding the secret can mint
+     * their own. {@link OpaqueImageUrls} refuses to start on an unset or
+     * shorter-than-32-character value.
+     */
+    private String opaqueTokenSecret;
+
+    /**
+     * How long an opaque image token stays valid. Six hours by default, matching
+     * the TTL of the Redis round snapshots those URLs are frozen into
+     * ({@code SessionRedisProperties}) — a shorter one would leave a still-live
+     * follow-up board rendering dead links.
+     */
+    private Duration opaqueTokenTtl = Duration.ofHours(6);
+
+    /**
+     * Origin the opaque image URLs are minted absolute against, e.g.
+     * {@code https://api.example.com}. Needed because the browser rendering them
+     * is on the frontend's origin, which is a different one in dev. Blank mints
+     * root-relative URLs, for a deployment that serves both halves from one
+     * origin.
+     */
+    private String publicBaseUrl = "";
 
     /** Hard cap on a single uploaded file's size, in bytes (default 10 MB). */
     private long maxUploadBytes = 10L * 1024 * 1024;

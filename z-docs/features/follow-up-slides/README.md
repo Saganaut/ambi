@@ -368,6 +368,34 @@ round restarts"). `goTo`/`startRound` on the same slide reach the same board by
 the shorter road: they publish `RoundStarted`/`LiveResultsShown`, which carry the
 re-minted `followUpConfig` outright.
 
+**Candidate images travel as opaque URLs.** A candidate that carries an image
+(a DRAWING parent's submissions, an MCQ parent's option art) resolves through
+`LiveSessionOrchestrator.followUpCandidateImageUrl`, which mints a signed
+[opaque proxy URL](../../diagrams/media-gallery.md#opaque-image-proxy--urls-that-hide-their-key)
+— `/api/media/opaque-image?t={token}` — rather than presigning S3 directly.
+Two reasons, and the first is the reason it applies to *every* candidate:
+
+- **The URL namespace must not distinguish a seeded card from a submitted
+  one.** Presigned URLs are path-style, so they spell their key out:
+  `drawing/{sessionId}/{participantId}/…` for a submission,
+  `gallery/{uuid}/…` for an authored image. On a `SPOT_THE_ANSWER` board that
+  hands the answer to anyone with devtools open — as good a tell as a label,
+  and every bit as fatal as an unshuffled arrangement would be. Proxying only
+  the seed would be no better: being the one card served from a different route
+  *is* the tell. So all of them go out identically shaped, and the only thing
+  distinguishing two candidate URLs is the opaque token.
+- **A presigned URL dies inside the snapshot that holds it.** These URLs are
+  frozen into the `FollowUpOptionStore` snapshot when the round opens, and that
+  snapshot lives 6h (`ambi.session.follow-up.ttl`) while a presigned URL
+  lives 1h (`ambi.media.presign-ttl`) — a board still on screen five hours in
+  would render broken images. The opaque token's TTL is 6h to match.
+
+The proxy route sits at the same `hasRole("GUEST")` floor as the other
+live-session player routes, since guests are players; the token is what
+authorizes the one object behind it. An *external* image (an authored option
+pointing at someone else's origin) owns no stored object to proxy and passes
+through as its own URL, as it always did.
+
 `LiveSessionAnswerService` validates a pick against that snapshot rather than
 any authored content (the board is runtime state): a blank id or one absent
 from the round's set is a `400`, and picking one's own candidate is the same

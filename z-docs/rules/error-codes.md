@@ -65,7 +65,7 @@ Role/relationship violation:
 | `SESSION_NOT_FOUND` | Room code doesn't resolve to a live session — also the masking code used when a room-code path's real failure is authorization (see the disclosure policy) |
 | `PARTICIPANT_NOT_FOUND` | Participant id doesn't resolve within a session |
 | `GALLERY_NOT_FOUND` | Gallery id doesn't resolve |
-| `GALLERY_IMAGE_NOT_FOUND` | Image id doesn't resolve within a gallery |
+| `GALLERY_IMAGE_NOT_FOUND` | Image id doesn't resolve within a gallery — also "there is no file here" on the same-origin byte reads, when the stored object behind a resolvable reference is gone (`GalleryController`'s `/file` route, `OpaqueImageController`) |
 | `COMMENT_NOT_FOUND` | Comment id doesn't resolve |
 | `COMMENT_THREAD_NOT_FOUND` | Comment thread id doesn't resolve |
 | `USER_NOT_FOUND` | User id doesn't resolve |

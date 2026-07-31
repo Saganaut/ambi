@@ -31,7 +31,9 @@ import org.springframework.dao.DuplicateKeyException;
 
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
+import com.cephadex.ambi.media.storage.MediaProperties;
 import com.cephadex.ambi.media.storage.MediaStorageException;
+import com.cephadex.ambi.media.storage.OpaqueImageUrls;
 import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
@@ -120,6 +122,8 @@ class LiveSessionOrchestratorTest {
     private static final String PARENT = "parent-1";
     /** The follow-up attached to {@link #PARENT}. */
     private static final String CHILD = "child-1";
+    /** Origin the opaque image URLs under test are minted absolute against. */
+    private static final String BACKEND_ORIGIN = "http://localhost:8080";
 
     private LiveSessionRepository repo;
     private ParticipantRepository participants;
@@ -133,6 +137,7 @@ class LiveSessionOrchestratorTest {
     private EventPublisher publisher;
     private RoundResultProjector roundResults;
     private ImageUrlResolver imageUrls;
+    private OpaqueImageUrls opaqueImageUrls;
     private S3StorageService storage;
     private RedisJsonCodec codec;
     private DeadlineStore deadlines;
@@ -156,6 +161,12 @@ class LiveSessionOrchestratorTest {
         publisher = mock(EventPublisher.class);
         roundResults = mock(RoundResultProjector.class);
         imageUrls = mock(ImageUrlResolver.class);
+        // Real, not mocked: the follow-up board's candidate URLs must be asserted
+        // as the wire sees them (see followUpCandidateImageUrlsAreOpaque).
+        MediaProperties mediaProps = new MediaProperties();
+        mediaProps.setOpaqueTokenSecret("test-only-opaque-image-secret-of-sufficient-length");
+        mediaProps.setPublicBaseUrl(BACKEND_ORIGIN);
+        opaqueImageUrls = new OpaqueImageUrls(mediaProps);
         storage = mock(S3StorageService.class);
         codec = mock(RedisJsonCodec.class);
         deadlines = mock(DeadlineStore.class);
@@ -170,7 +181,7 @@ class LiveSessionOrchestratorTest {
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
                 tallyStore, voteStore, presenceStore, qandaHostAnswers, followUpOptions, publisher, roundResults,
-                imageUrls, storage, codec, deadlines, new SessionRedisProperties());
+                imageUrls, opaqueImageUrls, storage, codec, deadlines, new SessionRedisProperties());
     }
 
     private void stubPhase(RoundPhase phase) {
@@ -1231,6 +1242,66 @@ class LiveSessionOrchestratorTest {
         Slide parent = slideWithId(PARENT);
         when(roundResults.find(SID, PARENT))
                 .thenReturn(Optional.of(RoundResult.compute(SID, parent, List.of(), Instant.now())));
+    }
+
+    /**
+     * The same pair with a DRAWING parent — the one parent kind whose candidates
+     * carry an image, so the only fixture that exercises the candidate image-URL
+     * resolution.
+     */
+    private void drawingFollowUpSession() {
+        Slide parent = slideWithId(PARENT);
+        parent.setSortOrder("a");
+        parent.setContent(new DrawingContent(null, PromptPlacement.ALONGSIDE, null,
+                List.of("#111111"), Set.of(Tool.PEN)));
+        parent.setChildId(CHILD);
+        Slide child = slideWithId(CHILD);
+        child.setSortOrder("b");
+        child.setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        child.setParentId(PARENT);
+
+        Deck deck = new Deck();
+        deck.addSlide(parent);
+        deck.addSlide(child);
+
+        LiveSession session = mock(LiveSession.class);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+    }
+
+    @Test
+    void followUpCandidateImageUrlsAreOpaque() {
+        drawingFollowUpSession();
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        AppImage submitted = new AppImage();
+        submitted.setExternal(false);
+        submitted.setSrcKey("drawing/" + SID + "/p-1/original");
+        Answer answer = new Answer();
+        answer.setParticipantId("p-1");
+        answer.setSessionId(SID);
+        answer.setSlideId(PARENT);
+        answer.setSubmittedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        answer.setPayload(new DrawingAnswer(submitted));
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of(answer));
+        when(imageUrls.displayKey(eq(submitted), any())).thenReturn("drawing/" + SID + "/p-1/lg.webp");
+
+        orchestrator.startRound(SID, CHILD);
+
+        String imageUrl = savedCandidates(CHILD).options().get(0).imageUrl();
+        // The candidate is served through our own proxy behind a signed token —
+        // a presigned S3 URL would name the key namespace it came from, which is
+        // exactly what a SPOT_THE_ANSWER board must not let a client read.
+        assertThat(imageUrl).startsWith(BACKEND_ORIGIN + "/api/media/opaque-image?t=");
+        assertThat(imageUrl).doesNotContain("drawing/").doesNotContain("gallery/");
+        // The key still round-trips server-side, so the proxy can serve the bytes.
+        assertThat(opaqueImageUrls.keyFrom(imageUrl.substring(imageUrl.indexOf("?t=") + 3)))
+                .isEqualTo("drawing/" + SID + "/p-1/lg.webp");
+        // Nothing presigns on this path any more (a 1h URL would die inside the
+        // 6h snapshot it is frozen into).
+        verify(imageUrls, never()).displayUrl(eq(submitted), any());
     }
 
     @Test

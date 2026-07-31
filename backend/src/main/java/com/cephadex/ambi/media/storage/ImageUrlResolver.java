@@ -147,6 +147,20 @@ public class ImageUrlResolver {
             String src = image.getExternalSrc();
             return src == null || src.isBlank() ? null : src;
         }
+        String key = displayKey(image, preferred);
+        return key == null ? null : url(key);
+    }
+
+    /**
+     * The stored S3 key {@link #displayUrl} would presign — the tier-walk on its
+     * own, for a caller that serves the object some other way than a presigned
+     * URL (see {@link OpaqueImageUrls}). {@code null} when {@code image} is null,
+     * external (it owns no stored object), or carries no usable variant.
+     */
+    public String displayKey(AppImage image, ImageSizeOptions preferred) {
+        if (image == null || image.isExternal()) {
+            return null;
+        }
         Map<ImageSizeOptions, String> variants = image.getVariants();
         if (variants == null) {
             return null;
@@ -155,13 +169,13 @@ public class ImageUrlResolver {
         for (int i = preferred.ordinal(); i < tiers.length; i++) {
             String key = variants.get(tiers[i]);
             if (key != null && !key.isBlank()) {
-                return url(key);
+                return key;
             }
         }
         for (int i = preferred.ordinal() - 1; i >= 0; i--) {
             String key = variants.get(tiers[i]);
             if (key != null && !key.isBlank()) {
-                return url(key);
+                return key;
             }
         }
         return null;

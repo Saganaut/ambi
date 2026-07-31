@@ -121,6 +121,12 @@ public class SecurityConfig {
                         // Presence is participant self-service, so guest players may call it too.
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/reconnect").hasRole("GUEST")
                         .requestMatchers(HttpMethod.POST, "/api/liveSessions/*/heartbeat").hasRole("GUEST")
+                        // Opaque image proxy: the URLs a follow-up board's candidate
+                        // images are served from, so guest players must reach it too.
+                        // The signed token in ?t= carries the authorization for the
+                        // one object behind it (OpaqueImageUrls); this floor only
+                        // keeps anonymous visitors out.
+                        .requestMatchers(HttpMethod.GET, "/api/media/opaque-image").hasRole("GUEST")
                         // Everything else requires a registered USER. Visitors (anonymous) →
                         // 401 via the entry point; authenticated-but-insufficient (guest /
                         // preRegistration) → 403 via the access-denied handler (Inv 8).
