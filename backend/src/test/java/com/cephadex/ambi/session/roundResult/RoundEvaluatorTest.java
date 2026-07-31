@@ -489,7 +489,7 @@ class RoundEvaluatorTest {
 
     private static ScalesContent scales(Map<String, Double> correctValues, double tolerance) {
         return new ScalesContent(1, 5, "Low", "High",
-                List.of(new ScaleItem("st-1", "One"), new ScaleItem("st-2", "Two")),
+                List.of(new ScaleItem("st-1", "One", null, null), new ScaleItem("st-2", "Two", null, null)),
                 correctValues, tolerance);
     }
 

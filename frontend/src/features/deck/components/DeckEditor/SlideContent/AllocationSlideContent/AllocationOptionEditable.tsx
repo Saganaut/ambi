@@ -26,7 +26,7 @@ import { ALLOCATION_OPTION_LABEL_MAX } from "@deck/hooks/useAllocationEditor";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@utils/image";
-import { ItemCard, ItemField } from "../_shared";
+import { ItemField, SortableItemCard } from "../_shared";
 import styles from "./AllocationSlideContent.module.css";
 
 interface AllocationOptionEditableProps {
@@ -97,7 +97,13 @@ const AllocationOptionEditable = ({
   }
 
   return (
-    <ItemCard index={sortIndex} tone={scored ? "success" : undefined} indexColor={color}>
+    <SortableItemCard
+      id={option.id}
+      index={sortIndex}
+      color={color}
+      itemNoun="option"
+      scored={scored}
+    >
       <div className={styles.optionFields}>
         <ItemField
           itemId={option.id}
@@ -169,7 +175,7 @@ const AllocationOptionEditable = ({
           </Btn>
         )}
       </div>
-    </ItemCard>
+    </SortableItemCard>
   );
 };
 

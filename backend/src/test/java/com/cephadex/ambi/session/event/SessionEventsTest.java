@@ -79,7 +79,8 @@ class SessionEventsTest {
         slide.setTitle("Rate these meals");
         slide.setContent(new ScalesContent(
                 1, 5, "Skip it", "Sacred",
-                List.of(new ScaleItem("meal-1", "Breakfast"), new ScaleItem("meal-2", "Elevenses")),
+                List.of(new ScaleItem("meal-1", "Breakfast", null, null),
+                        new ScaleItem("meal-2", "Elevenses", null, null)),
                 Map.of("meal-1", 4.5),
                 0.8));
         return slide;

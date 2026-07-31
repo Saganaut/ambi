@@ -11,11 +11,11 @@ import type { OptionMenuPrimaryAction } from "./OptionMenu.types";
 interface OptionMenuContentProps {
   displayIndex: string;
   /** The item's resolved color; omit (with the color handlers) to hide the
-   *  Color section — e.g. Scales statements, whose items carry no color. */
+   *  Color section, for a kind whose items carry no color. */
   currentColor?: string;
   canRemove: boolean;
   /** Whether the item has an image; omit (with the image handlers) to hide the
-   *  image controls — e.g. Scales statements, whose items carry no image. */
+   *  image controls, for a kind whose items carry no image. */
   hasImage?: boolean;
   /** Leading kind-specific action; omitted for kinds with no toggle  */
   primaryAction?: OptionMenuPrimaryAction;

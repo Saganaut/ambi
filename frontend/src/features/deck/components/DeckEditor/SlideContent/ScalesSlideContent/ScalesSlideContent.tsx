@@ -20,8 +20,10 @@
  */
 import { useState } from "react";
 
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { formatScaleValue } from "@/shared/utils/scaleValue";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
+import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
   MAX_SCALE_STATEMENTS,
   SCALES_TOLERANCE_MAX_FRACTION,
@@ -55,12 +57,16 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     canAddStatement,
     addStatement,
     canRemove,
-    scheduleStatement,
+    scheduleStatementLabel,
+    setStatementColor,
+    setStatementImage,
     removeStatement,
+    handleStatementDragEnd,
     scheduleCorrectValue,
     commitCorrectValue,
     clearCorrectValue,
   } = useScalesEditor(deckId, slideId);
+  const openPicker = useGalleryPicker();
   // The prompt mirror and which row's menu is open — at most one per slide.
   // Focusing a row's label opens its menu (and thereby closes any other); the
   // menu owns dismissal. Scales arms no row, so `selectedItemId` goes unused.
@@ -120,49 +126,58 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
           </SlideContentSection.Header>
           <SlideContentSection.Body>
             <div className={shared.itemList}>
-              {question.items.map((statement, idx) => (
-                <ScaleStatementEditable
-                  key={statement.id ?? idx}
-                  statement={statement}
-                  sortIndex={idx}
-                  menuOpen={composer.openMenuId === statement.id}
-                  canRemove={canRemove}
-                  correctValue={statement.id ? question.correctValues[statement.id] : undefined}
-                  min={min}
-                  max={max}
-                  tolerance={question.tolerance}
-                  leftLabel={leftLabel}
-                  rightLabel={rightLabel}
-                  onMenuOpenChange={(open) => {
-                    composer.setOpenMenuId(open ? (statement.id ?? null) : null);
-                  }}
-                  onScheduleLabel={(label) => {
-                    scheduleStatement(statement.id, { ...statement, label });
-                  }}
-                  onCommitCorrectValue={(value) => {
-                    commitCorrectValue(statement.id, value);
-                  }}
-                  onScheduleCorrectValue={(value) => {
-                    scheduleCorrectValue(statement.id, value);
-                  }}
-                  onClearCorrectValue={() => {
-                    clearCorrectValue(statement.id);
-                  }}
-                  onFlush={flush}
-                  onRemove={() => {
-                    removeStatement(statement.id);
-                  }}
+              <DragDropWrapper onReorder={handleStatementDragEnd}>
+                {question.items.map((statement, idx) => (
+                  <ScaleStatementEditable
+                    key={statement.id}
+                    statement={statement}
+                    sortIndex={idx}
+                    menuOpen={composer.openMenuId === statement.id}
+                    canRemove={canRemove}
+                    correctValue={question.correctValues[statement.id]}
+                    min={min}
+                    max={max}
+                    tolerance={question.tolerance}
+                    leftLabel={leftLabel}
+                    rightLabel={rightLabel}
+                    onMenuOpenChange={(open) => {
+                      composer.setOpenMenuId(open ? statement.id : null);
+                    }}
+                    onScheduleLabel={(label) => {
+                      scheduleStatementLabel(statement.id, label);
+                    }}
+                    onCommitCorrectValue={(value) => {
+                      commitCorrectValue(statement.id, value);
+                    }}
+                    onScheduleCorrectValue={(value) => {
+                      scheduleCorrectValue(statement.id, value);
+                    }}
+                    onClearCorrectValue={() => {
+                      clearCorrectValue(statement.id);
+                    }}
+                    onFlush={flush}
+                    onSetColor={(color) => {
+                      setStatementColor(statement.id, color);
+                    }}
+                    onSetImage={(image) => {
+                      setStatementImage(statement.id, image);
+                    }}
+                    onRemove={() => {
+                      removeStatement(statement.id);
+                    }}
+                    openPicker={openPicker}
+                  />
+                ))}
+                <AddItemCard
+                  label={
+                    canAddStatement
+                      ? "Add statement"
+                      : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
+                  }
+                  disabled={!canAddStatement}
+                  onAdd={addStatement}
                 />
-              ))}
-              <AddItemCard
-                label={
-                  canAddStatement
-                    ? "Add statement"
-                    : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
-                }
-                disabled={!canAddStatement}
-                onAdd={addStatement}
-              />
+              </DragDropWrapper>
             </div>
           </SlideContentSection.Body>
         </SlideContentSection>

@@ -147,7 +147,7 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         max: 5,
         leftLabel: "Disagree",
         rightLabel: "Agree",
-        items: [buildDefaultScaleItem()],
+        items: [buildDefaultScaleItem(paletteColorAt(0))],
         correctValues: {},
         // 10 % of the default 1–5 span — a positive tolerance a scored slide
         // needs on a continuum (an exact match is measure-zero).
@@ -321,9 +321,12 @@ export const buildDefaultMatchItem = (): MatchItem => ({
  * Build a blank Scales statement with a fresh client-minted id. SCALES slides
  * key each statement's rating (and, when scored, its target value) by id, so a
  * stable id at creation time is what lets the author edit and the backend
- * resolve per-statement answers. The label is empty for the author to fill in.
+ * resolve per-statement answers. The label is empty for the author to fill in;
+ * `color` is stamped at creation for the reason {@link buildDefaultRankItem}
+ * gives.
  */
-export const buildDefaultScaleItem = (): ScaleItem => ({
+export const buildDefaultScaleItem = (color: string): ScaleItem => ({
   id: nanoid(8),
   label: "",
+  color,
 });

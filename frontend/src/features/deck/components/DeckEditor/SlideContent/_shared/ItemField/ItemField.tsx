@@ -20,8 +20,10 @@
  * kind-specific leading action comes in as `primaryAction` (e.g. Axis's
  * set/clear-target toggle) and may be omitted.
  *
- * The color and image sections are opt-in: a kind whose items carry neither
- * (Scales statements) leaves those props off and the menu narrows to Delete.
+ * The color and image sections are opt-in: a kind whose items carry neither can
+ * leave those props off and the menu narrows to Delete. Every bank wires both
+ * today — the gating stays so a kind whose rows are plain text costs no change
+ * here.
  */
 import { useState, type HTMLProps } from "react";
 
@@ -92,8 +94,8 @@ const ItemField = ({
   // Whether the popover shows the custom-color view instead of the menu.
   const [customColorOpen, setCustomColorOpen] = useState(false);
 
-  // Sections are opt-in: a kind whose items carry no color (or no image) leaves
-  // the matching props off and the menu narrows to what it can act on.
+  // Sections are opt-in: a kind whose items carry no color (or no image) can
+  // leave the matching props off and the menu narrows to what it can act on.
   // `color` and `onSetColor` gate together: `OptionMenuContent` only renders
   // its Color section when it has both a current swatch and the handlers, so
   // wiring one without the other would silently produce no section.

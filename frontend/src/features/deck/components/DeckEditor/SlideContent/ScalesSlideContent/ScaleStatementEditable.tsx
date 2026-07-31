@@ -10,10 +10,11 @@
  * success-tinted outline via `ItemCard`'s `tone`.
  *
  * The label is the shared `ItemField` — focusing it opens the row's popover
- * menu, and the composer keeps at most one open. A statement carries no color
- * and no image, so that menu narrows to Delete: removal lives there, not on a
- * standalone button, which is the one removal affordance every other item bank
- * offers.
+ * menu, and the composer keeps at most one open. A statement carries the same
+ * stored identity as every other item bank's row, so that menu is the full one:
+ * palette or custom color, image upload/clear, and Delete — removal lives
+ * there, not on a standalone button, which is the one removal affordance every
+ * other item bank offers.
  *
  * The numeric "Answer" field is the always-available precise and accessible
  * entry, with the X button as the one clearing affordance; the "Set answer"
@@ -25,39 +26,39 @@
  * `ScalesSlideContent`, so every write funnels through a single draft +
  * debounce buffer.
  *
- * Statement order is display-only — each statement is keyed by id in the
- * content's `correctValues` — so rows are not drag-sortable (unlike Ranking,
- * where order is the answer).
+ * Statement order is still cosmetic for grading — each statement stays keyed
+ * by id in the content's `correctValues` — but the row is drag-sortable like
+ * every other item bank's, via a grip handle wired to `useSortable` (the Axis
+ * item row's precedent); reordering only ever renumbers the bank, it never
+ * touches a target.
  */
 import { useRef, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
 
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
+import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import type { ScaleItem } from "@deck/store/deckApi.gen";
 import { SCALES_STATEMENT_LABEL_MAX } from "@deck/hooks/useScalesEditor";
+import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { ItemCard, ItemField } from "../_shared";
-import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
+import { resolveImageUrl } from "@utils/image";
+import { ItemField, SortableItemCard, type Identified } from "../_shared";
 import styles from "./ScalesSlideContent.module.css";
 
 /** Arrow-key nudge, as a fraction of the span (the axis-board precedent). */
 const KEYBOARD_NUDGE_STEP = 0.02;
 
 interface ScaleStatementEditableProps {
-  statement: ScaleItem;
+  statement: Identified<ScaleItem>;
   sortIndex: number;
-  /** Whether this row's popover menu is open (at most one per slide). */
   menuOpen: boolean;
   canRemove: boolean;
-  /** The statement's correct answer in scale units, or undefined while unscored. */
   correctValue: number | undefined;
-  /** Scale definition — drives the track mapping and the numeric-field bounds. */
   min: number;
   max: number;
-  /** ± margin in scale units, rendered as the band around the marker. */
   tolerance: number;
-  /** Anchor labels echoed beside the statement's scale. */
   leftLabel: string;
   rightLabel: string;
   onMenuOpenChange: (open: boolean) => void;
@@ -69,7 +70,10 @@ interface ScaleStatementEditableProps {
   onScheduleCorrectValue: (value: number) => void;
   onClearCorrectValue: () => void;
   onFlush: () => void;
+  onSetColor: (color: string) => void;
+  onSetImage: (image: AppImage) => void;
   onRemove: () => void;
+  openPicker: OpenGalleryPicker;
 }
 
 const ScaleStatementEditable = ({
@@ -89,7 +93,10 @@ const ScaleStatementEditable = ({
   onScheduleCorrectValue,
   onClearCorrectValue,
   onFlush,
+  onSetColor,
+  onSetImage,
   onRemove,
+  openPicker,
 }: ScaleStatementEditableProps) => {
   const scored = correctValue !== undefined;
   // "Set answer" seeds the scale's midpoint so a freshly-scored statement
@@ -122,6 +129,10 @@ const ScaleStatementEditable = ({
   const displayIndex = sortIndex + 1;
   /** The marker's rendered value: the live drag value while dragging, else the target. */
   const displayValue = dragValue ?? correctValue;
+
+  // Styles the index pill and, via a CSS var, the row chrome.
+  const color = resolveDatumColor(statement.color, sortIndex);
+  const thumbnailSrc = resolveImageUrl(statement.image, "SM", statement.id, 200, 200, false);
 
   /** Scale-unit value at a pointer position, clamped onto the track. */
   const valueFromClient = (clientX: number): number | null => {
@@ -182,34 +193,47 @@ const ScaleStatementEditable = ({
   const span = max - min;
 
   return (
-    <ItemCard index={sortIndex} tone={scored ? "success" : undefined}>
+    <SortableItemCard
+      id={statement.id}
+      index={sortIndex}
+      color={color}
+      itemNoun="statement"
+      scored={scored}
+    >
       <div className={styles.statementBody}>
-        <ItemField
-          itemId={statement.id}
-          label={statement.label}
-          displayIndex={displayIndex}
-          placeholder={`Statement ${displayIndex.toString()}`}
-          maxLength={SCALES_STATEMENT_LABEL_MAX}
-          open={menuOpen}
-          onOpenChange={onMenuOpenChange}
-          canRemove={canRemove}
-          onScheduleLabel={onScheduleLabel}
-          onFlush={onFlush}
-          onRemove={onRemove}
-        />
+        {thumbnailSrc && <img className={styles.statementThumbnail} src={thumbnailSrc} alt="" />}
+        <div className={styles.statementLabelField}>
+          <ItemField
+            itemId={statement.id}
+            label={statement.label}
+            image={statement.image}
+            displayIndex={displayIndex}
+            placeholder={`Statement ${displayIndex.toString()}`}
+            maxLength={SCALES_STATEMENT_LABEL_MAX}
+            color={color}
+            open={menuOpen}
+            onOpenChange={onMenuOpenChange}
+            canRemove={canRemove}
+            onScheduleLabel={onScheduleLabel}
+            onFlush={onFlush}
+            onSetColor={onSetColor}
+            onSetImage={onSetImage}
+            onRemove={onRemove}
+            openPicker={openPicker}
+          />
+        </div>
         <div className={styles.statementScale}>
-          <span className={styles.anchorCaption}>
-            {leftLabel.length > 0 ? leftLabel : min}
-          </span>
+          <span className={styles.anchorCaption}>{leftLabel.length > 0 ? leftLabel : min}</span>
           {/* Pointer placement surface; the accessible path is the marker
-              slider and the numeric "Answer" field. */}
+                slider and the numeric "Answer" field. */}
           {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
             ref={trackRef}
             className={styles.dragTrack}
             onPointerDown={handleTrackPointerDown}
             onPointerMove={handleTrackPointerMove}
-            onPointerUp={handleTrackPointerUp}>
+            onPointerUp={handleTrackPointerUp}
+          >
             <div className={styles.targetLine} />
             {displayValue !== undefined && span > 0 && (
               <>
@@ -219,14 +243,14 @@ const ScaleStatementEditable = ({
                     left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
                     width: `${(((tolerance * 2) / span) * 100).toString()}%`,
                   }}
-                  aria-hidden='true'
+                  aria-hidden="true"
                 />
                 <button
-                  type='button'
+                  type="button"
                   // A real button so it's focusable/clickable everywhere; the
                   // slider role carries the value semantics for AT.
                   // eslint-disable-next-line jsx-a11y/role-supports-aria-props
-                  role='slider'
+                  role="slider"
                   className={styles.marker}
                   style={{
                     left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
@@ -241,11 +265,9 @@ const ScaleStatementEditable = ({
               </>
             )}
           </div>
-          <span className={styles.anchorCaption}>
-            {rightLabel.length > 0 ? rightLabel : max}
-          </span>
+          <span className={styles.anchorCaption}>{rightLabel.length > 0 ? rightLabel : max}</span>
           {displayValue !== undefined && span > 0 && (
-            <span className={styles.valueReadout} aria-hidden='true'>
+            <span className={styles.valueReadout} aria-hidden="true">
               {formatScaleValue(displayValue)}
             </span>
           )}
@@ -253,9 +275,9 @@ const ScaleStatementEditable = ({
         {scored ? (
           <div className={styles.targetField}>
             <NumberInput
-              label='Answer'
-              id={`scales-target-${statement.id ?? sortIndex.toString()}`}
-              labelPosition='labelInFront'
+              label="Answer"
+              id={`scales-target-${statement.id}`}
+              labelPosition="labelInFront"
               value={target}
               min={min}
               max={max}
@@ -266,8 +288,8 @@ const ScaleStatementEditable = ({
               onBlur={onFlush}
             />
             <IconBtn
-              fill='ghost'
-              size='xs'
+              fill="ghost"
+              size="xs"
               icon={<XMarkIcon />}
               aria-label={`Clear correct answer for statement ${displayIndex.toString()}`}
               onClick={onClearCorrectValue}
@@ -275,17 +297,18 @@ const ScaleStatementEditable = ({
           </div>
         ) : (
           <Btn
-            fill='ghost'
-            size='xs'
+            fill="ghost"
+            size="xs"
             onClick={() => {
               setTarget(midpoint);
               onCommitCorrectValue(midpoint);
-            }}>
+            }}
+          >
             Set answer
           </Btn>
         )}
       </div>
-    </ItemCard>
+    </SortableItemCard>
   );
 };
 

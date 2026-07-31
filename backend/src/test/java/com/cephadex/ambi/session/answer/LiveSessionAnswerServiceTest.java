@@ -779,7 +779,7 @@ class LiveSessionAnswerServiceTest {
     private static ScalesContent scalesContent() {
         return new ScalesContent(
                 1, 5, "Low", "High",
-                List.of(new ScaleItem("it-1", "One"), new ScaleItem("it-2", "Two")),
+                List.of(new ScaleItem("it-1", "One", null, null), new ScaleItem("it-2", "Two", null, null)),
                 java.util.Map.of(),
                 1.0);
     }

@@ -21,9 +21,22 @@
 // how empty `acceptedAnswers` marks a TEXT slide as a word cloud). So "score
 // this statement" is just "set its target", and "make it unscored" is "drop
 // its key from the map".
-import type { ScaleItem } from "@deck/store/deckApi.gen";
+//
+// A statement carries stored identity like every other item bank's row — id AND
+// color, minted at creation and repaired on load for legacy content
+// (`useItemIdentityBackfill`), plus an optional image the row's menu sets.
+// Statement order is still cosmetic for grading (rating and target stay keyed
+// by id, never by position) but the row list is drag-reorderable like every
+// other item bank's, via `handleStatementDragEnd`.
+import type { DragEndEvent } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/react/sortable";
 
+import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
+import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
+
+import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { buildDefaultScaleItem } from "../utils/slideContent";
+import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** A scale needs at least one statement to rate … */
@@ -57,7 +70,8 @@ interface ScalesQuestionView {
   rightLabel: string;
   /** ± margin in scale units around each target that still counts as correct. */
   tolerance: number;
-  items: ScaleItem[];
+  /** The statements, every one carrying the id its target is keyed by. */
+  items: Identified<ScaleItem>[];
   /** statementId → target value; empty means the slide is unscored. */
   correctValues: Record<string, number>;
   /** True when any statement has a target — i.e. the slide is graded. */
@@ -83,14 +97,20 @@ interface UseScalesEditorResult {
   /** ── Statements (keyed by `item.id`) ─────────────────────────────────── */
   /** True while under {@link MAX_SCALE_STATEMENTS}. */
   canAddStatement: boolean;
-  /** Append a blank statement (no-op at the max). */
+  /** Append a blank statement in the next free palette color (no-op at the max). */
   addStatement: () => void;
   /** True while above {@link MIN_SCALE_STATEMENTS} — same for every statement. */
   canRemove: boolean;
-  /** Debounced label edit. */
-  scheduleStatement: (statementId: string | undefined, next: ScaleItem) => void;
+  /** Debounced statement label edit. */
+  scheduleStatementLabel: (statementId: string | undefined, label: string) => void;
+  /** Override the statement's palette color (menu swatch / custom picker). Immediate. */
+  setStatementColor: (statementId: string | undefined, color: string) => void;
+  /** Set or clear (empty AppImage) the statement's image. Immediate. */
+  setStatementImage: (statementId: string | undefined, image: AppImage) => void;
   /** Remove a statement and drop its target from `correctValues`. */
   removeStatement: (statementId: string | undefined) => void;
+  /** @dnd-kit drop handler — reorders display order; writes stay keyed by id. */
+  handleStatementDragEnd: (event: DragEndEvent) => void;
 
   /** ── Scoring ─────────────────────────────────────────────────────────── */
   /** Debounced per-statement target edit → `correctValues[id]`. */
@@ -115,6 +135,12 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
   const items = content?.items ?? [];
   const correctValues = content?.correctValues ?? {};
 
+  // Freeze legacy statements' ids and colors into the content once, on load.
+  useItemIdentityBackfill(slideId, content?.items, (backfilled) => {
+    editor.updateSlideContent({ items: backfilled });
+    editor.flush();
+  });
+
   const canAddStatement = items.length < MAX_SCALE_STATEMENTS;
   const canRemove = items.length > MIN_SCALE_STATEMENTS;
 
@@ -128,7 +154,11 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
           leftLabel: content.leftLabel,
           rightLabel: content.rightLabel,
           tolerance: content.tolerance,
-          items,
+          // An id-less statement is unaddressable — it cannot be labeled,
+          // colored, targeted or removed — so it is withheld rather than
+          // rendered inert. The backfill above mints its id on the very next
+          // render.
+          items: items.filter((item): item is Identified<ScaleItem> => item.id != null),
           correctValues,
           scored: Object.keys(correctValues).length > 0,
         }
@@ -154,17 +184,41 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
 
   const addStatement = () => {
     if (!canAddStatement) return;
-    editor.updateSlideContent((prev) => ({ items: [...prev.items, buildDefaultScaleItem()] }));
+    // The color is picked against the freshest draft, so two adds inside one
+    // debounce window can't both claim the same palette slot.
+    editor.updateSlideContent((prev) => ({
+      items: [
+        ...prev.items,
+        buildDefaultScaleItem(nextPaletteColor(prev.items.map((item) => item.color))),
+      ],
+    }));
     editor.flush();
   };
 
-  const scheduleStatement = (id: string | undefined, next: ScaleItem) => {
+  const scheduleStatementLabel = (id: string | undefined, label: string) => {
     if (!id) return;
     // Derive from the freshest pending draft so a sibling statement's edit in
     // the same debounce window isn't clobbered.
     editor.updateSlideContent((prev) => ({
-      items: prev.items.map((item) => (item.id === id ? next : item)),
+      items: prev.items.map((item) => (item.id === id ? { ...item, label } : item)),
     }));
+  };
+
+  /** Merge a patch into one statement and persist immediately (menu-driven edits). */
+  const commitStatementPatch = (id: string | undefined, patch: Partial<ScaleItem>) => {
+    if (!id) return;
+    editor.updateSlideContent((prev) => ({
+      items: prev.items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    }));
+    editor.flush();
+  };
+
+  const setStatementColor = (id: string | undefined, color: string) => {
+    commitStatementPatch(id, { color });
+  };
+
+  const setStatementImage = (id: string | undefined, image: AppImage) => {
+    commitStatementPatch(id, { image });
   };
 
   const removeStatement = (id: string | undefined) => {
@@ -177,6 +231,21 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
         items: prev.items.filter((item) => item.id !== id),
         correctValues: rest,
       };
+    });
+    editor.flush();
+  };
+
+  const handleStatementDragEnd = (event: DragEndEvent) => {
+    if (event.canceled) return;
+    const { source } = event.operation;
+    if (!isSortable(source)) return;
+    const { initialIndex, index } = source;
+    if (initialIndex === index) return;
+    editor.updateSlideContent((prev) => {
+      const next = prev.items.slice();
+      const [moved] = next.splice(initialIndex, 1);
+      next.splice(index, 0, moved);
+      return { items: next };
     });
     editor.flush();
   };
@@ -221,8 +290,11 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     canAddStatement,
     addStatement,
     canRemove,
-    scheduleStatement,
+    scheduleStatementLabel,
+    setStatementColor,
+    setStatementImage,
     removeStatement,
+    handleStatementDragEnd,
     scheduleCorrectValue,
     commitCorrectValue,
     clearCorrectValue,

@@ -187,6 +187,16 @@
 
 /* ─── Statement rows ──────────────────────────────────────────────────── */
 
+/* The statement's authored image, shown beside its label. */
+.statementThumbnail {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: var(--border-size-sm) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
 /* Label input + the statement's scale share the row and wrap as a pair on
    narrow containers (the input keeps a readable minimum before wrapping). */
 .statementBody {
@@ -198,7 +208,7 @@
   min-width: 0;
 }
 
-.statementBody > :first-child {
+.statementLabelField {
   flex: 1 1 12rem;
   min-width: 0;
 }

@@ -1,0 +1,35 @@
+.row {
+  border-inline-start: var(--border-size-md) solid var(--sortable-item-color, transparent);
+  border-start-start-radius: var(--radius-sm);
+  border-end-start-radius: var(--radius-sm);
+}
+
+.dragging {
+  opacity: 0.6;
+}
+
+.grip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-square-xxs);
+  color: var(--sortable-item-color, var(--text-muted));
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  touch-action: none;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.grip:hover {
+  background-color: var(--bg-surface-raised);
+}
+
+.grip:active {
+  cursor: grabbing;
+}
+
+.gripIcon {
+  width: 1rem;
+  height: auto;
+}

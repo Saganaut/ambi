@@ -3,17 +3,6 @@
  * a fixed pool of points (of whatever unit the prompt implies) across up to
  * six labelled options.
  *
- * Layout:
- *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
- *   - "Pool" card: the pool-size and per-option tolerance inputs, with a live
- *     badge in the header ("100 pts across 4 options") so the configured pool
- *     stays glanceable while editing.
- *   - The option rows: the shared `ItemField` label (focus-opened popover
- *     menu: color, image, delete — MCQ's option-menu pattern; this composer
- *     keeps at most one menu open) plus each option's slice of the answer
- *     key. Options are the same `McqOption` records MCQ uses, so they take
- *     the shared palette colors and images.
- *
  * Scoring is opt-in per option, Scales-style: "Set answer" seeds an even
  * share of the pool, the numeric field refines it, and the X clears it —
  * `correctAllocations` maps option id → points, graded within
@@ -25,22 +14,16 @@ import { useState } from "react";
 
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
+import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
   ALLOCATION_TOTAL_MIN,
   MAX_ALLOCATION_OPTIONS,
   useAllocationEditor,
 } from "@deck/hooks/useAllocationEditor";
-import {
-  AddItemCard,
-  EmptySelect,
-  ScoringFooter,
-  SectionHeader,
-  SettingsCard,
-  SettingsRow,
-} from "../_shared";
-import shared from "../_shared/_shared.module.css";
+import { AddItemCard, EmptySelect, ScoringFooter } from "../_shared";
 import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
 import type { SlideContentProps } from "../slideContentProps";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { AllocationOptionEditable } from "./AllocationOptionEditable";
 import styles from "./AllocationSlideContent.module.css";
@@ -117,92 +100,101 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
       footer={footer}
     >
-      <SettingsCard
-        title="Pool"
-        action={
-          <span className={styles.poolBadge}>
-            <strong>{totalPoints}</strong> pts across {options.length} options
-          </span>
-        }
-      >
-        <SettingsRow>
-          <NumberInput
-            label="Points to allocate"
-            id={`alloc-total-${question.id}`}
-            min={ALLOCATION_TOTAL_MIN}
-            value={totalPoints}
-            onChange={(next) => {
-              setTotalPoints(next);
-              editor.scheduleTotalPoints(next);
-            }}
-            onBlur={editor.flush}
-          />
-          <NumberInput
-            label="Tolerance ±"
-            id={`alloc-tolerance-${question.id}`}
-            min={0}
-            max={totalPoints}
-            value={tolerance}
-            onChange={(next) => {
-              setTolerance(next);
-              editor.scheduleTolerance(next);
-            }}
-            onBlur={editor.flush}
-          />
-        </SettingsRow>
-      </SettingsCard>
-
-      <SectionHeader label="Options" hint="players split the pool across these options" />
-      <div className={shared.itemList}>
-        {options.map((option, index) => (
-          <AllocationOptionEditable
-            key={option.id}
-            option={option}
-            sortIndex={index}
-            color={resolveOptionColor(option.color, index)}
-            menuOpen={openMenuId === option.id}
-            canRemove={editor.canRemoveOption}
-            totalPoints={totalPoints}
-            answer={correctAllocations[option.id]}
-            answerSeed={answerSeed}
-            onMenuOpenChange={(open) => {
-              setOpenMenuId(open ? option.id : null);
-            }}
-            onScheduleText={(text) => {
-              editor.scheduleOptionText(option.id, text);
-            }}
-            onFlush={editor.flush}
-            onSetColor={(color) => {
-              editor.setOptionColor(option.id, color);
-            }}
-            onSetImage={(image) => {
-              editor.setOptionImage(option.id, image);
-            }}
-            onScheduleAnswer={(points) => {
-              editor.scheduleCorrectAllocation(option.id, points);
-            }}
-            onCommitAnswer={(points) => {
-              editor.commitCorrectAllocation(option.id, points);
-            }}
-            onClearAnswer={() => {
-              editor.clearCorrectAllocation(option.id);
-            }}
-            onRemove={() => {
-              editor.removeOption(option.id);
-            }}
-            openPicker={openPicker}
-          />
-        ))}
-        <AddItemCard
-          label={
-            editor.canAddOption
-              ? "Add option"
-              : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
-          }
-          disabled={!editor.canAddOption}
-          onAdd={editor.addOption}
-        />
-      </div>
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            {" "}
+            <span>Pool</span>{" "}
+            <span className={styles.poolBadge}>
+              <strong>{totalPoints}</strong> pts across {options.length} options
+            </span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            {" "}
+            <NumberInput
+              label="Points to allocate"
+              id={`alloc-total-${question.id}`}
+              min={ALLOCATION_TOTAL_MIN}
+              value={totalPoints}
+              onChange={(next) => {
+                setTotalPoints(next);
+                editor.scheduleTotalPoints(next);
+              }}
+              onBlur={editor.flush}
+            />
+            <NumberInput
+              label="Tolerance ±"
+              id={`alloc-tolerance-${question.id}`}
+              min={0}
+              max={totalPoints}
+              value={tolerance}
+              onChange={(next) => {
+                setTolerance(next);
+                editor.scheduleTolerance(next);
+              }}
+              onBlur={editor.flush}
+            />
+          </SlideContentSection.Body>
+        </SlideContentSection>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            {" "}
+            <span>Options</span> <span>players split the pool across these options</span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <DragDropWrapper onReorder={editor.handleOptionDragEnd}>
+              {options.map((option, index) => (
+                <AllocationOptionEditable
+                  key={option.id}
+                  option={option}
+                  sortIndex={index}
+                  color={resolveOptionColor(option.color, index)}
+                  menuOpen={openMenuId === option.id}
+                  canRemove={editor.canRemoveOption}
+                  totalPoints={totalPoints}
+                  answer={correctAllocations[option.id]}
+                  answerSeed={answerSeed}
+                  onMenuOpenChange={(open) => {
+                    setOpenMenuId(open ? option.id : null);
+                  }}
+                  onScheduleText={(text) => {
+                    editor.scheduleOptionText(option.id, text);
+                  }}
+                  onFlush={editor.flush}
+                  onSetColor={(color) => {
+                    editor.setOptionColor(option.id, color);
+                  }}
+                  onSetImage={(image) => {
+                    editor.setOptionImage(option.id, image);
+                  }}
+                  onScheduleAnswer={(points) => {
+                    editor.scheduleCorrectAllocation(option.id, points);
+                  }}
+                  onCommitAnswer={(points) => {
+                    editor.commitCorrectAllocation(option.id, points);
+                  }}
+                  onClearAnswer={() => {
+                    editor.clearCorrectAllocation(option.id);
+                  }}
+                  onRemove={() => {
+                    editor.removeOption(option.id);
+                  }}
+                  openPicker={openPicker}
+                />
+              ))}
+              <AddItemCard
+                label={
+                  editor.canAddOption
+                    ? "Add option"
+                    : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
+                }
+                disabled={!editor.canAddOption}
+                onAdd={editor.addOption}
+              />
+            </DragDropWrapper>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>
     </SlideWrapper>
   );
 };

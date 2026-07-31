@@ -863,6 +863,8 @@ export type RankingContent = {
 export type ScaleItem = {
   id?: string;
   label?: string;
+  image?: AppImage;
+  color?: string;
 };
 export type ScalesContent = {
   min: number;

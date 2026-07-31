@@ -17,6 +17,9 @@
 // answer. Pool edits never rewrite keyed answers — a mid-typing total would
 // destructively clamp them — so a sum that drifts from the pool is surfaced
 // by the editor's footer instead.
+import type { DragEndEvent } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/react/sortable";
+
 import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
 
 import { buildDefaultAllocationOption } from "../utils/slideContent";
@@ -68,6 +71,8 @@ interface UseAllocationEditorResult {
   addOption: () => void;
   /** Remove the option and drop its answer from `correctAllocations`. */
   removeOption: (optionId: string | undefined) => void;
+  /** @dnd-kit drop handler — reorders options without changing their id-keyed answers. */
+  handleOptionDragEnd: (event: DragEndEvent) => void;
   /** Debounced label edit. */
   scheduleOptionText: (optionId: string | undefined, text: string) => void;
   /** Override the option's palette color (menu swatch / custom picker). Immediate. */
@@ -146,13 +151,26 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     editor.flush();
   };
 
+  const handleOptionDragEnd = (event: DragEndEvent) => {
+    if (event.canceled) return;
+    const { source } = event.operation;
+    if (!isSortable(source)) return;
+    const { initialIndex, index } = source;
+    if (initialIndex === index) return;
+    editor.updateSlideContent((prev) => {
+      const next = prev.options.slice();
+      const [moved] = next.splice(initialIndex, 1);
+      next.splice(index, 0, moved);
+      return { options: next };
+    });
+    editor.flush();
+  };
+
   // Merge a patch into one option, deriving from the freshest pending draft so
   // sibling edits in the same debounce window aren't clobbered (MCQ's pattern).
   const patchOption = (id: string, patch: Partial<McqOption>) =>
     editor.updateSlideContent((prev) => ({
-      options: prev.options.map((option) =>
-        option.id === id ? { ...option, ...patch } : option,
-      ),
+      options: prev.options.map((option) => (option.id === id ? { ...option, ...patch } : option)),
     }));
 
   const scheduleOptionText = (id: string | undefined, text: string) => {
@@ -207,6 +225,7 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     canRemoveOption,
     addOption,
     removeOption,
+    handleOptionDragEnd,
     scheduleOptionText,
     setOptionColor,
     setOptionImage,

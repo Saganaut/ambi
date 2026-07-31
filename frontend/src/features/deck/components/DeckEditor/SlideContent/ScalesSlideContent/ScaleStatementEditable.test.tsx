@@ -1,17 +1,19 @@
-// Covers the statement row's shared label field: focusing it opens a popover
-// that carries only Delete (a statement has no color or image), the label edit
-// reports just the new text, removal lives in that menu rather than on a
+// Covers the statement row's shared label field: focusing it opens the same
+// full popover every other item bank gets (color, image, Delete), the label
+// edit reports just the new text, removal lives in that menu rather than on a
 // standalone button — and the row's drag track still commits a target.
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ScaleItem } from "@deck/store/deckApi.gen";
+import type { Identified } from "../_shared";
 import { ScaleStatementEditable } from "./ScaleStatementEditable";
 
-const statement = (overrides: Partial<ScaleItem> = {}): ScaleItem => ({
+const statement = (overrides: Partial<ScaleItem> = {}): Identified<ScaleItem> => ({
   id: "stmt_a",
   label: "Team spirit",
+  color: "oklch(0.65 0.4 290)",
   ...overrides,
 });
 
@@ -19,7 +21,7 @@ const renderStatement = ({
   item = statement(),
   menuOpen = false,
   correctValue,
-}: { item?: ScaleItem; menuOpen?: boolean; correctValue?: number } = {}) => {
+}: { item?: Identified<ScaleItem>; menuOpen?: boolean; correctValue?: number } = {}) => {
   const props = {
     statement: item,
     sortIndex: 1,
@@ -37,7 +39,10 @@ const renderStatement = ({
     onScheduleCorrectValue: vi.fn(),
     onClearCorrectValue: vi.fn(),
     onFlush: vi.fn(),
+    onSetColor: vi.fn(),
+    onSetImage: vi.fn(),
     onRemove: vi.fn(),
+    openPicker: vi.fn(),
   };
   const view = render(<ScaleStatementEditable {...props} />);
   return {
@@ -49,7 +54,7 @@ const renderStatement = ({
 };
 
 describe("ScaleStatementEditable", () => {
-  it("opens the menu with only Delete when the label is focused", async () => {
+  it("opens the full color / image / Delete menu when the label is focused", async () => {
     const user = userEvent.setup();
     const { props, reopen } = renderStatement();
 
@@ -59,9 +64,9 @@ describe("ScaleStatementEditable", () => {
 
     reopen();
 
+    expect(screen.getByRole("group", { name: "Option color" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Upload an image" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Option color" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Upload an image" })).not.toBeInTheDocument();
   });
 
   it("schedules the label as the user types", async () => {

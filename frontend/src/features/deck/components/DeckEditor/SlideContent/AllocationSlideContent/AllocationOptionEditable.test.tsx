@@ -42,6 +42,12 @@ const renderOption = (item: McqOption = option()) => {
 };
 
 describe("AllocationOptionEditable", () => {
+  it("offers a dedicated reorder grip", () => {
+    renderOption();
+
+    expect(screen.getByRole("button", { name: "Reorder option 2" })).toBeInTheDocument();
+  });
+
   it("offers no remove-image button for an option without an image", () => {
     renderOption();
 
