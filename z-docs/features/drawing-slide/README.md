@@ -165,10 +165,11 @@ Over the generic `useSlideEditor(deckId, slideId, "DRAWING")`:
 
 - **`DrawingSlideContent.tsx`** — prompt at the top (stored on `slide.title`,
   like TEXT/MCQ), then two cards:
-  - **"Prompt image"** — "Choose image" (gallery picker, `cropAspect:
-    "source"` so the upload isn't clipped before the canvas — see the
-    [Place-on-Image doc](../place-on-image/README.md#gallerypicker-cropaspect-source)
-    for what that option does), "Draw one" (opens `DrawPromptModalBody` in
+  - **"Prompt image"** — "Choose image" (gallery picker, `cropWidth: 1,
+    cropHeight: 1, cropGalleryPicks: true` so the prompt image is square
+    before it reaches the 1:1 canvas — see the
+    [Place-on-Image doc](../place-on-image/README.md#gallerypicker-crop-options)
+    for the picker's crop options), "Draw one" (opens `DrawPromptModalBody` in
     the global modal — a full `DrawingCanvas` with shapes enabled, "Use
     drawing" ingests the export and sets it as the prompt), and "Remove"
     once an image exists. A radio (disabled until an image exists) picks
@@ -322,8 +323,8 @@ a dedicated event field and a dedicated board renderer, not a
   pairing and runtime, and what's still missing to actually score a Drawing
   round.
 - [Place-on-Image Slides](../place-on-image/README.md) — the
-  `cropAspect: "source"` gallery-picker option Drawing's prompt-image picker
-  also uses.
+  `GalleryPicker` crop options Drawing's prompt-image picker shares (both now
+  crop to 1:1 via `cropWidth`/`cropHeight` + `cropGalleryPicks`).
 - [Results Visualization](../results-visualization.md) — why Drawing's
   gallery bypasses the `ChartDatum`/registry pipeline.
 - [Media & Gallery](../../diagrams/media-gallery.md) — the

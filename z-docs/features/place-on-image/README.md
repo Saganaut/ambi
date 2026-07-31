@@ -223,10 +223,12 @@ Axis, Place-on-Image, and Grid build on — see
   graded point — and each marker draws its tolerance circle sized off the
   image box's width with a 1:1 aspect ratio, so it reads as a circle on a
   non-square image while the grading space stays the normalized one.
-- Image picking uses `cropAspect: "source"` (see
-  [below](#gallerypicker-cropaspect-source)) so the uploaded backing image is
-  never clipped to a fixed frame before the placement surface — which renders
-  at the image's own ratio — sees it.
+- Image picking passes `cropWidth: 1, cropHeight: 1, cropGalleryPicks: true`
+  (see [below](#gallerypicker-crop-options)) — matching the slide-option
+  image slots — so the backing image is square before it ever reaches the
+  placement surface: an upload is cropped on the way in, and a gallery-tab
+  pick is re-cropped and stored as a new gallery image rather than inserted
+  as-is.
 
 ### Registration
 
@@ -276,18 +278,32 @@ established `mode`/`interactive` props (the `AxisBoardContent` pattern).
   round result.
 - **Projector** (non-interactive): image + scatter/target-reveal only.
 
-## `GalleryPicker` `cropAspect: "source"`
+## GalleryPicker crop options
 
 The shared `useGalleryPicker` → `GalleryPicker` → `UploadTab` →
-`ImageCropEditor` chain gained a `cropAspect?: "source"` option (alongside the
-existing fixed `cropWidth`/`cropHeight`, default 16:9): the Upload tab's crop
-box takes the uploaded image's own aspect ratio, learned via
-`react-easy-crop`'s `onMediaLoaded`, so at zoom 1 the whole image is kept and
-nothing is clipped unless the author zooms in deliberately. PLACE_ON_IMAGE and
-`DrawingSlideContent.tsx` (its prompt-image picker) are the two callers that
-opt in today; every other gallery-picker caller (deck/slide cover &
-background, MCQ option images, Axis item images, theme logo/background) keeps
-its fixed-shape crop.
+`ImageCropEditor` chain exposes three independent knobs to a caller:
+
+- **`cropWidth` / `cropHeight`** — sets the Upload tab's crop box to that
+  fixed ratio (default 16:9 when a caller gives neither). PLACE_ON_IMAGE's
+  backing image and `DrawingSlideContent.tsx`'s prompt-image picker both pass
+  `cropWidth: 1, cropHeight: 1`, same as the slide-option thumbnails, since
+  all three slots render onto a square surface.
+- **`cropGalleryPicks`** — without it, a Gallery-tab pick is inserted as-is,
+  so an existing image's own shape can still land in a fixed-shape slot; with
+  it, every Gallery-tab pick is routed through the same crop editor first and
+  stored as a **new** gallery image, leaving the original untouched. The
+  slide-option thumbnails, PLACE_ON_IMAGE's backing image, and Drawing's
+  prompt image all set it.
+- **`cropAspect: "source"`** — the crop box instead takes the uploaded
+  image's own aspect ratio, learned via `react-easy-crop`'s `onMediaLoaded`,
+  so at zoom 1 the whole image is kept and nothing is clipped unless the
+  author zooms in deliberately. The option (and its plumbing through
+  `useGalleryPicker`) still exists, but no caller opts into it today —
+  PLACE_ON_IMAGE and Drawing's prompt-image picker, its original callers,
+  both moved to the square `cropWidth`/`cropHeight` + `cropGalleryPicks`
+  combination above. Every other gallery-picker caller (deck/slide cover &
+  background, MCQ option images, Axis item images, theme logo/background)
+  keeps its own fixed-shape crop.
 
 ## Status / gaps
 
