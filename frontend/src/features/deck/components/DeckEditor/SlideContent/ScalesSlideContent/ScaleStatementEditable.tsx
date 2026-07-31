@@ -1,5 +1,5 @@
 /**
- * Single-row editor for a Scales statement: the label input plus the
+ * Single-row editor for a Scales statement: the label field plus the
  * statement's own copy of the scale as a continuous drag track — the 1-D
  * analogue of the Axis plane. Pointerdown places the statement's target at
  * the pointer, dragging follows it (debounced), and release commits; the
@@ -9,14 +9,21 @@
  * so what the author sees is what is graded. A scored statement gets a
  * success-tinted outline via `ItemCard`'s `tone`.
  *
+ * The label is the shared `ItemField` — focusing it opens the row's popover
+ * menu, and the composer keeps at most one open. A statement carries no color
+ * and no image, so that menu narrows to Delete: removal lives there, not on a
+ * standalone button, which is the one removal affordance every other item bank
+ * offers.
+ *
  * The numeric "Answer" field is the always-available precise and accessible
  * entry, with the X button as the one clearing affordance; the "Set answer"
  * button seeds unscored rows with the scale midpoint.
  *
- * A controlled row: the label and answer-field mirrors live here while
- * structural ops (schedule / commit / clear / flush / remove) come in as
- * props from the one `useScalesEditor` in `ScalesSlideContent`, so every
- * write funnels through a single draft + debounce buffer.
+ * A controlled row: the answer-field mirror lives here (the label mirror is
+ * `ItemField`'s) while structural ops (schedule / commit / clear / flush /
+ * remove) come in as props from the one `useScalesEditor` in
+ * `ScalesSlideContent`, so every write funnels through a single draft +
+ * debounce buffer.
  *
  * Statement order is display-only — each statement is keyed by id in the
  * content's `correctValues` — so rows are not drag-sortable (unlike Ranking,
@@ -25,12 +32,12 @@
 import { useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
-import { Input } from "@components/Forms/Input/Input/Input";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import type { ScaleItem } from "@deck/store/deckApi.gen";
+import { SCALES_STATEMENT_LABEL_MAX } from "@deck/hooks/useScalesEditor";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { ItemCard } from "../_shared";
+import { ItemCard, ItemField } from "../_shared";
 import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
 import styles from "./ScalesSlideContent.module.css";
 
@@ -40,6 +47,8 @@ const KEYBOARD_NUDGE_STEP = 0.02;
 interface ScaleStatementEditableProps {
   statement: ScaleItem;
   sortIndex: number;
+  /** Whether this row's popover menu is open (at most one per slide). */
+  menuOpen: boolean;
   canRemove: boolean;
   /** The statement's correct answer in scale units, or undefined while unscored. */
   correctValue: number | undefined;
@@ -51,7 +60,9 @@ interface ScaleStatementEditableProps {
   /** Anchor labels echoed beside the statement's scale. */
   leftLabel: string;
   rightLabel: string;
-  onScheduleLabel: (next: ScaleItem) => void;
+  onMenuOpenChange: (open: boolean) => void;
+  /** Debounced label edit — just the new text; the parent patches the statement. */
+  onScheduleLabel: (label: string) => void;
   /** Immediate target set (drag release, keyboard nudge, or "Set answer"). */
   onCommitCorrectValue: (value: number) => void;
   /** Debounced target edit (mid-drag, or the numeric field). */
@@ -64,6 +75,7 @@ interface ScaleStatementEditableProps {
 const ScaleStatementEditable = ({
   statement,
   sortIndex,
+  menuOpen,
   canRemove,
   correctValue,
   min,
@@ -71,6 +83,7 @@ const ScaleStatementEditable = ({
   tolerance,
   leftLabel,
   rightLabel,
+  onMenuOpenChange,
   onScheduleLabel,
   onCommitCorrectValue,
   onScheduleCorrectValue,
@@ -88,7 +101,6 @@ const ScaleStatementEditable = ({
   // it so the drag stays responsive while writes debounce behind it.
   const [dragValue, setDragValue] = useState<number | null>(null);
 
-  const [label, setLabel] = useState(statement.label ?? "");
   // Local mirror for the numeric "Answer" field, resynced whenever the
   // committed target changes (a drag release or keyboard nudge must not leave
   // the field showing a stale number).
@@ -100,7 +112,6 @@ const ScaleStatementEditable = ({
   // ("derive state during render" — safe when the value differs).
   if (syncedFromId !== statement.id) {
     setSyncedFromId(statement.id);
-    setLabel(statement.label ?? "");
     setTarget(correctValue ?? midpoint);
     setSyncedFromValue(correctValue);
   } else if (syncedFromValue !== correctValue) {
@@ -171,25 +182,20 @@ const ScaleStatementEditable = ({
   const span = max - min;
 
   return (
-    <ItemCard
-      index={sortIndex}
-      tone={scored ? "success" : undefined}
-      removeLabel={`Remove statement ${displayIndex.toString()}`}
-      removeDisabled={!canRemove}
-      onRemove={onRemove}>
+    <ItemCard index={sortIndex} tone={scored ? "success" : undefined}>
       <div className={styles.statementBody}>
-        <Input
-          type='text'
-          fullWidth
-          withPadding={false}
-          value={label}
+        <ItemField
+          itemId={statement.id}
+          label={statement.label}
+          displayIndex={displayIndex}
           placeholder={`Statement ${displayIndex.toString()}`}
-          onChange={(e) => {
-            const next = e.target.value;
-            setLabel(next);
-            onScheduleLabel({ ...statement, label: next });
-          }}
-          onBlur={onFlush}
+          maxLength={SCALES_STATEMENT_LABEL_MAX}
+          open={menuOpen}
+          onOpenChange={onMenuOpenChange}
+          canRemove={canRemove}
+          onScheduleLabel={onScheduleLabel}
+          onFlush={onFlush}
+          onRemove={onRemove}
         />
         <div className={styles.statementScale}>
           <span className={styles.anchorCaption}>

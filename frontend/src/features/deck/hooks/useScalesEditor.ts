@@ -36,6 +36,8 @@ const SCALES_TOLERANCE_MIN_FRACTION = 0.02;
 const SCALES_TOLERANCE_MAX_FRACTION = 0.5;
 /** Default fraction for a new slide (`buildDefaultContent` bakes it in scale units). */
 const SCALES_TOLERANCE_DEFAULT_FRACTION = 0.1;
+/** `maxLength` for statement label inputs (item-row parity across kinds). */
+const SCALES_STATEMENT_LABEL_MAX = 80;
 
 /** Keep a scale-unit tolerance within the fraction bounds of the given span. */
 const clampTolerance = (value: number, span: number): number =>
@@ -231,6 +233,7 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
 export {
   MAX_SCALE_STATEMENTS,
   MIN_SCALE_STATEMENTS,
+  SCALES_STATEMENT_LABEL_MAX,
   SCALES_TOLERANCE_DEFAULT_FRACTION,
   SCALES_TOLERANCE_MAX_FRACTION,
   SCALES_TOLERANCE_MIN_FRACTION,

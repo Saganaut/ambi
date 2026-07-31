@@ -15,7 +15,8 @@
  * There is exactly one `useScalesEditor` here; the scale-level fields are
  * mirrored locally so the debounced inputs stay responsive, and each row
  * receives its slice of the editor surface as props, so all writes funnel
- * through a single draft + debounce buffer.
+ * through a single draft + debounce buffer. The prompt mirror and which row's
+ * menu is open live in the shared `useSlideComposerState`.
  */
 import { useState } from "react";
 
@@ -27,8 +28,9 @@ import {
   SCALES_TOLERANCE_MIN_FRACTION,
   useScalesEditor,
 } from "@deck/hooks/useScalesEditor";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { AddItemCard, EmptySelect, SectionHeader, SettingsCard } from "../_shared";
+import { AddItemCard, EmptySelect, useSlideComposerState } from "../_shared";
 import shared from "../_shared/_shared.module.css";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
@@ -59,12 +61,15 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     commitCorrectValue,
     clearCorrectValue,
   } = useScalesEditor(deckId, slideId);
+  // The prompt mirror and which row's menu is open — at most one per slide.
+  // Focusing a row's label opens its menu (and thereby closes any other); the
+  // menu owns dismissal. Scales arms no row, so `selectedItemId` goes unused.
+  const composer = useSlideComposerState(question);
 
   // Local mirrors keep the debounced inputs responsive: `updateSlideContent`
   // buffers to a draft and only commits on flush, so binding straight to the
   // store value would make these fields feel frozen mid-edit. Tolerance needs
   // no mirror — `setTolerance` commits immediately (clamped + flushed).
-  const [prompt, setPrompt] = useState(question?.prompt ?? "");
   const [min, setMin] = useState(question?.min ?? 1);
   const [max, setMax] = useState(question?.max ?? 5);
   const [leftLabel, setLeftLabel] = useState(question?.leftLabel ?? "");
@@ -75,7 +80,6 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
   // render" — safe when the new value differs).
   if (question && syncedFromId !== question.id) {
     setSyncedFromId(question.id);
-    setPrompt(question.prompt);
     setMin(question.min);
     setMax(question.max);
     setLeftLabel(question.leftLabel);
@@ -92,10 +96,10 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     <SlideWrapper
       prompt={{
         idBase: `scales-${idBase}`,
-        value: prompt,
+        value: composer.prompt,
         placeholder: "What are players rating?",
         onChange: (html: string) => {
-          setPrompt(html);
+          composer.setPrompt(html);
           schedulePrompt(html);
         },
         onBlur: flush,
@@ -108,108 +112,122 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
         </p>
       }
     >
-      <SettingsCard title="Scale">
-        <div className={styles.scaleGrid}>
-          <ScaleEndpointCard
-            side="left"
-            idBase={idBase}
-            value={min}
-            incrementDisabled={min + 1 >= max}
-            onCommitValue={(next) => {
-              setMin(next);
-              scheduleMin(next);
-              flush();
-            }}
-            label={leftLabel}
-            labelPlaceholder="e.g. Strongly disagree"
-            onScheduleLabel={(next) => {
-              setLeftLabel(next);
-              scheduleLeftLabel(next);
-            }}
-            onFlush={flush}
-          />
-          <ScalePreview min={min} max={max} />
-          <ScaleEndpointCard
-            side="right"
-            idBase={idBase}
-            value={max}
-            decrementDisabled={max - 1 <= min}
-            onCommitValue={(next) => {
-              setMax(next);
-              scheduleMax(next);
-              flush();
-            }}
-            label={rightLabel}
-            labelPlaceholder="e.g. Strongly agree"
-            onScheduleLabel={(next) => {
-              setRightLabel(next);
-              scheduleRightLabel(next);
-            }}
-            onFlush={flush}
-          />
-        </div>
-        <div className={styles.toleranceRow}>
-          <NumberInput
-            compact
-            id={`scales-tolerance-${idBase}`}
-            label="Tolerance %"
-            labelPosition="labelInFront"
-            min={Math.round(SCALES_TOLERANCE_MIN_FRACTION * 100)}
-            max={Math.round(SCALES_TOLERANCE_MAX_FRACTION * 100)}
-            value={tolerancePercent}
-            onChange={(next) => {
-              setTolerance((next / 100) * span);
-            }}
-          />
-          <span className={styles.toleranceValue}>±{formatScaleValue(question.tolerance)}</span>
-        </div>
-      </SettingsCard>
-
-      <SectionHeader
-        label="Statements"
-        hint="drag along a statement's scale to set its correct answer"
-      />
-      <div className={shared.itemList}>
-        {question.items.map((statement, idx) => (
-          <ScaleStatementEditable
-            key={statement.id ?? idx}
-            statement={statement}
-            sortIndex={idx}
-            canRemove={canRemove}
-            correctValue={statement.id ? question.correctValues[statement.id] : undefined}
-            min={min}
-            max={max}
-            tolerance={question.tolerance}
-            leftLabel={leftLabel}
-            rightLabel={rightLabel}
-            onScheduleLabel={(next) => {
-              scheduleStatement(statement.id, next);
-            }}
-            onCommitCorrectValue={(value) => {
-              commitCorrectValue(statement.id, value);
-            }}
-            onScheduleCorrectValue={(value) => {
-              scheduleCorrectValue(statement.id, value);
-            }}
-            onClearCorrectValue={() => {
-              clearCorrectValue(statement.id);
-            }}
-            onFlush={flush}
-            onRemove={() => {
-              removeStatement(statement.id);
-            }}
-          />
-        ))}
-        <AddItemCard
-          label={
-            canAddStatement
-              ? "Add statement"
-              : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
-          }
-          disabled={!canAddStatement}
-          onAdd={addStatement}
-        />
-      </div>
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Statements</span>
+            <span>Drag along a statement's scale</span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <div className={shared.itemList}>
+              {question.items.map((statement, idx) => (
+                <ScaleStatementEditable
+                  key={statement.id ?? idx}
+                  statement={statement}
+                  sortIndex={idx}
+                  menuOpen={composer.openMenuId === statement.id}
+                  canRemove={canRemove}
+                  correctValue={statement.id ? question.correctValues[statement.id] : undefined}
+                  min={min}
+                  max={max}
+                  tolerance={question.tolerance}
+                  leftLabel={leftLabel}
+                  rightLabel={rightLabel}
+                  onMenuOpenChange={(open) => {
+                    composer.setOpenMenuId(open ? (statement.id ?? null) : null);
+                  }}
+                  onScheduleLabel={(label) => {
+                    scheduleStatement(statement.id, { ...statement, label });
+                  }}
+                  onCommitCorrectValue={(value) => {
+                    commitCorrectValue(statement.id, value);
+                  }}
+                  onScheduleCorrectValue={(value) => {
+                    scheduleCorrectValue(statement.id, value);
+                  }}
+                  onClearCorrectValue={() => {
+                    clearCorrectValue(statement.id);
+                  }}
+                  onFlush={flush}
+                  onRemove={() => {
+                    removeStatement(statement.id);
+                  }}
+                />
+              ))}
+              <AddItemCard
+                label={
+                  canAddStatement
+                    ? "Add statement"
+                    : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
+                }
+                disabled={!canAddStatement}
+                onAdd={addStatement}
+              />
+            </div>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+        <SlideContentSection>
+          <SlideContentSection.Header>Scale</SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <div className={styles.scaleGrid}>
+              <ScaleEndpointCard
+                side="left"
+                idBase={idBase}
+                value={min}
+                incrementDisabled={min + 1 >= max}
+                onCommitValue={(next) => {
+                  setMin(next);
+                  scheduleMin(next);
+                  flush();
+                }}
+                label={leftLabel}
+                labelPlaceholder="e.g. Strongly disagree"
+                onScheduleLabel={(next) => {
+                  setLeftLabel(next);
+                  scheduleLeftLabel(next);
+                }}
+                onFlush={flush}
+              />
+              <ScalePreview min={min} max={max} />
+              <ScaleEndpointCard
+                side="right"
+                idBase={idBase}
+                value={max}
+                decrementDisabled={max - 1 <= min}
+                onCommitValue={(next) => {
+                  setMax(next);
+                  scheduleMax(next);
+                  flush();
+                }}
+                label={rightLabel}
+                labelPlaceholder="e.g. Strongly agree"
+                onScheduleLabel={(next) => {
+                  setRightLabel(next);
+                  scheduleRightLabel(next);
+                }}
+                onFlush={flush}
+              />
+              <div className={styles.toleranceRow}>
+                <NumberInput
+                  compact
+                  id={`scales-tolerance-${idBase}`}
+                  label="Tolerance %"
+                  labelPosition="labelInFront"
+                  min={Math.round(SCALES_TOLERANCE_MIN_FRACTION * 100)}
+                  max={Math.round(SCALES_TOLERANCE_MAX_FRACTION * 100)}
+                  value={tolerancePercent}
+                  onChange={(next) => {
+                    setTolerance((next / 100) * span);
+                  }}
+                />
+                <span className={styles.toleranceValue}>
+                  ±{formatScaleValue(question.tolerance)}
+                </span>
+              </div>{" "}
+            </div>{" "}
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>{" "}
     </SlideWrapper>
   );
 };

@@ -10,15 +10,21 @@ import type { OptionMenuPrimaryAction } from "./OptionMenu.types";
 
 interface OptionMenuContentProps {
   displayIndex: string;
-  currentColor: string;
+  /** The item's resolved color; omit (with the color handlers) to hide the
+   *  Color section — e.g. Scales statements, whose items carry no color. */
+  currentColor?: string;
   canRemove: boolean;
-  hasImage: boolean;
+  /** Whether the item has an image; omit (with the image handlers) to hide the
+   *  image controls — e.g. Scales statements, whose items carry no image. */
+  hasImage?: boolean;
   /** Leading kind-specific action; omitted for kinds with no toggle  */
   primaryAction?: OptionMenuPrimaryAction;
-  onPickColor: (color: string) => void;
-  onCustomColor: () => void;
-  onUploadImage: () => void;
-  onClearImage: () => void;
+  /** Omit (together with `onCustomColor` / `currentColor`) to hide the Color section. */
+  onPickColor?: (color: string) => void;
+  onCustomColor?: () => void;
+  /** Omit to hide the image controls (upload + remove). */
+  onUploadImage?: () => void;
+  onClearImage?: () => void;
   onRemove: () => void;
 }
 
@@ -35,6 +41,11 @@ const OptionMenuContent = ({
   onRemove,
 }: OptionMenuContentProps) => {
   const palette = buildOptionPalette();
+  // Sections are opt-in: a kind whose items carry no color (or no image) simply
+  // leaves the matching props off and the menu narrows to what it can act on.
+  const showColor =
+    currentColor !== undefined && onPickColor !== undefined && onCustomColor !== undefined;
+  const showImage = onUploadImage !== undefined;
 
   return (
     <Popover role="dialog" ariaLabel={`Option ${displayIndex} menu`} className={styles.menu}>
@@ -53,43 +64,51 @@ const OptionMenuContent = ({
         </>
       )}
 
-      <span className={styles.sectionLabel}>Color</span>
-      <div className={styles.swatchStrip} role="group" aria-label="Option color">
-        {palette.map((paletteColor, paletteIndex) => (
+      {showColor && (
+        <>
+          <span className={styles.sectionLabel}>Color</span>
+          <div className={styles.swatchStrip} role="group" aria-label="Option color">
+            {palette.map((paletteColor, paletteIndex) => (
+              <Popover.Button
+                key={paletteColor}
+                className={styles.chip}
+                style={{ backgroundColor: paletteColor }}
+                aria-label={`Palette color ${(paletteIndex + 1).toString()}`}
+                aria-pressed={paletteColor === currentColor}
+                onClick={() => {
+                  onPickColor(paletteColor);
+                }}
+              />
+            ))}
+            <Popover.Button
+              className={[styles.chip, styles.chipPlus].join(" ")}
+              aria-label="Custom color"
+              onClick={onCustomColor}
+            >
+              <PlusIcon className={styles.chipPlusIcon} aria-hidden="true" />
+            </Popover.Button>
+          </div>
+        </>
+      )}
+
+      {(showColor || showImage) && <div className={styles.menuDivider} aria-hidden="true" />}
+
+      {showImage && (
+        <>
           <Popover.Button
-            key={paletteColor}
-            className={styles.chip}
-            style={{ backgroundColor: paletteColor }}
-            aria-label={`Palette color ${(paletteIndex + 1).toString()}`}
-            aria-pressed={paletteColor === currentColor}
-            onClick={() => {
-              onPickColor(paletteColor);
-            }}
-          />
-        ))}
-        <Popover.Button
-          className={[styles.chip, styles.chipPlus].join(" ")}
-          aria-label="Custom color"
-          onClick={onCustomColor}
-        >
-          <PlusIcon className={styles.chipPlusIcon} aria-hidden="true" />
-        </Popover.Button>
-      </div>
-
-      <div className={styles.menuDivider} aria-hidden="true" />
-
-      <Popover.Button
-        className={[styles.menuItem, styles.menuItemBrand].join(" ")}
-        onClick={onUploadImage}
-      >
-        <PhotoIcon className={styles.menuItemIcon} aria-hidden="true" />
-        Upload an image
-      </Popover.Button>
-      {hasImage && (
-        <Popover.Button className={styles.menuItem} onClick={onClearImage}>
-          <XMarkIcon className={styles.menuItemIcon} aria-hidden="true" />
-          Remove image
-        </Popover.Button>
+            className={[styles.menuItem, styles.menuItemBrand].join(" ")}
+            onClick={onUploadImage}
+          >
+            <PhotoIcon className={styles.menuItemIcon} aria-hidden="true" />
+            Upload an image
+          </Popover.Button>
+          {hasImage === true && onClearImage && (
+            <Popover.Button className={styles.menuItem} onClick={onClearImage}>
+              <XMarkIcon className={styles.menuItemIcon} aria-hidden="true" />
+              Remove image
+            </Popover.Button>
+          )}
+        </>
       )}
       <Popover.Button
         className={[styles.menuItem, styles.menuItemDanger].join(" ")}
