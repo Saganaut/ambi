@@ -1173,13 +1173,22 @@ class LiveSessionOrchestratorTest {
      * the snapshot order is the authored one.
      */
     private LiveSession followUpSession(String... trailingSlideIds) {
+        return followUpSession(FollowUpMode.BEST_ANSWER_VOTE, Set.of(), trailingSlideIds);
+    }
+
+    /**
+     * The same pair on a given child mode and parent answer key — what
+     * {@code SPOT_THE_ANSWER} needs, since its mint seeds that key into the board.
+     */
+    private LiveSession followUpSession(FollowUpMode mode, Set<String> acceptedAnswers,
+            String... trailingSlideIds) {
         Slide parent = slideWithId(PARENT);
         parent.setSortOrder("a");
-        parent.setContent(new TextContent(Set.of(), MatchMode.EXACT, false, true, null));
+        parent.setContent(new TextContent(acceptedAnswers, MatchMode.EXACT, false, true, null));
         parent.setChildId(CHILD);
         Slide child = slideWithId(CHILD);
         child.setSortOrder("b");
-        child.setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        child.setContent(new FollowUpContent(mode));
         child.setParentId(PARENT);
 
         Deck deck = new Deck();
@@ -1388,6 +1397,42 @@ class LiveSessionOrchestratorTest {
 
         assertThat(opened.getId()).isEqualTo("s3");
         verify(followUpOptions, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void advanceSkipsASpotTheAnswerFollowUpWhoseOnlyCandidateIsTheSeededAnswer() {
+        followUpSession(FollowUpMode.SPOT_THE_ANSWER, Set.of("Paris"), "s3");
+        stubScoredParent();
+        // Scored, but no usable text submissions: the seed alone would open a
+        // one-card board where everyone picks the authored answer and collects
+        // full points, a streak, and the fastest-correct bonus.
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of());
+        when(roundResults.answersOf(SID, PARENT)).thenReturn(List.of());
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo("s3");
+        verify(followUpOptions, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void advanceOpensASpotTheAnswerFollowUpOnceOneRealSubmissionBacksTheSeed() {
+        followUpSession(FollowUpMode.SPOT_THE_ANSWER, Set.of("Paris"), "s3");
+        stubScoredParent();
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of(parentAnswer("p-1", "Lyon")));
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo(CHILD);
+        // Two cards: the submission, and the parent's authored answer seeded in.
+        assertThat(savedCandidates(CHILD).options()).hasSize(2)
+                .filteredOn(option -> option.authoredAnswer())
+                .singleElement()
+                .satisfies(seed -> assertThat(seed.text()).isEqualTo("Paris"));
     }
 
     @Test

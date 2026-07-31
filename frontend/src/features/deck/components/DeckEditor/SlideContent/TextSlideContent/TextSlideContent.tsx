@@ -11,16 +11,23 @@
  * Accepted answers are entered as tags: type one and press Enter (or comma) to
  * commit it as a pill; the content only ever carries trimmed, de-duplicated,
  * non-empty strings.
+ *
+ * Removing the last answer is blocked (no remove control, no PUT fired) while
+ * a SPOT_THE_ANSWER follow-up is attached — the backend 400s that content
+ * transition, and `updateSlide`'s fire-and-forget PUT can't surface a
+ * rejection, so `wouldOrphanSpotTheAnswer` catches it client-side first.
  */
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Input } from "@components/Forms/Input/Input/Input";
+import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { TextContent } from "@deck/store/deckApi.gen";
+import { wouldOrphanSpotTheAnswer } from "@deck/utils/followUp";
 import { Tag } from "@ui/Tag/Tag";
 import { useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { ScoringFooter, SettingsCard } from "../_shared";
+import { ScoringFooter } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./TextSlideContent.module.css";
 
@@ -63,6 +70,9 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     slideId,
     "TEXT",
   );
+  // Needed only to check whether an attached SPOT_THE_ANSWER follow-up would
+  // be orphaned by an answer-key edit (see `wouldOrphanSpotTheAnswer` below).
+  const { slides } = useSlide(deckId);
 
   // Local mirror state, resynced when the active slide changes ("derive state
   // during render" — safe because the new value differs from the old id).
@@ -105,8 +115,27 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setDraft("");
   };
 
-  const removeAnswer = (index: number) =>
-    commitAnswers(answers.filter((_, position) => position !== index));
+  // Per-tag: would removing this one strip the last non-blank answer while a
+  // SPOT_THE_ANSWER follow-up is attached? The backend rejects that content
+  // transition with 400 (it'd leave the follow-up's answer key dangling), and
+  // the slide-update path that would carry it fires fire-and-forget with no
+  // rollback — so this is a client-side guard, not just a UX nicety.
+  const answerRows = answers.map((answer, index) => ({
+    answer,
+    index,
+    removalBlocked: wouldOrphanSpotTheAnswer(
+      slide,
+      slides,
+      answers.filter((_, position) => position !== index),
+    ),
+  }));
+  const answerKeyLocked = answerRows.some((row) => row.removalBlocked);
+
+  const removeAnswer = (index: number) => {
+    const next = answers.filter((_, position) => position !== index);
+    if (wouldOrphanSpotTheAnswer(slide, slides, next)) return;
+    commitAnswers(next);
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     // Ignore Enter fired to confirm an IME composition (CJK input) — otherwise
@@ -138,52 +167,56 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       {" "}
       <SlideContent>
         <SlideContentSection>
-          <SlideContentSection.Header> </SlideContentSection.Header>{" "}
-          <SettingsCard title="Correct answers">
-            <div className={styles.answersField}>
-              <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
-                Accepted answers
-              </label>
-              {hasAnswers && (
-                <ul className={styles.tagList}>
-                  {answers.map((answer, index) => (
-                    <li key={answer}>
-                      <Tag
-                        size="md"
-                        onRemove={() => removeAnswer(index)}
-                        removeLabel={`Remove ${answer}`}
-                      >
-                        {answer}
-                      </Tag>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Input
-                id={`text-answers-${idBase}`}
-                type="text"
-                fullWidth
-                value={draft}
-                placeholder="Type an answer and press Enter"
-                infoMessage="Press Enter to add each answer. Any match scores as correct; leave empty to just collect responses."
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={handleKeyDown}
-                onBlur={commitDraft}
-              />
-            </div>
-            <Dropdown
-              label="Matching"
-              id={`text-match-${idBase}`}
-              options={MATCH_MODE_OPTIONS}
-              value={[matchMode]}
-              onChange={(values) => {
-                const next = (values[0] as MatchMode | undefined) ?? "EXACT";
-                setMatchMode(next);
-                updateSlideContent({ matchMode: next });
-                flush();
-              }}
+          <SlideContentSection.Header>Correct answer(s) </SlideContentSection.Header>
+          <div className={styles.answersField}>
+            <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
+              Accepted answers
+            </label>
+            {hasAnswers && (
+              <ul className={styles.tagList}>
+                {answerRows.map(({ answer, index, removalBlocked }) => (
+                  <li key={answer}>
+                    <Tag
+                      size="md"
+                      onRemove={removalBlocked ? undefined : () => removeAnswer(index)}
+                      removeLabel={`Remove ${answer}`}
+                    >
+                      {answer}
+                    </Tag>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {answerKeyLocked && (
+              <p className={styles.answerKeyLockedHint}>
+                Can&apos;t remove your last accepted answer — the attached &quot;Spot the
+                answer&quot; follow-up needs it to grade.
+              </p>
+            )}
+            <Input
+              id={`text-answers-${idBase}`}
+              type="text"
+              fullWidth
+              value={draft}
+              placeholder="Type an answer and press Enter"
+              infoMessage="Press Enter to add each answer. Any match scores as correct; leave empty to just collect responses."
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={commitDraft}
             />
-          </SettingsCard>
+          </div>
+          <Dropdown
+            label="Matching"
+            id={`text-match-${idBase}`}
+            options={MATCH_MODE_OPTIONS}
+            value={[matchMode]}
+            onChange={(values) => {
+              const next = (values[0] as MatchMode | undefined) ?? "EXACT";
+              setMatchMode(next);
+              updateSlideContent({ matchMode: next });
+              flush();
+            }}
+          />
         </SlideContentSection>
       </SlideContent>
     </SlideWrapper>

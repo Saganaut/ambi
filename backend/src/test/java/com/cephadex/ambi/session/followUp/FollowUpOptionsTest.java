@@ -2,9 +2,12 @@ package com.cephadex.ambi.session.followUp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
@@ -30,8 +33,11 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
 
 /**
  * Minting the candidate board: the parent's kind decides what becomes an option,
- * ids are derived from content (so a re-mint is identical), and identical text
- * merges into one option owning every author.
+ * ids are derived from content (so a re-mint reproduces the same cards), and
+ * identical text merges into one option owning every author. Also the
+ * {@code SPOT_THE_ANSWER} seeding — which card carries the flag, how a matching
+ * submission merges into it, that its id obeys the same id↔text relation every
+ * submitted card does, and that its slot is drawn rather than derived.
  */
 class FollowUpOptionsTest {
 
@@ -40,6 +46,9 @@ class FollowUpOptionsTest {
 
     /** The mode every case below mints under; only SPOT_THE_ANSWER changes what is minted. */
     private static final FollowUpMode VOTE = FollowUpMode.BEST_ANSWER_VOTE;
+
+    /** The one mode that seeds the parent's authored answer into the board. */
+    private static final FollowUpMode SPOT = FollowUpMode.SPOT_THE_ANSWER;
 
     @Test
     void mcqParentMintsTheAuthoredChoicesVerbatimAndInOrder() {
@@ -221,7 +230,166 @@ class FollowUpOptionsTest {
         assertThat(FollowUpOptionSet.empty().byId("opt-a")).isNull();
     }
 
+    // ── SPOT_THE_ANSWER seeding ────────────────────────────────────────────────
+
+    @Test
+    void spotTheAnswerSeedsTheParentsAuthoredAnswerAmongTheSubmissions() {
+        Slide parent = slideWith(keyedText("Paris"));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100),
+                answer("p-2", new TextAnswer("Nice"), 200)), SPOT, URLS).options();
+
+        assertThat(options).extracting(option -> option.text())
+                .containsExactlyInAnyOrder("Paris", "Lyon", "Nice");
+        assertThat(options).filteredOn(option -> option.authoredAnswer())
+                .singleElement()
+                .satisfies(seed -> {
+                    assertThat(seed.text()).isEqualTo("Paris");
+                    // Nobody submitted it, so it stands for no participant — which
+                    // is also what stops the self-pick guard from firing on it.
+                    assertThat(seed.authorParticipantIds()).isEmpty();
+                });
+    }
+
+    @Test
+    void spotTheAnswerMergesAMatchingSubmissionIntoTheSeededCard() {
+        Slide parent = slideWith(keyedText("Paris"));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new TextAnswer(" paris "), 100),
+                answer("p-2", new TextAnswer("PARIS"), 200)), SPOT, URLS).options();
+
+        // One card, not two: the submitters' wording normalizes onto the key, so
+        // the answer and their submission are the same candidate.
+        assertThat(options).singleElement().satisfies(card -> {
+            assertThat(card.text()).isEqualTo(" paris ");
+            assertThat(card.authoredAnswer()).isTrue();
+            assertThat(card.authorParticipantIds()).containsExactlyInAnyOrder("p-1", "p-2");
+        });
+    }
+
+    @Test
+    void spotTheAnswerSeedsOneRepresentativeOfAMultiEntryAnswerKey() {
+        // Accepted answers hydrate as a LinkedHashSet, so "first non-blank in
+        // iteration order" is the authored order — one card, not three.
+        Slide parent = slideWith(keyedText("   ", "Paris", "Paree"));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100)), SPOT, URLS).options();
+
+        assertThat(options).hasSize(2);
+        assertThat(options).filteredOn(option -> option.authoredAnswer())
+                .singleElement()
+                .satisfies(seed -> assertThat(seed.text()).isEqualTo("Paris"));
+    }
+
+    @Test
+    void spotTheAnswerOnAParentWithNoAnswerKeyMintsTheVoteBoardWithNothingFlagged() {
+        // The editor rejects emptying the key under an attached SPOT_THE_ANSWER
+        // child, but a live session's deck snapshot can predate that rule.
+        List<Answer> answers = List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100),
+                answer("p-2", new TextAnswer("Nice"), 200));
+
+        List<FollowUpOption> degraded = FollowUpOptions.mint(
+                slideWith(keyedText()), answers, SPOT, URLS).options();
+        List<FollowUpOption> blankKey = FollowUpOptions.mint(
+                slideWith(keyedText("   ")), answers, SPOT, URLS).options();
+        List<FollowUpOption> asVote = FollowUpOptions.mint(
+                slideWith(keyedText()), answers, VOTE, URLS).options();
+
+        assertThat(degraded).isEqualTo(asVote);
+        assertThat(blankKey).isEqualTo(asVote);
+        assertThat(degraded).noneMatch(option -> option.authoredAnswer());
+    }
+
+    @Test
+    void bestAnswerVoteNeverSeedsTheAnswerEvenOnAKeyedParent() {
+        Slide parent = slideWith(keyedText("Paris"));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100)), VOTE, URLS).options();
+
+        assertThat(options).extracting(option -> option.text()).containsExactly("Lyon");
+        assertThat(options).noneMatch(option -> option.authoredAnswer());
+    }
+
+    @Test
+    void spotTheAnswerRemintReproducesTheSameCandidateIdsIfNotTheirOrder() {
+        Slide parent = slideWith(keyedText("Paris"));
+        List<Answer> answers = List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100),
+                answer("p-2", new TextAnswer("Nice"), 200),
+                answer("p-3", new TextAnswer("Dijon"), 300));
+
+        FollowUpOptionSet first = FollowUpOptions.mint(parent, answers, SPOT, URLS);
+        FollowUpOptionSet second = FollowUpOptions.mint(parent, answers, SPOT, URLS);
+
+        // Ids are content-derived, so a re-mint stands for the same cards — only
+        // the seed's slot may move, which nothing addresses a candidate by.
+        assertThat(second.options()).containsExactlyInAnyOrderElementsOf(first.options());
+        assertThat(submittedTexts(second)).isEqualTo(submittedTexts(first));
+    }
+
+    @Test
+    void spotTheAnswerDrawsTheSeedsSlotRatherThanDerivingItFromTheBoard() {
+        // The regression: a slot derived from the answer's own content hash is
+        // recomputable by any client, since a card's text and index both travel
+        // on the wire. Over many mints of one unchanged round the seed must move.
+        Slide parent = slideWith(keyedText("Paris"));
+        List<Answer> answers = List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100),
+                answer("p-2", new TextAnswer("Nice"), 200),
+                answer("p-3", new TextAnswer("Dijon"), 300));
+
+        Set<Integer> slots = new LinkedHashSet<>();
+        for (int mint = 0; mint < 200; mint++) {
+            List<FollowUpOption> options = FollowUpOptions.mint(parent, answers, SPOT, URLS).options();
+            slots.add(options.indexOf(options.stream()
+                    .filter(option -> option.authoredAnswer()).findFirst().orElseThrow()));
+        }
+
+        // Four slots, 200 draws: a derived (constant) slot fails outright, and a
+        // uniform draw collapsing to one slot has probability 4 · (1/4)^200.
+        assertThat(slots).hasSizeGreaterThan(1);
+    }
+
+    @Test
+    void seededCardObeysTheSameIdToTextRelationAsEverySubmittedCard() {
+        // A parent that does NOT trim: keying the seed off the raw accepted answer
+        // would leave it as the one card whose id isn't derivedId(normalize(text)),
+        // which is a tell as good as a label. It is stripped before keying instead.
+        TextContent content = new TextContent(answerKey("  Paris  "), MatchMode.EXACT, false, false, null);
+        Slide parent = slideWith(content);
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100),
+                answer("p-2", new TextAnswer("Paris"), 200)), SPOT, URLS).options();
+
+        assertThat(options).allSatisfy(option -> assertThat(option.optionId())
+                .isEqualTo(derivedId(content.normalize(option.text()))));
+        // …and the submission that matches the stripped answer still merges into it.
+        assertThat(options).filteredOn(option -> option.authoredAnswer())
+                .singleElement()
+                .satisfies(seed -> assertThat(seed.authorParticipantIds()).containsExactly("p-2"));
+        assertThat(options).hasSize(2);
+    }
+
     // ── fixtures ───────────────────────────────────────────────────────────────
+
+    /** The board's submitted cards in board order — the seed dropped out. */
+    private static List<String> submittedTexts(FollowUpOptionSet set) {
+        return set.options().stream()
+                .filter(option -> !option.authoredAnswer())
+                .map(option -> option.text())
+                .toList();
+    }
+
+    /** The id the mint derives for a candidate keyed on {@code key}. */
+    private static String derivedId(String key) {
+        return UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
+    }
 
     private static Slide slideWith(SlideContent content) {
         Slide slide = new Slide();
@@ -240,6 +408,16 @@ class FollowUpOptionsTest {
 
     private static TextContent text(boolean caseSensitive, boolean trimWhitespace) {
         return new TextContent(Set.of(), MatchMode.EXACT, caseSensitive, trimWhitespace, null);
+    }
+
+    /** A trimming, case-insensitive TEXT parent carrying the given answer key. */
+    private static TextContent keyedText(String... acceptedAnswers) {
+        return new TextContent(answerKey(acceptedAnswers), MatchMode.EXACT, false, true, null);
+    }
+
+    /** An answer key preserving authored order, as a stored {@code Set} hydrates. */
+    private static Set<String> answerKey(String... acceptedAnswers) {
+        return new LinkedHashSet<>(List.of(acceptedAnswers));
     }
 
     private static DrawingContent drawing() {

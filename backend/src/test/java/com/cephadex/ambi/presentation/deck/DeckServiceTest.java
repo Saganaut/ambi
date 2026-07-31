@@ -412,6 +412,83 @@ class DeckServiceTest {
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
+    // ── SPOT_THE_ANSWER's answer-key requirement ─────────────────────────────────
+
+    @Test
+    void addFollowUpSlideAcceptsSpotTheAnswerOnAKeyedTextParent() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(keyedTextContent("Paris"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.addFollowUpSlide("deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner);
+
+        assertThat(deck.findSlide("f1").orElseThrow().getContent())
+                .isEqualTo(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void addFollowUpSlideRejectsSpotTheAnswerOnAKeylessTextParent() {
+        // supportsParent settles the type only: an unkeyed TEXT slide is a
+        // legitimate collect-only prompt with no authored answer to hide.
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(textContent());
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("answer key");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void addFollowUpSlideRejectsSpotTheAnswerOnANonTextParent() {
+        // The type half of the pairing rule: only a TEXT parent has an authored
+        // answer that can pass as one of the submissions.
+        Deck deck = deckWithMcq("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("not valid");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideRejectsModeChangeToSpotTheAnswerOnAKeylessParent() {
+        // The inspector's everyday path enforces exactly what the add endpoint does.
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        deck.findSlide("p").orElseThrow().setContent(textContent());
+        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("f");
+        changes.setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("answer key");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideRejectsStrippingTheAnswerKeyUnderASpotTheAnswerChild() {
+        // The transition that would leave the child dangling: same type, but the
+        // answer it hides among the submissions is gone.
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        deck.findSlide("p").orElseThrow().setContent(keyedTextContent("Paris"));
+        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("p");
+        changes.setContent(textContent());
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("answer key");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
     @Test
     void removeSlideCascadesAttachedFollowUpAndSaves() {
         Deck deck = deckWithAttachedPair("owner-1", "p", "f", "s3");
@@ -1061,6 +1138,12 @@ class DeckServiceTest {
     private static TextContent textContent() {
         return new TextContent(Set.of(), SlideContentTypes.MatchMode.EXACT,
                 false, true, null);
+    }
+
+    /** A TEXT slide carrying an answer key — the parent SPOT_THE_ANSWER needs. */
+    private static TextContent keyedTextContent(String... acceptedAnswers) {
+        return new TextContent(new LinkedHashSet<>(List.of(acceptedAnswers)),
+                SlideContentTypes.MatchMode.EXACT, false, true, null);
     }
 
     private static AppImage image(String externalSrc) {

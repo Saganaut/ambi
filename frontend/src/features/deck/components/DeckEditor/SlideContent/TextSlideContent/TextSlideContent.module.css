@@ -21,3 +21,11 @@
   padding: 0;
   list-style: none;
 }
+
+/* Explains why the last accepted-answer tag's remove control is gone —
+   a SPOT_THE_ANSWER follow-up needs at least one to grade against. */
+.answerKeyLockedHint {
+  padding-left: var(--gap-xs);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}

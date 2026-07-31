@@ -4,6 +4,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -55,7 +56,10 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
  * {@link com.cephadex.ambi.session.roundResult.RoundScorer} — no Spring, no I/O
  * — so the caller owns reading the answers and presigning: images resolve
  * through the passed {@code imageUrl} function rather than an injected
- * resolver.
+ * resolver. It is deterministic in everything but one deliberate draw: the slot
+ * a {@link FollowUpMode#SPOT_THE_ANSWER} mint hides the authored answer in is
+ * random, because a derived one would be reconstructible from the board itself
+ * (see {@link #withAuthoredAnswer}).
  *
  * <p>
  * <strong>Ids are derived, never random.</strong> Every option id is a UUID
@@ -66,7 +70,12 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
  * against it meaningful instead of orphaning them. Ordering is derived the same
  * way: authored order for MCQ, and submission order ({@code submittedAt}, ties
  * broken by participant id) for the kinds minted from answers, so two mints of
- * one round also agree on the layout.
+ * one round also agree on the layout. The one exception is where a
+ * {@link FollowUpMode#SPOT_THE_ANSWER} mint <em>drops the seeded answer in</em>
+ * — that slot is chosen at random per mint, on purpose (see
+ * {@link #withAuthoredAnswer}); the seeded card's <em>id</em> is content-derived
+ * like every other, so a re-mint still reproduces the same ids, only in a
+ * different arrangement.
  *
  * <p>
  * <strong>Structured submissions become text summaries.</strong> Every scorable
@@ -112,6 +121,12 @@ public final class FollowUpOptions {
      * other read as the same answer, so they share one candidate.
      */
     private static final int SCALE_DECIMALS = 1;
+
+    /**
+     * Draws the slot a {@code SPOT_THE_ANSWER} mint hides the authored answer in
+     * (see {@link #seedPosition}). Thread-safe, and seeded by the platform.
+     */
+    private static final SecureRandom SEED_SLOTS = new SecureRandom();
 
     private FollowUpOptions() {
     }
@@ -237,11 +252,15 @@ public final class FollowUpOptions {
      * order is fixed for a given stored slide (Jackson and MongoDB both hydrate
      * a {@code Set} field as a {@code LinkedHashSet}, so it is the authored
      * order), and a live session mints from one immutable deck snapshot — so
-     * every re-mint of a round reads the same wording, which is what
-     * re-mint determinism needs. Its {@link TextContent#normalize normalized}
-     * form is the key, exactly as for a submission; the card shows the authored
-     * wording, stripped — the one liberty taken with it, because stray padding
-     * would render as a visible tell no submitted card has.
+     * every re-mint of a round reads the same wording, which is what keeps the
+     * seeded card's <em>id</em> stable. It is <strong>stripped first</strong>
+     * and the stripped form is what both the card shows and
+     * {@link TextContent#normalize normalizes} into the key — so the seed obeys
+     * the same {@code optionId == derivedId(normalize(displayText))} relation
+     * every submission card does. Deriving the key from the raw wording instead
+     * would break that relation on a {@code trimWhitespace = false} parent with
+     * a padded accepted answer, leaving the seed as the one card on the board
+     * whose id doesn't match its text — a tell as good as a label.
      *
      * <p><strong>Merging.</strong> Keying it like a submission is the point: a
      * participant who typed the authored answer lands on the same key, so the
@@ -251,18 +270,26 @@ public final class FollowUpOptions {
      *
      * <p><strong>Where it lands.</strong> Submissions sit in submission order,
      * so seeding the answer at either end would make it the card everyone
-     * learns to look at; shuffling is not an option, because a re-mint has to
-     * reproduce the same board. The insertion index is therefore derived from
-     * the authored answer's own content hash, over {@code candidates + 1} slots
-     * — stable across mints, but unguessable without knowing the answer, which
-     * is precisely the secret. A merged answer is not moved at all: its
-     * position was already fixed by the submission it merged with, which leaks
-     * nothing.
+     * learns to look at. The slot is therefore drawn from a
+     * {@link SecureRandom} over {@code candidates + 1} positions, freshly per
+     * mint. Deriving it from the answer's content instead would be worse than
+     * useless: every input to such a derivation travels on the wire (a card's
+     * text and its board position), so a client could re-run it against each
+     * card and read off which one the seed is. Randomness has no input to leak.
+     * The cost is only that two mints of one round may arrange the board
+     * differently, which nothing depends on: candidate <em>ids</em> stay
+     * content-derived, and a re-mint happens only where the round's cast
+     * answers are cleared with it (see {@code LiveSessionOrchestrator}'s
+     * open/restart path). A merged answer is not moved at all: its position was
+     * already fixed by the submission it merged with, which leaks nothing.
      *
      * <p><strong>Degradation.</strong> A parent whose answer key was emptied
      * after the follow-up was attached seeds nothing and mints exactly as
-     * {@code BEST_ANSWER_VOTE} would; no candidate carries the flag, so the
-     * round simply scores nobody.
+     * {@code BEST_ANSWER_VOTE} would. No candidate carries the flag, so no pick
+     * can grade correct and the <em>picker</em> side scores nobody; the author
+     * side is unaffected — {@code RoundEvaluator.followUpPicksByAuthor} gates on
+     * the mode and a non-empty board, not on the flag, so cards that drew picks
+     * still pay their authors deception points.
      */
     private static Map<String, Candidate> withAuthoredAnswer(TextContent content,
             Map<String, Candidate> byNormalized) {
@@ -270,7 +297,10 @@ public final class FollowUpOptions {
         if (authored == null) {
             return byNormalized;
         }
-        String key = content.normalize(authored);
+        // Strip before keying, not after: the card's display text is the stripped
+        // wording, and its id has to be the derivation of that same text.
+        String display = authored.strip();
+        String key = content.normalize(display);
         if (key == null || key.isEmpty()) {
             return byNormalized;
         }
@@ -279,9 +309,9 @@ public final class FollowUpOptions {
             merged.markAuthoredAnswer();
             return byNormalized;
         }
-        Candidate seed = new Candidate(authored.strip(), null);
+        Candidate seed = new Candidate(display, null);
         seed.markAuthoredAnswer();
-        int at = seedPosition(key, byNormalized.size());
+        int at = seedPosition(byNormalized.size());
         Map<String, Candidate> seeded = new LinkedHashMap<>();
         int position = 0;
         for (Map.Entry<String, Candidate> entry : byNormalized.entrySet()) {
@@ -316,14 +346,22 @@ public final class FollowUpOptions {
 
     /**
      * Where the seeded answer slots in among {@code candidateCount} submissions:
-     * a slot in {@code [0, candidateCount]} derived from the answer's own
-     * {@link #derivedId} — the same content hash the card's id comes from, so
-     * the position is a pure function of the authored wording and a re-mint over
-     * the same submissions reproduces it. {@link String#hashCode} is specified
-     * by the platform, so the placement is stable across JVMs too.
+     * a uniformly random slot in {@code [0, candidateCount]}, drawn fresh on
+     * every mint.
+     *
+     * <p>It has to be random rather than derived, because the position is
+     * <em>visible</em>. Everything a derivation could be a function of — each
+     * card's text and its index — travels to every client on
+     * {@code FollowUpOptionView}, so a client could recompute the derivation for
+     * each card and see which one lands on its own slot: a certain hit on the
+     * seed and only a {@code 1/(n+1)} false positive per other card. A draw from
+     * {@link SecureRandom} consumes no board-derivable input, so there is
+     * nothing to recompute — and it is the CSPRNG rather than
+     * {@code java.util.Random} because a predictable stream would hand the same
+     * answer back to anyone who could observe a few boards.
      */
-    private static int seedPosition(String key, int candidateCount) {
-        return Math.floorMod(derivedId(key).hashCode(), candidateCount + 1);
+    private static int seedPosition(int candidateCount) {
+        return SEED_SLOTS.nextInt(candidateCount + 1);
     }
 
     /**

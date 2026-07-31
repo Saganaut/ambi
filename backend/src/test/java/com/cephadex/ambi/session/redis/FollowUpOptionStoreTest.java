@@ -23,7 +23,8 @@ import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
  * Round-trips a candidate set through the store over a HashMap-backed mock of
  * the Redis value ops, using the real {@link RedisJsonCodec}, so the JSON write
  * (key + TTL), the order-preserving read back, the absent-key default and clear
- * are exercised together.
+ * are exercised together. Also the lenient read: a legacy blob written before
+ * {@code authoredAnswer} existed must still load, as an unseeded board.
  */
 class FollowUpOptionStoreTest {
 
@@ -96,6 +97,27 @@ class FollowUpOptionStoreTest {
 
         assertThat(optionStore.load(SID, SLIDE).options())
                 .extracting(option -> option.optionId()).containsExactly("opt-2");
+    }
+
+    @Test
+    void loadReadsABlobWrittenBeforeAuthoredAnswerExistedAsUnseeded() {
+        // Written straight into Redis rather than through save(): this is the
+        // pre-deploy shape, with no authoredAnswer field at all. A strict read
+        // would reject the absent primitive and take the round's board down with
+        // it — false is exactly what "nothing was seeded into this board" means,
+        // which is the truth for every set minted before the flag.
+        store.put(KEY, """
+                {"options":[{"optionId":"opt-1","text":"Alpha","imageUrl":null,\
+                "authorParticipantIds":["p-1"]}]}""");
+
+        List<FollowUpOption> back = optionStore.load(SID, SLIDE).options();
+
+        assertThat(back).singleElement().satisfies(option -> {
+            assertThat(option.optionId()).isEqualTo("opt-1");
+            assertThat(option.text()).isEqualTo("Alpha");
+            assertThat(option.authorParticipantIds()).containsExactly("p-1");
+            assertThat(option.authoredAnswer()).isFalse();
+        });
     }
 
     @Test

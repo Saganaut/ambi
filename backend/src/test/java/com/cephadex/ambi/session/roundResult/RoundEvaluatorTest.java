@@ -46,10 +46,15 @@ import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.answer.payload.RankingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 
 /**
  * Grading: each answer is compared against the slide's typed content key, exactly
  * one fastest-correct is flagged, and content with no static key never grades true.
+ * A follow-up pick is the exception whose key is the round's minted board — only
+ * {@code SPOT_THE_ANSWER} has one — and the author side of that mode, where a
+ * card's picks pay its writers and are not zeroed by their own correct grade.
  */
 class RoundEvaluatorTest {
 
@@ -328,6 +333,86 @@ class RoundEvaluatorTest {
         assertThat(evals.get(1).bestAnswer()).isTrue();
     }
 
+    // ── SPOT_THE_ANSWER (the follow-up grade + the author side) ──────────────
+
+    @Test
+    void spotTheAnswerGradesAPickOfTheSeededCandidateCorrect() {
+        assertThat(gradePick(FollowUpMode.SPOT_THE_ANSWER, board(), "seed")).isTrue();
+    }
+
+    @Test
+    void spotTheAnswerGradesAPickOfAnyOtherCandidateFalse() {
+        assertThat(gradePick(FollowUpMode.SPOT_THE_ANSWER, board(), "opt-a")).isFalse();
+        // A pick naming a candidate the board never had grades false too, rather
+        // than failing the round.
+        assertThat(gradePick(FollowUpMode.SPOT_THE_ANSWER, board(), "ghost")).isFalse();
+    }
+
+    @Test
+    void otherFollowUpModesGradeFalseEvenAgainstASeededBoard() {
+        // "Which was best?" and "which was most popular?" have no right answer,
+        // so the flag on the board is irrelevant to them.
+        assertThat(gradePick(FollowUpMode.BEST_ANSWER_VOTE, board(), "seed")).isFalse();
+        assertThat(gradePick(FollowUpMode.PREDICT_POPULAR, board(), "seed")).isFalse();
+    }
+
+    @Test
+    void spotTheAnswerWithAnEmptyBoardGradesEveryPickFalse() {
+        // A parent that lost its answer key before the mint seeds nothing, so
+        // nothing can be spotted.
+        assertThat(gradePick(FollowUpMode.SPOT_THE_ANSWER, FollowUpOptionSet.empty(), "seed")).isFalse();
+    }
+
+    @Test
+    void followUpPicksByAuthorCountsPicksPerAuthorAndExcludesSelfPicks() {
+        Slide slide = slideWith(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+
+        Map<String, Integer> picks = RoundEvaluator.followUpPicksByAuthor(slide, List.of(
+                answer("p3", new FollowUpAnswer("opt-a"), 100),
+                answer("p4", new FollowUpAnswer("opt-a"), 200),
+                // A merged card credits every author it stands for.
+                answer("p3", new FollowUpAnswer("opt-b"), 300),
+                // Self-pick: the author of opt-a picking their own card pays nothing.
+                answer("p1", new FollowUpAnswer("opt-a"), 400),
+                // The seeded answer has no author, so picking it credits nobody.
+                answer("p4", new FollowUpAnswer("seed"), 500)), board());
+
+        assertThat(picks).containsOnly(entry("p1", 2), entry("p2", 1), entry("p5", 1));
+    }
+
+    @Test
+    void followUpPicksByAuthorIsEmptyForTheUnscoredModesAndAnEmptyBoard() {
+        List<Answer> picks = List.of(answer("p3", new FollowUpAnswer("opt-a"), 100));
+
+        assertThat(RoundEvaluator.followUpPicksByAuthor(
+                slideWith(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE)), picks, board())).isEmpty();
+        assertThat(RoundEvaluator.followUpPicksByAuthor(
+                slideWith(new FollowUpContent(FollowUpMode.PREDICT_POPULAR)), picks, board())).isEmpty();
+        assertThat(RoundEvaluator.followUpPicksByAuthor(
+                slideWith(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER)), picks,
+                FollowUpOptionSet.empty())).isEmpty();
+        // Not a follow-up round at all.
+        assertThat(RoundEvaluator.followUpPicksByAuthor(slideWith(mcq(Set.of("a"))), picks, board())).isEmpty();
+    }
+
+    @Test
+    void picksDrawnSurviveACorrectGradeUnlikeVotes() {
+        Slide slide = slideWith(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+
+        List<AnswerEvaluation> evals = RoundEvaluator.evaluate(slide, List.of(
+                answer("spotter", new FollowUpAnswer("seed"), 100),
+                answer("fooled", new FollowUpAnswer("opt-a"), 200)),
+                START, Map.of("spotter", 4), board(), Map.of("spotter", 3, "fooled", 1));
+
+        // Spotting the answer and writing a card that fooled the room are two
+        // separate earnings: the votes a correct answer drew are zeroed as ever,
+        // but the follow-up picks are not.
+        assertThat(evals.get(0).correct()).isTrue();
+        assertThat(evals.get(0).deceivedCount()).isEqualTo(3);
+        assertThat(evals.get(1).correct()).isFalse();
+        assertThat(evals.get(1).deceivedCount()).isEqualTo(1);
+    }
+
     @Test
     void correctKeyRendersMcqAsSortedJoin() {
         assertThat(RoundEvaluator.correctKey(slideWith(mcq(Set.of("b", "a"))))).isEqualTo("a,b");
@@ -353,6 +438,24 @@ class RoundEvaluatorTest {
 
     private static boolean gradeOne(Slide slide, AnswerPayload payload) {
         return RoundEvaluator.evaluate(slide, List.of(answer("p", payload, 10)), START).get(0).correct();
+    }
+
+    /** How one pick against {@code options} grades on a follow-up of {@code mode}. */
+    private static boolean gradePick(FollowUpMode mode, FollowUpOptionSet options, String optionId) {
+        return RoundEvaluator.evaluate(slideWith(new FollowUpContent(mode)),
+                List.of(answer("p", new FollowUpAnswer(optionId), 10)), START,
+                Map.of(), options, Map.of()).get(0).correct();
+    }
+
+    /**
+     * A minted SPOT_THE_ANSWER board: the seeded answer (flagged, authorless), a
+     * merged card owning two submitters, and a plain one.
+     */
+    private static FollowUpOptionSet board() {
+        return new FollowUpOptionSet(List.of(
+                new FollowUpOption("opt-a", "Lyon", null, Set.of("p1"), false),
+                new FollowUpOption("seed", "Paris", null, Set.of(), true),
+                new FollowUpOption("opt-b", "Nice", null, Set.of("p2", "p5"), false)));
     }
 
     private static McqContent mcq(Set<String> correct) {

@@ -49,6 +49,7 @@ import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.QAndAQuestionView;
 import com.cephadex.ambi.session.event.dto.VoteOptionView;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
 import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.followUp.FollowUpOptions;
 import com.cephadex.ambi.session.liveSession.LiveSession;
@@ -1420,10 +1421,28 @@ public class LiveSessionOrchestrator {
      * submissions mint at least one candidate. Used by {@link #resolveNextSlide}'s
      * auto-skip — a follow-up that fails either test is stepped over rather than
      * opened as an empty board.
+     *
+     * <p>A mode that seeds the parent's authored answer
+     * ({@link FollowUpMode#requiresAnswerKey}) needs a <em>submitted</em>
+     * candidate, not merely a non-empty set: the seed alone would open a
+     * one-card board where the only pick available is the authored answer, so
+     * everyone grades correct and collects full points, a streak, and the
+     * fastest-correct bonus for reading the only card on screen. The mint that
+     * decides this is a throwaway — the board the round actually opens on is
+     * minted and snapshotted in {@link #openRoundUnlocked} — and only its
+     * <em>counts</em> are read here, which the mint's one random draw (where the
+     * seed lands) cannot change.
      */
     private boolean followUpPlayable(LiveSession session, Slide slide) {
-        return roundResults.find(session.getId(), slide.getParentId()).isPresent()
-                && !mintFollowUpOptions(session, slide).options().isEmpty();
+        if (roundResults.find(session.getId(), slide.getParentId()).isEmpty()) {
+            return false;
+        }
+        List<FollowUpOption> candidates = mintFollowUpOptions(session, slide).options();
+        FollowUpMode mode = slide.getContent() instanceof FollowUpContent content ? content.mode() : null;
+        if (mode != null && mode.requiresAnswerKey()) {
+            return candidates.stream().anyMatch(candidate -> !candidate.authoredAnswer());
+        }
+        return !candidates.isEmpty();
     }
 
     /**

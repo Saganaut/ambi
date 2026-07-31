@@ -34,8 +34,16 @@ package com.cephadex.ambi.session.roundResult;
  * @param bestAnswer     voted the round's best answer during its VOTE phase
  *                       (deception-style games; at most one true, and only when
  *                       votes were cast — see {@link RoundEvaluator})
- * @param deceivedCount  how many voters this answer deceived: the votes it drew
- *                       while grading incorrect (deception games)
+ * @param deceivedCount  how many players this participant's own submission drew
+ *                       in, from two independent sources summed here: the
+ *                       VOTE-phase votes it drew <em>while grading incorrect</em>
+ *                       (votes for a correct answer deceive nobody, so they are
+ *                       zeroed), plus the picks their card drew on a
+ *                       {@code SPOT_THE_ANSWER} follow-up board — which are
+ *                       <b>not</b> zeroed on a correct grade, because spotting
+ *                       the authored answer and writing a card that fooled the
+ *                       room are two separate things to have done in one round
+ *                       (see {@link RoundEvaluator#followUpPicksByAuthor})
  * @param responseTimeMs time from round start to submission, in milliseconds
  */
 public record AnswerEvaluation(

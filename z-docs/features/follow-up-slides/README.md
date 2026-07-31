@@ -103,8 +103,12 @@ participant-submitted candidates, and the room has to spot it.
   non-blank one in iteration order (a stored `Set` field hydrates as a
   `LinkedHashSet`, so that is the authored order, and a live session mints from
   one immutable deck snapshot — every re-mint of a round therefore reads the
-  same wording). Its id is `derivedId(normalizedKey)` like any other candidate,
-  so a re-mint reproduces the same board.
+  same wording). The wording is **stripped first**, and that stripped form is
+  both what the card shows and what the key normalizes from, so the seed obeys
+  the same `optionId == derivedId(normalize(displayText))` relation every
+  submission card does — keying off the raw wording instead would leave the seed
+  as the one card on a `trimWhitespace = false` board whose id doesn't match its
+  text.
 - **Merging** — the seed is keyed under `TextContent.normalize` exactly as a
   submission is, so a participant who typed the authored answer lands on the
   *same* candidate: one card that is both the answer key and their submission,
@@ -112,22 +116,35 @@ participant-submitted candidates, and the room has to spot it.
   correctly stops them picking the card they wrote.
 - **Where the seeded card lands** — submissions sit in submission order, so
   putting the answer first or last would make it the card the room learns to
-  look at, and shuffling is not available (a re-mint has to reproduce the
-  board). The insertion index is derived from the authored answer's own content
-  hash over `candidates + 1` slots: stable across mints, unguessable without
-  knowing the answer. A *merged* answer is never moved — its position was
-  already fixed by the submission it merged with, which leaks nothing.
+  look at. The insertion slot is therefore drawn from a `SecureRandom` over
+  `candidates + 1` positions, freshly per mint. It cannot be *derived* from the
+  answer instead: a card's text and its board position both travel on
+  `FollowUpOptionView`, so any derivation a client can re-run identifies the seed
+  outright. Randomness consumes no board-visible input, and nothing depends on
+  the arrangement being reproducible — candidate **ids** stay content-derived, so
+  a re-mint yields the same cards, only rearranged, and the only paths that
+  re-mint (a round open or restart, or a parent replay) clear that round's cast
+  answers with it. A *merged* answer is never moved — its position was already
+  fixed by the submission it merged with, which leaks nothing.
 - **Secrecy** — `FollowUpOption.authoredAnswer` is server-only, exactly like
   `authorParticipantIds`: `FollowUpOptionView` projects only
   id/text/imageUrl, and `FollowUpConfigView` carries no correct-answer field.
   The parent itself never reveals either (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`).
   The card also shows the authored wording **stripped**, so stray padding
-  can't render as a tell no submitted card has.
+  can't render as a tell no submitted card has. The invariant is an *in-round*
+  one: at `REVEAL_RESULTS` the round's own outcomes carry each participant's
+  `choice` alongside whether it graded `correct`, from which any client can read
+  off the authored option id. That is disclosure by design — the round is over —
+  and it is why the secrecy argument is about what the board leaks *while it is
+  being played*.
 - **Graceful degradation** — if the author empties the parent's answer key
   after attaching the follow-up (the editor rejects that, but a session's deck
   snapshot can predate the rule), the mint seeds nothing and produces exactly
-  the `BEST_ANSWER_VOTE` board. No candidate carries the flag, so the round
-  scores nobody rather than failing.
+  the `BEST_ANSWER_VOTE` board. No candidate carries the flag, so no pick can
+  grade correct and the **picker** side scores nobody, rather than the round
+  failing. Authors are unaffected: `RoundEvaluator.followUpPicksByAuthor` gates
+  on the mode and a non-empty board, not on the flag, so cards that drew picks
+  still pay deception points.
 - **Scoring** — pickers earn through the ordinary correct-answer path, authors
   through deception points; see *Scoring a follow-up round* under
   [Runtime](#runtime).
@@ -288,8 +305,12 @@ attached follow-up is rejected unconditionally, regardless of the slide's own
 parent and advances, and the follow-up round is where the parent's results are
 presented. Navigation skips a follow-up that can't be played (parent never
 scored, or its submissions mint no candidates) rather than opening an empty
-board; `goTo` still rejects the named slide outright
-(`409 PARENT_ROUND_NOT_SCORED`).
+board. On a mode that seeds the answer key (`requiresAnswerKey`) the second test
+is stricter — the mint must hold at least one **non-seeded** candidate, because
+the seed alone would open a one-card board where the only pick available is the
+authored answer, and the whole room would collect full points, a streak, and the
+fastest-correct bonus for reading the only card on screen. `goTo` still rejects
+the named slide outright (`409 PARENT_ROUND_NOT_SCORED`).
 
 A pre-existing `ResultsDisplayMode.AFTER_FOLLOWUP` value predates this design
 and is retired from the deck editor's reveal-results dropdown (the wire enum
