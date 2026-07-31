@@ -2,7 +2,7 @@
 /* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { fn } from "storybook/test";
+import { fn, userEvent, within } from "storybook/test";
 import { Input } from "../Input/Input";
 import { Dropdown } from "./Dropdown";
 import { REGION_OPTIONS, CATEGORY_OPTIONS } from "./Dropdown.mocks";
@@ -117,6 +117,56 @@ export const FieldParityMatrix: Story = {
         options={REGION_OPTIONS}
         value={["gondor"]}
         disabled
+      />
+    </div>
+  ),
+};
+
+export const FocusedInputParity: Story = {
+  render: () => (
+    <div style={{ maxWidth: "24rem" }}>
+      <Input label='Focused input' />
+      <Dropdown label='Resting dropdown' options={REGION_OPTIONS} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("textbox", { name: "Focused input" }),
+    );
+  },
+};
+
+export const OpenDropdownParity: Story = {
+  render: () => (
+    <div style={{ maxWidth: "24rem" }}>
+      <Input label='Resting input' />
+      <Dropdown label='Open dropdown' options={REGION_OPTIONS} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", {
+      name: "Open dropdown",
+    });
+    await userEvent.click(trigger);
+    await userEvent.hover(trigger);
+  },
+};
+
+export const BorderlessOnRaisedSurface: Story = {
+  render: () => (
+    <div
+      style={{
+        display: "grid",
+        gap: "1rem",
+        maxWidth: "24rem",
+        padding: "1rem",
+        background: "var(--bg-surface-raised)",
+      }}>
+      <Input label='Borderless input' isBordered={false} />
+      <Dropdown
+        label='Borderless dropdown'
+        options={REGION_OPTIONS}
+        isBordered={false}
       />
     </div>
   ),

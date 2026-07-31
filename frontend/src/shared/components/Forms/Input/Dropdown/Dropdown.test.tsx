@@ -15,12 +15,14 @@ interface ControlledDropdownProps {
   searchable?: boolean;
   multiple?: boolean;
   compact?: boolean;
+  disabled?: boolean;
 }
 
 const ControlledDropdown = ({
   searchable = false,
   multiple = false,
   compact = false,
+  disabled = false,
 }: ControlledDropdownProps) => {
   const [value, setValue] = useState<string[]>([]);
   return (
@@ -33,6 +35,7 @@ const ControlledDropdown = ({
       searchable={searchable}
       multiple={multiple}
       compact={compact}
+      disabled={disabled}
     />
   );
 };
@@ -242,5 +245,19 @@ describe("Dropdown", () => {
 
     expect(trigger).toBeDisabled();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("closes when disabled while open", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<ControlledDropdown />);
+
+    await user.click(screen.getByRole("button", { name: "Accepted as correct" }));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    rerender(<ControlledDropdown disabled />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    });
   });
 });

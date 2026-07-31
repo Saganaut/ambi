@@ -86,6 +86,7 @@ input[type="radio"] {
   font-size: var(--font-size-sm);
   font-weight: normal;
   color: var(--field-color);
+  background-color: var(--bg-canvas);
   transition:
     color var(--duration-base) ease-in-out,
     border-color var(--duration-base) ease-in-out,
@@ -139,7 +140,13 @@ input[type="radio"] {
     --field-shadow: var(--shadow-focus);
   }
 
-  &:hover:not(:disabled, [aria-disabled="true"], :focus, .noBorders) {
+  &:hover:not(
+    :disabled,
+    [aria-disabled="true"],
+    [aria-expanded="true"],
+    :focus,
+    .noBorders
+  ) {
     --field-shadow: var(--shadow-hover);
   }
 }

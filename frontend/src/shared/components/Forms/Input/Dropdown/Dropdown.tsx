@@ -132,6 +132,11 @@ const Dropdown = ({
       optionRefs.current[activeIndex]?.focus();
     }
   }, [activeIndex, isOpen, searchable]);
+  useEffect(() => {
+    if (disabled && isOpen) {
+      setOpen(false);
+    }
+  }, [disabled, isOpen, setOpen]);
 
   const click = useClick(context);
   const dismiss = useDismiss(context);
