@@ -2,139 +2,157 @@
    with a small remove pill on hover; each tile is a button that opens the DS
    color-picker popover. */
 
-.paletteRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-sm);
-  align-items: center;
-}
-
-.swatch {
-  position: relative;
-  width: 2.5rem;
-  height: 2.5rem;
-}
-
-.swatchTile {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border-radius: var(--radius-md);
-  border: var(--border-size-sm) solid var(--edge-surface);
-  cursor: pointer;
-
-  /* The global reset strips button outlines, so restore keyboard focus. */
-  &:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+.drawingSlideContent {
+  p {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
   }
-}
 
-.swatchRemove {
-  position: absolute;
-  top: calc(-1 * var(--space-1));
-  right: calc(-1 * var(--space-1));
-  width: var(--space-4);
-  height: var(--space-4);
-  padding: var(--gap-xxs);
-  border-radius: var(--radius-full);
-  border: none;
-  background-color: var(--bg-surface-raised);
-  color: var(--text-secondary);
-  opacity: 0;
-  visibility: hidden;
-  cursor: pointer;
-  z-index: 3;
-  transition:
-    opacity var(--duration-fast) ease-out,
-    color var(--duration-fast) ease-out;
-}
+  .imageActions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+    align-items: center;
+  }
 
-.swatchRemove svg {
-  width: 100%;
-  height: 100%;
-}
+  .imageSection {
+    display: flex;
+    flex-direction: row;
 
-.swatchRemove:hover {
-  color: var(--text-primary);
-}
+    .imagePreview {
+      display: block;
+      max-width: 50%;
+      max-height: 16rem;
+      align-self: flex-start;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-xs);
+    }
+  }
 
-.swatch:hover .swatchRemove {
-  opacity: 1;
-  visibility: visible;
-}
+  .paletteRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+    align-items: center;
+  }
 
-.paletteAdd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: var(--p-square-xs);
-  border-radius: var(--radius-md);
-  border: var(--border-size-sm) dashed var(--edge-surface);
-  background-color: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition:
-    color var(--duration-fast) ease-out,
-    border-color var(--duration-fast) ease-out,
-    background-color var(--duration-fast) ease-out;
-}
+  .swatch {
+    position: relative;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 
-.paletteAdd:hover {
-  color: var(--text-primary);
-  border-color: var(--border-default);
-  background-color: var(--bg-surface);
-}
+  .swatchTile {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border-radius: var(--radius-full);
+    border: var(--border-size-sm) solid var(--edge-surface);
+    cursor: pointer;
 
-.paletteAdd svg {
-  width: 1rem;
-  height: 1rem;
-}
+    /* The global reset strips button outlines, so restore keyboard focus. */
+    &:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+  }
 
-.imageActions {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: var(--gap-sm);
-  align-items: center;
-}
+  .swatchRemove {
+    position: absolute;
+    top: calc(-1 * var(--space-1));
+    right: calc(-1 * var(--space-1));
+    width: var(--space-4);
+    height: var(--space-4);
+    padding: var(--gap-xxs);
+    border-radius: var(--radius-full);
+    border: none;
+    background-color: var(--bg-surface-raised);
+    color: var(--text-secondary);
+    opacity: 0;
+    visibility: hidden;
+    cursor: pointer;
+    z-index: 3;
+    transition:
+      opacity var(--duration-fast) ease-out,
+      color var(--duration-fast) ease-out;
+  }
 
-.imagePreview {
-  display: block;
-  max-width: 100%;
-  max-height: 16rem;
+  .swatchRemove svg {
+    width: 100%;
+    height: 100%;
+  }
 
-  /* The card body is a stretch-aligned flex column; keep intrinsic aspect. */
-  align-self: flex-start;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xs);
-}
+  .swatchRemove:hover {
+    color: var(--text-primary);
+  }
 
-.imageHint {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
+  .swatch:hover .swatchRemove {
+    opacity: 1;
+    visibility: visible;
+  }
 
-/* "Draw the prompt image" modal body */
+  .paletteAdd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: var(--p-square-xs);
+    border-radius: var(--radius-full);
+    border: var(--border-size-sm) dashed var(--edge-surface);
+    background-color: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      color var(--duration-fast) ease-out,
+      border-color var(--duration-fast) ease-out,
+      background-color var(--duration-fast) ease-out;
+  }
 
-.drawModalBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-md);
-  width: min(70vh, 34rem);
-  max-width: 100%;
-}
+  .paletteAdd:hover {
+    color: var(--text-primary);
+    border-color: var(--border-default);
+    background-color: var(--bg-surface);
+  }
 
-.drawModalError {
-  margin: 0;
-  color: var(--text-error);
-  font-size: var(--font-size-sm);
-}
+  .paletteAdd svg {
+    width: 1rem;
+    height: 1rem;
+  }
 
-.drawModalActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--gap-sm);
+  .imageHint {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .drawModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
+    width: min(70vh, 34rem);
+    max-width: 100%;
+  }
+
+  .drawModalError {
+    margin: 0;
+    color: var(--text-error);
+    font-size: var(--font-size-sm);
+  }
+
+  .drawModalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--gap-sm);
+  }
+
+  .paletteTool {
+    opacity: 0;
+    transition: opacity var(--duration-base) ease-in-out;
+
+    &.visible {
+      opacity: 1;
+    }
+  }
 }

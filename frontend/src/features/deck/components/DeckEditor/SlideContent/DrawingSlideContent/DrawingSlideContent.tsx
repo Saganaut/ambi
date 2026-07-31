@@ -28,8 +28,9 @@ import { DEFAULT_DRAWING_PALETTE } from "@deck/utils/slideContent";
 import { useModal } from "@hooks/useModal";
 import { Btn } from "@ui/Buttons/Btn";
 import { isImageEmpty, largestUrl } from "@utils/image";
-import { EmptySelect, SettingsCard, SettingsRow } from "../_shared";
+import { EmptySelect } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./DrawingSlideContent.module.css";
 import { DrawPromptModalBody } from "./DrawPromptModalBody";
@@ -93,6 +94,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   return (
     <SlideWrapper
+      className={styles.drawingSlideContent}
       prompt={{
         idBase: `draw-${question.id}`,
         value: prompt,
@@ -110,76 +112,91 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         </p>
       }
     >
-      <SettingsCard
-        title="Prompt image"
-        action={
-          <span className={styles.imageActions}>
-            <Btn variant="secondary" size="sm" onClick={pickImage}>
-              {hasImage ? "Replace image" : "Choose image"}
-            </Btn>
-            <Btn variant="secondary" size="sm" onClick={drawImage}>
-              Draw one
-            </Btn>
-            {hasImage && (
-              <Btn variant="error" fill="ghost" size="sm" onClick={editor.clearImagePrompt}>
-                Remove
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Prompt image</span>
+            <span className={styles.imageActions}>
+              <Btn variant="secondary" size="sm" onClick={pickImage}>
+                {hasImage ? "Replace image" : "Choose image"}
               </Btn>
+              <Btn variant="secondary" size="sm" onClick={drawImage}>
+                Draw one
+              </Btn>
+              {hasImage && (
+                <Btn variant="error" fill="ghost" size="sm" onClick={editor.clearImagePrompt}>
+                  Remove
+                </Btn>
+              )}
+            </span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            {hasImage ? (
+              <div className={styles.imageSection}>
+                {" "}
+                <img
+                  className={styles.imagePreview}
+                  src={imageUrl}
+                  alt={question.imagePrompt?.altText ?? "Prompt image"}
+                />
+                <RadioGroup
+                  name={`draw-placement-${question.id}`}
+                  legend="Players see it"
+                  options={[
+                    { value: "ALONGSIDE", label: "Beside the canvas" },
+                    { value: "BACKGROUND", label: "On the canvas, traceable" },
+                  ]}
+                  value={question.promptPlacement}
+                  disabled={!hasImage}
+                  onChange={(value) => {
+                    editor.setPromptPlacement(value as PromptPlacement);
+                  }}
+                />{" "}
+              </div>
+            ) : (
+              <p className={styles.imageHint}>
+                Optional — give players an image to look at or trace. Leave it off for a title-only
+                prompt.
+              </p>
             )}
-          </span>
-        }
-      >
-        {hasImage ? (
-          <img
-            className={styles.imagePreview}
-            src={imageUrl}
-            alt={question.imagePrompt?.altText ?? "Prompt image"}
-          />
-        ) : (
-          <p className={styles.imageHint}>
-            Optional — give players an image to look at or trace. Leave it off for a title-only
-            prompt.
-          </p>
-        )}
-        <RadioGroup
-          name={`draw-placement-${question.id}`}
-          legend="Players see it"
-          options={[
-            { value: "ALONGSIDE", label: "Beside the canvas" },
-            { value: "BACKGROUND", label: "On the canvas, traceable" },
-          ]}
-          value={question.promptPlacement}
-          disabled={!hasImage}
-          onChange={(value) => {
-            editor.setPromptPlacement(value as PromptPlacement);
-          }}
-        />
-      </SettingsCard>
-
-      <SettingsCard title="Canvas tools">
-        <SettingsRow>
-          {TOOL_TOGGLES.map(({ tool, label }) => (
-            <Toggle
-              key={tool}
-              id={`draw-tool-${tool}-${question.id}`}
-              label={label}
-              checked={question.tools.includes(tool)}
-              onChange={(e) => {
-                editor.setToolEnabled(tool, e.target.checked);
-              }}
-            />
-          ))}
-        </SettingsRow>
-        {hasPaletteTool && (
-          <PaletteEditor
-            palette={palette}
-            canAdd={editor.canAddPaletteColor}
-            onCommit={(next) => {
-              setPalette(next);
-              editor.commitPalette(next);
-            }}
-          />
-        )}
-      </SettingsCard>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            {" "}
+            <span>Canvas Tools</span>{" "}
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <div>
+              {TOOL_TOGGLES.map(({ tool, label }) => (
+                <Toggle
+                  key={tool}
+                  id={`draw-tool-${tool}-${question.id}`}
+                  label={label}
+                  labelPosition="labelBefore"
+                  checked={question.tools.includes(tool)}
+                  onChange={(e) => {
+                    editor.setToolEnabled(tool, e.target.checked);
+                  }}
+                />
+              ))}
+            </div>
+            <div>
+              <div className={`${styles.paletteTool} ${hasPaletteTool && styles.visible}`}>
+                <p>Palette </p>
+                <PaletteEditor
+                  palette={palette}
+                  canAdd={editor.canAddPaletteColor}
+                  onCommit={(next) => {
+                    setPalette(next);
+                    editor.commitPalette(next);
+                  }}
+                />
+              </div>
+            </div>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>
     </SlideWrapper>
   );
 };

@@ -26,12 +26,20 @@ interface SlideWrapperProps {
   prompt?: Omit<PromptFieldProps, "showContrastPlate">;
   footer?: ReactNode;
   children: ReactNode;
+  className?: string;
 }
 
-const SlideWrapper = ({ title, description, prompt, footer, children }: SlideWrapperProps) => {
+const SlideWrapper = ({
+  title,
+  description,
+  prompt,
+  footer,
+  children,
+  className,
+}: SlideWrapperProps) => {
   const { hasBackgroundImage } = useSlideCanvas();
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${className}`}>
       {(title ?? description) && (
         <header
           className={[styles.header, hasBackgroundImage && styles.overImage]

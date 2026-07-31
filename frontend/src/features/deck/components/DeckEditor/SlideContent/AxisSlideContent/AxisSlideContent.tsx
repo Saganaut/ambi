@@ -3,25 +3,6 @@
  * round: players drag items anywhere on an X × Y plane whose axes carry
  * low/high endpoint labels.
  *
- * Layout:
- *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
- *   - "Plane" and "Items" cards sit side by side (wrapping on narrow
- *     containers) so the plane and the bank read as one workspace.
- *   - "Plane" card: the near-square plane with the four endpoint-label pills
- *     overlaid inside its edges; the header holds the "N of M placed" counter
- *     and the tolerance percent input (2–50 %) — every placed target's circle
- *     resizes live.
- *   - "Items" card: the item rows, each in its resolved color (override or
- *     palette default, mirrored by its marker on the plane) — `correctPositions`
- *     maps item id → normalized point.
- *
- * Interaction: selecting a row (click, or focusing its label) arms the plane —
- * pressing/dragging on the plane places that item's target. Focusing a row's
- * label also opens its popover menu (set/clear target, color, image, delete),
- * the same focus-opened menu pattern as MCQ options; "Set target" seeds the
- * plane's centre, which is the pointer-free placement path. This composer owns
- * which menu is open (at most one) and which row is selected.
- *
  * Grading is INSIDE_RADIUS (every keyed item must land within tolerance), so
  * the footer nudges until every item has a target — but only nudges: an empty
  * answer key is a legitimate collect-only opinion plane, so nothing blocks.
