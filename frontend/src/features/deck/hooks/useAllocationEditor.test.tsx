@@ -110,6 +110,20 @@ describe("buildDefaultContent(ALLOCATION)", () => {
 });
 
 describe("useAllocationEditor structural ops", () => {
+  it("scheduleOptionText persists the edited option text without changing sibling options", async () => {
+    const result = await renderUseAllocationEditor();
+
+    act(() => {
+      result.current.scheduleOptionText("opt_a", "Water");
+      result.current.flush();
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    const content = allocationContentOf(lastPutBody);
+    expect(content?.options.find((option) => option.id === "opt_a")?.text).toBe("Water");
+    expect(content?.options.find((option) => option.id === "opt_b")?.text).toBe("Rope");
+  });
+
   it("reorders options without changing their id-keyed answers", () => {
     const reordered = reorderAllocationOptions(allocationContent.options, 0, 2);
 

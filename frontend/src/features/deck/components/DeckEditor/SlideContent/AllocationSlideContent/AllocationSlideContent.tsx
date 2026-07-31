@@ -148,6 +148,7 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 <SortableItemBankRow
                   key={option.id}
                   item={option}
+                  label={option.text}
                   index={index}
                   color={resolveOptionColor(option.color, index)}
                   menuOpen={openMenuId == option.id}

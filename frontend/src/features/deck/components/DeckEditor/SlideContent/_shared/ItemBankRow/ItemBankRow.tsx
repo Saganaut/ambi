@@ -17,6 +17,7 @@ import styles from "./ItemBankRow.module.css";
 interface ItemBankRowProps {
   /** Shoould cover all options but for allocaiton may have to omit items **/
   item: Identified<PlaceableItem>;
+  label?: string;
   index: number;
   color: string;
   menuOpen: boolean;
@@ -30,8 +31,8 @@ interface ItemBankRowProps {
   openPicker: OpenGalleryPicker;
 
   /** onSechdule is like onCommit but debounced - Only useful for items with a set answer**/
-  onCommit?: (value: number | string) => void;
-  onScheduleAnswer?: (value: number | string) => void;
+  onCommit?: (value: number) => void;
+  onScheduleAnswer?: (value: number) => void;
   onClear?: () => void;
 
   /**Extra action to pass to the menu **/
@@ -61,6 +62,7 @@ interface ItemBankRowProps {
 }
 const ItemBankRow = ({
   item,
+  label = item.label,
   index,
   color,
   menuOpen,
@@ -73,17 +75,11 @@ const ItemBankRow = ({
   onClear,
   primaryAction,
   openPicker,
-  scored,
   correctValue,
   poolShareSeed,
   totalPool,
-  minScale,
-  maxScale,
-  toleranceScale,
   onScheduleAnswer,
   onCommit,
-  leftLabel,
-  rightLabel,
   handleRef,
   rootRef,
   isDragging,
@@ -125,7 +121,7 @@ const ItemBankRow = ({
       )}
       <ItemField
         itemId={item.id}
-        label={item.label}
+        label={label}
         image={item.image}
         displayIndex={index}
         placeholder={`${index.toString()}`}
@@ -142,42 +138,44 @@ const ItemBankRow = ({
         onRemove={onRemove}
         openPicker={openPicker}
       />
-      {/* For allocation slides */}
-      {correctValue && onScheduleAnswer && onCommit ? (
-        <div className={styles.answerField}>
-          <NumberInput
-            label=""
-            id={`alloc-answer-${item.id}`}
-            labelPosition="labelInFront"
-            value={correctValue ?? 0}
-            min={0}
-            max={totalPool}
-            onChange={(next) => {
-              setPoints(next);
-              onScheduleAnswer(next);
-            }}
-            onBlur={onFlush}
-          />
+      {onScheduleAnswer && onCommit ? (
+        correctValue !== undefined ? (
+          <div className={styles.answerField}>
+            <NumberInput
+              label=""
+              id={`alloc-answer-${item.id}`}
+              labelPosition="labelInFront"
+              value={points ?? 0}
+              min={0}
+              max={totalPool}
+              onChange={(next) => {
+                setPoints(next);
+                onScheduleAnswer(next);
+              }}
+              onBlur={onFlush}
+            />
+            <IconBtn
+              fill="ghost"
+              size="xs"
+              icon={<XMarkIcon />}
+              aria-label={`Clear correct points for option ${displayIndex.toString()}`}
+              onClick={onClear}
+            />
+          </div>
+        ) : (
           <IconBtn
             fill="ghost"
             size="xs"
-            icon={<XMarkIcon />}
-            aria-label={`Clear correct points for option ${displayIndex.toString()}`}
-            onClick={onClear}
+            icon={<QuestionMarkCircleIcon />}
+            aria-label={`Set option ${displayIndex.toString()} as scorable`}
+            onClick={() => {
+              const seed = poolShareSeed ?? 0;
+              setPoints(seed);
+              onCommit(seed);
+            }}
           />
-        </div>
-      ) : (
-        <IconBtn
-          fill="ghost"
-          size="xs"
-          icon={<QuestionMarkCircleIcon />}
-          aria-label={`Set option ${displayIndex.toString()} as scorable`}
-          onClick={() => {
-            setPoints(poolShareSeed);
-            onCommit(poolShareSeed);
-          }}
-        />
-      )}
+        )
+      ) : null}
       {/* // Drag icon, always at the end */}
       <span
         ref={handleRef}
