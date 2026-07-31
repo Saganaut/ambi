@@ -11,10 +11,9 @@
  *
  * The label is the shared `ItemField` — focusing it opens the row's popover
  * menu, and the composer keeps at most one open. A statement carries the same
- * stored identity as every other item bank's row, so that menu is the full one:
- * palette or custom color, image upload/clear, and Delete — removal lives
- * there, not on a standalone button, which is the one removal affordance every
- * other item bank offers.
+ * stored identity as every other item bank's row, so that menu offers its
+ * palette or custom color and Delete. Images stay unavailable until Scales
+ * participant payloads and rendering support them end to end.
  *
  * The numeric "Answer" field is the always-available precise and accessible
  * entry, with the X button as the one clearing affordance; the "Set answer"
@@ -35,15 +34,13 @@
 import { useRef, useState } from "react";
 
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
-import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { SCALES_STATEMENT_LABEL_MAX } from "@deck/hooks/useScalesEditor";
-import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
+import type { ScaleItem } from "@deck/store/deckApi.gen";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { resolveImageUrl } from "@utils/image";
 import { ItemField, SortableItemCard, type Identified } from "../_shared";
 import styles from "./ScalesSlideContent.module.css";
 
@@ -71,9 +68,7 @@ interface ScaleStatementEditableProps {
   onClearCorrectValue: () => void;
   onFlush: () => void;
   onSetColor: (color: string) => void;
-  onSetImage: (image: AppImage) => void;
   onRemove: () => void;
-  openPicker: OpenGalleryPicker;
 }
 
 const ScaleStatementEditable = ({
@@ -94,9 +89,7 @@ const ScaleStatementEditable = ({
   onClearCorrectValue,
   onFlush,
   onSetColor,
-  onSetImage,
   onRemove,
-  openPicker,
 }: ScaleStatementEditableProps) => {
   const scored = correctValue !== undefined;
   // "Set answer" seeds the scale's midpoint so a freshly-scored statement
@@ -132,7 +125,6 @@ const ScaleStatementEditable = ({
 
   // Styles the index pill and, via a CSS var, the row chrome.
   const color = resolveDatumColor(statement.color, sortIndex);
-  const thumbnailSrc = resolveImageUrl(statement.image, "SM", statement.id, 200, 200, false);
 
   /** Scale-unit value at a pointer position, clamped onto the track. */
   const valueFromClient = (clientX: number): number | null => {
@@ -201,12 +193,10 @@ const ScaleStatementEditable = ({
       scored={scored}
     >
       <div className={styles.statementBody}>
-        {thumbnailSrc && <img className={styles.statementThumbnail} src={thumbnailSrc} alt="" />}
         <div className={styles.statementLabelField}>
           <ItemField
             itemId={statement.id}
             label={statement.label}
-            image={statement.image}
             displayIndex={displayIndex}
             placeholder={`Statement ${displayIndex.toString()}`}
             maxLength={SCALES_STATEMENT_LABEL_MAX}
@@ -217,9 +207,7 @@ const ScaleStatementEditable = ({
             onScheduleLabel={onScheduleLabel}
             onFlush={onFlush}
             onSetColor={onSetColor}
-            onSetImage={onSetImage}
             onRemove={onRemove}
-            openPicker={openPicker}
           />
         </div>
         <div className={styles.statementScale}>

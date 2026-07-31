@@ -14,9 +14,8 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Scal
  * — the values are the answer key, and the tolerance is grading-only knowledge
  * pre-reveal. {@code min}/{@code max} <em>do</em> travel (unlike the axis
  * tolerance): the board needs them to render the scale-unit readout, and they
- * are not answer-key material. {@code ScaleItem} carries an optional image and
- * color for authoring, but neither reaches players yet (a named follow-up, same
- * presigned-URL story as grid item images), so an item travels as id + label
+ * are not answer-key material. {@code ScaleItem} carries authoring metadata,
+ * but that metadata does not reach players, so an item travels as id + label
  * only.
  */
 public record ScalesConfigView(

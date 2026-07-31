@@ -93,6 +93,18 @@ interface UseAllocationEditorResult {
 const clampPoints = (value: number, total: number): number =>
   Math.min(total, Math.max(0, Math.round(value)));
 
+/** Move one option while preserving each option's identity and id-keyed answer. */
+const reorderAllocationOptions = (
+  options: readonly McqOption[],
+  initialIndex: number,
+  index: number,
+): McqOption[] => {
+  const next = options.slice();
+  const [moved] = next.splice(initialIndex, 1);
+  next.splice(index, 0, moved);
+  return next;
+};
+
 const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEditorResult => {
   const editor = useSlideEditor(deckId, slideId, "ALLOCATION");
 
@@ -157,12 +169,9 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     if (!isSortable(source)) return;
     const { initialIndex, index } = source;
     if (initialIndex === index) return;
-    editor.updateSlideContent((prev) => {
-      const next = prev.options.slice();
-      const [moved] = next.splice(initialIndex, 1);
-      next.splice(index, 0, moved);
-      return { options: next };
-    });
+    editor.updateSlideContent((prev) => ({
+      options: reorderAllocationOptions(prev.options, initialIndex, index),
+    }));
     editor.flush();
   };
 
@@ -240,6 +249,7 @@ export {
   ALLOCATION_TOTAL_MIN,
   MAX_ALLOCATION_OPTIONS,
   MIN_ALLOCATION_OPTIONS,
+  reorderAllocationOptions,
   useAllocationEditor,
 };
 export type { AllocationQuestionView, UseAllocationEditorResult };

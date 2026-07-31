@@ -21,7 +21,7 @@ import {
   type SlideResponse,
 } from "../store/deckApi.gen";
 import { buildDefaultContent } from "../utils/slideContent";
-import { useAllocationEditor } from "./useAllocationEditor";
+import { reorderAllocationOptions, useAllocationEditor } from "./useAllocationEditor";
 
 const DECK_ID = "deck-1";
 const SLIDE_ID = "slide-allocation";
@@ -53,9 +53,7 @@ const allocationSlide: SlideResponse = {
 // Capture each outgoing PUT body and echo the slide back so the mutation resolves.
 let lastPutBody: SlideRequest | undefined;
 const server = setupServer(
-  http.get(`${apiBaseUrl}/api/decks/${DECK_ID}/slides`, () =>
-    HttpResponse.json([allocationSlide]),
-  ),
+  http.get(`${apiBaseUrl}/api/decks/${DECK_ID}/slides`, () => HttpResponse.json([allocationSlide])),
   http.put(`${apiBaseUrl}/api/decks/${DECK_ID}/slides/${SLIDE_ID}`, async ({ request }) => {
     lastPutBody = (await request.json()) as SlideRequest;
     return HttpResponse.json({ ...allocationSlide, ...lastPutBody });
@@ -112,6 +110,13 @@ describe("buildDefaultContent(ALLOCATION)", () => {
 });
 
 describe("useAllocationEditor structural ops", () => {
+  it("reorders options without changing their id-keyed answers", () => {
+    const reordered = reorderAllocationOptions(allocationContent.options, 0, 2);
+
+    expect(reordered.map((option) => option.id)).toEqual(["opt_b", "opt_c", "opt_a"]);
+    expect(allocationContent.correctAllocations).toEqual({ opt_a: 50, opt_b: 30 });
+  });
+
   it("removing an option drops its correctAllocations entry (key-consistency invariant)", async () => {
     const result = await renderUseAllocationEditor();
 

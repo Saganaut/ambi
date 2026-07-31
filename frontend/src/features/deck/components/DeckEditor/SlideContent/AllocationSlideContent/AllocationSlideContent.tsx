@@ -21,6 +21,7 @@ import {
   useAllocationEditor,
 } from "@deck/hooks/useAllocationEditor";
 import { AddItemCard, EmptySelect, ScoringFooter } from "../_shared";
+import shared from "../_shared/_shared.module.css";
 import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
@@ -142,56 +143,58 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             <span>Options</span> <span>players split the pool across these options</span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
-            <DragDropWrapper onReorder={editor.handleOptionDragEnd}>
-              {options.map((option, index) => (
-                <AllocationOptionEditable
-                  key={option.id}
-                  option={option}
-                  sortIndex={index}
-                  color={resolveOptionColor(option.color, index)}
-                  menuOpen={openMenuId === option.id}
-                  canRemove={editor.canRemoveOption}
-                  totalPoints={totalPoints}
-                  answer={correctAllocations[option.id]}
-                  answerSeed={answerSeed}
-                  onMenuOpenChange={(open) => {
-                    setOpenMenuId(open ? option.id : null);
-                  }}
-                  onScheduleText={(text) => {
-                    editor.scheduleOptionText(option.id, text);
-                  }}
-                  onFlush={editor.flush}
-                  onSetColor={(color) => {
-                    editor.setOptionColor(option.id, color);
-                  }}
-                  onSetImage={(image) => {
-                    editor.setOptionImage(option.id, image);
-                  }}
-                  onScheduleAnswer={(points) => {
-                    editor.scheduleCorrectAllocation(option.id, points);
-                  }}
-                  onCommitAnswer={(points) => {
-                    editor.commitCorrectAllocation(option.id, points);
-                  }}
-                  onClearAnswer={() => {
-                    editor.clearCorrectAllocation(option.id);
-                  }}
-                  onRemove={() => {
-                    editor.removeOption(option.id);
-                  }}
-                  openPicker={openPicker}
+            <div className={shared.itemList}>
+              <DragDropWrapper onReorder={editor.handleOptionDragEnd}>
+                {options.map((option, index) => (
+                  <AllocationOptionEditable
+                    key={option.id}
+                    option={option}
+                    sortIndex={index}
+                    color={resolveOptionColor(option.color, index)}
+                    menuOpen={openMenuId === option.id}
+                    canRemove={editor.canRemoveOption}
+                    totalPoints={totalPoints}
+                    answer={correctAllocations[option.id]}
+                    answerSeed={answerSeed}
+                    onMenuOpenChange={(open) => {
+                      setOpenMenuId(open ? option.id : null);
+                    }}
+                    onScheduleText={(text) => {
+                      editor.scheduleOptionText(option.id, text);
+                    }}
+                    onFlush={editor.flush}
+                    onSetColor={(color) => {
+                      editor.setOptionColor(option.id, color);
+                    }}
+                    onSetImage={(image) => {
+                      editor.setOptionImage(option.id, image);
+                    }}
+                    onScheduleAnswer={(points) => {
+                      editor.scheduleCorrectAllocation(option.id, points);
+                    }}
+                    onCommitAnswer={(points) => {
+                      editor.commitCorrectAllocation(option.id, points);
+                    }}
+                    onClearAnswer={() => {
+                      editor.clearCorrectAllocation(option.id);
+                    }}
+                    onRemove={() => {
+                      editor.removeOption(option.id);
+                    }}
+                    openPicker={openPicker}
+                  />
+                ))}
+                <AddItemCard
+                  label={
+                    editor.canAddOption
+                      ? "Add option"
+                      : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
+                  }
+                  disabled={!editor.canAddOption}
+                  onAdd={editor.addOption}
                 />
-              ))}
-              <AddItemCard
-                label={
-                  editor.canAddOption
-                    ? "Add option"
-                    : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
-                }
-                disabled={!editor.canAddOption}
-                onAdd={editor.addOption}
-              />
-            </DragDropWrapper>
+              </DragDropWrapper>
+            </div>
           </SlideContentSection.Body>
         </SlideContentSection>
       </SlideContent>

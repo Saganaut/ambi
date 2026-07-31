@@ -31,8 +31,8 @@ const scalesContent: ScalesContent = {
   leftLabel: "Disagree",
   rightLabel: "Agree",
   items: [
-    { id: "st_a", label: "First" },
-    { id: "st_b", label: "Second" },
+    { id: "st_a", label: "First", color: "#ff0000" },
+    { id: "st_b", label: "Second", color: "#00ff00" },
   ],
   correctValues: {
     st_a: 4,
@@ -53,16 +53,11 @@ const scalesSlide: SlideResponse = {
 
 let lastPutBody: SlideRequest | undefined;
 const server = setupServer(
-  http.get(`${apiBaseUrl}/api/decks/${DECK_ID}/slides`, () =>
-    HttpResponse.json([scalesSlide]),
-  ),
-  http.put(
-    `${apiBaseUrl}/api/decks/${DECK_ID}/slides/${SLIDE_ID}`,
-    async ({ request }) => {
-      lastPutBody = (await request.json()) as SlideRequest;
-      return HttpResponse.json({ ...scalesSlide, ...lastPutBody });
-    },
-  ),
+  http.get(`${apiBaseUrl}/api/decks/${DECK_ID}/slides`, () => HttpResponse.json([scalesSlide])),
+  http.put(`${apiBaseUrl}/api/decks/${DECK_ID}/slides/${SLIDE_ID}`, async ({ request }) => {
+    lastPutBody = (await request.json()) as SlideRequest;
+    return HttpResponse.json({ ...scalesSlide, ...lastPutBody });
+  }),
 );
 
 beforeAll(() => {
@@ -79,8 +74,7 @@ afterAll(() => {
 const makeStore = () =>
   configureStore({
     reducer: { [emptySplitApi.reducerPath]: emptySplitApi.reducer },
-    middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(emptySplitApi.middleware),
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(emptySplitApi.middleware),
   });
 
 const renderUseScalesEditor = async () => {
@@ -126,9 +120,7 @@ describe("useScalesEditor tolerance clamping", () => {
     act(() => {
       result.current.setTolerance(0.01);
     });
-    await vi.waitFor(() =>
-      expect(scalesContentOf(lastPutBody)?.tolerance).toBeCloseTo(0.08),
-    );
+    await vi.waitFor(() => expect(scalesContentOf(lastPutBody)?.tolerance).toBeCloseTo(0.08));
   });
 
   it("re-clamps the stored tolerance when an endpoint shrinks the span", async () => {
