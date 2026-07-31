@@ -20,6 +20,7 @@ import {
   type SlideResponse,
 } from "../store/deckApi.gen";
 import { useScalesEditor } from "./useScalesEditor";
+import { externalImage } from "@utils/image";
 
 const DECK_ID = "deck-1";
 const SLIDE_ID = "slide-scales";
@@ -92,6 +93,20 @@ const scalesContentOf = (body: SlideRequest | undefined) =>
   body?.content?.contentType === "SCALES" ? body.content : undefined;
 
 describe("useScalesEditor structural ops", () => {
+  it("persists a statement image without disturbing its answer", async () => {
+    const result = await renderUseScalesEditor();
+    const image = externalImage("https://example.test/breakfast.png");
+
+    act(() => {
+      result.current.setStatementImage("st_a", image);
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    const content = scalesContentOf(lastPutBody);
+    expect(content?.items.find((item) => item.id === "st_a")?.image).toEqual(image);
+    expect(content?.correctValues).toEqual(scalesContent.correctValues);
+  });
+
   it("removing a statement drops its correctValues entry (key-consistency invariant)", async () => {
     const result = await renderUseScalesEditor();
 

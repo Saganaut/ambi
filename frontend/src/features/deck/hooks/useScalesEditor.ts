@@ -32,7 +32,7 @@ import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 
 import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
-import type { ScaleItem } from "@deck/store/deckApi.gen";
+import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
 
 import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { buildDefaultScaleItem } from "../utils/slideContent";
@@ -105,6 +105,8 @@ interface UseScalesEditorResult {
   scheduleStatementLabel: (statementId: string | undefined, label: string) => void;
   /** Override the statement's palette color (menu swatch / custom picker). Immediate. */
   setStatementColor: (statementId: string | undefined, color: string) => void;
+  /** Set or clear the statement's participant-visible image. Immediate. */
+  setStatementImage: (statementId: string | undefined, image: AppImage) => void;
   /** Remove a statement and drop its target from `correctValues`. */
   removeStatement: (statementId: string | undefined) => void;
   /** @dnd-kit drop handler — reorders display order; writes stay keyed by id. */
@@ -215,6 +217,10 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     commitStatementPatch(id, { color });
   };
 
+  const setStatementImage = (id: string | undefined, image: AppImage) => {
+    commitStatementPatch(id, { image });
+  };
+
   const removeStatement = (id: string | undefined) => {
     if (!id || !canRemove) return;
     editor.updateSlideContent((prev) => {
@@ -286,6 +292,7 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     canRemove,
     scheduleStatementLabel,
     setStatementColor,
+    setStatementImage,
     removeStatement,
     handleStatementDragEnd,
     scheduleCorrectValue,

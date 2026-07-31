@@ -79,8 +79,8 @@ class SessionEventsTest {
         slide.setTitle("Rate these meals");
         slide.setContent(new ScalesContent(
                 1, 5, "Skip it", "Sacred",
-                List.of(new ScaleItem("meal-1", "Breakfast", null),
-                        new ScaleItem("meal-2", "Elevenses", null)),
+                List.of(new ScaleItem("meal-1", "Breakfast", null, null),
+                        new ScaleItem("meal-2", "Elevenses", null, null)),
                 Map.of("meal-1", 4.5),
                 0.8));
         return slide;
@@ -226,6 +226,26 @@ class SessionEventsTest {
         assertThat(json).doesNotContain("correctValues");
         assertThat(json).doesNotContain("tolerance");
         assertThat(json).doesNotContain("4.5");
+    }
+
+    @Test
+    void slideViewProjectsScaleItemImageAsPreResolvedUrl() {
+        AppImage image = new AppImage();
+        image.setExternal(true);
+        image.setExternalSrc("https://example.test/breakfast.png");
+        Slide slide = scalesSlide();
+        slide.setContent(new ScalesContent(
+                1, 5, "Skip it", "Sacred",
+                List.of(new ScaleItem("meal-1", "Breakfast", image, "#ff8800")),
+                Map.of(), 0.8));
+
+        SlideView view = SlideView.from(slide, null,
+                img -> img == image ? "https://s3/presigned-breakfast" : null);
+
+        assertThat(view.scales().items()).singleElement().satisfies(item -> {
+            assertThat(item.imageUrl()).isEqualTo("https://s3/presigned-breakfast");
+            assertThat(item.color()).isEqualTo("#ff8800");
+        });
     }
 
     @Test

@@ -20,12 +20,9 @@ const h = vi.hoisted(() => ({
   },
 }));
 
-vi.mock(
-  "@/features/liveSession/views/SessionPage/SessionConnectionContext",
-  () => ({
-    useSessionConnection: () => ({ sendAnswer: h.sendAnswer }),
-  }),
-);
+vi.mock("@/features/liveSession/views/SessionPage/SessionConnectionContext", () => ({
+  useSessionConnection: () => ({ sendAnswer: h.sendAnswer }),
+}));
 vi.mock("@/features/liveSession/hooks/useLiveSessionQuery", () => ({
   useLiveSessionQuery: () => h.query,
 }));
@@ -41,7 +38,12 @@ const slide: SlideView = {
     leftLabel: "Skip it",
     rightLabel: "Sacred",
     items: [
-      { id: "meal_a", label: "Breakfast" },
+      {
+        id: "meal_a",
+        label: "Breakfast",
+        imageUrl: "https://img.test/breakfast.png",
+        color: "#ff8800",
+      },
       { id: "meal_b", label: "Elevenses" },
     ],
   },
@@ -119,13 +121,17 @@ describe("ScalesBoardContent rating", () => {
     );
   });
 
+  it("renders a statement image delivered by the participant payload", () => {
+    const { container } = renderContent();
+
+    expect(container.querySelector("img")).toHaveAttribute("src", "https://img.test/breakfast.png");
+  });
+
   it("is read-only when not interactive (projected / host view)", () => {
     renderContent("prompt", false);
 
     expect(screen.queryByRole("slider")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Submit answer" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Submit answer" })).not.toBeInTheDocument();
   });
 });
 

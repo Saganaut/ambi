@@ -20,6 +20,7 @@
  */
 import { useState } from "react";
 
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { formatScaleValue } from "@/shared/utils/scaleValue";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
@@ -58,12 +59,14 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     canRemove,
     scheduleStatementLabel,
     setStatementColor,
+    setStatementImage,
     removeStatement,
     handleStatementDragEnd,
     scheduleCorrectValue,
     commitCorrectValue,
     clearCorrectValue,
   } = useScalesEditor(deckId, slideId);
+  const openPicker = useGalleryPicker();
   // The prompt mirror and which row's menu is open — at most one per slide.
   // Focusing a row's label opens its menu (and thereby closes any other); the
   // menu owns dismissal. Scales arms no row, so `selectedItemId` goes unused.
@@ -156,9 +159,13 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                     onSetColor={(color) => {
                       setStatementColor(statement.id, color);
                     }}
+                    onSetImage={(image) => {
+                      setStatementImage(statement.id, image);
+                    }}
                     onRemove={() => {
                       removeStatement(statement.id);
                     }}
+                    openPicker={openPicker}
                   />
                 ))}
                 <AddItemCard

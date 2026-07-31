@@ -140,7 +140,7 @@ public record SlideView(
                 axis = AxisConfigView.from(axisContent);
             }
             if (content instanceof ScalesContent scalesContent) {
-                scales = ScalesConfigView.from(scalesContent);
+                scales = ScalesConfigView.from(scalesContent, imageUrl);
             }
             if (content instanceof MatchingContent matchingContent) {
                 matching = MatchingConfigView.from(matchingContent, imageUrl);

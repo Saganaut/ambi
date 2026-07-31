@@ -1,5 +1,5 @@
 // Covers the statement row's shared label field: focusing it opens the same
-// color-and-delete popover, the label
+// color/image/Delete popover, the label
 // edit reports just the new text, removal lives in that menu rather than on a
 // standalone button — and the row's drag track still commits a target.
 import { render, screen } from "@testing-library/react";
@@ -40,7 +40,9 @@ const renderStatement = ({
     onClearCorrectValue: vi.fn(),
     onFlush: vi.fn(),
     onSetColor: vi.fn(),
+    onSetImage: vi.fn(),
     onRemove: vi.fn(),
+    openPicker: vi.fn(),
   };
   const view = render(<ScaleStatementEditable {...props} />);
   return {
@@ -52,7 +54,7 @@ const renderStatement = ({
 };
 
 describe("ScaleStatementEditable", () => {
-  it("opens the color / Delete menu when the label is focused", async () => {
+  it("opens the color / image / Delete menu when the label is focused", async () => {
     const user = userEvent.setup();
     const { props, reopen } = renderStatement();
 
@@ -63,7 +65,7 @@ describe("ScaleStatementEditable", () => {
     reopen();
 
     expect(screen.getByRole("group", { name: "Option color" })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Upload an image" })).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Upload an image" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
   });
 

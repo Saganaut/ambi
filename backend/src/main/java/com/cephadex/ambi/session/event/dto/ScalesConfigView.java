@@ -1,7 +1,9 @@
 package com.cephadex.ambi.session.event.dto;
 
 import java.util.List;
+import java.util.function.Function;
 
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.content.ScalesContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 
@@ -14,9 +16,8 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Scal
  * — the values are the answer key, and the tolerance is grading-only knowledge
  * pre-reveal. {@code min}/{@code max} <em>do</em> travel (unlike the axis
  * tolerance): the board needs them to render the scale-unit readout, and they
- * are not answer-key material. {@code ScaleItem} carries authoring metadata,
- * but that metadata does not reach players, so an item travels as id + label
- * only.
+ * are not answer-key material. Item images travel as pre-resolved URLs so raw
+ * storage keys never enter the STOMP/Redis event path.
  */
 public record ScalesConfigView(
         double min,
@@ -25,14 +26,15 @@ public record ScalesConfigView(
         String rightLabel,
         List<ScaleItemView> items) {
 
-    /** One statement to rate: the id positions are keyed by, and its label. */
-    public record ScaleItemView(String id, String label) {
+    /** One statement to rate, including its participant-visible image and color. */
+    public record ScaleItemView(String id, String label, String imageUrl, String color) {
     }
 
-    public static ScalesConfigView from(ScalesContent content) {
+    public static ScalesConfigView from(ScalesContent content, Function<AppImage, String> imageUrl) {
         List<ScaleItemView> items = content.items() == null ? List.of()
                 : content.items().stream()
-                        .map((ScaleItem item) -> new ScaleItemView(item.id(), item.label()))
+                        .map((ScaleItem item) -> new ScaleItemView(
+                                item.id(), item.label(), imageUrl.apply(item.image()), item.color()))
                         .toList();
         return new ScalesConfigView(
                 content.min(),

@@ -468,6 +468,8 @@ export type AxisConfigView = {
 export type ScaleItemView = {
   id?: string;
   label?: string;
+  imageUrl?: string;
+  color?: string;
 };
 export type ScalesConfigView = {
   min?: number;

@@ -21,6 +21,23 @@
     display: flex;
     flex-direction: column;
     gap: var(--gap-sm);
+    padding-inline-start: var(--gap-sm);
+    border-inline-start: var(--border-size-md) solid var(--statement-accent, var(--bg-brand));
+  }
+
+  .statementFace {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-width: 0;
+  }
+
+  .statementImage {
+    flex: none;
+    width: var(--space-12);
+    height: var(--space-12);
+    border-radius: var(--radius-sm);
+    object-fit: cover;
   }
 
   .statementLabel {

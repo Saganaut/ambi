@@ -115,8 +115,19 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
           const highest = bucketArr ? Math.max(1, ...bucketArr) : 1;
 
           return (
-            <li key={statementId || index} className={styles.statement}>
-              <span className={styles.statementLabel}>{label}</span>
+            <li
+              key={statementId || index}
+              className={styles.statement}
+              style={
+                { "--statement-accent": item.color ?? "var(--bg-brand)" } as React.CSSProperties
+              }
+            >
+              <div className={styles.statementFace}>
+                {item.imageUrl && (
+                  <img className={styles.statementImage} src={item.imageUrl} alt="" />
+                )}
+                <span className={styles.statementLabel}>{label}</span>
+              </div>
               <div className={styles.trackRow}>
                 <span className={styles.anchor}>{leftAnchor}</span>
                 {/* Slider and heat strip stack in one column so the strip's
@@ -124,11 +135,11 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
                 <div className={styles.trackBody}>
                   {canRate ? (
                     <input
-                      type='range'
+                      type="range"
                       className={styles.slider}
                       min={0}
                       max={1}
-                      step='any'
+                      step="any"
                       value={position}
                       aria-label={label}
                       aria-valuetext={formatScaleValue(scaleValue)}
@@ -137,7 +148,7 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
                       }}
                     />
                   ) : (
-                    <div className={styles.staticTrack} aria-hidden='true' />
+                    <div className={styles.staticTrack} aria-hidden="true" />
                   )}
                   {showCounts && (
                     <div className={styles.heatStrip}>
@@ -161,7 +172,7 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
                 </div>
                 <span className={styles.anchor}>{rightAnchor}</span>
                 {canRate && touched.has(statementId) && (
-                  <span className={styles.readout} aria-hidden='true'>
+                  <span className={styles.readout} aria-hidden="true">
                     {formatScaleValue(scaleValue)}
                   </span>
                 )}
@@ -177,12 +188,11 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
             submitted={submitted}
             disabled={!allTouched}
             onSubmit={submit}
-            idleLabel='Submit answer'
-            resubmitLabel='Update answer'
-            submittedNote='Answer submitted ✓'>
-            {!allTouched && (
-              <span className={styles.hint}>Rate every statement to submit.</span>
-            )}
+            idleLabel="Submit answer"
+            resubmitLabel="Update answer"
+            submittedNote="Answer submitted ✓"
+          >
+            {!allTouched && <span className={styles.hint}>Rate every statement to submit.</span>}
           </BoardSubmitBar>
         </div>
       )}
