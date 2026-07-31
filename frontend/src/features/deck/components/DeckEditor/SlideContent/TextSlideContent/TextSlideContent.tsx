@@ -15,14 +15,14 @@
  * Removing the last answer is blocked (no remove control, no PUT fired) while
  * a SPOT_THE_ANSWER follow-up is attached — the backend 400s that content
  * transition, and `updateSlide`'s fire-and-forget PUT can't surface a
- * rejection, so `wouldOrphanSpotTheAnswer` catches it client-side first.
+ * rejection, so `wouldOrphanKeyedFollowUp` catches it client-side first.
  */
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { TextContent } from "@deck/store/deckApi.gen";
-import { wouldOrphanSpotTheAnswer } from "@deck/utils/followUp";
+import { wouldOrphanKeyedFollowUp } from "@deck/utils/followUp";
 import { Tag } from "@ui/Tag/Tag";
 import { useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
@@ -71,7 +71,7 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     "TEXT",
   );
   // Needed only to check whether an attached SPOT_THE_ANSWER follow-up would
-  // be orphaned by an answer-key edit (see `wouldOrphanSpotTheAnswer` below).
+  // be orphaned by an answer-key edit (see `wouldOrphanKeyedFollowUp` below).
   const { slides } = useSlide(deckId);
 
   // Local mirror state, resynced when the active slide changes ("derive state
@@ -123,17 +123,17 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const answerRows = answers.map((answer, index) => ({
     answer,
     index,
-    removalBlocked: wouldOrphanSpotTheAnswer(
-      slide,
-      slides,
-      answers.filter((_, position) => position !== index),
-    ),
+    removalBlocked: wouldOrphanKeyedFollowUp(slide, slides, {
+      ...slide.content,
+      acceptedAnswers: answers.filter((_, position) => position !== index),
+    }),
   }));
   const answerKeyLocked = answerRows.some((row) => row.removalBlocked);
 
   const removeAnswer = (index: number) => {
     const next = answers.filter((_, position) => position !== index);
-    if (wouldOrphanSpotTheAnswer(slide, slides, next)) return;
+    if (wouldOrphanKeyedFollowUp(slide, slides, { ...slide.content, acceptedAnswers: next }))
+      return;
     commitAnswers(next);
   };
 

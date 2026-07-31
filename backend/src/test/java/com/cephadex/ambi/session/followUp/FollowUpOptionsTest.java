@@ -35,15 +35,20 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
  * Minting the candidate board: the parent's kind decides what becomes an option,
  * ids are derived from content (so a re-mint reproduces the same cards), and
  * identical text merges into one option owning every author. Also the
- * {@code SPOT_THE_ANSWER} seeding — which card carries the flag, how a matching
- * submission merges into it, that its id obeys the same id↔text relation every
- * submitted card does, and that the board it lands on is shuffled rather than
- * laid out in any order a client could reconstruct or diff.
+ * {@code SPOT_THE_ANSWER} seeding, on both parent kinds that carry an authored
+ * answer — the answer key's wording on TEXT, the authored {@code correctImage}
+ * on DRAWING: which card carries the flag, how a matching submission merges
+ * into it, that its id is derived from the same content every submitted card's
+ * is, and that the board it lands on is shuffled rather than laid out in any
+ * order a client could reconstruct or diff.
  */
 class FollowUpOptionsTest {
 
     private static final Instant START = Instant.parse("2026-01-01T00:00:00Z");
     private static final Function<AppImage, String> URLS = image -> "https://cdn/" + image.getSrcKey();
+
+    /** The resolver's answer for an image carrying nothing renderable. */
+    private static final Function<AppImage, String> NO_URLS = _ -> null;
 
     /** The mode every case below mints under; only SPOT_THE_ANSWER changes what is minted. */
     private static final FollowUpMode VOTE = FollowUpMode.BEST_ANSWER_VOTE;
@@ -419,6 +424,145 @@ class FollowUpOptionsTest {
         assertThat(options).hasSize(2);
     }
 
+    // ── SPOT_THE_ANSWER on a DRAWING parent (the image twin) ──────────────────
+
+    @Test
+    void spotTheAnswerSeedsTheParentsAuthoredImageAmongTheSubmittedDrawings() {
+        Slide parent = slideWith(keyedDrawing(image("gallery/answer.png")));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100),
+                answer("p-2", new DrawingAnswer(image("s3/two.png")), 200)), SPOT, URLS).options();
+
+        assertThat(options).extracting(option -> option.imageUrl())
+                .containsExactlyInAnyOrder("https://cdn/gallery/answer.png",
+                        "https://cdn/s3/one.png", "https://cdn/s3/two.png");
+        assertThat(options).filteredOn(option -> option.authoredAnswer())
+                .singleElement()
+                .satisfies(seed -> {
+                    // Resolved through the same function every submitted card
+                    // goes through, so it leaves opaque like the rest of them.
+                    assertThat(seed.imageUrl()).isEqualTo("https://cdn/gallery/answer.png");
+                    assertThat(seed.text()).isNull();
+                    // Nobody drew it, so it stands for no participant — which is
+                    // also what stops the self-pick guard from firing on it.
+                    assertThat(seed.authorParticipantIds()).isEmpty();
+                });
+    }
+
+    @Test
+    void seededImageCardIsKeyedOnItsSrcKeyLikeEverySubmittedDrawing() {
+        Slide parent = slideWith(keyedDrawing(image("gallery/answer.png")));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100)), SPOT, URLS).options();
+
+        // The id relation a re-mint depends on, and the one that keeps the seed
+        // from being the single card whose id isn't derived from its content.
+        assertThat(options).filteredOn(option -> option.authoredAnswer())
+                .singleElement()
+                .satisfies(seed -> assertThat(seed.optionId()).isEqualTo(derivedId("gallery/answer.png")));
+        assertThat(options).filteredOn(option -> !option.authoredAnswer())
+                .singleElement()
+                .satisfies(card -> assertThat(card.optionId()).isEqualTo(derivedId("s3/one.png")));
+    }
+
+    @Test
+    void spotTheAnswerOnADrawingParentWithNoAuthoredImageMintsTheVoteBoardWithNothingFlagged() {
+        // Same degradation as the text twin: the editor rejects clearing the
+        // image under an attached child, but a deck snapshot can predate it.
+        List<Answer> answers = List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100),
+                answer("p-2", new DrawingAnswer(image("s3/two.png")), 200));
+
+        List<FollowUpOption> degraded = FollowUpOptions.mint(
+                slideWith(keyedDrawing(null)), answers, SPOT, URLS).options();
+        List<FollowUpOption> asVote = FollowUpOptions.mint(
+                slideWith(keyedDrawing(null)), answers, VOTE, URLS).options();
+
+        assertThat(degraded).containsExactlyInAnyOrderElementsOf(asVote);
+        assertThat(degraded).noneMatch(option -> option.authoredAnswer());
+    }
+
+    @Test
+    void anExternalCorrectImageIsNotSeeded() {
+        // An external image owns no stored object, so it can't be served through
+        // the opaque proxy every candidate goes out behind — being the one card
+        // on someone else's origin would be the tell the proxy exists to remove.
+        Slide parent = slideWith(keyedDrawing(externalImage("https://elsewhere/answer.png")));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100)), SPOT, URLS).options();
+
+        assertThat(options).singleElement()
+                .satisfies(card -> assertThat(card.imageUrl()).isEqualTo("https://cdn/s3/one.png"));
+        assertThat(options).noneMatch(option -> option.authoredAnswer());
+    }
+
+    @Test
+    void aCorrectImageWithNoRenderableVariantIsNotSeeded() {
+        // The resolver hands back null for an image carrying nothing renderable;
+        // a card with no picture on an image board is worse than no card.
+        Slide parent = slideWith(keyedDrawing(image("gallery/answer.png")));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100)), SPOT, NO_URLS).options();
+
+        assertThat(options).singleElement()
+                .satisfies(card -> assertThat(card.authoredAnswer()).isFalse());
+    }
+
+    @Test
+    void bestAnswerVoteNeverSeedsTheAnswerImageEvenOnAKeyedDrawingParent() {
+        Slide parent = slideWith(keyedDrawing(image("gallery/answer.png")));
+
+        List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100)), VOTE, URLS).options();
+
+        assertThat(options).extracting(option -> option.imageUrl()).containsExactly("https://cdn/s3/one.png");
+        assertThat(options).noneMatch(option -> option.authoredAnswer());
+    }
+
+    @Test
+    void spotTheAnswerRemintOverDrawingsReproducesTheSameCandidateIdsIfNotTheirOrder() {
+        Slide parent = slideWith(keyedDrawing(image("gallery/answer.png")));
+        List<Answer> answers = List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100),
+                answer("p-2", new DrawingAnswer(image("s3/two.png")), 200),
+                answer("p-3", new DrawingAnswer(image("s3/three.png")), 300));
+
+        FollowUpOptionSet first = FollowUpOptions.mint(parent, answers, SPOT, URLS);
+        FollowUpOptionSet second = FollowUpOptions.mint(parent, answers, SPOT, URLS);
+
+        // Same cards — ids are content-derived — in an arrangement nothing
+        // addresses a candidate by.
+        assertThat(second.options()).containsExactlyInAnyOrderElementsOf(first.options());
+    }
+
+    @Test
+    void spotTheAnswerShufflesADrawingBoardWithOrWithoutAnAuthoredImage() {
+        List<Answer> answers = List.of(
+                answer("p-1", new DrawingAnswer(image("s3/one.png")), 100),
+                answer("p-2", new DrawingAnswer(image("s3/two.png")), 200),
+                answer("p-3", new DrawingAnswer(image("s3/three.png")), 300));
+
+        Set<List<String>> seeded = new LinkedHashSet<>();
+        Set<List<String>> degraded = new LinkedHashSet<>();
+        for (int mint = 0; mint < MINTS; mint++) {
+            seeded.add(submittedImageUrls(FollowUpOptions.mint(
+                    slideWith(keyedDrawing(image("gallery/answer.png"))), answers, SPOT, URLS)));
+            degraded.add(submittedImageUrls(FollowUpOptions.mint(
+                    slideWith(keyedDrawing(null)), answers, SPOT, URLS)));
+        }
+
+        // Three submissions, uniform over their 6 permutations on each board: a
+        // constant arrangement has probability 6 · (1/6)^100 = (1/6)^99. The
+        // degraded half pins the shuffle as unconditional — "did the board
+        // shuffle?" must not leak whether an answer was seeded.
+        assertThat(seeded).hasSizeGreaterThan(1);
+        assertThat(degraded).hasSizeGreaterThan(1);
+    }
+
     // ── fixtures ───────────────────────────────────────────────────────────────
 
     /** The board's submitted cards in board order — the seed dropped out. */
@@ -426,6 +570,14 @@ class FollowUpOptionsTest {
         return set.options().stream()
                 .filter(option -> !option.authoredAnswer())
                 .map(option -> option.text())
+                .toList();
+    }
+
+    /** The board's submitted image cards in board order — the seed dropped out. */
+    private static List<String> submittedImageUrls(FollowUpOptionSet set) {
+        return set.options().stream()
+                .filter(option -> !option.authoredAnswer())
+                .map(option -> option.imageUrl())
                 .toList();
     }
 
@@ -467,9 +619,22 @@ class FollowUpOptionsTest {
         return new DrawingContent(null, PromptPlacement.ALONGSIDE, null, List.of(), Set.of());
     }
 
+    /** A DRAWING parent carrying (or not) the authored answer SPOT_THE_ANSWER seeds. */
+    private static DrawingContent keyedDrawing(AppImage correctImage) {
+        return new DrawingContent(null, PromptPlacement.ALONGSIDE, correctImage, List.of(), Set.of());
+    }
+
     private static AppImage image(String srcKey) {
         AppImage image = new AppImage();
         image.setSrcKey(srcKey);
+        return image;
+    }
+
+    /** An image on someone else's origin — no stored object to serve opaquely. */
+    private static AppImage externalImage(String url) {
+        AppImage image = new AppImage();
+        image.setExternal(true);
+        image.setExternalSrc(url);
         return image;
     }
 

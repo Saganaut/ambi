@@ -35,6 +35,7 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
+import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.RichTextSanitizer;
 import com.cephadex.ambi.presentation.slide.content.ScorableContent;
@@ -315,8 +316,8 @@ public class DeckService {
             }
             if (next != null && childMode.requiresAnswerKey() && !hasAnswerKey(next)) {
                 throw new ValidationException(
-                        "Removing this slide's answer key would invalidate its follow-up, which hides that "
-                                + "answer among the submissions; change the follow-up's mode first");
+                        "Removing this slide's authored answer would invalidate its follow-up, which hides "
+                                + "that answer among the submissions; change the follow-up's mode first");
             }
         });
     }
@@ -325,22 +326,53 @@ public class DeckService {
      * Rejects a follow-up mode that hides the parent's authored answer among the
      * submissions ({@link FollowUpMode#requiresAnswerKey}) when the parent has no
      * such answer to hide. {@code supportsParent} only settles the parent's
-     * <em>type</em>, and an unkeyed TEXT slide is a legitimate collect-only
-     * prompt, so this is the second half of the pairing rule — enforced wherever
-     * the pairing can change (the add endpoint, and the inspector's mode edit).
+     * <em>type</em>, and an unkeyed TEXT slide (or a Drawing slide with no
+     * authored correct image) is a legitimate collect-only prompt, so this is
+     * the second half of the pairing rule — enforced wherever the pairing can
+     * change (the add endpoint, and the inspector's mode edit).
      */
     private static void requireAnswerKeyFor(FollowUpMode mode, SlideContent parentContent) {
         if (mode.requiresAnswerKey() && !hasAnswerKey(parentContent)) {
             throw new ValidationException("Follow-up mode " + mode
-                    + " needs a parent slide with an answer key; add accepted answers first");
+                    + " needs a parent slide with an authored answer; add one first");
         }
     }
 
-    /** Whether {@code content} carries an authored answer a follow-up could hide. */
+    /**
+     * Whether {@code content} carries an authored answer a follow-up could hide
+     * among the parent round's submissions — the content-level half of the
+     * pairing rule, resolved per parent kind:
+     *
+     * <ul>
+     * <li><strong>TEXT</strong> — at least one non-blank accepted answer;</li>
+     * <li><strong>DRAWING</strong> — a {@code correctImage} that is stored (not
+     * an external URL, which owns no object the board could serve opaquely
+     * alongside the submitted drawings) and holds at least one renderable
+     * variant.</li>
+     * </ul>
+     *
+     * <p>The DRAWING arm is exactly the negation of the frontend's
+     * {@code isImageEmpty} (plus the external exclusion), so the mode the editor
+     * offers and the mode the API accepts agree by construction rather than by
+     * two independently-maintained rules. Every other kind has no authored
+     * answer a board could show, so it can never take a keyed mode — which
+     * {@code supportsParent} already settles first.
+     */
     private static boolean hasAnswerKey(SlideContent content) {
-        return content instanceof TextContent text
-                && text.acceptedAnswers() != null
-                && text.acceptedAnswers().stream().anyMatch(answer -> answer != null && !answer.isBlank());
+        return switch (content) {
+            case TextContent text -> text.acceptedAnswers() != null
+                    && text.acceptedAnswers().stream().anyMatch(answer -> answer != null && !answer.isBlank());
+            case DrawingContent drawing -> isSeedableImage(drawing.correctImage());
+            case null, default -> false;
+        };
+    }
+
+    /** Whether an image is stored and carries a variant a board could render. */
+    private static boolean isSeedableImage(AppImage image) {
+        return image != null
+                && !image.isExternal()
+                && image.getVariants() != null
+                && image.getVariants().values().stream().anyMatch(url -> url != null && !url.isBlank());
     }
 
     /**

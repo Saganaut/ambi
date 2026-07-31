@@ -117,7 +117,7 @@ describe("FollowUpBoardContent", () => {
   it("renders a drawing candidate as an image with its presigned URL", () => {
     renderContent(drawingSlide);
 
-    const image = screen.getByRole("img", { name: "A submitted drawing" });
+    const image = screen.getByRole("img", { name: "A drawing" });
     expect(image).toHaveAttribute("src", "https://s3.test/one.png");
   });
 

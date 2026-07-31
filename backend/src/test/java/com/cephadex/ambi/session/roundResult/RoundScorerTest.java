@@ -94,6 +94,61 @@ class RoundScorerTest {
     }
 
     @Test
+    void anImageBoardScoresExactlyLikeATextOne() {
+        // The mode-genericity proof for the dixit extension to DRAWING parents:
+        // scoring reads the snapshot's `authoredAnswer` flag and its author sets,
+        // never a candidate's text — so a board whose cards are pictures pays the
+        // spotter and the author through the very same path.
+        Participant spotter = participant("spotter");
+        Participant drawer = participant("drawer");
+        FollowUpOptionSet imageBoard = new FollowUpOptionSet(List.of(
+                new FollowUpOption("seed", null, "https://cdn/opaque/answer", Set.of(), true),
+                new FollowUpOption("opt-a", null, "https://cdn/opaque/one",
+                        Set.of(drawer.getParticipantId()), false)));
+
+        RoundResult result = RoundScorer.score(SID, followUpSlide(),
+                List.of(answer(spotter, "seed", 100), answer(drawer, "opt-a", 200)),
+                roster(spotter, drawer),
+                points(10, 5),
+                Map.of(),
+                imageBoard,
+                START, CLOSED);
+
+        // The spotter picked the seeded picture: an ordinary correct grade.
+        assertThat(spotter.getScore().getPoints()).isEqualTo(10);
+        assertThat(result.perParticipant()).filteredOn(
+                outcome -> outcome.participantId().equals(spotter.getParticipantId()))
+                .singleElement()
+                .satisfies(outcome -> assertThat(outcome.correct()).isTrue());
+        // The drawer's own card drew a pick from someone else — a self-pick, so
+        // it pays nothing; picking their own card also grades incorrect.
+        assertThat(drawer.getScore().getPoints()).isZero();
+    }
+
+    @Test
+    void anImageCardThatFooledTheRoomPaysItsDrawer() {
+        Participant drawer = participant("drawer");
+        Participant fooled = participant("fooled");
+        FollowUpOptionSet imageBoard = new FollowUpOptionSet(List.of(
+                new FollowUpOption("seed", null, "https://cdn/opaque/answer", Set.of(), true),
+                new FollowUpOption("opt-a", null, "https://cdn/opaque/one",
+                        Set.of(drawer.getParticipantId()), false)));
+
+        RoundScorer.score(SID, followUpSlide(),
+                List.of(answer(fooled, "opt-a", 100)),
+                roster(drawer, fooled),
+                points(10, 5),
+                Map.of(),
+                imageBoard,
+                START, CLOSED);
+
+        // One pick × 5 deception points, through `awardAbsentAuthors` — the
+        // drawer never played the follow-up round itself.
+        assertThat(drawer.getScore().getPoints()).isEqualTo(5);
+        assertThat(fooled.getScore().getPoints()).isZero();
+    }
+
+    @Test
     void departedAndBannedAuthorsAreSkippedRatherThanFailingTheRound() {
         Participant banned = participant("banned-author");
         banned.ban();

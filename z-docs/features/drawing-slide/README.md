@@ -1,19 +1,19 @@
 # Drawing Slides
 
 A **DRAWING slide** asks players to freehand-draw on a shared square canvas
-and submit a rendered PNG. It's a survey-style, open-ended kind — there is no
-static answer key, so it's typically paired with a `BEST_ANSWER_VOTE`
-[follow-up slide](../follow-up-slides/README.md) to let the room pick a
-favorite from the round's submissions.
+and submit a rendered PNG. It's a survey-style, open-ended kind — the round
+itself is never graded — so it's paired with a
+[follow-up slide](../follow-up-slides/README.md) to do something with the
+submissions: `BEST_ANSWER_VOTE` to let the room pick a favorite, or
+`SPOT_THE_ANSWER` to hide the author's own answer picture among the drawings
+and score the room for spotting it.
 
 **Status: implemented end to end.** Content model, authoring surface, the
 live-session answer pipeline (upload + submit + resubmit), and the post-round
-results gallery are all built. A `BEST_ANSWER_VOTE` follow-up now runs a full
-live round on a Drawing parent's submissions too (see
-[Grading / follow-up](#grading--follow-up)) — but a Drawing round is still
-graded `correct = false` regardless: v1 never turns a follow-up's picks into
-points, so pairing a Drawing slide with a follow-up gets you a working
-"most-picked" presentation, not a scored round.
+results gallery are all built, as is the full follow-up runtime on a Drawing
+parent's submissions (see [Grading / follow-up](#grading--follow-up)). The
+Drawing round itself still grades `correct = false` always — the points, when
+there are any, are earned on the *follow-up* round, not this one.
 
 ## Model
 
@@ -23,7 +23,7 @@ points, so pairing a Drawing slide with a follow-up gets you a working
 public record DrawingContent(
     AppImage imagePrompt,       // optional prompt image shown with the canvas
     PromptPlacement promptPlacement,  // ALONGSIDE | BACKGROUND
-    AppImage correctImage,      // reserved for a future compare/vote feature — NOT surfaced in the editor
+    AppImage correctImage,      // the author's own answer picture — seeded onto a Spot-the-answer follow-up board
     List<String> palette,       // author-configured stroke colors offered to players
     Set<Tool> tools             // PEN | ERASER | SHAPES | TEXT | COLOR_PALETTE
 ) implements ScorableContent {
@@ -39,8 +39,13 @@ public record DrawingContent(
 - **`promptPlacement`** decides where the optional prompt image appears:
   `ALONGSIDE` (beside the canvas, a plain reference) or `BACKGROUND` (drawn
   under the strokes as a traceable layer, both on screen and in the export).
-- **`correctImage`** exists on the wire for a future compare/vote feature and
-  is deliberately not surfaced in the editor — see [Status / gaps](#status--gaps).
+- **`correctImage`** is the author's own picture of the right answer. It
+  changes nothing about the Drawing round itself — players never see it, and
+  `DrawingConfigView` deliberately omits it — but a
+  [`SPOT_THE_ANSWER` follow-up](#grading--follow-up) seeds it onto its board
+  among the players' drawings for the room to spot, and carrying one is what
+  makes this slide an eligible parent for that mode. Authored in the editor's
+  "Correct answer image" card (see [Editor UX](#components--slidecontentdrawingslidecontent)).
 - **`Tool`** (`presentation/slide/enums/Tool.java`) has five members —
   `PEN, ERASER, SHAPES, TEXT, COLOR_PALETTE` — but only four are wired end to
   end. `TEXT` is declared on the enum with no implementation anywhere in the
@@ -71,16 +76,24 @@ no static answer key, same as `FollowUpAnswer`, `QAndAAnswer`, and
 `QAndAQuestions`. A Drawing slide is still `ScorableContent` (so
 `isScorableSlideType`/`canHaveFollowUp` treat it like any other question, and
 it *can* carry a follow-up), but nothing scores the drawing itself without
-one. `FollowUpMode.BEST_ANSWER_VOTE` lists `DRAWING` as a valid parent type
-(as does every other scorable slide type) — see
-[follow-up slides](../follow-up-slides/README.md#modes) — and its
-live-session runtime is built: the follow-up round mints one candidate per
-submitted drawing, participants pick their favorite, and the reveal badges the
-most-picked drawing(s). What it doesn't do is award points — a follow-up pick
-always grades `false` (see
-[follow-up slides § Runtime](../follow-up-slides/README.md#runtime)) — so
-pairing a Drawing slide with a follow-up today gets you a fully working
-best-answer *presentation*, not a scored vote.
+one. Two follow-up modes accept a `DRAWING` parent — see
+[follow-up slides](../follow-up-slides/README.md#modes):
+
+- **`BEST_ANSWER_VOTE`** (every scorable kind qualifies) — the follow-up round
+  mints one candidate per submitted drawing, participants pick their favorite,
+  and the reveal badges the most-picked drawing(s). It awards nothing: a
+  `BEST_ANSWER_VOTE` pick grades a permanent `false`, so this is a fully
+  working best-answer *presentation*, not a scored vote.
+- **`SPOT_THE_ANSWER`** — valid only when the slide carries an authored
+  `correctImage`. The mint seeds that picture in among the submitted drawings,
+  keyed on its stored `srcKey` like any of them and served through the same
+  opaque URL, and the round **scores**: whoever picks it earns through the
+  ordinary correct-answer path, and whoever's own drawing drew picks earns
+  deception points. See
+  [the image board](../follow-up-slides/README.md#the-image-board-dixit-on-drawing-parents)
+  for the seeding, the degradation when no image is authored, and why the
+  picture itself — not any URL or id — is the one thing that can give the seed
+  away.
 
 ## Shared component — `DrawingCanvas`
 
@@ -149,12 +162,15 @@ hit-test geometry (`drawingModel.test.ts` — pen, line, rect, ellipse).
 Over the generic `useSlideEditor(deckId, slideId, "DRAWING")`:
 
 - Synthesized `question` view (`prompt` from `slide.title`, `imagePrompt`,
-  `promptPlacement`, `palette`, `tools`).
+  `promptPlacement`, `correctImage`, `palette`, `tools`).
 - Prompt image: `setImagePrompt`/`clearImagePrompt` (immediate),
   `setPromptPlacement` (immediate), and `saveDrawnPrompt(blob)` — the
   "draw your own prompt" path: ingests the canvas PNG into the author's
   personal gallery (`useUploadImageMutation`) and slots the result as
   `imagePrompt`. Throws if the personal gallery hasn't loaded yet.
+- Correct-answer image: `setCorrectImage`/`clearCorrectImage` (immediate) and
+  `saveDrawnCorrectImage(blob)` — the same three moves as the prompt image,
+  against the `correctImage` slot and through the same gallery ingest.
 - Palette: `schedulePalette` (debounced, live color-picker drags) /
   `commitPalette` (immediate, structural edits), both capped at
   `MAX_DRAWING_PALETTE = 12`.
@@ -164,7 +180,7 @@ Over the generic `useSlideEditor(deckId, slideId, "DRAWING")`:
 ### Components — `SlideContent/DrawingSlideContent/`
 
 - **`DrawingSlideContent.tsx`** — prompt at the top (stored on `slide.title`,
-  like TEXT/MCQ), then two cards:
+  like TEXT/MCQ), then three cards:
   - **"Prompt image"** — "Choose image" (gallery picker, `cropWidth: 1,
     cropHeight: 1, cropGalleryPicks: true` so the prompt image is square
     before it reaches the 1:1 canvas — see the
@@ -174,13 +190,23 @@ Over the generic `useSlideEditor(deckId, slideId, "DRAWING")`:
     drawing" ingests the export and sets it as the prompt), and "Remove"
     once an image exists. A radio (disabled until an image exists) picks
     `ALONGSIDE` vs `BACKGROUND`.
+  - **"Correct answer image"** — the author's own answer picture
+    (`correctImage`), with the same three actions as the prompt image and the
+    same 1:1 crop (the follow-up board shows it beside square canvas exports,
+    so a different aspect ratio would itself be a tell); "Draw one" reuses
+    `DrawPromptModalBody` with a different modal title and canvas label.
+    Optional, and the card's hint says what it buys: it unlocks the
+    "Spot the answer" follow-up mode, and it should be something that could
+    pass for a player's drawing. **Remove is hidden** while a keyed follow-up
+    is attached (`wouldOrphanKeyedFollowUp`) — the backend rejects that content
+    transition and the slide PUT is fire-and-forget, so the block has to happen
+    client-side; Replace stays available.
   - **"Canvas tools"** — a `Toggle` per player-facing tool: Eraser, Shapes,
     Color palette (`TOOL_TOGGLES` — note `TEXT` has no toggle here, matching
     the shared component's gap above). While `COLOR_PALETTE` is on, a
     `PaletteEditor` row (swatch-per-color, native color-picker inputs, a
     trash icon per swatch, a dashed "+" add tile hidden once the palette
     hits its cap) is shown.
-  - `correctImage` is intentionally not surfaced anywhere in this surface.
 
 ### Registration
 
@@ -233,7 +259,11 @@ slide: pre-resolved `imagePromptUrl` (a plain string, not an `AppImage` —
 the STOMP/Redis fan-out mappers don't run the HTTP-side presigning
 serializer, so an embedded `AppImage` would leak raw S3 keys; same reasoning
 as `MatchingConfigView`), `promptPlacement`, `palette`, `tools`. **Never
-carries `correctImage`.**
+carries `correctImage`** — that is the author's answer, and on a slide feeding
+a `SPOT_THE_ANSWER` follow-up putting it on the parent round's wire would hand
+every player the answer before they drew. Nothing on the parent round's path
+even resolves the image (pinned by
+`LiveSessionOrchestratorTest.theDrawingParentsOwnRoundStillNeverCarriesItsAnswerImage`).
 
 ### Board — `DrawingBoardContent.tsx`
 
@@ -300,18 +330,12 @@ a dedicated event field and a dedicated board renderer, not a
   tool anywhere — not the shared `DrawingCanvas`/`DrawingToolbar`, not the
   editor's `TOOL_TOGGLES`. A slide's `tools` set can still contain `"TEXT"`
   if hand-edited (e.g. via the API), but the canvas silently ignores it.
-- **`correctImage` has no consumer.** The field exists on `DrawingContent`
-  and round-trips through persistence/generated types, but nothing reads it
-  — no editor UI, no grading, no compare view. It's reserved for a future
-  compare/vote feature per its Javadoc.
-- **Grading is a permanent `false`, not a gap to close directly.** A
-  `BEST_ANSWER_VOTE` follow-up (see [Grading / follow-up](#grading--follow-up))
-  runs a full live round on a Drawing parent's submissions, but v1's
-  follow-up runtime never awards points — see
-  [Missing Features](../missing-features.md) for the scoring modes that
-  would change that. Until then, a Drawing round only ever collects
-  drawings, and a follow-up only ever surfaces the most-picked one; nothing
-  turns either into a score.
+- **The Drawing round itself is a permanent `false`, by design.** Points on a
+  Drawing slide are earned on its follow-up round, never on the drawing (see
+  [Grading / follow-up](#grading--follow-up)): `SPOT_THE_ANSWER` scores there,
+  while `BEST_ANSWER_VOTE` still awards nothing — see
+  [Missing Features](../missing-features.md) for the modes that would change
+  the latter.
 - **No post-round chart entry.** `DRAWING` is deliberately absent from
   `resultsRegistry` (`Charts/registry.ts`) — its results are the dedicated
   gallery above, not a `ChartDatum` visualization — see
@@ -319,9 +343,9 @@ a dedicated event field and a dedicated board renderer, not a
 
 ## Related
 
-- [Follow-Up Slides](../follow-up-slides/README.md) — `BEST_ANSWER_VOTE`
-  pairing and runtime, and what's still missing to actually score a Drawing
-  round.
+- [Follow-Up Slides](../follow-up-slides/README.md) — the `BEST_ANSWER_VOTE`
+  and `SPOT_THE_ANSWER` pairings and their runtime, including how the authored
+  `correctImage` is seeded onto a dixit board.
 - [Place-on-Image Slides](../place-on-image/README.md) — the
   `GalleryPicker` crop options Drawing's prompt-image picker shares (both now
   crop to 1:1 via `cropWidth`/`cropHeight` + `cropGalleryPicks`).

@@ -58,10 +58,11 @@ authoritative validator:
 | ------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `PREDICT_POPULAR`  | `MCQ`                                                                                              | Which option was picked most?                                                     |
 | `BEST_ANSWER_VOTE` | every scorable parent except `FOLLOW_UP` itself: `MCQ`, `TEXT`, `DRAWING`, `NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`, `PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION` | Which submission was best? (vote — picked options on MCQ, a compact text summary on every other kind) |
-| `SPOT_THE_ANSWER`  | `TEXT` **with an answer key** (`TextContent.acceptedAnswers` non-empty)                            | Which of these is the real answer? (the authored one is hidden among the submissions) |
+| `SPOT_THE_ANSWER`  | a parent **with an authored answer**: `TEXT` with a non-empty `TextContent.acceptedAnswers`, or `DRAWING` with an authored `DrawingContent.correctImage` | Which of these is the real answer? (the authored one is hidden among the submissions) |
 
-Any scorable slide type can attach a `BEST_ANSWER_VOTE` follow-up. `MCQ` and a
-keyed `TEXT` are the parents with more than one valid mode — the author picks
+Any scorable slide type can attach a `BEST_ANSWER_VOTE` follow-up. `MCQ`, a
+keyed `TEXT` and a `DRAWING` slide carrying a correct-answer image are the
+parents with more than one valid mode — the author picks
 one when adding the follow-up and can change it in the inspector; every other
 parent type is `BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` gets the same
 runtime as `PREDICT_POPULAR` — see [Runtime](#runtime) — the mode only changes
@@ -72,11 +73,18 @@ that changes what is minted *and* scores; it has its own
 
 `FollowUpMode.requiresAnswerKey()` is the authoritative second half of the
 pairing rule: `supportsParent` only settles the parent's *type*, and an unkeyed
-`TEXT` slide is a legitimate collect-only prompt with no authored answer to
-hide. `DeckService` enforces both halves wherever the pairing can change — the
+`TEXT` slide — or a Drawing slide with no authored correct image — is a
+legitimate collect-only prompt with no authored answer to hide. The flag
+deliberately says only that *an* authored answer is required; **what one is**
+is per parent kind, and `DeckService.hasAnswerKey` is the single place that
+resolves it against the content (a non-blank accepted answer on `TEXT`; a
+`correctImage` that is stored — not external — and carries a renderable variant
+on `DRAWING`, exactly the negation of the frontend's `isImageEmpty`, so the
+mode the editor offers and the mode the API accepts agree by construction).
+`DeckService` enforces both halves wherever the pairing can change — the
 add endpoint, the inspector's mode edit, and a parent content update that would
-strip the key out from under an attached `SPOT_THE_ANSWER` child — each a
-`400`.
+strip the authored answer out from under an attached `SPOT_THE_ANSWER` child —
+each a `400`.
 
 The frontend mirrors the table in
 `frontend/src/features/deck/utils/followUp.ts` (`FOLLOW_UP_MODE_PARENTS`),
@@ -93,13 +101,16 @@ A dixit-style mode, and the **first follow-up mode to score**: the parent
 question's **authored** correct answer is mixed in among the
 participant-submitted candidates, and the room has to spot it.
 
-- **Valid parents** — `TEXT` slides whose content carries an answer key
-  (`TextContent.acceptedAnswers` non-empty). A `TEXT` parent with no answer key
-  is unscored and has no authored answer to mix in, so it stays
-  `BEST_ANSWER_VOTE` only — see `FollowUpMode.requiresAnswerKey()` above.
+- **Valid parents** — the two kinds that can carry an authored answer: `TEXT`
+  slides with a non-empty answer key (`TextContent.acceptedAnswers`), and
+  `DRAWING` slides with an authored answer picture
+  (`DrawingContent.correctImage`) — the [image board](#the-image-board-dixit-on-drawing-parents)
+  below. A parent carrying neither is unscored and has nothing to mix in, so it
+  stays `BEST_ANSWER_VOTE` only — see `FollowUpMode.requiresAnswerKey()` above.
 - **Seeding** — `FollowUpOptions.mint` takes the child's mode, and on this one
   `fromText` seeds the answer key's own wording in beside the deduped
-  submissions. One accepted answer stands for the whole set: the first
+  submissions (`fromDrawings` does the picture equivalent). One accepted answer
+  stands for the whole set: the first
   non-blank one in iteration order (a stored `Set` field hydrates as a
   `LinkedHashSet`, so that is the authored order, and a live session mints from
   one immutable deck snapshot — every re-mint of a round therefore reads the
@@ -113,7 +124,9 @@ participant-submitted candidates, and the room has to spot it.
   submission is, so a participant who typed the authored answer lands on the
   *same* candidate: one card that is both the answer key and their submission,
   carrying the flag and them as an author. The existing self-pick `409` then
-  correctly stops them picking the card they wrote.
+  correctly stops them picking the card they wrote. (On a Drawing parent the
+  same merge is written but cannot fire — see
+  [the image board](#the-image-board-dixit-on-drawing-parents).)
 - **Where the seeded card lands** — nowhere in particular: the seed is appended
   after the last submission and then the **whole board is shuffled** with a
   `SecureRandom`, freshly per mint (`FollowUpOptions.finishShuffled`). Shuffling
@@ -147,9 +160,10 @@ participant-submitted candidates, and the room has to spot it.
   off the authored option id. That is disclosure by design — the round is over —
   and it is why the secrecy argument is about what the board leaks *while it is
   being played*.
-- **Graceful degradation** — if the author empties the parent's answer key
-  after attaching the follow-up (the editor rejects that, but a session's deck
-  snapshot can predate the rule), the mint seeds nothing and produces exactly
+- **Graceful degradation** — if the author empties the parent's authored
+  answer after attaching the follow-up — the answer key on `TEXT`, the
+  `correctImage` on `DRAWING` (the editor rejects both, but a session's deck
+  snapshot can predate the rule) — the mint seeds nothing and produces exactly
   the `BEST_ANSWER_VOTE` board. No candidate carries the flag, so no pick can
   grade correct and the **picker** side scores nobody, rather than the round
   failing. Authors are unaffected: `RoundEvaluator.followUpPicksByAuthor` gates
@@ -158,14 +172,64 @@ participant-submitted candidates, and the room has to spot it.
 - **Scoring** — pickers earn through the ordinary correct-answer path, authors
   through deception points; see *Scoring a follow-up round* under
   [Runtime](#runtime).
-- **Image / dixit extension — deferred.** Running the same mode on `DRAWING`
-  (image) parents needs an authorable correct-answer *image* to mix in among
-  the submitted drawings, which no model carries today; adding one is a model
-  change on the parent content or on the follow-up itself. Deliberately
-  deferred until that model is designed.
 - **Frontend mirror** — the enum value breaks compilation in
   `FOLLOW_UP_MODE_PARENTS` (`frontend/src/features/deck/utils/followUp.ts`)
   until its row is added, so the parent-type table above can't silently drift.
+
+#### The image board (dixit on Drawing parents)
+
+The same mode, on a `DRAWING` parent: the author's own picture of the right
+answer sits among the players' drawings and the room has to spot it. It is the
+original dixit shape, and it needs no new model — `DrawingContent.correctImage`
+already existed and round-tripped; what changed is that it now has a consumer
+and a meaning ("the parent's authored answer"), plus an editor surface to set
+it. Everything below the mint is untouched: grading, deception payouts,
+playability, the store and the board are all mode/flag-generic and never look
+at whether a candidate is text or a picture.
+
+- **Seeding, by `srcKey`.** `FollowUpOptions.withAuthoredImage` is the twin of
+  `withAuthoredAnswer`: the authored image is keyed on its stored `srcKey`,
+  exactly as every submitted drawing is, so its id is the same
+  `derivedId(srcKey)` derivation and a re-mint reproduces it. Its display URL is
+  resolved through the *same* `imageUrl` function the submissions go through, so
+  it leaves as an opaque proxy URL like every other candidate (*Candidate images
+  travel as opaque URLs* under [Runtime](#runtime)) — a presigned URL would
+  spell out its
+  `gallery/…` key and hand the answer to anyone with devtools open, which is
+  every bit as fatal as an unshuffled arrangement.
+- **Merging can't happen (and is handled anyway).** The text seed merges with a
+  participant who typed the authored answer; the image seed structurally cannot,
+  because `LiveSessionAnswerService.validateDrawing` only accepts a submission
+  whose key sits under `drawing/{sessionId}/{participantId}/`, while an authored
+  image is a gallery object (`gallery/…`) — two disjoint namespaces, so no
+  submitted drawing can ever key onto the seed. The merge is still written as a
+  `computeIfAbsent` rather than a bare `put`, so if those namespaces ever meet
+  the seed gains the submitters as authors instead of silently discarding them.
+- **Shuffle and degradation are shared.** The board ends on the same
+  unconditional `finishShuffled`, and a parent whose `correctImage` is missing,
+  external, or carries no renderable variant seeds nothing and mints exactly the
+  `BEST_ANSWER_VOTE` board — identical to the keyless TEXT degradation above,
+  including that authors are still paid.
+- **The parent round never leaks it.** `DrawingConfigView` carries no
+  `correctImage` field and nothing on the parent round's path even resolves the
+  image, so players draw without having seen the answer.
+- **Authoring.** The Drawing editor's "Correct answer image" card
+  (`DrawingSlideContent`) sets it — gallery pick or draw-it-yourself, both
+  cropped 1:1 like the prompt image — and setting one is what unlocks the mode
+  in the follow-up mode picker. Removing it is blocked client-side while a keyed
+  follow-up is attached (`wouldOrphanKeyedFollowUp`), mirroring the TEXT answer
+  key, because the slide PUT is fire-and-forget and could never surface the
+  backend's `400`; *replacing* it stays allowed. The follow-up's own canvas
+  previews that picture among ghost tiles — an author-only surface, so marking
+  which one is the answer is correct there, unlike the live board.
+- **Content tell — the author's problem, not the code's.** Nothing about the
+  URL, the id, the arrangement or the markup distinguishes the seeded card, but
+  the *picture* can: a photograph or polished illustration among six freehand
+  sketches is spotted at a glance, with none of the above mattering. The editor
+  says so in the card's hint ("pick something that could pass for a player's
+  drawing") and the draw-it-yourself path exists precisely so an author can
+  produce one in the same medium. There is no mitigation in code — the room is
+  looking at the images.
 
 ## Editor UX
 
@@ -206,7 +270,10 @@ parent's own trim/case normalization (`TextContent.normalize`), unioning
 authors onto whichever submission's wording landed first — and, on a
 `SPOT_THE_ANSWER` child, mixes the authored answer in with them
 ([above](#spot_the_answer)); a DRAWING parent
-mints one candidate per submitted image, keyed by its stored `srcKey`. Every
+mints one candidate per submitted image, keyed by its stored `srcKey` — and, on
+a `SPOT_THE_ANSWER` child, seeds the parent's authored `correctImage` in among
+them under that same keying
+([the image board](#the-image-board-dixit-on-drawing-parents)). Every
 other scorable parent kind (`NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`,
 `PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION`) has no submission a board can show
 verbatim, so its answers are rendered into a compact text summary built from
@@ -369,7 +436,8 @@ the shorter road: they publish `RoundStarted`/`LiveResultsShown`, which carry th
 re-minted `followUpConfig` outright.
 
 **Candidate images travel as opaque URLs.** A candidate that carries an image
-(a DRAWING parent's submissions, an MCQ parent's option art) resolves through
+(a DRAWING parent's submissions, the authored `correctImage` a
+`SPOT_THE_ANSWER` child seeds among them, an MCQ parent's option art) resolves through
 `LiveSessionOrchestrator.followUpCandidateImageUrl`, which mints a signed
 [opaque proxy URL](../../diagrams/media-gallery.md#opaque-image-proxy--urls-that-hide-their-key)
 — `/api/media/opaque-image?t={token}` — rather than presigning S3 directly.

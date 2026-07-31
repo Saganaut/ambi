@@ -91,13 +91,18 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
  * item the content no longer has is simply never visited.
  *
  * <p>
- * <strong>One mode also seeds the answer key.</strong>
- * {@link FollowUpMode#SPOT_THE_ANSWER} mixes the TEXT parent's own authored
- * answer into the submissions, keyed and merged exactly like one of them, and
- * marks it {@link FollowUpOption#authoredAnswer()} — the single bit grading
+ * <strong>One mode also seeds the authored answer.</strong>
+ * {@link FollowUpMode#SPOT_THE_ANSWER} mixes the parent's own authored answer
+ * into the submissions — the answer key's wording on a TEXT parent
+ * ({@link #withAuthoredAnswer}), the authored {@code correctImage} on a DRAWING
+ * one ({@link #withAuthoredImage}) — keyed and merged exactly like one of them,
+ * and marks it {@link FollowUpOption#authoredAnswer()}: the single bit grading
  * later reads, and the one thing about a candidate that must never travel to a
- * client. Every other mode mints the same set it always did, so the mode
- * reaches this class only to answer "does the answer key belong on this board?".
+ * client. Both parent kinds degrade the same way when the authored answer is
+ * missing (an ordinary vote board with nothing flagged), and both end on a
+ * shuffle. Every other mode mints the same set it always did, so the mode
+ * reaches this class only to answer "does the authored answer belong on this
+ * board?".
  */
 public final class FollowUpOptions {
 
@@ -148,7 +153,10 @@ public final class FollowUpOptions {
      * parent's authored answer is seeded in as one more candidate — see
      * {@link #withAuthoredAnswer};</li>
      * <li><strong>DRAWING parent</strong> — one candidate per submitted image
-     * (an answer that never produced one is skipped);</li>
+     * (an answer that never produced one is skipped). On a
+     * {@link FollowUpMode#SPOT_THE_ANSWER} follow-up the parent's authored
+     * {@code correctImage} is seeded in among them — see
+     * {@link #withAuthoredImage};</li>
      * <li><strong>every other scorable parent</strong> — one candidate per
      * distinct submission, rendered as a compact text summary of it (see the
      * {@code summaryOf} overloads); submissions whose summaries match merge,
@@ -177,7 +185,7 @@ public final class FollowUpOptions {
         return switch (parent.getContent()) {
             case McqContent mcq -> fromMcq(mcq, imageUrl);
             case TextContent text -> fromText(text, parentAnswers, mode);
-            case DrawingContent _ -> fromDrawings(parentAnswers, imageUrl);
+            case DrawingContent drawing -> fromDrawings(drawing, parentAnswers, mode, imageUrl);
             case NumberContent number -> fromSummaries(parentAnswers,
                     NumberAnswer.class, answer -> summaryOf(number, answer));
             case RankingContent ranking -> fromSummaries(parentAnswers,
@@ -340,9 +348,13 @@ public final class FollowUpOptions {
      * One candidate per submitted drawing, keyed on the image's stored key so a
      * re-mint reproduces the id. An image with no stored key (never ingested) has
      * nothing stable to hash and is skipped, rather than given a random id a
-     * restart would change.
+     * restart would change. On a {@link FollowUpMode#SPOT_THE_ANSWER} follow-up
+     * the parent's authored {@code correctImage} joins them (see
+     * {@link #withAuthoredImage}) and the finished board is shuffled (see
+     * {@link #finishShuffled}) — the image twin of {@link #fromText}.
      */
-    private static FollowUpOptionSet fromDrawings(List<Answer> answers, Function<AppImage, String> imageUrl) {
+    private static FollowUpOptionSet fromDrawings(DrawingContent content, List<Answer> answers,
+            FollowUpMode mode, Function<AppImage, String> imageUrl) {
         Map<String, Candidate> bySrcKey = new LinkedHashMap<>();
         for (Answer answer : inSubmissionOrder(answers)) {
             if (!(answer.getPayload() instanceof DrawingAnswer drawing) || drawing.image() == null) {
@@ -356,7 +368,58 @@ public final class FollowUpOptions {
             bySrcKey.computeIfAbsent(srcKey, _ -> new Candidate(null, imageUrl.apply(image)))
                     .addAuthor(answer.getParticipantId());
         }
-        return finish(bySrcKey);
+        if (mode != FollowUpMode.SPOT_THE_ANSWER) {
+            return finish(bySrcKey);
+        }
+        return finishShuffled(withAuthoredImage(content, bySrcKey, imageUrl));
+    }
+
+    /**
+     * The submitted drawings with the parent's own authored answer picture mixed
+     * in — {@link #withAuthoredAnswer}'s twin for an image parent, and keyed the
+     * same way a submission is: on the image's stored {@code srcKey}, so the seed
+     * gets the same {@code derivedId(srcKey)} relation every submitted card has
+     * and a re-mint reproduces its id. Its display URL is resolved through the
+     * same {@code imageUrl} function the submissions go through, so it leaves as
+     * an opaque proxy URL like every other candidate — a presigned URL would
+     * spell out its {@code gallery/…} key and hand the answer to anyone with
+     * devtools open, which is exactly as fatal as an unshuffled board.
+     *
+     * <p><strong>Merging.</strong> Handled for symmetry with the text seed, but
+     * structurally unreachable today: {@code LiveSessionAnswerService.validateDrawing}
+     * only accepts a submission whose key sits under
+     * {@code drawing/{sessionId}/{participantId}/}, while an authored image is a
+     * gallery object ({@code gallery/…}), so no participant can submit a drawing
+     * that keys onto the seed. The {@code computeIfAbsent} merge is kept anyway
+     * rather than a bare {@code put}, so the day those namespaces can meet the
+     * seed gains the submitters as authors instead of silently discarding them —
+     * the same card being both the answer and someone's submission, exactly as
+     * on TEXT.
+     *
+     * <p><strong>Degradation.</strong> A parent with no {@code correctImage} —
+     * or one pointing at an external URL, or one holding no renderable variant —
+     * seeds nothing and mints exactly the {@code BEST_ANSWER_VOTE} board (the
+     * editor rejects clearing it under an attached child, but a session's deck
+     * snapshot can predate that rule). No candidate carries the flag, so no pick
+     * grades correct and the <em>picker</em> side scores nobody; the author side
+     * is unaffected, for the reason spelled out on {@link #withAuthoredAnswer}.
+     */
+    private static Map<String, Candidate> withAuthoredImage(DrawingContent content,
+            Map<String, Candidate> bySrcKey, Function<AppImage, String> imageUrl) {
+        AppImage authored = content.correctImage();
+        if (authored == null || authored.isExternal()) {
+            return bySrcKey;
+        }
+        String srcKey = authored.getSrcKey();
+        if (srcKey == null || srcKey.isBlank()) {
+            return bySrcKey;
+        }
+        String url = imageUrl.apply(authored);
+        if (url == null || url.isBlank()) {
+            return bySrcKey;
+        }
+        bySrcKey.computeIfAbsent(srcKey, _ -> new Candidate(null, url)).markAuthoredAnswer();
+        return bySrcKey;
     }
 
     /**

@@ -6,13 +6,16 @@
  * is the question prompt (slide title, like every other kind), a banner naming
  * what the mode asks, and a read-only preview that makes the runtime contract
  * legible: for PREDICT_POPULAR on an MCQ parent, the parent's options render
- * as ghosted, non-interactive tiles. The mode itself is edited in the right
+ * as ghosted, non-interactive tiles; for SPOT_THE_ANSWER on a Drawing parent,
+ * the authored answer image renders among blank ghost tiles — the same idea
+ * for a board whose cards are pictures. The mode itself is edited in the right
  * sidebar's follow-up section.
  */
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { FollowUpMode } from "@deck/store/deckEnums.gen";
 import { FOLLOW_UP_MODE_LABELS, linkedParentOf } from "@deck/utils/followUp";
+import { isImageEmpty, largestUrl } from "@utils/image";
 import React, { useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
@@ -26,11 +29,11 @@ const parentDisplayName = (title: string | undefined): string => {
 };
 
 /**
- * Caption under the ghosted MCQ option preview, one per mode. Currently only
- * reachable for an MCQ parent (`PREDICT_POPULAR`/`BEST_ANSWER_VOTE`) — a
- * `SPOT_THE_ANSWER` parent is `TEXT`, so it renders the placeholder branch
- * below instead — but typed `satisfies Record<FollowUpMode, string>` so a
- * future mode with an MCQ-eligible parent can't silently miss a caption.
+ * Caption under the ghosted preview, one per mode — used by both the MCQ
+ * option preview (`PREDICT_POPULAR`/`BEST_ANSWER_VOTE`) and the answer-image
+ * preview a `SPOT_THE_ANSWER` follow-up gets on a Drawing parent. Typed
+ * `satisfies Record<FollowUpMode, string>` so a future mode can't silently
+ * miss a caption.
  */
 const GHOST_CAPTIONS = {
   PREDICT_POPULAR: "Participants will predict which of these was picked most in",
@@ -69,10 +72,23 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const parentMcqOptions =
     parent?.content.contentType === "MCQ" ? parent.content.options : undefined;
   const ghostCaption = GHOST_CAPTIONS[mode];
-  // SPOT_THE_ANSWER's parent is always TEXT (never MCQ), so it never hits the
-  // ghosted-options branch below — its preview is this placeholder, worded to
-  // name the authored answer that gets mixed in, unlike the generic wording
-  // every other free-form parent gets.
+  // A SPOT_THE_ANSWER parent is TEXT or DRAWING, never MCQ, so it never hits
+  // the ghosted-options branch. On a Drawing parent the authored answer is a
+  // *picture*, and the whole point of the mode is that it sits among the
+  // players' drawings looking like one of them — so the preview shows that
+  // thumbnail among blank tiles, the image analogue of the MCQ ghost grid.
+  // This surface is author-only (the runtime board never marks the seed), so
+  // showing which one is the answer is correct here.
+  const parentAnswerImage =
+    mode === "SPOT_THE_ANSWER" && parent?.content.contentType === "DRAWING"
+      ? parent.content.correctImage
+      : undefined;
+  const answerImageUrl = isImageEmpty(parentAnswerImage)
+    ? null
+    : largestUrl(parentAnswerImage, `${slide.id}-answer`);
+  // The remaining free-form parents have nothing to preview until the session
+  // runs; SPOT_THE_ANSWER's wording names the authored answer that gets mixed
+  // in, unlike the generic wording every other free-form parent gets.
   const placeholder =
     mode === "SPOT_THE_ANSWER"
       ? "Participants’ submissions, plus the authored correct answer, become the options here."
@@ -119,6 +135,24 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                       {option.text?.trim() || "Untitled option"}
                     </div>
                   ))}
+                </div>
+                <p className={styles.ghostCaption}>
+                  {ghostCaption} {parentDisplayName(parent?.title)}.
+                </p>
+              </>
+            ) : answerImageUrl ? (
+              <>
+                <div className={styles.ghostOptions} style={{ "--cols": 3 } as React.CSSProperties}>
+                  <div className={styles.ghostOption} aria-hidden="true" />
+                  <div className={styles.ghostAnswer}>
+                    <img
+                      className={styles.ghostAnswerImage}
+                      src={answerImageUrl}
+                      alt="The authored correct answer"
+                    />
+                    <span className={styles.ghostAnswerBadge}>Your answer</span>
+                  </div>
+                  <div className={styles.ghostOption} aria-hidden="true" />
                 </div>
                 <p className={styles.ghostCaption}>
                   {ghostCaption} {parentDisplayName(parent?.title)}.

@@ -10,10 +10,17 @@
 //
 // A DRAWING slide is survey-style: players freehand-draw on a fixed 1:1
 // canvas (the logical size is a client constant — see DrawingCanvas) and
-// submit a rendered PNG; there is no static answer key, so nothing here
-// touches scoring. The author's own drawn prompt goes through the same
-// gallery ingest as an uploaded file — `saveDrawnPrompt` turns the canvas
-// blob into a stored AppImage and slots it as `imagePrompt`.
+// submit a rendered PNG; the round itself never grades. The one authored
+// answer this kind carries is `correctImage` — the author's own picture of
+// the right answer, which a SPOT_THE_ANSWER follow-up seeds onto its board
+// among the players' drawings. It changes nothing about the Drawing round,
+// so there is still no scoring here; it only unlocks that follow-up mode
+// (see `utils/followUp.hasScorableAnswerKey`).
+//
+// Both image slots share one ingest path: an author's drawn image goes
+// through the same gallery upload as a picked file — `saveDrawnPrompt` /
+// `saveDrawnCorrectImage` turn the canvas blob into a stored AppImage and
+// slot it as `imagePrompt` / `correctImage` respectively.
 import {
   useGetMyGalleryQuery,
   useUploadImageMutation,
@@ -35,6 +42,9 @@ interface DrawingQuestionView {
   imagePrompt?: AppImage;
   /** Beside the canvas as a reference, or under the strokes as a trace layer. */
   promptPlacement: PromptPlacement;
+  /** The author's own answer picture — seeded onto a Spot-the-answer follow-up
+   *  board, never shown to players on this round (unset = no such answer). */
+  correctImage?: AppImage;
   /** Author-configured stroke colors offered to players. */
   palette: string[];
   /** Enabled drawing tools (PEN is always present). */
@@ -61,6 +71,17 @@ interface UseDrawingEditorResult {
   /** Where players see the prompt image. Immediate. */
   setPromptPlacement: (placement: PromptPlacement) => void;
 
+  /** ── Correct-answer image ────────────────────────────────────────────── */
+  /** Set the correct-answer image (gallery pick / upload). Immediate. */
+  setCorrectImage: (image: AppImage) => void;
+  /** Drop the correct-answer image. Immediate — callers must first check it
+   *  wouldn't orphan an attached keyed follow-up (the PUT can't surface the
+   *  backend's 400). */
+  clearCorrectImage: () => void;
+  /** Ingest an author-drawn canvas PNG into the gallery, then set it as the
+   *  correct-answer image. Rejects when the personal gallery isn't loaded yet. */
+  saveDrawnCorrectImage: (blob: Blob) => Promise<void>;
+
   /** ── Canvas configuration ────────────────────────────────────────────── */
   canAddPaletteColor: boolean;
   /** Palette edit (color pick / add / remove). Immediate. */
@@ -83,6 +104,7 @@ const useDrawingEditor = (deckId: string, slideId: string): UseDrawingEditorResu
         prompt: slide.title,
         imagePrompt: content?.imagePrompt,
         promptPlacement: content?.promptPlacement ?? "ALONGSIDE",
+        correctImage: content?.correctImage,
         palette: content?.palette ?? [],
         tools: content?.tools ?? ["PEN"],
       }
@@ -120,6 +142,29 @@ const useDrawingEditor = (deckId: string, slideId: string): UseDrawingEditorResu
     editor.flush();
   };
 
+  const setCorrectImage = (image: AppImage) => {
+    editor.updateSlideContent({ correctImage: image });
+    editor.flush();
+  };
+
+  const clearCorrectImage = () => {
+    editor.updateSlideContent({ correctImage: undefined });
+    editor.flush();
+  };
+
+  const saveDrawnCorrectImage = async (blob: Blob): Promise<void> => {
+    if (!myGallery?.id) {
+      throw new Error("Your gallery isn't ready yet — try again in a moment.");
+    }
+    const file = new File([blob], "drawn-correct-answer.png", { type: "image/png" });
+    const created = await uploadImage({
+      id: myGallery.id,
+      name: "Drawn correct answer",
+      body: { file },
+    }).unwrap();
+    setCorrectImage(created.image);
+  };
+
   const canAddPaletteColor = (question?.palette.length ?? 0) < MAX_DRAWING_PALETTE;
 
   const commitPalette = (palette: string[]) => {
@@ -146,6 +191,9 @@ const useDrawingEditor = (deckId: string, slideId: string): UseDrawingEditorResu
     clearImagePrompt,
     saveDrawnPrompt,
     setPromptPlacement,
+    setCorrectImage,
+    clearCorrectImage,
+    saveDrawnCorrectImage,
     canAddPaletteColor,
     commitPalette,
     setToolEnabled,

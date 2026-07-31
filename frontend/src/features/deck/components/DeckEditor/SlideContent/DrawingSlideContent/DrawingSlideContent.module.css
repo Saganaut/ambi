@@ -127,6 +127,15 @@
     font-size: var(--font-size-sm);
   }
 
+  /* Why the correct-answer image's Remove control is gone: an attached
+     "Spot the answer" follow-up needs that image to grade. */
+  .lockedHint {
+    margin: 0;
+    padding-left: var(--gap-xs);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+  }
+
   .drawModalBody {
     display: flex;
     flex-direction: column;

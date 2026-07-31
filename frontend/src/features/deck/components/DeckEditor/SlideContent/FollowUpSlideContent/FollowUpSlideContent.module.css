@@ -34,6 +34,40 @@
   user-select: none;
 }
 
+/* The authored answer image among the ghost tiles: same tile rhythm, but solid
+   rather than ghosted and badged — this is an author-only surface, so naming
+   which card is the answer is the point (the live board never marks it). */
+.ghostAnswer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: var(--p-sm);
+  border-radius: var(--radius-md);
+  border: var(--border-size-sm) solid var(--border-default);
+  background-color: var(--bg-surface);
+}
+
+.ghostAnswerImage {
+  display: block;
+  max-width: 100%;
+  max-height: 8rem;
+  border-radius: var(--radius-sm);
+}
+
+.ghostAnswerBadge {
+  position: absolute;
+  bottom: calc(-1 * var(--space-2));
+  padding: var(--gap-xxs) var(--gap-xs);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-raised);
+  border: var(--border-size-sm) solid var(--border-default);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
 .ghostCaption {
   text-align: center;
   color: var(--text-muted);

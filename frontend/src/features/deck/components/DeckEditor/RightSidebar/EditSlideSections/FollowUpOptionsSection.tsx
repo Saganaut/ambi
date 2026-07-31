@@ -1,8 +1,9 @@
 // Per-kind inspector section for FOLLOW_UP slides. The only authorable content
 // is the mode (what the follow-up asks about the parent round's submissions),
 // restricted to `followUpModesFor(parent.content)` — content-aware, not just
-// content-type-aware, since a keyed TEXT parent additionally qualifies for
-// SPOT_THE_ANSWER. This is the one place mode is editable; it also links back
+// content-type-aware, since SPOT_THE_ANSWER additionally needs the parent to
+// carry an authored answer (a keyed TEXT slide, or a Drawing slide with a
+// correct-answer image). This is the one place mode is editable; it also links back
 // to the parent slide for orientation.
 import { getRouteApi } from "@tanstack/react-router";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";

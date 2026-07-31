@@ -4,9 +4,11 @@
 // its own options; every other scorable parent type mints distinct submissions)
 // and lives entirely on the backend (`FollowUpOptions.mint`) — and snapshotted
 // server-side when the round opened. They arrive on the slide as
-// `followUp.options`, in snapshot order — deliberately NOT shuffled (v1
-// decision): every device shows the one board, so the order is part of the
-// shared reference frame.
+// `followUp.options`, and are rendered in that snapshot order: the client never
+// reorders them, so every device shows the one board. What that order *is* is
+// the server's business — derived (authored/submission order) for most modes,
+// but a per-mint shuffle on SPOT_THE_ANSWER, where any reconstructible
+// arrangement would point at the seeded answer.
 //
 // One component covers every moment, switched by `mode`:
 //   - prompt      → candidate cards; pickable when `interactive` (participant on
@@ -208,11 +210,11 @@ const FollowUpBoardContent = ({
                 />
               )}
               {option.imageUrl ? (
-                <img
-                  className={styles.drawing}
-                  src={option.imageUrl}
-                  alt='A submitted drawing'
-                />
+                // Uniform alt, deliberately: on a SPOT_THE_ANSWER board one of
+                // these cards is the author's own picture rather than a
+                // submission, and an alt text that said so would hand the
+                // answer to anyone reading the accessibility tree.
+                <img className={styles.drawing} src={option.imageUrl} alt='A drawing' />
               ) : (
                 <span className={styles.label}>{option.text}</span>
               )}

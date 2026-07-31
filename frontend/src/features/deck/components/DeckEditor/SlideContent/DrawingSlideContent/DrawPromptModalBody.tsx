@@ -1,7 +1,8 @@
-// Modal body for the author's "draw your own prompt image" flow: a full
-// DrawingCanvas plus Cancel/Save. On save the canvas is rasterized to a PNG
-// blob and handed to the caller (which ingests it into the gallery and slots
-// it as the slide's imagePrompt); the caller closes the modal on success.
+// Modal body for the author's "draw it yourself" flows: a full DrawingCanvas
+// plus Cancel/Save. On save the canvas is rasterized to a PNG blob and handed
+// to the caller (which ingests it into the gallery and slots it as the slide's
+// imagePrompt or correctImage); the caller closes the modal on success. The
+// two slots differ only in the modal's title and the canvas's aria-label.
 import { useRef, useState } from "react";
 
 import { DrawingCanvas, type DrawingCanvasHandle } from "@/shared/components/DrawingCanvas/DrawingCanvas";
@@ -12,11 +13,19 @@ import styles from "./DrawingSlideContent.module.css";
 interface DrawPromptModalBodyProps {
   /** Swatches offered while drawing (the slide's palette, or the default). */
   palette: readonly string[];
+  /** What the canvas announces itself as — the Drawing editor opens this same
+   *  body for both of its image slots (prompt and correct answer). */
+  ariaLabel?: string;
   onSave: (blob: Blob) => Promise<void>;
   onCancel: () => void;
 }
 
-const DrawPromptModalBody = ({ palette, onSave, onCancel }: DrawPromptModalBodyProps) => {
+const DrawPromptModalBody = ({
+  palette,
+  ariaLabel = "Prompt image drawing canvas",
+  onSave,
+  onCancel,
+}: DrawPromptModalBodyProps) => {
   const canvasRef = useRef<DrawingCanvasHandle>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,7 +49,7 @@ const DrawPromptModalBody = ({ palette, onSave, onCancel }: DrawPromptModalBodyP
         ref={canvasRef}
         palette={palette}
         allowShapes
-        ariaLabel='Prompt image drawing canvas'
+        ariaLabel={ariaLabel}
         onEmptyChange={setIsEmpty}
       />
       {error && <p className={styles.drawModalError}>{error}</p>}

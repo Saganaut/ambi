@@ -3,6 +3,7 @@ package com.cephadex.ambi.presentation.deck;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,6 +29,7 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
@@ -36,6 +38,7 @@ import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
+import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.RichTextContent;
@@ -44,6 +47,7 @@ import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.TitleContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
+import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
 
@@ -438,7 +442,7 @@ class DeckServiceTest {
         assertThatThrownBy(() -> deckService.addFollowUpSlide(
                 "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("answer key");
+                .hasMessageContaining("authored answer");
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
@@ -468,7 +472,7 @@ class DeckServiceTest {
 
         assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("answer key");
+                .hasMessageContaining("authored answer");
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
@@ -485,8 +489,103 @@ class DeckServiceTest {
 
         assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("answer key");
+                .hasMessageContaining("authored answer");
         verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    // ── the same rule on a DRAWING parent (the authored answer is a picture) ────
+
+    @Test
+    void addFollowUpSlideAcceptsSpotTheAnswerOnADrawingParentWithAnAnswerImage() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(drawingContent(storedImage("gallery/answer.png")));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.addFollowUpSlide("deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner);
+
+        assertThat(deck.findSlide("f1").orElseThrow().getContent())
+                .isEqualTo(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void addFollowUpSlideRejectsSpotTheAnswerOnADrawingParentWithNoAnswerImage() {
+        // A Drawing slide with no authored correct image is a legitimate
+        // collect-only prompt — the image half of the keyless TEXT case.
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(drawingContent(null));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("authored answer");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void addFollowUpSlideRejectsSpotTheAnswerOnADrawingParentWhoseAnswerImageIsExternal() {
+        // An external image owns no stored object, so it can't be served through
+        // the opaque proxy the board hides the seeded card behind.
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(drawingContent(image("https://elsewhere/answer.png")));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.addFollowUpSlide(
+                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("authored answer");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideRejectsModeChangeToSpotTheAnswerOnADrawingParentWithNoAnswerImage() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        deck.findSlide("p").orElseThrow().setContent(drawingContent(null));
+        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("f");
+        changes.setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("authored answer");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideRejectsClearingTheAnswerImageUnderASpotTheAnswerChild() {
+        // The orphan guard on the image parent: same type, but the picture the
+        // follow-up hides among the drawings is gone.
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        deck.findSlide("p").orElseThrow().setContent(drawingContent(storedImage("gallery/answer.png")));
+        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("p");
+        changes.setContent(drawingContent(null));
+
+        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("authored answer");
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void updateSlideAcceptsADrawingParentEditThatKeepsItsAnswerImage() {
+        // Replacing the picture — or any other edit that leaves one in place —
+        // never orphans the child, so the everyday edit path stays open.
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        deck.findSlide("p").orElseThrow().setContent(drawingContent(storedImage("gallery/answer.png")));
+        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        Slide changes = slide("p");
+        changes.setContent(drawingContent(storedImage("gallery/replacement.png")));
+
+        deckService.updateSlide("deck-1", "p", changes, owner);
+
+        assertThat(deck.findSlide("p").orElseThrow().getContent())
+                .isEqualTo(drawingContent(storedImage("gallery/replacement.png")));
+        verify(deckRepository).save(deck);
     }
 
     @Test
@@ -1150,6 +1249,20 @@ class DeckServiceTest {
         AppImage image = new AppImage();
         image.setExternal(true);
         image.setExternalSrc(externalSrc);
+        return image;
+    }
+
+    /** A Drawing slide carrying (or not) the authored answer SPOT_THE_ANSWER needs. */
+    private static DrawingContent drawingContent(AppImage correctImage) {
+        return new DrawingContent(null, PromptPlacement.ALONGSIDE, correctImage, List.of(), Set.of());
+    }
+
+    /** A stored (gallery) image with a renderable variant — what a board can show. */
+    private static AppImage storedImage(String srcKey) {
+        AppImage image = new AppImage();
+        image.setExternal(false);
+        image.setSrcKey(srcKey);
+        image.setVariants(Map.of(ImageSizeOptions.LG, srcKey));
         return image;
     }
 

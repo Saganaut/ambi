@@ -8,6 +8,7 @@
 // optimistic move patch, and the add-follow-up affordances all derive from it.
 import type { SlideContent, SlideResponse } from "@deck/store/deckApi.gen";
 import type { FollowUpMode, SlideType } from "@deck/store/deckEnums.gen";
+import { isImageEmpty } from "@utils/image";
 
 /**
  * Which parent content types each follow-up mode supports. Mirror of the
@@ -30,7 +31,7 @@ const FOLLOW_UP_MODE_PARENTS = {
     "ALLOCATION",
   ],
   PREDICT_POPULAR: ["MCQ"],
-  SPOT_THE_ANSWER: ["TEXT"],
+  SPOT_THE_ANSWER: ["TEXT", "DRAWING"],
 } as const satisfies Record<FollowUpMode, readonly SlideType[]>;
 
 /**
@@ -49,7 +50,7 @@ const FOLLOW_UP_MODE_NEEDS_ANSWER_KEY = {
 
 /**
  * The keyed modes from that table — the single gate both
- * {@link followUpModesFor} and {@link wouldOrphanSpotTheAnswer} test, so
+ * {@link followUpModesFor} and {@link wouldOrphanKeyedFollowUp} test, so
  * neither compares a mode name literally.
  */
 const FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY: ReadonlySet<FollowUpMode> = new Set(
@@ -66,27 +67,47 @@ const FOLLOW_UP_MODE_LABELS = {
 } as const satisfies Record<FollowUpMode, string>;
 
 /**
- * Whether a TEXT slide's accepted-answer list clears the bar `SPOT_THE_ANSWER`
- * requires: at least one *non-blank* entry. Mirrors the backend exactly — a
- * key holding only blank strings would otherwise offer the mode in the UI and
- * then be rejected with a 400, so this counts trimmed entries, not list
- * length. The single definition of the rule; both {@link followUpModesFor}
- * and {@link wouldOrphanSpotTheAnswer} call through it.
+ * Whether a slide's content carries the authored answer a keyed mode
+ * (`SPOT_THE_ANSWER`) hides among the submissions. What that answer *is*
+ * depends on the parent kind, so the rule is resolved per content type — the
+ * mirror of the backend's `DeckService.hasAnswerKey`:
+ *
+ * - `TEXT` — at least one *non-blank* accepted answer. Trimmed entries, not
+ *   list length: a key holding only blank strings would otherwise offer the
+ *   mode in the UI and then be rejected with a 400.
+ * - `DRAWING` — a `correctImage` that is stored (not an external URL, which
+ *   owns no object the board could serve opaquely beside the submitted
+ *   drawings) and holds a renderable variant — exactly `!isImageEmpty`.
+ * - every other kind — nothing a board could show, so never.
+ *
+ * The single definition of the rule; both {@link followUpModesFor} and
+ * {@link wouldOrphanKeyedFollowUp} call through it.
  */
-const hasScorableAnswerKey = (acceptedAnswers: readonly string[]): boolean =>
-  acceptedAnswers.some((answer) => answer.trim() !== "");
+const hasScorableAnswerKey = (content: SlideContent): boolean => {
+  switch (content.contentType) {
+    case "TEXT":
+      return content.acceptedAnswers.some((answer) => answer.trim() !== "");
+    case "DRAWING":
+      return (
+        content.correctImage != null &&
+        !content.correctImage.external &&
+        !isImageEmpty(content.correctImage)
+      );
+    default:
+      return false;
+  }
+};
 
 /**
  * All follow-up modes valid for a parent with the given content. Takes the
  * full content, not just its `contentType`, because a keyed mode
  * ({@link FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY}) needs one more fact than the
- * type table can express: a `TEXT` parent only qualifies when it carries an
- * authored answer key ({@link hasScorableAnswerKey} on
- * `TextContent.acceptedAnswers`) — a TEXT slide with no answer key is unscored
- * and has no authored answer to mix in, so it stays `BEST_ANSWER_VOTE` only.
- * This mirrors the backend's `AddFollowUpRequest` validation (400 on an
- * ineligible parent/mode pair), so the UI never offers a mode the server would
- * reject.
+ * type table can express: the parent has to carry an authored answer to hide
+ * ({@link hasScorableAnswerKey}) — a TEXT slide with no answer key, or a
+ * Drawing slide with no correct-answer image, is a collect-only prompt with
+ * nothing to mix in, so it stays `BEST_ANSWER_VOTE` only. This mirrors the
+ * backend's `AddFollowUpRequest` validation (400 on an ineligible parent/mode
+ * pair), so the UI never offers a mode the server would reject.
  */
 const followUpModesFor = (parentContent: SlideContent): FollowUpMode[] =>
   (Object.keys(FOLLOW_UP_MODE_PARENTS) as FollowUpMode[]).filter((mode) => {
@@ -98,10 +119,7 @@ const followUpModesFor = (parentContent: SlideContent): FollowUpMode[] =>
       return false;
     }
     if (FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY.has(mode)) {
-      return (
-        parentContent.contentType === "TEXT" &&
-        hasScorableAnswerKey(parentContent.acceptedAnswers)
-      );
+      return hasScorableAnswerKey(parentContent);
     }
     return true;
   });
@@ -140,28 +158,29 @@ const canHaveFollowUp = (
   attachedFollowUpOf(slide, slides) === undefined;
 
 /**
- * Whether editing a TEXT slide's answer key to `nextAcceptedAnswers` would
- * strip its last non-blank entry while a follow-up that needs one is attached
- * — the backend rejects exactly that content transition with 400 (it would
- * leave the follow-up's answer key dangling). The TEXT editor calls this
- * before persisting an answer removal/edit so the block happens client-side,
- * before the doomed PUT ever fires through the slide-update path (which
- * discards its promise and can't surface the 400).
+ * Whether updating a slide's content to `nextContent` would strip the authored
+ * answer out from under an attached follow-up that needs one — a TEXT parent
+ * losing its last non-blank accepted answer, or a Drawing parent losing its
+ * correct-answer image. The backend rejects exactly that content transition
+ * with 400 (it would leave the follow-up's answer key dangling). The TEXT and
+ * Drawing editors call this before persisting the removal so the block happens
+ * client-side, before the doomed PUT ever fires through the slide-update path
+ * (which discards its promise and can't surface the 400).
  *
  * Gated on {@link FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY}, not on the
  * `SPOT_THE_ANSWER` name, because the server gates on `requiresAnswerKey()` —
  * a second keyed mode must orphan-check the same way from the day it exists.
  */
-const wouldOrphanSpotTheAnswer = (
+const wouldOrphanKeyedFollowUp = (
   slide: SlideResponse,
   slides: SlideResponse[],
-  nextAcceptedAnswers: readonly string[],
+  nextContent: SlideContent,
 ): boolean => {
   const attached = attachedFollowUpOf(slide, slides);
   if (!attached || attached.content.contentType !== "FOLLOW_UP") return false;
   return (
     FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY.has(attached.content.mode) &&
-    !hasScorableAnswerKey(nextAcceptedAnswers)
+    !hasScorableAnswerKey(nextContent)
   );
 };
 
@@ -200,7 +219,7 @@ export {
   attachedFollowUpOf,
   linkedParentOf,
   canHaveFollowUp,
-  wouldOrphanSpotTheAnswer,
+  wouldOrphanKeyedFollowUp,
   groupIntoUnits,
 };
 export type { SlideUnit };

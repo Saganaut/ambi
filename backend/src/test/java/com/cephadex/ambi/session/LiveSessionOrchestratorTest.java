@@ -1220,6 +1220,17 @@ class LiveSessionOrchestratorTest {
         return session;
     }
 
+    /** One drawing submitted to the parent round, at the same fixed instant. */
+    private static Answer parentDrawingAnswer(String participantId, AppImage image) {
+        Answer answer = new Answer();
+        answer.setParticipantId(participantId);
+        answer.setSessionId(SID);
+        answer.setSlideId(PARENT);
+        answer.setSubmittedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        answer.setPayload(new DrawingAnswer(image));
+        return answer;
+    }
+
     /** One submission of the parent round, at a fixed instant so minting is deterministic. */
     private static Answer parentAnswer(String participantId, String text) {
         Answer answer = new Answer();
@@ -1250,25 +1261,51 @@ class LiveSessionOrchestratorTest {
      * resolution.
      */
     private void drawingFollowUpSession() {
+        drawingFollowUpSession(FollowUpMode.BEST_ANSWER_VOTE, null);
+    }
+
+    /**
+     * The same pair on a given child mode and authored answer image — what
+     * {@code SPOT_THE_ANSWER} needs on an image parent, since its mint seeds
+     * that picture onto the board.
+     *
+     * @param trailingSlideIds slides after the pair, for the navigation cases
+     */
+    private void drawingFollowUpSession(FollowUpMode mode, AppImage correctImage,
+            String... trailingSlideIds) {
         Slide parent = slideWithId(PARENT);
         parent.setSortOrder("a");
-        parent.setContent(new DrawingContent(null, PromptPlacement.ALONGSIDE, null,
+        parent.setContent(new DrawingContent(null, PromptPlacement.ALONGSIDE, correctImage,
                 List.of("#111111"), Set.of(Tool.PEN)));
         parent.setChildId(CHILD);
         Slide child = slideWithId(CHILD);
         child.setSortOrder("b");
-        child.setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
+        child.setContent(new FollowUpContent(mode));
         child.setParentId(PARENT);
 
         Deck deck = new Deck();
         deck.addSlide(parent);
         deck.addSlide(child);
+        char rank = 'c';
+        for (String id : trailingSlideIds) {
+            Slide trailing = slideWithId(id);
+            trailing.setSortOrder(String.valueOf(rank++));
+            deck.addSlide(trailing);
+        }
 
         LiveSession session = mock(LiveSession.class);
         when(session.getDeck()).thenReturn(deck);
         when(session.getId()).thenReturn(SID);
         when(session.getPublicId()).thenReturn(PUB);
         when(repo.findById(SID)).thenReturn(Optional.of(session));
+    }
+
+    /** The author's own answer picture: a stored gallery object, as the editor sets it. */
+    private static AppImage authoredAnswerImage() {
+        AppImage image = new AppImage();
+        image.setExternal(false);
+        image.setSrcKey("gallery/answer/original");
+        return image;
     }
 
     @Test
@@ -1504,6 +1541,93 @@ class LiveSessionOrchestratorTest {
                 .filteredOn(option -> option.authoredAnswer())
                 .singleElement()
                 .satisfies(seed -> assertThat(seed.text()).isEqualTo("Paris"));
+    }
+
+    @Test
+    void advanceSkipsASpotTheAnswerFollowUpOnADrawingParentWhoseOnlyCandidateIsTheSeededImage() {
+        AppImage authored = authoredAnswerImage();
+        drawingFollowUpSession(FollowUpMode.SPOT_THE_ANSWER, authored, "s3");
+        stubScoredParent();
+        when(imageUrls.displayKey(eq(authored), any())).thenReturn("gallery/answer/lg.webp");
+        // Scored, but nobody drew anything: the seeded picture alone would open a
+        // one-card board where every pick is the authored answer — the same
+        // unplayable shape the TEXT parent has, reached through the same
+        // mode-generic `requiresAnswerKey` test.
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of());
+        when(roundResults.answersOf(SID, PARENT)).thenReturn(List.of());
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo("s3");
+        verify(followUpOptions, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void advanceOpensADrawingSpotTheAnswerFollowUpOnceOneRealDrawingBacksTheSeed() {
+        AppImage authored = authoredAnswerImage();
+        drawingFollowUpSession(FollowUpMode.SPOT_THE_ANSWER, authored, "s3");
+        stubScoredParent();
+        when(imageUrls.displayKey(eq(authored), any())).thenReturn("gallery/answer/lg.webp");
+        AppImage submitted = new AppImage();
+        submitted.setExternal(false);
+        submitted.setSrcKey("drawing/" + SID + "/p-1/original");
+        when(imageUrls.displayKey(eq(submitted), any())).thenReturn("drawing/" + SID + "/p-1/lg.webp");
+        when(answerStore.answers(SID, PARENT))
+                .thenReturn(List.of(parentDrawingAnswer("p-1", submitted)));
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(new LiveRoundState(
+                PUB, RoundPhase.REVEAL_RESPONSES, PARENT, Instant.now(), null, null, 0L, false)));
+
+        Slide opened = orchestrator.advance(SID);
+
+        assertThat(opened.getId()).isEqualTo(CHILD);
+        // Two cards: the submitted drawing, and the author's own picture seeded
+        // in — both behind an opaque URL, so neither names the key it came from.
+        List<FollowUpOption> board = savedCandidates(CHILD).options();
+        assertThat(board).hasSize(2)
+                .allSatisfy(option -> assertThat(option.imageUrl())
+                        .startsWith(BACKEND_ORIGIN + "/api/media/opaque-image?t="));
+        assertThat(board).filteredOn(option -> option.authoredAnswer()).hasSize(1);
+    }
+
+    @Test
+    void goToRejectsADrawingSpotTheAnswerFollowUpWhoseOnlyCandidateWouldBeTheSeededImage() {
+        AppImage authored = authoredAnswerImage();
+        drawingFollowUpSession(FollowUpMode.SPOT_THE_ANSWER, authored);
+        stubScoredParent();
+        when(imageUrls.displayKey(eq(authored), any())).thenReturn("gallery/answer/lg.webp");
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of());
+        when(roundResults.answersOf(SID, PARENT)).thenReturn(List.of());
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orchestrator.goTo(SID, CHILD))
+                .isInstanceOf(ConflictException.class)
+                .satisfies(e -> assertThat(((ConflictException) e).getCode())
+                        .isEqualTo("FOLLOW_UP_NOT_PLAYABLE"));
+
+        verify(followUpOptions, never()).save(any(), any(), any());
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void theDrawingParentsOwnRoundStillNeverCarriesItsAnswerImage() {
+        // The regression the whole mode rests on: `correctImage` becoming a real
+        // authored field must not put it on the parent round's own wire, where
+        // every player would see the answer before drawing. `DrawingConfigView`
+        // has no such field, and nothing on this path even resolves the image.
+        AppImage authored = authoredAnswerImage();
+        drawingFollowUpSession(FollowUpMode.SPOT_THE_ANSWER, authored);
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        orchestrator.startRound(SID, PARENT);
+
+        RoundStarted event = (RoundStarted) publishedEvent();
+        assertThat(event.slide().drawing()).isNotNull();
+        assertThat(event.slide().drawing().imagePromptUrl()).isNull();
+        verify(imageUrls, never()).displayUrl(eq(authored), any());
+        verify(imageUrls, never()).displayKey(eq(authored), any());
     }
 
     @Test

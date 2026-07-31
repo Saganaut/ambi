@@ -36,17 +36,19 @@ public enum FollowUpMode {
 
     /**
      * Spot the parent's <em>authored</em> answer, hidden among the submitted
-     * ones (dixit-style). At mint time the answer key's own wording is seeded
-     * into the candidate set, indistinguishable from a submission on the board;
-     * a participant who picks it scores, and a participant whose own submission
-     * drew picks scores too (see {@code FollowUpOptions.mint} and
-     * {@code RoundScorer}).
+     * ones (dixit-style). At mint time the authored answer is seeded into the
+     * candidate set, indistinguishable from a submission on the board — the
+     * answer key's own wording on a {@code TEXT} parent, and the authored
+     * {@code correctImage} on a {@code DRAWING} one, where it lands among the
+     * participants' drawings. A participant who picks it scores, and a
+     * participant whose own submission drew picks scores too (see
+     * {@code FollowUpOptions.mint} and {@code RoundScorer}).
      *
-     * <p>Valid only on a {@code TEXT} parent, and only one that actually
-     * carries an answer key — see {@link #requiresAnswerKey()}: with nothing
-     * authored there is no answer to hide and nothing to score.
+     * <p>Valid only on a parent that actually carries that authored answer —
+     * see {@link #requiresAnswerKey()}: with nothing authored there is no
+     * answer to hide and nothing to score.
      */
-    SPOT_THE_ANSWER(EnumSet.of(SlideType.TEXT), true);
+    SPOT_THE_ANSWER(EnumSet.of(SlideType.TEXT, SlideType.DRAWING), true);
 
     private final Set<SlideType> validParentTypes;
 
@@ -66,12 +68,17 @@ public enum FollowUpMode {
     }
 
     /**
-     * Whether the mode additionally needs its parent to carry an authored answer
-     * key, beyond {@link #supportsParent} accepting the parent's content type.
-     * A mode that mixes the authored answer into the board has nothing to mix in
-     * otherwise, so {@code DeckService} rejects the pairing at authoring time —
-     * this flag is the authoritative statement of that requirement, so the rule
-     * is never spelled out as a mode literal at the call site.
+     * Whether the mode additionally needs its parent to carry an authored
+     * answer, beyond {@link #supportsParent} accepting the parent's content
+     * type. What "an authored answer" <em>is</em> depends on the parent kind —
+     * a non-blank accepted answer on TEXT, a renderable {@code correctImage} on
+     * DRAWING — so the flag deliberately says only that one is required, and
+     * {@code DeckService.hasAnswerKey} is the single place that resolves it
+     * against the actual content. A mode that mixes the authored answer into
+     * the board has nothing to mix in otherwise, so {@code DeckService} rejects
+     * the pairing at authoring time — this flag is the authoritative statement
+     * of that requirement, so the rule is never spelled out as a mode literal
+     * at the call site.
      */
     public boolean requiresAnswerKey() {
         return requiresAnswerKey;

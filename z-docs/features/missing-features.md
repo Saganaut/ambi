@@ -50,13 +50,12 @@ in its design were deliberately left for later:
   but `RoundEvaluator.correctKey` deliberately grows no follow-up branch, so
   `RoundResult.correctOption` stays `null` and the board renders no
   correct-answer affordance at reveal — the mode is scoring-only for now.
-- **Dixit on image parents.** Running `SPOT_THE_ANSWER` on `DRAWING` parents
-  needs an authorable correct-answer *image* to mix in among the submitted
-  drawings, which no model carries today; adding one is a model change on the
-  parent content or on the follow-up itself.
-- **Shuffle.** Candidates always render in snapshot (mint) order — no
-  per-viewer shuffle — a deliberate v1 decision
-  (`FollowUpBoardContent`), not yet revisited.
+- **Shuffle on the unscored modes.** A `SPOT_THE_ANSWER` board is shuffled
+  once per mint, server-side, because any reconstructible arrangement would
+  point at the seeded answer. Every other mode still renders in its derived
+  snapshot order (authored order for MCQ, submission order elsewhere) —
+  deliberate, since that order is meaningful there, but it does mean a
+  best-answer board discloses the sequence its submissions arrived in.
 - **Per-participant STOMP user-destination channel.** `myFollowUpOptionId`
   (which candidate the viewer authored) can only travel on the REST
   snapshot today, because it's per-participant while the session's STOMP
