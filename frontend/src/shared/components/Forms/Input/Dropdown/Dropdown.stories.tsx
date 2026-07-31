@@ -3,6 +3,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { fn } from "storybook/test";
+import { Input } from "../Input/Input";
 import { Dropdown } from "./Dropdown";
 import { REGION_OPTIONS, CATEGORY_OPTIONS } from "./Dropdown.mocks";
 
@@ -81,4 +82,42 @@ export const WithInfoMessage: Story = {
 // errorMessage forces the error styling and replaces the info message.
 export const WithError: Story = {
   args: { errorMessage: "A region is required." },
+};
+
+export const Disabled: Story = {
+  args: { disabled: true, value: ["gondor"] },
+};
+
+// Side-by-side field states make native-input and button-backed select chrome
+// directly comparable in every Storybook appearance.
+export const FieldParityMatrix: Story = {
+  render: () => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: "1rem",
+        maxWidth: "48rem",
+      }}>
+      <Input label='Default input' placeholder='Enter a region...' />
+      <Dropdown label='Default dropdown' options={REGION_OPTIONS} />
+      <Input
+        label='Invalid input'
+        defaultValue='Unknown'
+        errorMessage='Choose a known region.'
+      />
+      <Dropdown
+        label='Invalid dropdown'
+        options={REGION_OPTIONS}
+        errorMessage='Choose a known region.'
+      />
+      <Input label='Disabled input' defaultValue='Gondor' disabled />
+      <Dropdown
+        label='Disabled dropdown'
+        options={REGION_OPTIONS}
+        value={["gondor"]}
+        disabled
+      />
+    </div>
+  ),
 };

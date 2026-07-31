@@ -1,9 +1,7 @@
-/* Shared styles common to every input primitive in this folder.
-   Per-component chrome (Checkbox boxes, dropdown panels, toggle tracks,
-   etc.) lives alongside the component in its own subfolder. This file
-   holds only what the primitives have in common:
-     - the labelled container layout used by anything with a top-or-front label
-     - the info / error message text styles surfaced under each field. */
+/* Shared layout, chrome, and state treatment for labelled form controls.
+   Per-component structure (dropdown panels, toggle tracks, etc.) stays in the
+   component module; field-like controls consume .fieldControl so their native
+   element type cannot make their visual contract drift. */
 
 input[type="checkbox"],
 input[type="radio"] {
@@ -68,52 +66,80 @@ input[type="radio"] {
     padding-bottom: 0;
   }
 
-  /* DS field chrome (Figma 260-1552): flat surface lifted by --shadow-xs
-     instead of an ink border. The transparent border keeps layout stable
-     when a state (focus / error via --border-color) tints it in. */
-  input {
-    border: var(--border-size-sm) solid var(--border-color, transparent);
-    border-radius: var(--radius-md);
-    background-color: var(--bg-canvas);
-    box-shadow: var(--shadow-xs);
-    font-size: var(--font-size-sm);
-    display: flex;
-    width: 100%;
-    transition:
-      color var(--duration-base) ease-in-out,
-      border-color var(--duration-base) ease-in-out,
-      box-shadow var(--duration-base) ease-in-out;
+}
 
-    &::placeholder {
-      color: var(--text-muted);
-    }
+/* DS field chrome (Figma 260-1552 / 260-1606). Native text inputs and
+   button-backed select triggers share this class instead of restating styles
+   through element selectors or inheriting action-button defaults. */
+.fieldControl {
+  --field-border-color: transparent;
+  --field-color: var(--text-secondary);
+  --field-shadow: var(--shadow-xs);
 
-    /* Declared before the state rules below so a borderless field still
-       gets the focus tint (equal specificity — source order decides). */
-    &.noBorders {
-      border-color: transparent;
-      background-color: transparent;
-      box-shadow: none;
-    }
+  display: flex;
+  width: 100%;
+  min-height: var(--space-10);
+  padding: var(--p-sm);
+  border: var(--border-size-sm) solid var(--field-border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--field-shadow);
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--field-color);
+  transition:
+    color var(--duration-base) ease-in-out,
+    border-color var(--duration-base) ease-in-out,
+    box-shadow var(--duration-base) ease-in-out;
 
-    &:hover:not(:disabled, :focus, .noBorders) {
-      box-shadow: var(--shadow-hover);
-    }
+  &::placeholder {
+    color: var(--text-muted);
+  }
 
-    &:focus {
-      outline: none;
-      border-color: var(--border-focus);
-      color: var(--text-primary);
-    }
+  &.error {
+    --field-border-color: var(--border-error);
+    --field-color: var(--text-error);
+  }
 
-    &:focus:not(.noBorders) {
-      box-shadow: var(--shadow-focus);
-    }
+  &.success {
+    --field-border-color: var(--border-success);
+  }
 
-    &:disabled {
-      background-color: var(--bg-disabled);
-      color: var(--text-disabled);
-      cursor: not-allowed;
-    }
+  &.warning {
+    --field-border-color: var(--border-warning);
+  }
+
+  &.info {
+    --field-border-color: var(--border-info);
+  }
+
+  &.noBorders {
+    --field-border-color: transparent;
+    --field-shadow: none;
+
+    background-color: transparent;
+  }
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    background-color: var(--bg-disabled);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+
+  &:focus,
+  &[aria-expanded="true"] {
+    --field-border-color: var(--border-focus);
+    --field-color: var(--text-primary);
+
+    outline: none;
+  }
+
+  &:focus:not(.noBorders),
+  &[aria-expanded="true"]:not(.noBorders) {
+    --field-shadow: var(--shadow-focus);
+  }
+
+  &:hover:not(:disabled, [aria-disabled="true"], :focus, .noBorders) {
+    --field-shadow: var(--shadow-hover);
   }
 }

@@ -1,7 +1,5 @@
-/* Dropdown — trigger button + portalled panel.
-   The trigger is built on top of the shared Btn so it inherits hover/focus
-   chrome; the panel handles its own search bar, list scroll, and selected
-   chips (for the multi-select variant). */
+/* Dropdown-specific trigger layout and portalled option panel structure.
+   Shared field chrome and states come from Forms/Input/Input.module.css. */
 
 .dropdown {
   position: relative;
@@ -19,35 +17,13 @@
   }
 }
 
-/* Trigger reads as a DS field (Figma 260-1606), not as the Btn's filled
-   pill: canvas surface, --shadow-xs lift, field-sized padding/type. Direct
-   properties nested under .dropdown out-specify the Btn base so this wins
-   regardless of module order; the transparent Btn border tints to the
-   focus colour while the menu is open. */
-.dropdown .dropdownTrigger {
-  display: flex;
-  width: 100%;
+/* The select affordance is local; dimensions and interaction states are shared
+   with native text fields through .fieldControl. */
+.dropdownTrigger {
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-sm);
-  padding: var(--p-sm);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
   text-align: left;
-  background-color: var(--bg-canvas);
-  box-shadow: var(--shadow-xs);
-  color: var(--text-secondary);
-  font-weight: normal;
-
-  &:hover {
-    background-color: var(--bg-canvas);
-    box-shadow: var(--shadow-hover);
-    color: var(--text-secondary);
-  }
-
-  &[aria-expanded="true"] {
-    border-color: var(--border-focus);
-  }
 }
 
 .dropdownPlaceholder {

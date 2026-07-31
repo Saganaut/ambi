@@ -20,24 +20,27 @@ import {
   useTypeahead,
 } from "@floating-ui/react";
 import { useEffect, useId, useRef, useState } from "react";
-import { Btn } from "@ui/Buttons/Btn";
+import type { BtnVariant } from "@ui/Buttons/Btn.types";
+import type { InputBaseProps } from "../InputBaseProps";
 import shared from "../Input.module.css";
 import styles from "./Dropdown.module.css";
 import { useDropdown, type DropdownOption } from "./useDropdown";
 
-interface DropdownProps {
+interface DropdownProps extends InputBaseProps {
   options: DropdownOption[];
   value?: string[];
   onChange?: (values: string[]) => void;
   multiple?: boolean;
   searchable?: boolean;
-  label?: string;
   labelPosition?: "labelAbove" | "labelInFront";
   compact?: boolean;
   placeholder?: string;
-  errorMessage?: string;
-  infoMessage?: string;
   id?: string;
+  disabled?: boolean;
+  fullWidth?: boolean;
+  withPadding?: boolean;
+  className?: string;
+  variant?: BtnVariant;
 }
 
 const inheritTheme = (source: Element, target: HTMLElement) => {
@@ -72,8 +75,19 @@ const Dropdown = ({
   errorMessage,
   infoMessage,
   id,
+  disabled = false,
+  fullWidth = false,
+  withPadding = true,
+  className,
+  ariaLabel,
+  isBordered = true,
+  variant = "primary",
 }: DropdownProps) => {
+  const generatedId = useId();
+  const dropdownId = id ?? generatedId;
   const listboxId = useId();
+  const messageId = `${dropdownId}-message`;
+  const inputVariant: BtnVariant = errorMessage != null ? "error" : variant;
   const {
     isOpen,
     query,
@@ -179,19 +193,38 @@ const Dropdown = ({
 
   return (
     <div
-      className={[shared.inputContainer, shared[labelPosition]]
+      className={[
+        shared.inputContainer,
+        shared[labelPosition],
+        fullWidth && shared.fullWidth,
+        withPadding && shared.withBottomPadding,
+        className,
+      ]
         .filter(Boolean)
         .join(" ")}>
-      {label && <label htmlFor={id}>{label}</label>}
+      {label && <label htmlFor={dropdownId}>{label}</label>}
       <div
         className={[styles.dropdown, compact ? styles.compact : ""]
           .filter(Boolean)
           .join(" ")}>
-        <Btn
+        <button
           ref={refs.setReference}
           type='button'
-          id={id}
-          className={styles.dropdownTrigger}
+          id={dropdownId}
+          className={[
+            shared.fieldControl,
+            inputVariant !== "brand" && shared[inputVariant],
+            !isBordered && shared.noBorders,
+            styles.dropdownTrigger,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          disabled={disabled}
+          aria-label={ariaLabel}
+          aria-invalid={errorMessage != null || undefined}
+          aria-describedby={
+            errorMessage != null || infoMessage != null ? messageId : undefined
+          }
           aria-haspopup='listbox'
           aria-expanded={isOpen}
           aria-controls={isOpen ? listboxId : undefined}
@@ -211,7 +244,7 @@ const Dropdown = ({
               d='m19.5 8.25-7.5 7.5-7.5-7.5'
             />
           </svg>
-        </Btn>
+        </button>
 
         {isOpen && (
           <FloatingPortal root={portalRoot ?? undefined}>
@@ -300,6 +333,7 @@ const Dropdown = ({
 
         {(errorMessage != null || infoMessage != null) && (
           <span
+            id={messageId}
             className={[
               shared.inputInfoMessage,
               styles.message,

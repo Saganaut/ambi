@@ -5,7 +5,7 @@
 // editor cells like MCQ option cards). `className` merges onto the outer
 // wrapper (matches RichTextInput); `ariaLabel` is forwarded to the underlying
 // <input>. All other native input attributes flow through via `...rest`.
-import React from "react";
+import React, { useId } from "react";
 import type { InputBaseProps } from "../InputBaseProps";
 import shared from "../Input.module.css";
 import styles from "./Input.module.css";
@@ -40,6 +40,11 @@ const Input = ({
   ...rest
 }: InputProps) => {
   const inputVariant: BtnVariant = errorMessage != null ? "error" : variant;
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const messageId = `${inputId}-message`;
+  const hasMessage = errorMessage != null || infoMessage != null;
+
   return (
     <div
       className={[
@@ -48,11 +53,11 @@ const Input = ({
         fullWidth && shared.fullWidth,
         className,
 
-        withPadding && styles.withBottomPadding,
+        withPadding && shared.withBottomPadding,
       ]
         .filter(Boolean)
         .join(" ")}>
-      {label && <label htmlFor={id}>{label}</label>}
+      {label && <label htmlFor={inputId}>{label}</label>}
       <div
         className={[
           styles.input,
@@ -63,19 +68,23 @@ const Input = ({
           .join(" ")}>
         <input
           {...rest}
-          id={id}
+          id={inputId}
           ref={ref}
           aria-label={ariaLabel}
+          aria-invalid={errorMessage != null || undefined}
+          aria-describedby={hasMessage ? messageId : undefined}
           className={[
-            inputVariant !== "brand" && styles[inputVariant],
+            shared.fieldControl,
+            inputVariant !== "brand" && shared[inputVariant],
             !isBordered && shared.noBorders,
           ]
             .filter(Boolean)
             .join(" ")}
         />
 
-        {(errorMessage != null || infoMessage != null) && (
+        {hasMessage && (
           <span
+            id={messageId}
             className={[
               shared.inputInfoMessage,
               styles.message,

@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import shared from "../Input.module.css";
 import { Dropdown } from "./Dropdown";
 
 const OPTIONS = [
@@ -207,5 +208,39 @@ describe("Dropdown", () => {
       "data-placement",
       "bottom-end",
     );
+  });
+
+  it("uses shared field chrome and connects its error message", () => {
+    render(
+      <Dropdown
+        label='Accepted as correct'
+        options={OPTIONS}
+        errorMessage='Choose a grading mode.'
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Accepted as correct" });
+    const message = screen.getByText("Choose a grading mode.");
+
+    expect(trigger).toHaveClass(shared.fieldControl, shared.error);
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(trigger).toHaveAttribute("aria-describedby", message.id);
+  });
+
+  it("does not open while disabled", async () => {
+    const user = userEvent.setup();
+    render(
+      <Dropdown
+        label='Accepted as correct'
+        options={OPTIONS}
+        disabled
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Accepted as correct" });
+    await user.click(trigger);
+
+    expect(trigger).toBeDisabled();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });
