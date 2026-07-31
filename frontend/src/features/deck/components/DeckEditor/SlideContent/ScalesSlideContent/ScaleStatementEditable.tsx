@@ -1,45 +1,14 @@
 /**
- * Single-row editor for a Scales statement: the label field plus the
- * statement's own copy of the scale as a continuous drag track — the 1-D
- * analogue of the Axis plane. Pointerdown places the statement's target at
- * the pointer, dragging follows it (debounced), and release commits; the
- * marker itself is a keyboard slider (ArrowLeft/ArrowRight nudge by 2 % of
- * the span, Home/End jump to the ends). A tolerance band centered on the
- * marker shows the accepted region in the same units the grader measures,
- * so what the author sees is what is graded. A scored statement gets a
- * success-tinted outline via `ItemCard`'s `tone`.
- *
- * The label is the shared `ItemField` — focusing it opens the row's popover
- * menu, and the composer keeps at most one open. A statement carries the same
- * stored identity as every other item bank's row, so that menu offers color,
- * image upload/clear, and Delete — matching Allocation's option rows.
- *
- * The numeric "Answer" field is the always-available precise and accessible
- * entry, with the X button as the one clearing affordance; the "Set answer"
- * button seeds unscored rows with the scale midpoint.
- *
- * A controlled row: the answer-field mirror lives here (the label mirror is
- * `ItemField`'s) while structural ops (schedule / commit / clear / flush /
- * remove) come in as props from the one `useScalesEditor` in
- * `ScalesSlideContent`, so every write funnels through a single draft +
- * debounce buffer.
- *
- * Statement order is still cosmetic for grading — each statement stays keyed
- * by id in the content's `correctValues` — but the row is drag-sortable like
- * every other item bank's, via a grip handle wired to `useSortable` (the Axis
- * item row's precedent); reordering only ever renumbers the bank, it never
- * touches a target.
+ * Single-row editor for a Scales statement
  */
 import { useRef, useState } from "react";
 
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
-import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { SCALES_STATEMENT_LABEL_MAX } from "@deck/hooks/useScalesEditor";
 import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
-import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Btn } from "@ui/Buttons/Btn";
+import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@utils/image";
 import { ItemField, SortableItemCard, type Identified } from "../_shared";
@@ -109,7 +78,6 @@ const ScaleStatementEditable = ({
   // Local mirror for the numeric "Answer" field, resynced whenever the
   // committed target changes (a drag release or keyboard nudge must not leave
   // the field showing a stale number).
-  const [target, setTarget] = useState(correctValue ?? midpoint);
   const [syncedFromId, setSyncedFromId] = useState(statement.id);
   const [syncedFromValue, setSyncedFromValue] = useState(correctValue);
 
@@ -117,11 +85,9 @@ const ScaleStatementEditable = ({
   // ("derive state during render" — safe when the value differs).
   if (syncedFromId !== statement.id) {
     setSyncedFromId(statement.id);
-    setTarget(correctValue ?? midpoint);
     setSyncedFromValue(correctValue);
   } else if (syncedFromValue !== correctValue) {
     setSyncedFromValue(correctValue);
-    setTarget(correctValue ?? midpoint);
   }
 
   const displayIndex = sortIndex + 1;
@@ -287,19 +253,6 @@ const ScaleStatementEditable = ({
         </div>
         {scored ? (
           <div className={styles.targetField}>
-            <NumberInput
-              label="Answer"
-              id={`scales-target-${statement.id}`}
-              labelPosition="labelInFront"
-              value={target}
-              min={min}
-              max={max}
-              onChange={(next) => {
-                setTarget(next);
-                onScheduleCorrectValue(next);
-              }}
-              onBlur={onFlush}
-            />
             <IconBtn
               fill="ghost"
               size="xs"
@@ -309,16 +262,15 @@ const ScaleStatementEditable = ({
             />
           </div>
         ) : (
-          <Btn
+          <IconBtn
             fill="ghost"
             size="xs"
+            icon={<QuestionMarkCircleIcon />}
+            aria-label={`Set option ${displayIndex.toString()} as scorable`}
             onClick={() => {
-              setTarget(midpoint);
               onCommitCorrectValue(midpoint);
             }}
-          >
-            Set answer
-          </Btn>
+          />
         )}
       </div>
     </SortableItemCard>

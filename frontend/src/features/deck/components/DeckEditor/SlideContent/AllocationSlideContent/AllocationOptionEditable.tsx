@@ -1,29 +1,13 @@
 /**
- * Single-row editor for an Allocation option: the palette-colored index
- * badge, the label field with its popover menu (the shared `ItemField` —
- * focus-opened: palette/custom color, image, delete), an image thumbnail
- * when one is set (carrying a hover-revealed remove button that mirrors the
- * menu's "Remove image" row), and the option's share of the answer key. A scored option
- * shows a numeric "Answer" field (0…pool) with an X to clear it; an unscored
- * one shows the "Set answer" seed — Scales' per-statement scoring pattern.
- * An option with an answer gets the success-tinted outline via `ItemCard`'s
- * `tone`.
- *
- * A controlled row: only the answer-field mirror lives here (the label
- * mirror is `ItemField`'s) while structural ops (schedule / commit / clear /
- * flush / remove / color / image) come in as props from the one
- * `useAllocationEditor` in `AllocationSlideContent`, so every write funnels
- * through a single draft + debounce buffer. Option order is display-only —
- * the answer key is id-keyed — so rows are not drag-sortable.
+ * Single-row editor for an Allocation option
  */
+import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
 import { ALLOCATION_OPTION_LABEL_MAX } from "@deck/hooks/useAllocationEditor";
-import { Btn } from "@ui/Buttons/Btn";
+import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@utils/image";
 import { ItemField, SortableItemCard } from "../_shared";
@@ -142,7 +126,7 @@ const AllocationOptionEditable = ({
         {scored ? (
           <div className={styles.answerField}>
             <NumberInput
-              label="Answer"
+              label=""
               id={`alloc-answer-${option.id}`}
               labelPosition="labelInFront"
               value={points}
@@ -163,16 +147,16 @@ const AllocationOptionEditable = ({
             />
           </div>
         ) : (
-          <Btn
+          <IconBtn
             fill="ghost"
             size="xs"
+            icon={<QuestionMarkCircleIcon />}
+            aria-label={`Set option ${displayIndex.toString()} as scorable`}
             onClick={() => {
               setPoints(answerSeed);
               onCommitAnswer(answerSeed);
             }}
-          >
-            Set answer
-          </Btn>
+          />
         )}
       </div>
     </SortableItemCard>

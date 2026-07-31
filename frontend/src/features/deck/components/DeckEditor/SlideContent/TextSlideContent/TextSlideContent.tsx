@@ -2,10 +2,6 @@
  * Author surface for a free-text answer slide (TextContent). Players type a free
  * response; follow-up slides can then be seeded from those submissions.
  *
- * Layout split:
- *   - Prompt at the top (stored on the slide title, like MCQ), owning visual weight.
- *   - "Correct answers" card holding the accepted answers plus how they're matched.
- *
  * Scorability is derived, not toggled: any accepted answer makes the slide
  * scoreable; an empty list is an unscored collection (the ScoringFooter warns).
  * Accepted answers are entered as tags: type one and press Enter (or comma) to
@@ -167,56 +163,65 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       {" "}
       <SlideContent>
         <SlideContentSection>
-          <SlideContentSection.Header>Correct answer(s) </SlideContentSection.Header>
-          <div className={styles.answersField}>
-            <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
-              Accepted answers
-            </label>
-            {hasAnswers && (
-              <ul className={styles.tagList}>
-                {answerRows.map(({ answer, index, removalBlocked }) => (
-                  <li key={answer}>
-                    <Tag
-                      size="md"
-                      onRemove={removalBlocked ? undefined : () => removeAnswer(index)}
-                      removeLabel={`Remove ${answer}`}
-                    >
-                      {answer}
-                    </Tag>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {answerKeyLocked && (
-              <p className={styles.answerKeyLockedHint}>
-                Can&apos;t remove your last accepted answer — the attached &quot;Spot the
-                answer&quot; follow-up needs it to grade.
-              </p>
-            )}
-            <Input
-              id={`text-answers-${idBase}`}
-              type="text"
-              fullWidth
-              value={draft}
-              placeholder="Type an answer and press Enter"
-              infoMessage="Press Enter to add each answer. Any match scores as correct; leave empty to just collect responses."
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={commitDraft}
+          <SlideContentSection.Header>
+            <span>Correct answer(s)</span>
+            <span>Leave empty to just collect responses</span>{" "}
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <div className={styles.answersField}>
+              {/* <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
+                Accepted answers
+              </label> */}{" "}
+              <Input
+                id={`text-answers-${idBase}`}
+                type="text"
+                fullWidth
+                value={draft}
+                placeholder="Type an answer and press Enter"
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={commitDraft}
+              />
+              {hasAnswers && (
+                <ul className={styles.tagList}>
+                  {answerRows.map(({ answer, index, removalBlocked }) => (
+                    <li key={answer}>
+                      <Tag
+                        size="md"
+                        onRemove={removalBlocked ? undefined : () => removeAnswer(index)}
+                        removeLabel={`Remove ${answer}`}
+                      >
+                        {answer}
+                      </Tag>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {answerKeyLocked && (
+                <p className={styles.answerKeyLockedHint}>
+                  Can&apos;t remove your last accepted answer — the attached &quot;Spot the
+                  answer&quot; follow-up needs it to grade.
+                </p>
+              )}
+            </div>
+          </SlideContentSection.Body>{" "}
+        </SlideContentSection>{" "}
+        <SlideContentSection>
+          <SlideContentSection.Header>How should we match the answer?</SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <Dropdown
+              label=""
+              id={`text-match-${idBase}`}
+              options={MATCH_MODE_OPTIONS}
+              value={[matchMode]}
+              onChange={(values) => {
+                const next = (values[0] as MatchMode | undefined) ?? "EXACT";
+                setMatchMode(next);
+                updateSlideContent({ matchMode: next });
+                flush();
+              }}
             />
-          </div>
-          <Dropdown
-            label="Matching"
-            id={`text-match-${idBase}`}
-            options={MATCH_MODE_OPTIONS}
-            value={[matchMode]}
-            onChange={(values) => {
-              const next = (values[0] as MatchMode | undefined) ?? "EXACT";
-              setMatchMode(next);
-              updateSlideContent({ matchMode: next });
-              flush();
-            }}
-          />
+          </SlideContentSection.Body>
         </SlideContentSection>
       </SlideContent>
     </SlideWrapper>

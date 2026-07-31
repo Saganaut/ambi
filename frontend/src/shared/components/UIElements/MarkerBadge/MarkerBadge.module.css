@@ -34,8 +34,9 @@
    item's color — which is also the only thing separating the pill from a
    surface painted the same raised fill (the Axis plane). */
 .pill {
-  padding: var(--marker-badge-pad) var(--marker-badge-pad-end) var(--marker-badge-pad)
-    var(--marker-badge-pad);
+  --badge-padding: 2px 6px 2px 2px;
+
+  padding: var(--badge-padding);
   border: var(--marker-badge-border-size) solid var(--marker-badge-color);
   border-radius: var(--radius-full);
   background-color: var(--bg-surface-raised);

@@ -1,0 +1,120 @@
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  padding: var(--p-sm);
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) solid transparent;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition:
+    background-color var(--duration-fast) ease-out,
+    border-color var(--duration-base) ease-in-out;
+
+  &.isDragging {
+    opacity: 0.6;
+  }
+}
+
+.row:hover {
+  background-color: var(--bg-surface-raised);
+}
+
+/* Armed for placement — the accent border is the one high-contrast cue, so it
+   reads at a glance against the neighbouring rows. */
+.selected {
+  border-color: var(--action-hover);
+}
+
+/* The row being dragged: dim it so the drop target reads clearly. */
+
+/* Thumbnail of the item's authored image, plus the overlaid remove button it
+   hosts. Picking an image still goes through the row's menu — the thumbnail is
+   not a second way to open the picker — but clearing one can be done here
+   directly, the menu's "Remove image" row staying as the redundant path. */
+.thumbnailWrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.thumbnail {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+/* Sized below the DS `xs` icon button (28px) and nudged past the corner: at the
+   thumbnail's 36px an xs chip would blanket the artwork it is meant to sit on.
+   Hidden until the thumbnail is hovered or the button takes focus. */
+button.thumbnailClear {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  right: calc(var(--space-1) * -1);
+  width: var(--space-5);
+  height: var(--space-5);
+  padding: var(--p-square-xxs);
+  background: var(--bg-surface-raised);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.thumbnailWrap:hover button.thumbnailClear,
+.thumbnailWrap:focus-within button.thumbnailClear {
+  opacity: 1;
+}
+
+/* "This row carries an answer" check. Fixed slot so rows with and without it
+   keep their fields aligned down the list. */
+.scored {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.5rem;
+  color: var(--text-primary);
+}
+
+.scoredIcon {
+  width: 0.8125rem;
+  height: auto;
+}
+
+/* Grip handle. Restricting the drag activator to it (via the sortable
+   `handleRef`) keeps the label input fully clickable/typeable. */
+.grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: var(--p-square-xxs);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+
+  /* Stop the browser from claiming the pointer for scroll/zoom mid-drag. */
+  touch-action: none;
+  transition:
+    color var(--duration-fast) ease-out,
+    background-color var(--duration-fast) ease-out;
+
+  &hover {
+    color: var(--text-primary);
+    background-color: var(--bg-surface-raised);
+  }
+
+  &active {
+    cursor: grabbing;
+  }
+}
+
+.gripIcon {
+  width: 1rem;
+  height: auto;
+}

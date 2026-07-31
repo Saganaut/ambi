@@ -9,7 +9,7 @@ const Header = ({ children }: { children: ReactNode }) => {
 };
 
 const Body = ({ children }: { children: ReactNode }) => {
-  return <div className={styles.body}>{children}</div>;
+  return <div className={styles.sectionBody}>{children}</div>;
 };
 
 const Footer = ({ children }: { children: ReactNode }) => {

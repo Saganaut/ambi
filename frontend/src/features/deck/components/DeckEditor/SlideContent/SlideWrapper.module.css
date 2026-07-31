@@ -55,7 +55,7 @@
 
   .body {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     width: 100%;
     min-width: 0;
     min-height: 0;
@@ -89,11 +89,15 @@
             justify-content: space-between;
           }
 
-          .body {
+          .sectionBody {
             display: flex;
             flex-direction: column;
             justify-content: center;
             gap: var(--gap-xs);
+            padding: var(--p-sm);
+            width: 100%;
+            min-width: 0;
+            min-height: 0;
           }
 
           .footer {

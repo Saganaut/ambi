@@ -2,13 +2,14 @@
  * Author surface for a Ranking slide.
  * Order IS the answer key, so there is nothing to set per row.
  */
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import { MAX_RANKING_ITEMS, useRankingEditor } from "@deck/hooks/useRankingEditor";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { AddItemCard, EmptySelect, useSlideComposerState } from "../_shared";
-import { RankingItemEditable } from "./RankingItemEditable";
+import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 
 interface RankingSlideContentProps {
   deckId: string;
@@ -61,10 +62,12 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
           <SlideContentSection.Body>
             <DragDropWrapper onReorder={handleItemDragEnd}>
               {question.items.map((item, idx) => (
-                <RankingItemEditable
+                <SortableItemBankRow
                   key={item.id}
                   item={item}
-                  sortIndex={idx}
+                  index={idx}
+                  color={resolveDatumColor(item.color, idx)}
+                  scored
                   menuOpen={composer.openMenuId === item.id}
                   canRemove={canRemove}
                   onMenuOpenChange={(open) => {

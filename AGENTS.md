@@ -5,6 +5,8 @@ An interactive presentation platform: presenters author decks of interactive sli
 > **DO NOT TAKE SHORTCUTS.** Always follow the established rules and conventions. Do not bypass testing, documentation, or code review processes for expediency. Quality and maintainability are paramount.
 >
 > **Never change a test to make it pass without addressing the underlying issue.** Always fix the code or the test to ensure correctness.
+>
+> **MINIMIZE IN CODE COMMENTS**Only use when absolutely essential.When used keep them short and succinct
 
 ---
 
@@ -16,7 +18,7 @@ Every completed feature change follows the same three steps — do not skip the 
 2. **Commit it** — invoke the `git-commit-author` agent to stage only the relevant files and write a convention-following message. Do not bypass the pre-commit hooks.
 3. **Review it** — invoke the `code-reviewer` agent to review the resulting commit (`HEAD`) against the task's intent, the project rules/style, and functional correctness. It issues a read-only findings report; act on any blocking findings (which restarts this loop) before moving on.
 
-A "feature change" is any self-contained unit of functional work. Trivial, non-functional edits (a typo fix, a comment) don't require the full loop — use judgement.
+A "feature change" is any self-contained major unit of functional work. Trivial, non-functional edits (a typo fix, a comment) don't require the full loop — use judgement.
 
 Work is tracked on the **Ambi Dev** Trello board: <https://trello.com/b/nH50o6jt/ambi-dev>. **Every task needs a card** — if the user didn't hand you one, create it yourself before starting work. The full card lifecycle (list/label conventions, credential setup, API commands for creating/moving/commenting on cards) lives in the [Using the Trello board](z-docs/runbooks/using-the-trello-board.md) runbook.
 

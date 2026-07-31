@@ -29,8 +29,9 @@ import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { NumberContent } from "@deck/store/deckApi.gen";
 import { useState } from "react";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { EmptySelect, SettingsCard, SettingsRow } from "../_shared";
+import { EmptySelect, SettingsRow } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
 import styles from "./NumberSlideContent.module.css";
 
@@ -155,66 +156,82 @@ const NumberSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
       footer={<p>{footerText}</p>}
     >
-      <SettingsCard title="Correct answer" action={preview}>
-        <Dropdown
-          label="Accepted as correct"
-          id={`number-grading-${idBase}`}
-          options={GRADING_OPTIONS}
-          value={[grading]}
-          onChange={(values) => {
-            handleGradingChange((values[0] as Grading | undefined) ?? "UNSCORED");
-          }}
-        />
-        {grading === "RANGE" && (
-          <SettingsRow>
-            <NumberInput
-              label="From"
-              id={`number-from-${idBase}`}
-              value={rangeFrom}
-              onChange={(next) => {
-                setRangeFrom(next);
-                updateSlideContent(commitRange(next, rangeTo));
+      {" "}
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Correct answer</span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <Dropdown
+              label=""
+              id={`number-grading-${idBase}`}
+              options={GRADING_OPTIONS}
+              value={[grading]}
+              onChange={(values) => {
+                handleGradingChange((values[0] as Grading | undefined) ?? "UNSCORED");
+              }}
+            />
+            {grading === "RANGE" && (
+              <SettingsRow>
+                <NumberInput
+                  label="From"
+                  id={`number-from-${idBase}`}
+                  value={rangeFrom}
+                  onChange={(next) => {
+                    setRangeFrom(next);
+                    updateSlideContent(commitRange(next, rangeTo));
+                  }}
+                  onBlur={flush}
+                />
+                <NumberInput
+                  label="To"
+                  id={`number-to-${idBase}`}
+                  value={rangeTo}
+                  onChange={(next) => {
+                    setRangeTo(next);
+                    updateSlideContent(commitRange(rangeFrom, next));
+                  }}
+                  onBlur={flush}
+                />
+              </SettingsRow>
+            )}
+            {grading === "EXACT" && (
+              <NumberInput
+                label="Correct value"
+                id={`number-correct-${idBase}`}
+                value={exactValue}
+                onChange={(next) => {
+                  setExactValue(next);
+                  updateSlideContent({ scoreMode: "EXACT", answer: next, tolerance: 0 });
+                }}
+                onBlur={flush}
+              />
+            )}
+          </SlideContentSection.Body>{" "}
+        </SlideContentSection>
+
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Unit label</span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <Input
+              label=""
+              id={`number-unit-${idBase}`}
+              type="text"
+              value={unit}
+              placeholder="km, $, %"
+              onChange={(event) => {
+                const next = event.target.value;
+                setUnit(next);
+                updateSlideContent({ unit: next });
               }}
               onBlur={flush}
             />
-            <NumberInput
-              label="To"
-              id={`number-to-${idBase}`}
-              value={rangeTo}
-              onChange={(next) => {
-                setRangeTo(next);
-                updateSlideContent(commitRange(rangeFrom, next));
-              }}
-              onBlur={flush}
-            />
-          </SettingsRow>
-        )}
-        {grading === "EXACT" && (
-          <NumberInput
-            label="Correct value"
-            id={`number-correct-${idBase}`}
-            value={exactValue}
-            onChange={(next) => {
-              setExactValue(next);
-              updateSlideContent({ scoreMode: "EXACT", answer: next, tolerance: 0 });
-            }}
-            onBlur={flush}
-          />
-        )}
-        <Input
-          label="Unit label"
-          id={`number-unit-${idBase}`}
-          type="text"
-          value={unit}
-          placeholder="km, $, %"
-          onChange={(event) => {
-            const next = event.target.value;
-            setUnit(next);
-            updateSlideContent({ unit: next });
-          }}
-          onBlur={flush}
-        />
-      </SettingsCard>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>
     </SlideWrapper>
   );
 };

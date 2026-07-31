@@ -54,6 +54,10 @@ const generateOutputFiles = () => {
         if (apiName === "live") {
           apiName = "liveSession";
         }
+        // These are dev backend points that shouldn't be accessible from the frontend
+        if (apiName === "dev") {
+          continue;
+        }
         const filePath = `./src/features/${featureName}/store/${apiName}Api.gen.ts`;
         if (!outputFiles[filePath]) {
           outputFiles[filePath] = {

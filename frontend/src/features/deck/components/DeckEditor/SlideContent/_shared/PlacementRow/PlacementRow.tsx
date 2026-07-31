@@ -1,41 +1,12 @@
 /**
- * The one row every item-bank slide editor lists — Axis, Grid, Ranking, and
- * Place-on-Image. Left to right: the colored index pill, the item's image
- * thumbnail when it has one (with a hover-revealed remove button mirroring the
- * menu's "Remove image" row), the editable label field with its popover menu,
- * an optional trailing meta slot (e.g. Grid's cell name), the "answer set"
- * check, and the drag grip.
- *
- * It owns the row's chrome — surface, radius, elevation, the selected border,
- * the dimmed dragging state — and the drag wiring. It deliberately does NOT
- * own:
- *   - the label draft, the popover, or the menu body: that is `ItemField`,
- *     which mirrors the label locally and renders `OptionMenuContent`; the
- *     kind-specific leading menu entry arrives as `primaryAction`;
- *   - the pill's look: `IndexPill` (solid, tinted by the item's color, the
- *     same fill its marker carries on the surface);
- *   - the dnd context or the drop itself: the consumer wraps its list in
- *     `DragDropWrapper` and handles `onDragEnd`, so the row never learns the
- *     list's shape;
- *   - what "scored" means: each editor decides (a target position, a cell, or
- *     unconditionally, where authoring order *is* the answer).
- *
- * Clicking anywhere on the row selects it; the keyboard path is focusing the
- * label field, which both selects the row (via `onMenuOpenChange`) and opens
- * its menu — hence the two a11y suppressions here rather than at each editor.
- * The grip lives inside that click target, so a finished drag would otherwise
- * select the row it just moved — see `useClickAfterDragGuard`.
- *
- * `useSortable` cannot be switched on and off by a prop, so `draggable` picks
- * between two private components at the top of `PlacementRow`; both render the
- * same private base row, which keeps this file to one public export.
+TODO: This is deprecated and everything should be moved to @ItemBankRow.tsx
  */
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useEffect, useRef, type ReactNode, type Ref } from "react";
 
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import CheckIcon from "@assets/icons/status/check-solid.svg?react";
 import DragIcon from "@assets/icons/action/drag.svg?react";
+import CheckIcon from "@assets/icons/status/check-solid.svg?react";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
@@ -46,29 +17,16 @@ import type { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
 import type { Identified, PlaceableItem } from "../placement/placement.types";
 import styles from "./PlacementRow.module.css";
 
-/** Everything a row takes regardless of whether it can be dragged. */
 interface PlacementRowBaseProps {
   item: PlaceableItem;
-  /** 0-based position — drives the index pill, placeholder, and menu label. */
   index: number;
-  /** Resolved item color, shared with the item's marker on the surface. */
   color: string;
-  /** Singular noun for the placeholder and grip label ("Item", "Target"). */
-  itemNoun: string;
-  labelMaxLength: number;
-  /** Whether this row is selected (armed for placement, where that applies). */
-  selected?: boolean;
-  /** Whether this row's popover menu is open (at most one per slide). */
   menuOpen: boolean;
   canRemove: boolean;
-  /** The kind-specific leading menu action (set target, …). */
   primaryAction?: OptionMenuPrimaryAction;
-  /** Trailing status text inside the row (e.g. which cell an item sits in). */
+  /** Trailing status text inside the row  */
   meta?: ReactNode;
-  /** Whether this row carries an answer — shows the trailing check. */
   scored?: boolean;
-  /** Accessible name for the grip; defaults to "Reorder <noun> <n>". */
-  gripLabel?: string;
   onSelect?: () => void;
   onMenuOpenChange: (open: boolean) => void;
   onScheduleLabel: (label: string) => void;
@@ -138,9 +96,6 @@ const BaseRow = ({
   item,
   index,
   color,
-  itemNoun,
-  labelMaxLength,
-  selected = false,
   menuOpen,
   canRemove,
   primaryAction,
@@ -167,9 +122,7 @@ const BaseRow = ({
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
       ref={rootRef}
-      className={[styles.row, selected ? styles.selected : "", dragging ? styles.dragging : ""]
-        .filter(Boolean)
-        .join(" ")}
+      className={[styles.row, dragging ? styles.dragging : ""].filter(Boolean).join(" ")}
       onClick={onSelect}
       onPointerDown={onPointerDown}
     >
@@ -182,7 +135,7 @@ const BaseRow = ({
             size="xs"
             className={styles.thumbnailClear}
             icon={<XMarkIcon />}
-            aria-label={`Remove ${itemNoun.toLowerCase()} ${displayIndex.toString()} image`}
+            aria-label={`Remove ${displayIndex.toString()} image`}
             onClick={(e) => {
               // Clicking anywhere on the row selects it — clearing must not.
               e.stopPropagation();
@@ -198,8 +151,8 @@ const BaseRow = ({
         label={item.label}
         image={item.image}
         displayIndex={displayIndex}
-        placeholder={`${itemNoun} ${displayIndex.toString()}`}
-        maxLength={labelMaxLength}
+        placeholder={`${displayIndex.toString()}`}
+        maxLength={100}
         color={color}
         open={menuOpen}
         onOpenChange={onMenuOpenChange}
@@ -228,7 +181,6 @@ const BaseRow = ({
  *  the item's own and do not follow the row). The grip alone activates the
  *  drag, so typing in the label field never fights with it. */
 const SortableRow = ({
-  gripLabel,
   item,
   onSelect,
   ...rowProps
@@ -252,10 +204,7 @@ const SortableRow = ({
           ref={handleRef}
           className={styles.grip}
           role="button"
-          aria-label={
-            gripLabel ??
-            `Reorder ${rowProps.itemNoun.toLowerCase()} ${(rowProps.index + 1).toString()}`
-          }
+          aria-label={`Reorder  ${(rowProps.index + 1).toString()}`}
         >
           <DragIcon className={styles.gripIcon} aria-hidden="true" />
         </span>
@@ -271,7 +220,7 @@ const PlacementRow = (props: PlacementRowProps) => {
     const { draggable: _draggable, ...rowProps } = props;
     return <SortableRow {...rowProps} />;
   }
-  const { draggable: _draggable, gripLabel: _gripLabel, ...rowProps } = props;
+  const { draggable: _draggable, ...rowProps } = props;
   return <BaseRow {...rowProps} />;
 };
 
