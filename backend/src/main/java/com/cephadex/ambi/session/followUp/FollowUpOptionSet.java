@@ -7,8 +7,10 @@ import java.util.List;
  *
  * <p>Stored verbatim as the JSON value of one Redis key (see
  * {@code FollowUpOptionStore}) rather than a field-per-option Hash, because the
- * order is part of the payload: everyone must see the same board, and a vote is
- * cast against a position the participant read.
+ * order is part of the payload: everyone must see the same board. A pick is
+ * addressed by {@link FollowUpOption#optionId()}, never by position — the
+ * shared order exists so every device renders the one layout, not because
+ * anything reads the board by index.
  *
  * @param options the candidates, ordered as {@link FollowUpOptions#mint} laid
  *                them out

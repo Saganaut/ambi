@@ -312,6 +312,29 @@ class FollowUpOptionsTest {
     }
 
     @Test
+    void spotTheAnswerShufflesEvenTheKeylessDegradedBoard() {
+        // The shuffle must be unconditional: a keyless SPOT_THE_ANSWER board that
+        // kept submission order would itself tell the room no card is correct —
+        // "did the board shuffle?" must not leak whether a key exists. Pins the
+        // property against a future "only shuffle when we seeded" optimization.
+        List<Answer> answers = List.of(
+                answer("p-1", new TextAnswer("Lyon"), 100),
+                answer("p-2", new TextAnswer("Nice"), 200),
+                answer("p-3", new TextAnswer("Dijon"), 300));
+
+        Set<List<String>> arrangements = new LinkedHashSet<>();
+        for (int mint = 0; mint < MINTS; mint++) {
+            arrangements.add(submittedTexts(
+                    FollowUpOptions.mint(slideWith(keyedText()), answers, SPOT, URLS)));
+        }
+
+        // Three cards, uniform over 6 permutations: a constant arrangement —
+        // what an unshuffled degraded mint would give — has probability
+        // 6 · (1/6)^100 = (1/6)^99.
+        assertThat(arrangements).hasSizeGreaterThan(1);
+    }
+
+    @Test
     void bestAnswerVoteNeverSeedsTheAnswerEvenOnAKeyedParent() {
         Slide parent = slideWith(keyedText("Paris"));
 
@@ -336,7 +359,6 @@ class FollowUpOptionsTest {
         // Ids are content-derived, so a re-mint stands for exactly the same cards
         // — the board is shuffled, which nothing addresses a candidate by.
         assertThat(second.options()).containsExactlyInAnyOrderElementsOf(first.options());
-        assertThat(submittedTexts(second)).containsExactlyInAnyOrderElementsOf(submittedTexts(first));
     }
 
     @Test
