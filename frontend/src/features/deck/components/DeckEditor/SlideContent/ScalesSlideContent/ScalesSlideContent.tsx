@@ -33,10 +33,10 @@ import {
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { AddItemCard, EmptySelect, useSlideComposerState } from "../_shared";
+import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import shared from "../_shared/_shared.module.css";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
-import { ScaleStatementEditable } from "./ScaleStatementEditable";
 import styles from "./ScalesSlideContent.module.css";
 
 interface ScalesSlideContentProps {
@@ -128,16 +128,18 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
             <div className={shared.itemList}>
               <DragDropWrapper onReorder={handleStatementDragEnd}>
                 {question.items.map((statement, idx) => (
-                  <ScaleStatementEditable
+                  <SortableItemBankRow
+                    type={"scales"}
                     key={statement.id}
-                    statement={statement}
-                    sortIndex={idx}
+                    item={statement}
+                    index={idx}
+                    color={statement.color ?? "#FFFFFF"}
                     menuOpen={composer.openMenuId === statement.id}
                     canRemove={canRemove}
                     correctValue={question.correctValues[statement.id]}
-                    min={min}
-                    max={max}
-                    tolerance={question.tolerance}
+                    minScale={min}
+                    maxScale={max}
+                    toleranceScale={question.tolerance}
                     leftLabel={leftLabel}
                     rightLabel={rightLabel}
                     onMenuOpenChange={(open) => {
@@ -146,13 +148,13 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                     onScheduleLabel={(label) => {
                       scheduleStatementLabel(statement.id, label);
                     }}
-                    onCommitCorrectValue={(value) => {
+                    onCommit={(value) => {
                       commitCorrectValue(statement.id, value);
                     }}
-                    onScheduleCorrectValue={(value) => {
+                    onScheduleAnswer={(value) => {
                       scheduleCorrectValue(statement.id, value);
                     }}
-                    onClearCorrectValue={() => {
+                    onClear={() => {
                       clearCorrectValue(statement.id);
                     }}
                     onFlush={flush}

@@ -1,0 +1,94 @@
+.statementScale {
+  display: flex;
+  flex: 1 1 14rem;
+  align-items: center;
+  gap: var(--gap-md);
+  min-width: 0;
+}
+
+.anchorCaption {
+  max-width: 6rem;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The statement's continuous drag surface: press anywhere to place the
+   target, drag to move it. `touch-action: none` keeps a touch-drag from
+   scrolling the page (the axis-plane precedent). */
+.dragTrack {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+
+  /* Breathing room so a marker parked at an end (position 0 / 1) clears the
+     adjacent anchor caption instead of washing over it — an inset for the
+     overhanging marker, not sibling separation (the row's gap owns that). */
+  margin-inline: var(--gap-xs);
+  min-width: 7rem;
+  height: 1.5rem;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.targetLine {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: var(--border-size-sm);
+  border-radius: var(--radius-full);
+  background-color: var(--border-subtle);
+  transform: translateY(-50%);
+}
+
+/* The accepted region, centered on the marker — the 1-D analogue of the axis
+   tolerance circle. `left` is the marker fraction; the element is shifted back
+   by half its own width so it stays centered on the target. */
+.toleranceBand {
+  position: absolute;
+  top: 50%;
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-success);
+  transform: translate(-50%, -50%);
+}
+
+.marker {
+  position: absolute;
+  top: 50%;
+  width: var(--space-4);
+  height: var(--space-4);
+  padding: 0;
+  border: var(--border-size-sm) solid var(--border-success);
+  border-radius: var(--radius-full);
+
+  /* Documented exception to the named-pairing catalog: the marker fills with
+     the success border tone (the graded-target color) rather than a bg/text
+     pair, matching the axis marker's solid dot. */
+  background-color: var(--border-success);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.marker:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.marker:focus-visible {
+  outline: var(--border-size-md) solid var(--border-brand);
+  outline-offset: var(--space-1);
+}
+
+.valueReadout {
+  min-width: 2.5rem;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

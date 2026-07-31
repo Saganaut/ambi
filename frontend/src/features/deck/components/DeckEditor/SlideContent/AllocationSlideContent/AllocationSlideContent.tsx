@@ -138,7 +138,6 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         </SlideContentSection>
         <SlideContentSection>
           <SlideContentSection.Header>
-            {" "}
             <span>Options</span> <span>players split the pool across these options</span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
@@ -146,9 +145,10 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               {options.map((option, index) => (
                 //TODO: should be resolving color based on index.
                 <SortableItemBankRow
+                  type="allocation"
                   key={option.id}
                   item={option}
-                  label={option.text}
+                  label={option.text ?? "Error: label not found"}
                   index={index}
                   color={resolveOptionColor(option.color, index)}
                   menuOpen={openMenuId == option.id}
@@ -202,40 +202,3 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 };
 
 export { AllocationSlideContent };
-// <AllocationOptionEditable
-//   key={option.id}
-//   option={option}
-//   sortIndex={index}
-//   color={resolveOptionColor(option.color, index)}
-//   menuOpen={openMenuId === option.id}
-//   canRemove={editor.canRemoveOption}
-//   totalPoints={totalPoints}
-//   answer={correctAllocations[option.id]}
-//   answerSeed={answerSeed}
-//   onMenuOpenChange={(open) => {
-//     setOpenMenuId(open ? option.id : null);
-//   }}
-//   onScheduleText={(text) => {
-//     editor.scheduleOptionText(option.id, text);
-//   }}
-//   onFlush={editor.flush}
-//   onSetColor={(color) => {
-//     editor.setOptionColor(option.id, color);
-//   }}
-//   onSetImage={(image) => {
-//     editor.setOptionImage(option.id, image);
-//   }}
-//   onScheduleAnswer={(points) => {
-//     editor.scheduleCorrectAllocation(option.id, points);
-//   }}
-//   onCommitAnswer={(points) => {
-//     editor.commitCorrectAllocation(option.id, points);
-//   }}
-//   onClearAnswer={() => {
-//     editor.clearCorrectAllocation(option.id);
-//   }}
-//   onRemove={() => {
-//     editor.removeOption(option.id);
-//   }}
-//   openPicker={openPicker}
-// />

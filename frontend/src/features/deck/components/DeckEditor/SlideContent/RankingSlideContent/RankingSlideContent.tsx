@@ -63,11 +63,11 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
             <DragDropWrapper onReorder={handleItemDragEnd}>
               {question.items.map((item, idx) => (
                 <SortableItemBankRow
+                  type="ranking"
                   key={item.id}
                   item={item}
                   index={idx}
                   color={resolveDatumColor(item.color, idx)}
-                  scored
                   menuOpen={composer.openMenuId === item.id}
                   canRemove={canRemove}
                   onMenuOpenChange={(open) => {
@@ -97,8 +97,8 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
                 />
               )}
             </DragDropWrapper>
-          </SlideContentSection.Body>{" "}
-        </SlideContentSection>{" "}
+          </SlideContentSection.Body>
+        </SlideContentSection>
       </SlideContent>
     </SlideWrapper>
   );
