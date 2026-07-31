@@ -41,7 +41,7 @@ import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { resolveImageUrl } from "@utils/image";
+import { emptyImage, resolveImageUrl } from "@utils/image";
 import { ItemField, SortableItemCard, type Identified } from "../_shared";
 import styles from "./ScalesSlideContent.module.css";
 
@@ -199,7 +199,22 @@ const ScaleStatementEditable = ({
       scored={scored}
     >
       <div className={styles.statementBody}>
-        {thumbnailSrc && <img className={styles.statementThumbnail} src={thumbnailSrc} alt="" />}
+        {thumbnailSrc && (
+          <span className={styles.statementThumbnailWrap}>
+            <img className={styles.statementThumbnail} src={thumbnailSrc} alt="" />
+            <IconBtn
+              fill="ghost"
+              size="xs"
+              className={styles.statementThumbnailClear}
+              icon={<XMarkIcon />}
+              aria-label={`Remove statement ${displayIndex.toString()} image`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSetImage(emptyImage());
+              }}
+            />
+          </span>
+        )}
         <div className={styles.statementLabelField}>
           <ItemField
             itemId={statement.id}

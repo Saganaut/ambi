@@ -308,6 +308,12 @@
   white-space: nowrap;
 }
 
+.statementThumbnailWrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
 .statementThumbnail {
   flex: none;
   width: 2rem;
@@ -315,4 +321,23 @@
   border: var(--border-size-sm) solid var(--border-subtle);
   border-radius: var(--radius-sm);
   object-fit: cover;
+}
+
+button.statementThumbnailClear {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  right: calc(var(--space-1) * -1);
+  width: var(--space-5);
+  height: var(--space-5);
+  padding: var(--p-square-xxs);
+  background: var(--bg-surface-raised);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.statementThumbnailWrap:hover button.statementThumbnailClear,
+.statementThumbnailWrap:focus-within button.statementThumbnailClear {
+  opacity: 1;
 }

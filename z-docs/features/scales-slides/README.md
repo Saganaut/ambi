@@ -126,14 +126,17 @@ shape and privacy doctrine, wired as a per-kind field on `SlideView` next to
 public record ScalesConfigView(
     double min, double max,
     String leftLabel, String rightLabel,
-    List<ScaleItemView> items) {           // ScaleItemView(id, label)
+    List<ScaleItemView> items) {           // ScaleItemView(id, label, imageUrl, color)
 ```
 
 It never carries `correctValues` **or `tolerance`** — both are grading-only
 knowledge pre-reveal. `min`/`max` **do** travel (unlike axis tolerance): the
 board needs them to render the scale-unit readout, and they are not
-answer-key material. Only `SlideView.from(...)` constructs the record
-(verified), so the added component is contained.
+answer-key material. Statement images are resolved through the caller's
+`Function<AppImage, String>` and travel only as `imageUrl`; raw S3 keys and
+the `AppImage` object never enter the STOMP/Redis payload. The authored color
+travels with the statement as presentation metadata. Only `SlideView.from(...)`
+constructs the record (verified), so the added component is contained.
 
 ### Answer payload
 
@@ -302,7 +305,11 @@ screen — the GRID/AXIS seam, unchanged.
     the existing X clear button. "Tap the selected dot to clear" dies with
     the dots — clearing is the X button only. The "Set answer" button for
     unscored rows stays, seeding the midpoint `(min + max) / 2` (no longer
-    rounded).
+  rounded).
+  Each statement also uses the shared `ItemField` color/image/Delete menu.
+  Its optional square thumbnail includes the same hover/focus remove overlay
+  as Allocation options; image writes are immediate and remain keyed by the
+  statement id across reordering.
 - **New `scaleValue.ts` + `scaleValue.test.ts`** (`frontend/src/shared/utils/`,
   not this folder — shared so the board can reuse it): `clamp01`,
   `positionToValue`, `valueToPosition`, `formatScaleValue` — unit-testable
@@ -350,12 +357,13 @@ and projector via the established `mode`/`interactive` props. Template:
 idioms.
 
 - **Data**: `slide.scales` (`min`, `max`, `leftLabel`, `rightLabel`,
-  `items`); `useSessionConnection().sendAnswer`; `useLiveSessionQuery()` for
+  `items`, including each statement's optional `imageUrl` and `color`);
+  `useSessionConnection().sendAnswer`; `useLiveSessionQuery()` for
   `optionCounts`, `results`, and the viewer's participant id. Statements
   render in authored order — order is presentational for SCALES, so no
   seeded shuffle (unlike item banks).
 - **Answer surface** (`mode === "prompt"`, interactive): one row per
-  statement — label, left/right anchor captions (empty labels fall back to
+  statement — optional thumbnail, label, authored accent, and left/right anchor captions (empty labels fall back to
   the `min`/`max` numbers, the editor's pattern), and a native
   `<input type="range" min={0} max={1} step="any">` bound to a round-local
   draft `Record<statementId, number>` (normalized), reset on `slideId`

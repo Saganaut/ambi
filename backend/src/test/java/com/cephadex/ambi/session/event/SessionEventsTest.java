@@ -231,8 +231,7 @@ class SessionEventsTest {
     @Test
     void slideViewProjectsScaleItemImageAsPreResolvedUrl() {
         AppImage image = new AppImage();
-        image.setExternal(true);
-        image.setExternalSrc("https://example.test/breakfast.png");
+        image.setSrcKey("private/scales/raw-breakfast-key");
         Slide slide = scalesSlide();
         slide.setContent(new ScalesContent(
                 1, 5, "Skip it", "Sacred",
@@ -246,6 +245,11 @@ class SessionEventsTest {
             assertThat(item.imageUrl()).isEqualTo("https://s3/presigned-breakfast");
             assertThat(item.color()).isEqualTo("#ff8800");
         });
+        String json = codec.serialize(view);
+        assertThat(json).contains("https://s3/presigned-breakfast");
+        assertThat(json).doesNotContain("private/scales/raw-breakfast-key");
+        assertThat(json).doesNotContain("srcKey");
+        assertThat(json).doesNotContain("variants");
     }
 
     @Test

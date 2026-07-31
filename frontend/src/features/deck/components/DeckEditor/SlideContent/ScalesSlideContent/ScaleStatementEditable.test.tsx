@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ScaleItem } from "@deck/store/deckApi.gen";
+import { emptyImage, externalImage } from "@utils/image";
 import type { Identified } from "../_shared";
 import { ScaleStatementEditable } from "./ScaleStatementEditable";
 
@@ -54,6 +55,18 @@ const renderStatement = ({
 };
 
 describe("ScaleStatementEditable", () => {
+  it("clears a statement image from the thumbnail overlay", async () => {
+    const user = userEvent.setup();
+    const { props } = renderStatement({
+      item: statement({ image: externalImage("https://img.test/statement.png") }),
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove statement 2 image" }));
+
+    expect(props.onSetImage).toHaveBeenCalledExactlyOnceWith(emptyImage());
+    expect(props.openPicker).not.toHaveBeenCalled();
+  });
+
   it("opens the color / image / Delete menu when the label is focused", async () => {
     const user = userEvent.setup();
     const { props, reopen } = renderStatement();
