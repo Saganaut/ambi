@@ -7,10 +7,11 @@ options). Authoring — adding, editing, reordering, and deleting follow-ups in
 the deck editor — and the live-session runtime — minting candidates from the
 parent round's submissions, running the follow-up as an ordinary round of its
 own, and presenting the board — are both implemented; see [Runtime](#runtime).
-**Scoring is not**: a follow-up pick always grades `false` in v1 and never
-awards points, whichever `FollowUpMode` it runs — the designed path to scoring
-is the planned [`SPOT_THE_ANSWER`](#planned-spot_the_answer-working-name) mode
-(see also [Missing Features](../missing-features.md)).
+**Scoring is per-mode**: [`SPOT_THE_ANSWER`](#spot_the_answer) scores — it mixes
+the parent's authored answer in among the submissions and pays both the players
+who spot it and the players whose own card fooled the room — while
+`BEST_ANSWER_VOTE` and `PREDICT_POPULAR` still grade a permanent `false` and
+award nothing (see also [Missing Features](../missing-features.md)).
 
 ## Model
 
@@ -57,14 +58,25 @@ authoritative validator:
 | ------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `PREDICT_POPULAR`  | `MCQ`                                                                                              | Which option was picked most?                                                     |
 | `BEST_ANSWER_VOTE` | every scorable parent except `FOLLOW_UP` itself: `MCQ`, `TEXT`, `DRAWING`, `NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`, `PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION` | Which submission was best? (vote — picked options on MCQ, a compact text summary on every other kind) |
+| `SPOT_THE_ANSWER`  | `TEXT` **with an answer key** (`TextContent.acceptedAnswers` non-empty)                            | Which of these is the real answer? (the authored one is hidden among the submissions) |
 
-Any scorable slide type can attach a `BEST_ANSWER_VOTE` follow-up. `MCQ` is
-the only parent with more than one valid mode — the author picks one when
-adding the follow-up and can change it in the inspector; every other parent
-type is `BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` gets the same runtime as
-`PREDICT_POPULAR` — see [Runtime](#runtime) — the mode only changes the
-board's prompt text; neither mode scores in v1 (see
-[Missing Features](../missing-features.md)).
+Any scorable slide type can attach a `BEST_ANSWER_VOTE` follow-up. `MCQ` and a
+keyed `TEXT` are the parents with more than one valid mode — the author picks
+one when adding the follow-up and can change it in the inspector; every other
+parent type is `BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` gets the same
+runtime as `PREDICT_POPULAR` — see [Runtime](#runtime) — the mode only changes
+the board's prompt text, and neither of the two scores (see
+[Missing Features](../missing-features.md)). `SPOT_THE_ANSWER` is the one mode
+that changes what is minted *and* scores; it has its own
+[section](#spot_the_answer).
+
+`FollowUpMode.requiresAnswerKey()` is the authoritative second half of the
+pairing rule: `supportsParent` only settles the parent's *type*, and an unkeyed
+`TEXT` slide is a legitimate collect-only prompt with no authored answer to
+hide. `DeckService` enforces both halves wherever the pairing can change — the
+add endpoint, the inspector's mode edit, and a parent content update that would
+strip the key out from under an attached `SPOT_THE_ANSWER` child — each a
+`400`.
 
 The frontend mirrors the table in
 `frontend/src/features/deck/utils/followUp.ts` (`FOLLOW_UP_MODE_PARENTS`),
@@ -75,46 +87,56 @@ drift. `utils/followUp.ts` is also the single frontend home of the pairing
 rule (`groupIntoUnits`, `attachedFollowUpOf`, `canHaveFollowUp`), shared by the
 rail, the optimistic move patch, and the add affordances.
 
-### Planned: `SPOT_THE_ANSWER` (working name)
+### `SPOT_THE_ANSWER`
 
-**Planned, not built.** `FollowUpMode` declares exactly two values today
-(`BEST_ANSWER_VOTE`, `PREDICT_POPULAR`); nothing below exists in code yet, and
-the working name isn't final until the enum value lands. This section records
-the settled design (confirmed 2026-07-30), not shipped behavior — the two
-built modes above are unaffected by it.
-
-A dixit-style third mode: the parent question's **authored** correct answer is
-mixed in among the participant-submitted candidates, and the room has to spot
-it.
+A dixit-style mode, and the **first follow-up mode to score**: the parent
+question's **authored** correct answer is mixed in among the
+participant-submitted candidates, and the room has to spot it.
 
 - **Valid parents** — `TEXT` slides whose content carries an answer key
-  (`TextContent.acceptedAnswers` non-empty). A TEXT parent with no answer key
+  (`TextContent.acceptedAnswers` non-empty). A `TEXT` parent with no answer key
   is unscored and has no authored answer to mix in, so it stays
-  `BEST_ANSWER_VOTE` only.
-- **Minting** — at mint time the authored answer is seeded into the candidate
-  set alongside the deduped submissions, indistinguishable from them on the
-  board. Today `FollowUpOptions.fromText` mints candidates *only* from
-  `TextAnswer` submissions and never reads `acceptedAnswers`, so this is the
-  one place the mint has to change. The seeded candidate has no submitter,
-  which the existing shape already allows (an MCQ parent's authored options
-  mint with no authors either) — and, like `authorParticipantIds`, the fact
-  that a candidate *is* the authored answer must never travel to a client:
-  `FollowUpConfigView` carries no correct-answer field today, and the parent
-  itself never reveals (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`).
-- **Scoring** — this would be the **first follow-up mode to score**, and the
-  scoring is part of the settled design, not an afterthought: a participant
-  who picks the authored answer earns points, and a participant whose own
-  submission draws picks from others earns points too. The hooks are
-  `RoundEvaluator.isCorrect`'s `FollowUpAnswer` case — an unconditional
-  `false` today that never inspects `FollowUpMode` — and `RoundScorer.score`.
-  Exact point values and how they plumb through settings are left to
-  implementation.
+  `BEST_ANSWER_VOTE` only — see `FollowUpMode.requiresAnswerKey()` above.
+- **Seeding** — `FollowUpOptions.mint` takes the child's mode, and on this one
+  `fromText` seeds the answer key's own wording in beside the deduped
+  submissions. One accepted answer stands for the whole set: the first
+  non-blank one in iteration order (a stored `Set` field hydrates as a
+  `LinkedHashSet`, so that is the authored order, and a live session mints from
+  one immutable deck snapshot — every re-mint of a round therefore reads the
+  same wording). Its id is `derivedId(normalizedKey)` like any other candidate,
+  so a re-mint reproduces the same board.
+- **Merging** — the seed is keyed under `TextContent.normalize` exactly as a
+  submission is, so a participant who typed the authored answer lands on the
+  *same* candidate: one card that is both the answer key and their submission,
+  carrying the flag and them as an author. The existing self-pick `409` then
+  correctly stops them picking the card they wrote.
+- **Where the seeded card lands** — submissions sit in submission order, so
+  putting the answer first or last would make it the card the room learns to
+  look at, and shuffling is not available (a re-mint has to reproduce the
+  board). The insertion index is derived from the authored answer's own content
+  hash over `candidates + 1` slots: stable across mints, unguessable without
+  knowing the answer. A *merged* answer is never moved — its position was
+  already fixed by the submission it merged with, which leaks nothing.
+- **Secrecy** — `FollowUpOption.authoredAnswer` is server-only, exactly like
+  `authorParticipantIds`: `FollowUpOptionView` projects only
+  id/text/imageUrl, and `FollowUpConfigView` carries no correct-answer field.
+  The parent itself never reveals either (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`).
+  The card also shows the authored wording **stripped**, so stray padding
+  can't render as a tell no submitted card has.
+- **Graceful degradation** — if the author empties the parent's answer key
+  after attaching the follow-up (the editor rejects that, but a session's deck
+  snapshot can predate the rule), the mint seeds nothing and produces exactly
+  the `BEST_ANSWER_VOTE` board. No candidate carries the flag, so the round
+  scores nobody rather than failing.
+- **Scoring** — pickers earn through the ordinary correct-answer path, authors
+  through deception points; see *Scoring a follow-up round* under
+  [Runtime](#runtime).
 - **Image / dixit extension — deferred.** Running the same mode on `DRAWING`
   (image) parents needs an authorable correct-answer *image* to mix in among
   the submitted drawings, which no model carries today; adding one is a model
   change on the parent content or on the follow-up itself. Deliberately
   deferred until that model is designed.
-- **Frontend mirror** — adding the enum value breaks compilation in
+- **Frontend mirror** — the enum value breaks compilation in
   `FOLLOW_UP_MODE_PARENTS` (`frontend/src/features/deck/utils/followUp.ts`)
   until its row is added, so the parent-type table above can't silently drift.
 
@@ -154,7 +176,9 @@ board's candidate set from the parent slide and the answers its round
 collected: an MCQ parent hands back its own authored options verbatim (same
 ids, same order, no submitters); a TEXT parent dedupes submissions under the
 parent's own trim/case normalization (`TextContent.normalize`), unioning
-authors onto whichever submission's wording landed first; a DRAWING parent
+authors onto whichever submission's wording landed first — and, on a
+`SPOT_THE_ANSWER` child, mixes the authored answer in with them
+([above](#spot_the_answer)); a DRAWING parent
 mints one candidate per submitted image, keyed by its stored `srcKey`. Every
 other scorable parent kind (`NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`,
 `PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION`) has no submission a board can show
@@ -178,7 +202,10 @@ round opens, and is written to Redis (`FollowUpOptionStore`,
 JSON value — a Hash has no ordering to preserve, and the board's numbered
 layout is part of what every participant shares. Every later read (the board,
 a late-joiner's snapshot, the answer validator) comes back from that saved
-snapshot, never a fresh mint, so all consumers agree on one board. The
+snapshot, never a fresh mint, so all consumers agree on one board. That read is
+lenient (`RedisJsonCodec.deserializeLenient`) because the blob outlives a
+deploy: a set written before `authoredAnswer` existed reads back with the flag
+`false`, which is exactly what "no answer was seeded into this board" means. The
 parent round's answers backing the mint are read from Redis if that round is
 still open, falling back to the flushed Mongo copy
 (`RoundResultProjector.answersOf`) once it has closed — persisting a round's
@@ -191,11 +218,54 @@ hierarchy) carries the candidate a participant picked, and it's re-castable
 until the round closes (the answer service zeroes `maxSelections` for it). It
 rides the regular answer/tally path — submit, live tally
 (`AnswerTallyKeys`), `RoundResult.optionCounts` via
-`RoundEvaluator.describeChoice` — never `VoteStore`. It also grades a
-permanent `false` in `RoundEvaluator.isCorrect`: v1 has no answer key and
-awards no points for a follow-up round, whichever `FollowUpMode` it runs (see
-[Missing Features](../missing-features.md) for the scoring modes that would
-change that).
+`RoundEvaluator.describeChoice` — never `VoteStore`. How it *grades* is the
+mode's business: `BEST_ANSWER_VOTE` and `PREDICT_POPULAR` still grade a
+permanent `false` in `RoundEvaluator.isCorrect` and award nothing, while
+`SPOT_THE_ANSWER` scores — see below.
+
+**Scoring a follow-up round.** A follow-up's answer key is *runtime* state, so
+`RoundEvaluator`/`RoundScorer` take the round's saved `FollowUpOptionSet`
+alongside the slide — always the `FollowUpOptionStore` snapshot the round
+opened on, never a re-mint, so grading can never disagree with the board the
+participants picked from. `FollowUpOptionSet.empty()` for every round that
+isn't a follow-up. Two independent earnings, both on `SPOT_THE_ANSWER` only:
+
+- **The picker.** `isCorrect` is true when the picked candidate carries
+  `authoredAnswer`. From there the ordinary path does the rest — base
+  `points`, streak bonuses, and the fastest-correct bonus all arrive through
+  the existing `Participant.awardPoints`, with no follow-up special case.
+- **The author.** A card that drew picks from *other* participants pays its
+  author through the existing `deceivedCount` × `deceptionPoints` mechanic —
+  a card that fooled the room is deception, so no new `PointSettings` field.
+  `RoundEvaluator.followUpPicksByAuthor` counts picks against the snapshot's
+  `authorParticipantIds` (every author of a merged card is credited; self-picks
+  excluded), and it pays regardless of whether that card is also the seeded
+  answer. Unlike a VOTE-phase deception it is *not* zeroed when the author also
+  picked correctly: spotting the answer and writing a card that fooled others
+  are two separate things to have done in one round.
+
+**Authors who never answered.** The cards on a follow-up board were written in
+the *parent* round, so an author may earn without submitting a pick — and
+`RoundScorer` iterates evaluations, which are one-per-answer. `awardAbsentAuthors`
+is the extra step that reaches them, with two deliberate consequences:
+
+- **Their streak is untouched.** `awardPoints(false, …)` would record a miss
+  and possibly end a streak, which is wrong — not answering is not answering
+  *incorrectly*. They go through `Participant.awardDeception` instead, which
+  applies the points and nothing else.
+- **They get no `ParticipantOutcome`.** A phantom outcome would inflate the
+  round's `numberOfParticipants` (defined as the answers it collected) and add
+  a fictitious 0 ms response time to its average. Their points land on the
+  running `ParticipantScore` — which is what the scoreboard and every later
+  snapshot read — while the round's per-participant list stays exactly the set
+  of people who played it. The trade-off: the reveal's per-round delta can't
+  show them, so scoreboard movement is where their points surface. A banned
+  author is skipped entirely.
+
+`RoundEvaluator.correctKey` deliberately grows **no** follow-up branch, so a
+follow-up round's `RoundResult.correctOption` stays `null` even when the round
+scored: revealing which card was the authored answer is a board affordance
+nobody has built yet (see [Missing Features](../missing-features.md)).
 
 **One store for votes (direction, decided 2026-07-30).** A vote *is* an answer
 to a follow-up question, so voting features go through the answer store from
@@ -254,7 +324,9 @@ from the round's set is a `400`, and picking one's own candidate is the same
 `prompt` (pickable cards), `liveResults` (the same cards with the running
 tally filling in — still pickable, since a pick stays re-castable), and
 `results` (the final distribution, most-picked card(s) badged; no
-correct-answer affordance ever renders, since a follow-up has no answer key).
+correct-answer affordance ever renders — a `SPOT_THE_ANSWER` round *has* an
+answer key, but revealing it is deliberately not built, and
+`RoundResult.correctOption` stays `null` for every follow-up round).
 Candidates render in snapshot order — deliberately not shuffled, so every
 device shows the one board — and picking is single-select regardless of the
 parent's own answer settings. The viewer's own candidate is disabled and

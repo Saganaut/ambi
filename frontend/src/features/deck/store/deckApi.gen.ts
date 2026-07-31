@@ -991,7 +991,7 @@ export type DrawingContent = {
   contentType: "DRAWING";
 };
 export type FollowUpContent = {
-  mode: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
+  mode: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR" | "SPOT_THE_ANSWER";
   contentType: "FOLLOW_UP";
 };
 export type TitleContent = {
@@ -1143,7 +1143,7 @@ export type SetAudienceSettingsRequest = {
 };
 export type AddFollowUpRequest = {
   id: string;
-  mode: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
+  mode: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR" | "SPOT_THE_ANSWER";
   title?: string;
 };
 export type MoveSlideRequest = {

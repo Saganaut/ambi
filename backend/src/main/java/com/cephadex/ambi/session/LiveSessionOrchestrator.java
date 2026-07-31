@@ -32,6 +32,7 @@ import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
@@ -944,9 +945,16 @@ public class LiveSessionOrchestrator {
             byId.put(participant.getParticipantId(), participant);
         }
         Settings.PointSettings points = resolvePoints(session, slide);
+        // The board the round actually ran on, read back from its snapshot rather
+        // than re-minted: it is both the answer key a SPOT_THE_ANSWER pick is
+        // graded against and the only record of who authored which card, so
+        // grading has to see exactly what the participants picked from.
+        FollowUpOptionSet candidates = session.getDeck().isAttachedFollowUp(slide)
+                ? followUpOptions.load(sessionId, slideId)
+                : FollowUpOptionSet.empty();
         RoundResult result = RoundScorer.score(
                 sessionId, slide, flushed, byId, points, votesReceived(sessionId, slideId),
-                roundStartedAt, Instant.now());
+                candidates, roundStartedAt, Instant.now());
         // byId values are the same objects as `roster`, so scoring mutated them.
         roundResults.persist(result, roster, flushed);
     }
@@ -1375,11 +1383,16 @@ public class LiveSessionOrchestrator {
      * submissions. The caller must have established that the slide is a valid
      * attached follow-up ({@link Deck#isAttachedFollowUp}), so its parent id is
      * present and resolves against the same snapshot.
+     *
+     * <p>The child's own mode goes in with them: {@code SPOT_THE_ANSWER} seeds
+     * the parent's authored answer among the submissions, so the mint is not
+     * mode-independent.
      */
     private FollowUpOptionSet mintFollowUpOptions(LiveSession session, Slide followUpSlide) {
         String parentId = followUpSlide.getParentId();
         Slide parent = session.getDeck().findSlide(parentId).orElse(null);
-        return FollowUpOptions.mint(parent, parentAnswers(session.getId(), parentId),
+        FollowUpMode mode = followUpSlide.getContent() instanceof FollowUpContent content ? content.mode() : null;
+        return FollowUpOptions.mint(parent, parentAnswers(session.getId(), parentId), mode,
                 this::followUpCandidateImageUrl);
     }
 

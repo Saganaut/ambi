@@ -251,4 +251,37 @@ public class Participant {
 
         return pointsAwarded;
     }
+
+    /**
+     * Applies only the deception component of a round, for a participant who
+     * <b>did not answer it</b>.
+     *
+     * <p>
+     * The case exists on a {@code SPOT_THE_ANSWER} follow-up: the cards on that
+     * board were written in the <em>parent</em> round, so a player whose card
+     * fools the room earns for it whether or not they showed up to pick on the
+     * follow-up. {@link #awardPoints} cannot serve them — passing
+     * {@code wasCorrect = false} would record a miss and (under
+     * {@code resetStreakOnStreakEnd}) break a streak they never actually broke,
+     * since not answering is not a wrong answer. This applies the points and
+     * touches nothing else.
+     * </p>
+     *
+     * @param deceivedCount   how many players their submission drew in
+     * @param deceptionPoints points per deceived player
+     * @return the total points awarded (the per-round delta), zero when either
+     *         input is non-positive
+     * @throws IllegalStateException if the participant is {@link #banned}
+     */
+    public int awardDeception(int deceivedCount, int deceptionPoints) {
+        if (banned) {
+            throw new IllegalStateException("banned participant cannot be scored");
+        }
+        if (deceivedCount <= 0 || deceptionPoints <= 0) {
+            return 0;
+        }
+        int deception = deceptionPoints * deceivedCount;
+        this.score.awardDeception(deception);
+        return deception;
+    }
 }

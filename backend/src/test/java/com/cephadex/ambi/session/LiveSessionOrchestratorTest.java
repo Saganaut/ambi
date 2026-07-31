@@ -1252,7 +1252,7 @@ class LiveSessionOrchestratorTest {
         // The event reads the snapshot back, so a store holding something other
         // than what this open would mint proves the read, not a re-mint.
         when(followUpOptions.load(SID, CHILD)).thenReturn(new FollowUpOptionSet(List.of(
-                new FollowUpOption("cand-saved", "Berlin", null, Set.of("p-9")))));
+                new FollowUpOption("cand-saved", "Berlin", null, Set.of("p-9"), false))));
 
         orchestrator.startRound(SID, CHILD);
 

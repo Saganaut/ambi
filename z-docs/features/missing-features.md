@@ -41,18 +41,19 @@ The [follow-up slide](follow-up-slides/README.md) live-session runtime shipped
 (minting, the pick-is-the-answer round, the board), but several pieces named
 in its design were deliberately left for later:
 
-- **Scoring modes.** A follow-up pick always grades `false` and awards no
-  points in v1 (`RoundEvaluator.isCorrect`'s `FollowUpAnswer` case, which
-  never inspects the mode). The designed path to follow-up scoring is the
-  planned `SPOT_THE_ANSWER` mode (working name) — see
-  [follow-up slides § Planned](follow-up-slides/README.md#planned-spot_the_answer-working-name):
-  a `TEXT` parent's authored answer key is mixed in among the submitted
-  candidates, and points go both to whoever picks the authored answer and to
-  whoever's own submission draws picks. Extending it to image (`DRAWING`)
-  parents for a dixit-style board additionally needs an authorable
-  correct-answer *image*, which no model carries today. None of this is
-  built: `FollowUpMode` still declares only `BEST_ANSWER_VOTE` and
-  `PREDICT_POPULAR`.
+- **Scoring on the other two modes.** `SPOT_THE_ANSWER` scores — see
+  [follow-up slides](follow-up-slides/README.md#spot_the_answer) — but a
+  `BEST_ANSWER_VOTE` or `PREDICT_POPULAR` pick still grades `false` and awards
+  nothing. Neither has an answer key, and paying the most-picked submission is
+  a scoring pass over the whole field rather than a per-answer grade.
+- **Revealing the spotted answer.** A `SPOT_THE_ANSWER` round grades picks,
+  but `RoundEvaluator.correctKey` deliberately grows no follow-up branch, so
+  `RoundResult.correctOption` stays `null` and the board renders no
+  correct-answer affordance at reveal — the mode is scoring-only for now.
+- **Dixit on image parents.** Running `SPOT_THE_ANSWER` on `DRAWING` parents
+  needs an authorable correct-answer *image* to mix in among the submitted
+  drawings, which no model carries today; adding one is a model change on the
+  parent content or on the follow-up itself.
 - **Shuffle.** Candidates always render in snapshot (mint) order — no
   per-viewer shuffle — a deliberate v1 decision
   (`FollowUpBoardContent`), not yet revisited.

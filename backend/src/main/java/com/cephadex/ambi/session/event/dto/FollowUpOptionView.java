@@ -14,6 +14,13 @@ import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
  * can't be read back to who wrote what. That mapping is also what rejects a
  * self-vote, so it has to stay on this side of the wire to be trustworthy.
  *
+ * <p>For the same reason it carries <strong>no {@code authoredAnswer}
+ * flag</strong>. On a {@code SPOT_THE_ANSWER} round one candidate is the
+ * parent's own authored answer, and projecting that bit would hand the room the
+ * answer it is being asked to spot — the secrecy is the game, exactly as
+ * author anonymity is the dixit-style deception. It stays on
+ * {@link FollowUpOption}, where grading reads it.
+ *
  * @param optionId the opaque handle a pick is submitted against ({@code FollowUpAnswer})
  * @param text     the candidate's display text, or {@code null} for an image-only candidate
  * @param imageUrl presigned URL of the candidate's image, or {@code null} for a plain text candidate

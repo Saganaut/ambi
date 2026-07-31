@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,6 +12,7 @@ import java.util.Set;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
+import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
@@ -25,6 +27,7 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Matc
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
@@ -38,6 +41,8 @@ import com.cephadex.ambi.session.answer.payload.PlaceOnImageAnswer;
 import com.cephadex.ambi.session.answer.payload.RankingAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
+import com.cephadex.ambi.session.followUp.FollowUpOption;
+import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 
 /**
  * Derives the per-participant facts of a round <b>once</b>, from the slide and
@@ -68,6 +73,15 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
  * against the slide's typed {@link SlideContent} answer key, and
  * {@link #correctKey} renders that key for the results reveal. Content types with
  * no static key (derived / voted / free-form) never grade correct.
+ *
+ * <p>
+ * A follow-up round is the exception that proves the rule: its answer key is
+ * runtime state, not slide content, so callers thread the round's saved
+ * {@link FollowUpOptionSet} in alongside the slide. Only
+ * {@link FollowUpMode#SPOT_THE_ANSWER} has a key at all, and it is never
+ * <em>revealed</em> — {@link #correctKey} deliberately grows no follow-up
+ * branch, so a follow-up round's {@code correctOption} stays null and the board
+ * renders no correct-answer affordance.
  */
 public final class RoundEvaluator {
 
@@ -77,6 +91,12 @@ public final class RoundEvaluator {
     /** Evaluates a round without best-answer voting (no vote tallies to fold in). */
     public static List<AnswerEvaluation> evaluate(Slide slide, List<Answer> answers, Instant roundStartedAt) {
         return evaluate(slide, answers, roundStartedAt, Map.of());
+    }
+
+    /** Evaluates a voted round that is not a follow-up (nothing to grade a pick against). */
+    public static List<AnswerEvaluation> evaluate(Slide slide, List<Answer> answers, Instant roundStartedAt,
+            Map<String, Integer> votesReceived) {
+        return evaluate(slide, answers, roundStartedAt, votesReceived, FollowUpOptionSet.empty(), Map.of());
     }
 
     /**
@@ -94,13 +114,33 @@ public final class RoundEvaluator {
      * (Drawing, free text), whether those votes pay is the deck's call via
      * {@code deceptionPoints}.</li>
      * </ul>
+     *
+     * <p>The last two arguments are the follow-up dimension, both empty for every
+     * other kind of round and both read from the <em>snapshot</em> the round
+     * opened on (never a re-mint):
+     * <ul>
+     * <li>{@code followUpOptions} — the candidate set a pick is graded against.
+     * On a {@link FollowUpMode#SPOT_THE_ANSWER} round exactly one candidate may
+     * carry the parent's authored answer, and picking it is what
+     * {@code correct} means; see {@link #isCorrect}.</li>
+     * <li>{@code followUpPicksByAuthor} — how many picks each candidate's
+     * <em>author</em> drew from other participants, computed by the caller with
+     * {@link #followUpPicksByAuthor}. It is added to {@code deceivedCount}, so a
+     * card that fooled the room pays through the same
+     * {@code deceptionPoints} mechanic a VOTE-phase deception does. Unlike a
+     * vote, it is <strong>not</strong> zeroed when its author also picked
+     * correctly: spotting the authored answer and writing a card that fooled
+     * others are two independent earnings in the same round.</li>
+     * </ul>
      */
     public static List<AnswerEvaluation> evaluate(Slide slide, List<Answer> answers, Instant roundStartedAt,
-            Map<String, Integer> votesReceived) {
+            Map<String, Integer> votesReceived, FollowUpOptionSet followUpOptions,
+            Map<String, Integer> followUpPicksByAuthor) {
         // Content-independent facts + the correctness grade, in one pass; we track
         // the fastest correct responder and the best-voted answer so exactly one
         // evaluation carries each flag.
-        record Graded(String participantId, String choice, boolean correct, long responseTimeMs, int votes) {
+        record Graded(String participantId, String choice, boolean correct, long responseTimeMs, int votes,
+                int picksDrawn) {
         }
         List<Graded> graded = new ArrayList<>(answers.size());
 
@@ -111,11 +151,12 @@ public final class RoundEvaluator {
         for (Answer answer : answers) {
             String pid = new String(answer.getParticipantId());
             long responseTimeMs = responseTime(roundStartedAt, answer.getSubmittedAt());
-            boolean correct = isCorrect(slide, answer.getPayload());
+            boolean correct = isCorrect(slide, answer.getPayload(), followUpOptions);
             String choice = describeChoice(answer.getPayload());
             int votes = votesReceived.getOrDefault(pid, 0);
+            int picksDrawn = followUpPicksByAuthor.getOrDefault(pid, 0);
 
-            Graded g = new Graded(pid, choice, correct, responseTimeMs, votes);
+            Graded g = new Graded(pid, choice, correct, responseTimeMs, votes, picksDrawn);
             graded.add(g);
 
             if (correct && responseTimeMs < fastestMs) {
@@ -140,10 +181,57 @@ public final class RoundEvaluator {
                     g.correct(),
                     fastestCorrect,
                     bestAnswer,
-                    g.correct() ? 0 : g.votes(),
+                    (g.correct() ? 0 : g.votes()) + g.picksDrawn(),
                     g.responseTimeMs()));
         }
         return evaluations;
+    }
+
+    /**
+     * How many picks each candidate's <em>author</em> drew from other
+     * participants on a {@link FollowUpMode#SPOT_THE_ANSWER} round — the
+     * author-side half of that mode's scoring, in the same per-author shape as
+     * the VOTE phase's {@code votesReceived}.
+     *
+     * <p>Every mode but {@code SPOT_THE_ANSWER} returns empty: the other two
+     * follow-ups are unscored, so a pick pays nobody. Authorship is read from
+     * the round's saved {@link FollowUpOptionSet} — the only place it exists —
+     * and one pick credits <em>every</em> author of the picked candidate, since
+     * merged submissions genuinely share the card. Whether that card is also the
+     * seeded authored answer makes no difference: a participant whose wording
+     * happened to match the answer key still wrote the submission the pick went
+     * to. Self-picks are excluded (the answer service already rejects them with
+     * {@code CANNOT_VOTE_FOR_OWN_ANSWER}; this is defense in depth against a
+     * pick that predates a re-mint).
+     *
+     * <p>Note the returned map covers authors who never answered <em>this</em>
+     * round — their submission was to the <em>parent</em> round. Crediting them
+     * is {@code RoundScorer}'s job, since they have no {@link AnswerEvaluation}.
+     */
+    public static Map<String, Integer> followUpPicksByAuthor(Slide slide, List<Answer> answers,
+            FollowUpOptionSet followUpOptions) {
+        if (followUpOptions == null || followUpOptions.options().isEmpty()
+                || !(slide.getContent() instanceof FollowUpContent content)
+                || content.mode() != FollowUpMode.SPOT_THE_ANSWER) {
+            return Map.of();
+        }
+        Map<String, Integer> byAuthor = new LinkedHashMap<>();
+        for (Answer answer : answers) {
+            if (!(answer.getPayload() instanceof FollowUpAnswer pick) || pick.optionId() == null) {
+                continue;
+            }
+            FollowUpOption picked = followUpOptions.byId(pick.optionId());
+            if (picked == null || picked.authorParticipantIds() == null) {
+                continue;
+            }
+            String picker = answer.getParticipantId();
+            for (String author : picked.authorParticipantIds()) {
+                if (author != null && !author.equals(picker)) {
+                    byAuthor.merge(author, 1, (a, b) -> a + b);
+                }
+            }
+        }
+        return byAuthor;
     }
 
     private static long responseTime(Instant startedAt, Instant submittedAt) {
@@ -157,12 +245,16 @@ public final class RoundEvaluator {
      * Grades {@code payload} against the slide's typed {@link SlideContent} answer
      * key. The pairing is total over the sealed {@link AnswerPayload} hierarchy: a
      * mismatched content/answer pairing (which shouldn't occur) grades false. Types
-     * with no static key — follow-up prompts, drawings, Q&amp;A questions — always
-     * grade false; a few graded modes that need cross-participant context
+     * with no static key — drawings, Q&amp;A questions — always grade false; a few
+     * graded modes that need cross-participant context
      * ({@code CLOSEST}/{@code NEAREST}/{@code DISTANCE}) or per-position partial
      * credit ({@code PARTIAL}) are explicit seams that return false for the boolean.
+     *
+     * <p>A follow-up pick is the one grade whose key is not on the slide at all:
+     * it lives in the round's minted {@link FollowUpOptionSet}, so that snapshot
+     * is threaded in — see {@link #gradeFollowUp}.
      */
-    private static boolean isCorrect(Slide slide, AnswerPayload payload) {
+    private static boolean isCorrect(Slide slide, AnswerPayload payload, FollowUpOptionSet followUpOptions) {
         SlideContent content = slide.getContent();
         if (content == null || payload == null) {
             return false;
@@ -178,12 +270,36 @@ public final class RoundEvaluator {
             case ScalesAnswer a -> content instanceof ScalesContent c && gradeScales(c, a);
             case AllocationAnswer a -> content instanceof AllocationContent c && gradeAllocation(c, a);
             case PlaceOnImageAnswer a -> content instanceof PlaceOnImageContent c && gradePlaceOnImage(c, a);
-            // No static answer key: picked from parent submissions, drawn, or asked.
-            case FollowUpAnswer _ -> false;
+            // Graded against the round's minted board, not the slide's content.
+            case FollowUpAnswer a -> content instanceof FollowUpContent c
+                    && gradeFollowUp(c, a, followUpOptions);
+            // No static answer key: drawn or asked.
             case com.cephadex.ambi.session.answer.payload.DrawingAnswer _ -> false;
             case com.cephadex.ambi.session.answer.payload.QAndAAnswer _ -> false;
             case com.cephadex.ambi.session.answer.payload.QAndAQuestions _ -> false;
         };
+    }
+
+    /**
+     * A follow-up pick is correct only on {@link FollowUpMode#SPOT_THE_ANSWER},
+     * and only when it lands on the candidate the mint seeded from the parent's
+     * authored answer. The other two modes ask which submission was best or most
+     * popular — questions with no right answer — so they keep grading false, and
+     * so does a {@code SPOT_THE_ANSWER} round whose parent had lost its answer
+     * key by mint time: nothing carries the flag, so nothing can be spotted.
+     *
+     * <p>The flag is read from the round's <em>saved</em> option set, the same
+     * board the pick was validated against, so grading can never disagree with
+     * what the participant saw.
+     */
+    private static boolean gradeFollowUp(FollowUpContent content, FollowUpAnswer answer,
+            FollowUpOptionSet followUpOptions) {
+        if (content.mode() != FollowUpMode.SPOT_THE_ANSWER
+                || followUpOptions == null || answer.optionId() == null) {
+            return false;
+        }
+        FollowUpOption picked = followUpOptions.byId(answer.optionId());
+        return picked != null && picked.authoredAnswer();
     }
 
     private static boolean gradeMcq(McqContent content, McqAnswer answer) {

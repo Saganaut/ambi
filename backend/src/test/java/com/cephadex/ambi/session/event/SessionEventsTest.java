@@ -163,8 +163,8 @@ class SessionEventsTest {
     /** Two candidates in board order, each carrying the (server-only) author it was minted from. */
     private static FollowUpOptionSet followUpCandidates() {
         return new FollowUpOptionSet(List.of(
-                new FollowUpOption("cand-1", "Minas Tirith", null, Set.of("player-writer-2")),
-                new FollowUpOption("cand-2", "Osgiliath", null, Set.of("player-writer-3"))));
+                new FollowUpOption("cand-1", "Minas Tirith", null, Set.of("player-writer-2"), false),
+                new FollowUpOption("cand-2", "Osgiliath", null, Set.of("player-writer-3"), false)));
     }
 
     // Participant-relevant fields set to distinctive values; host/scoring fields

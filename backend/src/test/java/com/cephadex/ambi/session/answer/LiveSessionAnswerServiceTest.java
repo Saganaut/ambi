@@ -679,9 +679,9 @@ class LiveSessionAnswerServiceTest {
     /** The round's saved board: {@code opt-a} is someone else's, {@code opt-mine} is the caller's. */
     private void givenFollowUpBoard() {
         when(followUpOptions.load(SID, SLIDE)).thenReturn(new FollowUpOptionSet(List.of(
-                new FollowUpOption("opt-a", "Paris", null, java.util.Set.of("someone-else")),
+                new FollowUpOption("opt-a", "Paris", null, java.util.Set.of("someone-else"), false),
                 new FollowUpOption("opt-mine", "Berlin", null,
-                        java.util.Set.of(participant.getParticipantId())))));
+                        java.util.Set.of(participant.getParticipantId()), false))));
     }
 
     private void givenLiveSession(AnswerSettings answer, SlideContent content) {

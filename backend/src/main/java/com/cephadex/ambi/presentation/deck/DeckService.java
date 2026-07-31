@@ -39,6 +39,7 @@ import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.RichTextSanitizer;
 import com.cephadex.ambi.presentation.slide.content.ScorableContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
+import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -221,6 +222,7 @@ public class DeckService {
             throw new ValidationException("Follow-up mode " + mode + " is not valid for a "
                     + parentContent.contentType() + " slide");
         }
+        requireAnswerKeyFor(mode, parentContent);
         if (deck.attachedFollowUp(parent).isPresent()) {
             throw new ConflictException("FOLLOW_UP_EXISTS", "Slide already has a follow-up");
         }
@@ -278,10 +280,13 @@ public class DeckService {
 
     /**
      * The follow-up guards on a content update. A follow-up keeps its kind (and
-     * a mode its parent's type supports); a regular slide can't become one (the
-     * dedicated endpoint is the only mint); a parent can't change to a content
-     * type its attached follow-up's mode doesn't support. There is no
-     * type-switching UI today, so these are defenses against API misuse.
+     * a mode its parent's type supports, with an answer key when the mode needs
+     * one); a regular slide can't become one (the dedicated endpoint is the only
+     * mint); a parent can't change to a content type — or, for an answer-key
+     * mode, to content — its attached follow-up's mode doesn't support. The mode
+     * change is the inspector's everyday path, so it enforces exactly what
+     * {@link #addFollowUpSlide} does; the type changes have no UI today and are
+     * defenses against API misuse.
      */
     private static void requireValidContentTransition(Deck deck, Slide slide, SlideContent next) {
         boolean isFollowUp = slide.getContent() instanceof FollowUpContent;
@@ -299,6 +304,7 @@ public class DeckService {
                     throw new ValidationException("Follow-up mode " + nextFollowUp.mode()
                             + " is not valid for a " + parent.getContent().contentType() + " slide");
                 }
+                requireAnswerKeyFor(nextFollowUp.mode(), parent.getContent());
             });
         }
         deck.attachedFollowUp(slide).ifPresent(child -> {
@@ -307,7 +313,34 @@ public class DeckService {
                 throw new ValidationException(
                         "Changing this slide's type would invalidate its follow-up; delete the follow-up first");
             }
+            if (next != null && childMode.requiresAnswerKey() && !hasAnswerKey(next)) {
+                throw new ValidationException(
+                        "Removing this slide's answer key would invalidate its follow-up, which hides that "
+                                + "answer among the submissions; change the follow-up's mode first");
+            }
         });
+    }
+
+    /**
+     * Rejects a follow-up mode that hides the parent's authored answer among the
+     * submissions ({@link FollowUpMode#requiresAnswerKey}) when the parent has no
+     * such answer to hide. {@code supportsParent} only settles the parent's
+     * <em>type</em>, and an unkeyed TEXT slide is a legitimate collect-only
+     * prompt, so this is the second half of the pairing rule — enforced wherever
+     * the pairing can change (the add endpoint, and the inspector's mode edit).
+     */
+    private static void requireAnswerKeyFor(FollowUpMode mode, SlideContent parentContent) {
+        if (mode.requiresAnswerKey() && !hasAnswerKey(parentContent)) {
+            throw new ValidationException("Follow-up mode " + mode
+                    + " needs a parent slide with an answer key; add accepted answers first");
+        }
+    }
+
+    /** Whether {@code content} carries an authored answer a follow-up could hide. */
+    private static boolean hasAnswerKey(SlideContent content) {
+        return content instanceof TextContent text
+                && text.acceptedAnswers() != null
+                && text.acceptedAnswers().stream().anyMatch(answer -> answer != null && !answer.isBlank());
     }
 
     /**

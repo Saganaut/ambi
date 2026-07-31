@@ -527,7 +527,7 @@ export type FollowUpOptionView = {
   imageUrl?: string;
 };
 export type FollowUpConfigView = {
-  mode?: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
+  mode?: "BEST_ANSWER_VOTE" | "PREDICT_POPULAR" | "SPOT_THE_ANSWER";
   parentSlideId?: string;
   parentTitle?: string;
   options?: FollowUpOptionView[];

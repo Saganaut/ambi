@@ -57,10 +57,17 @@ public class FollowUpOptionStore {
     /**
      * The round's candidates in board order, or {@link FollowUpOptionSet#empty()}
      * when the round never opened (or its snapshot has expired).
+     *
+     * <p>Read leniently ({@link RedisJsonCodec#deserializeLenient}) because this
+     * blob outlives a deploy — a set written before {@code authoredAnswer}
+     * existed can sit under its TTL for hours — and {@code false} is exactly
+     * what "no answer was seeded into this board" means, which is the truth for
+     * every set minted before the flag. It is the only primitive on the type,
+     * so nothing else can masquerade as a real zero.
      */
     public FollowUpOptionSet load(String sessionId, String slideId) {
         String json = redis.opsForValue().get(keys.followUpOptionsKey(sessionId, slideId));
-        return json == null ? FollowUpOptionSet.empty() : codec.deserialize(json, FollowUpOptionSet.class);
+        return json == null ? FollowUpOptionSet.empty() : codec.deserializeLenient(json, FollowUpOptionSet.class);
     }
 
     /** Removes the round's candidates (on a round re-open, or when the session ends). */

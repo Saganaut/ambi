@@ -59,6 +59,7 @@ type FollowUpMode = NonNullable<FollowUpConfigView["mode"]>;
 const FOLLOW_UP_MODE_PROMPTS = {
   BEST_ANSWER_VOTE: "Vote for the best answer",
   PREDICT_POPULAR: "Which answer do you think was most popular?",
+  SPOT_THE_ANSWER: "Which one is the real answer?",
 } satisfies Record<FollowUpMode, string>;
 
 /**

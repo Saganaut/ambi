@@ -32,6 +32,7 @@ import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
@@ -78,6 +79,15 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
  * authored items rather than the answer's map, because a {@code Map} payload has
  * no order to rely on and the key has to be stable; an answer entry naming an
  * item the content no longer has is simply never visited.
+ *
+ * <p>
+ * <strong>One mode also seeds the answer key.</strong>
+ * {@link FollowUpMode#SPOT_THE_ANSWER} mixes the TEXT parent's own authored
+ * answer into the submissions, keyed and merged exactly like one of them, and
+ * marks it {@link FollowUpOption#authoredAnswer()} — the single bit grading
+ * later reads, and the one thing about a candidate that must never travel to a
+ * client. Every other mode mints the same set it always did, so the mode
+ * reaches this class only to answer "does the answer key belong on this board?".
  */
 public final class FollowUpOptions {
 
@@ -118,7 +128,9 @@ public final class FollowUpOptions {
      * the parent's own answer-matching settings (see
      * {@link TextContent#normalize}), so "Paris" and " paris " become one
      * candidate that both submitters authored. The earliest submission supplies
-     * the display text;</li>
+     * the display text. On a {@link FollowUpMode#SPOT_THE_ANSWER} follow-up the
+     * parent's authored answer is seeded in as one more candidate — see
+     * {@link #withAuthoredAnswer};</li>
      * <li><strong>DRAWING parent</strong> — one candidate per submitted image
      * (an answer that never produced one is skipped);</li>
      * <li><strong>every other scorable parent</strong> — one candidate per
@@ -132,11 +144,14 @@ public final class FollowUpOptions {
      * @param parent        the parent slide of the follow-up (its
      *                      {@code childId} is the follow-up), or {@code null}
      * @param parentAnswers every answer the parent's round collected
+     * @param mode          what the follow-up asks — only
+     *                      {@link FollowUpMode#SPOT_THE_ANSWER} changes what is
+     *                      minted; {@code null} mints as an ordinary vote board
      * @param imageUrl      resolves a stored image to a URL the board can render
      *                      (the caller passes the presigner at the size it
      *                      projects at); may return {@code null}
      */
-    public static FollowUpOptionSet mint(Slide parent, List<Answer> parentAnswers,
+    public static FollowUpOptionSet mint(Slide parent, List<Answer> parentAnswers, FollowUpMode mode,
             Function<AppImage, String> imageUrl) {
         Objects.requireNonNull(parentAnswers, "parentAnswers required");
         Objects.requireNonNull(imageUrl, "imageUrl required");
@@ -145,7 +160,7 @@ public final class FollowUpOptions {
         }
         return switch (parent.getContent()) {
             case McqContent mcq -> fromMcq(mcq, imageUrl);
-            case TextContent text -> fromText(text, parentAnswers);
+            case TextContent text -> fromText(text, parentAnswers, mode);
             case DrawingContent _ -> fromDrawings(parentAnswers, imageUrl);
             case NumberContent number -> fromSummaries(parentAnswers,
                     NumberAnswer.class, answer -> summaryOf(number, answer));
@@ -180,7 +195,8 @@ public final class FollowUpOptions {
                     option.id(),
                     option.text(),
                     option.image() == null ? null : imageUrl.apply(option.image()),
-                    Set.of()));
+                    Set.of(),
+                    false));
         }
         return new FollowUpOptionSet(List.copyOf(options));
     }
@@ -189,9 +205,11 @@ public final class FollowUpOptions {
      * The submitted texts, merged on their normalized form. The first submission
      * of a group (answers are walked in submission order) fixes both the display
      * text — the raw wording its author typed, not the normalized key — and the
-     * group's position on the board.
+     * group's position on the board. On a {@link FollowUpMode#SPOT_THE_ANSWER}
+     * follow-up the parent's authored answer joins them (see
+     * {@link #withAuthoredAnswer}).
      */
-    private static FollowUpOptionSet fromText(TextContent content, List<Answer> answers) {
+    private static FollowUpOptionSet fromText(TextContent content, List<Answer> answers, FollowUpMode mode) {
         Map<String, Candidate> byNormalized = new LinkedHashMap<>();
         for (Answer answer : inSubmissionOrder(answers)) {
             if (!(answer.getPayload() instanceof TextAnswer text)) {
@@ -204,7 +222,108 @@ public final class FollowUpOptions {
             byNormalized.computeIfAbsent(content.normalize(raw), _ -> new Candidate(raw, null))
                     .addAuthor(answer.getParticipantId());
         }
-        return finish(byNormalized);
+        return finish(mode == FollowUpMode.SPOT_THE_ANSWER
+                ? withAuthoredAnswer(content, byNormalized)
+                : byNormalized);
+    }
+
+    /**
+     * The submissions with the parent's authored answer mixed in, for the one
+     * mode that hides the answer key on the board.
+     *
+     * <p><strong>Which wording.</strong> An answer key is a <em>set</em> of
+     * accepted answers, but only one card can stand for it, so the first
+     * non-blank entry in the set's iteration order is the representative. That
+     * order is fixed for a given stored slide (Jackson and MongoDB both hydrate
+     * a {@code Set} field as a {@code LinkedHashSet}, so it is the authored
+     * order), and a live session mints from one immutable deck snapshot — so
+     * every re-mint of a round reads the same wording, which is what
+     * re-mint determinism needs. Its {@link TextContent#normalize normalized}
+     * form is the key, exactly as for a submission; the card shows the authored
+     * wording, stripped — the one liberty taken with it, because stray padding
+     * would render as a visible tell no submitted card has.
+     *
+     * <p><strong>Merging.</strong> Keying it like a submission is the point: a
+     * participant who typed the authored answer lands on the same key, so the
+     * two become <em>one</em> card that is both the authored answer and theirs.
+     * It keeps the flag and gains them as authors — which also means the
+     * self-pick {@code 409} correctly stops them picking the card they wrote.
+     *
+     * <p><strong>Where it lands.</strong> Submissions sit in submission order,
+     * so seeding the answer at either end would make it the card everyone
+     * learns to look at; shuffling is not an option, because a re-mint has to
+     * reproduce the same board. The insertion index is therefore derived from
+     * the authored answer's own content hash, over {@code candidates + 1} slots
+     * — stable across mints, but unguessable without knowing the answer, which
+     * is precisely the secret. A merged answer is not moved at all: its
+     * position was already fixed by the submission it merged with, which leaks
+     * nothing.
+     *
+     * <p><strong>Degradation.</strong> A parent whose answer key was emptied
+     * after the follow-up was attached seeds nothing and mints exactly as
+     * {@code BEST_ANSWER_VOTE} would; no candidate carries the flag, so the
+     * round simply scores nobody.
+     */
+    private static Map<String, Candidate> withAuthoredAnswer(TextContent content,
+            Map<String, Candidate> byNormalized) {
+        String authored = representativeAnswer(content);
+        if (authored == null) {
+            return byNormalized;
+        }
+        String key = content.normalize(authored);
+        if (key == null || key.isEmpty()) {
+            return byNormalized;
+        }
+        Candidate merged = byNormalized.get(key);
+        if (merged != null) {
+            merged.markAuthoredAnswer();
+            return byNormalized;
+        }
+        Candidate seed = new Candidate(authored.strip(), null);
+        seed.markAuthoredAnswer();
+        int at = seedPosition(key, byNormalized.size());
+        Map<String, Candidate> seeded = new LinkedHashMap<>();
+        int position = 0;
+        for (Map.Entry<String, Candidate> entry : byNormalized.entrySet()) {
+            if (position == at) {
+                seeded.put(key, seed);
+            }
+            seeded.put(entry.getKey(), entry.getValue());
+            position++;
+        }
+        // at == byNormalized.size(): the seed lands after the last submission.
+        seeded.putIfAbsent(key, seed);
+        return seeded;
+    }
+
+    /**
+     * The accepted answer that stands for the whole key on the board: the first
+     * non-blank one in iteration order, or {@code null} when the parent carries
+     * no answer key at all.
+     */
+    private static String representativeAnswer(TextContent content) {
+        Set<String> accepted = content.acceptedAnswers();
+        if (accepted == null) {
+            return null;
+        }
+        for (String candidate : accepted) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Where the seeded answer slots in among {@code candidateCount} submissions:
+     * a slot in {@code [0, candidateCount]} derived from the answer's own
+     * {@link #derivedId} — the same content hash the card's id comes from, so
+     * the position is a pure function of the authored wording and a re-mint over
+     * the same submissions reproduces it. {@link String#hashCode} is specified
+     * by the platform, so the placement is stable across JVMs too.
+     */
+    private static int seedPosition(String key, int candidateCount) {
+        return Math.floorMod(derivedId(key).hashCode(), candidateCount + 1);
     }
 
     /**
@@ -554,6 +673,7 @@ public final class FollowUpOptions {
         private final String text;
         private final String imageUrl;
         private final Set<String> authors = new LinkedHashSet<>();
+        private boolean authoredAnswer;
 
         private Candidate(String text, String imageUrl) {
             this.text = text;
@@ -566,8 +686,17 @@ public final class FollowUpOptions {
             }
         }
 
+        /**
+         * Marks this the parent's authored answer. Set on the seeded candidate,
+         * or on the submission it merged with — a card can be both, and stays
+         * both: the flag is never cleared by a later submission joining it.
+         */
+        private void markAuthoredAnswer() {
+            this.authoredAnswer = true;
+        }
+
         private FollowUpOption toOption(String key) {
-            return new FollowUpOption(derivedId(key), text, imageUrl, Set.copyOf(authors));
+            return new FollowUpOption(derivedId(key), text, imageUrl, Set.copyOf(authors), authoredAnswer);
         }
     }
 }

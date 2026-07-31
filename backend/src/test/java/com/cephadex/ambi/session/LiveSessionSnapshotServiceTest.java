@@ -277,8 +277,8 @@ class LiveSessionSnapshotServiceTest {
                 "pub-1", RoundPhase.SUBMIT, "slide-followup", Instant.parse("2026-07-01T10:00:00Z"), null, null,
                 0L, false)));
         when(followUpOptions.load(SID, "slide-followup")).thenReturn(new FollowUpOptionSet(List.of(
-                new FollowUpOption("cand-1", "Minas Tirith", null, Set.of("player-2")),
-                new FollowUpOption("cand-2", "Osgiliath", null, Set.of("host-1")))));
+                new FollowUpOption("cand-1", "Minas Tirith", null, Set.of("player-2"), false),
+                new FollowUpOption("cand-2", "Osgiliath", null, Set.of("host-1"), false))));
     }
 
     @Test

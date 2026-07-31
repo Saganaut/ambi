@@ -191,8 +191,7 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
   const addFollowUp = (parentSlideId: string, mode?: FollowUpMode) => {
     const parent = slides.find((slide) => slide.id === parentSlideId);
     if (!parent) return;
-    const resolvedMode =
-      mode ?? followUpModesFor(parent.content.contentType)[0];
+    const resolvedMode = mode ?? followUpModesFor(parent.content)[0];
     if (!resolvedMode) return;
     const newId = attachFollowUp(parentSlideId, resolvedMode);
     selectSlide(newId);

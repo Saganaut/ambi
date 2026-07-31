@@ -32,7 +32,7 @@ const FollowUpOptionsSection = () => {
 
   const parent = slide.parentId ? getSlide(slide.parentId) : undefined;
   const validModes = parent
-    ? followUpModesFor(parent.content.contentType)
+    ? followUpModesFor(parent.content)
     : [slide.content.mode];
 
   return (

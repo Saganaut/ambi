@@ -64,7 +64,7 @@ class FollowUpOptionStoreTest {
     @Test
     void saveWritesOneJsonValueUnderTheRoundKeyWithTheConfiguredTtl() {
         optionStore.save(SID, SLIDE, new FollowUpOptionSet(List.of(
-                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1")))));
+                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1"), false))));
 
         assertThat(store).containsOnlyKeys(KEY);
         assertThat(store.get(KEY)).contains("\"optionId\":\"opt-1\"");
@@ -74,8 +74,8 @@ class FollowUpOptionStoreTest {
     @Test
     void loadRoundTripsBoardOrderAndAuthorSets() {
         optionStore.save(SID, SLIDE, new FollowUpOptionSet(List.of(
-                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1", "p-2")),
-                new FollowUpOption("opt-2", null, "https://cdn/two.png", Set.of("p-3")))));
+                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1", "p-2"), false),
+                new FollowUpOption("opt-2", null, "https://cdn/two.png", Set.of("p-3"), false))));
 
         List<FollowUpOption> back = optionStore.load(SID, SLIDE).options();
 
@@ -90,9 +90,9 @@ class FollowUpOptionStoreTest {
     @Test
     void saveReplacesTheEarlierMintRatherThanMergingIt() {
         optionStore.save(SID, SLIDE, new FollowUpOptionSet(List.of(
-                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1")))));
+                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1"), false))));
         optionStore.save(SID, SLIDE, new FollowUpOptionSet(List.of(
-                new FollowUpOption("opt-2", "Beta", null, Set.of("p-2")))));
+                new FollowUpOption("opt-2", "Beta", null, Set.of("p-2"), false))));
 
         assertThat(optionStore.load(SID, SLIDE).options())
                 .extracting(option -> option.optionId()).containsExactly("opt-2");
@@ -101,7 +101,7 @@ class FollowUpOptionStoreTest {
     @Test
     void clearRemovesTheRoundsCandidates() {
         optionStore.save(SID, SLIDE, new FollowUpOptionSet(List.of(
-                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1")))));
+                new FollowUpOption("opt-1", "Alpha", null, Set.of("p-1"), false))));
 
         optionStore.clear(SID, SLIDE);
 

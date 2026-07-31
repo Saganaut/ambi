@@ -11,6 +11,7 @@
  */
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import type { FollowUpMode } from "@deck/store/deckEnums.gen";
 import { FOLLOW_UP_MODE_LABELS, linkedParentOf } from "@deck/utils/followUp";
 import React, { useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
@@ -23,6 +24,19 @@ const parentDisplayName = (title: string | undefined): string => {
   const trimmed = title?.trim() ?? "";
   return trimmed === "" ? "the previous slide" : `“${trimmed}”`;
 };
+
+/**
+ * Caption under the ghosted MCQ option preview, one per mode. Currently only
+ * reachable for an MCQ parent (`PREDICT_POPULAR`/`BEST_ANSWER_VOTE`) — a
+ * `SPOT_THE_ANSWER` parent is `TEXT`, so it renders the placeholder branch
+ * below instead — but typed `satisfies Record<FollowUpMode, string>` so a
+ * future mode with an MCQ-eligible parent can't silently miss a caption.
+ */
+const GHOST_CAPTIONS = {
+  PREDICT_POPULAR: "Participants will predict which of these was picked most in",
+  BEST_ANSWER_VOTE: "Participants will vote for the best of the answers given in",
+  SPOT_THE_ANSWER: "Participants will try to spot the authored answer among those given in",
+} as const satisfies Record<FollowUpMode, string>;
 
 const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { slide, updateMetadata, flush } = useSlideEditor(deckId, slideId, "FOLLOW_UP");
@@ -54,10 +68,15 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   // modes. Free-form parents have nothing to preview until the session runs.
   const parentMcqOptions =
     parent?.content.contentType === "MCQ" ? parent.content.options : undefined;
-  const ghostCaption =
-    mode === "PREDICT_POPULAR"
-      ? "Participants will predict which of these was picked most in"
-      : "Participants will vote for the best of the answers given in";
+  const ghostCaption = GHOST_CAPTIONS[mode];
+  // SPOT_THE_ANSWER's parent is always TEXT (never MCQ), so it never hits the
+  // ghosted-options branch below — its preview is this placeholder, worded to
+  // name the authored answer that gets mixed in, unlike the generic wording
+  // every other free-form parent gets.
+  const placeholder =
+    mode === "SPOT_THE_ANSWER"
+      ? "Participants’ submissions, plus the authored correct answer, become the options here."
+      : "Participants’ submissions on the parent slide become the options here.";
 
   return (
     <SlideWrapper
@@ -106,9 +125,7 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 </p>
               </>
             ) : (
-              <div className={styles.ghostPlaceholder}>
-                Participants&apos; submissions on the parent slide become the options here.
-              </div>
+              <div className={styles.ghostPlaceholder}>{placeholder}</div>
             )}
           </SlideContentSection.Body>
         </SlideContentSection>

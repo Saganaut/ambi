@@ -19,6 +19,7 @@ import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.session.answer.Answer;
@@ -37,6 +38,9 @@ class FollowUpOptionsTest {
     private static final Instant START = Instant.parse("2026-01-01T00:00:00Z");
     private static final Function<AppImage, String> URLS = image -> "https://cdn/" + image.getSrcKey();
 
+    /** The mode every case below mints under; only SPOT_THE_ANSWER changes what is minted. */
+    private static final FollowUpMode VOTE = FollowUpMode.BEST_ANSWER_VOTE;
+
     @Test
     void mcqParentMintsTheAuthoredChoicesVerbatimAndInOrder() {
         Slide parent = slideWith(mcq(
@@ -44,7 +48,7 @@ class FollowUpOptionsTest {
                 option("opt-b", "Beta", null)));
 
         List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
-                answer("p-1", new McqAnswer(Set.of("opt-a")), 100)), URLS).options();
+                answer("p-1", new McqAnswer(Set.of("opt-a")), 100)), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.optionId()).containsExactly("opt-a", "opt-b");
         assertThat(options).extracting(option -> option.text()).containsExactly("Alpha", "Beta");
@@ -56,7 +60,7 @@ class FollowUpOptionsTest {
     void mcqImageChoiceResolvesItsUrl() {
         Slide parent = slideWith(mcq(option("opt-a", null, image("s3/alpha.png"))));
 
-        FollowUpOption minted = FollowUpOptions.mint(parent, List.of(), URLS).options().get(0);
+        FollowUpOption minted = FollowUpOptions.mint(parent, List.of(), VOTE, URLS).options().get(0);
 
         assertThat(minted.imageUrl()).isEqualTo("https://cdn/s3/alpha.png");
     }
@@ -68,7 +72,7 @@ class FollowUpOptionsTest {
         List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
                 answer("p-1", new TextAnswer("Paris"), 100),
                 answer("p-2", new TextAnswer("  paris "), 200),
-                answer("p-3", new TextAnswer("Lyon"), 300)), URLS).options();
+                answer("p-3", new TextAnswer("Lyon"), 300)), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.text()).containsExactly("Paris", "Lyon");
         assertThat(options.get(0).authorParticipantIds()).containsExactlyInAnyOrder("p-1", "p-2");
@@ -81,7 +85,7 @@ class FollowUpOptionsTest {
 
         List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
                 answer("p-1", new TextAnswer("Paris"), 100),
-                answer("p-2", new TextAnswer(" paris "), 200)), URLS).options();
+                answer("p-2", new TextAnswer(" paris "), 200)), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.text()).containsExactly("Paris", " paris ");
     }
@@ -92,7 +96,7 @@ class FollowUpOptionsTest {
 
         List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
                 answer("p-2", new TextAnswer("PARIS"), 500),
-                answer("p-1", new TextAnswer("Paris"), 100)), URLS).options();
+                answer("p-1", new TextAnswer("Paris"), 100)), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.text()).containsExactly("Paris");
     }
@@ -105,7 +109,7 @@ class FollowUpOptionsTest {
                 answer("p-1", new TextAnswer("   "), 100),
                 answer("p-2", new TextAnswer(null), 200),
                 answer("p-3", new McqAnswer(Set.of("opt-a")), 300),
-                answer("p-4", new TextAnswer("Lyon"), 400)), URLS).options();
+                answer("p-4", new TextAnswer("Lyon"), 400)), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.text()).containsExactly("Lyon");
         assertThat(options.get(0).authorParticipantIds()).containsExactly("p-4");
@@ -118,7 +122,7 @@ class FollowUpOptionsTest {
         List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
                 answer("p-b", new TextAnswer("second"), 200),
                 answer("p-c", new TextAnswer("tie-late"), 100),
-                answer("p-a", new TextAnswer("tie-early"), 100)), URLS).options();
+                answer("p-a", new TextAnswer("tie-early"), 100)), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.text())
                 .containsExactly("tie-early", "tie-late", "second");
@@ -131,7 +135,7 @@ class FollowUpOptionsTest {
         List<FollowUpOption> options = FollowUpOptions.mint(parent, List.of(
                 answer("p-1", new DrawingAnswer(image("s3/one.png")), 100),
                 answer("p-2", new DrawingAnswer(null), 200),
-                answer("p-3", new DrawingAnswer(image("s3/three.png")), 300)), URLS).options();
+                answer("p-3", new DrawingAnswer(image("s3/three.png")), 300)), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.imageUrl())
                 .containsExactly("https://cdn/s3/one.png", "https://cdn/s3/three.png");
@@ -147,8 +151,8 @@ class FollowUpOptionsTest {
                 answer("p-2", new TextAnswer("beta"), 200),
                 answer("p-1", new TextAnswer("alpha"), 100));
 
-        FollowUpOptionSet first = FollowUpOptions.mint(parent, answers, URLS);
-        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.copyOf(answers), URLS);
+        FollowUpOptionSet first = FollowUpOptions.mint(parent, answers, VOTE, URLS);
+        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.copyOf(answers), VOTE, URLS);
 
         assertThat(second.options()).extracting(option -> option.optionId())
                 .containsExactlyElementsOf(first.options().stream().map(option -> option.optionId()).toList());
@@ -162,8 +166,8 @@ class FollowUpOptionsTest {
         Answer lyon = answer("p-3", new TextAnswer("Lyon"), 200);
         Answer parisLate = answer("p-2", new TextAnswer("paris"), 300);
 
-        FollowUpOptionSet first = FollowUpOptions.mint(parent, List.of(parisEarly, lyon, parisLate), URLS);
-        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.of(parisLate, parisEarly, lyon), URLS);
+        FollowUpOptionSet first = FollowUpOptions.mint(parent, List.of(parisEarly, lyon, parisLate), VOTE, URLS);
+        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.of(parisLate, parisEarly, lyon), VOTE, URLS);
 
         assertThat(first.options()).extracting(option -> option.text()).containsExactly("Paris", "Lyon");
         assertThat(second.options()).isEqualTo(first.options());
@@ -178,8 +182,8 @@ class FollowUpOptionsTest {
         Answer two = answer("p-2", new DrawingAnswer(image("s3/two.png")), 200);
         Answer duplicateOfOne = answer("p-3", new DrawingAnswer(image("s3/one.png")), 300);
 
-        FollowUpOptionSet first = FollowUpOptions.mint(parent, List.of(one, two, duplicateOfOne), URLS);
-        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.of(duplicateOfOne, one, two), URLS);
+        FollowUpOptionSet first = FollowUpOptions.mint(parent, List.of(one, two, duplicateOfOne), VOTE, URLS);
+        FollowUpOptionSet second = FollowUpOptions.mint(parent, List.of(duplicateOfOne, one, two), VOTE, URLS);
 
         assertThat(second.options()).isEqualTo(first.options());
         assertThat(second.options()).extracting(option -> option.optionId())
@@ -194,7 +198,7 @@ class FollowUpOptionsTest {
         Answer nullSubmittedAtAndParticipant = answerWithNullSubmittedAt(null, new TextAnswer("null-participant"));
 
         List<FollowUpOption> options = FollowUpOptions.mint(parent,
-                List.of(nullSubmittedAtAndParticipant, nullSubmittedAt, first), URLS).options();
+                List.of(nullSubmittedAtAndParticipant, nullSubmittedAt, first), VOTE, URLS).options();
 
         assertThat(options).extracting(option -> option.text())
                 .containsExactly("first", "null-submitted-at", "null-participant");
@@ -202,14 +206,15 @@ class FollowUpOptionsTest {
 
     @Test
     void unsupportedParentKindAndNoParentMintNothing() {
-        assertThat(FollowUpOptions.mint(slideWith(new QAndAContent(null, false)), List.of(), URLS).options())
+        assertThat(FollowUpOptions.mint(slideWith(new QAndAContent(null, false)), List.of(), VOTE, URLS).options())
                 .isEmpty();
-        assertThat(FollowUpOptions.mint(null, List.of(), URLS).options()).isEmpty();
+        assertThat(FollowUpOptions.mint(null, List.of(), VOTE, URLS).options()).isEmpty();
     }
 
     @Test
     void byIdFindsAMintedOptionAndReturnsNullOtherwise() {
-        FollowUpOptionSet set = FollowUpOptions.mint(slideWith(mcq(option("opt-a", "Alpha", null))), List.of(), URLS);
+        FollowUpOptionSet set = FollowUpOptions.mint(
+                slideWith(mcq(option("opt-a", "Alpha", null))), List.of(), VOTE, URLS);
 
         assertThat(set.byId("opt-a")).isNotNull();
         assertThat(set.byId("nope")).isNull();

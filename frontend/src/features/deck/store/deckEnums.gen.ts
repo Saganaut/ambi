@@ -96,10 +96,11 @@ export const ResultsDisplayMode = {
   ROUND_END: "ROUND_END",
 } as const satisfies Record<ResultsDisplayMode, ResultsDisplayMode>;
 
-export type FollowUpMode = "BEST_ANSWER_VOTE" | "PREDICT_POPULAR";
+export type FollowUpMode = "BEST_ANSWER_VOTE" | "PREDICT_POPULAR" | "SPOT_THE_ANSWER";
 export const FollowUpMode = {
   BEST_ANSWER_VOTE: "BEST_ANSWER_VOTE",
   PREDICT_POPULAR: "PREDICT_POPULAR",
+  SPOT_THE_ANSWER: "SPOT_THE_ANSWER",
 } as const satisfies Record<FollowUpMode, FollowUpMode>;
 
 export const FOLLOW_UP_MODE_LIST = Object.values(FollowUpMode) as FollowUpMode[];
