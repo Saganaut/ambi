@@ -120,8 +120,9 @@ class RoundScorerTest {
                 outcome -> outcome.participantId().equals(spotter.getParticipantId()))
                 .singleElement()
                 .satisfies(outcome -> assertThat(outcome.correct()).isTrue());
-        // The drawer's own card drew a pick from someone else — a self-pick, so
-        // it pays nothing; picking their own card also grades incorrect.
+        // The drawer picks their own card — a self-pick, so it earns no deception
+        // credit (followUpPicksByAuthor excludes author == picker), and it grades
+        // incorrect regardless since only the seeded card carries authoredAnswer.
         assertThat(drawer.getScore().getPoints()).isZero();
     }
 
