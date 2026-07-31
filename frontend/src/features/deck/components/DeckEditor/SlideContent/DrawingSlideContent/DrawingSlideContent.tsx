@@ -70,9 +70,15 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   const pickImage = () => {
     editor.flush();
-    // "source" keeps the upload's own aspect ratio; ALONGSIDE display shows it
-    // as-is, and BACKGROUND cover-fits it onto the square canvas at draw time.
-    openPicker(editor.setImagePrompt, { title: "Prompt image", cropAspect: "source" });
+    // Prompt images are square: BACKGROUND lays one under the strokes on the
+    // 1:1 canvas, so anything else would be clipped there and mismatch the
+    // drawn-here path. Uploads and gallery picks alike crop to that frame.
+    openPicker(editor.setImagePrompt, {
+      title: "Prompt image",
+      cropWidth: 1,
+      cropHeight: 1,
+      cropGalleryPicks: true,
+    });
   };
 
   const drawImage = () => {

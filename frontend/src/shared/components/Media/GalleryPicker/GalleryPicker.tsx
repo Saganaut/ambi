@@ -21,9 +21,8 @@
 // are the paginated sub-resource (`GET /api/galleries/{id}/images`). Callers that
 // target a fixed-shape slot (deck/slide background, avatar, …) pass cropWidth +
 // cropHeight to constrain the Upload tab's crop box; it defaults to 16:9. A
-// caller whose slot takes the image's own shape (Place-on-Image's backing
-// image) passes cropAspect="source" instead, so uploads keep their aspect
-// ratio rather than being clipped to a frame.
+// caller with no fixed frame to fill passes cropAspect="source" instead, so
+// each upload keeps its own aspect ratio rather than being clipped to one.
 //
 // Those aspects only ever constrained the Upload tab, so a Gallery-tab pick
 // could still drop an arbitrarily shaped image into a fixed-shape slot. Callers

@@ -4,7 +4,8 @@
  * inside any target circle. The normalized coordinate plumbing is identical
  * to Axis but invisible here — no endpoint labels, no item bank; the image IS
  * the plane, rendered at its intrinsic aspect ratio so authored targets sit
- * exactly where players will see them.
+ * exactly where players will see them. That plane is square: backing images
+ * are cropped to 1:1 on upload and on gallery pick.
  *
  * Layout (mirrors Axis):
  *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
@@ -70,9 +71,15 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   const pickImage = () => {
     editor.flush();
-    // "source" keeps an upload's own aspect ratio — the placement surface
-    // renders the image at its intrinsic shape, so no frame to crop to.
-    openPicker(editor.setImage, { title: "Backing image", cropAspect: "source" });
+    // Backing images are square, so authored target coordinates land on the
+    // same plane every player sees regardless of the source's shape. Uploads
+    // and gallery picks alike crop to that frame.
+    openPicker(editor.setImage, {
+      title: "Backing image",
+      cropWidth: 1,
+      cropHeight: 1,
+      cropGalleryPicks: true,
+    });
   };
 
   const footer = hasImage ? (

@@ -5,12 +5,11 @@
 // `croppedAreaPixels` already in the source image's natural-pixel space, so the
 // area we hand back can be fed straight to `getCroppedBlob`.
 //
-// Callers whose slot has no shape of its own (Place-on-Image's backing image)
-// pass `aspect: "source"`: the crop box takes the uploaded image's own aspect
-// ratio, so at zoom 1 it covers the whole image and nothing is clipped unless
-// the user zooms in deliberately. react-easy-crop only crops to a fixed
-// numeric aspect, so "source" resolves to the natural ratio once the media
-// loads.
+// Callers whose slot has no shape of its own pass `aspect: "source"`: the crop
+// box takes the uploaded image's own aspect ratio, so at zoom 1 it covers the
+// whole image and nothing is clipped unless the user zooms in deliberately.
+// react-easy-crop only crops to a fixed numeric aspect, so "source" resolves to
+// the natural ratio once the media loads.
 import { useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area, MediaSize, Point } from "react-easy-crop";
