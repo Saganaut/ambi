@@ -59,9 +59,29 @@
     }
 
     .imgThumbnail {
+      position: relative;
       display: flex;
       align-items: end;
       transition: background-color var(--duration-base) var(--ease-out);
+
+      /* Overlaid remove-image button — the direct path the popover menu's
+         "Remove image" row duplicates. Hidden until the thumbnail is hovered
+         or the button itself takes focus, so it never sits over the artwork
+         while the author is just reading the card. */
+      button.imageClear {
+        position: absolute;
+        top: var(--space-1);
+        right: var(--space-1);
+        background: var(--bg-surface-raised);
+        border-radius: var(--radius-full);
+        opacity: 0;
+        transition: opacity var(--duration-fast) var(--ease-out);
+      }
+
+      &:hover button.imageClear,
+      &:focus-within button.imageClear {
+        opacity: 1;
+      }
 
       img {
         border-radius: var(--radius-md);

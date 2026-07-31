@@ -16,6 +16,8 @@ interface DefaultResultsDisplayProps {
   canAddOption: boolean;
   renderLabelWithMenu?: (datum: ChartDatum) => ReactNode;
   renderMenu?: (datum: ChartDatum) => ReactNode;
+  /** Clears an option's image straight from its thumbnail. */
+  onClearImage?: (optionId: string) => void;
 }
 
 const DefaultResultsDisplay = ({
@@ -25,6 +27,7 @@ const DefaultResultsDisplay = ({
   onReorder,
   addOption,
   canAddOption,
+  onClearImage,
 }: DefaultResultsDisplayProps) => {
   const denominator = data.reduce((sum, datum) => sum + datum.value, 0);
   const highestValue = Math.max(1, ...data.map((datum) => datum.value));
@@ -43,6 +46,7 @@ const DefaultResultsDisplay = ({
             renderLabelWithMenu={renderLabelWithMenu}
             isCorrect={option.isCorrect ?? false}
             displayAsPercentage={displayAsPercentage}
+            onClearImage={onClearImage}
           />
         ))}
         {canAddOption && <CanAddOptionCard addOption={addOption} />}

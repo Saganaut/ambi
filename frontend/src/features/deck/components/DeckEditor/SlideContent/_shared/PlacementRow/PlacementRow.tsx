@@ -1,7 +1,8 @@
 /**
  * The one row every item-bank slide editor lists — Axis, Grid, Ranking, and
  * Place-on-Image. Left to right: the colored index pill, the item's image
- * thumbnail when it has one, the editable label field with its popover menu,
+ * thumbnail when it has one (with a hover-revealed remove button mirroring the
+ * menu's "Remove image" row), the editable label field with its popover menu,
  * an optional trailing meta slot (e.g. Grid's cell name), the "answer set"
  * check, and the drag grip.
  *
@@ -36,7 +37,9 @@ import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import CheckIcon from "@assets/icons/status/check-solid.svg?react";
 import DragIcon from "@assets/icons/action/drag.svg?react";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { resolveImageUrl } from "@utils/image";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import { emptyImage, resolveImageUrl } from "@utils/image";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { ItemField } from "../ItemField/ItemField";
 import type { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
@@ -171,7 +174,23 @@ const BaseRow = ({
       onPointerDown={onPointerDown}
     >
       <IndexPill value={displayIndex} color={color} />
-      {thumbnailSrc && <img className={styles.thumbnail} src={thumbnailSrc} alt="" />}
+      {thumbnailSrc && (
+        <span className={styles.thumbnailWrap}>
+          <img className={styles.thumbnail} src={thumbnailSrc} alt="" />
+          <IconBtn
+            fill="ghost"
+            size="xs"
+            className={styles.thumbnailClear}
+            icon={<XMarkIcon />}
+            aria-label={`Remove ${itemNoun.toLowerCase()} ${displayIndex.toString()} image`}
+            onClick={(e) => {
+              // Clicking anywhere on the row selects it — clearing must not.
+              e.stopPropagation();
+              onSetImage(emptyImage());
+            }}
+          />
+        </span>
+      )}
       {/* `ItemField`'s own wrapper is the flexible child — it takes the row's
           remaining width and anchors the popover. */}
       <ItemField

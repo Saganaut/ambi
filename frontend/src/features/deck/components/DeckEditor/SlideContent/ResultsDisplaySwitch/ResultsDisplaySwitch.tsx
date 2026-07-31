@@ -17,6 +17,7 @@ import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart"
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
 import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
 import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
+import { emptyImage } from "@utils/image";
 import { ReactNode } from "react";
 import { DefaultResultsDisplay } from "../McqSlideContent/DefaultResultsDisplay";
 
@@ -63,7 +64,16 @@ const ResultsDisplaySwitch = ({
 
   switch (viz) {
     case "NONE":
-      return <DefaultResultsDisplay {...sharedProps} />;
+      // Only the editable card surface offers an inline remove-image button;
+      // the chart renderers below display results and never edit an option.
+      return (
+        <DefaultResultsDisplay
+          {...sharedProps}
+          onClearImage={(optionId) => {
+            editor.setOptionImage(optionId, emptyImage());
+          }}
+        />
+      );
     case "PIE":
       return <PieChart variant="pie" {...sharedProps} />;
     case "DONUT":

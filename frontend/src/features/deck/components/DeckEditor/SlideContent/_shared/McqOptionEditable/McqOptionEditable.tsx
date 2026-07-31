@@ -3,13 +3,24 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types";
 import { CorrectBadge } from "@/shared/components/Charts/CorrectBadge/CorrectBadge";
 import { numberToLetter } from "@/shared/utils/utils";
-import { PlusCircleIcon } from "@heroicons/react/24/outline";
+import { PlusCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { IndexPill } from "../IndexPill/IndexPill";
 import styles from "./McqOptionEditable.module.css";
 import { resolveOptionColor } from "./optionColor";
 
-type DefaultNoChartSegmentProps = ChartSegmentRenderProps;
+/**
+ * The editable card carries one handler the read-only chart segments don't:
+ * clearing the option's image from the thumbnail itself. It stays optional (and
+ * off `ChartSegmentRenderProps`) so the display-only chart renderers keep their
+ * shared shape.
+ */
+interface McqOptionEditableProps extends ChartSegmentRenderProps {
+  /** Clears the option's image; omit to render the thumbnail read-only. */
+  onClearImage?: (datumId: string) => void;
+}
+
 const McqOptionEditable = ({
   sortIndex,
   displayAsPercentage,
@@ -18,7 +29,8 @@ const McqOptionEditable = ({
   highestValue,
   denominator,
   isCorrect = false,
-}: DefaultNoChartSegmentProps) => {
+  onClearImage,
+}: McqOptionEditableProps) => {
   const { ref: sortableRef, isDragging } = useSortable({
     id: datum.id,
     index: sortIndex,
@@ -57,7 +69,27 @@ const McqOptionEditable = ({
           )}
         </div>
         <div className={styles.imgThumbnail} style={thumbnailSrc ? {} : { backgroundColor: color }}>
-          {thumbnailSrc && <img src={thumbnailSrc} alt="" />}
+          {thumbnailSrc && (
+            <>
+              <img src={thumbnailSrc} alt="" />
+              {onClearImage && (
+                <IconBtn
+                  fill="ghost"
+                  size="xs"
+                  className={styles.imageClear}
+                  icon={<XMarkIcon />}
+                  // Uppercased to match the pill, which capitalizes in CSS.
+                  aria-label={`Remove option ${numberToLetter(displayIndex).toUpperCase()} image`}
+                  onClick={(e) => {
+                    // The card is a click/sort target — clearing must not also
+                    // select or drag it.
+                    e.stopPropagation();
+                    onClearImage(datum.id);
+                  }}
+                />
+              )}
+            </>
+          )}
         </div>
       </div>
       <div className={styles.bottomRow}>

@@ -23,7 +23,7 @@
  * (the whole Matching pair, the one Grid item) is the caller's: it supplies
  * the handler and the enable flag.
  */
-import { ArrowsRightLeftIcon, PhotoIcon } from "@heroicons/react/24/outline";
+import { ArrowsRightLeftIcon, PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState, type CSSProperties, type HTMLProps, type ReactNode } from "react";
 
 import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
@@ -235,6 +235,22 @@ const PhraseOrImageCard = ({
                 onBlur={onFlush}
                 aria-haspopup="dialog"
                 aria-expanded={menuOpen}
+              />
+            )}
+            {/* Sibling of the image slot, never nested inside it: the slot is
+                itself a button. Same clear the menu's "Remove image" row runs,
+                so the card falls back to its phrase face. */}
+            {hasImage && (
+              <IconBtn
+                fill="ghost"
+                size="xs"
+                className={styles.imageClear}
+                icon={<XMarkIcon />}
+                aria-label={`Remove ${itemName} image`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClearImage();
+                }}
               />
             )}
           </div>

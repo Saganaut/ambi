@@ -32,13 +32,43 @@
   min-width: 0;
 }
 
-/* Thumbnail of the option's authored image (set via the row's menu). */
+/* The option's authored image plus the overlaid remove button it hosts.
+   Picking still goes through the row's menu; only clearing is offered here,
+   the menu's "Remove image" row staying as the redundant path. */
+.optionThumbnailWrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
 .optionThumbnail {
   flex: none;
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-sm);
   object-fit: cover;
+}
+
+/* Sized below the DS `xs` icon button (28px) and nudged past the corner: at the
+   thumbnail's 32px an xs chip would blanket the artwork it is meant to sit on.
+   Hidden until the thumbnail is hovered or the button takes focus. */
+button.optionThumbnailClear {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  right: calc(var(--space-1) * -1);
+  width: var(--space-5);
+  height: var(--space-5);
+  padding: var(--p-square-xxs);
+  background: var(--bg-surface-raised);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.optionThumbnailWrap:hover button.optionThumbnailClear,
+.optionThumbnailWrap:focus-within button.optionThumbnailClear {
+  opacity: 1;
 }
 
 /* The numeric answer field with its clear button, kept from stretching. */

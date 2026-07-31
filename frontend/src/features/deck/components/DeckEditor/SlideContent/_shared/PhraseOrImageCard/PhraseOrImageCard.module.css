@@ -85,8 +85,11 @@
 
 /* Wraps the card's face (phrase field or image slot) so it can serve as the
    popover's anchor element (FloatingPopover measures this box to place the
-   menu). Fills the face's slot in the card column so layout is unchanged. */
+   menu). Fills the face's slot in the card column so layout is unchanged. It
+   also hosts the remove-image button, which has to be a sibling of the image
+   slot rather than a child — the slot is itself a button. */
 .triggerWrap {
+  position: relative;
   display: flex;
   flex: 1;
   min-width: 0;
@@ -94,4 +97,22 @@
   & > * {
     flex: 1;
   }
+}
+
+/* Overlaid remove-image button, the direct twin of the menu's "Remove image"
+   row. Hidden until the face is hovered or it takes focus. Absolute
+   positioning takes it out of flow, so the `flex: 1` above never applies. */
+button.imageClear {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  background: var(--bg-surface-raised);
+  border-radius: var(--radius-full);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.triggerWrap:hover button.imageClear,
+.triggerWrap:focus-within button.imageClear {
+  opacity: 1;
 }

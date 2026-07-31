@@ -2,7 +2,8 @@
  * Single-row editor for an Allocation option: the palette-colored index
  * badge, the label field with its popover menu (the shared `ItemField` —
  * focus-opened: palette/custom color, image, delete), an image thumbnail
- * when one is set, and the option's share of the answer key. A scored option
+ * when one is set (carrying a hover-revealed remove button that mirrors the
+ * menu's "Remove image" row), and the option's share of the answer key. A scored option
  * shows a numeric "Answer" field (0…pool) with an X to clear it; an unscored
  * one shows the "Set answer" seed — Scales' per-statement scoring pattern.
  * An option with an answer gets the success-tinted outline via `ItemCard`'s
@@ -24,7 +25,7 @@ import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
 import { ALLOCATION_OPTION_LABEL_MAX } from "@deck/hooks/useAllocationEditor";
 import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
-import { resolveImageUrl } from "@utils/image";
+import { emptyImage, resolveImageUrl } from "@utils/image";
 import { ItemCard, ItemField } from "../_shared";
 import styles from "./AllocationSlideContent.module.css";
 
@@ -116,7 +117,22 @@ const AllocationOptionEditable = ({
           onRemove={onRemove}
           openPicker={openPicker}
         />
-        {thumbnailSrc && <img className={styles.optionThumbnail} src={thumbnailSrc} alt="" />}
+        {thumbnailSrc && (
+          <span className={styles.optionThumbnailWrap}>
+            <img className={styles.optionThumbnail} src={thumbnailSrc} alt="" />
+            <IconBtn
+              fill="ghost"
+              size="xs"
+              className={styles.optionThumbnailClear}
+              icon={<XMarkIcon />}
+              aria-label={`Remove option ${displayIndex.toString()} image`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetImage(emptyImage());
+              }}
+            />
+          </span>
+        )}
         {scored ? (
           <div className={styles.answerField}>
             <NumberInput
