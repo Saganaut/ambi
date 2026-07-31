@@ -33,6 +33,31 @@ const FOLLOW_UP_MODE_PARENTS = {
   SPOT_THE_ANSWER: ["TEXT"],
 } as const satisfies Record<FollowUpMode, readonly SlideType[]>;
 
+/**
+ * Whether each mode needs the parent to carry an authored answer key. Mirror of
+ * the backend's `FollowUpMode.requiresAnswerKey()`, and exhaustive by the same
+ * `satisfies` tripwire {@link FOLLOW_UP_MODE_PARENTS} uses — a second keyed
+ * mode has to be answered for here rather than silently defaulting to "no key
+ * needed", which would offer it on a keyless parent the API then rejects and
+ * let an answer-key edit orphan it.
+ */
+const FOLLOW_UP_MODE_NEEDS_ANSWER_KEY = {
+  BEST_ANSWER_VOTE: false,
+  PREDICT_POPULAR: false,
+  SPOT_THE_ANSWER: true,
+} as const satisfies Record<FollowUpMode, boolean>;
+
+/**
+ * The keyed modes from that table — the single gate both
+ * {@link followUpModesFor} and {@link wouldOrphanSpotTheAnswer} test, so
+ * neither compares a mode name literally.
+ */
+const FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY: ReadonlySet<FollowUpMode> = new Set(
+  (Object.keys(FOLLOW_UP_MODE_NEEDS_ANSWER_KEY) as FollowUpMode[]).filter(
+    (mode) => FOLLOW_UP_MODE_NEEDS_ANSWER_KEY[mode],
+  ),
+);
+
 /** Author-facing label for each mode (canvas banner + inspector select). */
 const FOLLOW_UP_MODE_LABELS = {
   BEST_ANSWER_VOTE: "Vote for the best answer",
@@ -53,14 +78,15 @@ const hasScorableAnswerKey = (acceptedAnswers: readonly string[]): boolean =>
 
 /**
  * All follow-up modes valid for a parent with the given content. Takes the
- * full content, not just its `contentType`, because `SPOT_THE_ANSWER` needs
- * one more fact than the type table can express: a `TEXT` parent only
- * qualifies when it carries an authored answer key
- * ({@link hasScorableAnswerKey} on `TextContent.acceptedAnswers`) — a TEXT
- * slide with no answer key is unscored and has no authored answer to mix in,
- * so it stays `BEST_ANSWER_VOTE` only. This mirrors the backend's
- * `AddFollowUpRequest` validation (400 on an ineligible parent/mode pair), so
- * the UI never offers a mode the server would reject.
+ * full content, not just its `contentType`, because a keyed mode
+ * ({@link FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY}) needs one more fact than the
+ * type table can express: a `TEXT` parent only qualifies when it carries an
+ * authored answer key ({@link hasScorableAnswerKey} on
+ * `TextContent.acceptedAnswers`) — a TEXT slide with no answer key is unscored
+ * and has no authored answer to mix in, so it stays `BEST_ANSWER_VOTE` only.
+ * This mirrors the backend's `AddFollowUpRequest` validation (400 on an
+ * ineligible parent/mode pair), so the UI never offers a mode the server would
+ * reject.
  */
 const followUpModesFor = (parentContent: SlideContent): FollowUpMode[] =>
   (Object.keys(FOLLOW_UP_MODE_PARENTS) as FollowUpMode[]).filter((mode) => {
@@ -71,7 +97,7 @@ const followUpModesFor = (parentContent: SlideContent): FollowUpMode[] =>
     ) {
       return false;
     }
-    if (mode === "SPOT_THE_ANSWER") {
+    if (FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY.has(mode)) {
       return (
         parentContent.contentType === "TEXT" &&
         hasScorableAnswerKey(parentContent.acceptedAnswers)
@@ -115,12 +141,16 @@ const canHaveFollowUp = (
 
 /**
  * Whether editing a TEXT slide's answer key to `nextAcceptedAnswers` would
- * strip its last non-blank entry while a `SPOT_THE_ANSWER` follow-up is
- * attached — the backend rejects exactly that content transition with 400
- * (it would leave the follow-up's answer key dangling). The TEXT editor calls
- * this before persisting an answer removal/edit so the block happens
- * client-side, before the doomed PUT ever fires through the slide-update
- * path (which discards its promise and can't surface the 400).
+ * strip its last non-blank entry while a follow-up that needs one is attached
+ * — the backend rejects exactly that content transition with 400 (it would
+ * leave the follow-up's answer key dangling). The TEXT editor calls this
+ * before persisting an answer removal/edit so the block happens client-side,
+ * before the doomed PUT ever fires through the slide-update path (which
+ * discards its promise and can't surface the 400).
+ *
+ * Gated on {@link FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY}, not on the
+ * `SPOT_THE_ANSWER` name, because the server gates on `requiresAnswerKey()` —
+ * a second keyed mode must orphan-check the same way from the day it exists.
  */
 const wouldOrphanSpotTheAnswer = (
   slide: SlideResponse,
@@ -130,7 +160,7 @@ const wouldOrphanSpotTheAnswer = (
   const attached = attachedFollowUpOf(slide, slides);
   if (!attached || attached.content.contentType !== "FOLLOW_UP") return false;
   return (
-    attached.content.mode === "SPOT_THE_ANSWER" &&
+    FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY.has(attached.content.mode) &&
     !hasScorableAnswerKey(nextAcceptedAnswers)
   );
 };
@@ -164,6 +194,7 @@ const groupIntoUnits = (slides: SlideResponse[]): SlideUnit[] => {
 export {
   FOLLOW_UP_MODE_PARENTS,
   FOLLOW_UP_MODE_LABELS,
+  FOLLOW_UP_MODES_REQUIRING_ANSWER_KEY,
   hasScorableAnswerKey,
   followUpModesFor,
   attachedFollowUpOf,

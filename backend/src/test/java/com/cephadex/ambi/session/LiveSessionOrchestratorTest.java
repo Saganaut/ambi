@@ -1450,6 +1450,57 @@ class LiveSessionOrchestratorTest {
     }
 
     @Test
+    void goToRejectsAFollowUpWhoseParentWasNeverScored() {
+        followUpSession();
+        when(roundResults.find(SID, PARENT)).thenReturn(Optional.empty());
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orchestrator.goTo(SID, CHILD))
+                .isInstanceOf(ConflictException.class)
+                .satisfies(e -> assertThat(((ConflictException) e).getCode())
+                        .isEqualTo("PARENT_ROUND_NOT_SCORED"));
+
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void goToRejectsASpotTheAnswerFollowUpWhoseOnlyCandidateWouldBeTheSeededAnswer() {
+        followUpSession(FollowUpMode.SPOT_THE_ANSWER, Set.of("Paris"));
+        stubScoredParent();
+        // The same board `advance` steps over: with no usable submissions the
+        // seed is the only card, so every pick grades correct. Naming the slide
+        // in the rail must not open it either — the host gets a 409 instead of
+        // the silent skip.
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of());
+        when(roundResults.answersOf(SID, PARENT)).thenReturn(List.of());
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orchestrator.goTo(SID, CHILD))
+                .isInstanceOf(ConflictException.class)
+                .satisfies(e -> assertThat(((ConflictException) e).getCode())
+                        .isEqualTo("FOLLOW_UP_NOT_PLAYABLE"));
+
+        verify(followUpOptions, never()).save(any(), any(), any());
+        verify(roundStateStore, never()).save(any(), any());
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void goToOpensAFollowUpOnceItsParentRoundBacksAPlayableBoard() {
+        followUpSession(FollowUpMode.SPOT_THE_ANSWER, Set.of("Paris"));
+        stubScoredParent();
+        when(answerStore.answers(SID, PARENT)).thenReturn(List.of(parentAnswer("p-1", "Lyon")));
+        when(roundStateStore.load(SID)).thenReturn(Optional.empty());
+
+        orchestrator.goTo(SID, CHILD);
+
+        assertThat(savedState().currentSlideId()).isEqualTo(CHILD);
+        assertThat(savedCandidates(CHILD).options()).hasSize(2);
+        assertThat(publishedEvent()).isInstanceOf(RoundStarted.class);
+    }
+
+    @Test
     void restartingAFollowUpReMintsItsCandidates() {
         followUpSession();
         when(roundStateStore.load(SID)).thenReturn(Optional.empty());

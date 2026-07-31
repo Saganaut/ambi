@@ -1417,10 +1417,10 @@ public class LiveSessionOrchestrator {
 
     /**
      * Whether a follow-up round has anything to play: its parent round is scored
-     * (the same fact {@link #goTo} rejects on) <em>and</em> its parent's
-     * submissions mint at least one candidate. Used by {@link #resolveNextSlide}'s
-     * auto-skip — a follow-up that fails either test is stepped over rather than
-     * opened as an empty board.
+     * <em>and</em> its parent's submissions mint at least one candidate. Used by
+     * {@link #resolveNextSlide}'s auto-skip — a follow-up that fails either test
+     * is stepped over rather than opened as an empty board — and by
+     * {@link #goTo}, which rejects the same follow-up instead of skipping it.
      *
      * <p>A mode that seeds the parent's authored answer
      * ({@link FollowUpMode#requiresAnswerKey}) needs a <em>submitted</em>
@@ -1430,8 +1430,8 @@ public class LiveSessionOrchestrator {
      * fastest-correct bonus for reading the only card on screen. The mint that
      * decides this is a throwaway — the board the round actually opens on is
      * minted and snapshotted in {@link #openRoundUnlocked} — and only its
-     * <em>counts</em> are read here, which the mint's one random draw (where the
-     * seed lands) cannot change.
+     * <em>counts</em> are read here, which the shuffle a {@code SPOT_THE_ANSWER}
+     * mint ends on cannot change.
      */
     private boolean followUpPlayable(LiveSession session, Slide slide) {
         if (roundResults.find(session.getId(), slide.getParentId()).isEmpty()) {
@@ -1513,18 +1513,32 @@ public class LiveSessionOrchestrator {
     /**
      * Opens a specific slide by host request: validates {@code slideId} against the
      * deck snapshot (rather than trusting the client), rejects opening an attached
-     * follow-up child before its parent has been scored (open-decisions B3), applies
-     * the F4 guard, then opens it as a round.
+     * follow-up child that has nothing to play (open-decisions B3), applies the F4
+     * guard, then opens it as a round.
+     *
+     * <p>The playability rule is {@link #followUpPlayable}'s, the same one
+     * {@link #resolveNextSlide} silently steps over — a host who names the slide
+     * gets a {@code 409} instead. Its two halves are reported apart because they
+     * are different situations for the host: {@code PARENT_ROUND_NOT_SCORED} says
+     * "play the parent first", while {@code FOLLOW_UP_NOT_PLAYABLE} says the
+     * parent round produced no board worth opening (no candidates at all, or —
+     * on a mode that seeds the answer key — nothing but the seed, which would
+     * hand the whole room a free correct pick).
      */
     public void goTo(String sessionId, String slideId) {
         LiveSession session = requireSession(sessionId);
         Slide slide = requireSlide(session, slideId);
         locks.withLock(sessionId, () -> {
             Deck deck = session.getDeck();
-            if (deck.isAttachedFollowUp(slide)
-                    && roundResults.find(sessionId, slide.getParentId()).isEmpty()) {
-                throw new ConflictException("PARENT_ROUND_NOT_SCORED",
-                        "a follow-up child cannot open before its parent round is scored");
+            if (deck.isAttachedFollowUp(slide)) {
+                if (roundResults.find(sessionId, slide.getParentId()).isEmpty()) {
+                    throw new ConflictException("PARENT_ROUND_NOT_SCORED",
+                            "a follow-up child cannot open before its parent round is scored");
+                }
+                if (!followUpPlayable(session, slide)) {
+                    throw new ConflictException("FOLLOW_UP_NOT_PLAYABLE",
+                            "the parent round's submissions mint no board for this follow-up");
+                }
             }
             requireRoundOpenable(sessionId, slideId);
             openRoundUnlocked(session, slide, false);
@@ -1544,7 +1558,8 @@ public class LiveSessionOrchestrator {
      * to the slide after — running off the end if it was the last, which ends the
      * deck exactly as an exhausted snapshot does. The skip is deliberately silent:
      * only {@link #goTo}, where the host named the slide, rejects the same
-     * situation outright ({@code PARENT_ROUND_NOT_SCORED}).
+     * situation outright ({@code PARENT_ROUND_NOT_SCORED} /
+     * {@code FOLLOW_UP_NOT_PLAYABLE}).
      */
     private Slide resolveNextSlide(LiveSession session, String currentSlideId) {
         List<Slide> ordered = session.getDeck().getSlides().stream()

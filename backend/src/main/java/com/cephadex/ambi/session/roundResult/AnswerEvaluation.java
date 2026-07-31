@@ -10,15 +10,15 @@ package com.cephadex.ambi.session.roundResult;
  * {@code fastestCorrect} / {@code responseTimeMs}:
  *
  * <ul>
- * <li><b>scoring</b> — feeds {@code Participant.awardPoints(...)}, which
+ * <li><strong>scoring</strong> — feeds {@code Participant.awardPoints(...)}, which
  * mutates
  * the participant's running {@code ParticipantScore};</li>
- * <li><b>the record</b> — becomes a {@code ParticipantOutcome} in the immutable
+ * <li><strong>the record</strong> — becomes a {@code ParticipantOutcome} in the immutable
  * {@link RoundResult}.</li>
  * </ul>
  *
  * <p>
- * It is deliberately <b>pre-scoring</b>: it carries the facts, not the points.
+ * It is deliberately <strong>pre-scoring</strong>: it carries the facts, not the points.
  * Points are streak-dependent (cross-round state), so they are applied by
  * {@code Participant.awardPoints} and recorded as the per-round delta it
  * returns.
@@ -40,7 +40,7 @@ package com.cephadex.ambi.session.roundResult;
  *                       (votes for a correct answer deceive nobody, so they are
  *                       zeroed), plus the picks their card drew on a
  *                       {@code SPOT_THE_ANSWER} follow-up board — which are
- *                       <b>not</b> zeroed on a correct grade, because spotting
+ *                       <strong>not</strong> zeroed on a correct grade, because spotting
  *                       the authored answer and writing a card that fooled the
  *                       room are two separate things to have done in one round
  *                       (see {@link RoundEvaluator#followUpPicksByAuthor})

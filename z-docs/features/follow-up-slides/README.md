@@ -114,18 +114,28 @@ participant-submitted candidates, and the room has to spot it.
   *same* candidate: one card that is both the answer key and their submission,
   carrying the flag and them as an author. The existing self-pick `409` then
   correctly stops them picking the card they wrote.
-- **Where the seeded card lands** — submissions sit in submission order, so
-  putting the answer first or last would make it the card the room learns to
-  look at. The insertion slot is therefore drawn from a `SecureRandom` over
-  `candidates + 1` positions, freshly per mint. It cannot be *derived* from the
-  answer instead: a card's text and its board position both travel on
-  `FollowUpOptionView`, so any derivation a client can re-run identifies the seed
-  outright. Randomness consumes no board-visible input, and nothing depends on
-  the arrangement being reproducible — candidate **ids** stay content-derived, so
-  a re-mint yields the same cards, only rearranged, and the only paths that
-  re-mint (a round open or restart, or a parent replay) clear that round's cast
-  answers with it. A *merged* answer is never moved — its position was already
-  fixed by the submission it merged with, which leaks nothing.
+- **Where the seeded card lands** — nowhere in particular: the seed is appended
+  after the last submission and then the **whole board is shuffled** with a
+  `SecureRandom`, freshly per mint (`FollowUpOptions.finishShuffled`). Shuffling
+  everything rather than hiding the seed in one random slot is the point. With
+  the submissions holding submission order, two mints of one unchanged round
+  differ in exactly *one* card's index, so a participant who holds arrangement A
+  (the live board) beside arrangement B (a snapshot refetched after a reconnect
+  or reload, or the board a re-open republishes) reads the seed off the diff —
+  the single card that moved — with probability `n/(n+1)`. Independent
+  permutations leak nothing by comparison: every card moves, and the seed no more
+  than the rest. The order cannot be *derived* from the cards either — a card's
+  text and its board position both travel on `FollowUpOptionView`, so any
+  derivation a client can re-run identifies the seed outright — and it is a
+  CSPRNG rather than `java.util.Random` because a predictable stream would hand
+  the arrangement back to anyone who watched a few boards. Nothing depends on the
+  arrangement being reproducible: candidate **ids** stay content-derived and every
+  consumer addresses a card by id, so a re-mint yields the same cards rearranged,
+  and the only paths that re-mint (a round open or restart, or a parent replay)
+  clear that round's cast answers with it. A *merged* seed needs no special
+  handling for the same reason — once the whole list is shuffled, no position is
+  special. A side benefit: a shuffled board no longer discloses the order the
+  parent round's answers arrived in, which every other mode's board does carry.
 - **Secrecy** — `FollowUpOption.authoredAnswer` is server-only, exactly like
   `authorParticipantIds`: `FollowUpOptionView` projects only
   id/text/imageUrl, and `FollowUpConfigView` carries no correct-answer field.
@@ -210,7 +220,11 @@ two submissions that render identically merge into one candidate. Every
 candidate's id is a UUID hashed from the content it stands for (the summary
 text for these kinds), never random, so re-minting over the same submissions
 reproduces the same set — a round restart doesn't orphan votes already cast
-against it. See `FollowUpOptions`'s class Javadoc and its `summaryOf`
+against it. Board *order* is derived the same way for every mode but
+`SPOT_THE_ANSWER`, whose board is shuffled per mint
+([above](#spot_the_answer)): authored order for MCQ, submission order
+(`submittedAt`, ties broken by participant id) for the kinds minted from
+answers. See `FollowUpOptions`'s class Javadoc and its `summaryOf`
 overloads for the exact per-type formats.
 
 **Snapshot, not re-mint-per-read.** The mint runs once, when the follow-up
@@ -309,8 +323,12 @@ board. On a mode that seeds the answer key (`requiresAnswerKey`) the second test
 is stricter — the mint must hold at least one **non-seeded** candidate, because
 the seed alone would open a one-card board where the only pick available is the
 authored answer, and the whole room would collect full points, a streak, and the
-fastest-correct bonus for reading the only card on screen. `goTo` still rejects
-the named slide outright (`409 PARENT_ROUND_NOT_SCORED`).
+fastest-correct bonus for reading the only card on screen. `goTo` applies the
+*same* playability rule — a host clicking the follow-up in the rail can't open a
+board navigation would have stepped over — but rejects outright instead of
+skipping, and reports the two halves apart because they mean different things to
+the host: `409 PARENT_ROUND_NOT_SCORED` ("play the parent first") and
+`409 FOLLOW_UP_NOT_PLAYABLE` (the parent round backs no board worth opening).
 
 A pre-existing `ResultsDisplayMode.AFTER_FOLLOWUP` value predates this design
 and is retired from the deck editor's reveal-results dropdown (the wire enum
@@ -334,6 +352,22 @@ on a topic every client shares. The frontend provider refetches the snapshot
 once per follow-up round, keyed on `slideId@roundStartedAt`, so a client that
 was already connected when the round opened still picks the field up.
 
+That same refetch is what keeps the **one-board** invariant true across a
+re-mint, which matters now that a `SPOT_THE_ANSWER` restart re-arranges the
+board. `restartRound` publishes `RoundRestarted`, which deliberately carries no
+`SlideView` (and so no `followUpConfig`) — the client already has the round's
+view — but it *does* carry the fresh `roundStartedAt` that `openRoundUnlocked`
+stamped, and the slice writes it. The provider's guard key therefore changes,
+its effect fires a second refetch, and `seed` replaces `currentSlide` wholesale
+with the snapshot's — which `LiveSessionSnapshotService` built from the board
+`FollowUpOptionStore` was just re-saved with. So every connected client converges
+on the new arrangement without the event needing to republish it, exactly as it
+converges on the new `myFollowUpOptionId`
+(`SessionConnectionProvider.test.tsx`, "refetches again when the same follow-up
+round restarts"). `goTo`/`startRound` on the same slide reach the same board by
+the shorter road: they publish `RoundStarted`/`LiveResultsShown`, which carry the
+re-minted `followUpConfig` outright.
+
 `LiveSessionAnswerService` validates a pick against that snapshot rather than
 any authored content (the board is runtime state): a blank id or one absent
 from the round's set is a `400`, and picking one's own candidate is the same
@@ -348,9 +382,11 @@ tally filling in — still pickable, since a pick stays re-castable), and
 correct-answer affordance ever renders — a `SPOT_THE_ANSWER` round *has* an
 answer key, but revealing it is deliberately not built, and
 `RoundResult.correctOption` stays `null` for every follow-up round).
-Candidates render in snapshot order — deliberately not shuffled, so every
-device shows the one board — and picking is single-select regardless of the
-parent's own answer settings. The viewer's own candidate is disabled and
+Candidates render in snapshot order — the client never reorders them, so every
+device shows the one board; on a `SPOT_THE_ANSWER` round that snapshot order is
+itself a shuffle applied once at mint ([above](#spot_the_answer)), while every
+other mode's is the derived authored/submission order — and picking is
+single-select regardless of the parent's own answer settings. The viewer's own candidate is disabled and
 badged from `myFollowUpOptionId`, pre-empting the self-pick `409` —
 `sendAnswer` is fire-and-forget, so a rejection would never otherwise surface
 to the board.

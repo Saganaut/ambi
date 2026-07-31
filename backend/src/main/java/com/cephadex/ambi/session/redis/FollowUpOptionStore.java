@@ -18,9 +18,18 @@ import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
  * not a Hash: the board's <strong>order matters</strong> — every participant
  * votes against the same numbered list — and a Redis Hash has no order to
  * preserve, so the whole {@link FollowUpOptionSet} is written and read as one
- * value. It is written once when the round opens (a restart re-mints the same
- * set, since {@link FollowUpOption} ids are derived from their content), so
- * there is no partial-update case a Hash would buy anything for.
+ * value. It is written once when the round opens, so there is no partial-update
+ * case a Hash would buy anything for.
+ *
+ * <p>
+ * What a re-open reproduces is the <em>set</em>, not the arrangement:
+ * {@link FollowUpOption} ids are derived from their content, so a restart mints
+ * the same cards and the answers already cast against them stay meaningful —
+ * but a {@code SPOT_THE_ANSWER} board is shuffled per mint (see
+ * {@code FollowUpOptions}), so its layout is deliberately not stable across
+ * mints. Nothing depends on it: every consumer addresses a candidate by
+ * {@code optionId}, and the snapshot written here is the single board every
+ * device renders for the round it belongs to.
  *
  * <p>
  * Runtime-only, like the vote tallies: the follow-up's <em>answers</em> are

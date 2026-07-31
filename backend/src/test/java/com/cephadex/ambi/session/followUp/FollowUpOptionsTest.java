@@ -37,7 +37,8 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
  * identical text merges into one option owning every author. Also the
  * {@code SPOT_THE_ANSWER} seeding — which card carries the flag, how a matching
  * submission merges into it, that its id obeys the same id↔text relation every
- * submitted card does, and that its slot is drawn rather than derived.
+ * submitted card does, and that the board it lands on is shuffled rather than
+ * laid out in any order a client could reconstruct or diff.
  */
 class FollowUpOptionsTest {
 
@@ -49,6 +50,9 @@ class FollowUpOptionsTest {
 
     /** The one mode that seeds the parent's authored answer into the board. */
     private static final FollowUpMode SPOT = FollowUpMode.SPOT_THE_ANSWER;
+
+    /** Repeats behind the shuffle case below — see its false-failure bound. */
+    private static final int MINTS = 100;
 
     @Test
     void mcqParentMintsTheAuthoredChoicesVerbatimAndInOrder() {
@@ -299,8 +303,11 @@ class FollowUpOptionsTest {
         List<FollowUpOption> asVote = FollowUpOptions.mint(
                 slideWith(keyedText()), answers, VOTE, URLS).options();
 
-        assertThat(degraded).isEqualTo(asVote);
-        assertThat(blankKey).isEqualTo(asVote);
+        // Same cards, not necessarily the same arrangement: a SPOT_THE_ANSWER
+        // mint shuffles its board whether or not it had a key to seed, so only
+        // the vote board's *set* of candidates is what "mints as VOTE" means.
+        assertThat(degraded).containsExactlyInAnyOrderElementsOf(asVote);
+        assertThat(blankKey).containsExactlyInAnyOrderElementsOf(asVote);
         assertThat(degraded).noneMatch(option -> option.authoredAnswer());
     }
 
@@ -326,33 +333,47 @@ class FollowUpOptionsTest {
         FollowUpOptionSet first = FollowUpOptions.mint(parent, answers, SPOT, URLS);
         FollowUpOptionSet second = FollowUpOptions.mint(parent, answers, SPOT, URLS);
 
-        // Ids are content-derived, so a re-mint stands for the same cards — only
-        // the seed's slot may move, which nothing addresses a candidate by.
+        // Ids are content-derived, so a re-mint stands for exactly the same cards
+        // — the board is shuffled, which nothing addresses a candidate by.
         assertThat(second.options()).containsExactlyInAnyOrderElementsOf(first.options());
-        assertThat(submittedTexts(second)).isEqualTo(submittedTexts(first));
+        assertThat(submittedTexts(second)).containsExactlyInAnyOrderElementsOf(submittedTexts(first));
     }
 
     @Test
-    void spotTheAnswerDrawsTheSeedsSlotRatherThanDerivingItFromTheBoard() {
-        // The regression: a slot derived from the answer's own content hash is
-        // recomputable by any client, since a card's text and index both travel
-        // on the wire. Over many mints of one unchanged round the seed must move.
+    void spotTheAnswerShufflesTheWholeBoardSoTwoMintsShareNoArrangement() {
+        // The regression: hiding the seed in one random slot while the submissions
+        // kept submission order left two mints of an unchanged round differing in
+        // exactly ONE card's index — so a participant diffing the live board
+        // against a refetched snapshot read the seed off as "the card that moved".
+        // The fix shuffles the whole list, so the two arrangements are independent
+        // permutations: the seed moves, and so does everything else.
         Slide parent = slideWith(keyedText("Paris"));
         List<Answer> answers = List.of(
                 answer("p-1", new TextAnswer("Lyon"), 100),
                 answer("p-2", new TextAnswer("Nice"), 200),
                 answer("p-3", new TextAnswer("Dijon"), 300));
 
-        Set<Integer> slots = new LinkedHashSet<>();
-        for (int mint = 0; mint < 200; mint++) {
-            List<FollowUpOption> options = FollowUpOptions.mint(parent, answers, SPOT, URLS).options();
-            slots.add(options.indexOf(options.stream()
+        Set<Integer> seedSlots = new LinkedHashSet<>();
+        Set<List<String>> submittedOrders = new LinkedHashSet<>();
+        for (int mint = 0; mint < MINTS; mint++) {
+            FollowUpOptionSet board = FollowUpOptions.mint(parent, answers, SPOT, URLS);
+            List<FollowUpOption> options = board.options();
+            seedSlots.add(options.indexOf(options.stream()
                     .filter(option -> option.authoredAnswer()).findFirst().orElseThrow()));
+            submittedOrders.add(submittedTexts(board));
         }
 
-        // Four slots, 200 draws: a derived (constant) slot fails outright, and a
-        // uniform draw collapsing to one slot has probability 4 · (1/4)^200.
-        assertThat(slots).hasSizeGreaterThan(1);
+        // A four-card board (three submissions + the seed), minted MINTS = 100
+        // times. The seed's slot is uniform over 4, so a constant one — which is
+        // what a derived slot would give — has probability 4 · (1/4)^100 =
+        // (1/4)^99.
+        assertThat(seedSlots).hasSizeGreaterThan(1);
+        // …and the submissions' order among themselves is uniform over its 6
+        // permutations, so it staying constant — which is what insert-at-a-slot
+        // gave, and what made the diff work — has probability 6 · (1/6)^100 =
+        // (1/6)^99. Union bound on this test failing against a correct shuffle:
+        // (1/4)^99 + (1/6)^99 < 2 · 10^-59.
+        assertThat(submittedOrders).hasSizeGreaterThan(1);
     }
 
     @Test

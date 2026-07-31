@@ -92,6 +92,7 @@ Role/relationship violation:
 | `VOTING_NOT_OPEN` | Vote submitted for a slide that isn't currently collecting votes |
 | `CANNOT_VOTE_FOR_OWN_ANSWER` | Caller tried to vote for their own submission |
 | `PARENT_ROUND_NOT_SCORED` | A follow-up round's parent round isn't scored yet |
+| `FOLLOW_UP_NOT_PLAYABLE` | A follow-up the host named mints no board from its parent round's submissions |
 | `REVEAL_BLOCKED_BY_FOLLOW_UP` | Results reveal on a slide whose attached follow-up round presents them instead |
 | `SESSION_ALREADY_TERMINAL` | Session has already ended |
 | `SESSION_FULL` | Session's roster is at its cap (deck `AudienceSettings.maxParticipants`, default 200) |
