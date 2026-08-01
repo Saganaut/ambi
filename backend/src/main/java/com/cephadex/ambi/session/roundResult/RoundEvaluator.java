@@ -359,9 +359,21 @@ public final class RoundEvaluator {
     }
 
     private static boolean gradeGrid(GridContent content, GridAnswer answer) {
-        return content.scoreMode() == ScoreMode.EXACT
-                && content.correctCells() != null
-                && content.correctCells().equals(answer.placements());
+        // Loop over the answer key, not whole-map equality: the editor keys only
+        // the items it places, and the board makes players place every item, so
+        // an unkeyed item's placement must not fail the answer. An empty key
+        // marks an unscored collect-only grid; PARTIAL per-item credit is a seam.
+        if (content.scoreMode() != ScoreMode.EXACT
+                || content.correctCells() == null || content.correctCells().isEmpty()
+                || answer.placements() == null) {
+            return false;
+        }
+        for (Map.Entry<String, String> e : content.correctCells().entrySet()) {
+            if (!e.getValue().equals(answer.placements().get(e.getKey()))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean gradeAxis(AxisContent content, AxisAnswer answer) {

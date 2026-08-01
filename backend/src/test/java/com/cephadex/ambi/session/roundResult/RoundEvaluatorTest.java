@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.cephadex.ambi.presentation.slide.Slide;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
+import com.cephadex.ambi.presentation.slide.content.GridContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.NumberContent;
@@ -25,6 +26,7 @@ import com.cephadex.ambi.presentation.slide.content.SlideContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
@@ -38,6 +40,7 @@ import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
+import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
 import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.NumberAnswer;
@@ -218,6 +221,48 @@ class RoundEvaluatorTest {
 
         AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
                 List.of(answer("p", new MatchingAnswer(Map.of("left-1", "right-1")), 10)), START).get(0);
+
+        assertThat(eval.correct()).isFalse();
+        assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
+    }
+
+    @Test
+    void gradesGridAsExactMatchOfTheFullKey() {
+        Slide slide = slideWith(grid(Map.of("it-1", "0,0", "it-2", "1,1", "it-3", "0,1")));
+
+        assertThat(gradeOne(slide, new GridAnswer(Map.of("it-1", "0,0", "it-2", "1,1", "it-3", "0,1")))).isTrue();
+        // One item in the wrong cell fails the whole answer (EXACT, all-or-nothing).
+        assertThat(gradeOne(slide, new GridAnswer(Map.of("it-1", "0,0", "it-2", "0,1", "it-3", "1,1")))).isFalse();
+    }
+
+    @Test
+    void gradesGridCorrectWhenEveryKeyedItemIsPlacedRight() {
+        // A partial key: the editor keys only the items it placed, while the
+        // board makes players place every item, so placements for unkeyed items
+        // are ignored rather than failing the answer.
+        Slide slide = slideWith(grid(Map.of("it-1", "0,0", "it-2", "1,1")));
+
+        assertThat(gradeOne(slide, new GridAnswer(Map.of(
+                "it-1", "0,0", "it-2", "1,1", "it-3", "1,0")))).isTrue();
+    }
+
+    @Test
+    void gridFailsWhenAKeyedItemIsMisplacedOrMissing() {
+        Slide slide = slideWith(grid(Map.of("it-1", "0,0", "it-2", "1,1")));
+
+        // A keyed item in the wrong cell fails, however the unkeyed items land.
+        assertThat(gradeOne(slide, new GridAnswer(Map.of(
+                "it-1", "0,0", "it-2", "0,1", "it-3", "1,0")))).isFalse();
+        // A keyed item missing from the placements fails.
+        assertThat(gradeOne(slide, new GridAnswer(Map.of("it-1", "0,0", "it-3", "1,0")))).isFalse();
+    }
+
+    @Test
+    void gridWithEmptyAnswerKeyIsCollectOnlyAndNeverGradesCorrect() {
+        Slide slide = slideWith(grid(Map.of()));
+
+        AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
+                List.of(answer("p", new GridAnswer(Map.of("it-1", "0,0")), 10)), START).get(0);
 
         assertThat(eval.correct()).isFalse();
         assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
@@ -473,6 +518,14 @@ class RoundEvaluatorTest {
                 List.of(new MatchItem("left-1", "One", null, null), new MatchItem("left-2", "Two", null, null)),
                 List.of(new MatchItem("right-1", "Uno", null, null), new MatchItem("right-2", "Dos", null, null)),
                 correctPairs, ScoreMode.EXACT);
+    }
+
+    private static GridContent grid(Map<String, String> correctCells) {
+        return new GridContent(List.of("Row 1", "Row 2"), List.of("Col 1", "Col 2"),
+                List.of(new GridItem("it-1", "One", null, null),
+                        new GridItem("it-2", "Two", null, null),
+                        new GridItem("it-3", "Three", null, null)),
+                correctCells, ScoreMode.EXACT);
     }
 
     private static RankingContent ranking(List<String> correctOrder) {
