@@ -30,9 +30,37 @@ const REQUEST_ID_HEADER = "X-Request-Id";
 // there) and keeps this branch-free.
 const XSRF_HEADER = "X-XSRF-TOKEN";
 
+// Spring binds a `Pageable` from flat `page` / `size` / `sort` query params, but
+// OpenAPI models it as one nested object, so the generated clients pass it as
+// `params: { pageable }`. The default `new URLSearchParams(params)` would render
+// that as `pageable=[object Object]` and every request would silently fall back
+// to the server's default page. Flatten one level of nested objects onto their
+// own keys and repeat array values (`sort=name,asc&sort=…`), which is exactly
+// how Spring reads them.
+const serializeParams = (params: Record<string, unknown>): string => {
+  const search = new URLSearchParams();
+  const append = (key: string, value: unknown): void => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      for (const item of value) append(key, item);
+      return;
+    }
+    if (typeof value === "object") {
+      for (const [nested, nestedValue] of Object.entries(value)) {
+        append(nested, nestedValue);
+      }
+      return;
+    }
+    search.append(key, String(value));
+  };
+  for (const [key, value] of Object.entries(params)) append(key, value);
+  return search.toString();
+};
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,
   credentials: "include",
+  paramsSerializer: serializeParams,
   prepareHeaders: (headers) => {
     if (!headers.has(REQUEST_ID_HEADER)) {
       headers.set(REQUEST_ID_HEADER, crypto.randomUUID());
