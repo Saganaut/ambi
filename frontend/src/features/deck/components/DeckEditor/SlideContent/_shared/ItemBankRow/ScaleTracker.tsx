@@ -1,6 +1,7 @@
 import { KEYBOARD_NUDGE_STEP } from "@/features/liveSession/components/SessionBoard/content/useBoardPlacement";
 import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
 import { useRef, useState } from "react";
+import { useMountTransition } from "../../../../../../../shared/hooks/useMountTransition";
 import styles from "./ScaleTracker.module.css";
 interface ScaleTrackerProps {
   min: number;
@@ -85,6 +86,9 @@ const ScaleTracker = ({
     onCommit(next);
   };
 
+  //TODO: This hack to get hte transition to work is a bit of a mess.  If we use lots of animations consider integrating framer motion
+  const isVisible = displayValue !== undefined && span > 0;
+  const { shouldRender, hasTransitionedIn } = useMountTransition(isVisible, 0);
   return (
     <>
       {" "}
@@ -93,9 +97,7 @@ const ScaleTracker = ({
         style={color ? ({ "--background-color": color } as React.CSSProperties) : undefined}
       >
         <span className={styles.anchorCaption}>{leftLabel.length > 0 ? leftLabel : min}</span>
-        {/* Pointer placement surface; the accessible path is the marker
-                slider and the numeric "Answer" field. */}
-        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+
         <div
           ref={trackRef}
           className={styles.dragTrack}
@@ -104,40 +106,42 @@ const ScaleTracker = ({
           onPointerUp={handleTrackPointerUp}
         >
           <div className={styles.targetLine} />
-          {displayValue !== undefined && span > 0 && (
-            <>
-              <span
-                className={styles.toleranceBand}
-                style={{
-                  left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
-                  width: `${(((tolerance * 2) / span) * 100).toString()}%`,
-                }}
-                aria-hidden="true"
-              />
-              <button
-                type="button"
-                // A real button so it's focusable/clickable everywhere; the
-                // slider role carries the value semantics for AT.
-                // eslint-disable-next-line jsx-a11y/role-supports-aria-props
-                role="slider"
-                className={styles.marker}
-                style={{
-                  left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
-                }}
-                aria-valuemin={min}
-                aria-valuemax={max}
-                aria-valuenow={displayValue}
-                aria-valuetext={formatScaleValue(displayValue)}
-                aria-label={`Correct answer for statement ${displayIndex}`}
-                onKeyDown={handleMarkerKeyDown}
-              />
-            </>
-          )}{" "}
-          {displayValue !== undefined && span > 0 && (
-            <span className={styles.valueReadout} aria-hidden="true">
-              {formatScaleValue(displayValue)}
+          {shouldRender && (
+            <span className={`${styles.invisible} ${hasTransitionedIn ? styles.visible : ""}`}>
+              {displayValue && (
+                <>
+                  <span
+                    className={styles.toleranceBand}
+                    style={{
+                      left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
+                      width: `${(((tolerance * 2) / span) * 100).toString()}%`,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <button
+                    type="button"
+                    role="slider"
+                    className={styles.marker}
+                    style={{
+                      left: `${(valueToPosition(displayValue, min, max) * 100).toString()}%`,
+                    }}
+                    aria-valuemin={min}
+                    aria-valuemax={max}
+                    aria-valuenow={displayValue}
+                    aria-valuetext={formatScaleValue(displayValue)}
+                    aria-label={`Correct answer for statement ${displayIndex}`}
+                    onKeyDown={handleMarkerKeyDown}
+                  />{" "}
+                </>
+              )}
+
+              {displayValue && (
+                <span className={styles.valueReadout} aria-hidden="true">
+                  {formatScaleValue(displayValue)}
+                </span>
+              )}
             </span>
-          )}
+          )}{" "}
         </div>
         <span className={styles.anchorCaption}>{rightLabel.length > 0 ? rightLabel : max}</span>
       </div>
