@@ -14,10 +14,12 @@
  *   - "Items" card: one row per item in its resolved color (override or
  *     palette default, mirrored by the item's chip in the matrix), a placed
  *     one carrying its cell name as trailing meta plus the row's "answer set"
- *     check — an unplaced item simply shows neither. The list IS the bank: an
- *     item lives here whether or not it is placed, and `correctCells` maps
- *     item id → "rowIndex,colIndex" for the placed ones. Unplacing is the
- *     matrix's job (drag a chip off it), not the row menu's.
+ *     check — an unplaced item shows the question mark the same row offers on
+ *     Axis. The list IS the bank: an item lives here whether or not it is
+ *     placed, and `correctCells` maps item id → "rowIndex,colIndex" for the
+ *     placed ones. The row's toggle (and its menu's Set/Clear target entry)
+ *     clears a placed item; on an unplaced one it only ARMS the item, because
+ *     a grid has no centre cell to seed — the author then names the cell.
  *
  * Placement has two inputs, both resolved here. Arm-then-click: selecting a
  * row arms that item, and a cell's "Place here" button places it — the
@@ -296,7 +298,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   const cell = correctCells[item.id];
                   return (
                     <SortableItemBankRow
-                      type="grid"
+                      type="placement"
                       key={item.id}
                       item={item}
                       index={index}
@@ -326,6 +328,12 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                       }}
                       onSetImage={(image) => {
                         editor.setItemImage(item.id, image);
+                      }}
+                      onSetTarget={() => {
+                        composer.setSelectedItemId(item.id);
+                      }}
+                      onClearTarget={() => {
+                        editor.setTargetCell(item.id, null);
                       }}
                       onRemove={() => {
                         removeItem(item.id);

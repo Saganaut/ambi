@@ -67,6 +67,10 @@
       outline: none;
       background: transparent;
       padding: var(--input-padding);
+      /* stylelint-disable-next-line declaration-property-value-disallowed-list */
+      padding-left: var(--space-1);
+      /* stylelint-disable-next-line declaration-property-value-disallowed-list */
+      padding-right: var(--space-1);
       font-size: var(--font-size);
       font-weight: 700;
       font-variant-numeric: tabular-nums;

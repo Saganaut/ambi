@@ -62,7 +62,7 @@
 /* Armed for placement — the accent border is the one high-contrast cue, so it
    reads at a glance against the neighbouring rows. */
 .selected {
-  border-color: var(--action-hover);
+  box-shadow: var(--shadow-sm);
 }
 
 .scored {

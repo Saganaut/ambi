@@ -19,7 +19,6 @@
 
   .navbar {
     display: flex;
-    padding: var(--padding, var(--p-md));
     justify-content: space-between;
     align-items: center;
 
@@ -29,14 +28,15 @@
       width: 100%;
       display: flex;
       gap: var(--gap-sm);
+      align-items: center;
     }
 
     .titleDeck {
+      max-height: 100%;
       max-width: 800px;
-
-      input {
-        font-size: var(--font-size-lg);
-      }
+      display: flex;
+      align-items: center;
+      font-size: var(--font-size-lg);
     }
 
     .rightControlButtons {

@@ -1,26 +1,15 @@
-/* PlaceOnImageSlideContent — what makes the backing image that surface.
-   Everything else it wears comes from shared modules: the two-column layout,
-   row chrome, and card-header accessories from `_shared.module.css`, the
-   surface and marker chrome from the placement kit's `placement.module.css`.
-   Left here: the image box (the shared `.surface` sets no size, and this one's
-   height comes from the image's own intrinsic aspect ratio — a block <img>
-   sizes the wrapper), the image itself, and the no-image stand-in. */
-
-/* Joined onto the shared `.surface`, which owns the border and pointer setup. */
 .imageSurface {
   max-width: 16rem;
 }
 
-/* The image is the box: block-level so no baseline gap, full width so the
-   wrapper's height is set by the intrinsic aspect ratio. */
 .surfaceImage {
   display: block;
   width: 100%;
   height: auto;
   user-select: none;
+  border-radius: var(--radius-md);
 }
 
-/* No image yet: a 16:9 stand-in so the card doesn't collapse. */
 .surfaceEmpty {
   aspect-ratio: 16 / 9;
   display: flex;

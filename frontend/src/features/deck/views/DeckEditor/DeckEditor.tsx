@@ -79,6 +79,7 @@ const DeckEditor = () => {
               icon={<ArrowsPointingOutIcon className={styles.iconMd} />}
             />{" "}
             <Input
+              withPadding={false}
               ariaLabel="Deck title"
               value={titleDraft}
               placeholder="Untitled Deck"

@@ -197,8 +197,11 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   onSetImage={(image) => {
                     editor.setTargetImage(item.id, image);
                   }}
-                  onSetTargetPosition={(point) => {
-                    editor.setTargetPosition(item.id, point);
+                  onSetTarget={() => {
+                    editor.setTargetPosition(item.id, { x: 0.5, y: 0.5 });
+                  }}
+                  onClearTarget={() => {
+                    editor.setTargetPosition(item.id, null);
                   }}
                   onRemove={() => {
                     removeTarget(item.id);

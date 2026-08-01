@@ -138,8 +138,11 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   onSetImage={(image) => {
                     editor.setItemImage(item.id, image);
                   }}
-                  onSetTargetPosition={(point) => {
-                    editor.setTargetPosition(item.id, point);
+                  onSetTarget={() => {
+                    editor.setTargetPosition(item.id, { x: 0.5, y: 0.5 });
+                  }}
+                  onClearTarget={() => {
+                    editor.setTargetPosition(item.id, null);
                   }}
                   onRemove={() => {
                     removeItem(item.id);

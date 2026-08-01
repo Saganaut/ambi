@@ -14,17 +14,17 @@ import {
   ViewfinderCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { ReactNode, Ref, useEffect, useRef, useState } from "react";
+import { Ref, useEffect, useRef, useState } from "react";
 import { DistributiveOmit } from "react-redux";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { ItemField } from "../ItemField/ItemField";
 import { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
-import { Identified, NormalizedPoint, PlaceableItem } from "../placement/placement.types";
+import { Identified, PlaceableItem } from "../placement/placement.types";
 import styles from "./ItemBankRow.module.css";
 import { ScaleTracker } from "./ScaleTracker";
 
 interface ItemBankRowBase {
-  type: "allocation" | "grid" | "placement" | "ranking" | "scales";
+  type: "allocation" | "placement" | "ranking" | "scales";
   item: Identified<PlaceableItem>;
   index: number;
   color: string;
@@ -34,8 +34,6 @@ interface ItemBankRowBase {
   selected?: boolean;
   /** Arm this row (row-wide click; the keyboard path is the label's focus). */
   onSelect?: () => void;
-  /** Trailing status text inside the row (Grid's cell name). */
-  meta?: ReactNode;
   onMenuOpenChange: (open: boolean) => void;
   onScheduleLabel: (label: string) => void; // ALso known as onScheudleText in AllocationOptioneditable?
   onFlush: () => void;
@@ -63,20 +61,18 @@ interface AllocationRowProps extends ItemBankRowBase {
 interface RankingRowProps extends ItemBankRowBase {
   type: "ranking";
 }
-interface GridRowProps extends ItemBankRowBase {
-  type: "grid";
-  /** Whether the item is targeted at a cell — drives the row's "answer set"
-   *  check. Read-only here: unplacing is the matrix's job. */
-  hasTarget: boolean;
-}
 interface PlacementItemRowProps extends ItemBankRowBase {
   type: "placement";
-  /** Whether the item carries an answer-key point. Drives the trailing
+  /** Whether the item carries an answer-key target. Drives the trailing
    * check / question-mark toggle and the menu's Set/Clear target entry:
    * an unplaced target exists but keys no right answer, so it is not graded. */
   hasTarget: boolean;
-  /** Assign (point) or clear (null) the item's target. */
-  onSetTargetPosition: (point: NormalizedPoint | null) => void;
+  /** Start targeting the item. The surface decides what that means — Axis and
+   * Place-on-Image seed a centre point the author then drags, Grid has no such
+   * default cell so it arms the row for the matrix instead. */
+  onSetTarget: () => void;
+  /** Drop the item's target, leaving it unkeyed. */
+  onClearTarget: () => void;
 }
 interface ScalesRowProps extends ItemBankRowBase {
   type: "scales";
@@ -90,26 +86,20 @@ interface ScalesRowProps extends ItemBankRowBase {
   leftLabel: string;
   rightLabel: string;
 }
-/** Shoould cover all options but for allocaiton may have to omit items **/
-
-/** onSechdule is like onCommit but debounced - Only useful for items with a set answer**/
 
 /**Extra action to pass to the menu **/
 //   primaryAction?: OptionMenuPrimaryAction;
-/** scored not useful for scales & allocation since it is derived by the presence of an answer **/
-//   scored?: boolean;
+
 type ItemBankRowProps =
   | ScalesRowProps
   | RankingRowProps
   | AllocationRowProps
-  | GridRowProps
   | PlacementItemRowProps;
 /**
  * Question mark vs check mark needs to indicate scoring status
  * Should be common to all slides but need to figure out how to handle for ranking
  * For ranking a click on that button should change overall scorability of slide, so all items.
  * Pass the onclick for htis
- *
  *
  *  **/
 const ItemBankRow = (props: ItemBankRowProps) => {
@@ -142,11 +132,7 @@ const ItemBankRow = (props: ItemBankRowProps) => {
   // Ranking never needs to use this since the order displayed is the correct answer.
   // For other questions individual values need to be set and is this relevant
   const scored =
-    type === "ranking"
-      ? false
-      : type === "placement" || type === "grid"
-        ? props.hasTarget
-        : props.correctValue;
+    type === "ranking" ? false : type === "placement" ? props.hasTarget : props.correctValue;
   const [points, setPoints] = useState(
     type === "allocation" ? (props.correctValue ?? props.poolShareSeed) : 0,
   );
@@ -187,9 +173,8 @@ const ItemBankRow = (props: ItemBankRowProps) => {
         return;
       }
       case "placement": {
-        // Seed a fresh target at the surface's centre; the author drags the
-        // exact spot from there (mirrors Axis).
-        props.onSetTargetPosition(props.hasTarget ? null : { x: 0.5, y: 0.5 });
+        if (props.hasTarget) props.onClearTarget();
+        else props.onSetTarget();
         return;
       }
     }
@@ -318,7 +303,7 @@ const ItemBankRow = (props: ItemBankRowProps) => {
         </div>
       )}
 
-      {type !== "ranking" && type !== "grid" && (
+      {type !== "ranking" && (
         <>
           {scored ? (
             <IconBtn
@@ -362,9 +347,7 @@ const ItemBankRow = (props: ItemBankRowProps) => {
         aria-label={
           type === "placement"
             ? `Reorder target ${(index + 1).toString()}`
-            : type === "grid"
-              ? `Reorder item ${(index + 1).toString()}`
-              : `Reorder option ${(index + 1).toString()}`
+            : `Reorder option ${(index + 1).toString()}`
         }
       >
         <DragIcon className={styles.gripIcon} aria-hidden="true" />

@@ -1,10 +1,11 @@
 // Covers the bank row's placement branch — the one kind whose "is this scored?"
-// state is a target point rather than a value: the trailing toggle sets a
-// centre-seeded target and clears it again, a click anywhere on the row arms it
-// for the surface while the toggle itself must not, and the branch is purely
-// additive — a ranking row still renders neither toggle nor selection. Grid
-// shares the arming click but states its answer read-only: unplacing is the
-// matrix's job, so the check is a status and never a control.
+// state is a target rather than a value. The row owns the two affordances (the
+// menu's Set/Clear target entry and the trailing check / question-mark toggle)
+// but not their meaning: both delegate to the caller's onSetTarget /
+// onClearTarget, so Axis can seed a centre point where Grid, having no centre
+// cell, only arms the row. A click anywhere on the row arms it for the surface
+// while the toggle itself must not, and the branch is purely additive — a
+// ranking row still renders neither toggle nor selection.
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -30,19 +31,23 @@ const baseProps = () => ({
   isDragging: false,
 });
 
-const renderPlacementRow = (hasTarget: boolean) => {
-  const props = { ...baseProps(), selected: false, onSelect: vi.fn(), onSetTargetPosition: vi.fn() };
-  const { container } = render(<ItemBankRow type="placement" hasTarget={hasTarget} {...props} />);
-  return { ...props, row: container.firstElementChild };
-};
-
-const renderGridRow = (hasTarget: boolean) => {
-  const props = { ...baseProps(), selected: false, onSelect: vi.fn() };
+const renderPlacementRow = (
+  hasTarget: boolean,
+  overrides: { menuOpen?: boolean; meta?: string } = {},
+) => {
+  const props = {
+    ...baseProps(),
+    selected: false,
+    onSelect: vi.fn(),
+    onSetTarget: vi.fn(),
+    onClearTarget: vi.fn(),
+    menuOpen: overrides.menuOpen ?? false,
+  };
   const { container } = render(
     <ItemBankRow
-      type="grid"
+      type="placement"
       hasTarget={hasTarget}
-      meta={hasTarget ? <span>Forest × Small</span> : undefined}
+      meta={overrides.meta === undefined ? undefined : <span>{overrides.meta}</span>}
       {...props}
     />,
   );
@@ -50,30 +55,53 @@ const renderGridRow = (hasTarget: boolean) => {
 };
 
 describe("ItemBankRow (placement)", () => {
-  it("offers to set a target on an unplaced row, seeding the surface's centre", async () => {
+  it("offers to set a target on an unplaced row, leaving what that means to the caller", async () => {
     const user = userEvent.setup();
-    const { onSetTargetPosition } = renderPlacementRow(false);
+    const { onSetTarget, onClearTarget } = renderPlacementRow(false);
 
     const toggle = screen.getByRole("button", { name: "Set a target position for target 1" });
     await user.click(toggle);
 
-    expect(onSetTargetPosition).toHaveBeenCalledWith({ x: 0.5, y: 0.5 });
+    // The row never writes a target itself — Axis seeds a point here, Grid arms.
+    expect(onSetTarget).toHaveBeenCalledOnce();
+    expect(onClearTarget).not.toHaveBeenCalled();
   });
 
   it("offers to clear the target on a placed row", async () => {
     const user = userEvent.setup();
-    const { onSetTargetPosition } = renderPlacementRow(true);
+    const { onSetTarget, onClearTarget } = renderPlacementRow(true);
 
     const toggle = screen.getByRole("button", { name: "Clear the target position for target 1" });
     await user.click(toggle);
 
     // Unplacing keeps the row: it simply stops keying a right answer.
-    expect(onSetTargetPosition).toHaveBeenCalledWith(null);
+    expect(onClearTarget).toHaveBeenCalledOnce();
+    expect(onSetTarget).not.toHaveBeenCalled();
+  });
+
+  it("leads the menu with Set target on an unplaced row, closing the menu as it fires", async () => {
+    const user = userEvent.setup();
+    const { onSetTarget, onMenuOpenChange } = renderPlacementRow(false, { menuOpen: true });
+
+    await user.click(screen.getByRole("menuitem", { name: "Set target" }));
+
+    expect(onMenuOpenChange).toHaveBeenCalledWith(false);
+    expect(onSetTarget).toHaveBeenCalledOnce();
+  });
+
+  it("leads the menu with Clear target on a placed row", async () => {
+    const user = userEvent.setup();
+    const { onClearTarget, onMenuOpenChange } = renderPlacementRow(true, { menuOpen: true });
+
+    await user.click(screen.getByRole("menuitem", { name: "Clear target" }));
+
+    expect(onMenuOpenChange).toHaveBeenCalledWith(false);
+    expect(onClearTarget).toHaveBeenCalledOnce();
   });
 
   it("arms the row on a row click, but never on the toggle's own click", async () => {
     const user = userEvent.setup();
-    const { row, onSelect, onSetTargetPosition } = renderPlacementRow(false);
+    const { row, onSelect, onSetTarget } = renderPlacementRow(false);
 
     if (!row) throw new Error("expected the row to render");
     await user.click(row);
@@ -82,8 +110,14 @@ describe("ItemBankRow (placement)", () => {
     await user.click(screen.getByRole("button", { name: "Set a target position for target 1" }));
     // The toggle stops the click short of the row, so setting a target never
     // also arms the row for a placement the author did not ask for.
-    expect(onSetTargetPosition).toHaveBeenCalledOnce();
+    expect(onSetTarget).toHaveBeenCalledOnce();
     expect(onSelect).toHaveBeenCalledOnce();
+  });
+
+  it("renders the caller's trailing meta, the status the row itself knows nothing about", () => {
+    renderPlacementRow(true, { meta: "Forest × Small" });
+
+    expect(screen.getByText("Forest × Small")).toBeInTheDocument();
   });
 
   it("leaves a ranking row without a scoring toggle or a selection", () => {
@@ -95,28 +129,5 @@ describe("ItemBankRow (placement)", () => {
     expect(screen.queryByRole("button", { name: /scorable/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /correct points/ })).not.toBeInTheDocument();
     expect(container.firstElementChild?.className).not.toContain("selected");
-  });
-});
-
-describe("ItemBankRow (grid)", () => {
-  it("shows the answer-set check and the cell name on a placed row", () => {
-    renderGridRow(true);
-
-    expect(screen.getByRole("img", { name: "Answer set" })).toBeInTheDocument();
-    expect(screen.getByText("Forest × Small")).toBeInTheDocument();
-    // The check states the answer, it does not offer to undo it: a Grid item is
-    // unplaced by dragging its chip off the matrix, never from the row.
-    expect(screen.queryByRole("button", { name: "Answer set" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /target position/ })).not.toBeInTheDocument();
-  });
-
-  it("arms the row on a row click", async () => {
-    const user = userEvent.setup();
-    const { row, onSelect } = renderGridRow(false);
-
-    if (!row) throw new Error("expected the row to render");
-    await user.click(row);
-
-    expect(onSelect).toHaveBeenCalledOnce();
   });
 });

@@ -8,7 +8,6 @@ import { ModalProvider } from "@context/ModalProvider";
 import { ToastProvider } from "@context/ToastProvider";
 import { NotFoundPage, ServerErrorPage } from "@pages/ErrorPage/ErrorPage";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 
 export interface RouterContext {
@@ -28,7 +27,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
               <Outlet />
             </Layout>
-            <TanStackRouterDevtools />
+            {/* <TanStackRouterDevtools /> */}
           </ModalProvider>
         </ToastProvider>
       </LayoutProvider>

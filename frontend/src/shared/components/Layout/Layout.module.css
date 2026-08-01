@@ -48,9 +48,12 @@
 
 .canvasHeader {
   height: var(--navbar-height);
+  padding: var(--padding, var(--p-md));
 
   &.isCollapsed {
     height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 }
 
