@@ -2,12 +2,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--gap-lg);
-  width: min(80vw, 880px);
+
+  /* Sized to the gallery grid: three 229px tiles plus their 12px gutters. */
+  width: min(90vw, 720px);
 
   /* Fixed height (not max-height) so the modal never resizes as async gallery
      content loads or as tabs switch — the active tab fills this box and its
-     grid scrolls inside. 540px comfortably fits the Upload tab's 360px crop. */
-  height: min(70vh, 540px);
+     grid scrolls inside. Tall enough for the 3×2 grid plus its pager, and for
+     the Upload tab's 360px crop. */
+  height: min(80vh, 640px);
 }
 
 /* Scoped flex-plumbing for the picker's own Tabs instance (className passed to
@@ -95,7 +98,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--gap-md);
   overflow-y: auto;
   padding: var(--p-square-xxs);
@@ -107,13 +110,21 @@
   align-content: start;
 }
 
+/* Dim the outgoing page while the next one is in flight. `data` keeps the old
+   tiles on screen across the request, so this is the only cue that they are
+   about to be replaced. */
+.grid[aria-busy="true"] {
+  opacity: 0.6;
+}
+
 .tile {
   display: flex;
   flex-direction: column;
   gap: var(--gap-xs);
-  background: var(--bg-surface);
-  border: var(--border-size-sm) solid var(--border-default);
+  background: var(--bg-surface-raised);
+  border: var(--border-size-sm) solid var(--border-subtle);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   padding: var(--p-square-xs);
   cursor: pointer;
   font-family: inherit;
@@ -125,7 +136,7 @@
 
 .tile:hover {
   border-color: var(--border-brand);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
 }
 
 /* Selected tile. State lives on the native toggle attribute rather than an
@@ -134,9 +145,8 @@
    here is the selection boundary (it carries meaning), with elevation added on
    top so a selected tile also lifts off the grid. */
 .tile[aria-pressed="true"] {
-  border-color: var(--border-brand);
-  background: var(--bg-surface-raised);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--bg-brand);
+  box-shadow: var(--shadow-md);
 }
 
 /* Positioning context for the selected badge; transparent to the tile's own
@@ -168,14 +178,15 @@
 
 .thumb {
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 213 / 140;
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: var(--bg-canvas);
 }
 
 .tileName {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -274,12 +285,66 @@
   min-height: 0;
 }
 
-/* In this column the search must stay a fixed-height row so the grid/state
-   region below it absorbs the reserved height. (.searchInput carries
-   `flex: 1 1 240px` for its other, horizontal use inside UploadTab's toolbar
-   row — harmless there, but it would grow vertically here.) */
-.galleryTab > .searchInput {
+.pager {
+  display: flex;
+  justify-content: center;
+}
+
+/* In this column the toolbar and the pager must stay fixed-height rows so the
+   grid/state region between them absorbs the reserved height. */
+.galleryTab > .toolbarRow,
+.galleryTab > .pager {
   flex: 0 0 auto;
+}
+
+/* The gallery's search box is a fixed-width field with the sort group pushed to
+   the far end, not the growing field UploadTab's paste-URL row wants. */
+.galleryTab .searchInput {
+  flex: 0 1 262px;
+  max-width: 100%;
+}
+
+/* Takes the row's remaining width and hugs its right edge. Sizing the group by
+   its content instead would collapse the field: the Dropdown's own container is
+   `width: 100%`, so it contributes only its widest option to an intrinsic
+   measure and the 300px below never gets a chance to apply. */
+.sortControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gap-sm);
+  flex: 1 1 auto;
+  min-width: 0;
+
+  /* The direction toggle keeps its square footprint; the field takes the squeeze. */
+  > button {
+    flex: 0 0 auto;
+  }
+}
+
+.sortLabel {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Sizing wrapper for the Dropdown, the same shape .searchInput gives the Input.
+   Fixed px like the DS's other field widths (Input/TextArea/FileUpload) —
+   tokens.css has no width scale. */
+.sortSelect {
+  flex: 0 1 300px;
+  min-width: 0;
+}
+
+.sortDirectionIcon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+/* Chevron-up reads as ascending; flipping it points the sort the other way.
+   Same rotate-the-icon idiom as CollapseBtn, kept local to this module. */
+.sortDirectionDesc {
+  transform: rotate(180deg);
 }
 
 /* The crop-on-pick step stands where the tabs would, directly in .picker's

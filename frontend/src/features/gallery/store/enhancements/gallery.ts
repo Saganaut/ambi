@@ -1,19 +1,25 @@
 /**
  * Cache-sync rules for gallery-image mutations. The generated gallery endpoints
- * carry no tags, so — like the theme and deck surfaces — each mutation keeps the
- * paginated `listImages` cache in sync from its own response instead of
- * invalidating + refetching.
+ * carry no tags, so each mutation reconciles the paginated `listImages` cache
+ * itself rather than relying on tag invalidation.
  *
- *   • addImage    → append the created image to every materialized `listImages`
- *                   page for the owning gallery (once the server confirms).
- *   • uploadImage → identical fold for the multipart upload sibling, which lands
- *                   the ingested image on the same gallery list.
- *   • removeImage → optimistically splice the image out of every materialized
- *                   `listImages` page for that gallery, rolled back on reject.
+ * `listImages` is server-driven: `{ id, search, pageable }` selects one true
+ * page of a sorted, optionally filtered collection. That makes a local splice
+ * unsound as the *final* state — whether a new image belongs on the page in view
+ * depends on the sort and the search term, and removing one leaves the page a
+ * row short of the size the server would have returned. So each mutation
+ * re-reads every materialized page for that gallery once the server confirms:
  *
- * `listImages` is keyed by `{ id, pageable }`, so a single gallery can have
- * several cached pages live at once; we sweep every materialized query whose
- * gallery id matches rather than guessing the caller's `pageable`.
+ *   • addImage / uploadImage → refetch (the image may sort anywhere, or nowhere
+ *                              if it doesn't match the active search).
+ *   • removeImage           → optimistically drop the tile so it disappears
+ *                              without a round-trip (rolled back on reject),
+ *                              then refetch so the page refills and the totals
+ *                              — which drive the pager — come from the server.
+ *
+ * A single gallery can have several cached pages live at once, so we sweep every
+ * materialized query whose gallery id matches rather than guessing the caller's
+ * `pageable`.
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
@@ -48,29 +54,21 @@ const listImageArgsForGallery = (
 };
 
 /**
- * Append a freshly created image into every materialized `listImages` page for
- * its gallery, so both the account grid and the picker reflect it without a
- * refetch. Shared by the JSON `addImage` mutation and its multipart
- * `uploadImage` sibling (both enhanced below).
+ * Re-read every materialized `listImages` page for a gallery. `subscribe: false`
+ * keeps this from holding the entries alive on its own — it only refreshes what
+ * the account grid and the picker are already showing.
  */
-export const appendImageToGalleryLists = (
+export const refetchGalleryLists = (
   dispatch: (action: unknown) => unknown,
   state: WithApiQueries,
   galleryId: string,
-  image: GalleryImageResponse,
 ) => {
   for (const queryArg of listImageArgsForGallery(state, galleryId)) {
     dispatch(
-      galleryApi.util.updateQueryData(
-        "listImages",
-        queryArg,
-        (draft: PagedModelGalleryImageResponse) => {
-          draft.content ??= [];
-          if (!draft.content.some((img) => img.id === image.id)) {
-            draft.content.push(image);
-          }
-        },
-      ),
+      galleryApi.endpoints.listImages.initiate(queryArg, {
+        subscribe: false,
+        forceRefetch: true,
+      }),
     );
   }
 };
@@ -89,8 +87,8 @@ galleryApi.enhanceEndpoints({
         },
       ) => {
         try {
-          const { data } = await queryFulfilled;
-          appendImageToGalleryLists(dispatch, getState(), arg.id, data);
+          await queryFulfilled;
+          refetchGalleryLists(dispatch, getState(), arg.id);
         } catch {
           // Add failed — nothing optimistic to roll back.
         }
@@ -108,8 +106,8 @@ galleryApi.enhanceEndpoints({
         },
       ) => {
         try {
-          const { data } = await queryFulfilled;
-          appendImageToGalleryLists(dispatch, getState(), arg.id, data);
+          await queryFulfilled;
+          refetchGalleryLists(dispatch, getState(), arg.id);
         } catch {
           // Upload failed — nothing optimistic to roll back.
         }
@@ -141,7 +139,9 @@ galleryApi.enhanceEndpoints({
           await api.queryFulfilled;
         } catch {
           for (const p of patches) p.undo();
+          return;
         }
+        refetchGalleryLists(api.dispatch, api.getState(), arg.id);
       },
     },
   },

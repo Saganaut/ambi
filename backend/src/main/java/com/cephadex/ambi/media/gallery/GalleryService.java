@@ -6,11 +6,14 @@ import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.userId;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -42,6 +45,12 @@ import com.cephadex.ambi.user.enums.UserLevel;
  */
 @Service
 public class GalleryService {
+
+    /** Image fields a client may sort by; anything else degrades to the default. */
+    private static final Set<String> SORTABLE_IMAGE_FIELDS = Set.of("name", "createdAt");
+    private static final Sort DEFAULT_IMAGE_SORT = Sort.by(Sort.Direction.DESC, "createdAt");
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final GalleryRepository galleryRepository;
     private final GalleryImageRepository imageRepository;
@@ -134,10 +143,41 @@ public class GalleryService {
     // Authorized through the owning gallery: load it, gate on its VIEW/EDIT, then
     // touch the separate gallery_images collection.
 
-    /** A gallery's images (VIEW). */
-    public Page<GalleryImage> listImages(String galleryId, AmbiPrincipal principal, Pageable pageable) {
+    /**
+     * A gallery's images (VIEW), optionally narrowed to those whose name contains
+     * {@code search} (case-insensitive; blank means "no filter"). The requested
+     * page is normalized by {@link #sanitize} before it reaches Mongo.
+     */
+    public Page<GalleryImage> listImages(String galleryId, AmbiPrincipal principal,
+            String search, Pageable pageable) {
         Gallery gallery = getViewable(galleryId, principal);
-        return imageRepository.findByGalleryId(gallery.getId(), pageable);
+        Pageable request = sanitize(pageable);
+        if (!StringUtils.hasText(search)) {
+            return imageRepository.findByGalleryId(gallery.getId(), request);
+        }
+        return imageRepository.findByGalleryIdAndNameContainingIgnoreCase(
+                gallery.getId(), search.trim(), request);
+    }
+
+    /**
+     * Normalize a client-supplied page request: keep only sort orders on
+     * whitelisted fields (an unknown field would otherwise reach Mongo verbatim),
+     * fall back to newest-first when nothing usable is left, and cap the page size
+     * so one request can't ask for the whole collection. Unknown fields are
+     * dropped rather than rejected — a stale or hand-edited sort param degrades to
+     * the default instead of failing the browse.
+     */
+    private static Pageable sanitize(Pageable pageable) {
+        if (pageable.isUnpaged()) {
+            return PageRequest.of(0, DEFAULT_PAGE_SIZE, DEFAULT_IMAGE_SORT);
+        }
+        Sort sort = Sort.by(pageable.getSort().stream()
+                .filter(order -> SORTABLE_IMAGE_FIELDS.contains(order.getProperty()))
+                .toList());
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), MAX_PAGE_SIZE),
+                sort.isSorted() ? sort : DEFAULT_IMAGE_SORT);
     }
 
     /**

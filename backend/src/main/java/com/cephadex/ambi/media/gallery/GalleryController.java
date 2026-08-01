@@ -117,13 +117,20 @@ public class GalleryController {
     /**
      * A gallery's images (VIEW). Returned as a {@link PagedModel} — the stable,
      * self-describing page envelope ({@code content} + {@code page} metadata).
+     *
+     * <p>Browsing is server-driven: {@code page}/{@code size}/{@code sort} bind to
+     * the {@link Pageable} and the optional {@code search} term narrows the page to
+     * images whose name contains it (case-insensitive). Sorting is limited to
+     * {@code name} and {@code createdAt} and the size is capped — see
+     * {@code GalleryService.sanitize}.
      */
     @GetMapping("/{id}/images")
     public PagedModel<GalleryImageResponse> listImages(
             @PathVariable String id,
+            @RequestParam(required = false) String search,
             Pageable pageable,
             @AuthenticationPrincipal AmbiPrincipal principal) {
-        return new PagedModel<>(galleryService.listImages(id, principal, pageable)
+        return new PagedModel<>(galleryService.listImages(id, principal, search, pageable)
                 .map(GalleryImageResponse::from));
     }
 

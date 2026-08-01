@@ -1,7 +1,10 @@
-// Gallery tab: browse the user's stored images and pick one. Search filters by
-// the gallery item's name. Picking reports the whole gallery item and this tab
-// takes it no further — whether the pick is inserted as-is or re-cropped first
-// is the parent's decision (see GalleryPicker's `cropGalleryPicks`).
+// Gallery tab: browse the user's stored images and pick one. Browsing is
+// server-driven — the page, the sort field/direction and the name search are all
+// query params on `listImages`, so the grid shows one true page of the gallery
+// rather than a client filter over whatever happened to be fetched. Picking
+// reports the whole gallery item and this tab takes it no further — whether the
+// pick is inserted as-is or re-cropped first is the parent's decision (see
+// GalleryPicker's `cropGalleryPicks`).
 //
 // Two interaction modes, chosen by the parent:
 //   • click-to-pick (default) — a single click fires onPick straight away. Used
@@ -17,11 +20,15 @@
 // from a focused tile to the parent's Insert button would be tabbing past every
 // remaining tile in the grid. Keyboard activation is told apart from a mouse
 // click by `event.detail`, which is 0 for Enter/Space and ≥1 for a real click.
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { ChevronUpIcon } from "@heroicons/react/24/outline";
 import CheckIcon from "@assets/icons/status/check-solid.svg?react";
+import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { Loader } from "@ui/Loader/Loader";
+import { Pagination } from "@ui/Pagination/Pagination";
 import {
   useListImagesQuery,
   type GalleryImageResponse,
@@ -30,9 +37,20 @@ import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
 import { resolveImageUrl } from "@utils/image";
 import styles from "./GalleryPicker.module.css";
 
-// One large page is plenty for a browse-and-pick surface; pagination UI can come
-// later if a gallery ever outgrows it.
-const PAGE = { page: 0, size: 100 };
+// One 3×2 grid per page, matching the picker's fixed-height body.
+const PAGE_SIZE = 6;
+
+// Long enough that a typed word is one request, short enough to feel live.
+const SEARCH_DEBOUNCE_MS = 300;
+
+/** The fields the backend allows sorting images by (anything else it ignores). */
+type SortField = "createdAt" | "name";
+type SortDirection = "asc" | "desc";
+
+const SORT_OPTIONS = [
+  { value: "createdAt", label: "Date" },
+  { value: "name", label: "Name" },
+];
 
 interface GalleryTabProps {
   galleryId?: string;
@@ -62,11 +80,39 @@ const GalleryTab = ({
   selectedId,
   onSelect,
 }: GalleryTabProps) => {
+  const [page, setPage] = useState(0);
+  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  // The field mirrors keystrokes; only the settled value becomes a request.
+  const [searchDraft, setSearchDraft] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchDraft.trim());
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchDraft]);
+
   const {
-    data: page,
+    // `data` (not `currentData`) holds the last page fetched for *any* args, so
+    // paging or re-sorting swaps the grid in place instead of blanking it back
+    // to the spinner between requests.
+    data: imagePage,
+    isFetching,
     isError: imagesError,
   } = useListImagesQuery(
-    { id: galleryId ?? "", pageable: PAGE },
+    {
+      id: galleryId ?? "",
+      search: search === "" ? undefined : search,
+      pageable: {
+        page,
+        size: PAGE_SIZE,
+        sort: [`${sortField},${sortDirection}`],
+      },
+    },
     // Tiles render presigned image URLs; keep them fresh so reopening the picker
     // after idle never shows an expired URL. See imageRefreshPolicy.
     { skip: !galleryId, ...IMAGE_QUERY_REFRESH },
@@ -81,16 +127,19 @@ const GalleryTab = ({
   // it reports no data during that first round-trip. Treat "no id yet" or "id
   // but images not resolved yet" as loading, so the tab goes spinner → grid
   // without flashing the empty state between the two dependent requests.
-  const showLoading = !showError && (!galleryId || !page);
+  const showLoading = !showError && (!galleryId || !imagePage);
 
-  const images = useMemo(() => page?.content ?? [], [page]);
-  const [search, setSearch] = useState("");
+  const images = imagePage?.content ?? [];
+  const pageCount = imagePage?.page?.totalPages ?? 0;
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return images;
-    return images.filter((img) => (img.name ?? "").toLowerCase().includes(q));
-  }, [images, search]);
+  // Deleting the last image of the final page can strand the pager past the end;
+  // walk it back rather than showing a blank grid. Only once the request has
+  // settled — mid-flight the totals still describe the page being replaced.
+  useEffect(() => {
+    if (!isFetching && pageCount > 0 && page > pageCount - 1) {
+      setPage(pageCount - 1);
+    }
+  }, [isFetching, page, pageCount]);
 
   const selectable = onSelect !== undefined;
 
@@ -162,17 +211,54 @@ const GalleryTab = ({
 
   return (
     <div className={styles.galleryTab}>
-      <div className={styles.searchInput}>
-        <Input
-          type='text'
-          fullWidth
-          ariaLabel='Search gallery by name'
-          placeholder='Search by name…'
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-          }}
-        />
+      <div className={styles.toolbarRow}>
+        <div className={styles.searchInput}>
+          <Input
+            type='text'
+            fullWidth
+            withPadding={false}
+            ariaLabel='Search gallery by name'
+            placeholder='Search by name…'
+            value={searchDraft}
+            onChange={(e) => {
+              setSearchDraft(e.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <div className={styles.sortControls}>
+          <span className={styles.sortLabel}>Sort by</span>
+          <div className={styles.sortSelect}>
+            <Dropdown
+              ariaLabel='Sort by'
+              fullWidth
+              withPadding={false}
+              options={SORT_OPTIONS}
+              value={[sortField]}
+              onChange={(values) => {
+                setSortField(
+                  (values[0] as SortField | undefined) ?? "createdAt",
+                );
+                setPage(0);
+              }}
+            />
+          </div>
+          <IconBtn
+            fill='ghost'
+            size='sm'
+            icon={<ChevronUpIcon className={styles.sortDirectionIcon} />}
+            className={
+              sortDirection === "desc" ? styles.sortDirectionDesc : undefined
+            }
+            aria-label={
+              sortDirection === "asc" ? "Sort descending" : "Sort ascending"
+            }
+            onClick={() => {
+              setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+              setPage(0);
+            }}
+          />
+        </div>
       </div>
 
       {showError && (
@@ -189,21 +275,34 @@ const GalleryTab = ({
           <Loader />
         </div>
       )}
-      {!showError && !showLoading && filtered.length === 0 && (
+      {!showError && !showLoading && images.length === 0 && (
         <div className={styles.stateFill}>
           <EmptyState
             className={styles.empty}
-            title='No images yet'
+            title={search === "" ? "No images yet" : "No matching images"}
             message={
-              images.length === 0
+              search === ""
                 ? "Upload an image or add one from the web on the Upload tab."
                 : "No images match your search."
             }
           />
         </div>
       )}
-      {!showError && !showLoading && filtered.length > 0 && (
-        <div className={styles.grid}>{filtered.map(renderTile)}</div>
+      {!showError && !showLoading && images.length > 0 && (
+        <div className={styles.grid} aria-busy={isFetching}>
+          {images.map(renderTile)}
+        </div>
+      )}
+
+      {!showError && !showLoading && (
+        <div className={styles.pager}>
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            ariaLabel='Gallery pages'
+          />
+        </div>
       )}
     </div>
   );

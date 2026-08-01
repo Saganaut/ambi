@@ -10,7 +10,10 @@ Cache behavior is layered onto the generated, never-edited API via `enhanceEndpo
 2. **awaits `queryFulfilled`** and folds the canonical response **straight back into the cache** — a whole-object replace, so server-owned fields (`version`, `acl`, `permissions`, LexoRank `sortOrder`, audit ids) land and dropped optional fields clear;
 3. **undoes the patch on reject** (`patch.undo()`).
 
-**No mutation invalidates a tag to trigger a refetch.** The reference implementation is `features/deck/store/enhancements/deck.ts` (`reconcilingDeckMutation` factory); `slide.ts` reconciles the `listDeckSlides` *list*, `gallery.ts` / `theme.ts` follow suit. The lone exception is a delete (`deleteDeck`), which has no response to reconcile and instead splices the entity out of every cached list.
+**No mutation invalidates a tag to trigger a refetch.** The reference implementation is `features/deck/store/enhancements/deck.ts` (`reconcilingDeckMutation` factory); `slide.ts` reconciles the `listDeckSlides` *list*, `theme.ts` follows suit. Two documented exceptions:
+
+- a delete (`deleteDeck`) has no response to reconcile, so it splices the entity out of every cached list instead;
+- `gallery.ts` re-reads (`listImages.initiate(arg, { subscribe: false, forceRefetch: true })`) after every image write. `listImages` is a *server-driven* page — `{ id, search, pageable }` selects one slice of a sorted, optionally filtered collection — so whether a new image belongs on the page in view depends on the active sort and search term, and removing one leaves the page short of the size the server would return. A local splice can't be the final state; the removal still patches optimistically so the tile disappears without a round-trip, then the refetch refills the page and restores the server's totals (which drive the pager).
 
 Each enhancement module is imported **for its side effect only** from the `shared/store/apiEnhancements.ts` barrel, which `store.ts` imports — drop that import and the mutations silently fall out of sync. Add a new feature's enhancements by adding a side-effect import line there.
 

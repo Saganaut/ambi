@@ -11,6 +11,10 @@ public interface GalleryImageRepository extends MongoRepository<GalleryImage, St
     /** A gallery's images, newest-first paging is the caller's to choose via Pageable. */
     Page<GalleryImage> findByGalleryId(String galleryId, Pageable pageable);
 
+    /** The same page, narrowed to images whose name contains the term (case-insensitive). */
+    Page<GalleryImage> findByGalleryIdAndNameContainingIgnoreCase(
+            String galleryId, String name, Pageable pageable);
+
     /** A single image scoped to its gallery, so a stray id can't cross galleries. */
     Optional<GalleryImage> findByIdAndGalleryId(String id, String galleryId);
 

@@ -110,20 +110,37 @@ const harbour = image({
 
 let deleted: string[] = [];
 let uploadRequests = 0;
+/**
+ * The gallery as the server holds it. Browsing is server-driven now, so every
+ * write re-reads the list: a handler that answered from a frozen array would
+ * hand a deleted image straight back.
+ */
+let library: GalleryImageResponse[] = [];
 
 const server = setupServer(
   http.get(`${apiBaseUrl}/api/galleries/mine`, () =>
     HttpResponse.json({ id: "g1", name: "My gallery" }),
   ),
   http.get(`${apiBaseUrl}/api/galleries/g1/images`, () =>
-    HttpResponse.json({ content: [sunset, harbour] }),
+    HttpResponse.json({
+      content: library,
+      page: {
+        size: 6,
+        number: 0,
+        totalElements: library.length,
+        totalPages: 1,
+      },
+    }),
   ),
   http.post(`${apiBaseUrl}/api/galleries/g1/images/upload`, () => {
     uploadRequests += 1;
+    library = [...library, cropped];
     return HttpResponse.json(cropped, { status: 201 });
   }),
   http.delete(`${apiBaseUrl}/api/galleries/g1/images/:imageId`, ({ params }) => {
-    deleted.push(String(params.imageId));
+    const imageId = String(params.imageId);
+    deleted.push(imageId);
+    library = library.filter((img) => img.id !== imageId);
     return new HttpResponse(null, { status: 204 });
   }),
 );
@@ -135,6 +152,7 @@ afterAll(() => {
   server.close();
 });
 beforeEach(() => {
+  library = [sunset, harbour];
   // jsdom implements neither; the crop step frees its blob URL when it's left.
   globalThis.URL.createObjectURL = vi.fn(() => "blob:mock");
   globalThis.URL.revokeObjectURL = vi.fn();

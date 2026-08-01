@@ -16,6 +16,10 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -40,12 +44,14 @@ import com.cephadex.ambi.media.storage.S3StorageService.StoredObject;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
- * Controller-plumbing tests for the gallery's two byte-carrying routes in
- * isolation via standalone {@code MockMvc}, mirroring {@code DeckControllerTest}.
- * The ingest pipeline and permission semantics live in their own services
- * (mocked here); this asserts the multipart upload ingests bytes, delegates to
- * the service and returns a 201, and that the {@code /file} read hands the
- * stored bytes back with their own content type and a private cache directive.
+ * Controller-plumbing tests for the gallery's image routes in isolation via
+ * standalone {@code MockMvc}, mirroring {@code DeckControllerTest}. The ingest
+ * pipeline and permission semantics live in their own services (mocked here);
+ * this asserts the list route binds its browse params ({@code search} plus the
+ * {@code Pageable}) and answers with a page envelope, that the multipart upload
+ * ingests bytes, delegates to the service and returns a 201, and that the
+ * {@code /file} read hands the stored bytes back with their own content type and
+ * a private cache directive.
  * Presigning is applied centrally by {@code AppImageSerializer}
  * (covered in {@code AppImageJacksonTest}); standalone MockMvc uses a default
  * ObjectMapper without that module, so the response here carries the raw keys.
@@ -71,7 +77,11 @@ class GalleryControllerTest {
 
         GalleryController controller = new GalleryController(galleryService, imageIngestService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                // Standalone MockMvc registers neither of these itself; the image
+                // list binds a Pageable straight from the query string.
+                .setCustomArgumentResolvers(
+                        new AuthenticationPrincipalArgumentResolver(),
+                        new PageableHandlerMethodArgumentResolver())
                 .build();
     }
 
@@ -95,6 +105,36 @@ class GalleryControllerTest {
         gi.setName("Hero");
         gi.setCreatorUserId("user-1");
         return gi;
+    }
+
+    @Test
+    void listImagesBindsTheBrowseParamsAndReturnsAPageEnvelope() throws Exception {
+        when(galleryService.listImages(eq("g1"), any(), eq("sun"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(storedImageWithVariant())));
+
+        mockMvc.perform(get("/api/galleries/g1/images")
+                .param("search", "sun")
+                .param("page", "1")
+                .param("size", "6")
+                .param("sort", "name,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value("img-1"));
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(galleryService).listImages(eq("g1"), any(), eq("sun"), pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(6);
+        assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by(Sort.Direction.ASC, "name"));
+    }
+
+    @Test
+    void listImagesLeavesTheSearchTermNullWhenItIsOmitted() throws Exception {
+        when(galleryService.listImages(eq("g1"), any(), eq(null), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/api/galleries/g1/images")).andExpect(status().isOk());
+
+        verify(galleryService).listImages(eq("g1"), any(), eq(null), any(Pageable.class));
     }
 
     @Test

@@ -272,7 +272,7 @@ const GalleryPicker = ({
             ) : (
               <>
                 <Btn
-                  variant='primary'
+                  variant='brand'
                   disabled={!selected}
                   isLoading={isPreparingCrop}
                   onClick={insertSelected}>
@@ -280,7 +280,6 @@ const GalleryPicker = ({
                 </Btn>
                 <Btn
                   variant='error'
-                  fill='ghost'
                   disabled={!selected}
                   onClick={selection.requestDelete}>
                   Delete

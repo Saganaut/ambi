@@ -5,6 +5,7 @@ const injectedRtkApi = api.injectEndpoints({
       query: (queryArg) => ({
         url: `/api/galleries/${queryArg.id}/images`,
         params: {
+          search: queryArg.search,
           pageable: queryArg.pageable,
         },
       }),
@@ -79,6 +80,7 @@ export type ListImagesApiResponse =
   /** status 200 OK */ PagedModelGalleryImageResponse;
 export type ListImagesApiArg = {
   id: string;
+  search?: string;
   pageable: Pageable;
 };
 export type AddImageApiResponse =

@@ -17,6 +17,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
@@ -43,6 +46,11 @@ import com.cephadex.ambi.user.enums.UserLevel;
  * choice of capability per operation and its lazy provisioning. Personal
  * galleries resolve without I/O, so the user store stays untouched there; org
  * cases mock {@code UserService} to supply the requester's org role.
+ *
+ * <p>Also covers the image list's request normalization: sorting is whitelisted
+ * to {@code name}/{@code createdAt} (anything else degrades to newest-first), the
+ * page size is capped, and a non-blank {@code search} switches to the
+ * name-contains read.
  */
 class GalleryServiceTest {
 
@@ -266,7 +274,97 @@ class GalleryServiceTest {
         verify(galleryRepository).delete(any(Gallery.class));
     }
 
+    // ── Listing images ──────────────────────────────────────────────────────────
+
+    @Test
+    void listImagesSortsNewestFirstWhenNoSortIsAsked() {
+        viewableGallery();
+
+        galleryService.listImages("gal-1", principal("owner-1"), null, PageRequest.of(0, 6));
+
+        assertThat(listedPageable().getSort()).isEqualTo(Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    @Test
+    void listImagesHonoursAWhitelistedSortField() {
+        viewableGallery();
+
+        galleryService.listImages("gal-1", principal("owner-1"), null,
+                PageRequest.of(1, 6, Sort.by(Sort.Direction.ASC, "name")));
+
+        Pageable used = listedPageable();
+        assertThat(used.getSort()).isEqualTo(Sort.by(Sort.Direction.ASC, "name"));
+        assertThat(used.getPageNumber()).isEqualTo(1);
+    }
+
+    @Test
+    void listImagesFallsBackToTheDefaultSortForAnUnknownField() {
+        viewableGallery();
+
+        // An unknown field would otherwise reach Mongo verbatim; it degrades to
+        // the default rather than failing the browse.
+        galleryService.listImages("gal-1", principal("owner-1"), null,
+                PageRequest.of(0, 6, Sort.by(Sort.Direction.ASC, "creatorUserId")));
+
+        assertThat(listedPageable().getSort()).isEqualTo(Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    @Test
+    void listImagesCapsAnOversizedPageRequest() {
+        viewableGallery();
+
+        galleryService.listImages("gal-1", principal("owner-1"), null, PageRequest.of(0, 5000));
+
+        assertThat(listedPageable().getPageSize()).isEqualTo(100);
+    }
+
+    @Test
+    void listImagesNarrowsByNameWhenSearchIsSupplied() {
+        viewableGallery();
+
+        galleryService.listImages("gal-1", principal("owner-1"), "  sun  ", PageRequest.of(0, 6));
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(imageRepository).findByGalleryIdAndNameContainingIgnoreCase(
+                eq("gal-1"), eq("sun"), pageable.capture());
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(6);
+        verify(imageRepository, never()).findByGalleryId(any(), any());
+    }
+
+    @Test
+    void listImagesIgnoresABlankSearch() {
+        viewableGallery();
+
+        galleryService.listImages("gal-1", principal("owner-1"), "   ", PageRequest.of(0, 6));
+
+        verify(imageRepository).findByGalleryId(eq("gal-1"), any(Pageable.class));
+        verify(imageRepository, never())
+                .findByGalleryIdAndNameContainingIgnoreCase(any(), any(), any());
+    }
+
+    @Test
+    void listImagesByStrangerIsForbidden() {
+        viewableGallery();
+
+        assertThatThrownBy(() -> galleryService.listImages("gal-1", principal("intruder"), null,
+                PageRequest.of(0, 6)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(imageRepository, never()).findByGalleryId(any(), any());
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────────
+
+    private void viewableGallery() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+    }
+
+    /** The page request the service actually handed to the unfiltered repository read. */
+    private Pageable listedPageable() {
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(imageRepository).findByGalleryId(eq("gal-1"), captor.capture());
+        return captor.getValue();
+    }
+
 
     private static AmbiPrincipal principal(String userId) {
         return new AmbiPrincipal(IdentityState.REGISTERED, userId, "pub-" + userId,
