@@ -7,8 +7,9 @@
  * Placement is select-then-drag: the composer holds the selected item (rows
  * and markers both select), and while an item is selected any press on the
  * plane drops — and keeps dragging — its target at the pointer's normalized
- * coordinates. Placed markers can also be dragged directly, or tapped to
- * toggle their row's selection; `usePlacementSurface` owns that pointer
+ * coordinates. Placed markers can also be dragged directly — off the plane to
+ * clear their target (the marker dims while a release would do so) — or tapped
+ * to toggle their row's selection; `usePlacementSurface` owns that pointer
  * bookkeeping. Every placed marker is drawn in its item's resolved color with
  * its dashed tolerance circle, in the same normalized space the grader
  * measures in, so what the author sees is what is graded.
@@ -148,6 +149,7 @@ const AxisPlaneEditor = ({
             tolerance={question.tolerance}
             ariaLabel={`Item ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to move`}
             selected={selectedItemId === itemId}
+            outside={surface.drag?.key === itemId && !surface.drag.inside}
             {...surface.markerProps(itemId)}
           />
         );

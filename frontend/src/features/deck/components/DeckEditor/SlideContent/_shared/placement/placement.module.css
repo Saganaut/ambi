@@ -91,6 +91,11 @@
   box-shadow: 0 0 0 var(--space-half) color-mix(in oklab, var(--placement-color) 35%, transparent);
 }
 
+/* A drag past the surface's edge: release here removes the placement. */
+.markerGroupOutside {
+  opacity: 0.4;
+}
+
 /* The not-yet-committed placement following the pointer. */
 .markerGhost {
   cursor: crosshair;

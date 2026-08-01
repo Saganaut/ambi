@@ -35,6 +35,8 @@ interface PlacementMarkerProps {
   selected?: boolean;
   /** A placement still following the pointer — inert and translucent. */
   ghost?: boolean;
+  /** The drag is past the surface's edge — dimmed; releasing here removes it. */
+  outside?: boolean;
   onPointerDown?: PointerEventHandler<HTMLElement>;
   onPointerMove?: PointerEventHandler<HTMLElement>;
   onPointerUp?: PointerEventHandler<HTMLElement>;
@@ -50,6 +52,7 @@ const PlacementMarker = ({
   ariaLabel,
   selected,
   ghost = false,
+  outside = false,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -66,7 +69,12 @@ const PlacementMarker = ({
   const markerBody = <MarkerBadge displayIndex={displayIndex} color={color} label={trimmedLabel} />;
 
   return (
-    <span className={styles.markerGroup} style={{ "--placement-color": color } as CSSProperties}>
+    <span
+      className={[styles.markerGroup, outside ? styles.markerGroupOutside : ""]
+        .filter(Boolean)
+        .join(" ")}
+      style={{ "--placement-color": color } as CSSProperties}
+    >
       {tolerance != null && (
         <span
           className={styles.toleranceCircle}

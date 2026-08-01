@@ -1,7 +1,9 @@
 // Covers the Place-on-Image surface's two press meanings and how they order:
 // with a row armed, a press places THAT target and puts the row down again;
 // with nothing armed it mints a new one. Also pins the marker tap that toggles
-// arming, and the unplaced target that draws no marker until it is dragged.
+// arming, the unplaced target that draws no marker until it is dragged, and
+// the miss semantics — a release off the image abandons a fresh placement
+// (arming untouched) and unplaces a dragged marker.
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -129,6 +131,42 @@ describe("PlaceOnImageSurface", () => {
     expect(onToggleSelect).toHaveBeenCalledWith("target_b");
     expect(onSetTargetPosition).not.toHaveBeenCalled();
     expect(onAddTarget).not.toHaveBeenCalled();
+  });
+
+  it("abandons a mint released off the image", () => {
+    const { surface, onAddTarget, onSetTargetPosition } = renderSurface();
+
+    fireEvent.pointerDown(surface, { pointerId: 1, clientX: 50, clientY: 25 });
+    fireEvent.pointerMove(surface, { pointerId: 1, clientX: 300, clientY: 25 });
+    fireEvent.pointerUp(surface, { pointerId: 1, clientX: 300, clientY: 25 });
+
+    expect(onAddTarget).not.toHaveBeenCalled();
+    expect(onSetTargetPosition).not.toHaveBeenCalled();
+  });
+
+  it("keeps the armed row armed when its placement is released off the image", () => {
+    const { surface, onSetTargetPosition, onToggleSelect } = renderSurface({
+      selectedItemId: "target_a",
+    });
+
+    fireEvent.pointerDown(surface, { pointerId: 1, clientX: 50, clientY: 25 });
+    fireEvent.pointerMove(surface, { pointerId: 1, clientX: 300, clientY: 25 });
+    fireEvent.pointerUp(surface, { pointerId: 1, clientX: 300, clientY: 25 });
+
+    // Nothing written, nothing disarmed: the author still holds the row.
+    expect(onSetTargetPosition).not.toHaveBeenCalled();
+    expect(onToggleSelect).not.toHaveBeenCalled();
+  });
+
+  it("unplaces a placed marker dragged off the image", () => {
+    const { onSetTargetPosition } = renderSurface();
+    const marker = screen.getByRole("button", { name: "Target 2 (Bree) — drag to move" });
+
+    fireEvent.pointerDown(marker, { pointerId: 1, clientX: 170, clientY: 30 });
+    fireEvent.pointerMove(marker, { pointerId: 1, clientX: 400, clientY: 300 });
+    fireEvent.pointerUp(marker, { pointerId: 1, clientX: 400, clientY: 300 });
+
+    expect(onSetTargetPosition).toHaveBeenCalledWith("target_b", null);
   });
 
   it("draws no marker for an unplaced target until its drag materializes one", () => {

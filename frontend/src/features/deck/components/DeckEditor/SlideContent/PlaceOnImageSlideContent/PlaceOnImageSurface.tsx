@@ -12,7 +12,9 @@
  * mints a target at the pointer and keeps dragging it until release (Axis's
  * plane-drag, minus the selection step) — that in-flight placement is drawn as
  * a ghost marker, since it has no id to key on until it commits. Placed markers
- * drag directly, and a tap on one toggles its row's arming (Axis's
+ * drag directly — off the image to clear their target, the marker dimming while
+ * a release would do so; a fresh placement released off the image is simply
+ * abandoned — and a tap on one toggles its row's arming (Axis's
  * `onMarkerTap`).
  *
  * Coordinates are normalized [0, 1] in screen space over the image box —
@@ -44,8 +46,8 @@ interface PlaceOnImageSurfaceProps {
   onToggleSelect: (targetId: string) => void;
   /** Mint an item already placed at `point`. */
   onAddTarget: (point: PlacePoint) => void;
-  /** Assign an existing item's target point. */
-  onSetTargetPosition: (targetId: string, point: PlacePoint) => void;
+  /** Assign an existing item's target point; null (dragged off) unplaces it. */
+  onSetTargetPosition: (targetId: string, point: PlacePoint | null) => void;
 }
 
 const PlaceOnImageSurface = ({
@@ -126,6 +128,7 @@ const PlaceOnImageSurface = ({
               tolerance={tolerance}
               ariaLabel={`Target ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to move`}
               selected={selectedItemId === target.id}
+              outside={surface.drag?.key === target.id && !surface.drag.inside}
               {...surface.markerProps(target.id)}
             />
           );
@@ -138,6 +141,7 @@ const PlaceOnImageSurface = ({
           tolerance={tolerance}
           ariaLabel={`New target ${(ghostIndex + 1).toString()}`}
           ghost
+          outside={!surface.drag.inside}
         />
       )}
     </div>
