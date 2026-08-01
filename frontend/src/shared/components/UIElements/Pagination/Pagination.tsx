@@ -98,9 +98,8 @@ const Pagination = (props: PaginationProps) => {
         .join(" ")}>
       <IconBtn
         variant='secondary'
-        fill='ghost'
         size='sm'
-        shape='round'
+        className={styles.navBtn}
         icon={<ChevronLeftIcon className={styles.chevron} />}
         disabled={!canGoPrev}
         onClick={() => {
@@ -159,9 +158,8 @@ const Pagination = (props: PaginationProps) => {
 
       <IconBtn
         variant='secondary'
-        fill='ghost'
         size='sm'
-        shape='round'
+        className={styles.navBtn}
         icon={<ChevronRightIcon className={styles.chevron} />}
         disabled={!canGoNext}
         onClick={() => {
