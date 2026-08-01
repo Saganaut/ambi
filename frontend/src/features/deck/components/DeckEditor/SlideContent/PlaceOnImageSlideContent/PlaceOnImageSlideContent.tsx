@@ -34,6 +34,7 @@
  * nudges until an image is chosen and at least one target exists — but only
  * nudges: a target-less slide is a legitimate collect-only pin drop.
  */
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
@@ -51,11 +52,11 @@ import {
   ToleranceField,
   useSlideComposerState,
 } from "../_shared";
+import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { PlaceOnImageSurface } from "./PlaceOnImageSurface";
-import { PlaceOnImageTargetEditable } from "./PlaceOnImageTargetEditable";
 
 const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = usePlaceOnImageEditor(deckId, slideId);
@@ -142,31 +143,35 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
           <SlideContentSection.Body>
             <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-              {targets.map((target, index) => (
-                <PlaceOnImageTargetEditable
-                  key={target.id}
-                  target={target}
-                  sortIndex={index}
-                  menuOpen={composer.openMenuId === target.id}
-                  canRemove
-                  onMenuOpenChange={(open) => {
-                    composer.setOpenMenuId(open ? target.id : null);
-                  }}
-                  onScheduleLabel={(label) => {
-                    editor.scheduleTargetLabel(target.id, label);
-                  }}
-                  onFlush={editor.flush}
-                  onSetColor={(color) => {
-                    editor.setTargetColor(target.id, color);
-                  }}
-                  onSetImage={(image) => {
-                    editor.setTargetImage(target.id, image);
-                  }}
-                  onRemove={() => {
-                    editor.removeTarget(target.id);
-                  }}
-                  openPicker={openPicker}
-                />
+              {targets.map((item, idx) => (
+                <>
+                  <SortableItemBankRow
+                    type="ranking"
+                    key={item.id}
+                    item={item}
+                    index={idx}
+                    color={resolveDatumColor(item.color, idx)}
+                    menuOpen={composer.openMenuId === item.id}
+                    canRemove={editor.canRemove}
+                    onMenuOpenChange={(open) => {
+                      composer.setOpenMenuId(open ? item.id : null);
+                    }}
+                    onScheduleLabel={(label) => {
+                      editor.scheduleTargetLabel(item.id, label);
+                    }}
+                    onFlush={editor.flush}
+                    onSetColor={(color) => {
+                      editor.setTargetColor(item.id, color);
+                    }}
+                    onSetImage={(image) => {
+                      editor.setTargetImage(item.id, image);
+                    }}
+                    onRemove={() => {
+                      editor.removeTarget(item.id);
+                    }}
+                    openPicker={openPicker}
+                  />
+                </>
               ))}
               <AddItemCard
                 label={

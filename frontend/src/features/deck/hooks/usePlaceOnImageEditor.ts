@@ -102,6 +102,8 @@ interface UsePlaceOnImageEditorResult {
 
   /** ── Targets (keyed by `PlaceTargetView.id`) ──────────────────────────── */
   canAddTarget: boolean;
+  canRemove: boolean;
+
   /** Append a target at `point` (image centre by default). Immediate. */
   addTarget: (point?: PlacePoint) => void;
   /** Commit a row drop — reorders `correctTargets`. Immediate. */
@@ -270,6 +272,7 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
   };
 
   return {
+    canRemove: targets.length > 1,
     question,
     schedulePrompt,
     flush: editor.flush,
