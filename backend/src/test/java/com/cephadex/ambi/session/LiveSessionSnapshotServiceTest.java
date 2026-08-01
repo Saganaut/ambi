@@ -35,8 +35,9 @@ import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
@@ -454,7 +455,9 @@ class LiveSessionSnapshotServiceTest {
         when(slide.getId()).thenReturn("slide-1");
         when(slide.getContent()).thenReturn(new PlaceOnImageContent(
                 null,
-                List.of(new Target("t-1", "Here", null, "#ff0000", 0.4, 0.6, 0.1)),
+                List.of(new PlaceItem("t-1", "Here", null, "#ff0000")),
+                Map.of("t-1", new PlacePoint(0.4, 0.6)),
+                0.1,
                 ScoreMode.INSIDE_RADIUS));
         Deck deck = mock(Deck.class);
         when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
@@ -486,7 +489,9 @@ class LiveSessionSnapshotServiceTest {
         when(slide.getId()).thenReturn("slide-1");
         when(slide.getContent()).thenReturn(new PlaceOnImageContent(
                 null,
-                List.of(new Target("t-1", "Here", null, "#ff0000", 0.4, 0.6, 0.1)),
+                List.of(new PlaceItem("t-1", "Here", null, "#ff0000")),
+                Map.of("t-1", new PlacePoint(0.4, 0.6)),
+                0.1,
                 ScoreMode.INSIDE_RADIUS));
         Deck deck = mock(Deck.class);
         when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
@@ -498,11 +503,11 @@ class LiveSessionSnapshotServiceTest {
 
         SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
 
+        // Geometry only, keyed by item id: the label and color are already on the
+        // participant-safe config view, so the board resolves them from there.
         assertThat(snap.placeTargets()).singleElement()
                 .satisfies(target -> {
-                    assertThat(target.id()).isEqualTo("t-1");
-                    assertThat(target.label()).isEqualTo("Here");
-                    assertThat(target.color()).isEqualTo("#ff0000");
+                    assertThat(target.itemId()).isEqualTo("t-1");
                     assertThat(target.x()).isEqualTo(0.4);
                     assertThat(target.y()).isEqualTo(0.6);
                     assertThat(target.radius()).isEqualTo(0.1);

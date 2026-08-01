@@ -30,10 +30,10 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Grid
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
 import com.cephadex.ambi.session.answer.Answer;
@@ -145,27 +145,42 @@ class RoundEvaluatorTest {
     }
 
     @Test
-    void gradesPlaceOnImageAllOrNothingEachInsideItsOwnRadius() {
-        // Two targets, each with its own radius: every item's pin must land
-        // inside that item's target circle (not merely inside any circle).
-        Slide slide = slideWith(place(
-                new Target("it-1", "One", null, null, 0.2, 0.2, 0.1),
-                new Target("it-2", "Two", null, null, 0.8, 0.8, 0.05)));
+    void gradesPlaceOnImageAllOrNothingWithinTheSlideTolerance() {
+        // Two targets, one slide-wide tolerance of 0.1: every keyed item's pin
+        // must land within that radius of its own target.
+        Slide slide = slideWith(place(0.1,
+                Map.of("it-1", new PlacePoint(0.2, 0.2), "it-2", new PlacePoint(0.8, 0.8))));
 
-        // Both inside their own radius.
+        // Both inside (0.05 off on one coordinate each).
         assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
-                "it-1", new PlacePoint(0.25, 0.2), "it-2", new PlacePoint(0.8, 0.82))))).isTrue();
-        // it-2 lands inside it-1's larger radius but outside its OWN smaller one → fails.
+                "it-1", new PlacePoint(0.25, 0.2), "it-2", new PlacePoint(0.8, 0.75))))).isTrue();
+        // One item outside tolerance fails the whole answer.
         assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
-                "it-1", new PlacePoint(0.2, 0.2), "it-2", new PlacePoint(0.72, 0.8))))).isFalse();
+                "it-1", new PlacePoint(0.25, 0.2), "it-2", new PlacePoint(0.5, 0.5))))).isFalse();
         // A keyed item missing from the placements fails.
         assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
                 "it-1", new PlacePoint(0.2, 0.2))))).isFalse();
+        // Distance is Euclidean in normalized space: 0.08 on both axes is ~0.113 > 0.1.
+        assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(0.28, 0.28), "it-2", new PlacePoint(0.8, 0.8))))).isFalse();
     }
 
     @Test
-    void placeOnImageWithNoTargetsIsCollectOnlyAndNeverGradesCorrect() {
-        Slide slide = slideWith(new PlaceOnImageContent(null, List.of(), ScoreMode.INSIDE_RADIUS));
+    void placeOnImageIgnoresAnItemThatCarriesNoAnswerKeyEntry() {
+        // it-2 is on the slide but unkeyed: its pin is neither required nor graded.
+        Slide slide = slideWith(new PlaceOnImageContent(null,
+                List.of(new PlaceItem("it-1", "One", null, null), new PlaceItem("it-2", "Two", null, null)),
+                Map.of("it-1", new PlacePoint(0.2, 0.2)), 0.1, ScoreMode.INSIDE_RADIUS));
+
+        assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(0.2, 0.2))))).isTrue();
+        assertThat(gradeOne(slide, new PlaceOnImageAnswer(Map.of(
+                "it-1", new PlacePoint(0.2, 0.2), "it-2", new PlacePoint(0.9, 0.9))))).isTrue();
+    }
+
+    @Test
+    void placeOnImageWithEmptyAnswerKeyIsCollectOnlyAndNeverGradesCorrect() {
+        Slide slide = slideWith(place(0.1, Map.of()));
 
         AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
                 List.of(answer("p", new PlaceOnImageAnswer(Map.of("it-1", new PlacePoint(0.5, 0.5))), 10)),
@@ -536,8 +551,11 @@ class RoundEvaluatorTest {
                 correctOrder, ScoreMode.EXACT);
     }
 
-    private static PlaceOnImageContent place(Target... targets) {
-        return new PlaceOnImageContent(null, List.of(targets), ScoreMode.INSIDE_RADIUS);
+    private static PlaceOnImageContent place(double tolerance, Map<String, PlacePoint> correctPositions) {
+        List<PlaceItem> items = correctPositions.keySet().stream()
+                .map(id -> new PlaceItem(id, id, null, null))
+                .toList();
+        return new PlaceOnImageContent(null, items, correctPositions, tolerance, ScoreMode.INSIDE_RADIUS);
     }
 
     private static ScalesContent scales(Map<String, Double> correctValues, double tolerance) {

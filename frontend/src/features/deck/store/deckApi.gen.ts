@@ -931,18 +931,23 @@ export type AxisContent = {
     | "DISTANCE";
   contentType: "AXIS";
 };
-export type Target = {
+export type PlaceItem = {
   id?: string;
   label?: string;
   image?: AppImage;
   color?: string;
-  x?: number;
-  y?: number;
-  radius?: number;
+};
+export type PlacePoint = {
+  x: number;
+  y: number;
 };
 export type PlaceOnImageContent = {
   image: AppImage;
-  correctTargets: Target[];
+  items: PlaceItem[];
+  correctPositions: {
+    [key: string]: PlacePoint;
+  };
+  tolerance: number;
   scoreMode:
     | "EXACT"
     | "PARTIAL"

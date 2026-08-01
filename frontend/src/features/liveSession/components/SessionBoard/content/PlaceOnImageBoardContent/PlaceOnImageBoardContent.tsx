@@ -10,10 +10,11 @@
 //                   are disclosed (their normalized radius drawn as the exact
 //                   ellipse the grader accepts), plus the viewer's own outcome.
 //
-// Each authored target is an item to place: its label / image / color travel on
-// the participant-safe `placeOnImage.items`, while its location and radius (the
-// answer key) stay hidden until reveal. Item i's pin is graded against target
-// i's own circle.
+// Every item's label / image / color travels on the participant-safe
+// `placeOnImage.items`, while the answer key (its target point and the slide's
+// tolerance) stays hidden until reveal. The reveal then carries geometry only,
+// keyed by `itemId` — the board resolves each circle's number, color and label
+// from the authored item that id names.
 //
 // Placement input — the drag / tap / arrow-key engine and the round-local draft
 // it maintains — is `useBoardPlacement`, shared with the Axis board (the other
@@ -140,14 +141,16 @@ const PlaceOnImageBoardContent = ({
   const myOutcome =
     mode === "results" ? findViewerOutcome(results, slideId, viewerParticipantId) : undefined;
 
-  // The item's 0-based position in the AUTHORED (pre-shuffle) item list — the
+  // The id's 0-based position in the AUTHORED (pre-shuffle) item list — the
   // badge's display index and the shared palette default, so a pin's number
-  // and color match its revealed target regardless of the bank's shuffle.
-  const authoredIndexOf = (item: PlaceItemView): number =>
-    (authoredItems ?? []).findIndex((authored) => authored.id === item.id);
+  // and color match its revealed target regardless of the bank's shuffle. One
+  // definition for chips, pins and revealed circles alike; `-1` means the id
+  // names no authored item.
+  const authoredIndexOf = (itemId: string | undefined): number =>
+    itemId == null ? -1 : (authoredItems ?? []).findIndex((authored) => authored.id === itemId);
 
   const accentOf = (item: PlaceItemView): string =>
-    resolveDatumColor(item.color, authoredIndexOf(item));
+    resolveDatumColor(item.color, authoredIndexOf(item.id));
 
   // A pin/pill shape as soon as a label joins the disc — MarkerBadge decides
   // this internally too, but the wrapper needs to know in order to offset
@@ -212,16 +215,22 @@ const PlaceOnImageBoardContent = ({
               target's own marker is a non-interactive MarkerBadge, matching the
               editor's placed markers; the wrapper offsets a labeled badge so
               its DISC — not the pill — lands on the target centre. */}
-          {revealedTargets.map((target, index) => {
+          {revealedTargets.map((target) => {
+            // Geometry is all the reveal carries: number, color and label come
+            // from the authored item its `itemId` names, so a circle matches
+            // its chip. A key naming no item draws nothing.
+            const authoredIndex = authoredIndexOf(target.itemId);
+            if (authoredIndex < 0) return null;
+            const item = (authoredItems ?? [])[authoredIndex];
             const x = target.x ?? 0;
             const y = target.y ?? 0;
             const radius = target.radius ?? 0;
-            const label = target.label?.trim() ?? "";
-            const color = resolveDatumColor(target.color, index);
+            const label = item.label?.trim() ?? "";
+            const color = resolveDatumColor(item.color, authoredIndex);
             const position = toRenderStyle({ x, y }, INVERT_Y);
             return (
               <span
-                key={target.id ?? `target-${index.toString()}`}
+                key={target.itemId}
                 className={styles.targetGroup}
                 style={{ "--target-color": color } as CSSProperties}>
                 <span
@@ -242,7 +251,7 @@ const PlaceOnImageBoardContent = ({
                     .filter(Boolean)
                     .join(" ")}
                   style={position}>
-                  <MarkerBadge displayIndex={index + 1} color={color} label={label} />
+                  <MarkerBadge displayIndex={authoredIndex + 1} color={color} label={label} />
                 </span>
               </span>
             );
@@ -274,7 +283,7 @@ const PlaceOnImageBoardContent = ({
                   liftItem(itemId);
                 }}>
                 <MarkerBadge
-                  displayIndex={authoredIndexOf(item) + 1}
+                  displayIndex={authoredIndexOf(item.id) + 1}
                   color={accentOf(item)}
                   label={item.label}
                 />
@@ -321,7 +330,7 @@ const PlaceOnImageBoardContent = ({
                       toggleHold(item.id);
                     }}>
                     <MarkerBadge
-                      displayIndex={authoredIndexOf(item) + 1}
+                      displayIndex={authoredIndexOf(item.id) + 1}
                       color={accentOf(item)}
                       label={item.label}
                     />

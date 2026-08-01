@@ -232,7 +232,11 @@ const axisContent: AxisContent = {
 const placeOnImageContent: PlaceOnImageContent = {
   contentType: "PLACE_ON_IMAGE",
   image: externalImage("https://picsum.photos/seed/middle-earth-map/1600/1200"),
-  correctTargets: [{ id: "target_minas_tirith", x: 0.62, y: 0.58, radius: 0.04 }],
+  items: [{ id: "place_minas_tirith", label: "Minas Tirith" }],
+  correctPositions: {
+    place_minas_tirith: { x: 0.62, y: 0.58 },
+  },
+  tolerance: 0.04,
   scoreMode: "INSIDE_RADIUS",
 };
 

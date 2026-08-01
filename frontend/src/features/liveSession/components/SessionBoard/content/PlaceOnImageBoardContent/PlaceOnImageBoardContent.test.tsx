@@ -3,8 +3,10 @@
 // point — normalized, top-left-origin coordinates), submit gated on every item
 // placed, locking the whole placement map once, pick-back-up, the read-only
 // projected view, the density scatter aggregated from the quantized
-// `itemId@bx,by` tally keys, and the results view (revealed target circles + the
-// viewer's own outcome, via both the live event copy and the snapshot seam).
+// `itemId@bx,by` tally keys, and the results view (revealed target circles —
+// numbered, colored and labeled off the authored item their `itemId` names —
+// plus the viewer's own outcome, via both the live event copy and the snapshot
+// seam).
 // The session connection and the live read model are mocked, mutable per test.
 // jsdom reports zero-size rects, so the surface rect is stubbed to a 100×100 box
 // at the origin — tap coordinates then read directly as percentages. (Drag is
@@ -13,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 
@@ -200,12 +203,13 @@ describe("PlaceOnImageBoardContent results", () => {
       correctOption: null,
       scoreboard: [],
       drawings: null,
-      placeTargets: [{ id: "t1", x: 0.5, y: 0.5, radius: 0.1, label: "Middle", color: "#abcabc" }],
+      placeTargets: [{ itemId: "heart", x: 0.5, y: 0.5, radius: 0.1 }],
       terminal: false,
     };
     renderContent("results", false);
 
-    expect(screen.getByText("Middle")).toBeInTheDocument();
+    // The reveal carries geometry only — the label comes off the authored item.
+    expect(screen.getByText("Heart")).toBeInTheDocument();
     expect(screen.getByText("You placed everything on target ✓")).toBeInTheDocument();
   });
 
@@ -229,9 +233,29 @@ describe("PlaceOnImageBoardContent results", () => {
     // A client that joined mid-reveal has results === null but the snapshot
     // seeded placeTargets — the component must still disclose them.
     h.query.results = null;
-    h.query.placeTargets = [{ id: "t1", x: 0.25, y: 0.75, radius: 0.15, label: "Corner" }];
+    h.query.placeTargets = [{ itemId: "heart", x: 0.25, y: 0.75, radius: 0.15 }];
     renderContent("results", false);
 
-    expect(screen.getByText("Corner")).toBeInTheDocument();
+    expect(screen.getByText("Heart")).toBeInTheDocument();
+  });
+
+  it("numbers a revealed circle by its item's AUTHORED position, not the reveal's", () => {
+    // Only the second item is keyed, so the single revealed circle must read 2
+    // (with item 2's palette color) — numbering off the reveal list said 1.
+    h.query.placeTargets = [{ itemId: "lungs", x: 0.5, y: 0.5, radius: 0.1 }];
+    renderContent("results", false);
+
+    expect(screen.getByText("Lungs")).toBeInTheDocument();
+    const disc = screen.getByText("2");
+    expect(disc.parentElement?.style.getPropertyValue("--marker-badge-color")).toBe(
+      paletteColorAt(1),
+    );
+  });
+
+  it("draws nothing for a target naming no authored item", () => {
+    h.query.placeTargets = [{ itemId: "spleen", x: 0.5, y: 0.5, radius: 0.1 }];
+    renderContent("results", false);
+
+    expect(screen.queryByText("1")).not.toBeInTheDocument();
   });
 });

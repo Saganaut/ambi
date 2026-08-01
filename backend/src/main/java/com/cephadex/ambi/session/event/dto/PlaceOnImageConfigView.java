@@ -5,18 +5,18 @@ import java.util.function.Function;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
 
 /**
  * The participant-safe slice of a Place-on-image slide's content carried on
  * {@link SlideView}: the backing image players drop their pins on, and the list
  * of items to place (one pin per item).
  *
- * <p><strong>Never carries the targets' geometry</strong> — {@code x},
- * {@code y}, and {@code radius} are the answer key (where each item's pin must
- * land). {@link #items()} projects only the participant-facing annotations
- * (id / label / image / color) off {@code correctTargets}; the geometry is
- * disclosed only at results reveal, via
+ * <p><strong>Never carries the answer key</strong> — the slide's
+ * {@code correctPositions} and {@code tolerance} say where each item's pin must
+ * land. {@link #items()} projects only the participant-facing annotations
+ * (id / label / image / color) off {@code items}; the geometry is disclosed
+ * only at results reveal, via
  * {@link com.cephadex.ambi.session.event.ResultsRevealed#placeTargets()}.
  *
  * <p>The backing image and each item's image travel as pre-resolved
@@ -47,10 +47,10 @@ public record PlaceOnImageConfigView(String imageUrl, List<PlaceItemView> items)
      * carries nothing renderable).
      */
     public static PlaceOnImageConfigView from(PlaceOnImageContent content, Function<AppImage, String> imageUrl) {
-        List<PlaceItemView> items = content.correctTargets() == null ? List.of()
-                : content.correctTargets().stream()
-                        .map((Target target) -> new PlaceItemView(
-                                target.id(), target.label(), imageUrl.apply(target.image()), target.color()))
+        List<PlaceItemView> items = content.items() == null ? List.of()
+                : content.items().stream()
+                        .map((PlaceItem item) -> new PlaceItemView(
+                                item.id(), item.label(), imageUrl.apply(item.image()), item.color()))
                         .toList();
         return new PlaceOnImageConfigView(imageUrl.apply(content.image()), items);
     }

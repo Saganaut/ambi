@@ -20,6 +20,7 @@ import {
   GridItem,
   MatchItem,
   McqOption,
+  PlaceItem,
   RankItem,
   ScaleItem,
   SlideContent,
@@ -215,12 +216,17 @@ export const buildDefaultContent = (slideType: SlideType): SlideContent => {
         tools: ["PEN", "ERASER", "COLOR_PALETTE"],
       };
     case "PLACE_ON_IMAGE":
-      // `image` is a required AppImage; `external` is its only required field,
-      // so this is the minimal valid placeholder.
+      // Axis's arm on an image plane: `image` is a required AppImage whose only
+      // required field is `external`, so that is the minimal valid placeholder.
+      // The bank starts empty — there is nothing to place until the author picks
+      // a backing image — and an empty `correctPositions` marks the slide
+      // unscored. Grading is INSIDE_RADIUS only, so `scoreMode` is fixed here.
       return {
         contentType: "PLACE_ON_IMAGE",
         image: { external: true },
-        correctTargets: [],
+        items: [],
+        correctPositions: {},
+        tolerance: 0.1,
         scoreMode: "INSIDE_RADIUS",
       };
     case "FOLLOW_UP":
@@ -300,6 +306,24 @@ export const buildDefaultGridItem = (color: string): GridItem => ({
  * stamped at creation for the reason {@link buildDefaultRankItem} gives.
  */
 export const buildDefaultAxisItem = (color: string): AxisItem => ({
+  id: nanoid(8),
+  label: "",
+  color,
+});
+
+/**
+ * Build a blank place-on-image item with a fresh client-minted id. PLACE_ON_IMAGE
+ * keys each item's target point by id (via the content's `correctPositions`),
+ * exactly as AXIS does, so a stable id at creation time is what lets the author
+ * place targets and the backend grade pins. The label is empty for the author to
+ * fill in; `color` is stamped at creation for the reason
+ * {@link buildDefaultRankItem} gives.
+ *
+ * The minted `id` is surfaced in the return type — the wire field is optional —
+ * because the editor keys the new item's answer-key entry by it in the very
+ * updater that appends the item.
+ */
+export const buildDefaultPlaceItem = (color: string): PlaceItem & { id: string } => ({
   id: nanoid(8),
   label: "",
   color,

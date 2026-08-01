@@ -169,8 +169,8 @@ Only scorable types (plus Q&A, which collects text) produce responses to chart.
   the fallback. The live board (`GridBoardContent`) already shades each cell by
   its live placement count during `liveResults`/`results`; the post-round
   heatmap chart is the still-missing piece.
-- **PLACE_ON_IMAGE** — normalized `x,y` pins, one per authored target. Overlay
-  a **scatter/heatmap on the image** with the `correctTargets` circles drawn;
+- **PLACE_ON_IMAGE** — normalized `x,y` pins, one per authored item. Overlay
+  a **scatter/heatmap on the image** with the `correctPositions` circles drawn;
   needs an image-aware renderer for the post-round chart. The live board
   (`PlaceOnImageBoardContent`) already fills in a live density scatter from
   the quantized pin tally during `liveResults`/`results` and discloses the

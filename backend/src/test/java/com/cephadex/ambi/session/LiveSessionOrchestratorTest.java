@@ -49,8 +49,9 @@ import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.presentation.slide.enums.Tool;
@@ -82,6 +83,7 @@ import com.cephadex.ambi.session.event.TimerPaused;
 import com.cephadex.ambi.session.event.TimerResumed;
 import com.cephadex.ambi.session.event.VoteCast;
 import com.cephadex.ambi.session.event.VotingOpened;
+import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.followUp.FollowUpOption;
 import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
 import com.cephadex.ambi.session.liveSession.LiveSession;
@@ -1059,7 +1061,9 @@ class LiveSessionOrchestratorTest {
         Slide slide = slideWithId(SLIDE);
         slide.setContent(new PlaceOnImageContent(
                 null,
-                List.of(new Target("t-1", "Capital", null, "#00aa00", 0.25, 0.75, 0.08)),
+                List.of(new PlaceItem("t-1", "Capital", null, "#00aa00")),
+                Map.of("t-1", new PlacePoint(0.25, 0.75)),
+                0.08,
                 ScoreMode.INSIDE_RADIUS));
         RoundResult result = RoundResult.compute(SID, slide, List.of(), Instant.now());
         when(roundResults.find(SID, SLIDE)).thenReturn(Optional.of(result));
@@ -1076,18 +1080,37 @@ class LiveSessionOrchestratorTest {
         orchestrator.revealResults(SID, SLIDE);
 
         ResultsRevealed event = (ResultsRevealed) publishedEvent();
-        // The correct-location circles ride the reveal so the board can draw them.
+        // The correct-location circles ride the reveal so the board can draw them:
+        // geometry keyed by item id, with the slide tolerance as the radius.
         assertThat(event.placeTargets()).singleElement()
                 .satisfies(target -> {
-                    assertThat(target.id()).isEqualTo("t-1");
-                    assertThat(target.label()).isEqualTo("Capital");
-                    assertThat(target.color()).isEqualTo("#00aa00");
+                    assertThat(target.itemId()).isEqualTo("t-1");
                     assertThat(target.x()).isEqualTo(0.25);
                     assertThat(target.y()).isEqualTo(0.75);
                     assertThat(target.radius()).isEqualTo(0.08);
                 });
         // Not a drawing round → no gallery payload.
         assertThat(event.drawings()).isNull();
+    }
+
+    @Test
+    void placeTargetViewsFollowAuthoredItemOrderAndSkipUnkeyedItems() {
+        PlaceOnImageContent content = new PlaceOnImageContent(
+                null,
+                List.of(new PlaceItem("t-1", "One", null, null),
+                        new PlaceItem("t-2", "Two", null, null),
+                        new PlaceItem("t-3", "Three", null, null)),
+                Map.of("t-3", new PlacePoint(0.3, 0.3),
+                        "t-1", new PlacePoint(0.1, 0.1),
+                        "gone", new PlacePoint(0.9, 0.9)),
+                0.05,
+                ScoreMode.INSIDE_RADIUS);
+
+        // Bank order rather than key order: the unkeyed "t-2" simply has no
+        // circle, and the stale key naming no item is dropped.
+        assertThat(PlaceTargetView.from(content))
+                .extracting(target -> target.itemId())
+                .containsExactly("t-1", "t-3");
     }
 
     @Test

@@ -55,7 +55,7 @@
 
   .body {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
     min-width: 0;
     min-height: 0;

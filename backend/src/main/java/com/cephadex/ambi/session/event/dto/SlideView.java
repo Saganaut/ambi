@@ -54,7 +54,8 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * match/normalization settings); a Number slide carries {@link NumberConfigView}
  * (the display bounds + unit suffix, never {@code answer}, {@code scoreMode}, or
  * {@code tolerance}); a Place-on-image slide carries {@link PlaceOnImageConfigView}
- * (the backing image only, never {@code correctTargets} or {@code scoreMode}); each
+ * (the backing image and items only, never {@code correctPositions},
+ * {@code tolerance} or {@code scoreMode}); each
  * is {@code null} for every other kind.
  *
  * <p>A follow-up slide carries {@link FollowUpConfigView} — the one config that is

@@ -349,8 +349,9 @@ public class LiveSessionAnswerService {
 
     /**
      * A place-on-image submission must pin at least one real item at a real
-     * point: every key must be one of the slide's targets (the items to place),
-     * every point finite and within the normalized {@code [0, 1]} image box.
+     * point: every key must be one of the slide's items, every point finite and
+     * within the normalized {@code [0, 1]} image box. An item with no answer-key
+     * entry is still placeable — validation is against existence, not grading.
      * Partial maps are accepted (grid/axis precedent — the board gates full
      * completion client-side).
      */
@@ -359,9 +360,9 @@ public class LiveSessionAnswerService {
         if (placements == null || placements.isEmpty()) {
             throw new ValidationException("at least one item must be placed");
         }
-        Set<String> itemIds = content.correctTargets() == null ? Set.of()
-                : content.correctTargets().stream()
-                        .map(target -> target.id())
+        Set<String> itemIds = content.items() == null ? Set.of()
+                : content.items().stream()
+                        .map(item -> item.id())
                         .collect(Collectors.toSet());
         for (Map.Entry<String, PlacePoint> placement : placements.entrySet()) {
             if (!itemIds.contains(placement.getKey())) {

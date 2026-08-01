@@ -54,7 +54,24 @@ documented in [generated-artifacts](../rules/frontend/generated-artifacts.md).
 Loads the LOTR sample dataset. Idempotent per collection per user and never destructive — but stop
 any running backend first.
 
-## 6. Screenshot verification
+## 6. One-off data migrations
+
+A schema change that the current model can no longer read gets a one-shot `ApplicationRunner` under
+`backend/src/main/java/com/cephadex/ambi/config/`, activated by its own `*.run=true` property and
+fronted by a script in `scripts/`. Each runs once, rewrites documents in place, exits, and is
+idempotent — re-running matches nothing.
+
+```bash
+./scripts/migrate-place-on-image.sh --dry-run   # log the affected counts, write nothing
+./scripts/migrate-place-on-image.sh             # rewrite
+```
+
+`migrate-place-on-image.sh` rewrites legacy `PLACE_ON_IMAGE` slide content from the old
+`content.correctTargets` list into the current `items` + `correctPositions` + `tolerance` shape, in
+both the `decks` collection and the deck snapshots embedded in `LiveSessions`. Like the seeder it
+binds a random port, so it can run alongside a backend on 8080. Always take a dry run first.
+
+## 7. Screenshot verification
 
 Capture screenshots of the running app (including behind-login pages) to verify UI work:
 

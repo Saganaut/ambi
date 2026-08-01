@@ -3,7 +3,7 @@
  * and markers need, alongside the shared normalized point they are placed at.
  *
  * `PlaceableItem` is deliberately structural rather than a union of the wire
- * types (`AxisItem`, `PlaceTarget`, `GridItem`) — every placement kind already
+ * types (`AxisItem`, `PlaceItem`, `GridItem`) — every placement kind already
  * carries these four fields, so the kit stays decoupled from any one of them.
  */
 import type { AppImage } from "@deck/store/deckApi.gen";

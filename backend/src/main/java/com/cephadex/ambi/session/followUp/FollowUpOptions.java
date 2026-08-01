@@ -672,7 +672,7 @@ public final class FollowUpOptions {
             return null;
         }
         List<String> parts = new ArrayList<>();
-        labelsOf(content.correctTargets(), target -> target.id(), target -> target.label())
+        labelsOf(content.items(), item -> item.id(), item -> item.label())
                 .forEach((itemId, itemLabel) -> {
                     PlacePoint point = placements.get(itemId);
                     String at = point == null ? null : coordinates(point.x(), point.y());

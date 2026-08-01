@@ -26,7 +26,6 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Axis
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
@@ -433,21 +432,20 @@ public final class RoundEvaluator {
     }
 
     private static boolean gradePlaceOnImage(PlaceOnImageContent content, PlaceOnImageAnswer answer) {
-        // INSIDE_RADIUS, per item: every target's pin must land inside that
-        // target's own radius (gradeAxis's loop-over-answer-key, but each target
-        // carries its own tolerance instead of one shared plane tolerance). With
-        // no targets there is nothing to place (an empty bank), so it never
-        // grades correct; NEAREST/DISTANCE are relative/graded-distance scoring,
-        // not a per-answer boolean — seam.
+        // gradeAxis exactly, on the image's coordinate space: every keyed item's
+        // pin must land within the slide's tolerance of its target. An empty key
+        // marks an unscored collect-only image; an unkeyed item's pin is ignored
+        // rather than failing the answer. NEAREST/DISTANCE are relative /
+        // graded-distance scoring, not a per-answer boolean — seam.
         if (content.scoreMode() != ScoreMode.INSIDE_RADIUS
-                || content.correctTargets() == null || content.correctTargets().isEmpty()
+                || content.correctPositions() == null || content.correctPositions().isEmpty()
                 || answer.placements() == null) {
             return false;
         }
-        for (Target target : content.correctTargets()) {
-            PlacePoint placed = answer.placements().get(target.id());
-            if (placed == null || Math.hypot(placed.x() - target.x(),
-                    placed.y() - target.y()) > target.radius()) {
+        for (Map.Entry<String, PlacePoint> e : content.correctPositions().entrySet()) {
+            PlacePoint placed = answer.placements().get(e.getKey());
+            if (placed == null || Math.hypot(placed.x() - e.getValue().x(),
+                    placed.y() - e.getValue().y()) > content.tolerance()) {
                 return false;
             }
         }

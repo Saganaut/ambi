@@ -592,12 +592,10 @@ export type VoteOptionView = {
   imageUrl?: string;
 };
 export type PlaceTargetView = {
-  id?: string;
+  itemId?: string;
   x?: number;
   y?: number;
   radius?: number;
-  label?: string;
-  color?: string;
 };
 export type ScoreView = {
   points?: number;

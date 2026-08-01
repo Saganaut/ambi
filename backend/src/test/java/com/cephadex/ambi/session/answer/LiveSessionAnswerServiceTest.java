@@ -53,10 +53,10 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Matc
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqDataVisualization;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScaleItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Target;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
@@ -306,6 +306,19 @@ class LiveSessionAnswerServiceTest {
                 request(new PlaceOnImageAnswer(java.util.Map.of())), registered))
                 .isInstanceOf(ValidationException.class);
         verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void placeOnImageItemOutsideTheAnswerKeyIsStillPlaceable() {
+        givenLiveSession(answerSettings(true, 1), placeContent());
+
+        // "t-2" is on the slide but carries no correctPositions entry — validation
+        // is against the items, not the answer key.
+        service.submit(SID,
+                request(new PlaceOnImageAnswer(java.util.Map.of("t-2", new PlacePoint(0.8, 0.8)))), registered);
+
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(PlaceOnImageAnswer.class), eq(0));
     }
 
     @Test
@@ -735,15 +748,17 @@ class LiveSessionAnswerServiceTest {
     }
 
     /**
-     * A place-on-image slide with two targets ("t-1", "t-2") — the items to
-     * place. Their geometry is the (hidden) answer key; validation keys off the
-     * target ids.
+     * A place-on-image slide with two items ("t-1", "t-2"). Only "t-1" is in the
+     * (hidden) answer key — validation keys off the item ids, not the key, so
+     * the unkeyed "t-2" is still placeable.
      */
     private static PlaceOnImageContent placeContent() {
         return new PlaceOnImageContent(
                 null,
-                List.of(new Target("t-1", "One", null, null, 0.4, 0.6, 0.1),
-                        new Target("t-2", "Two", null, null, 0.8, 0.8, 0.1)),
+                List.of(new PlaceItem("t-1", "One", null, null),
+                        new PlaceItem("t-2", "Two", null, null)),
+                java.util.Map.of("t-1", new PlacePoint(0.4, 0.6)),
+                0.1,
                 ScoreMode.INSIDE_RADIUS);
     }
 
