@@ -1,7 +1,5 @@
 import { KEYBOARD_NUDGE_STEP } from "@/features/liveSession/components/SessionBoard/content/useBoardPlacement";
-import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
 import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
-import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useRef, useState } from "react";
 import styles from "./ScaleTracker.module.css";
 interface ScaleTrackerProps {
@@ -14,7 +12,7 @@ interface ScaleTrackerProps {
   correctValue?: number;
   onCommit: (value: number) => void;
   onScheduleAnswer: (value: number) => void;
-  onClear: () => void;
+  color: string;
 }
 
 const ScaleTracker = ({
@@ -26,14 +24,11 @@ const ScaleTracker = ({
   correctValue,
   onScheduleAnswer,
   onCommit,
-  onClear,
   displayIndex,
+  color,
 }: ScaleTrackerProps) => {
-  const scored = correctValue !== undefined;
-
   const [dragValue, setDragValue] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const midpoint = (min + max) / 2;
   const span = max - min;
   const displayValue = dragValue ?? correctValue;
 
@@ -93,7 +88,10 @@ const ScaleTracker = ({
   return (
     <>
       {" "}
-      <div className={styles.statementScale}>
+      <div
+        className={styles.statementScale}
+        style={color ? ({ "--background-color": color } as React.CSSProperties) : undefined}
+      >
         <span className={styles.anchorCaption}>{leftLabel.length > 0 ? leftLabel : min}</span>
         {/* Pointer placement surface; the accessible path is the marker
                 slider and the numeric "Answer" field. */}
@@ -134,36 +132,15 @@ const ScaleTracker = ({
                 onKeyDown={handleMarkerKeyDown}
               />
             </>
+          )}{" "}
+          {displayValue !== undefined && span > 0 && (
+            <span className={styles.valueReadout} aria-hidden="true">
+              {formatScaleValue(displayValue)}
+            </span>
           )}
         </div>
         <span className={styles.anchorCaption}>{rightLabel.length > 0 ? rightLabel : max}</span>
-        {displayValue !== undefined && span > 0 && (
-          <span className={styles.valueReadout} aria-hidden="true">
-            {formatScaleValue(displayValue)}
-          </span>
-        )}
       </div>
-      {scored ? (
-        <div className={styles.targetField}>
-          <IconBtn
-            fill="ghost"
-            size="xs"
-            icon={<XMarkIcon />}
-            aria-label={`Clear correct answer for statement ${displayIndex.toString()}`}
-            onClick={onClear}
-          />
-        </div>
-      ) : (
-        <IconBtn
-          fill="ghost"
-          size="xs"
-          icon={<QuestionMarkCircleIcon />}
-          aria-label={`Set option ${displayIndex.toString()} as scorable`}
-          onClick={() => {
-            onCommit(midpoint);
-          }}
-        />
-      )}
     </>
   );
 };

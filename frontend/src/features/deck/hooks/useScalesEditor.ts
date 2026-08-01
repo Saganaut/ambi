@@ -42,7 +42,7 @@ import { useSlideEditor } from "./useSlideEditor";
 /** A scale needs at least one statement to rate … */
 const MIN_SCALE_STATEMENTS = 1;
 /** … and is capped so the author's list (and the player's screen) stays sane. */
-const MAX_SCALE_STATEMENTS = 10;
+const MAX_SCALE_STATEMENTS = 6;
 /** Tolerance is bounded as a fraction of the span (max − min): 2 % at the tightest … */
 const SCALES_TOLERANCE_MIN_FRACTION = 0.02;
 /** … up to half the track (an almost-anything-goes margin). */

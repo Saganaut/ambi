@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--gap-md);
+  gap: var(--gap-sm);
   padding: var(--p-sm);
   background-color: var(--bg-surface);
   border: var(--border-size-sm) solid transparent;
@@ -14,6 +14,44 @@
 
   &.isDragging {
     opacity: 0.6;
+  }
+
+  /* Thumbnail of the item's authored image, plus the overlaid remove button it
+   hosts. Picking an image still goes through the row's menu — the thumbnail is
+   not a second way to open the picker — but clearing one can be done here
+   directly, the menu's "Remove image" row staying as the redundant path. */
+  .thumbnailWrap {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+  }
+
+  .thumbnail {
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+  }
+
+  button.thumbnailClear {
+    position: absolute;
+    top: calc(var(--space-1) * -1);
+    right: calc(var(--space-1) * -1);
+    width: var(--space-5);
+    height: var(--space-5);
+    padding: var(--p-square-xxs);
+    background: var(--bg-surface-raised);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-xs);
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .thumbnailWrap:hover button.thumbnailClear,
+  .thumbnailWrap:focus-within button.thumbnailClear {
+    opacity: 1;
   }
 }
 
@@ -27,51 +65,6 @@
   border-color: var(--action-hover);
 }
 
-/* The row being dragged: dim it so the drop target reads clearly. */
-
-/* Thumbnail of the item's authored image, plus the overlaid remove button it
-   hosts. Picking an image still goes through the row's menu — the thumbnail is
-   not a second way to open the picker — but clearing one can be done here
-   directly, the menu's "Remove image" row staying as the redundant path. */
-.thumbnailWrap {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-}
-
-.thumbnail {
-  flex: none;
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
-/* Sized below the DS `xs` icon button (28px) and nudged past the corner: at the
-   thumbnail's 36px an xs chip would blanket the artwork it is meant to sit on.
-   Hidden until the thumbnail is hovered or the button takes focus. */
-button.thumbnailClear {
-  position: absolute;
-  top: calc(var(--space-1) * -1);
-  right: calc(var(--space-1) * -1);
-  width: var(--space-5);
-  height: var(--space-5);
-  padding: var(--p-square-xxs);
-  background: var(--bg-surface-raised);
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-xs);
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
-}
-
-.thumbnailWrap:hover button.thumbnailClear,
-.thumbnailWrap:focus-within button.thumbnailClear {
-  opacity: 1;
-}
-
-/* "This row carries an answer" check. Fixed slot so rows with and without it
-   keep their fields aligned down the list. */
 .scored {
   display: inline-flex;
   align-items: center;
@@ -86,8 +79,6 @@ button.thumbnailClear {
   height: auto;
 }
 
-/* Grip handle. Restricting the drag activator to it (via the sortable
-   `handleRef`) keeps the label input fully clickable/typeable. */
 .grip {
   display: inline-flex;
   align-items: center;
@@ -104,7 +95,7 @@ button.thumbnailClear {
     color var(--duration-fast) ease-out,
     background-color var(--duration-fast) ease-out;
 
-  &hover {
+  &:hover {
     color: var(--text-primary);
     background-color: var(--bg-surface-raised);
   }
@@ -117,4 +108,20 @@ button.thumbnailClear {
 .gripIcon {
   width: 1rem;
   height: auto;
+}
+
+.collapsable {
+  max-width: 0;
+  opacity: 0;
+  transition:
+    max-width var(--duration-base) ease-in-out,
+    opacity var(--duration-base) ease-in-out;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+
+  &.expanded {
+    max-width: 500px;
+    opacity: 1;
+  }
 }

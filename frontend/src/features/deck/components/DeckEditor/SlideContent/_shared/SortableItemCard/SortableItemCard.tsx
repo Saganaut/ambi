@@ -23,7 +23,6 @@ const SortableItemCard = ({
   id,
   index,
   color,
-  itemNoun,
   scored = false,
   children,
 }: SortableItemCardProps) => {
@@ -41,7 +40,7 @@ const SortableItemCard = ({
           ref={handleRef}
           className={styles.grip}
           role="button"
-          aria-label={`Reorder ${itemNoun} ${displayIndex.toString()}`}
+          aria-label={`Reorder option ${displayIndex.toString()}`}
         >
           <DragIcon className={styles.gripIcon} aria-hidden="true" />
         </span>

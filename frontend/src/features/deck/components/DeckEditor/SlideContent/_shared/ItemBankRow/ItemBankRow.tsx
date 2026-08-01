@@ -7,7 +7,7 @@ import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
 import { numberToLetter } from "@/shared/utils/utils";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Ref, useState } from "react";
 import { DistributiveOmit } from "react-redux";
 import { IndexPill } from "../IndexPill/IndexPill";
@@ -46,7 +46,7 @@ interface AllocationRowProps extends ItemBankRowBase {
   onClear: () => void;
   poolShareSeed: number;
   totalPool: number;
-  correctValue: number;
+  correctValue?: number;
 }
 interface RankingRowProps extends ItemBankRowBase {
   type: "ranking";
@@ -72,7 +72,14 @@ interface ScalesRowProps extends ItemBankRowBase {
 /** scored not useful for scales & allocation since it is derived by the presence of an answer **/
 //   scored?: boolean;
 type ItemBankRowProps = ScalesRowProps | RankingRowProps | AllocationRowProps;
-
+/**
+ * Question mark vs check mark needs to indicate scoring status
+ * Should be common to all slides but need to figure out how to handle for ranking
+ * For ranking a click on that button should change overall scorability of slide, so all items.
+ * Pass the onclick for htis
+ *
+ *
+ *  **/
 const ItemBankRow = (props: ItemBankRowProps) => {
   const {
     type,
@@ -96,7 +103,9 @@ const ItemBankRow = (props: ItemBankRowProps) => {
 
   const displayIndex = numberToLetter(index + 1);
   const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id ?? "", 200, 200, false);
-
+  // Ranking never needs to use this since the order displayed is the correct answer.
+  // For other questions individual values need to be set and is this relevant
+  const scored = type === "ranking" ? false : props.correctValue;
   const [points, setPoints] = useState(
     type === "allocation" ? (props.correctValue ?? props.poolShareSeed) : 0,
   );
@@ -116,12 +125,40 @@ const ItemBankRow = (props: ItemBankRowProps) => {
     }
   }
 
+  const toggleScorability = () => {
+    console.log("toggleScorability called for type", type);
+    switch (type) {
+      case "allocation": {
+        if (scored) {
+          props.onClear();
+          return;
+        }
+        const seed = props.poolShareSeed ?? 0;
+        setPoints(seed);
+        props.onCommit(seed);
+        return;
+      }
+      case "scales": {
+        if (scored) {
+          props.onClear();
+          return;
+        }
+        props.onCommit((props.minScale + props.maxScale) / 2);
+        return;
+      }
+    }
+  };
+  console.log("thumbnailSrc", thumbnailSrc);
   return (
     <div ref={rootRef} className={`${styles.row} ${isDragging ? styles.isDragging : ""}`}>
       <IndexPill value={displayIndex} color={color} />
-      {thumbnailSrc && (
+      <div className={`${styles.collapsable} ${thumbnailSrc !== null ? styles.expanded : ""}`}>
         <span className={styles.thumbnailWrap}>
-          <img className={styles.thumbnail} src={thumbnailSrc} alt="" />
+          <img
+            className={styles.thumbnail}
+            src={thumbnailSrc ?? ""}
+            alt={`Img Option ${displayIndex}`}
+          />
           <IconBtn
             fill="ghost"
             size="xs"
@@ -134,7 +171,8 @@ const ItemBankRow = (props: ItemBankRowProps) => {
             }}
           />
         </span>
-      )}
+      </div>
+
       <ItemField
         itemId={item.id}
         label={type === "allocation" ? props.label : props.item.label}
@@ -166,12 +204,15 @@ const ItemBankRow = (props: ItemBankRowProps) => {
           displayIndex={displayIndex}
           onCommit={props.onCommit}
           onScheduleAnswer={props.onScheduleAnswer}
-          onClear={props.onClear}
+          correctValue={props.correctValue}
+          color={color}
         />
       )}
       {/* Number input for allocation question */}
-      {type === "allocation" ? (
-        props.correctValue !== undefined ? (
+      {type === "allocation" && (
+        <div
+          className={`${styles.collapsable} ${props.correctValue !== undefined ? styles.expanded : ""}`}
+        >
           <div className={styles.answerField}>
             <NumberInput
               label=""
@@ -186,28 +227,34 @@ const ItemBankRow = (props: ItemBankRowProps) => {
               }}
               onBlur={onFlush}
             />
+          </div>
+        </div>
+      )}
+      {type !== "ranking" && (
+        <>
+          {scored ? (
             <IconBtn
               fill="ghost"
               size="xs"
-              icon={<XMarkIcon />}
+              icon={<CheckIcon />}
               aria-label={`Clear correct points for option ${displayIndex.toString()}`}
-              onClick={props.onClear}
+              onClick={() => {
+                toggleScorability();
+              }}
             />
-          </div>
-        ) : (
-          <IconBtn
-            fill="ghost"
-            size="xs"
-            icon={<QuestionMarkCircleIcon />}
-            aria-label={`Set option ${displayIndex.toString()} as scorable`}
-            onClick={() => {
-              const seed = props.poolShareSeed ?? 0;
-              setPoints(seed);
-              props.onCommit(seed);
-            }}
-          />
-        )
-      ) : null}
+          ) : (
+            <IconBtn
+              fill="ghost"
+              size="xs"
+              icon={<QuestionMarkCircleIcon />}
+              aria-label={`Set option ${displayIndex.toString()} as scorable`}
+              onClick={() => {
+                toggleScorability();
+              }}
+            />
+          )}
+        </>
+      )}
       {/* // Drag icon, always at the end */}
       <span
         ref={handleRef}
