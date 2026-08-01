@@ -162,6 +162,38 @@ is needed here.
 moved to the `useDeckActions` view-model hook; the write boundary `useDeckMutate`
 exposes only `remove`. `useDeck` no longer exists.
 
+### 6. Five item-bank hooks carried the same bank engine *(RESOLVED)*
+
+`useAxisEditor`, `useGridEditor`, `useRankingEditor`, `useScalesEditor` and
+`usePlaceOnImageEditor` each own a list of identity-bearing rows with the same
+mechanics, and each had written them out by hand: a byte-identical
+`handleItemDragEnd`, its own `patchItem`/`commitItemPatch` pair, the same
+`useItemIdentityBackfill` call, the same `canAdd`/`canRemove` bounds and the
+same mint-against-the-freshest-draft `addItem`. Ranking additionally rebuilt
+`correctOrder` in four separate places (add, remove, reorder, backfill) — four
+chances for its mirror of the item order to drift.
+
+**Resolution:** extracted `hooks/useItemBankEditor.ts`, generic over the bank's
+content type. Each kind hook composes it over the **one** `useSlideEditor` the
+slide already owns (the bank mounts none itself — a second instance would open a
+second draft buffer) and re-exposes the result under its own names, keeping its
+public surface unchanged apart from Ranking, whose whole-item
+`scheduleItem`/`commitItem` pair collapsed into the bank's
+`scheduleItemLabel`. Kind-specific behaviour enters through options, not
+branches: `toPatch` lifts a fresh bank into a content patch (Ranking folds its
+`correctOrder` rebuild in here, so every structural write keeps the order in
+lockstep) and `onRemoveItem` drops whatever the removed row keyed
+(`correctPositions`, `correctCells`, `correctValues`). `toPatch` is also the
+type seam that keeps the hook free of the `as` cast
+[conventions.md](../../rules/frontend/conventions.md) forbids: only the caller,
+where the content type is concrete, can produce a patch of it.
+
+Not folded in: `useAllocationEditor` (its collection is `options`, and
+`McqOption`'s label field is `text`, not `label`) and `useMatchingEditor` (two
+index-paired lists, not one bank). `useItemBankEditor` is composed only by
+sibling hooks, never by a component — the shape recorded in
+[hook-roles.md](../../rules/frontend/hook-roles.md).
+
 ---
 
 ## Leftover / Debt

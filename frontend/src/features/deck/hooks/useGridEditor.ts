@@ -2,8 +2,9 @@
 //
 // Sits on the generic `useSlideEditor<"GRID">` and exposes the intent-level
 // surface the Grid author UI consumes: a synthesized `question` view, a prompt
-// edit, row/column label ops, and per-item ops keyed by item id. There is
-// exactly ONE `useSlideEditor` instance per Grid slide (this hook is
+// edit, row/column label ops, and the target-cell ops only Grid has. The
+// item-bank ops are `useItemBankEditor`'s, composed over this hook's editor —
+// there is exactly ONE `useSlideEditor` instance per Grid slide (this hook is
 // instantiated once, in `GridSlideContent`), so every write funnels through a
 // single draft + debounce buffer.
 //
@@ -16,20 +17,13 @@
 // and reindexes the ones behind it. Grading is EXACT (all placements must
 // match), so `scoreMode` has no authoring knob — `buildDefaultContent` fixes it
 // and the editor never writes it.
-//
-// Item identity — id AND color — is a stored fact, minted at creation and
-// repaired on load for legacy content (`useItemIdentityBackfill`). Nothing here
-// derives either from an item's position, so reordering the bank renumbers it
-// without moving or repainting a single chip.
 import type { DragEndEvent } from "@dnd-kit/react";
-import { isSortable } from "@dnd-kit/react/sortable";
 
-import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
 import type { AppImage, GridItem } from "@deck/store/deckApi.gen";
 
 import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { buildDefaultGridItem } from "../utils/slideContent";
-import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
+import { useItemBankEditor } from "./useItemBankEditor";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** A matrix needs at least one row and one column … */
@@ -40,8 +34,6 @@ const MAX_GRID_DIMENSION = 6;
 const MIN_GRID_ITEMS = 1;
 /** … and few enough that the item bank stays scannable. */
 const MAX_GRID_ITEMS = 12;
-/** `maxLength` for item phrase inputs (Matching-card parity). */
-const GRID_ITEM_LABEL_MAX = 80;
 
 /** Which matrix axis an op addresses. */
 type GridAxis = "row" | "col";
@@ -136,12 +128,17 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
 
   const slide = editor.slide;
   const content = slide?.content;
-  const items = content?.items ?? [];
 
-  // Freeze legacy items' ids and colors into the content once, on load.
-  useItemIdentityBackfill(slideId, content?.items, (backfilled) => {
-    editor.updateSlideContent({ items: backfilled });
-    editor.flush();
+  const bank = useItemBankEditor(editor, {
+    slideId,
+    toPatch: (items) => ({ items }),
+    buildItem: buildDefaultGridItem,
+    minItems: MIN_GRID_ITEMS,
+    maxItems: MAX_GRID_ITEMS,
+    onRemoveItem: (prev, itemId) => {
+      const { [itemId]: _dropped, ...rest } = prev.correctCells;
+      return { correctCells: rest };
+    },
   });
 
   const labelsOf = (axis: GridAxis): string[] =>
@@ -155,10 +152,7 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
         prompt: slide.title,
         rowLabels: content?.rowLabels ?? [],
         colLabels: content?.colLabels ?? [],
-        // An id-less item is unaddressable — it cannot be labeled, colored,
-        // placed or removed — so it is withheld rather than rendered inert.
-        // The backfill above mints its id on the very next render.
-        items: items.filter((item): item is Identified<GridItem> => item.id != null),
+        items: bank.items,
         correctCells: content?.correctCells ?? {},
       }
     : undefined;
@@ -198,70 +192,14 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     });
   };
 
-  const canAddItem = items.length < MAX_GRID_ITEMS;
-  const canRemoveItem = items.length > MIN_GRID_ITEMS;
-
+  // A cell-less add leaves the item unplaced; with a cell, the target lands in
+  // the very write that appends the item, so the two can never disagree.
   const addItem = (cell?: string) => {
-    if (!canAddItem) return;
-    // Minted inside the updater so the color is picked against the freshest
-    // draft: two adds inside one debounce window can't claim the same slot.
-    editor.updateSlideContent((prev) => {
-      const item = buildDefaultGridItem(nextPaletteColor(prev.items.map((each) => each.color)));
-      return {
-        items: [...prev.items, item],
-        ...(item.id && cell ? { correctCells: { ...prev.correctCells, [item.id]: cell } } : {}),
-      };
-    });
-    editor.flush();
-  };
-
-  const removeItem = (itemId: string | undefined) => {
-    if (!itemId || !canRemoveItem) return;
-    editor.updateSlideContent((prev) => {
-      const { [itemId]: _dropped, ...rest } = prev.correctCells;
-      return { items: prev.items.filter((item) => item.id !== itemId), correctCells: rest };
-    });
-    editor.flush();
-  };
-
-  /** Merge a patch into one item, leaving the rest of the bank untouched. */
-  const patchItem = (itemId: string | undefined, patch: Partial<GridItem>) => {
-    if (!itemId) return;
-    editor.updateSlideContent((prev) => ({
-      items: prev.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
-    }));
-  };
-
-  const scheduleItemLabel = (itemId: string | undefined, label: string) => {
-    patchItem(itemId, { label });
-  };
-
-  const setItemColor = (itemId: string | undefined, color: string) => {
-    patchItem(itemId, { color });
-    editor.flush();
-  };
-
-  const setItemImage = (itemId: string | undefined, image: AppImage) => {
-    patchItem(itemId, { image });
-    editor.flush();
-  };
-
-  // Display order only: `correctCells` is keyed by item id and each item owns
-  // its color, so a reorder never disturbs where the items are placed and
-  // never repaints them — it only renumbers them.
-  const handleItemDragEnd = (event: DragEndEvent) => {
-    if (event.canceled) return;
-    const { source } = event.operation;
-    if (!isSortable(source)) return;
-    const { initialIndex, index } = source;
-    if (initialIndex === index) return;
-    editor.updateSlideContent((prev) => {
-      const next = prev.items.slice();
-      const [moved] = next.splice(initialIndex, 1);
-      next.splice(index, 0, moved);
-      return { items: next };
-    });
-    editor.flush();
+    bank.addItem(
+      cell == null
+        ? undefined
+        : (item, prev) => ({ correctCells: { ...prev.correctCells, [item.id]: cell } }),
+    );
   };
 
   const setTargetCell = (itemId: string | undefined, cell: string | null) => {
@@ -285,20 +223,19 @@ const useGridEditor = (deckId: string, slideId: string): UseGridEditorResult => 
     addLabel,
     removeLabel,
     scheduleLabel,
-    canAddItem,
-    canRemoveItem,
+    canAddItem: bank.canAdd,
+    canRemoveItem: bank.canRemove,
     addItem,
-    removeItem,
-    scheduleItemLabel,
-    setItemColor,
-    setItemImage,
-    handleItemDragEnd,
+    removeItem: bank.removeItem,
+    scheduleItemLabel: bank.scheduleItemLabel,
+    setItemColor: bank.setItemColor,
+    setItemImage: bank.setItemImage,
+    handleItemDragEnd: bank.handleItemDragEnd,
     setTargetCell,
   };
 };
 
 export {
-  GRID_ITEM_LABEL_MAX,
   MAX_GRID_DIMENSION,
   MAX_GRID_ITEMS,
   MIN_GRID_DIMENSION,

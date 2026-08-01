@@ -1,10 +1,10 @@
 /**
  * An item row's editable label paired with its popover menu — the shared
- * counterpart of MCQ's `OptionField`, used by `PlacementRow` — and so by every
- * item bank: Axis, Grid, Ranking, Place-on-Image. The label field is the
- * menu's trigger: focusing it opens the menu (`onFocus → onOpenChange`), and
- * the composer keeps at most one row's menu open via the controlled `open`
- * prop.
+ * counterpart of MCQ's `OptionField`, used by `ItemBankRow` — and so by every
+ * item bank: Axis, Grid, Ranking, Scales, Allocation, Place-on-Image. The
+ * label field is the menu's trigger: focusing it opens the menu
+ * (`onFocus → onOpenChange`), and the composer keeps at most one row's menu
+ * open via the controlled `open` prop.
  * Positioning, portalling, and dismissal (outside press + Escape) are handled
  * by `FloatingPopover`; the field is the popover's anchor, so it counts as
  * "inside" and moving the caret around it never dismisses.

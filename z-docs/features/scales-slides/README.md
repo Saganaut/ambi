@@ -277,6 +277,13 @@ screen — the GRID/AXIS seam, unchanged.
   scheduling, and the per-statement `scheduleCorrectValue` /
   `commitCorrectValue` / `clearCorrectValue` trio (`correctValues` stays in
   scale units).
+- The statement ops themselves now come from the shared `useItemBankEditor`
+  (`hooks/useItemBankEditor.ts`), composed over this hook's one
+  `useSlideEditor` and re-exposed under Scales' names — `addStatement`,
+  `removeStatement` (which drops the statement's `correctValues` entry),
+  `scheduleStatementLabel`, `setStatementColor`, `setStatementImage`,
+  `handleStatementDragEnd` — shared with Axis, Grid, Ranking and
+  Place-on-Image.
 
 ### Components — `SlideContent/ScalesSlideContent/`
 

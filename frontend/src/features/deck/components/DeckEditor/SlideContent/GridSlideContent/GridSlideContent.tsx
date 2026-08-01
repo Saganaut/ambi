@@ -52,13 +52,13 @@ import {
   useSlideComposerState,
 } from "../_shared";
 import shared from "../_shared/_shared.module.css";
+import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import placement from "../_shared/placement/placement.module.css";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideWrapper } from "../SlideWrapper";
 import { GridAxisLabel } from "./GridAxisLabel";
 import { GridCellChip } from "./GridCellChip";
 import { GridCellEditable } from "./GridCellEditable";
-import { GridItemEditable } from "./GridItemEditable";
 import { GridPlacementGhost } from "./GridPlacementGhost";
 import styles from "./GridSlideContent.module.css";
 import { useGridCellPlacement } from "./useGridCellPlacement";
@@ -187,6 +187,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                     type="button"
                     className={styles.axisAdd}
                     aria-label="Add column"
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => {
                       editor.addLabel("col");
                     }}
@@ -258,6 +259,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   type="button"
                   className={styles.rowAdd}
                   aria-label="Add row"
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => {
                     editor.addLabel("row");
                   }}
@@ -290,39 +292,48 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           >
             <div className={shared.itemList}>
               <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-                {items.map((item, index) => (
-                  <GridItemEditable
-                    key={item.id}
-                    item={item}
-                    sortIndex={index}
-                    cell={correctCells[item.id]}
-                    cellNameOf={cellNameOf}
-                    selected={composer.selectedItemId === item.id}
-                    menuOpen={composer.openMenuId === item.id}
-                    canRemove={editor.canRemoveItem}
-                    onSelect={() => {
-                      composer.setSelectedItemId(item.id);
-                    }}
-                    onMenuOpenChange={(open) => {
-                      composer.setOpenMenuId(open ? item.id : null);
-                      if (open) composer.setSelectedItemId(item.id);
-                    }}
-                    onScheduleLabel={(label) => {
-                      editor.scheduleItemLabel(item.id, label);
-                    }}
-                    onFlush={editor.flush}
-                    onSetColor={(color) => {
-                      editor.setItemColor(item.id, color);
-                    }}
-                    onSetImage={(image) => {
-                      editor.setItemImage(item.id, image);
-                    }}
-                    onRemove={() => {
-                      removeItem(item.id);
-                    }}
-                    openPicker={openPicker}
-                  />
-                ))}
+                {items.map((item, index) => {
+                  const cell = correctCells[item.id];
+                  return (
+                    <SortableItemBankRow
+                      type="grid"
+                      key={item.id}
+                      item={item}
+                      index={index}
+                      color={resolveDatumColor(item.color, index)}
+                      hasTarget={cell != null}
+                      meta={
+                        cell == null ? undefined : (
+                          <span className={styles.rowMeta}>{cellNameOf(cell)}</span>
+                        )
+                      }
+                      selected={composer.selectedItemId === item.id}
+                      menuOpen={composer.openMenuId === item.id}
+                      canRemove={editor.canRemoveItem}
+                      onSelect={() => {
+                        composer.setSelectedItemId(item.id);
+                      }}
+                      onMenuOpenChange={(open) => {
+                        composer.setOpenMenuId(open ? item.id : null);
+                        if (open) composer.setSelectedItemId(item.id);
+                      }}
+                      onScheduleLabel={(label) => {
+                        editor.scheduleItemLabel(item.id, label);
+                      }}
+                      onFlush={editor.flush}
+                      onSetColor={(color) => {
+                        editor.setItemColor(item.id, color);
+                      }}
+                      onSetImage={(image) => {
+                        editor.setItemImage(item.id, image);
+                      }}
+                      onRemove={() => {
+                        removeItem(item.id);
+                      }}
+                      openPicker={openPicker}
+                    />
+                  );
+                })}
                 <AddItemCard
                   label={
                     editor.canAddItem ? "Add item" : `Maximum ${MAX_GRID_ITEMS.toString()} items`

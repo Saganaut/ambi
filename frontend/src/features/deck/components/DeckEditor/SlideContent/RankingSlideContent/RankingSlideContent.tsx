@@ -25,7 +25,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
     addItem,
     handleItemDragEnd,
     canRemove,
-    scheduleItem,
+    scheduleItemLabel,
     setItemColor,
     setItemImage,
     removeItem,
@@ -74,7 +74,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
                     composer.setOpenMenuId(open ? item.id : null);
                   }}
                   onScheduleLabel={(label) => {
-                    scheduleItem(item.id, { ...item, label });
+                    scheduleItemLabel(item.id, label);
                   }}
                   onFlush={flush}
                   onSetColor={(next) => {

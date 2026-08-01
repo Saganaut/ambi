@@ -18,9 +18,8 @@ export { EmptySelect } from "./EmptySelect";
 export { useSlideComposerState } from "./useSlideComposerState";
 export type { ComposerQuestion, SlideComposerState } from "./useSlideComposerState";
 
-// ── Item-bank row (Axis, Grid, Ranking, Place-on-Image) ─────────────────
-export { PlacementRow } from "./PlacementRow/PlacementRow";
-export type { PlacementRowProps } from "./PlacementRow/PlacementRow";
+// ── Item-bank row (Axis, Grid, Ranking, Scales, Allocation, Place-on-Image) ──
+export { ItemBankRow, SortableItemBankRow } from "./ItemBankRow/ItemBankRow";
 
 // ── Placement kit (Axis, Place-on-Image, Grid) ──────────────────────────
 export { PlacementMarker } from "./placement/PlacementMarker";

@@ -2,8 +2,9 @@
 //
 // Sits on the generic `useSlideEditor<"AXIS">` and exposes the intent-level
 // surface the Axis author UI consumes: a synthesized `question` view, a prompt
-// edit, endpoint-label ops, and per-item ops keyed by item id. There is
-// exactly ONE `useSlideEditor` instance per Axis slide (this hook is
+// edit, endpoint-label ops, and the target/tolerance ops only Axis has. The
+// item-bank ops are `useItemBankEditor`'s, composed over this hook's editor —
+// there is exactly ONE `useSlideEditor` instance per Axis slide (this hook is
 // instantiated once, in `AxisSlideContent`), so every write funnels through a
 // single draft + debounce buffer.
 //
@@ -15,21 +16,14 @@
 // INSIDE_RADIUS (every keyed item within `tolerance` of its target), so
 // `scoreMode` has no authoring knob — `buildDefaultContent` fixes it and the
 // editor never writes it.
-//
-// Item identity — id AND color — is a stored fact, minted at creation and
-// repaired on load for legacy content (`useItemIdentityBackfill`). Nothing here
-// derives either from an item's position, so reordering the bank renumbers it
-// without moving or repainting a single target.
 import type { DragEndEvent } from "@dnd-kit/react";
-import { isSortable } from "@dnd-kit/react/sortable";
 
-import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
 import type { AppImage, AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 
 import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { clamp01 } from "../utils/placement";
 import { buildDefaultAxisItem } from "../utils/slideContent";
-import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
+import { useItemBankEditor } from "./useItemBankEditor";
 import { useSlideEditor } from "./useSlideEditor";
 
 /** At least one item to place … */
@@ -109,12 +103,17 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
 
   const slide = editor.slide;
   const content = slide?.content;
-  const items = content?.items ?? [];
 
-  // Freeze legacy items' ids and colors into the content once, on load.
-  useItemIdentityBackfill(slideId, content?.items, (backfilled) => {
-    editor.updateSlideContent({ items: backfilled });
-    editor.flush();
+  const bank = useItemBankEditor(editor, {
+    slideId,
+    toPatch: (items) => ({ items }),
+    buildItem: buildDefaultAxisItem,
+    minItems: MIN_AXIS_ITEMS,
+    maxItems: MAX_AXIS_ITEMS,
+    onRemoveItem: (prev, itemId) => {
+      const { [itemId]: _dropped, ...rest } = prev.correctPositions;
+      return { correctPositions: rest };
+    },
   });
 
   const labelField = (axis: AxisAxis, end: AxisEnd) =>
@@ -134,10 +133,7 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
         xHighLabel: content?.xHighLabel ?? "",
         yLowLabel: content?.yLowLabel ?? "",
         yHighLabel: content?.yHighLabel ?? "",
-        // An id-less item is unaddressable — it cannot be labeled, colored,
-        // placed or removed — so it is withheld rather than rendered inert.
-        // The backfill above mints its id on the very next render.
-        items: items.filter((item): item is Identified<AxisItem> => item.id != null),
+        items: bank.items,
         correctPositions: content?.correctPositions ?? {},
         tolerance: content?.tolerance ?? AXIS_TOLERANCE_DEFAULT,
       }
@@ -147,70 +143,6 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
 
   const scheduleAxisLabel = (axis: AxisAxis, end: AxisEnd, text: string) => {
     editor.updateSlideContent({ [labelField(axis, end)]: text });
-  };
-
-  const canAddItem = items.length < MAX_AXIS_ITEMS;
-  const canRemoveItem = items.length > MIN_AXIS_ITEMS;
-
-  const addItem = () => {
-    if (!canAddItem) return;
-    // The color is picked against the freshest draft, so two adds inside one
-    // debounce window can't both claim the same palette slot.
-    editor.updateSlideContent((prev) => ({
-      items: [
-        ...prev.items,
-        buildDefaultAxisItem(nextPaletteColor(prev.items.map((item) => item.color))),
-      ],
-    }));
-    editor.flush();
-  };
-
-  const removeItem = (itemId: string | undefined) => {
-    if (!itemId || !canRemoveItem) return;
-    editor.updateSlideContent((prev) => {
-      const { [itemId]: _dropped, ...rest } = prev.correctPositions;
-      return { items: prev.items.filter((item) => item.id !== itemId), correctPositions: rest };
-    });
-    editor.flush();
-  };
-
-  const scheduleItemLabel = (itemId: string | undefined, label: string) => {
-    if (!itemId) return;
-    editor.updateSlideContent((prev) => ({
-      items: prev.items.map((item) => (item.id === itemId ? { ...item, label } : item)),
-    }));
-  };
-
-  /** Merge a patch into one item and persist immediately (menu-driven edits). */
-  const commitItemPatch = (itemId: string | undefined, patch: Partial<AxisItem>) => {
-    if (!itemId) return;
-    editor.updateSlideContent((prev) => ({
-      items: prev.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
-    }));
-    editor.flush();
-  };
-
-  const setItemColor = (itemId: string | undefined, color: string) => {
-    commitItemPatch(itemId, { color });
-  };
-
-  const setItemImage = (itemId: string | undefined, image: AppImage) => {
-    commitItemPatch(itemId, { image });
-  };
-
-  const handleItemDragEnd = (event: DragEndEvent) => {
-    if (event.canceled) return;
-    const { source } = event.operation;
-    if (!isSortable(source)) return;
-    const { initialIndex, index } = source;
-    if (initialIndex === index) return;
-    editor.updateSlideContent((prev) => {
-      const next = prev.items.slice();
-      const [moved] = next.splice(initialIndex, 1);
-      next.splice(index, 0, moved);
-      return { items: next };
-    });
-    editor.flush();
   };
 
   const setTargetPosition = (itemId: string | undefined, point: AxisPoint | null) => {
@@ -241,14 +173,18 @@ const useAxisEditor = (deckId: string, slideId: string): UseAxisEditorResult => 
     schedulePrompt,
     flush: editor.flush,
     scheduleAxisLabel,
-    canAddItem,
-    canRemoveItem,
-    addItem,
-    removeItem,
-    scheduleItemLabel,
-    setItemColor,
-    setItemImage,
-    handleItemDragEnd,
+    canAddItem: bank.canAdd,
+    canRemoveItem: bank.canRemove,
+    // Wrapped, not passed through: the public `addItem` takes no arguments —
+    // Axis has no born-placed add, so the bank's `withNewItem` stays internal.
+    addItem: () => {
+      bank.addItem();
+    },
+    removeItem: bank.removeItem,
+    scheduleItemLabel: bank.scheduleItemLabel,
+    setItemColor: bank.setItemColor,
+    setItemImage: bank.setItemImage,
+    handleItemDragEnd: bank.handleItemDragEnd,
     setTargetPosition,
     setTolerance,
   };

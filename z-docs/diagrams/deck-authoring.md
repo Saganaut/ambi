@@ -105,6 +105,8 @@ flowchart TB
 
     CANVAS --> SC["SlideContent/*SlideContent<br/>17 kind editors"]
     SC --> UEE["useSlideEditor(deckId, slideId, contentType)<br/>{ slide, updateMetadata, updateSlideContent, flush }"]
+    SC --> BANK["item-bank kind hooks → useItemBankEditor<br/>Axis · Grid · Ranking · Scales · Place-on-Image<br/>add/remove/reorder · row patches · identity backfill"]
+    BANK -- "passes the slide's one editor in" --> UEE
     RIGHT --> PANELS["EditSlidePanel · AnswerPanel<br/>DiscussionPanel · InviteSettingsPanel …"]
     SC --> RTI["RichTextInput (TipTap)"]
 ```

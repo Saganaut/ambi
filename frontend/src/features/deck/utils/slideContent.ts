@@ -278,8 +278,12 @@ export const buildDefaultAllocationOption = (): McqOption => ({
  * `color` is stamped here rather than derived from the item's position, so a
  * reorder renumbers the list without repainting it — pass `nextPaletteColor`
  * (`shared/components/Charts/optionPalette.ts`) of the colors already in use.
+ *
+ * The minted `id` is surfaced in the return type — the wire field is optional —
+ * because the editor keys the new item's answer-key entry by it in the very
+ * updater that appends the item.
  */
-export const buildDefaultRankItem = (color: string): RankItem => ({
+export const buildDefaultRankItem = (color: string): RankItem & { id: string } => ({
   id: nanoid(8),
   label: "",
   color,
@@ -291,8 +295,12 @@ export const buildDefaultRankItem = (color: string): RankItem => ({
  * at creation time is what lets the author assign targets and the backend grade
  * placements. The label is empty for the author to fill in; `color` is stamped
  * at creation for the reason {@link buildDefaultRankItem} gives.
+ *
+ * The minted `id` is surfaced in the return type — the wire field is optional —
+ * because the editor keys the new item's answer-key entry by it in the very
+ * updater that appends the item.
  */
-export const buildDefaultGridItem = (color: string): GridItem => ({
+export const buildDefaultGridItem = (color: string): GridItem & { id: string } => ({
   id: nanoid(8),
   label: "",
   color,
@@ -304,8 +312,12 @@ export const buildDefaultGridItem = (color: string): GridItem => ({
  * id at creation time is what lets the author place targets and the backend
  * grade placements. The label is empty for the author to fill in; `color` is
  * stamped at creation for the reason {@link buildDefaultRankItem} gives.
+ *
+ * The minted `id` is surfaced in the return type — the wire field is optional —
+ * because the editor keys the new item's answer-key entry by it in the very
+ * updater that appends the item.
  */
-export const buildDefaultAxisItem = (color: string): AxisItem => ({
+export const buildDefaultAxisItem = (color: string): AxisItem & { id: string } => ({
   id: nanoid(8),
   label: "",
   color,
@@ -348,8 +360,12 @@ export const buildDefaultMatchItem = (): MatchItem => ({
  * resolve per-statement answers. The label is empty for the author to fill in;
  * `color` is stamped at creation for the reason {@link buildDefaultRankItem}
  * gives.
+ *
+ * The minted `id` is surfaced in the return type — the wire field is optional —
+ * because the editor keys the new item's answer-key entry by it in the very
+ * updater that appends the item.
  */
-export const buildDefaultScaleItem = (color: string): ScaleItem => ({
+export const buildDefaultScaleItem = (color: string): ScaleItem & { id: string } => ({
   id: nanoid(8),
   label: "",
   color,

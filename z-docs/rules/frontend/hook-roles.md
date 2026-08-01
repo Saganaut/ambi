@@ -2,9 +2,10 @@
 
 **Rule:** Every hook in a feature is exactly one of three kinds, and the kind is
 legible from its name. Components and views read and write feature state only
-through these hooks — never the generated RTK Query endpoints directly. The
-one narrow exception is the **shared interaction-state hook** carved out
-below — it isn't a CQRS hook at all, because it touches no server state.
+through these hooks — never the generated RTK Query endpoints directly. Two
+narrow exceptions are carved out below — the **shared interaction-state hook**
+(it touches no server state) and the **hook-composition helper** (no component
+may import it) — and neither is a CQRS hook.
 
 This is the **CQRS** seam of the architecture: the data layer is split into
 read-only **query hooks** and write-only **mutate hooks** over the RTK Query
@@ -106,6 +107,17 @@ view; several peer components import it directly).
   scoped to the one family of components that uses it, following the same
   "shared code sits at the nearest common ancestor" placement as the
   components themselves.
+
+## Hook-composition helpers (the second carve-out)
+
+A hook may also be extracted purely to be **composed by its sibling hooks and
+never imported by a view** — the shared body of several view-model hooks rather
+than one view's composition. It sits in the same `hooks/` directory as its
+callers and takes the surface it works on as a parameter instead of mounting
+its own, so the composing hook keeps the single instance every write funnels
+through. `useItemBankEditor` (`features/deck/hooks/`) is the one example: the
+five item-bank kind hooks pass in their own `useSlideEditor` and get back the
+bank ops they all share.
 
 ## Status
 

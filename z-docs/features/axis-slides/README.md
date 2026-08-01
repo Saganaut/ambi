@@ -18,9 +18,10 @@ remain open.
 ## Model
 
 Coordinate space is **normalized `[0, 1]` doubles on both axes** (the
-`Target(id, x, y, radius)` convention from `PLACE_ON_IMAGE` in
-`presentation/slide/content/parts/SlideContentTypes.java`). `(0,0)` is the
-low/low corner (bottom-left as rendered), `(1,1)` high/high.
+`PlacePoint(x, y)` convention from `PLACE_ON_IMAGE` in
+`presentation/slide/content/parts/SlideContentTypes.java`, mirrored here as
+`AxisPoint`). `(0,0)` is the low/low corner (bottom-left as rendered), `(1,1)`
+high/high.
 
 New shared records in `SlideContentTypes.java`:
 
@@ -64,9 +65,11 @@ Shape decisions (each follows an existing precedent):
   `PlaceOnImageAnswer(double x, double y)` already sets the
   structured-doubles precedent.
 - **Per-slide `tolerance`, not per-item radius** — `ScalesContent.tolerance`
-  and `AllocationContent.tolerancePerOption` are single knobs; PlaceOnImage's
-  per-target radius exists because image regions have intrinsically different
-  sizes. A per-item override is an additive follow-up
+  and `AllocationContent.tolerancePerOption` are single knobs, and
+  `PLACE_ON_IMAGE` converged on the same single-knob shape (it briefly carried
+  a per-target radius before landing on `PlaceOnImageContent.tolerance`, one
+  knob per slide, matching this record's `tolerance`). A per-item override
+  is an additive follow-up for either kind
   (`Map<String, Double> toleranceOverrides`), not v1.
 - **`scoreMode` fixed to `INSIDE_RADIUS`** and never written by the editor,
   exactly as the grid editor hard-codes `EXACT`.
@@ -225,23 +228,27 @@ v1.
 
 ### Hook — `useAxisEditor.ts`
 
-Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
-`useGridEditor.ts`'s surface:
+Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, sharing its
+item-bank surface with Grid, Ranking, Scales and Place-on-Image through
+`useItemBankEditor.ts`:
 
 - Synthesized `question` view; debounced `schedulePrompt` → `slide.title`.
 - `scheduleAxisLabel(axis: "x" | "y", end: "low" | "high", text)` — debounced
   endpoint-label edits. (No add/remove-lane analogue of grid's
   `remapAfterRemoval` — axes are fixed, a genuine simplification.)
-- Item ops: `addItem` / `removeItem` (removal drops the item's
-  `correctPositions` entry — invariant 1), `scheduleItemLabel`,
-  `handleItemDragEnd` for row display order.
-- `setItemColor(itemId, color)` and `setItemImage(itemId, image)` —
-  immediate commits, each patching one item (menu-driven edits).
+- Item ops all come from the shared `useItemBankEditor`, composed over this
+  hook's one editor and re-exposed under Axis's own names: `addItem` /
+  `removeItem` (removal drops the item's `correctPositions` entry —
+  invariant 1, supplied to the bank as its `onRemoveItem`),
+  `scheduleItemLabel`, and `handleItemDragEnd` for row display order.
+- `setItemColor(itemId, color)` and `setItemImage(itemId, image)` — also the
+  bank's, immediate commits each patching one item (menu-driven edits).
 - `setTargetPosition(itemId, point | null)` and `setTolerance(value)` —
   immediate + flush (structural, like grid's cell assignment).
 - Constants: `MIN_AXIS_ITEMS = 1`, `MAX_AXIS_ITEMS = 6` (one per palette color),
   `AXIS_TOLERANCE_MIN = 0.02`, `AXIS_TOLERANCE_MAX = 0.5`,
-  `AXIS_TOLERANCE_DEFAULT = 0.1`; endpoint/item label inputs `maxLength` 80.
+  `AXIS_TOLERANCE_DEFAULT = 0.1`; endpoint label inputs `maxLength` 80
+  (`AXIS_LABEL_MAX` — item rows use `ItemBankRow`'s own hardcoded 100).
 
 ### Components — `SlideContent/AxisSlideContent/`
 
@@ -286,17 +293,19 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
   resolves to a cell instead), `PlacementMarker` (numbered
   dot + optional label pill + tolerance circle), and
   `ToleranceField` (the ×100 / ÷100 percent wrapper around `NumberInput`).
-  The item row itself is `_shared/PlacementRow/` — one level up from the
-  placement folder, since Ranking lists it too. Axis renders `PlacementRow`
-  with `draggable`, `scored` (set for any item with a `correctPositions`
-  entry), and an inline `primaryAction` for the
-  "Set target" / "Clear target" toggle; there is no Axis-specific row or
-  field component. The coordinate helpers themselves live in
+  The item row itself is `_shared/ItemBankRow/` — one level up from the
+  placement folder, since Ranking, Scales and Allocation list it too.
+  `AxisSlideContent` renders the draggable `SortableItemBankRow` inline, with
+  `type="placement"` and `hasTarget` (set for any item with a
+  `correctPositions` entry); the row's placement arm builds the
+  "Set target" / "Clear target" menu action itself, so there is no
+  Axis-specific row or field component and no `primaryAction` to pass. The
+  coordinate helpers themselves live in
   `@utils/placementGeometry` — shared with the live-session boards, which
   measure in the same normalized space — and are reached through
   `placementGeometry.ts` (component layer) and `@deck/utils/placement.ts`
   (hook layer).
-  `PlacementRow` wraps the shared `ItemField`
+  `ItemBankRow` wraps the shared `ItemField`
   (`_shared/ItemField/ItemField.tsx`), also used by
   [Place-on-Image](../place-on-image/README.md)'s target
   rows, which owns the generic mechanics: the label `Input` is itself the
@@ -321,10 +330,11 @@ Over the generic `useSlideEditor(deckId, slideId, "AXIS")`, cloning
 **Shared dependency:** all render the shared
 `_shared/OptionMenu/OptionMenuContent.tsx` — the presentational menu body
 (palette + custom color, image upload/clear, delete, and a `primaryAction`
-prop each kind supplies: MCQ passes mark-correct, Axis passes
-set/clear-target, Match passes the phrase/image face flip — Grid,
-Place-on-Image, and Ranking pass none). Every `PlacementRow` bank (Axis,
-Grid, Ranking, Place-on-Image) reaches it via the shared
+prop each kind supplies: MCQ passes mark-correct, Match passes the
+phrase/image face flip; for the item banks `ItemBankRow` supplies it itself —
+set/clear-target on its `placement` arm (Axis, Place-on-Image), none on the
+others). Every `ItemBankRow` bank (Axis, Grid, Ranking, Scales, Allocation,
+Place-on-Image) reaches it via the shared
 `_shared/ItemField/ItemField.tsx` (label field as popover trigger,
 `FloatingPopover`, `OptionMenuContent`); MCQ
 (`OptionControls/OptionField.tsx`) and Match

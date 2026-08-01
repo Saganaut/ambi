@@ -19,24 +19,26 @@ results chart remains unbuilt (see [Status / gaps](#status--gaps) below).
 
 ```java
 public record PlaceOnImageContent(
-    AppImage image,               // the backing image players click on
-    List<Target> correctTargets,  // correct regions — NEVER sent to clients
-    ScoreMode scoreMode           // fixed INSIDE_RADIUS; no authoring knob
+    AppImage image,                        // the backing image players pin on
+    List<PlaceItem> items,                 // the items players place; one pin each
+    Map<String, PlacePoint> correctPositions, // itemId → target; the answer key — NEVER sent to clients
+    double tolerance,                      // normalized radius, one knob per slide
+    ScoreMode scoreMode                    // fixed INSIDE_RADIUS; no authoring knob
 ) implements ScorableContent {
   @Override public SlideType contentType() { return SlideType.PLACE_ON_IMAGE; }
 }
 ```
 
-`Target(String id, String label, AppImage image, String color, double x,
-double y, double radius)` (shared with Axis, in `SlideContentTypes.java`)
-carries the same optional author annotations as Axis's `AxisItem` —
-`label`, `image`, `color` — so the editor's shared `ItemField` row control
-(see [Editor UX](#editor-ux) below) can label a target, override its
-palette color, or attach an image; the grader reads only `x`/`y`/`radius`
-and ignores the rest. `correctTargets` is a **list**, not Axis's id-keyed
-map, but the editor still addresses targets **by id** (`Target.id`, minted
-by `addTarget`) rather than by array position — see
-[Hook](#hook--useplaceonimageeditorts).
+This is now [Axis](../axis-slides/README.md)'s model precedent exactly, minus
+the labeled plane: `PlaceItem(String id, String label, AppImage image, String
+color)` (`SlideContentTypes.java`) mirrors `AxisItem` — the same optional
+author annotations, so the editor's shared `ItemField` row control (see
+[Editor UX](#editor-ux) below) can label an item, override its palette color,
+or attach an image — and the answer key lives off the item entirely, in
+`correctPositions` (itemId → `PlacePoint`), never on the item itself. An item
+absent from `correctPositions` is authored but ungraded; an empty map is a
+collect-only slide. Items are always addressed **by id** (never by array
+position) — see [Hook](#hook--useplaceonimageeditorts).
 
 Coordinates are screen-space over the image box: **`(0, 0)` is the image's
 top-left corner**, y is *not* inverted — the opposite of Axis's bottom-left
@@ -48,8 +50,8 @@ the grader and the marker flips y.
 
 ### Answer payload
 
-`session/answer/payload/PlaceOnImageAnswer.java` — a per-target map, like
-Axis's `AxisAnswer` (one pin per authored target, not one pin per slide):
+`session/answer/payload/PlaceOnImageAnswer.java` — a per-item map, like
+Axis's `AxisAnswer` (one pin per authored item, not one pin per slide):
 
 ```java
 /** Placement of each item id at a normalized (0..1) pin on the image. */
@@ -60,27 +62,26 @@ public record PlaceOnImageAnswer(Map<String, PlacePoint> placements) implements 
 
 `PlacePoint(double x, double y)` (`SlideContentTypes.java`) is
 Place-on-Image's own point record — structurally identical to Axis's
-`AxisPoint` but kept distinct per kind, the same one-record-per-kind
-convention `AxisItem`/`Target` follow.
+`AxisPoint`, and serves the same dual role: it's both the authored answer key
+(`correctPositions`) and the runtime placement (`PlaceOnImageAnswer.placements`).
 
 ## Grading
 
-`RoundEvaluator.gradePlaceOnImage` mirrors `gradeAxis`'s loop-over-answer-key:
-**every** target's own pin must land inside that target's own radius (each
-target carries its own radius rather than one shared plane tolerance, but the
-all-or-nothing shape is identical to Axis's map match):
+`RoundEvaluator.gradePlaceOnImage` mirrors `gradeAxis`'s loop-over-answer-key
+exactly: every keyed item's pin must land within the slide's `tolerance` of
+its target.
 
 ```java
 private static boolean gradePlaceOnImage(PlaceOnImageContent content, PlaceOnImageAnswer answer) {
     if (content.scoreMode() != ScoreMode.INSIDE_RADIUS
-            || content.correctTargets() == null || content.correctTargets().isEmpty()
+            || content.correctPositions() == null || content.correctPositions().isEmpty()
             || answer.placements() == null) {
         return false;
     }
-    for (Target target : content.correctTargets()) {
-        PlacePoint placed = answer.placements().get(target.id());
-        if (placed == null || Math.hypot(placed.x() - target.x(),
-                placed.y() - target.y()) > target.radius()) {
+    for (Map.Entry<String, PlacePoint> e : content.correctPositions().entrySet()) {
+        PlacePoint placed = answer.placements().get(e.getKey());
+        if (placed == null || Math.hypot(placed.x() - e.getValue().x(),
+                placed.y() - e.getValue().y()) > content.tolerance()) {
             return false;
         }
     }
@@ -88,14 +89,15 @@ private static boolean gradePlaceOnImage(PlaceOnImageContent content, PlaceOnIma
 }
 ```
 
-- **All-or-nothing over every target** — a missing or off-target pin for any
-  one target fails the whole round, the same single `ParticipantOutcome.correct`
-  boolean shape Axis uses.
+- **All-or-nothing over every keyed item** — a missing or off-target pin for
+  any one keyed item fails the whole round, the same single
+  `ParticipantOutcome.correct` boolean shape Axis uses. An item with no
+  `correctPositions` entry is ignored, not failed.
 - **`INSIDE_RADIUS` is the only implemented mode** — `NEAREST` and `DISTANCE`
   are declared on `ScoreMode` but return `false` across `RoundEvaluator` today,
   same as Axis.
 - **A target-less slide is legitimate collect-only** — an empty
-  `correctTargets` list always grades `false`, making the slide an unscored
+  `correctPositions` map always grades `false`, making the slide an unscored
   "drop a pin" prompt (the Scales/Axis collect-only convention).
 
 ## Live pipeline
@@ -104,14 +106,16 @@ private static boolean gradePlaceOnImage(PlaceOnImageContent content, PlaceOnIma
 
 `session/event/dto/PlaceOnImageConfigView.java`, wired as `SlideView.placeOnImage`:
 the backing image's presigned `imageUrl` plus one `PlaceItemView(id, label,
-imageUrl, color)` per authored target — never the targets' `x`/`y`/`radius`,
-which stay the answer key until reveal.
+imageUrl, color)` per authored item — never `correctPositions` or
+`tolerance`, which stay the answer key until reveal.
 
 ### Answer validation
 
 `LiveSessionAnswerService.validatePlaceOnImage`, mirroring `validateAxis`: at
-least one item placed, every placement key one of the slide's target ids,
-every point finite and within `[0, 1]`. `PlaceOnImageAnswer` also joins the
+least one item placed, every placement key one of the slide's item ids,
+every point finite and within `[0, 1]`. Validation is against existence, not
+against being graded — an unkeyed item is still a valid placement target.
+`PlaceOnImageAnswer` also joins the
 whole-map resubmit override (`effectiveMaxSelections = 0`) alongside
 `GridAnswer`/`AxisAnswer`/`ScalesAnswer`/… — the backend itself accepts a
 resubmitted map; it is only `PlaceOnImageBoardContent`'s own
@@ -130,46 +134,55 @@ describes.
 ### Reveal
 
 `ResultsRevealed.placeTargets` (`session/event/dto/PlaceTargetView.java`) — one
-`PlaceTargetView(id, x, y, radius, label, color)` per authored target,
-disclosed only once the round enters results, so the board can draw the
-correct-location circles. The snapshot service carries the same list for a
-client that joins mid-reveal.
+`PlaceTargetView(itemId, x, y, radius)` per item that carries a
+`correctPositions` entry, walking `items` in authored order so disclosure
+order matches the bank; an unkeyed item has no circle. Geometry only — the
+item's label, color and image are already on the participant-safe
+`PlaceOnImageConfigView`, so the board resolves them by `itemId` rather than
+re-receiving them here. Disclosed only once the round enters results. The
+snapshot service carries the same list for a client that joins mid-reveal.
 
 ## Editor UX
 
 ### Hook — `usePlaceOnImageEditor.ts`
 
-Over the generic `useSlideEditor(deckId, slideId, "PLACE_ON_IMAGE")`:
+Over the generic `useSlideEditor(deckId, slideId, "PLACE_ON_IMAGE")`, the same
+`items` + id-keyed `correctPositions` + slide-level `tolerance` shape as
+`useAxisEditor.ts`, with one authoring-gesture difference (below):
 
 - Synthesized `question` view (`prompt` from `slide.title`, `image`,
-  `targets`, one shared `tolerance`); debounced `schedulePrompt`.
+  `targets`, `tolerance`) — `targets` folds each item's `correctPositions`
+  entry into the item view (`x`/`y` present when keyed, absent when not);
+  debounced `schedulePrompt`.
 - `setImage(image)` — immediate; swaps the backing image.
-- Coordinate/structural ops, addressed **by target id** (Axis's item ops):
-  `addTarget(point?)` (defaults to image centre, mints a `nanoid(8)` id),
-  `moveTarget(targetId, point)`, `removeTarget(targetId)`.
-- Author-annotation ops, mirroring Axis's item ops and likewise id-addressed:
-  `scheduleTargetLabel(targetId, label)` (debounced),
-  `setTargetColor(targetId, color)` and `setTargetImage(targetId, image)`
-  (both immediate).
-- **Id addressing over a list.** Because `correctTargets` is an array, each
-  write resolves the id back to an index — *inside* the `updateSlideContent`
-  updater, against the freshest draft, so back-to-back writes in one debounce
-  window can't address a stale list. A key matching nothing (a row the author
-  has since removed) is a no-op. Targets authored before `Target.id` reached
-  the wire stay reachable through the `target-<index>` fallback key
-  `targetKey(target, index)` mints, which is also what
-  `PlaceTargetView.id` carries; the fallback is a UI address only and never
-  reaches the wire.
-- **`setTolerance(value)`** — the one knob that matters: every target's
-  `radius` on the wire is kept in lockstep (clamped `0.02`–`0.5`, i.e. 2–50 %),
-  so a target-less slide's *next* `addTarget` seeds at the shared default
-  (`PLACE_TOLERANCE_DEFAULT = 0.1`). PLACE_ON_IMAGE's `Target.radius` is
-  per-target on the wire (unlike Axis's slide-level `tolerance` field) —
-  the editor's lockstep behavior is a UI simplification over that model, not
-  a model constraint; per-target tolerance is authorable by hand-editing the
-  content, just not through this editor.
-- Constants: `MAX_PLACE_TARGETS = 6` (one per shared palette color, matching
-  Axis's item cap), `PLACE_TOLERANCE_MIN/MAX/DEFAULT = 0.02 / 0.5 / 0.1`,
+- **`addTarget(point?)` has two paths** — with a `point` (a press on the open
+  image) it mints the item AND its answer-key entry in one updater, so the
+  target is born placed; with no argument (the bank's "Add target" card) it
+  mints the item alone, **unplaced** — a target that exists, is numbered and
+  labelled, but keys no right answer and so is not graded. Either way the
+  `PlaceItem` comes from `buildDefaultPlaceItem`.
+  `setTargetPosition(targetId, point | null)` gives an item its target
+  (clamped to `[0, 1]`) or clears it again, leaving the item in the bank; a
+  stale id is a no-op, resolved against the freshest draft so back-to-back
+  writes in one debounce window can't race, and no entry is ever minted for a
+  phantom item. `removeTarget(targetId)` filters `items` and drops the
+  `correctPositions` key together. `isPlaced(target)` is the exported
+  predicate the UI counts and branches on.
+- Author-annotation ops are the shared item-bank ops, id-addressed and
+  re-exposed under Place-on-Image's names: `scheduleTargetLabel(targetId,
+  label)` (debounced), `setTargetColor(targetId, color)` and
+  `setTargetImage(targetId, image)` (both immediate).
+- **`setTolerance(value)`** — one field, `content.tolerance` (clamped
+  `0.02`–`0.5`, i.e. 2–50 %), the same single per-slide knob Axis writes; there
+  is no per-target radius to keep in lockstep.
+- `handleItemDragEnd` — the shared bank's handler, splicing `items` on a row
+  drop (Axis's reorder shape, now literally the same code); it moves display
+  order only, since the answer key is id-keyed and each item owns its own
+  color.
+- Constants: `MIN_PLACE_TARGETS = 1` (the last row stays — `canRemove`, and so
+  `removeTarget`, is inert at the floor), `MAX_PLACE_TARGETS = 6` (one per
+  shared palette color, matching Axis's item cap),
+  `PLACE_TOLERANCE_MIN/MAX/DEFAULT = 0.02 / 0.5 / 0.1`,
   `PLACE_LABEL_MAX = 80` (mirrors `AXIS_LABEL_MAX`).
 
 ### Components — `SlideContent/PlaceOnImageSlideContent/`
@@ -184,38 +197,53 @@ Axis, Place-on-Image, and Grid build on — see
   `SettingsCard` layout (the shared `.editorRow` / `.editorColumnWide` /
   `.editorColumnNarrow` classes): an "Image" card (choose/replace button +
   the placement surface) and a "Targets" card (the shared `ToleranceField` in
-  the header, one `PlacementRow` per target, add/remove). The rows are
+  the header, one `SortableItemBankRow` (`type="placement"`) per target,
+  add/remove). The rows are
   **draggable by their grip**, wrapped in a `DragDropWrapper` like Axis's and
   Grid's banks: row order drives each marker's number, so reordering is how an
   author renumbers the set — and renumbering is all it does. Each target owns
   its coordinates and the color minted for it at creation
   (`nextPaletteColor`, backfilled for legacy targets by
   `useItemIdentityBackfill` on load), so no marker moves or changes hue
-  (`usePlaceOnImageEditor`'s `handleItemDragEnd` splices `correctTargets` by
+  (`usePlaceOnImageEditor`'s `handleItemDragEnd` splices `items` by
   index — positional rather than id-addressed, because a drop only ever states
   "the row at this position moved to that one"). Each row wraps the shared
   `ItemField` — the label doubles as the popover trigger, and the menu holds
-  the shared color palette/custom-color modal, image upload/clear, and delete;
-  there is no kind-specific `primaryAction`, since a target exists only by
-  being placed. The row shows an image thumbnail when the target has one, and
-  is always `scored`. `useSlideComposerState`
-  holds the prompt mirror and which row's menu is open (at most one); every
-  other callback addresses its target by `target.id`. Advisory (non-blocking) footer
-  nudges for an image and at least one target — a target-less slide is still
-  valid.
+  the shared color palette/custom-color modal, image upload/clear, and delete,
+  led by the `placement` arm's own action, not a composer-passed one: **"Set target"** seeds the surface's
+  centre and **"Clear target"** drops the point again (Axis's pair — the
+  pointer-free placement path). The same toggle is on the row itself as the
+  trailing check / question-mark button, since an unplaced target is exactly an
+  unscored one. The row shows an image thumbnail when the target has one, and
+  is `scored` only once it carries a point. The card header reads
+  **"N of M placed"** (Axis's counter), with the `ToleranceField` disabled
+  while nothing is placed — there is no circle to size yet.
+  `useSlideComposerState` holds the prompt mirror, which row's menu is open and
+  which row is **armed** (at most one each: a row click arms it, opening its
+  menu arms it too, and removing an armed row clears the selection); every
+  other callback addresses its target by `target.id`. Advisory (non-blocking)
+  footer nudges for an image, for at least one target, and for a position on
+  every target — an unkeyed slide is still valid.
 - `PlaceOnImageSurface.tsx` — the placement surface: a plain block `<img>` at
   its intrinsic aspect ratio (never letterboxed/stretched), so the normalized
   overlay coordinates land exactly where players would see them. The image
   box, the image, and the no-image 16:9 stand-in are all this file's own CSS;
   the surface chrome and pointer machinery are the kit's `.surface` /
-  `.surfaceArmed` and `usePlacementSurface({ invertY: false, … })`. Press the
-  open image to drop a new target and keep dragging it; release commits via
+  `.surfaceArmed` and `usePlacementSurface({ invertY: false, … })`. A press
+  means one of two things and **an armed row always wins** (`pendingKey`
+  returns the armed id before the sentinel): with a row armed the press places
+  THAT target via `onSetTargetPosition` and then **auto-disarms** it (the
+  commit calls `onToggleSelect` back), so the next press adds rather than
+  silently relocating the target just finished — which is also why an armed row
+  still places at the target cap, where minting is closed. With nothing armed,
+  the press drops a new target and keeps dragging it; release commits via
   `addTarget`. Because that target has no id until it commits, the in-flight
   placement is drawn as a **ghost** `PlacementMarker`, keyed on the hook's
   `PENDING_PLACEMENT_KEY` sentinel. Placed markers drag directly (pointer
-  capture) and commit through `onMoveTarget(targetId, point)`; a press on one
-  means nothing but "move me", so this surface passes no `onMarkerTap` (Axis's
-  tap-to-select has no analogue without a bank). Markers are the shared
+  capture) and commit through `onSetTargetPosition(targetId, point)`, and a tap
+  on one toggles its row's arming (`onMarkerTap`, Axis's gesture). An unplaced
+  target draws no marker at all until it is armed and dragged, when the live
+  drag point materializes one. Markers are the shared
   `PlacementMarker` in the target's resolved color
   (`resolveDatumColor(target.color, index)` — the authored override when set,
   else the shared 6-color palette by index): a labeled target grows a label
@@ -233,8 +261,8 @@ Axis, Place-on-Image, and Grid build on — see
 ### Registration
 
 - `slideContent.ts` — `buildDefaultContent` case `"PLACE_ON_IMAGE"`: minimal
-  `{ external: true }` placeholder image, empty `correctTargets`,
-  `scoreMode: "INSIDE_RADIUS"`.
+  `{ external: true }` placeholder image, empty `items` and
+  `correctPositions`, `tolerance: 0.1`, `scoreMode: "INSIDE_RADIUS"`.
 - `SlideDisplay.tsx` — `case "PLACE_ON_IMAGE"`; `NewSlideModal` —
   `SLIDE_TYPE_LABELS.PLACE_ON_IMAGE: "Place on Image"`; a `slideTypeGraphics`
   tile; one `deckMockData.ts` fixture.

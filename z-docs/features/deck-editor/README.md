@@ -28,13 +28,13 @@ The pieces every one of them uses live in
 `components/DeckEditor/SlideContent/_shared/placement/` and are re-exported
 from the `_shared` barrel:
 
-- `PlacementRow` (`_shared/PlacementRow/`, one level up from the placement folder since Ranking uses it too) — the one item row every bank lists: colored index pill, image thumbnail when the item has one, label field + popover menu, optional trailing meta slot, an "answer set" check when `scored`, and a drag grip when `draggable`. It owns the row's own chrome (surface, radius, elevation, the selected border, the dimmed dragging state) and nothing else. `draggable` picks between two private components inside the file rather than toggling a hook, because the rules of hooks forbid a component turning `useSortable` on and off.
+- `ItemBankRow` (`_shared/ItemBankRow/`, one level up from the placement folder since Ranking, Scales and Allocation list it too) — the one item row every bank lists: colored index pill, image thumbnail when the item has one, label field + popover menu, an optional trailing `meta` slot, a kind-specific trailing block (an "answer set" check, the scale tracker, the points input), and the drag grip. Its props are a discriminated union with one arm per bank kind — `allocation`, `grid`, `placement`, `ranking`, `scales` — over a shared base that carries `selected` / `onSelect` / `meta`. It owns the row's own chrome (surface, radius, elevation, the selected border, the dimmed dragging state) and nothing else. `SortableItemBankRow` is the draggable export every composer actually renders: it wraps the same row in `useSortable` and passes the grip/root refs down, because the rules of hooks forbid a component turning `useSortable` on and off.
 - `usePointerPlacement` — the pointer gestures all three share: press-to-place, drag-to-move, tap-to-select, pointer capture, and a single commit on release. It is generic over what a press resolves to, supplied by the caller as `resolve(clientX, clientY)`.
 - `usePlacementSurface` + `PlacementMarker` + `placementGeometry.ts` — `usePointerPlacement` resolved to normalized [0, 1] coordinates over a surface's box, for the free-placement surfaces (Axis, Place-on-Image). Grid resolves the same gestures to a discrete cell instead (`useGridCellPlacement`, below).
 - `ToleranceField` — the ×100 / ÷100 percent wrapper around the shared `NumberInput`.
 - `_shared/useSlideComposerState.ts` — the prompt mirror, `selectedItemId` (the armed row), and `openMenuId`, resynced during render when the bound slide changes.
 - `_shared/AddItemCard/` — the dashed "Add …" row that closes an item list, the row-list counterpart of MCQ's `CanAddOptionCard`. Each editor renders it as the last child of its own list container, and swaps its label for the "Maximum N …" wording (plus `disabled`) once the list is at its cap.
-- `_shared/_shared.module.css` — the two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, the item-list stack (`.itemList`), and the `ItemCard` chrome. `PlacementRow` and `AddItemCard` bring their own modules instead, since their chrome is no longer `ItemCard`'s.
+- `_shared/_shared.module.css` — the two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, the item-list stack (`.itemList`), and the `ItemCard` chrome. `ItemBankRow` and `AddItemCard` bring their own modules instead, since their chrome is no longer `ItemCard`'s.
 
 Item colors come from one resolver, `resolveDatumColor(item.color, index)`
 (`shared/components/Charts/optionPalette.ts`): the item's stored color, else a
@@ -49,8 +49,9 @@ stamps the lowest free palette slot on an item as it is **created**, and
 legacy items into the content in one write the first time such a slide is
 opened — a color-less item keeps the palette default its current position was
 already rendering. Reordering a bank therefore renumbers it and nothing else:
-the answer keys are id-keyed (or, for Place-on-Image, carried on the target
-itself) and the colors travel with the items. Drag-end events are reduced by
+the answer keys are id-keyed (Axis's `correctPositions`, Place-on-Image's
+`correctPositions`, Grid's `correctCells`) and the colors travel with the
+items. Drag-end events are reduced by
 the shared `resolveDragEnd` / `BANK_DROPPABLE_ID` seam in
 `shared/utils/dragDrop.ts`, shared with the live-session boards.
 
@@ -65,7 +66,7 @@ below.
 card holding the matrix (in-place editable axis labels, "+" affordances to grow
 either axis, one droppable cell per row × column, and an "N of M placed"
 counter in the header) beside an "Items" card holding one
-`PlacementRow` per item.
+`SortableItemBankRow` (`type="grid"`) per item.
 
 - **The Items column IS the bank.** An item lives in that list whether or not it is placed; `correctCells` (item id → `"rowIndex,colIndex"`) carries an entry only for the placed ones, and a placed row shows its cell name as trailing meta plus the row's "answer set" check — an unplaced one shows neither, which is how the list reads "unplaced" without a word for it. There is no separate "unplaced items" tray, and adding an item (`useGridEditor`'s `addItem(cell?)`) no longer requires a cell.
 - **Placement has two inputs.** Arm-then-click is the pointer-free path: click a row to arm that item, then press a cell's "Place here" button (disabled, with a muted "Select an item to place", while nothing is armed). Unplacing is the matrix's job — drag a chip off it; the row menu has no "Clear cell" entry. Press-drag is the pointer path, the same gesture the Axis plane uses: with an item armed, a press anywhere on the matrix carries a translucent ghost badge under the pointer, highlights the cell it is over, and places on release — releasing over no cell abandons the placement without writing. A placed chip (`GridCellChip` — the compact numbered token in a cell, matching its row's number and color) is pressed and dragged the same way: released over a cell it moves, released off the matrix or in a gap it is unplaced. A press that never travels is a tap that arms/disarms the chip's item.
@@ -98,6 +99,17 @@ Field edits in any slide-content editor go through `useSlideEditor`
 
 Each per-type editor instantiates the hook monomorphically, e.g.
 `useSlideEditor<"MCQ">(deckId, slideId, "MCQ")`.
+
+The five item-bank kinds (Axis, Grid, Ranking, Scales, Place-on-Image) then
+compose `useItemBankEditor`
+(`frontend/src/features/deck/hooks/useItemBankEditor.ts`) over that single
+`useSlideEditor` — it owns add / remove / reorder and the per-row label, color
+and image patches, plus the load-time identity backfill, while the kind hook
+keeps its own answer-key ops. It mounts no editor of its own: the kind hook
+passes in the instance the slide already owns, so every write still funnels
+through one draft + debounce buffer. Structural writes go through the caller's
+`toPatch`, which is how Ranking's `correctOrder` mirror stays in lockstep with
+the bank on add, remove, reorder and backfill alike.
 
 ## Mutation → query cache sync
 
@@ -274,6 +286,7 @@ see [hooks-cleanup.md](hooks-cleanup.md).
 | `frontend/src/features/deck/components/DeckEditor/LeftSidebar/SlideThumbnail.tsx`                       | Slide tile (right-click menu, scrolls into view on select)             |
 | `frontend/src/features/deck/components/DeckEditor/SlideDisplay/SlideDisplay.tsx`                        | Routes to the right `<KindSlideContent>` by `slide.content.contentType`|
 | `frontend/src/features/deck/hooks/useSlideEditor.ts`                                                    | Generic per-type slide editing hook: `{ slide, updateMetadata, updateSlideContent, flush }` |
+| `frontend/src/features/deck/hooks/useItemBankEditor.ts`                                                 | Shared item-bank engine (add/remove/reorder/patch + identity backfill) composed by the five bank kind hooks |
 | `frontend/src/features/deck/hooks/useDeckEditor.ts`                                                     | Sidebar state: drag end, add/remove/reorder slide, build defaults      |
 | `frontend/src/features/deck/hooks/useCreateDeck.ts`                                                     | Deck create: UUID + `createDeckMutation` + navigate to editor          |
 | `frontend/src/shared/hooks/useDebouncedCommit.ts`                                                       | Generic schedule / flush / cancel debouncer                            |

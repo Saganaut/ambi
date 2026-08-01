@@ -7,7 +7,12 @@
  * the footer nudges until every item has a target — but only nudges: an empty
  * answer key is a legitimate collect-only opinion plane, so nothing blocks.
  * `scoreMode` has no authoring knob.
+ *
+ * Each item is one `SortableItemBankRow`, whose "Set target" entry seeds the
+ * plane's centre — the pointer-free placement path — and "Clear target" drops
+ * the point again.
  */
+import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
@@ -19,10 +24,10 @@ import {
 import { EmptySelect, ScoringFooter, ToleranceField, useSlideComposerState } from "../_shared";
 import shared from "../_shared/_shared.module.css";
 import { AddItemCard } from "../_shared/AddItemCard/AddItemCard";
+import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { AxisItemEditable } from "./AxisItemEditable";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
 
 const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
@@ -106,11 +111,13 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           <SlideContentSection.Body>
             <DragDropWrapper onReorder={editor.handleItemDragEnd}>
               {items.map((item, index) => (
-                <AxisItemEditable
+                <SortableItemBankRow
+                  type="placement"
                   key={item.id}
                   item={item}
-                  sortIndex={index}
-                  targetPosition={correctPositions[item.id]}
+                  index={index}
+                  color={resolveDatumColor(item.color, index)}
+                  hasTarget={correctPositions[item.id] != null}
                   selected={composer.selectedItemId === item.id}
                   menuOpen={composer.openMenuId === item.id}
                   canRemove={editor.canRemoveItem}
