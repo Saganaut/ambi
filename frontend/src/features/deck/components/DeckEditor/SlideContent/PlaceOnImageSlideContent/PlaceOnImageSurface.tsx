@@ -5,22 +5,26 @@
  * player's screen — never letterboxed or stretched to a fixed frame), with the
  * placed target markers and their tolerance regions overlaid in percentages.
  *
- * Placement is direct: targets carry no bank to arm, so a press on open image
- * adds a target at the pointer and keeps dragging it until release (Axis's
- * plane-drag, minus the selection step) — the in-flight placement is drawn as
- * a ghost marker, since it has no id to key on until it commits. Placed
- * markers drag directly, and a press on one means nothing but "move me", so
- * this surface passes `usePlacementSurface` no `onMarkerTap`.
+ * A press on the image means one of two things, and an armed row always wins:
+ * with a row armed (clicked in the bank, or its marker tapped) the press places
+ * THAT target and then puts the row down again, so the next press adds rather
+ * than silently relocating what was just finished; with nothing armed the press
+ * mints a target at the pointer and keeps dragging it until release (Axis's
+ * plane-drag, minus the selection step) — that in-flight placement is drawn as
+ * a ghost marker, since it has no id to key on until it commits. Placed markers
+ * drag directly, and a tap on one toggles its row's arming (Axis's
+ * `onMarkerTap`).
  *
  * Coordinates are normalized [0, 1] in screen space over the image box —
  * (0, 0) is the image's top-left, y NOT inverted (unlike Axis), the natural
  * frame for an image and the space `RoundEvaluator.gradePlaceOnImage` measures
  * in; hence `invertY: false` here and no `invertY` on the markers. The
- * pointer-free path lives in the target rows' popover menus ("Center target",
- * see `PlaceOnImageSlideContent`).
+ * pointer-free path lives in the target rows' popover menus ("Set target" /
+ * "Clear target", see `PlaceOnImageSlideContent`).
  */
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
-import type { PlacePoint, PlaceTargetView } from "@deck/hooks/usePlaceOnImageEditor";
+import { isPlaced, type PlaceItemView } from "@deck/hooks/usePlaceOnImageEditor";
+import type { PlacePoint } from "@deck/store/deckApi.gen";
 import { PENDING_PLACEMENT_KEY, PlacementMarker, usePlacementSurface } from "../_shared";
 import placement from "../_shared/placement/placement.module.css";
 import styles from "./PlaceOnImageSlideContent.module.css";
@@ -28,13 +32,20 @@ import styles from "./PlaceOnImageSlideContent.module.css";
 interface PlaceOnImageSurfaceProps {
   /** Resolved backing-image URL, or null while none is chosen. */
   imageUrl: string | null;
-  targets: PlaceTargetView[];
-  /** The shared normalized tolerance radius, drawn around every marker. */
+  targets: PlaceItemView[];
+  /** The slide's normalized tolerance radius, drawn around every marker. */
   tolerance: number;
-  /** Whether a press on open image may add a target (max not reached). */
+  /** Whether a press on open image may MINT a target (max not reached). */
   canAddTarget: boolean;
+  /** The row armed for placement — a press on the image places ITS target,
+   * taking precedence over minting a new one. */
+  selectedItemId: string | null;
+  /** Toggle a row's arming (marker tap picks it up / puts it down). */
+  onToggleSelect: (targetId: string) => void;
+  /** Mint an item already placed at `point`. */
   onAddTarget: (point: PlacePoint) => void;
-  onMoveTarget: (targetId: string, point: PlacePoint) => void;
+  /** Assign an existing item's target point. */
+  onSetTargetPosition: (targetId: string, point: PlacePoint) => void;
 }
 
 const PlaceOnImageSurface = ({
@@ -42,32 +53,46 @@ const PlaceOnImageSurface = ({
   targets,
   tolerance,
   canAddTarget,
+  selectedItemId,
+  onToggleSelect,
   onAddTarget,
-  onMoveTarget,
+  onSetTargetPosition,
 }: PlaceOnImageSurfaceProps) => {
   const surface = usePlacementSurface({
     invertY: false,
-    // Every press on open image places a target, so the pending placement is
-    // the sentinel rather than any row's id — the target it becomes is minted
-    // by `addTarget` on release.
-    pendingKey: () => (imageUrl && canAddTarget ? PENDING_PLACEMENT_KEY : null),
-    onSurfaceCommit: (_key, point) => {
-      onAddTarget(point);
+    // An armed row wins: its press places THAT item's target. Only with nothing
+    // armed does a press mint a new one, under the pending sentinel — the
+    // target it becomes is minted by `addTarget` on release.
+    pendingKey: () => {
+      if (!imageUrl) return null;
+      if (selectedItemId) return selectedItemId;
+      return canAddTarget ? PENDING_PLACEMENT_KEY : null;
     },
-    onMarkerCommit: onMoveTarget,
+    onSurfaceCommit: (key, point) => {
+      if (key === PENDING_PLACEMENT_KEY) {
+        onAddTarget(point);
+        return;
+      }
+      onSetTargetPosition(key, point);
+      // Put the row down: the next press on open image adds a target again
+      // rather than silently relocating the one just finished.
+      onToggleSelect(key);
+    },
+    onMarkerCommit: onSetTargetPosition,
+    onMarkerTap: onToggleSelect,
   });
   const ghostIndex = targets.length;
 
   return (
     // Pointer placement surface; the pointer-free path is the target rows'
-    // popover menus ("Center target").
+    // popover menus ("Set target" / "Clear target").
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={surface.surfaceRef}
       className={[
         placement.surface,
         styles.imageSurface,
-        imageUrl && canAddTarget ? placement.surfaceArmed : "",
+        imageUrl && (selectedItemId || canAddTarget) ? placement.surfaceArmed : "",
         imageUrl ? "" : styles.surfaceEmpty,
       ]
         .filter(Boolean)
@@ -82,9 +107,13 @@ const PlaceOnImageSurface = ({
       )}
       {imageUrl &&
         targets.map((target, index) => {
-          // A placed target always has a point; the fallback is only the hook's
-          // "stored point may be missing" signature (Axis clears targets).
-          const point = surface.pointFor(target.id, target) ?? target;
+          // An unplaced target keys no answer, so it gets no marker rather than
+          // one parked at a made-up coordinate (mirrors `AxisPlaneEditor`) —
+          // until it is armed and dragged, when `pointFor` hands back the live
+          // point and the marker materializes mid-gesture.
+          const stored = isPlaced(target) ? { x: target.x, y: target.y } : undefined;
+          const point = surface.pointFor(target.id, stored);
+          if (!point) return null;
           const label = target.label?.trim() ?? "";
           const displayIndex = index + 1;
           return (
@@ -96,6 +125,7 @@ const PlaceOnImageSurface = ({
               label={label}
               tolerance={tolerance}
               ariaLabel={`Target ${displayIndex.toString()}${label ? ` (${label})` : ""} — drag to move`}
+              selected={selectedItemId === target.id}
               {...surface.markerProps(target.id)}
             />
           );

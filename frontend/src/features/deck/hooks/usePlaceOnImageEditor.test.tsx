@@ -1,12 +1,15 @@
-// Pins the Place-on-Image editor's invariants: targets stay inside the
-// normalized [0, 1] image box, the single tolerance knob keeps every target's
-// wire `radius` in lockstep (and hands it to newly added targets), a new target
-// is minted with the lowest free palette color, and every target op is
-// addressed by id alone — including a stale id that must do nothing, and a
-// legacy target that reaches the editor without one and is repaired by the
-// load-time identity backfill before any op can address it. Also pins the
-// PLACE_ON_IMAGE default-content shape `buildDefaultContent` mints for a
-// brand-new slide (no targets, INSIDE_RADIUS fixed).
+// Pins the Place-on-Image editor's invariants: an added item is minted with the
+// lowest free palette color, and it is keyed with an answer-key entry in that
+// same write only when the gesture carried a point — a bank add is UNPLACED, a
+// target with no right answer. Target points stay inside the normalized [0, 1]
+// image box, the one slide-level tolerance is a single field (never per-item
+// geometry), removing an item takes its answer key with it, clearing a target
+// leaves the item in the bank, and every item op is addressed by id alone —
+// including a stale id that must do nothing, and a legacy item that reaches the
+// editor without an id and is repaired by the load-time identity backfill before
+// any op can address it. Also pins the PLACE_ON_IMAGE default-content shape
+// `buildDefaultContent` mints for a brand-new slide (no items, unscored,
+// INSIDE_RADIUS fixed).
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -30,27 +33,32 @@ import { usePlaceOnImageEditor } from "./usePlaceOnImageEditor";
 const DECK_ID = "deck-1";
 const SLIDE_ID = "slide-place";
 
-// Migrated content: every target carries the id it is addressed by and the
+// Migrated content: every item carries the id its target is keyed by and the
 // color minted for it, so the load-time backfill has nothing to repair and
 // writes nothing.
 const placeContent: PlaceOnImageContent = {
   contentType: "PLACE_ON_IMAGE",
   image: { external: true, externalSrc: "https://example.test/middle-earth.png" },
-  correctTargets: [
-    { id: "target_a", x: 0.2, y: 0.15, radius: 0.08, color: paletteColorAt(0) },
-    { id: "target_b", x: 0.85, y: 0.3, radius: 0.08, color: paletteColorAt(1) },
+  items: [
+    { id: "target_a", color: paletteColorAt(0) },
+    { id: "target_b", color: paletteColorAt(1) },
   ],
+  correctPositions: {
+    target_a: { x: 0.2, y: 0.15 },
+    target_b: { x: 0.85, y: 0.3 },
+  },
+  tolerance: 0.08,
   scoreMode: "INSIDE_RADIUS",
 };
 
-// A deck authored before targets carried ids or colors on the wire: the first
-// target has neither, so the editor has to repair it on load.
+// A deck whose first item reaches the editor without an id or a color (content
+// authored before either was on the wire, or migrated from a target that had
+// neither), so the editor has to repair it on load. Being id-less, it cannot
+// carry an answer-key entry either — it is the unplaced case the view models.
 const legacyContent: PlaceOnImageContent = {
   ...placeContent,
-  correctTargets: [
-    { x: 0.2, y: 0.15, radius: 0.08, label: "Rivendell" },
-    { id: "target_b", x: 0.85, y: 0.3, radius: 0.08 },
-  ],
+  items: [{ label: "Rivendell" }, { id: "target_b" }],
+  correctPositions: { target_b: { x: 0.85, y: 0.3 } },
 };
 
 const slideWith = (content: PlaceOnImageContent): SlideResponse => ({
@@ -109,21 +117,24 @@ const placeContentOf = (body: SlideRequest | undefined) =>
   body?.content?.contentType === "PLACE_ON_IMAGE" ? body.content : undefined;
 
 describe("buildDefaultContent(PLACE_ON_IMAGE)", () => {
-  it("mints a target-less pin drop with a blank image and INSIDE_RADIUS fixed", () => {
+  it("mints an item-less pin drop with a blank image and INSIDE_RADIUS fixed", () => {
     const content = buildDefaultContent("PLACE_ON_IMAGE");
     if (content.contentType !== "PLACE_ON_IMAGE") {
       throw new Error("expected PLACE_ON_IMAGE content");
     }
 
     expect(content.image).toEqual({ external: true });
-    // Unscored until the author places targets (collect-only is legitimate).
-    expect(content.correctTargets).toEqual([]);
+    // Nothing to place until the author picks an image, and unscored until the
+    // items are placed (collect-only is legitimate).
+    expect(content.items).toEqual([]);
+    expect(content.correctPositions).toEqual({});
+    expect(content.tolerance).toBe(0.1);
     expect(content.scoreMode).toBe("INSIDE_RADIUS");
   });
 });
 
 describe("usePlaceOnImageEditor target ops", () => {
-  it("addTarget appends a clamped point with a fresh id, color and the shared radius", async () => {
+  it("addTarget(point) mints an item already placed at the clamped point", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
@@ -131,38 +142,89 @@ describe("usePlaceOnImageEditor target ops", () => {
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
-    const targets = placeContentOf(lastPutBody)?.correctTargets;
-    expect(targets).toHaveLength(3);
-    const added = targets?.[2];
+    const content = placeContentOf(lastPutBody);
+    expect(content?.items).toHaveLength(3);
+    const added = content?.items[2];
     expect(added?.id).toBeTruthy();
     expect(added?.id).not.toBe("target_a");
     // The color is stored at creation — the lowest palette slot the existing
-    // targets have not claimed — so a later reorder can never repaint it.
-    expect(added).toMatchObject({ x: 1, y: 0, radius: 0.08, color: paletteColorAt(2) });
-    // Existing targets are untouched.
-    expect(targets?.slice(0, 2)).toEqual(placeContent.correctTargets);
+    // items have not claimed — so a later reorder can never repaint it.
+    expect(added).toMatchObject({ label: "", color: paletteColorAt(2) });
+    // The item is born placed: the same updater keyed its target.
+    expect(content?.correctPositions[added?.id ?? ""]).toEqual({ x: 1, y: 0 });
+    // Existing items, their targets and the slide tolerance are untouched.
+    expect(content?.items.slice(0, 2)).toEqual(placeContent.items);
+    expect(content?.correctPositions.target_a).toEqual({ x: 0.2, y: 0.15 });
+    expect(content?.tolerance).toBe(0.08);
   });
 
-  it("moveTarget writes a clamped normalized point to only the addressed target", async () => {
+  it("addTarget() with no point appends an UNPLACED item — no answer-key entry", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.moveTarget("target_a", { x: -0.4, y: 1.2 });
+      result.current.addTarget();
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
-    const targets = placeContentOf(lastPutBody)?.correctTargets;
-    expect(targets?.[0]).toEqual({
-      id: "target_a",
-      x: 0,
-      y: 1,
-      radius: 0.08,
-      color: paletteColorAt(0),
-    });
-    expect(targets?.[1]).toEqual(placeContent.correctTargets[1]);
+    const content = placeContentOf(lastPutBody);
+    expect(content?.items).toHaveLength(3);
+    const added = content?.items[2];
+    expect(added?.id).toBeTruthy();
+    expect(added).toMatchObject({ label: "", color: paletteColorAt(2) });
+    // The bank grew but the answer key did not: an unplaced target exists and
+    // is numbered, it simply keys no right answer.
+    expect(content?.correctPositions).toEqual(placeContent.correctPositions);
+    expect(content?.correctPositions[added?.id ?? ""]).toBeUndefined();
   });
 
-  it("removeTarget drops only the addressed target", async () => {
+  it("setTargetPosition writes a clamped normalized point to only the addressed key", async () => {
+    const result = await renderUsePlaceOnImageEditor();
+
+    act(() => {
+      result.current.setTargetPosition("target_a", { x: -0.4, y: 1.2 });
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    const content = placeContentOf(lastPutBody);
+    expect(content?.correctPositions).toEqual({
+      target_a: { x: 0, y: 1 },
+      target_b: { x: 0.85, y: 0.3 },
+    });
+    // Moving a target is geometry only — the bank is untouched.
+    expect(content?.items).toEqual(placeContent.items);
+  });
+
+  it("setTargetPosition(id, null) drops only that item's entry and leaves the item in the bank", async () => {
+    const result = await renderUsePlaceOnImageEditor();
+
+    act(() => {
+      result.current.setTargetPosition("target_a", null);
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    const content = placeContentOf(lastPutBody);
+    // Unplacing is not removing: the row survives, unkeyed and ungraded.
+    expect(content?.items).toEqual(placeContent.items);
+    expect(content?.correctPositions).toEqual({ target_b: { x: 0.85, y: 0.3 } });
+  });
+
+  it("setTargetPosition(staleId, null) mints nothing and drops nothing", async () => {
+    const result = await renderUsePlaceOnImageEditor();
+
+    act(() => {
+      result.current.setTargetPosition("target_gone", null);
+      // A write that does land, so the assertions read a real request body.
+      result.current.setTargetColor("target_a", "#ff8800");
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    const content = placeContentOf(lastPutBody);
+    // The phantom id neither minted an entry nor took a live one with it.
+    expect(content?.correctPositions).toEqual(placeContent.correctPositions);
+    expect(content?.items.map((item) => item.id)).toEqual(["target_a", "target_b"]);
+  });
+
+  it("removeTarget drops only the addressed item", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
@@ -170,10 +232,24 @@ describe("usePlaceOnImageEditor target ops", () => {
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
-    expect(placeContentOf(lastPutBody)?.correctTargets).toEqual([placeContent.correctTargets[1]]);
+    expect(placeContentOf(lastPutBody)?.items).toEqual([placeContent.items[1]]);
   });
 
-  it("label/color/image ops patch only the addressed target, never coordinates", async () => {
+  it("removeTarget takes the item's answer-key entry with it", async () => {
+    const result = await renderUsePlaceOnImageEditor();
+
+    act(() => {
+      result.current.removeTarget("target_a");
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    // The key is dropped in the same write, so no entry outlives its item.
+    expect(placeContentOf(lastPutBody)?.correctPositions).toEqual({
+      target_b: { x: 0.85, y: 0.3 },
+    });
+  });
+
+  it("label/color/image ops patch only the addressed item, never the answer key", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
@@ -181,133 +257,117 @@ describe("usePlaceOnImageEditor target ops", () => {
       result.current.flush();
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
-    let targets = placeContentOf(lastPutBody)?.correctTargets;
-    expect(targets?.[0].label).toBe("Rivendell");
-    expect(targets?.[1].label).toBeUndefined();
+    let items = placeContentOf(lastPutBody)?.items;
+    expect(items?.[0].label).toBe("Rivendell");
+    expect(items?.[1].label).toBeUndefined();
 
     act(() => {
       result.current.setTargetColor("target_b", "#ff8800");
     });
-    await vi.waitFor(() =>
-      expect(placeContentOf(lastPutBody)?.correctTargets[1].color).toBe("#ff8800"),
-    );
+    await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.items[1].color).toBe("#ff8800"));
 
     const image = { external: true, externalSrc: "https://example.test/rivendell.png" };
     act(() => {
       result.current.setTargetImage("target_a", image);
     });
-    await vi.waitFor(() =>
-      expect(placeContentOf(lastPutBody)?.correctTargets[0].image).toEqual(image),
-    );
+    await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.items[0].image).toEqual(image));
 
-    targets = placeContentOf(lastPutBody)?.correctTargets;
-    // The other target's own color is untouched by a sibling's override.
-    expect(targets?.[0].color).toBe(paletteColorAt(0));
-    expect(targets?.[1].image).toBeUndefined();
+    items = placeContentOf(lastPutBody)?.items;
+    // The other item's own color is untouched by a sibling's override.
+    expect(items?.[0].color).toBe(paletteColorAt(0));
+    expect(items?.[1].image).toBeUndefined();
     // Annotation edits never disturb the answer key's geometry.
-    expect(targets?.map(({ x, y, radius }) => ({ x, y, radius }))).toEqual(
-      placeContent.correctTargets.map(({ x, y, radius }) => ({ x, y, radius })),
-    );
+    expect(placeContentOf(lastPutBody)?.correctPositions).toEqual(placeContent.correctPositions);
   });
 
-  it("backfills a legacy id-less target on load, then addresses it by that id", async () => {
+  it("backfills a legacy id-less item on load, then addresses it by that id", async () => {
     await renderUsePlaceOnImageEditor(slideWith(legacyContent));
 
     // Opening the slide writes the repair once, ids and colors together.
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     const repairedContent = placeContentOf(lastPutBody);
-    const repaired = repairedContent?.correctTargets;
+    const repaired = repairedContent?.items;
     const mintedId = repaired?.[0].id ?? "";
     expect(mintedId).toBeTruthy();
     expect(mintedId).not.toBe("target_b");
-    // The colorless target keeps exactly the palette default its position was
+    // The colorless item keeps exactly the palette default its position was
     // already rendering, so the repair is invisible to the author — and its
-    // geometry and label ride through untouched.
+    // label rides through untouched.
     expect(repaired?.[0]).toEqual({
       id: mintedId,
-      x: 0.2,
-      y: 0.15,
-      radius: 0.08,
       label: "Rivendell",
       color: paletteColorAt(0),
     });
-    // The already-identified target keeps its id and is only given the color
-    // its position was rendering — one write covers both fields, every target.
-    expect(repaired?.[1]).toEqual({
-      ...legacyContent.correctTargets[1],
-      color: paletteColorAt(1),
-    });
+    // The already-identified item keeps its id and is only given the color its
+    // position was rendering — one write covers both fields, every item.
+    expect(repaired?.[1]).toEqual({ ...legacyContent.items[1], color: paletteColorAt(1) });
+    // Identity repair is not an answer-key edit: the minted id is keyed to
+    // nothing, so the slide stays exactly as scored as it was.
+    expect(repairedContent?.correctPositions).toEqual(legacyContent.correctPositions);
 
     // Reopen the slide as the repair persisted it: the minted id is the only
-    // address the target has (there is no positional fallback any more), the
-    // view publishes it, and there is nothing left to repair.
+    // address the item has (there is no positional fallback any more), the view
+    // publishes it, and there is nothing left to repair.
     if (!repairedContent) throw new Error("expected the backfill to have been written");
     lastPutBody = undefined;
     const result = await renderUsePlaceOnImageEditor(slideWith(repairedContent));
     expect(lastPutBody).toBeUndefined();
-    expect(result.current.question?.targets.map((target) => target.id)).toEqual([
-      mintedId,
-      "target_b",
-    ]);
+    const targets = result.current.question?.targets;
+    expect(targets?.map((target) => target.id)).toEqual([mintedId, "target_b"]);
+    // An unkeyed item reaches the view with no coordinates at all rather than a
+    // made-up point — that is what the surface skips drawing.
+    expect(targets?.[0].x).toBeUndefined();
+    expect(targets?.[0].y).toBeUndefined();
+    expect(targets?.[1]).toMatchObject({ x: 0.85, y: 0.3 });
 
     act(() => {
-      result.current.moveTarget(mintedId, { x: 0.4, y: 0.6 });
+      result.current.setTargetPosition(mintedId, { x: 0.4, y: 0.6 });
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
-    const targets = placeContentOf(lastPutBody)?.correctTargets;
-    // The op reached the backfilled target: only its coordinates moved, its
-    // label and color stayed, and its neighbour is untouched.
-    expect(targets?.[0]).toEqual({
-      id: mintedId,
-      x: 0.4,
-      y: 0.6,
-      radius: 0.08,
-      label: "Rivendell",
-      color: paletteColorAt(0),
+    const moved = placeContentOf(lastPutBody);
+    // The op reached the backfilled item: it gained a target, its neighbour's
+    // is untouched, and the bank did not move.
+    expect(moved?.correctPositions).toEqual({
+      [mintedId]: { x: 0.4, y: 0.6 },
+      target_b: { x: 0.85, y: 0.3 },
     });
-    expect(targets?.[1]).toEqual({
-      ...legacyContent.correctTargets[1],
-      color: paletteColorAt(1),
-    });
+    expect(moved?.items).toEqual(repaired);
   });
 
-  it("ignores an op addressed to a target that no longer exists", async () => {
+  it("ignores an op addressed to an item that no longer exists", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.moveTarget("target_gone", { x: 0.4, y: 0.6 });
+      result.current.setTargetPosition("target_gone", { x: 0.4, y: 0.6 });
       result.current.setTargetColor("target_gone", "#ff8800");
       result.current.removeTarget("target_gone");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
-    // A stale id is inert: no target moved, none was dropped.
-    expect(placeContentOf(lastPutBody)?.correctTargets).toEqual(placeContent.correctTargets);
+    // A stale id is inert: no item changed, none was dropped, and — the trap a
+    // map-keyed answer key opens — no entry was minted for a phantom item.
+    const content = placeContentOf(lastPutBody);
+    expect(content?.items).toEqual(placeContent.items);
+    expect(content?.correctPositions).toEqual(placeContent.correctPositions);
   });
 
-  it("setTolerance clamps to the tolerance bounds and rewrites every radius", async () => {
+  it("setTolerance clamps to the tolerance bounds and writes that one field", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
       result.current.setTolerance(0.9);
     });
-    await vi.waitFor(() =>
-      expect(placeContentOf(lastPutBody)?.correctTargets.map((t) => t.radius)).toEqual([0.5, 0.5]),
-    );
+    await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.tolerance).toBe(0.5));
 
     act(() => {
       result.current.setTolerance(0.001);
     });
-    await vi.waitFor(() =>
-      expect(placeContentOf(lastPutBody)?.correctTargets.map((t) => t.radius)).toEqual([
-        0.02, 0.02,
-      ]),
-    );
-    // Positions survive a tolerance sweep.
-    expect(placeContentOf(lastPutBody)?.correctTargets.map(({ x, y }) => ({ x, y }))).toEqual([
-      { x: 0.2, y: 0.15 },
-      { x: 0.85, y: 0.3 },
-    ]);
+    await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.tolerance).toBe(0.02));
+
+    // The knob is per-slide: the answer key and the bank survive a sweep.
+    const content = placeContentOf(lastPutBody);
+    expect(content?.correctPositions).toEqual(placeContent.correctPositions);
+    expect(content?.items).toEqual(placeContent.items);
   });
 });

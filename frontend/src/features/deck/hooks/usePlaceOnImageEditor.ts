@@ -3,51 +3,50 @@
 //
 // Sits on the generic `useSlideEditor<"PLACE_ON_IMAGE">` and exposes the
 // intent-level surface the Place-on-Image author UI consumes: a synthesized
-// `question` view, a prompt edit, the backing-image swap, and per-target ops.
+// `question` view, a prompt edit, the backing-image swap, and per-item ops.
 // There is exactly ONE `useSlideEditor` instance per Place-on-Image slide
 // (this hook is instantiated once, in `PlaceOnImageSlideContent`), so every
 // write funnels through a single draft + debounce buffer.
 //
-// A PLACE_ON_IMAGE slide is Axis's sibling: players pin a point on the
-// backing image instead of a labeled plane, so the normalized [0, 1]
-// coordinate space is pure plumbing — no endpoint labels, no item bank.
-// Coordinates are screen-space over the image box: (0, 0) is the image's
-// top-left corner (unlike Axis, whose y is inverted); the player runtime must
-// measure in the same space. Targets (`correctTargets`) are circles with
-// optional author annotations — label, color override, image (Axis's item
-// fields) — and each carries its own normalized `radius` on the wire; the
-// editor keeps the radii in lockstep as ONE tolerance knob (Axis's
-// slide-level `tolerance`), so the view derives `tolerance` from the first
-// target and `setTolerance` rewrites every radius. Grading is INSIDE_RADIUS
-// (the pin lands inside any target circle) and the grader implements nothing
-// else, so `scoreMode` has no authoring knob — `buildDefaultContent` fixes it
-// and the editor never writes it.
+// A PLACE_ON_IMAGE slide is Axis's sibling with the picture standing in for
+// the labeled plane, and the content shape is Axis's too: a bank of `items`,
+// an id-keyed `correctPositions` answer key, and ONE slide-level `tolerance`.
+// The only difference is the coordinate space — normalized [0, 1] screen-space
+// over the image box, (0, 0) at the image's top-left, y NOT inverted — which
+// the player runtime measures in as well. Grading is INSIDE_RADIUS (every
+// keyed item's pin within `tolerance` of its target) and the grader implements
+// nothing else, so `scoreMode` has no authoring knob: `buildDefaultContent`
+// fixes it and the editor never writes it.
 //
-// Targets are addressed by id (Axis's item ops), never by array position: the
+// Where the two editors differ is the authoring gesture, not the model: a press
+// on the open image mints a target AND its answer-key entry in one gesture
+// (`addTarget(point)`), while the bank's "Add target" card mints an UNPLACED
+// one (`addTarget()`) — an item that exists, carries a number, a color and a
+// label, but keys no right answer. The view therefore leaves `x`/`y` optional,
+// and the grader passes over an unkeyed item exactly as it does an unkeyed Axis
+// one (an entirely unkeyed slide is collect-only). `setTargetPosition` is the
+// one op that gives an item a point or takes it away again.
+//
+// Items are addressed by id (Axis's item ops), never by array position: the
 // UI holds an id across renders, an index goes stale the moment a row is
-// removed. `correctTargets` is a list rather than Axis's id-keyed map, so each
-// write resolves the id back to an index — inside the updater, against the
-// freshest draft — and a key that matches nothing is a no-op. Targets minted
-// before ids existed on the wire are given one by the load-time backfill
-// (`useItemIdentityBackfill`), so addressing is pure id with no positional
-// fallback anywhere.
-//
-// Target identity — id AND color — is likewise a stored fact, minted at
-// creation and repaired on load. Nothing here derives either from a target's
+// removed. Structural edits keep the key consistent — removing an item drops
+// its target. Item identity — id AND color — is likewise a stored fact, minted
+// at creation and repaired on load for legacy content
+// (`useItemIdentityBackfill`). Nothing here derives either from an item's
 // position, so reordering the rows renumbers the markers without moving or
-// repainting them (their coordinates were always their own).
+// repainting them.
 import type { DragEndEvent } from "@dnd-kit/react";
-import { isSortable } from "@dnd-kit/react/sortable";
-import { nanoid } from "nanoid";
 
-import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
-import type { AppImage, Target } from "@deck/store/deckApi.gen";
+import type { AppImage, PlacePoint } from "@deck/store/deckApi.gen";
 
-import type { NormalizedPoint } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { clamp01 } from "../utils/placement";
-import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
+import { buildDefaultPlaceItem } from "../utils/slideContent";
+import { useItemBankEditor } from "./useItemBankEditor";
 import { useSlideEditor } from "./useSlideEditor";
 
+/** A slide with no targets has nothing to pin, so the last row keeps its
+ * place: `canRemove` is false at the floor. */
+const MIN_PLACE_TARGETS = 1;
 /** Cap the pin targets where the shared 6-color option palette runs out, so
  * every marker keeps a distinct hue (and single-digit index), matching Axis. */
 const MAX_PLACE_TARGETS = 6;
@@ -55,25 +54,29 @@ const MAX_PLACE_TARGETS = 6;
 const PLACE_TOLERANCE_MIN = 0.02;
 /** … up to half the image (an almost-anything-goes region). */
 const PLACE_TOLERANCE_MAX = 0.5;
-/** Default tolerance for a slide with no targets yet (first `addTarget`). */
+/** Default tolerance for a new slide (also set by `buildDefaultContent`). */
 const PLACE_TOLERANCE_DEFAULT = 0.1;
 /** `maxLength` for target label inputs (mirrors `AXIS_LABEL_MAX`). */
 const PLACE_LABEL_MAX = 80;
 
-/** A normalized point on the image, screen-space: (0, 0) is the top-left. */
-type PlacePoint = NormalizedPoint;
-
-/** A wire `Target` with its coordinate fields resolved for the UI. */
-interface PlaceTargetView {
-  /** The target's address — its wire id, guaranteed by the load-time backfill. */
+/** An item with its answer-key point folded in for the UI. */
+interface PlaceItemView {
+  /** The item's address — its wire id, guaranteed by the load-time backfill. */
   id: string;
-  x: number;
-  y: number;
   label?: string;
   image?: AppImage;
   /** Authored color override; the palette default applies when absent. */
   color?: string;
+  /** The item's target point, absent while it carries no answer-key entry. */
+  x?: number;
+  y?: number;
 }
+
+/** Whether the item carries an answer-key point — i.e. is graded at all. A
+ *  predicate rather than a plain boolean so a placed target's coordinates read
+ *  as the numbers they are at the call site. */
+const isPlaced = (target: PlaceItemView): target is PlaceItemView & PlacePoint =>
+  target.x != null && target.y != null;
 
 /** Flattened, UI-facing view of the active Place-on-Image slide. */
 interface PlaceOnImageQuestionView {
@@ -82,9 +85,9 @@ interface PlaceOnImageQuestionView {
   prompt: string;
   /** The backing image players pin on (blank external placeholder until set). */
   image: AppImage;
-  /** Correct target circles, in authored order (marker index = row index). */
-  targets: PlaceTargetView[];
-  /** The one normalized radius shared by every target circle. */
+  /** The items to place, in authored order (marker index = row index). */
+  targets: PlaceItemView[];
+  /** Normalized radius around each target that counts as correct. */
   tolerance: number;
 }
 
@@ -100,51 +103,52 @@ interface UsePlaceOnImageEditorResult {
   /** Swap the backing image (gallery pick / URL). Immediate. */
   setImage: (image: AppImage) => void;
 
-  /** ── Targets (keyed by `PlaceTargetView.id`) ──────────────────────────── */
+  /** ── Targets (keyed by `PlaceItemView.id`) ───────────────────────────── */
   canAddTarget: boolean;
   canRemove: boolean;
 
-  /** Append a target at `point` (image centre by default). Immediate. */
+  /** Append an item. With `point`, it is born placed there (a press on open
+   * image); with none, it is born UNPLACED — a target that exists but keys
+   * no right answer, and so is not graded. Immediate. */
   addTarget: (point?: PlacePoint) => void;
-  /** Commit a row drop — reorders `correctTargets`. Immediate. */
+  /** Commit a row drop — reorders `items`. Immediate. */
   handleItemDragEnd: (event: DragEndEvent) => void;
-  /** Move a target to a clamped normalized point. Immediate. */
-  moveTarget: (targetId: string, point: PlacePoint) => void;
+  /** Assign (clamped normalized point) or clear (null) the item's target.
+   * A stale id is inert — no entry is ever minted for a phantom item. */
+  setTargetPosition: (targetId: string, point: PlacePoint | null) => void;
+  /** Remove the item and its target-position assignment. */
   removeTarget: (targetId: string) => void;
-  /** Debounced target label edit. */
+  /** Debounced item label edit. */
   scheduleTargetLabel: (targetId: string, label: string) => void;
-  /** Override the target's palette color (menu swatch / custom picker). Immediate. */
+  /** Override the item's palette color (menu swatch / custom picker). Immediate. */
   setTargetColor: (targetId: string, color: string) => void;
-  /** Set or clear (empty AppImage) the target's image. Immediate. */
+  /** Set or clear (empty AppImage) the item's image. Immediate. */
   setTargetImage: (targetId: string, image: AppImage) => void;
 
   /** ── Scoring ─────────────────────────────────────────────────────────── */
-  /** Set the shared tolerance radius (clamped to the 2–50 % bounds) on every
-   * target. Immediate. */
+  /** Set the per-slide tolerance radius (clamped to the 2–50 % bounds). Immediate. */
   setTolerance: (value: number) => void;
 }
-
-/** Where the addressed target sits in the list, or -1 when it addresses none
- * (a stale id from a row the author has since removed). */
-const indexOfTarget = (targets: Target[], targetId: string): number =>
-  targets.findIndex((target) => target.id === targetId);
-
-/** The one shared radius: first target's, else the default (wire fields are
- * optional, so a hand-authored target without a radius also falls back). */
-const sharedTolerance = (targets: Target[]): number =>
-  targets[0]?.radius ?? PLACE_TOLERANCE_DEFAULT;
 
 const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImageEditorResult => {
   const editor = useSlideEditor(deckId, slideId, "PLACE_ON_IMAGE");
 
   const slide = editor.slide;
   const content = slide?.content;
-  const targets = content?.correctTargets ?? [];
 
-  // Freeze legacy targets' ids and colors into the content once, on load.
-  useItemIdentityBackfill(slideId, content?.correctTargets, (backfilled) => {
-    editor.updateSlideContent({ correctTargets: backfilled });
-    editor.flush();
+  // The bank of items — bounded add/remove, drag-reorder, the per-row label,
+  // color and image edits, and the load-time identity backfill — over this
+  // slide's one editor. Removing an item drops its target in the same write.
+  const bank = useItemBankEditor(editor, {
+    slideId,
+    toPatch: (items) => ({ items }),
+    buildItem: buildDefaultPlaceItem,
+    minItems: MIN_PLACE_TARGETS,
+    maxItems: MAX_PLACE_TARGETS,
+    onRemoveItem: (prev, targetId) => {
+      const { [targetId]: _dropped, ...rest } = prev.correctPositions;
+      return { correctPositions: rest };
+    },
   });
 
   const question: PlaceOnImageQuestionView | undefined = slide
@@ -152,24 +156,10 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
         id: slide.id,
         prompt: slide.title,
         image: content?.image ?? { external: true },
-        // An id-less target is unaddressable — no row op and no marker drag
-        // could reach it — so it is withheld rather than rendered inert. The
-        // backfill above mints its id on the very next render.
-        targets: targets.flatMap((target) =>
-          target.id == null
-            ? []
-            : [
-                {
-                  id: target.id,
-                  x: target.x ?? 0.5,
-                  y: target.y ?? 0.5,
-                  label: target.label,
-                  image: target.image,
-                  color: target.color,
-                },
-              ],
-        ),
-        tolerance: sharedTolerance(targets),
+        // The spread folds in the item's answer-key point when it has one, and
+        // leaves x/y absent when it does not.
+        targets: bank.items.map((item) => ({ ...item, ...content?.correctPositions[item.id] })),
+        tolerance: content?.tolerance ?? PLACE_TOLERANCE_DEFAULT,
       }
     : undefined;
 
@@ -180,121 +170,77 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
     editor.flush();
   };
 
-  const canAddTarget = targets.length < MAX_PLACE_TARGETS;
-
+  /** Mint an item, and its answer-key entry with it when the gesture carried a
+   *  point (a press on the open image places what it creates). No point = no
+   *  right answer: the item joins the bank unkeyed and the grader passes over
+   *  it (an entirely unkeyed slide is collect-only). */
   const addTarget = (point?: PlacePoint) => {
-    if (!canAddTarget) return;
-    // Both id and color are picked against the freshest draft, so two adds
-    // inside one debounce window can't collide on either.
-    editor.updateSlideContent((prev) => ({
-      correctTargets: [
-        ...prev.correctTargets,
-        {
-          id: nanoid(8),
-          color: nextPaletteColor(prev.correctTargets.map((target) => target.color)),
-          x: clamp01(point?.x ?? 0.5),
-          y: clamp01(point?.y ?? 0.5),
-          radius: sharedTolerance(prev.correctTargets),
-        },
-      ],
-    }));
-    editor.flush();
+    bank.addItem(
+      point == null
+        ? undefined
+        : (item, prev) => ({
+            correctPositions: {
+              ...prev.correctPositions,
+              [item.id]: { x: clamp01(point.x), y: clamp01(point.y) },
+            },
+          }),
+    );
   };
 
-  /** Reorder the targets on a row drop (mirrors `useAxisEditor`). Positional
-   *  rather than id-addressed on purpose: the drop only ever states "the row
-   *  at this position moved to that one". It moves display order alone — each
-   *  target owns its coordinates and its color, so the markers keep their
-   *  place and their hue and only their numbers change. */
-  const handleItemDragEnd = (event: DragEndEvent) => {
-    if (event.canceled) return;
-    const { source } = event.operation;
-    if (!isSortable(source)) return;
-    const { initialIndex, index } = source;
-    if (initialIndex === index) return;
+  /** Give the item a target point, or take it away again (null) — the row's
+   *  "Set target"/"Clear target" affordance and every marker drag land here.
+   *  A marker id is the only thing a drag carries, so the item is resolved
+   *  against the freshest draft first: a stale id must be inert rather than
+   *  mint an answer-key entry for nothing. */
+  const setTargetPosition = (targetId: string, point: PlacePoint | null) => {
     editor.updateSlideContent((prev) => {
-      const next = prev.correctTargets.slice();
-      const [moved] = next.splice(initialIndex, 1);
-      next.splice(index, 0, moved);
-      return { correctTargets: next };
-    });
-    editor.flush();
-  };
-
-  /** Merge a patch into the addressed target; `flush` opts structural (menu)
-   *  edits out of the debounce window, while label typing stays debounced.
-   *  The id resolves against the updater's own `prev`, so back-to-back writes
-   *  inside one debounce window address the freshest list. */
-  const patchTarget = (targetId: string, patch: Partial<Target>, flush: boolean) => {
-    editor.updateSlideContent((prev) => {
-      const index = indexOfTarget(prev.correctTargets, targetId);
-      if (index === -1) return {};
+      if (!prev.items.some((item) => item.id === targetId)) return {};
+      if (point == null) {
+        const { [targetId]: _dropped, ...rest } = prev.correctPositions;
+        return { correctPositions: rest };
+      }
       return {
-        correctTargets: prev.correctTargets.map((target, i) =>
-          i === index ? { ...target, ...patch } : target,
-        ),
+        correctPositions: {
+          ...prev.correctPositions,
+          [targetId]: { x: clamp01(point.x), y: clamp01(point.y) },
+        },
       };
     });
-    if (flush) editor.flush();
-  };
-
-  const moveTarget = (targetId: string, point: PlacePoint) => {
-    patchTarget(targetId, { x: clamp01(point.x), y: clamp01(point.y) }, true);
-  };
-
-  const removeTarget = (targetId: string) => {
-    editor.updateSlideContent((prev) => {
-      const index = indexOfTarget(prev.correctTargets, targetId);
-      if (index === -1) return {};
-      return { correctTargets: prev.correctTargets.filter((_, i) => i !== index) };
-    });
     editor.flush();
-  };
-
-  const scheduleTargetLabel = (targetId: string, label: string) => {
-    patchTarget(targetId, { label }, false);
-  };
-
-  const setTargetColor = (targetId: string, color: string) => {
-    patchTarget(targetId, { color }, true);
-  };
-
-  const setTargetImage = (targetId: string, image: AppImage) => {
-    patchTarget(targetId, { image }, true);
   };
 
   const setTolerance = (value: number) => {
     const clamped = Math.min(PLACE_TOLERANCE_MAX, Math.max(PLACE_TOLERANCE_MIN, value));
-    editor.updateSlideContent((prev) => ({
-      correctTargets: prev.correctTargets.map((target) => ({ ...target, radius: clamped })),
-    }));
+    editor.updateSlideContent({ tolerance: clamped });
     editor.flush();
   };
 
   return {
-    canRemove: targets.length > 1,
+    canRemove: bank.canRemove,
     question,
     schedulePrompt,
     flush: editor.flush,
     setImage,
-    canAddTarget,
+    canAddTarget: bank.canAdd,
     addTarget,
-    handleItemDragEnd,
-    moveTarget,
-    removeTarget,
-    scheduleTargetLabel,
-    setTargetColor,
-    setTargetImage,
+    handleItemDragEnd: bank.handleItemDragEnd,
+    setTargetPosition,
+    removeTarget: bank.removeItem,
+    scheduleTargetLabel: bank.scheduleItemLabel,
+    setTargetColor: bank.setItemColor,
+    setTargetImage: bank.setItemImage,
     setTolerance,
   };
 };
 
 export {
+  isPlaced,
   MAX_PLACE_TARGETS,
+  MIN_PLACE_TARGETS,
   PLACE_LABEL_MAX,
   PLACE_TOLERANCE_DEFAULT,
   PLACE_TOLERANCE_MAX,
   PLACE_TOLERANCE_MIN,
   usePlaceOnImageEditor,
 };
-export type { PlaceOnImageQuestionView, PlacePoint, PlaceTargetView, UsePlaceOnImageEditorResult };
+export type { PlaceItemView, PlaceOnImageQuestionView, UsePlaceOnImageEditorResult };
