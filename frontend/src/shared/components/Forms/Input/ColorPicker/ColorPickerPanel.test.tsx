@@ -1,7 +1,8 @@
 // Interaction tests for the panel's commit semantics: swatch picks commit
-// immediately, the custom view commits only on Apply, and Cancel discards —
-// including standalone (no onClose), where it must reset and navigate back
-// rather than silently do nothing. The var(--role-*) resolve-via-::after
+// immediately (verbatim, or pinned opaque for an opaque-only host), the custom
+// view commits only on Apply, and Cancel discards — including standalone (no
+// onClose), where it must reset and navigate back rather than silently do
+// nothing. The var(--role-*) resolve-via-::after
 // fallback in loadSwatch isn't covered here: jsdom's getComputedStyle doesn't
 // resolve pseudo-element styles, so that path needs a real browser.
 import { describe, expect, it, vi } from "vitest";

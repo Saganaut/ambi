@@ -13,7 +13,8 @@
 // Values are committed as-given for swatches (a var(--role-*) theme pick
 // stays live-themed) and as hex (#rrggbb / #rrggbbaa) from the custom view.
 // Hosts whose field can only hold an opaque color pass `allowAlpha={false}`,
-// which drops the opacity slider and pins every edit to #rrggbb.
+// which drops the opacity slider and pins every edit — and every swatch that
+// parses as a concrete color — to #rrggbb.
 import { ChevronLeftIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
@@ -84,8 +85,9 @@ const ColorPickerPanel = ({
   onBack,
   className,
 }: ColorPickerPanelProps) => {
-  // Every color entering the editor passes through here, so an opaque-only
-  // host can never end up holding — or emitting — an #rrggbbaa value.
+  // Every color the panel resolves passes through here, so an opaque-only host
+  // can never end up holding — or emitting — an #rrggbbaa value. Colors it
+  // can't resolve (a live var(--role-*) swatch) commit untouched.
   const withAlphaPolicy = (color: Hsva): Hsva =>
     allowAlpha ? color : { ...color, a: 1 };
 
@@ -109,6 +111,13 @@ const ColorPickerPanel = ({
   const commit = (color: ColorValue) => {
     onChange(color);
     onClose?.();
+  };
+
+  // Commit a grid swatch: as-given, except that an opaque-only host takes a
+  // concrete swatch pinned to #rrggbb (var(--role-*) picks stay live-themed).
+  const pickSwatch = (color: ColorValue) => {
+    const parsed = allowAlpha ? null : parseColor(color);
+    commit(parsed ? hsvaToHex(withAlphaPolicy(parsed)) : color);
   };
 
   // Load a swatch into the editor. Theme var(--role-*) strings can't be
@@ -173,7 +182,7 @@ const ColorPickerPanel = ({
               color={color}
               label={color}
               selected={color === value}
-              onPick={commit}
+              onPick={pickSwatch}
               onHover={onHover}
             />
           ))}
