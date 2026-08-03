@@ -274,6 +274,44 @@ class GalleryServiceTest {
         verify(galleryRepository).delete(any(Gallery.class));
     }
 
+    @Test
+    void deleteFreesEveryImagesBytesBeforeDroppingDocuments() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+        GalleryImage first = new GalleryImage();
+        first.setImage(internalImage("gallery/abc/original"));
+        GalleryImage second = new GalleryImage();
+        second.setImage(internalImage("gallery/def/original"));
+        when(imageRepository.findByGalleryId("gal-1")).thenReturn(List.of(first, second));
+
+        galleryService.delete("gal-1", principal("owner-1"));
+
+        // Bytes of every image (original + variants) are freed, then the docs go.
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<String>> keys = ArgumentCaptor.forClass(java.util.Collection.class);
+        InOrder order = inOrder(storage, imageRepository, galleryRepository);
+        order.verify(storage).delete(keys.capture());
+        order.verify(imageRepository).deleteByGalleryId("gal-1");
+        order.verify(galleryRepository).delete(any(Gallery.class));
+        assertThat(keys.getValue()).contains(
+                "gallery/abc/original", "gallery/abc/sm.webp",
+                "gallery/def/original", "gallery/def/sm.webp");
+    }
+
+    @Test
+    void deleteOfExternalOnlyGalleryTouchesNoObjects() {
+        when(galleryRepository.findById("gal-1")).thenReturn(Optional.of(personalGallery("owner-1")));
+        GalleryImage external = new GalleryImage();
+        external.setImage(externalImage());
+        when(imageRepository.findByGalleryId("gal-1")).thenReturn(List.of(external));
+
+        galleryService.delete("gal-1", principal("owner-1"));
+
+        // External images own no S3 objects — delete is still called, with nothing.
+        verify(storage).delete(List.of());
+        verify(imageRepository).deleteByGalleryId("gal-1");
+        verify(galleryRepository).delete(any(Gallery.class));
+    }
+
     // ── Listing images ──────────────────────────────────────────────────────────
 
     @Test

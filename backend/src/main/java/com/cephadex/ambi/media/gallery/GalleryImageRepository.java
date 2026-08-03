@@ -1,5 +1,6 @@
 package com.cephadex.ambi.media.gallery;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -14,6 +15,9 @@ public interface GalleryImageRepository extends MongoRepository<GalleryImage, St
     /** The same page, narrowed to images whose name contains the term (case-insensitive). */
     Page<GalleryImage> findByGalleryIdAndNameContainingIgnoreCase(
             String galleryId, String name, Pageable pageable);
+
+    /** Every image of a gallery — used to free the backing S3 objects on gallery delete. */
+    List<GalleryImage> findByGalleryId(String galleryId);
 
     /** A single image scoped to its gallery, so a stray id can't cross galleries. */
     Optional<GalleryImage> findByIdAndGalleryId(String id, String galleryId);

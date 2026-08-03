@@ -5,6 +5,7 @@ import static com.cephadex.ambi.auth.security.AmbiPrincipals.level;
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.userId;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -131,10 +132,18 @@ public class GalleryService {
         return galleryRepository.save(gallery);
     }
 
-    /** Delete a gallery and all its images (MANAGE). Embedded copies in decks survive. */
+    /**
+     * Delete a gallery and all its images (MANAGE). Every image's backing S3
+     * objects are freed first — same order and shared-bytes caveat as
+     * {@link #removeImage} — then the documents are dropped.
+     */
     public void delete(String id, AmbiPrincipal principal) {
         Gallery gallery = load(id);
         requireManage(gallery, principal);
+        List<String> keys = imageRepository.findByGalleryId(gallery.getId()).stream()
+                .flatMap(image -> ImageKeys.allKeys(image.getImage()).stream())
+                .toList();
+        storage.delete(keys);
         imageRepository.deleteByGalleryId(gallery.getId());
         galleryRepository.delete(gallery);
     }

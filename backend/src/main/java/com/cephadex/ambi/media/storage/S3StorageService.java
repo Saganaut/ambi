@@ -27,6 +27,9 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 @Service
 public class S3StorageService {
 
+    /** S3's hard cap on keys per DeleteObjects request. */
+    private static final int MAX_KEYS_PER_DELETE = 1000;
+
     private final S3Client s3;
     private final String bucket;
 
@@ -65,7 +68,8 @@ public class S3StorageService {
     /**
      * Delete the given keys (no-op on an empty collection). Deleting an absent
      * key is not an error in S3, so this is idempotent — safe to call when an
-     * image's objects may already be gone.
+     * image's objects may already be gone. Large sets are issued in batches of
+     * {@value #MAX_KEYS_PER_DELETE}, the DeleteObjects request cap.
      */
     public void delete(Collection<String> keys) {
         if (keys == null || keys.isEmpty()) {
@@ -75,10 +79,14 @@ public class S3StorageService {
                 .map(key -> ObjectIdentifier.builder().key(key).build())
                 .toList();
         try {
-            s3.deleteObjects(DeleteObjectsRequest.builder()
-                    .bucket(bucket)
-                    .delete(Delete.builder().objects(ids).build())
-                    .build());
+            for (int from = 0; from < ids.size(); from += MAX_KEYS_PER_DELETE) {
+                List<ObjectIdentifier> batch =
+                        ids.subList(from, Math.min(from + MAX_KEYS_PER_DELETE, ids.size()));
+                s3.deleteObjects(DeleteObjectsRequest.builder()
+                        .bucket(bucket)
+                        .delete(Delete.builder().objects(batch).build())
+                        .build());
+            }
         } catch (S3Exception e) {
             throw new MediaStorageException("Failed to delete objects " + keys, e);
         }
