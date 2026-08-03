@@ -12,6 +12,8 @@
 //
 // Values are committed as-given for swatches (a var(--role-*) theme pick
 // stays live-themed) and as hex (#rrggbb / #rrggbbaa) from the custom view.
+// Hosts whose field can only hold an opaque color pass `allowAlpha={false}`,
+// which drops the opacity slider and pins every edit to #rrggbb.
 import { ChevronLeftIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
@@ -57,6 +59,10 @@ interface ColorPickerPanelProps {
   onClose?: () => void;
   /** Which view to open on. Defaults to the swatch grid. */
   initialView?: PickerView;
+  /** Whether the custom view offers the opacity slider. Turn off for fields
+   *  that can only store an opaque color (the slide/deck background is
+   *  validated to #rrggbb); edits are then pinned to full opacity. */
+  allowAlpha?: boolean;
   /** Custom-view back control for hosts that reach the custom view from a
    *  menu of their own — renders the header's back chevron. Ignored when the
    *  panel opened on its swatch view (back returns there instead). */
@@ -74,11 +80,19 @@ const ColorPickerPanel = ({
   onClear,
   onClose,
   initialView = "swatches",
+  allowAlpha = true,
   onBack,
   className,
 }: ColorPickerPanelProps) => {
+  // Every color entering the editor passes through here, so an opaque-only
+  // host can never end up holding — or emitting — an #rrggbbaa value.
+  const withAlphaPolicy = (color: Hsva): Hsva =>
+    allowAlpha ? color : { ...color, a: 1 };
+
   // The custom view's starting point, derived from the incoming value.
-  const seed = (value != null ? parseColor(value) : null) ?? FALLBACK_HSVA;
+  const seed = withAlphaPolicy(
+    (value != null ? parseColor(value) : null) ?? FALLBACK_HSVA,
+  );
 
   const [view, setView] = useState<PickerView>(initialView);
   const [hsva, setHsva] = useState<Hsva>(seed);
@@ -87,8 +101,9 @@ const ColorPickerPanel = ({
   const [hexField, setHexField] = useState<string>(() => hsvaToHex(seed));
 
   const updateColor = (next: Hsva) => {
-    setHsva(next);
-    setHexField(hsvaToHex(next));
+    const color = withAlphaPolicy(next);
+    setHsva(color);
+    setHexField(hsvaToHex(color));
   };
 
   const commit = (color: ColorValue) => {
@@ -131,7 +146,7 @@ const ColorPickerPanel = ({
     const normalized = raw.startsWith("#") ? raw : `#${raw}`;
     if (WELL_FORMED_HEX_RX.test(normalized)) {
       const parsed = parseColor(normalized);
-      if (parsed) setHsva(parsed);
+      if (parsed) setHsva(withAlphaPolicy(parsed));
     }
   };
 
@@ -211,13 +226,15 @@ const ColorPickerPanel = ({
           updateColor({ ...hsva, h });
         }}
       />
-      <ColorSlider
-        kind='alpha'
-        hsva={hsva}
-        onChange={(alpha) => {
-          updateColor({ ...hsva, a: alpha / 100 });
-        }}
-      />
+      {allowAlpha && (
+        <ColorSlider
+          kind='alpha'
+          hsva={hsva}
+          onChange={(alpha) => {
+            updateColor({ ...hsva, a: alpha / 100 });
+          }}
+        />
+      )}
 
       <div className={styles.valueRow}>
         <span

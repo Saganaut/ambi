@@ -45,6 +45,12 @@ interface ColorPickerProps {
   /** * Which view the popover opens on. Defaults to the swatch grid. */
   initialView?: PickerView;
 
+  /** * Whether the custom view offers the opacity slider. Turn off for fields
+   * that can only store an opaque color (e.g. a background color validated to
+   * #rrggbb); edits are then pinned to full opacity. Defaults to true.
+   */
+  allowAlpha?: boolean;
+
   /** * Floating-UI placement for the popover. Defaults to 'bottom'. */
   placement?: Placement;
 
@@ -75,6 +81,7 @@ const ColorPicker = ({
   label,
   renderTrigger,
   initialView,
+  allowAlpha,
   placement = "bottom",
   className,
   isOpen,
@@ -99,6 +106,7 @@ const ColorPicker = ({
           recentlyUsedColorSwatch={recentlyUsedColorSwatch}
           label={label}
           initialView={initialView}
+          allowAlpha={allowAlpha}
           className={className}
           onChange={onChange}
           onHover={onHover}

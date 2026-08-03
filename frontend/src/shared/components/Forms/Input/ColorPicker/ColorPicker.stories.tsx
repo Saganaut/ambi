@@ -109,6 +109,12 @@ export const OpensOnCustomView: Story = {
   args: { initialView: "custom" },
 };
 
+// Opaque-only host (e.g. the slide background, validated to #rrggbb): no
+// opacity slider, and every edit stays fully opaque.
+export const OpaqueOnly: Story = {
+  args: { initialView: "custom", allowAlpha: false },
+};
+
 // Production-shaped palette: live var(--role-*) theme refs (roleColors.ts).
 // Swatch picks pass the var ref through verbatim so the stored color keeps
 // tracking the active theme; loading one into the custom view resolves it

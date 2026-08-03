@@ -172,5 +172,66 @@ describe("ColorPickerPanel", () => {
         screen.getByRole("button", { name: "Set color #3182ce" }),
       ).toBeInTheDocument();
     });
+
+    it("offers the opacity slider and keeps alpha by default", () => {
+      render(
+        <ColorPickerPanel
+          value='#3182ce80'
+          colorSwatch={SWATCHES}
+          initialView='custom'
+          onChange={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole("slider", { name: "Opacity" })).toBeInTheDocument();
+      expect(screen.getByRole("textbox", { name: "Hex color" })).toHaveValue("#3182ce80");
+    });
+  });
+
+  // An opaque-only host (the slide background is validated to #rrggbb) must
+  // never receive an #rrggbbaa value, whatever route the color arrives by —
+  // otherwise the commit is rejected and the picker silently does nothing.
+  describe("custom view with allowAlpha={false}", () => {
+    const renderOpaque = (props: Partial<Parameters<typeof ColorPickerPanel>[0]> = {}) => {
+      const onChange = vi.fn();
+      render(
+        <ColorPickerPanel
+          value='#3182ce80'
+          colorSwatch={SWATCHES}
+          initialView='custom'
+          allowAlpha={false}
+          onChange={onChange}
+          {...props}
+        />,
+      );
+      return onChange;
+    };
+
+    it("hides the opacity slider", () => {
+      renderOpaque();
+      expect(screen.queryByRole("slider", { name: "Opacity" })).not.toBeInTheDocument();
+      expect(screen.getByRole("slider", { name: "Hue" })).toBeInTheDocument();
+    });
+
+    it("drops alpha from a translucent seed and commits six-digit hex", async () => {
+      const onChange = renderOpaque();
+      expect(screen.getByRole("textbox", { name: "Hex color" })).toHaveValue("#3182ce");
+      await userEvent.click(screen.getByRole("button", { name: "Apply" }));
+      expect(onChange).toHaveBeenCalledWith("#3182ce");
+    });
+
+    it("drops alpha from a typed eight-digit hex", async () => {
+      const onChange = renderOpaque();
+      const hexInput = screen.getByRole("textbox", { name: "Hex color" });
+      await userEvent.clear(hexInput);
+      await userEvent.type(hexInput, "#11223344");
+      await userEvent.click(screen.getByRole("button", { name: "Apply" }));
+      expect(onChange).toHaveBeenCalledWith("#112233");
+    });
+
+    it("drops alpha from a translucent Recent swatch", async () => {
+      renderOpaque({ recentlyUsedColorSwatch: ["#12345680"] });
+      await userEvent.click(screen.getByRole("button", { name: "Set color #12345680" }));
+      expect(screen.getByRole("textbox", { name: "Hex color" })).toHaveValue("#123456");
+    });
   });
 });

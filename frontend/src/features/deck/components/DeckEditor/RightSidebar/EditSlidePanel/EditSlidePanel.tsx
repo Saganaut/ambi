@@ -195,6 +195,9 @@ const PerSlideColor = ({ deckId, slideId }: deckAndSlideIdProps) => {
         colorSwatch={backgroundSwatches}
         recentlyUsedColorSwatch={recentColors}
         label="Background color"
+        // The background field is validated to an opaque #rrggbb, so an
+        // #rrggbbaa pick would be rejected outright.
+        allowAlpha={false}
         onChange={(color) => {
           setSlideColor(id, color);
           addRecentColor(color);

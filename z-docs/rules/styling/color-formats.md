@@ -10,7 +10,7 @@
 
 ## Hex — the fallback and user-input format
 
-- Hex is what a user types or picks when authoring a custom color. The DS color picker's custom view (`frontend/src/shared/components/Forms/Input/ColorPicker/ColorPickerPanel.tsx`) accepts hex in its text field and always commits hex on Apply (`#rrggbb`, or `#rrggbbaa` when translucent), even when its starting point was an `oklch()` palette default or a resolved theme variable.
+- Hex is what a user types or picks when authoring a custom color. The DS color picker's custom view (`frontend/src/shared/components/Forms/Input/ColorPicker/ColorPickerPanel.tsx`) accepts hex in its text field and always commits hex on Apply (`#rrggbb`, or `#rrggbbaa` when translucent), even when its starting point was an `oklch()` palette default or a resolved theme variable. Hosts whose field can only hold an opaque colour pass `allowAlpha={false}`, which hides the opacity slider and pins commits to `#rrggbb`.
 - `parseColor()` (`frontend/src/shared/components/Forms/Input/ColorPicker/colorConversion.ts`) is the read direction: best-effort parsing of hex, `oklch(...)`, or a serialized `rgb()`/`color(srgb …)` computed value into the picker's HSVA working model.
 
 ## Display normalizes to OKLCH
