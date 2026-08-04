@@ -96,7 +96,7 @@ Ingestion happens later via a separate `POST /api/galleries/{id}/images/upload`.
 
 `GET /api/galleries/{id}/images/{imageId}/file` (`GalleryService.getImageFile`,
 deck VIEW) streams a gallery image's stored original from our own origin so the
-browser can draw an image the user already owns onto a canvas and re-crop it.
+browser can draw an image the user already owns onto a canvas and crop it.
 Neither other route can serve that: presigned URLs point at the storage endpoint,
 which is cross-origin and sends no CORS headers (render-only, canvas-tainting),
 and the remote proxy **rejects** those URLs by design — blocking internal hosts
@@ -106,9 +106,12 @@ An external image or a missing object is `404 GALLERY_IMAGE_NOT_FOUND`;
 otherwise the bytes come back with their stored content type and
 `Cache-Control: private, max-age=300`, since they are per-user authorized. The
 frontend reads it with a plain authenticated `fetch` → `Blob`
-(`fetchGalleryImageFile` in `shared/utils/imageEditing.ts`). The crop is then
-uploaded as a **new gallery image** — the behaviour
-[Image Cropping](../features/image-cropping.md) is specified to replace.
+(`fetchGalleryImageFile` in `shared/utils/imageEditing.ts`). Where the crop
+lands from there depends on the caller: a picker opened with a deck id uploads
+it deck-scoped via the [placement-only ingest](#placement-only-ingest) below
+and mints no gallery entry; the handful of surfaces with no deck to scope to
+still upload it as a new gallery image. See
+[Image Cropping](../features/image-cropping.md) for the full flow.
 
 ### Opaque image proxy — URLs that hide their key
 
@@ -207,15 +210,15 @@ orphans objects, never fails the request. There is no orphan sweeper.
 ### Placement-only ingest
 
 `POST /api/decks/{id}/images/upload` (multipart `file`, optional `altText`, deck
-EDIT) ingests straight into the deck's namespace and returns a bare `AppImage` —
-**no `GalleryImage` is created**. Same validation and tiers; only the owner
-differs. It exists for bytes that are one slot's *content* rather than a library
-image, per [image-cropping](../features/image-cropping.md). The keys are already
-deck-scoped, so adoption is a no-op and `cleanupRemoved` frees them when the
-placement is cleared.
-
-> The route is live; the frontend crop flow that consumes it is not yet wired, so
-> crops still mint gallery entries today.
+EDIT, `DeckController.uploadDeckImage`) ingests straight into the deck's
+namespace and returns a bare `AppImage` (`201`) — **no `GalleryImage` is
+created**. Same validation and tiers; only the owner differs. It exists for
+bytes that are one slot's *content* rather than a library image: the
+`GalleryPicker` crop step uploads through it whenever it was opened with a deck
+id, so cropping the same source for ten slots leaves one gallery entry, not
+ten — see [image-cropping](../features/image-cropping.md) for the full
+frontend flow. The keys are already deck-scoped, so adoption is a no-op and
+`cleanupRemoved` frees them when the placement is cleared.
 
 ### Migration for pre-existing decks
 

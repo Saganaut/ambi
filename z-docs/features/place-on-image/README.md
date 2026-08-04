@@ -68,7 +68,7 @@ tolerance field, two-column layout and composer state all come from the
   - **Committing auto-disarms**, so the next press adds rather than silently relocating the target just finished.
   - **An in-flight new placement has no id yet**, so it draws as a ghost `PlacementMarker` keyed on `PENDING_PLACEMENT_KEY` until release commits it via `addTarget`.
   - **Tolerance circles are sized off the image box's width at 1:1**, so they read as circles on a non-square image while the grading space stays normalized.
-- **Image picking** passes `cropWidth: 1, cropHeight: 1, cropGalleryPicks: true` (see [crop options](../image-cropping.md#gallerypicker-crop-options)) so the backing image is square before it reaches the surface.
+- **Image picking** passes `crop: { mode: "required", aspect: 1 }` (see [crop options](../image-cropping.md#gallerypicker-crop-options)) so the backing image is square before it reaches the surface.
 
 ## Board UX
 

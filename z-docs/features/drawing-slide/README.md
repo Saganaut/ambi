@@ -66,7 +66,7 @@ at `MAX_DRAWING_PALETTE = 12`. `setToolEnabled` re-adds `PEN` on every write —
 
 `SlideContent/DrawingSlideContent/` renders the prompt plus three cards:
 
-- **"Prompt image"** — gallery picker (`cropWidth: 1, cropHeight: 1, cropGalleryPicks: true`, see [crop options](../image-cropping.md#gallerypicker-crop-options)), "Draw one" (a full `DrawingCanvas` in the global modal), and "Remove". A radio picks `ALONGSIDE` vs `BACKGROUND`.
+- **"Prompt image"** — gallery picker (`crop: { mode: "required", aspect: 1 }`, see [crop options](../image-cropping.md#gallerypicker-crop-options)), "Draw one" (a full `DrawingCanvas` in the global modal), and "Remove". A radio picks `ALONGSIDE` vs `BACKGROUND`.
 - **"Correct answer image"** — the same three actions and the same 1:1 crop (the follow-up board shows it beside square canvas exports, so a different aspect ratio would itself be a tell). The card's hint says what it buys: it unlocks the "Spot the answer" mode, and it should be something that could pass for a player's drawing. **Remove is hidden while a keyed follow-up is attached** (`wouldOrphanKeyedFollowUp`) — the backend rejects that content transition and the slide PUT is fire-and-forget, so the block has to happen client-side. Replace stays available.
 - **"Canvas tools"** — a `Toggle` per player-facing tool (`TOOL_TOGGLES`: Eraser, Shapes, Color palette). While `COLOR_PALETTE` is on, a `PaletteEditor` row is shown.
 
