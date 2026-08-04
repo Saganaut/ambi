@@ -1,5 +1,10 @@
 package com.cephadex.ambi.presentation.deck;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -7,16 +12,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.imageio.ImageIO;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 
 import com.cephadex.ambi.auth.enums.AuthProvider;
 import com.cephadex.ambi.auth.enums.IdentityState;
@@ -30,6 +40,9 @@ import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
+import com.cephadex.ambi.media.storage.ImageIngestService;
+import com.cephadex.ambi.media.storage.MediaProperties;
+import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
@@ -62,6 +75,7 @@ class DeckServiceTest {
 
     private DeckRepository deckRepository;
     private UserService userService;
+    private S3StorageService storage;
     private DeckService deckService;
     private AmbiPrincipal owner;
 
@@ -69,8 +83,10 @@ class DeckServiceTest {
     void setUp() {
         deckRepository = mock(DeckRepository.class);
         userService = mock(UserService.class);
+        storage = mock(S3StorageService.class);
         deckService = new DeckService(deckRepository, new OrgRoleResolver(userService),
-                new SlideRankService(), new DeckDefaultsProperties(), new RichTextSanitizer());
+                new SlideRankService(), new DeckDefaultsProperties(), new RichTextSanitizer(),
+                new ImageIngestService(storage, new MediaProperties()));
         owner = principal("owner-1");
         // Echo back whatever the service saves — tests inspect the in-flight deck.
         when(deckRepository.save(any(Deck.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -103,7 +119,8 @@ class DeckServiceTest {
         props.getAnswer().setCountdownTime(45);
         props.getPoints().setPoints(500);
         DeckService service = new DeckService(deckRepository, new OrgRoleResolver(userService),
-                new SlideRankService(), props, new RichTextSanitizer());
+                new SlideRankService(), props, new RichTextSanitizer(),
+                new ImageIngestService(storage, new MediaProperties()));
 
         Deck created = service.create("deck-1", owner);
 
@@ -697,6 +714,73 @@ class DeckServiceTest {
         assertThat(result.getCoverImage()).isSameAs(cover);
     }
 
+    // ── Placement-only image upload ──────────────────────────────────────────────
+    // A crop framed for one slot is ingested straight into deck/{deckId}/ and
+    // handed back bare: no gallery is involved (the service has no gallery
+    // collaborator at all, and nothing outside the deck namespace is written),
+    // so the deck's own lifecycle owns the objects from the start.
+
+    @Test
+    void uploadImageIngestsUnderTheDeckNamespaceAndReturnsABareImage() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        AppImage uploaded = deckService.uploadImage(
+                "deck-1", pngBytes(120, 90), "image/png", "crop.png", owner);
+
+        assertThat(uploaded.isExternal()).isFalse();
+        assertThat(uploaded.getSrcKey()).startsWith("deck/deck-1/").endsWith("/original");
+        assertThat(uploaded.getVariants()).containsOnlyKeys(ImageSizeOptions.values());
+        assertThat(uploaded.getVariants().values()).allSatisfy(
+                key -> assertThat(key).startsWith("deck/deck-1/"));
+        assertThat(uploaded.getAltText()).isEqualTo("crop.png");
+
+        // Every object written lives in the deck's namespace — nothing under gallery/.
+        ArgumentCaptor<String> keys = ArgumentCaptor.forClass(String.class);
+        verify(storage, times(ImageSizeOptions.values().length + 1))
+                .put(keys.capture(), any(), anyString());
+        assertThat(keys.getAllValues()).allSatisfy(
+                key -> assertThat(key).startsWith("deck/deck-1/"));
+        // A placement is not a library item, so the deck is not re-saved either.
+        verify(deckRepository, never()).save(any(Deck.class));
+    }
+
+    @Test
+    void uploadImageIsRefusedToANonEditorAndStoresNothing() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.uploadImage(
+                "deck-1", pngBytes(120, 90), "image/png", "crop.png", principal("intruder")))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("edit access");
+
+        verify(storage, never()).put(anyString(), any(), anyString());
+    }
+
+    @Test
+    void uploadImageOnAMissingDeckIsNotFound() {
+        when(deckRepository.findById("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deckService.uploadImage(
+                "missing", pngBytes(10, 10), "image/png", "crop.png", owner))
+                .isInstanceOf(NotFoundException.class);
+
+        verify(storage, never()).put(anyString(), any(), anyString());
+    }
+
+    @Test
+    void uploadImageRejectsADisallowedContentType() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.uploadImage(
+                "deck-1", new byte[] { 1, 2, 3 }, "application/pdf", "crop.pdf", owner))
+                .isInstanceOf(ValidationException.class);
+
+        verify(storage, never()).put(anyString(), any(), anyString());
+    }
+
     // ── Slide background (three-state override) ─────────────────────────────────
 
     @Test
@@ -1243,6 +1327,20 @@ class DeckServiceTest {
     private static TextContent keyedTextContent(String... acceptedAnswers) {
         return new TextContent(new LinkedHashSet<>(List.of(acceptedAnswers)),
                 SlideContentTypes.MatchMode.EXACT, false, true, null);
+    }
+
+    /** A real (if tiny) PNG so the ingest can actually decode + re-encode it. */
+    private static byte[] pngBytes(int width, int height) {
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        img.getGraphics().setColor(Color.BLUE);
+        img.getGraphics().fillRect(0, 0, width, height);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(img, "png", out);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return out.toByteArray();
     }
 
     private static AppImage image(String externalSrc) {

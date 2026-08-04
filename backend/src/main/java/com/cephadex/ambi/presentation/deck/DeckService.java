@@ -26,6 +26,8 @@ import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
+import com.cephadex.ambi.media.storage.ImageIngestService;
+import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
@@ -60,15 +62,17 @@ public class DeckService {
     private final SlideRankService rankService;
     private final DeckDefaultsProperties deckDefaults;
     private final RichTextSanitizer richTextSanitizer;
+    private final ImageIngestService imageIngest;
 
     public DeckService(DeckRepository deckRepository, OrgRoleResolver orgRoles,
             SlideRankService rankService, DeckDefaultsProperties deckDefaults,
-            RichTextSanitizer richTextSanitizer) {
+            RichTextSanitizer richTextSanitizer, ImageIngestService imageIngest) {
         this.deckRepository = deckRepository;
         this.orgRoles = orgRoles;
         this.rankService = rankService;
         this.deckDefaults = deckDefaults;
         this.richTextSanitizer = richTextSanitizer;
+        this.imageIngest = imageIngest;
     }
 
     // ── Create ──────────────────────────────────────────────────────────────
@@ -420,6 +424,24 @@ public class DeckService {
     // upload route first, then the resulting AppImage is set here. PUT sets, the
     // clear* methods null the slot. Slides are embedded, so a slide image change
     // saves the whole deck, exactly like updateSlide.
+
+    /**
+     * Ingest raw image bytes straight into this deck's own key namespace (EDIT)
+     * and hand back the bare {@link AppImage}. This is the placement-only
+     * ingest: <strong>no {@code GalleryImage} is created and no gallery is
+     * touched</strong> — the bytes are one slot's content, not a library item.
+     *
+     * @throws NotFoundException   if the deck doesn't exist
+     * @throws ForbiddenException  if the caller may not edit the deck
+     * @throws ValidationException if the upload is empty, oversized, or not an
+     *                             allowed image type
+     */
+    public AppImage uploadImage(String deckId, byte[] bytes, String contentType,
+            String originalFilename, AmbiPrincipal principal) {
+        getEditable(deckId, principal);
+        return imageIngest.ingest(bytes, contentType, originalFilename,
+                ImageKeys.newDeckImagePrefix(deckId));
+    }
 
     /** Set a deck's cover image (EDIT). */
     public Deck setDeckCoverImage(String id, AppImage image, AmbiPrincipal principal) {

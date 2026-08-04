@@ -44,6 +44,18 @@ class ImageKeysTest {
     }
 
     @Test
+    void newDeckImagePrefixMintsUniquePrefixesTheKeySchemeCanDeriveFrom() {
+        String prefix = ImageKeys.newDeckImagePrefix("deck-1");
+
+        assertThat(prefix).startsWith("deck/deck-1/");
+        assertThat(prefix).isNotEqualTo(ImageKeys.newDeckImagePrefix("deck-1"));
+        // Canonical layout: the derivation from the original key still applies.
+        assertThat(ImageKeys.prefixOf(ImageKeys.originalKey(prefix))).isEqualTo(prefix);
+        assertThat(ImageKeys.variantsFor(ImageKeys.originalKey(prefix)))
+                .containsEntry(ImageSizeOptions.SM, prefix + "/sm.webp");
+    }
+
+    @Test
     void allKeysIsEmptyForExternalImage() {
         AppImage external = new AppImage();
         external.setExternal(true);

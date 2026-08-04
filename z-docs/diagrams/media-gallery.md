@@ -46,8 +46,14 @@ answer uploads key their objects under `drawing/{sessionId}/{participantId}/{uui
 (sibling to `gallery/{uuid}`, minted by `LiveSessionAnswerService.storeDrawing`)
 so answer validation can check a submitted image is one this participant
 uploaded through this session, and a resubmit's delete can target exactly its
-own objects. The 3-arg overload (gallery uploads, shown above) is just this
-one with the prefix defaulted to `gallery/` + a fresh UUID.
+own objects. Deck-scoped uploads use it too — see
+[placement-only ingest](#placement-only-ingest) below. The 3-arg overload
+(gallery uploads, shown above) is just this one with the prefix defaulted to
+`gallery/` + a fresh UUID.
+
+Nothing is written until the payload is known good: the content-type/size
+check and the Scrimage decode both run before the original is stored, so a
+rejected upload leaves no objects behind.
 
 ## Read hydration — keys to presigned URLs
 
@@ -193,6 +199,29 @@ sequenceDiagram
     GS->>M: delete GalleryImage document
     Note over M: usage sites (decks/themes) embed a copy of the AppImage<br/>referencing the SAME S3 keys — deleting the bytes blanks them too<br/>(only the DB document is copied at selection time)
 ```
+
+### Placement-only ingest
+
+`POST /api/decks/{id}/images/upload` (multipart `file`, optional `altText`,
+deck EDIT) ingests bytes straight into the deck's own namespace and returns a
+bare `AppImage` — **no `GalleryImage` is created and no gallery is touched**.
+`DeckController.uploadDeckImage` → `DeckService.uploadImage` → the
+prefix-parameterized `ImageIngestService.ingest` at
+`ImageKeys.newDeckImagePrefix(deckId)`, so the same validation and the same
+five WebP tiers apply; only the owner differs.
+
+It exists for bytes that are one slot's *content* rather than a library image
+— a crop framed for that slot, per
+[image-cropping](../features/image-cropping.md). Because the keys are already
+under `deck/{deckId}/`, the lifecycle above needs no special case: adoption is
+a no-op, `cleanupRemoved` frees the objects when the placement is cleared or
+replaced, and deck delete sweeps them. Bytes are ingested before the slide
+save, so an abandoned edit orphans deck-prefix objects — the same accepted
+trade-off as adoption's copy-before-save.
+
+> The route is live; the frontend crop flow that consumes it (upload the
+> *original* to the gallery, the crop to the deck) is not yet wired, so crops
+> still mint gallery entries today.
 
 ## S3 client configuration
 

@@ -2,13 +2,16 @@ package com.cephadex.ambi.presentation.deck;
 
 import static com.cephadex.ambi.auth.security.AmbiPrincipals.requireUserId;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,10 +21,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.cephadex.ambi.auth.security.AmbiPrincipal;
+import com.cephadex.ambi.common.exception.ValidationException;
+import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.dto.AnswerSettingsResponse;
 import com.cephadex.ambi.presentation.deck.dto.DeckResponse;
 import com.cephadex.ambi.presentation.deck.dto.AddFollowUpRequest;
@@ -161,8 +168,48 @@ public class DeckController {
     // ── Deck images ─────────────────────────────────────────────────────────────
     // A dedicated home for cover/background images (EDIT), separate from the
     // metadata PATCH so an edit can't clobber an image. These take a pre-resolved
-    // AppImage by design: raw bytes are ingested via the gallery upload route
-    // (POST /api/galleries/{id}/images/upload), then the returned AppImage is PUT here.
+    // AppImage by design: raw bytes are ingested first — either into the gallery
+    // (POST /api/galleries/{id}/images/upload) or, for placement-only bytes,
+    // straight into this deck (POST /{id}/images/upload below) — then the
+    // resulting AppImage is PUT here.
+
+    /**
+     * Ingest an image file into this deck's own storage namespace (EDIT) and
+     * return the bare {@link AppImage} for the client to embed in a slide.
+     *
+     * <p>The placement-only ingest: unlike the gallery route this creates
+     * <strong>no gallery entry</strong>, because the bytes are one slot's
+     * content (a crop framed for that slot) rather than a library image. Keys
+     * are minted under {@code deck/{id}/}, so the deck's existing image
+     * lifecycle frees them when the placement goes away. {@code altText}, when
+     * supplied, is stamped onto the image so it travels with it.
+     *
+     * <p>The response is a bare {@code AppImage}, not a wrapper — there is no
+     * library row to describe. Validation (type allow-list, size cap) and the
+     * five WebP tiers are the shared {@code ImageIngestService} rules.
+     */
+    @PostMapping(path = "/{id}/images/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public AppImage uploadDeckImage(
+            @PathVariable String id,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "altText", required = false) String altText,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        AppImage image = deckService.uploadImage(
+                id, bytesOf(file), file.getContentType(), file.getOriginalFilename(), principal);
+        if (StringUtils.hasText(altText)) {
+            image.setAltText(altText);
+        }
+        return image;
+    }
+
+    private static byte[] bytesOf(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new ValidationException("Could not read the uploaded file.");
+        }
+    }
 
     /** Set a deck's cover image (EDIT). */
     @PutMapping("/{id}/cover-image")

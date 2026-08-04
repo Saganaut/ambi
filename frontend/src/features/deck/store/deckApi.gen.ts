@@ -372,6 +372,19 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.addFollowUpRequest,
       }),
     }),
+    uploadDeckImage: build.mutation<
+      UploadDeckImageApiResponse,
+      UploadDeckImageApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/images/upload`,
+        method: "POST",
+        body: queryArg.body,
+        params: {
+          altText: queryArg.altText,
+        },
+      }),
+    }),
     moveSlide: build.mutation<MoveSlideApiResponse, MoveSlideApiArg>({
       query: (queryArg) => ({
         url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/move`,
@@ -646,6 +659,14 @@ export type AddFollowUpSlideApiArg = {
   id: string;
   slideId: string;
   addFollowUpRequest: AddFollowUpRequest;
+};
+export type UploadDeckImageApiResponse = /** status 201 Created */ AppImage;
+export type UploadDeckImageApiArg = {
+  id: string;
+  altText?: string;
+  body: {
+    file: Blob;
+  };
 };
 export type MoveSlideApiResponse = /** status 200 OK */ SlideResponse[];
 export type MoveSlideApiArg = {
@@ -1220,6 +1241,7 @@ export const {
   useLazyListDeckSlidesQuery,
   useAddSlideMutation,
   useAddFollowUpSlideMutation,
+  useUploadDeckImageMutation,
   useMoveSlideMutation,
   useListDecksForOrgQuery,
   useLazyListDecksForOrgQuery,

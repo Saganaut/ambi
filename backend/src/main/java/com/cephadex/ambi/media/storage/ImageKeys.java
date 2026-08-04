@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
@@ -36,6 +37,20 @@ public final class ImageKeys {
     /** A tier's WebP key under a prefix. */
     public static String variantKey(String prefix, ImageSizeOptions tier) {
         return prefix + "/" + tier.name().toLowerCase() + ".webp";
+    }
+
+    /**
+     * The key namespace every image a deck owns lives under
+     * ({@code deck/{deckId}/}) — the ownership boundary deck-image adoption and
+     * cleanup key off.
+     */
+    public static String deckPrefix(String deckId) {
+        return "deck/" + deckId + "/";
+    }
+
+    /** A fresh per-image prefix under a deck's namespace. */
+    public static String newDeckImagePrefix(String deckId) {
+        return deckPrefix(deckId) + UUID.randomUUID();
     }
 
     /** The shared prefix an original key belongs to, or {@code null} if it isn't one. */

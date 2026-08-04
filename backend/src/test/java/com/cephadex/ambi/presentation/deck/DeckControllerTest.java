@@ -18,12 +18,14 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -200,6 +202,28 @@ class DeckControllerTest {
     }
 
     // ── Deck images ───────────────────────────────────────────────────────────
+
+    @Test
+    void uploadDeckImageIngestsBytesAndReturnsTheBareImage() throws Exception {
+        AppImage ingested = new AppImage();
+        ingested.setExternal(false);
+        ingested.setSrcKey("deck/deck-1/abc/original");
+        when(deckService.uploadImage(eq("deck-1"), any(), eq("image/png"), eq("crop.png"), any()))
+                .thenReturn(ingested);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "crop.png", "image/png", new byte[] { 1, 2, 3 });
+
+        mockMvc.perform(multipart("/api/decks/deck-1/images/upload")
+                        .file(file).param("altText", "A cropped hero"))
+                .andExpect(status().isCreated())
+                // A bare AppImage, not a gallery-item wrapper. Raw key passes
+                // through here; presigning is the serializer's job.
+                .andExpect(jsonPath("$.srcKey").value("deck/deck-1/abc/original"))
+                .andExpect(jsonPath("$.altText").value("A cropped hero"));
+
+        verify(deckService).uploadImage(eq("deck-1"), any(), eq("image/png"), eq("crop.png"), any());
+    }
 
     @Test
     void setDeckCoverImageDelegates() throws Exception {
