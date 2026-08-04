@@ -39,7 +39,7 @@ slots into the dispatcher and preview pipeline:
 
 This is the single most confusing thing about the area.
 
-- **Ephemeral** — `AnswerTallyKeys.optionKeys` feeds the Redis `tallyStore` behind the live `TallyUpdated` event. It emits keys for **MCQ, GRID, AXIS, SCALES, MATCHING, RANKING, FOLLOW_UP and PLACE_ON_IMAGE**, and nothing for NUMBER, TEXT, ALLOCATION, Q_AND_A or DRAWING.
+- **Ephemeral** — `AnswerTallyKeys.optionKeys` feeds the Redis `tallyStore` behind the live `TallyUpdated` event. It emits keys for **MCQ, GRID, AXIS, SCALES, MATCHING, RANKING, ALLOCATION, FOLLOW_UP and PLACE_ON_IMAGE** — ALLOCATION's are `optionId@points`, zero-point entries included so an option's keys sum to the respondent count — and nothing for NUMBER, TEXT, Q_AND_A or DRAWING.
 - **Durable** — `RoundResult.optionCounts` is built from `ParticipantOutcome.choice()` via `describeChoice()`, non-null only for **MCQ, NUMBER and TEXT**.
 
 So the placement kinds have a rich live tally their boards already render, and
@@ -72,7 +72,7 @@ present in `resultsRegistry`; no non-MCQ type is wired into an editor section.
 | **PLACE_ON_IMAGE** | `Map<itemId,{x,y}>` | Scatter/heatmap overlaid on the image with the target circles drawn | 🚧 image-overlay placeholder; live density scatter + revealed targets on the board — see [place-on-image](place-on-image/README.md) |
 | **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item colour (needs raw placements — F2), bucketed heat as fallback | 🚧 heatmap placeholder; live 10 × 10 bucket heat on the board — see [axis](axis-slides/README.md) |
 | **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or a Sankey weighted by pair counts | 🚧 heatmap placeholder (Sankey deferred); live per-pair counts on the board |
-| **ALLOCATION** | `Map<optionId,Integer>` | Average points per option, grouped or 100 %-stacked | ♻️ reuses `BarChart` |
+| **ALLOCATION** | `Map<optionId,Integer>` | Average points per option, grouped or 100 %-stacked | ♻️ reuses `BarChart`; live per-option bars + revealed key pills on the board — see [allocation-slides](allocation-slides/README.md) |
 | **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🧩 word cloud built, not wired — no backend tally |
 | **DRAWING** | `AppImage` (PNG in S3) | Image gallery, not a quantitative chart | ✅ gallery built (bypasses this pipeline) |
 | **Q_AND_A** | `String` question | List/word-cloud toggle on the live board | ✅ live board built (bypasses this pipeline) |

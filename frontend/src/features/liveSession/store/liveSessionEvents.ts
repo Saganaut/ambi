@@ -13,6 +13,7 @@
 // simple class name, so every member carries a `type` literal and consumers
 // switch on `event.type`.
 import type {
+  AllocationTargetView,
   ParticipantView,
   PlaceTargetView,
   QAndAQuestionView,
@@ -186,6 +187,13 @@ export interface ResultsRevealed {
    * re-typed here — the same reuse as `SlideView`/`ScoreboardEntry`.
    */
   placeTargets: PlaceTargetView[] | null;
+  /**
+   * The keyed point splits for an Allocation round, disclosed only now; null
+   * for every other kind (an empty array is a collect-only allocation round).
+   * `AllocationTargetView` is a generated snapshot DTO (it also rides
+   * `SessionSnapshotResponse`), so it is imported rather than re-typed here.
+   */
+  allocationTargets: AllocationTargetView[] | null;
   /** true on the final round — the cue for the podium. */
   terminal: boolean;
 }

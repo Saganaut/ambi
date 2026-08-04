@@ -29,6 +29,7 @@ import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
@@ -45,6 +46,7 @@ import com.cephadex.ambi.session.answer.payload.TextAnswer;
 import com.cephadex.ambi.session.event.EventPublisher;
 import com.cephadex.ambi.session.event.SessionEvent;
 import com.cephadex.ambi.session.event.SessionEvents;
+import com.cephadex.ambi.session.event.dto.AllocationTargetView;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
@@ -1128,7 +1130,9 @@ public class LiveSessionOrchestrator {
             } else {
                 List<DrawingSubmissionView> drawings = drawingSubmissions(session, slideId, roster);
                 List<PlaceTargetView> placeTargets = placeOnImageTargets(session, slideId);
-                event = SessionEvents.resultsRevealed(result, roster, drawings, placeTargets, terminal);
+                List<AllocationTargetView> allocationTargets = allocationTargets(session, slideId);
+                event = SessionEvents.resultsRevealed(result, roster, drawings, placeTargets, allocationTargets,
+                        terminal);
             }
             publisher.publish(current.publicId(), event);
         }));
@@ -1203,6 +1207,21 @@ public class LiveSessionOrchestrator {
             return null;
         }
         return PlaceTargetView.from(place);
+    }
+
+    /**
+     * The authored per-option targets for an Allocation round, disclosed at reveal
+     * so the board can mark the key. {@code null} for every other slide kind, so
+     * the event field stays absent. Derived purely from the deck snapshot's slide
+     * content, with the same tolerant lookup as {@code placeOnImageTargets}.
+     */
+    private List<AllocationTargetView> allocationTargets(LiveSession session, String slideId) {
+        Slide slide = session.getDeck() == null ? null
+                : session.getDeck().findSlide(slideId).orElse(null);
+        if (slide == null || !(slide.getContent() instanceof AllocationContent allocation)) {
+            return null;
+        }
+        return AllocationTargetView.from(allocation);
     }
 
     /**

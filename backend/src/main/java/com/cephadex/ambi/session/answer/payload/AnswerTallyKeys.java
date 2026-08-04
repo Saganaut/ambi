@@ -12,7 +12,9 @@ import java.util.stream.IntStream;
  * <p>Distinct from {@code RoundEvaluator.describeChoice}, which renders a single
  * composite key for a participant's whole selection (the "what did they pick"
  * notion used in scoring). Here a multi-select MCQ contributes one key per chosen
- * option, so each option's bar moves independently.
+ * option, so each option's bar moves independently, and an allocation
+ * contributes one key per option — zero-point ones included, so each option's
+ * keys sum to the respondent count.
  */
 public final class AnswerTallyKeys {
 
@@ -61,7 +63,10 @@ public final class AnswerTallyKeys {
      * per ranked slot (0-based, so the board can tally how often each item
      * lands in each rank), or one {@code itemId@bucketX,bucketY} key per
      * place-on-image pin (quantized, so the board can render a per-item density
-     * scatter of where each item's pin landed), or the single picked
+     * scatter of where each item's pin landed), one {@code optionId@points} key
+     * per allocated option — <em>including</em> zero-point ones, so an option's
+     * keys sum to the respondent count and the board has an honest denominator —
+     * or the single picked
      * {@code optionId} of a follow-up vote (the pick <em>is</em> that round's
      * answer). Returns an empty list for payloads
      * that aren't tallied yet (free text, drawings, …), so the caller simply
@@ -106,6 +111,15 @@ public final class AnswerTallyKeys {
             List<String> ordered = ranking.orderedItemIds();
             return IntStream.range(0, ordered.size())
                     .mapToObj(position -> ordered.get(position) + GRID_KEY_SEPARATOR + position)
+                    .toList();
+        }
+        if (payload instanceof AllocationAnswer allocation && allocation.allocations() != null) {
+            // "optionId@points" — RANKING's itemId@position grammar with the
+            // awarded points in the slot. Zero-point entries are kept on purpose:
+            // every option's keys then sum to the respondent count.
+            return allocation.allocations().entrySet().stream()
+                    .filter(entry -> entry.getValue() != null)
+                    .map(entry -> entry.getKey() + GRID_KEY_SEPARATOR + entry.getValue())
                     .toList();
         }
         if (payload instanceof FollowUpAnswer followUp && followUp.optionId() != null) {

@@ -77,13 +77,15 @@ so the deck's default `maxSelections` must not freeze the first submission.
 int effectiveMaxSelections = request.payload() instanceof GridAnswer
         || ... instanceof AxisAnswer   || ... instanceof PlaceOnImageAnswer
         || ... instanceof ScalesAnswer || ... instanceof MatchingAnswer
-        || ... instanceof DrawingAnswer || ... instanceof FollowUpAnswer
-        || ... instanceof TextAnswer ? 0 : maxSelections;
+        || ... instanceof AllocationAnswer || ... instanceof DrawingAnswer
+        || ... instanceof FollowUpAnswer || ... instanceof TextAnswer
+        ? 0 : maxSelections;
 ```
 
 The rule is uniform: **resubmits overwrite, last write before the round closes
 wins.** Whether a board *offers* resubmission is a separate, per-board UI
-decision — Axis and Scales do, Place-on-Image deliberately locks on submit.
+decision — Axis, Scales and Allocation do, Place-on-Image deliberately locks on
+submit.
 This is the single statement of the override; the other kinds' docs link here.
 
 ## Editor UX

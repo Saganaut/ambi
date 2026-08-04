@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
+import com.cephadex.ambi.session.event.dto.AllocationTargetView;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
@@ -24,6 +25,9 @@ import com.cephadex.ambi.session.event.dto.ScoreboardEntry;
  * other kind. {@code placeTargets} is the authored correct-location circles for
  * a Place-on-image round (see {@link PlaceTargetView}), disclosed only now so the
  * board can draw the correct-location reveal; {@code null} for every other kind.
+ * {@code allocationTargets} is the authored per-option point key for an
+ * Allocation round (see {@link AllocationTargetView}), disclosed only now so the
+ * board can mark the key; {@code null} for every other kind.
  */
 public record ResultsRevealed(
         String slideId,
@@ -33,5 +37,6 @@ public record ResultsRevealed(
         List<ScoreboardEntry> scoreboard,
         List<DrawingSubmissionView> drawings,
         List<PlaceTargetView> placeTargets,
+        List<AllocationTargetView> allocationTargets,
         boolean terminal) implements SessionEvent {
 }

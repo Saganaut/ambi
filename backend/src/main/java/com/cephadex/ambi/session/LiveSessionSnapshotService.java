@@ -13,11 +13,13 @@ import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
 import com.cephadex.ambi.session.event.SessionEvents;
+import com.cephadex.ambi.session.event.dto.AllocationTargetView;
 import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
@@ -140,6 +142,7 @@ public class LiveSessionSnapshotService {
         String myVoteOptionId = null;
         Integer votesCast = null;
         List<PlaceTargetView> placeTargets = null;
+        List<AllocationTargetView> allocationTargets = null;
         String myFollowUpOptionId = null;
         if (currentSlideId != null) {
             Deck deck = session.getDeck();
@@ -177,6 +180,14 @@ public class LiveSessionSnapshotService {
                     // once the round is revealing results, mirroring the
                     // ResultsRevealed delta so a late joiner rehydrates the same reveal.
                     placeTargets = PlaceTargetView.from(place);
+                }
+                if (currentSlide.contentType() == SlideType.ALLOCATION
+                        && roundState.phase() == RoundPhase.REVEAL_RESULTS
+                        && slide.getContent() instanceof AllocationContent allocation) {
+                    // The authored allocations are the answer key: disclosed only
+                    // once the round is revealing results, mirroring the
+                    // ResultsRevealed delta so a late joiner rehydrates the same reveal.
+                    allocationTargets = AllocationTargetView.from(allocation);
                 }
             }
             optionTally = tallyStore.tally(sessionId, currentSlideId);
@@ -216,6 +227,7 @@ public class LiveSessionSnapshotService {
                 myVoteOptionId,
                 votesCast,
                 placeTargets,
+                allocationTargets,
                 myFollowUpOptionId,
                 rosterViews,
                 SessionEvents.scoreboard(roster),

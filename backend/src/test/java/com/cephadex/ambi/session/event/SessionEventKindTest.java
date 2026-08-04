@@ -42,7 +42,7 @@ class SessionEventKindTest {
             new VotingOpened("slide-1", List.of()),
             new VoteCast("slide-1", 1),
             new ResponsesRevealed("slide-1", Map.of()),
-            new ResultsRevealed("slide-1", List.of(), Map.of(), null, List.of(), null, null, false),
+            new ResultsRevealed("slide-1", List.of(), Map.of(), null, List.of(), null, null, null, false),
             new RoundRestarted("slide-1", RoundPhase.SUBMIT, AT, null),
             new TimerPaused("slide-1", AT, null),
             new TimerResumed("slide-1", null),

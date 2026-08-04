@@ -1,0 +1,175 @@
+.allocationBoardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  .note {
+    margin: 0;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* The rows are the only part that may run long, so they take the scroll and
+     the remaining / submit row stays pinned inside the fixed-height board. */
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    width: 100%;
+    max-width: 40rem;
+    min-height: 0;
+    margin: 0 auto;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  /* A raised row reads as canvas in the light theme, so the border — not the
+     fill — is what separates one option from the next. */
+  .option {
+    /* Fallback for the inline value set from the authored option colour. */
+    --option-accent: var(--bg-brand);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    padding: var(--p-sm);
+    border: var(--border-size-sm) solid var(--edge-subtle);
+    border-inline-start: var(--border-size-md) solid var(--option-accent);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-raised);
+    color: var(--text-primary);
+  }
+
+  /* The crowd's average landed inside the revealed key's tolerance. */
+  .onKey {
+    background-color: var(--bg-success);
+  }
+
+  .face {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-width: 0;
+  }
+
+  .thumbnail {
+    flex: none;
+    width: var(--space-12);
+    height: var(--space-12);
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+  }
+
+  .label {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  /* The revealed key split. Text, not colour alone — the tick on the track is
+     the same fact drawn positionally. */
+  .keyPill {
+    flex: none;
+    padding: var(--p-square-xs);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-brand);
+    color: var(--text-on-brand);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .input {
+    flex: none;
+    width: var(--space-16);
+    padding: var(--p-square-xs);
+    border: var(--border-size-md) solid var(--edge-subtle);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+
+    &:focus-visible {
+      outline: var(--border-size-md) solid var(--edge-brand);
+      outline-offset: 0;
+    }
+  }
+
+  /* The option's share of the round's points, drawn on a full-width baseline so
+     every row's bar reads against the same scale. */
+  .track {
+    position: relative;
+    width: 100%;
+    height: var(--space-2);
+    border-radius: var(--radius-full);
+    background-color: var(--edge-subtle);
+  }
+
+  .bar {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    border-radius: var(--radius-full);
+    background-color: var(--option-accent);
+    transition: width 0.4s ease;
+  }
+
+  /* The revealed key's position along the pool, pinned inline by the row. */
+  .keyTick {
+    position: absolute;
+    inset-block: 0;
+    width: var(--border-size-md);
+    background-color: var(--edge-brand);
+    transform: translateX(-50%);
+  }
+
+  .readout {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--gap-sm);
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+
+    .share {
+      font-weight: 700;
+    }
+  }
+
+  .caption {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-sm);
+
+    .remaining {
+      margin: 0;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+  }
+}

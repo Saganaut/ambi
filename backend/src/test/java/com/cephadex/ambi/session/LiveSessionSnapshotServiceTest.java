@@ -27,6 +27,7 @@ import com.cephadex.ambi.presentation.deck.Settings.InviteSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
@@ -35,10 +36,12 @@ import com.cephadex.ambi.presentation.slide.content.QAndAContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
+import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.session.answer.Answer;
 import com.cephadex.ambi.session.answer.payload.QAndAQuestions;
 import com.cephadex.ambi.session.dto.SessionSnapshotResponse;
@@ -514,6 +517,66 @@ class LiveSessionSnapshotServiceTest {
                 });
         // The participant-safe config view still never carries the key.
         assertThat(snap.currentSlide().placeOnImage()).isNotNull();
+    }
+
+    @Test
+    void snapshotWithholdsAllocationTargetsUntilResultsReveal() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(allocationContent());
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        // SUBMIT phase: answering is open, so the answer key must stay hidden.
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.SUBMIT, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        // The config view exposes the options and the point pool, but carries
+        // neither the authored split nor the tolerance that grades it.
+        assertThat(snap.currentSlide().allocation()).isNotNull();
+        assertThat(snap.currentSlide().allocation().totalPointsToAllocate()).isEqualTo(100);
+        assertThat(snap.currentSlide().allocation().options()).extracting("id")
+                .containsExactly("alloc-1", "alloc-2");
+        assertThat(snap.allocationTargets()).isNull();
+    }
+
+    @Test
+    void snapshotCarriesAllocationTargetsDuringResultsReveal() {
+        Slide slide = mock(Slide.class);
+        when(slide.getId()).thenReturn("slide-1");
+        when(slide.getContent()).thenReturn(allocationContent());
+        Deck deck = mock(Deck.class);
+        when(deck.findSlide("slide-1")).thenReturn(Optional.of(slide));
+        when(session.getDeck()).thenReturn(deck);
+        // REVEAL_RESULTS: the authored split is now disclosed, so a late joiner
+        // rehydrates the same reveal the ResultsRevealed delta carries.
+        when(roundStateStore.load(SID)).thenReturn(Optional.of(
+                new LiveRoundState("pub-1", RoundPhase.REVEAL_RESULTS, "slide-1", Instant.parse("2026-07-01T10:00:00Z"), null, null, 0L, false)));
+
+        SessionSnapshotResponse snap = service.getSnapshot(SID, caller);
+
+        // Key only, keyed by option id: the label and colour are already on the
+        // participant-safe config view, so the board resolves them from there.
+        assertThat(snap.allocationTargets()).singleElement()
+                .satisfies(target -> {
+                    assertThat(target.optionId()).isEqualTo("alloc-1");
+                    assertThat(target.points()).isEqualTo(70);
+                    assertThat(target.tolerance()).isEqualTo(5);
+                });
+        // The participant-safe config view still never carries the key.
+        assertThat(snap.currentSlide().allocation()).isNotNull();
+    }
+
+    /** Two options, only the first keyed, so the reveal projection is observable. */
+    private static AllocationContent allocationContent() {
+        return new AllocationContent(
+                List.of(new McqOption("alloc-1", McqOptionType.TEXT, "Gondor", null, null),
+                        new McqOption("alloc-2", McqOptionType.TEXT, "Rohan", null, null)),
+                Map.of("alloc-1", 70),
+                100,
+                5);
     }
 
     @Test

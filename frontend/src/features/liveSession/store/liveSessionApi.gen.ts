@@ -523,6 +523,10 @@ export type PlaceOnImageConfigView = {
   imageUrl?: string;
   items?: PlaceItemView[];
 };
+export type AllocationConfigView = {
+  options?: McqOptionView[];
+  totalPointsToAllocate?: number;
+};
 export type FollowUpOptionView = {
   optionId?: string;
   text?: string;
@@ -575,6 +579,7 @@ export type SlideView = {
   text?: TextConfigView;
   number?: NumberConfigView;
   placeOnImage?: PlaceOnImageConfigView;
+  allocation?: AllocationConfigView;
   followUp?: FollowUpConfigView;
   hasFollowUp?: boolean;
   answerSettings?: AnswerSettingsView;
@@ -596,6 +601,11 @@ export type PlaceTargetView = {
   x?: number;
   y?: number;
   radius?: number;
+};
+export type AllocationTargetView = {
+  optionId?: string;
+  points?: number;
+  tolerance?: number;
 };
 export type ScoreView = {
   points?: number;
@@ -643,6 +653,7 @@ export type SessionSnapshotResponse = {
   myVoteOptionId?: string;
   votesCast?: number;
   placeTargets?: PlaceTargetView[];
+  allocationTargets?: AllocationTargetView[];
   myFollowUpOptionId?: string;
   roster?: ParticipantView[];
   scoreboard?: ScoreboardEntry[];

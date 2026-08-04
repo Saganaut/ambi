@@ -17,6 +17,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.MatchingContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
@@ -151,6 +152,24 @@ class SessionEventsTest {
         return slide;
     }
 
+    /**
+     * The authored {@code correctAllocations} and {@code tolerancePerOption} are
+     * grading-only, so the config view's silence about them is observable.
+     */
+    private static Slide allocationSlide() {
+        Slide slide = new Slide();
+        slide.setId("slide-allocation");
+        slide.setTitle("Split the war chest");
+        slide.setContent(new AllocationContent(
+                List.of(
+                        new McqOption("alloc-a", McqOptionType.TEXT, "Gondor", null, "#aabbcc"),
+                        new McqOption("alloc-b", McqOptionType.TEXT, "Rohan", null, null)),
+                Map.of("alloc-a", 70, "alloc-b", 30),
+                100,
+                7));
+        return slide;
+    }
+
     /** The follow-up chained off {@link #mcqSlide()} — its board is runtime state, not content. */
     private static Slide followUpSlide() {
         Slide slide = new Slide();
@@ -226,6 +245,22 @@ class SessionEventsTest {
         assertThat(json).doesNotContain("correctValues");
         assertThat(json).doesNotContain("tolerance");
         assertThat(json).doesNotContain("4.5");
+    }
+
+    @Test
+    void slideViewCarriesAllocationConfigButDropsAnswerKeyAndTolerance() {
+        SlideView view = SlideView.from(allocationSlide(), null, NO_IMAGES);
+
+        // The participant-safe config travels: the options in authored order, and the pool.
+        assertThat(view.allocation()).isNotNull();
+        assertThat(view.allocation().totalPointsToAllocate()).isEqualTo(100);
+        assertThat(view.allocation().options()).extracting("id").containsExactly("alloc-a", "alloc-b");
+
+        // correctAllocations (the answer key) and tolerancePerOption are grading-only.
+        String json = codec.serialize(view);
+        assertThat(json).doesNotContain("correctAllocations");
+        assertThat(json).doesNotContain("tolerancePerOption");
+        assertThat(json).doesNotContain("70");
     }
 
     @Test

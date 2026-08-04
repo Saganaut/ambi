@@ -150,7 +150,7 @@ class LiveSessionControllerTest {
         when(snapshotService.getSnapshot(eq("sess-1"), any()))
                 .thenReturn(new SessionSnapshotResponse("sess-1", "pub-1", "ROOMCODE",
                         LiveSessionLifecycle.LOBBY, RoundPhase.SUBMIT, null, null, null, null, null, null, null,
-                        null, null, null, null, null, List.of(), List.of(), "part-1", true, true, false, 12L));
+                        null, null, null, null, null, null, List.of(), List.of(), "part-1", true, true, false, 12L));
 
         mockMvc.perform(get("/api/liveSessions/sess-1"))
                 .andExpect(status().isOk())

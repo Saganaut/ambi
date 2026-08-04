@@ -44,15 +44,18 @@ import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.ScoreMode;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
+import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.presentation.slide.enums.Tool;
 import com.cephadex.ambi.session.answer.Answer;
@@ -83,6 +86,7 @@ import com.cephadex.ambi.session.event.TimerPaused;
 import com.cephadex.ambi.session.event.TimerResumed;
 import com.cephadex.ambi.session.event.VoteCast;
 import com.cephadex.ambi.session.event.VotingOpened;
+import com.cephadex.ambi.session.event.dto.AllocationTargetView;
 import com.cephadex.ambi.session.event.dto.PlaceTargetView;
 import com.cephadex.ambi.session.followUp.FollowUpOption;
 import com.cephadex.ambi.session.followUp.FollowUpOptionSet;
@@ -1012,9 +1016,10 @@ class LiveSessionOrchestratorTest {
         assertThat(event.slideId()).isEqualTo(SLIDE);
         assertThat(event.terminal()).isTrue();
         // Not a drawing round → no gallery payload; not a place-on-image round →
-        // no correct-location circles.
+        // no correct-location circles; not an allocation round → no point key.
         assertThat(event.drawings()).isNull();
         assertThat(event.placeTargets()).isNull();
+        assertThat(event.allocationTargets()).isNull();
     }
 
     @Test
@@ -1114,6 +1119,59 @@ class LiveSessionOrchestratorTest {
     }
 
     @Test
+    void revealResultsCarriesAllocationTargets() {
+        stubPhase(RoundPhase.REVEAL_RESPONSES);
+        Slide slide = slideWithId(SLIDE);
+        slide.setContent(new AllocationContent(
+                List.of(new McqOption("alloc-1", McqOptionType.TEXT, "Gondor", null, null)),
+                Map.of("alloc-1", 70),
+                100,
+                5));
+        RoundResult result = RoundResult.compute(SID, slide, List.of(), Instant.now());
+        when(roundResults.find(SID, SLIDE)).thenReturn(Optional.of(result));
+
+        Deck deck = mock(Deck.class);
+        when(deck.getSlides()).thenReturn(List.of(slide));
+        when(deck.findSlide(SLIDE)).thenReturn(Optional.of(slide));
+        LiveSession session = mock(LiveSession.class);
+        when(session.getId()).thenReturn(SID);
+        when(session.getDeck()).thenReturn(deck);
+        when(session.getRoster()).thenReturn(List.of());
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+
+        orchestrator.revealResults(SID, SLIDE);
+
+        ResultsRevealed event = (ResultsRevealed) publishedEvent();
+        // The authored split rides the reveal so the board can mark the key: the
+        // keyed points per option, with the slide's per-option tolerance.
+        assertThat(event.allocationTargets()).singleElement()
+                .satisfies(target -> {
+                    assertThat(target.optionId()).isEqualTo("alloc-1");
+                    assertThat(target.points()).isEqualTo(70);
+                    assertThat(target.tolerance()).isEqualTo(5);
+                });
+        // Not a drawing round → no gallery payload.
+        assertThat(event.drawings()).isNull();
+    }
+
+    @Test
+    void allocationTargetViewsFollowAuthoredOptionOrderAndSkipUnkeyedOptions() {
+        AllocationContent content = new AllocationContent(
+                List.of(new McqOption("alloc-1", McqOptionType.TEXT, "One", null, null),
+                        new McqOption("alloc-2", McqOptionType.TEXT, "Two", null, null),
+                        new McqOption("alloc-3", McqOptionType.TEXT, "Three", null, null)),
+                Map.of("alloc-3", 30, "alloc-1", 70, "gone", 99),
+                100,
+                5);
+
+        // Authored order rather than key order: the unkeyed "alloc-2" simply has
+        // no target, and the stale key naming no option is dropped.
+        assertThat(AllocationTargetView.from(content))
+                .extracting(target -> target.optionId())
+                .containsExactly("alloc-1", "alloc-3");
+    }
+
+    @Test
     void revealResultsRejectsASlideThatIsNotTheCurrentRound() {
         stubPhase(RoundPhase.REVEAL_RESPONSES); // current round is SLIDE
 
@@ -1155,6 +1213,7 @@ class LiveSessionOrchestratorTest {
         assertThat(event.correctOption()).isNull();
         assertThat(event.drawings()).isNull();
         assertThat(event.placeTargets()).isNull();
+        assertThat(event.allocationTargets()).isNull();
         assertThat(event.terminal()).isTrue();
         assertThat(event.scoreboard()).singleElement()
                 .satisfies(entry -> {

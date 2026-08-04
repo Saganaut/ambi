@@ -19,6 +19,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import type {
+  AllocationTargetView,
   ParticipantView,
   PlaceTargetView,
   QAndAQuestionView,
@@ -71,6 +72,12 @@ export interface RoundResults {
    * {@link LiveSessionState.placeTargets}.
    */
   placeTargets: PlaceTargetView[] | null;
+  /**
+   * Revealed point splits for an Allocation round; null otherwise (empty = a
+   * collect-only round with no key). Same event/snapshot seam as
+   * {@link placeTargets} — see {@link LiveSessionState.allocationTargets}.
+   */
+  allocationTargets: AllocationTargetView[] | null;
   terminal: boolean;
 }
 
@@ -130,6 +137,15 @@ export interface LiveSessionState {
    * revealed Place-on-Image round.
    */
   placeTargets: PlaceTargetView[] | null;
+  /**
+   * The revealed Allocation point splits as carried by the REST snapshot — the
+   * same late-joiner seam as {@link placeTargets}: a client that joins
+   * mid-reveal never reconstructs a `RoundResults`, yet the snapshot still
+   * carries them during REVEAL_RESULTS. A client connected through the reveal
+   * reads `results.allocationTargets`; the component prefers that and falls
+   * back here. Null outside a revealed Allocation round.
+   */
+  allocationTargets: AllocationTargetView[] | null;
   scoreboard: ScoreboardEntry[];
   finalScoreboard: ScoreboardEntry[] | null;
   cancelReason: string | null;
@@ -183,6 +199,7 @@ const initialState: LiveSessionState = {
   myFollowUpOptionId: null,
   results: null,
   placeTargets: null,
+  allocationTargets: null,
   scoreboard: [],
   finalScoreboard: null,
   cancelReason: null,
@@ -239,10 +256,12 @@ const liveSessionSlice = createSlice({
       state.viewerIsHost = s.viewerIsHost ?? false;
       // A fresh snapshot supersedes any prior round-local / terminal state.
       state.results = null;
-      // ...except the revealed Place-on-Image targets, which the snapshot itself
-      // carries during REVEAL_RESULTS so a late joiner discloses them despite
-      // never reconstructing a RoundResults. Null on every other phase/kind.
+      // ...except the revealed Place-on-Image / Allocation targets, which the
+      // snapshot itself carries during REVEAL_RESULTS so a late joiner discloses
+      // them despite never reconstructing a RoundResults. Null on every other
+      // phase/kind.
       state.placeTargets = s.placeTargets ?? null;
+      state.allocationTargets = s.allocationTargets ?? null;
       state.finalScoreboard = null;
       state.cancelReason = null;
       // The snapshot is authoritative for everything up to its own sequence, so
@@ -352,6 +371,7 @@ function applyEvent(state: LiveSessionState, e: SessionEvent) {
       state.myFollowUpOptionId = null;
       state.results = null;
       state.placeTargets = null;
+      state.allocationTargets = null;
       state.phase = "SUBMIT";
       break;
     case "LiveResultsShown":
@@ -407,12 +427,14 @@ function applyEvent(state: LiveSessionState, e: SessionEvent) {
         scoreboard: e.scoreboard,
         drawings: e.drawings ?? null,
         placeTargets: e.placeTargets ?? null,
+        allocationTargets: e.allocationTargets ?? null,
         terminal: e.terminal,
       };
       // Mirror the reveal into the snapshot seam too, so both live and
       // late-joining clients read targets from the same field (the
       // component prefers `results.placeTargets` but falls back here).
       state.placeTargets = e.placeTargets ?? null;
+      state.allocationTargets = e.allocationTargets ?? null;
       // The reveal's durable counts supersede the live tally only when the
       // kind is durably tallied at all — grid (and other non-MCQ) rounds
       // aren't yet (open-decisions D5), and wiping the live counts here
@@ -437,6 +459,7 @@ function applyEvent(state: LiveSessionState, e: SessionEvent) {
       state.myFollowUpOptionId = null;
       state.results = null;
       state.placeTargets = null;
+      state.allocationTargets = null;
       break;
     case "TimerPaused":
       if (e.slideId === state.currentSlideId) {

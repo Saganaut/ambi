@@ -6,6 +6,7 @@ import java.util.function.Function;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
@@ -55,7 +56,9 @@ import com.cephadex.ambi.presentation.slide.enums.SlideType;
  * (the display bounds + unit suffix, never {@code answer}, {@code scoreMode}, or
  * {@code tolerance}); a Place-on-image slide carries {@link PlaceOnImageConfigView}
  * (the backing image and items only, never {@code correctPositions},
- * {@code tolerance} or {@code scoreMode}); each
+ * {@code tolerance} or {@code scoreMode}); an Allocation slide carries
+ * {@link AllocationConfigView} (the options + the point pool, never
+ * {@code correctAllocations} or {@code tolerancePerOption}); each
  * is {@code null} for every other kind.
  *
  * <p>A follow-up slide carries {@link FollowUpConfigView} — the one config that is
@@ -86,6 +89,7 @@ public record SlideView(
         TextConfigView text,
         NumberConfigView number,
         PlaceOnImageConfigView placeOnImage,
+        AllocationConfigView allocation,
         FollowUpConfigView followUp,
         boolean hasFollowUp,
         AnswerSettingsView answerSettings) {
@@ -125,6 +129,7 @@ public record SlideView(
         TextConfigView text = null;
         NumberConfigView number = null;
         PlaceOnImageConfigView placeOnImage = null;
+        AllocationConfigView allocation = null;
         SlideType contentType = null;
         if (content != null) {
             contentType = content.contentType();
@@ -161,6 +166,9 @@ public record SlideView(
             if (content instanceof PlaceOnImageContent placeContent) {
                 placeOnImage = PlaceOnImageConfigView.from(placeContent, imageUrl);
             }
+            if (content instanceof AllocationContent allocationContent) {
+                allocation = AllocationConfigView.from(allocationContent, imageUrl);
+            }
         }
         return new SlideView(
                 slide.getId(),
@@ -181,6 +189,7 @@ public record SlideView(
                 text,
                 number,
                 placeOnImage,
+                allocation,
                 followUp,
                 hasFollowUp,
                 AnswerSettingsView.from(effectiveAnswer));

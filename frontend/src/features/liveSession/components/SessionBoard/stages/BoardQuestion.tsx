@@ -7,10 +7,11 @@
  * - results: Shows final distribution + highlights correct answer.
  * * Shared header (title + instructions). Body switches on `contentType`
  * (MCQ, Q&A, Grid, Axis, Scales, Matching, Drawing, Text, Number, Ranking,
- * Place-on-Image, Follow-up built; others fallback to placeholder).
+ * Place-on-Image, Allocation, Follow-up built; others fallback to placeholder).
  */
 import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import type { SlideView } from "../../../store/liveSessionApi.gen";
+import { AllocationBoardContent } from "../content/AllocationBoardContent/AllocationBoardContent";
 import { AxisBoardContent } from "../content/AxisBoardContent/AxisBoardContent";
 import { BoardContentPlaceholder } from "../content/BoardContentPlaceholder/BoardContentPlaceholder";
 import { DrawingBoardContent } from "../content/DrawingBoardContent/DrawingBoardContent";
@@ -77,6 +78,8 @@ const renderContent = (slide: SlideView, mode: BoardQuestionMode, interactive: b
       return <RankingBoardContent slide={slide} mode={mode} interactive={interactive} />;
     case "PLACE_ON_IMAGE":
       return <PlaceOnImageBoardContent slide={slide} mode={mode} interactive={interactive} />;
+    case "ALLOCATION":
+      return <AllocationBoardContent slide={slide} mode={mode} interactive={interactive} />;
     // A follow-up is a REGULAR round (never votable), so the `mode === "vote"`
     // short-circuit above can't divert it — the pick travels the answer path.
     case "FOLLOW_UP":

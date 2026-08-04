@@ -87,6 +87,20 @@ class AnswerTallyKeysTest {
     }
 
     @Test
+    void allocationContributesOneOptionAtPointsKeyPerOptionIncludingZeros() {
+        // Zero-point entries are kept: an option's keys then sum to the respondent count.
+        assertThat(AnswerTallyKeys.optionKeys(new AllocationAnswer(Map.of(
+                "opt-a", 6,
+                "opt-b", 0))))
+                .containsExactlyInAnyOrder("opt-a@6", "opt-b@0");
+    }
+
+    @Test
+    void allocationWithoutAllocationsContributesNoKeys() {
+        assertThat(AnswerTallyKeys.optionKeys(new AllocationAnswer(null))).isEmpty();
+    }
+
+    @Test
     void followUpContributesExactlyThePickedOptionId() {
         assertThat(AnswerTallyKeys.optionKeys(new FollowUpAnswer("opt-a")))
                 .containsExactly("opt-a");

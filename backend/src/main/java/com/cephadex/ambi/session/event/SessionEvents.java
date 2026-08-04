@@ -8,6 +8,7 @@ import java.util.function.Function;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.session.event.dto.AllocationTargetView;
 import com.cephadex.ambi.session.event.dto.DrawingSubmissionView;
 import com.cephadex.ambi.session.event.dto.FollowUpConfigView;
 import com.cephadex.ambi.session.event.dto.ParticipantView;
@@ -143,10 +144,12 @@ public final class SessionEvents {
      * builds the standings from the supplied roster. {@code drawings} is the
      * submitted-drawings gallery for a Drawing round, {@code null} otherwise;
      * {@code placeTargets} is the correct-location circles for a Place-on-image
-     * round, {@code null} otherwise.
+     * round, {@code null} otherwise; {@code allocationTargets} is the authored
+     * per-option point key for an Allocation round, {@code null} otherwise.
      */
     public static ResultsRevealed resultsRevealed(RoundResult result, List<Participant> roster,
-            List<DrawingSubmissionView> drawings, List<PlaceTargetView> placeTargets, boolean terminal) {
+            List<DrawingSubmissionView> drawings, List<PlaceTargetView> placeTargets,
+            List<AllocationTargetView> allocationTargets, boolean terminal) {
         return new ResultsRevealed(
                 result.id().slideId(),
                 List.copyOf(result.perParticipant()),
@@ -155,6 +158,7 @@ public final class SessionEvents {
                 scoreboard(roster),
                 drawings == null ? null : List.copyOf(drawings),
                 placeTargets == null ? null : List.copyOf(placeTargets),
+                allocationTargets == null ? null : List.copyOf(allocationTargets),
                 terminal);
     }
 
@@ -167,11 +171,12 @@ public final class SessionEvents {
      *
      * <p>Carries the live scoreboard and {@code terminal} so the board can still
      * reach the podium; the round-specific payloads (outcomes, counts, answer key,
-     * drawings, place targets) are empty or absent because no record exists.
+     * drawings, place targets, allocation targets) are empty or absent because no
+     * record exists.
      */
     public static ResultsRevealed resultsRevealedWithoutRecord(String slideId, List<Participant> roster,
             boolean terminal) {
-        return new ResultsRevealed(slideId, List.of(), Map.of(), null, scoreboard(roster), null, null, terminal);
+        return new ResultsRevealed(slideId, List.of(), Map.of(), null, scoreboard(roster), null, null, null, terminal);
     }
 
     /** The fresh reopened round, read off the just-saved state (slide id, phase, start, deadline). */

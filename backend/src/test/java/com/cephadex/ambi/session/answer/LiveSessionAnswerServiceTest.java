@@ -35,6 +35,7 @@ import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.deck.Settings.SlideSettings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
@@ -62,6 +63,7 @@ import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.presentation.slide.enums.Tool;
+import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
@@ -442,6 +444,71 @@ class LiveSessionAnswerServiceTest {
                 .isInstanceOf(ValidationException.class);
     }
 
+    // ── Allocation ───────────────────────────────────────────────────────────
+
+    @Test
+    void allocationSplitsBypassTheSingleAnswerRule() {
+        givenLiveSession(answerSettings(true, 1), allocationContent());
+
+        service.submit(SID, request(new AllocationAnswer(java.util.Map.of("opt-a", 6, "opt-b", 4))), registered);
+
+        // Like grid/axis/scales/matching, an allocation resubmit must overwrite rather
+        // than lock on first submit, so the orchestrator is called with 0 (last-write-wins).
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(AllocationAnswer.class), eq(0));
+    }
+
+    @Test
+    void allocationEmptyAllocationsAreRejected() {
+        givenLiveSession(answerSettings(true, 1), allocationContent());
+
+        assertThatThrownBy(() -> service.submit(SID, request(new AllocationAnswer(java.util.Map.of())), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void allocationUnknownOptionIsRejected() {
+        givenLiveSession(answerSettings(true, 1), allocationContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AllocationAnswer(java.util.Map.of("opt-nope", 10))), registered))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void allocationOutsideThePointPoolIsRejected() {
+        givenLiveSession(answerSettings(true, 1), allocationContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AllocationAnswer(java.util.Map.of("opt-a", -4, "opt-b", 14))), registered))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AllocationAnswer(java.util.Map.of("opt-a", 11, "opt-b", -1))), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void allocationThatDoesNotSpendTheWholePoolIsRejected() {
+        givenLiveSession(answerSettings(true, 1), allocationContent());
+
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AllocationAnswer(java.util.Map.of("opt-a", 3, "opt-b", 4))), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void allocationSpendingTheWholePoolOnOneOptionIsAccepted() {
+        givenLiveSession(answerSettings(true, 1), allocationContent());
+
+        service.submit(SID, request(new AllocationAnswer(java.util.Map.of("opt-a", 10))), registered);
+
+        verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
+                any(AllocationAnswer.class), eq(0));
+    }
+
     // ── Q&A ────────────────────────────────────────────────────────────────────
 
     @Test
@@ -769,6 +836,16 @@ class LiveSessionAnswerServiceTest {
                 List.of(new MatchItem("right-1", "Uno", null, null), new MatchItem("right-2", "Dos", null, null)),
                 java.util.Map.of(),
                 ScoreMode.EXACT);
+    }
+
+    /** A two-option slide with a ten-point pool to split. */
+    private static AllocationContent allocationContent() {
+        return new AllocationContent(
+                List.of(new McqOption("opt-a", null, "One", null, null),
+                        new McqOption("opt-b", null, "Two", null, null)),
+                java.util.Map.of("opt-a", 6, "opt-b", 4),
+                10,
+                1);
     }
 
     /** A pen+eraser drawing slide with a one-color palette and no prompt image. */

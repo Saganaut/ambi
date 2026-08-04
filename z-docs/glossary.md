@@ -41,7 +41,7 @@ Domain terms used throughout Ambi. Add an entry when you introduce a concept tha
 | **RoundPhase** | `SUBMIT` → (`SUBMIT_LIVE`) → `LOCKED`/`REVEAL_RESPONSES` → `REVEAL_RESULTS`. A voting round branches instead: `SUBMIT`/`SUBMIT_LIVE` → `VOTE` → `REVEAL_RESULTS`, which is `VOTE`'s only exit. `VOTE` is the *current* round's own best-answer/deception voting — distinct from Best Answer mode below. |
 | **Round timer / deadline** | A round's auto-close instant, `roundStartedAt + durationMs + accumulatedPauseMs`, set only when the resolved `countdownTime` is positive. A leader-elected scheduler drains a Redis ZSET and fires the same close a host click does. See [ADR 002](decisions/002-live-session-round-timers.md). |
 | **Best Answer mode** | `FollowUpMode.BEST_ANSWER_VOTE`: a follow-up round where participants pick the best submission from the parent round. Runs as an ordinary round and never enters `RoundPhase.VOTE`. |
-| **Board** | The shared host/projector screen (`SessionBoard`), which renders the open round per content type. `ALLOCATION` is the only interactive kind still on the generic placeholder. |
+| **Board** | The shared host/projector screen (`SessionBoard`), which renders the open round per content type. Every interactive slide kind has a dedicated view. |
 | **Tally** | The running per-option submission count for a live round — a Redis hash bumped with `HINCRBY`, deliberately outside the `LiveRoundState` snapshot so submits stay lock-free. |
 
 ## Data

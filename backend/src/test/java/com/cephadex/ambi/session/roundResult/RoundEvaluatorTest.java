@@ -12,6 +12,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.GridContent;
@@ -29,6 +30,7 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Axis
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.GridItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchMode;
+import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.McqOption;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.RankItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlaceItem;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
@@ -37,6 +39,7 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Scor
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
 import com.cephadex.ambi.session.SessionTypes.ParticipantOutcome;
 import com.cephadex.ambi.session.answer.Answer;
+import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
@@ -213,6 +216,37 @@ class RoundEvaluatorTest {
 
         AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
                 List.of(answer("p", new ScalesAnswer(Map.of("st-1", 0.5)), 10)), START).get(0);
+
+        assertThat(eval.correct()).isFalse();
+        assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
+    }
+
+    @Test
+    void allocationWithinTolerancePerOptionGradesCorrect() {
+        // Pool of 10 split 6/4, ±1 per option.
+        Slide slide = slideWith(allocation(Map.of("opt-a", 6, "opt-b", 4), 1));
+
+        assertThat(gradeOne(slide, new AllocationAnswer(Map.of("opt-a", 6, "opt-b", 4)))).isTrue();
+        // Boundary: exactly ± tolerance on each option still counts.
+        assertThat(gradeOne(slide, new AllocationAnswer(Map.of("opt-a", 7, "opt-b", 3)))).isTrue();
+    }
+
+    @Test
+    void allocationOutsideToleranceOnOneOptionGradesWrong() {
+        Slide slide = slideWith(allocation(Map.of("opt-a", 6, "opt-b", 4), 1));
+
+        // opt-a is 2 off its target — one option outside tolerance fails the whole answer.
+        assertThat(gradeOne(slide, new AllocationAnswer(Map.of("opt-a", 8, "opt-b", 2)))).isFalse();
+        // A keyed option missing from the allocations reads as 0, which is also outside.
+        assertThat(gradeOne(slide, new AllocationAnswer(Map.of("opt-a", 6)))).isFalse();
+    }
+
+    @Test
+    void allocationWithEmptyKeyGradesWrongForEveryone() {
+        Slide slide = slideWith(allocation(Map.of(), 1));
+
+        AnswerEvaluation eval = RoundEvaluator.evaluate(slide,
+                List.of(answer("p", new AllocationAnswer(Map.of("opt-a", 10)), 10)), START).get(0);
 
         assertThat(eval.correct()).isFalse();
         assertThat(eval.choice()).isNull(); // map-shaped: not tallied as a single choice
@@ -556,6 +590,13 @@ class RoundEvaluatorTest {
                 .map(id -> new PlaceItem(id, id, null, null))
                 .toList();
         return new PlaceOnImageContent(null, items, correctPositions, tolerance, ScoreMode.INSIDE_RADIUS);
+    }
+
+    private static AllocationContent allocation(Map<String, Integer> correctAllocations, int tolerancePerOption) {
+        return new AllocationContent(
+                List.of(new McqOption("opt-a", null, "One", null, null),
+                        new McqOption("opt-b", null, "Two", null, null)),
+                correctAllocations, 10, tolerancePerOption);
     }
 
     private static ScalesContent scales(Map<String, Double> correctValues, double tolerance) {

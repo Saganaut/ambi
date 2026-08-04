@@ -47,7 +47,7 @@ scaffold or schema only. Per-feature detail lives in [features](features/README.
 | Deck analytics | *Stub* — rollup records only, no repository, service, or caller |
 | Live session lifecycle | *Solid* — create, join, start, reconnect, heartbeat, end, cancel; Redis runtime, Mongo projection |
 | Rounds & phases | *Solid* — submit → locked → reveal; timers with pause/resume and host-disconnect grace ([ADR 002](decisions/002-live-session-round-timers.md)) |
-| Host board | *Partial* — dedicated views for 12 content types; `ALLOCATION` is the only interactive kind still on the placeholder |
+| Host board | *Solid* — dedicated views for all 13 interactive content types |
 | Realtime transport | *Solid* — STOMP over WebSocket, broadcast-only; writes go over REST |
 | Presenter mode, chat, reactions | *Stub* — route and components scaffolded only |
 | Audience join | *Partial* — QR and room code work, but the session route is registered-only, so the guest path isn't end to end |

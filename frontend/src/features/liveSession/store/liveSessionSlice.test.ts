@@ -119,6 +119,7 @@ describe("liveSessionSlice", () => {
         ],
         drawings: null,
         placeTargets: null,
+        allocationTargets: null,
         terminal: true,
       },
     ];
@@ -370,6 +371,7 @@ describe("liveSessionSlice", () => {
           scoreboard: [],
           drawings: null,
           placeTargets: null,
+          allocationTargets: null,
           terminal: false,
         },
       ),

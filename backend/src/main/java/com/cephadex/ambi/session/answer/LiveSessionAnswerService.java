@@ -21,6 +21,7 @@ import com.cephadex.ambi.media.storage.ImageIngestService;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.content.AllocationContent;
 import com.cephadex.ambi.presentation.slide.content.AxisContent;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
@@ -38,6 +39,7 @@ import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.Plac
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.dto.SubmitVoteRequest;
+import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
 import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
@@ -165,17 +167,18 @@ public class LiveSessionAnswerService {
         }
 
         // `maxSelections` is an MCQ knob (how many options one pick may span). A
-        // grid, axis, scales, matching, drawing, or text submission is one whole
-        // artifact, so the deck default of 1 must not make the first submission
-        // final — these resubmits overwrite (last write before close wins), like
-        // a multi-select MCQ change. A follow-up pick joins them for the same
-        // reason: it is a vote, re-castable until the round closes, so the deck
-        // default must not freeze the first pick.
+        // grid, axis, scales, matching, allocation, drawing, or text submission is
+        // one whole artifact, so the deck default of 1 must not make the first
+        // submission final — these resubmits overwrite (last write before close
+        // wins), like a multi-select MCQ change. A follow-up pick joins them for
+        // the same reason: it is a vote, re-castable until the round closes, so
+        // the deck default must not freeze the first pick.
         int effectiveMaxSelections = request.payload() instanceof GridAnswer
                 || request.payload() instanceof AxisAnswer
                 || request.payload() instanceof PlaceOnImageAnswer
                 || request.payload() instanceof ScalesAnswer
                 || request.payload() instanceof MatchingAnswer
+                || request.payload() instanceof AllocationAnswer
                 || request.payload() instanceof DrawingAnswer
                 || request.payload() instanceof FollowUpAnswer
                 || request.payload() instanceof TextAnswer ? 0 : maxSelections;
@@ -235,6 +238,9 @@ public class LiveSessionAnswerService {
         if (content instanceof MatchingContent matching && payload instanceof MatchingAnswer ans) {
             validateMatching(matching, ans);
         }
+        if (content instanceof AllocationContent allocation && payload instanceof AllocationAnswer ans) {
+            validateAllocation(allocation, ans);
+        }
         if (content instanceof DrawingContent && payload instanceof DrawingAnswer ans) {
             validateDrawing(sessionId, participantId, ans);
         }
@@ -287,6 +293,40 @@ public class LiveSessionAnswerService {
             if (!claimed.add(match.getValue())) {
                 throw new ValidationException("a card may only be matched once");
             }
+        }
+    }
+
+    /**
+     * An allocation submission must spend the whole pool across the slide's own
+     * options: every key an option on the slide, every value within
+     * {@code [0, totalPointsToAllocate]}, and the values summing to
+     * {@code totalPointsToAllocate} exactly. Unlike the partial-map kinds, the
+     * exact sum is required — splits are only comparable across participants when
+     * everyone spent the same pool, and grading against {@code correctAllocations}
+     * assumes it.
+     */
+    private void validateAllocation(AllocationContent content, AllocationAnswer answer) {
+        Map<String, Integer> allocations = answer.allocations();
+        if (allocations == null || allocations.isEmpty()) {
+            throw new ValidationException("points must be allocated");
+        }
+        Set<String> optionIds = content.options() == null ? Set.of()
+                : content.options().stream()
+                        .map(option -> option.id())
+                        .collect(Collectors.toSet());
+        int total = 0;
+        for (Map.Entry<String, Integer> allocation : allocations.entrySet()) {
+            if (!optionIds.contains(allocation.getKey())) {
+                throw new ValidationException("allocated option is not on the slide");
+            }
+            Integer points = allocation.getValue();
+            if (points == null || points < 0 || points > content.totalPointsToAllocate()) {
+                throw new ValidationException("allocation is outside the point pool");
+            }
+            total += points;
+        }
+        if (total != content.totalPointsToAllocate()) {
+            throw new ValidationException("the whole point pool must be allocated");
         }
     }
 

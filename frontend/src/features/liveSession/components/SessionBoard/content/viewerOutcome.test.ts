@@ -22,6 +22,7 @@ const results = (overrides: Partial<RoundResults> = {}): RoundResults => ({
   scoreboard: [],
   drawings: null,
   placeTargets: null,
+  allocationTargets: null,
   terminal: false,
   ...overrides,
 });

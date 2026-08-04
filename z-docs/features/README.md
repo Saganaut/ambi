@@ -8,6 +8,7 @@ doc itself, where they can be kept current.
 
 ## Existing
 
+- [Allocation Slides](allocation-slides/README.md) — players split a fixed point pool across options, graded within a per-slide tolerance of the authored target split.
 - [Axis Slides](axis-slides/README.md) — free-form 2D placement: items placed anywhere on a labeled X × Y plane, graded by distance to author-set targets.
 - [Place-on-Image Slides](place-on-image/README.md) — Axis's sibling: players pin points on a backing image, graded by distance to author-set target circles.
 - [Drawing Slides](drawing-slide/README.md) — players freehand-draw on a shared square canvas and submit a rendered PNG.
