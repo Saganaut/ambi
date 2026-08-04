@@ -1,6 +1,7 @@
 package com.cephadex.ambi.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +38,9 @@ import com.cephadex.ambi.session.redis.SessionKeys;
  * points at — the properties this change exists for can only be shown with both:
  * concurrent joins all succeed (they used to lose the fail-fast session lock and
  * 409 with {@code SESSION_LOCKED}), the participant cap still holds exactly under
- * that concurrency, an evicted Redis set rehydrates instead of failing the
- * request, and join order survives into the roster listing.
+ * that concurrency <em>and</em> across a rehydrate from either entry point, an
+ * evicted Redis set rehydrates instead of failing the request, a refused join
+ * strands nothing in the set, and join order survives into the roster listing.
  */
 @SpringBootTest(classes = AmbiApplication.class)
 @ActiveProfiles("test")
@@ -132,12 +134,56 @@ class LiveSessionRosterIT {
 
         // Membership still resolves — the miss falls back to the durable documents…
         assertThat(roster.contains(session.getId(), early.getParticipantId())).isTrue();
-        // …and heals the set, so the next join's cap check counts the real roster.
+        // …and heals the set whole (host included), so the next join's cap check
+        // counts the real roster rather than the one member that happened to ask.
         assertThat(redis.opsForSet().isMember(keys.rosterKey(session.getId()), early.getParticipantId())).isTrue();
+        assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo(2L);
 
-        redis.delete(keys.rosterKey(session.getId()));
         orchestrator.join(session.getRoomCode(), "user-late", "Late", null, null);
         assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo(3L);
+    }
+
+    @Test
+    void theCapStillHoldsAfterAContainsHealRebuiltTheSet() {
+        int cap = 3;
+        LiveSession session = openSession(cap);
+        Participant early = orchestrator.join(session.getRoomCode(), "user-early", "Early", null, null).participant();
+
+        redis.delete(keys.rosterKey(session.getId()));
+        assertThat(roster.contains(session.getId(), early.getParticipantId())).isTrue();
+
+        // The healed set carries host + early, so only the last seat is left: one
+        // more join fits and the one after it is refused. A single-member heal would
+        // have re-created the key undercounting by the host and let both in.
+        orchestrator.join(session.getRoomCode(), "user-last", "Last", null, null);
+        assertThatThrownBy(() -> orchestrator.join(session.getRoomCode(), "user-over", "Over", null, null))
+                .isInstanceOfSatisfying(ConflictException.class,
+                        full -> assertThat(full.getCode()).isEqualTo("SESSION_FULL"));
+        assertThat(roster.participants(session.getId())).hasSize(cap);
+    }
+
+    @Test
+    void aRehydratingJoinTakesTheLastSeatAndARejectedOneStrandsNothing() {
+        int cap = 3;
+        LiveSession session = openSession(cap);
+        orchestrator.join(session.getRoomCode(), "user-early", "Early", null, null);
+
+        // Host + early are durable with one seat free, and the set is gone: the
+        // rehydrate must not count the joiner whose document it is about to admit.
+        redis.delete(keys.rosterKey(session.getId()));
+        orchestrator.join(session.getRoomCode(), "user-last", "Last", null, null);
+        assertThat(roster.participants(session.getId())).hasSize(cap);
+        assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
+
+        // Now full, and rehydrating again: the refusal rolls back the document and
+        // leaves no phantom member inflating the set for the rest of its TTL.
+        redis.delete(keys.rosterKey(session.getId()));
+        assertThatThrownBy(() -> orchestrator.join(session.getRoomCode(), "user-over", "Over", null, null))
+                .isInstanceOfSatisfying(ConflictException.class,
+                        full -> assertThat(full.getCode()).isEqualTo("SESSION_FULL"));
+        assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
+        assertThat(mongoTemplate.count(new Query(Criteria.where("session_id").is(session.getId())),
+                Participant.class)).isEqualTo(cap);
     }
 
     @Test

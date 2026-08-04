@@ -1,5 +1,6 @@
 package com.cephadex.ambi.session.participant;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -97,12 +98,19 @@ public class SessionRoster {
      * {@code maxParticipants}. The participant's document must already be saved —
      * this only records the membership.
      *
+     * <p>The joiner's own document is already durable when this runs, so the
+     * rehydrate that precedes the cap check excludes {@code participantId} —
+     * counting it would seed the set with the very member the script is about to
+     * add and reject the last free seat.
+     *
      * @return {@code true} when admitted; {@code false} when the session is full
      *         (nothing added, nothing published)
+     * @throws IllegalStateException if the script returns no reply (a Redis
+     *                               failure, not a full session)
      */
     public boolean admit(String sessionId, String publicId, String participantId, int maxParticipants,
             SessionEvent event) {
-        rehydrateIfMissing(sessionId);
+        rehydrateIfMissing(sessionId, participantId);
         SessionEventPayload payload = SessionEventPayload.of(codec, publicId, event);
         Long sequence = redis.execute(ADMIT,
                 List.of(keys.rosterKey(sessionId), keys.eventSequenceKey(publicId)),
@@ -113,7 +121,10 @@ public class SessionRoster {
                 props.getEvents().getChannel(),
                 payload.prefix(),
                 payload.suffix());
-        return sequence != null && sequence > 0;
+        if (sequence == null) {
+            throw new IllegalStateException("roster admit script returned no reply for session " + sessionId);
+        }
+        return sequence > 0;
     }
 
     /** Drops a participant from the live membership (an explicit leave). */
@@ -126,6 +137,12 @@ public class SessionRoster {
      * miss is re-checked against MongoDB and healed back into the set, so an
      * evicted key costs one slower read instead of locking a participant out of
      * their own session.
+     *
+     * <p>The heal rebuilds the <em>whole</em> set, not just the member asked
+     * about: a lone {@code SADD} would re-create the key with one id, and
+     * {@link #rehydrateIfMissing} — which only seeds an absent key — could never
+     * repair it again, so every later {@link #admit} would check its cap against a
+     * set missing everyone who did not happen to call this method.
      */
     public boolean contains(String sessionId, String participantId) {
         if (Boolean.TRUE.equals(redis.opsForSet().isMember(keys.rosterKey(sessionId), participantId))) {
@@ -134,6 +151,7 @@ public class SessionRoster {
         if (!participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(participantId, sessionId)) {
             return false;
         }
+        rehydrateIfMissing(sessionId, null);
         add(sessionId, participantId);
         return true;
     }
@@ -148,21 +166,27 @@ public class SessionRoster {
      * check that follows counts the real membership. Idempotent: {@code SADD} of
      * an existing member is a no-op, so a concurrent join can't be undone by a
      * rehydrate that overlaps it.
+     *
+     * @param excludeParticipantId a joiner whose document is already durable but
+     *                             who has not been admitted yet, so the cap check
+     *                             does not count them twice; {@code null} to seed
+     *                             the roster whole
      */
-    private void rehydrateIfMissing(String sessionId) {
+    private void rehydrateIfMissing(String sessionId, String excludeParticipantId) {
         String key = keys.rosterKey(sessionId);
         if (Boolean.TRUE.equals(redis.hasKey(key))) {
             return;
         }
-        List<Participant> durable = participants(sessionId);
-        if (durable.isEmpty()) {
+        List<String> ids = new ArrayList<>();
+        for (Participant participant : participants(sessionId)) {
+            if (!participant.getParticipantId().equals(excludeParticipantId)) {
+                ids.add(participant.getParticipantId());
+            }
+        }
+        if (ids.isEmpty()) {
             return;
         }
-        String[] ids = new String[durable.size()];
-        for (int i = 0; i < ids.length; i++) {
-            ids[i] = durable.get(i).getParticipantId();
-        }
-        redis.opsForSet().add(key, ids);
+        redis.opsForSet().add(key, ids.toArray(String[]::new));
         redis.expire(key, props.getRoster().getTtl());
     }
 }

@@ -917,8 +917,28 @@ class LiveSessionOrchestratorTest {
         assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("participant limit");
-        // The speculative insert is rolled back rather than left orphaned.
-        verify(participants).delete(any(Participant.class));
+        // The speculative insert is rolled back rather than left orphaned, and the
+        // roster member goes with it. Document first: a rehydrate racing the rollback
+        // then reads Mongo after the delete and can't re-seed the id the SREM drops.
+        InOrder rollback = inOrder(participants, roster);
+        rollback.verify(participants).delete(any(Participant.class));
+        rollback.verify(roster).remove(eq(SID), anyString());
+        verify(presenceStore, never()).save(anyString(), anyString(), any());
+    }
+
+    @Test
+    void joinRollsTheRosterBackWhenTheAdmitScriptBlowsUp() {
+        joinableSession();
+        // A connection failure reading the reply can leave the member added and the
+        // join published, so the rollback has to drop it from the set too.
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any()))
+                .thenThrow(new IllegalStateException("no reply"));
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isInstanceOf(IllegalStateException.class);
+        InOrder rollback = inOrder(participants, roster);
+        rollback.verify(participants).delete(any(Participant.class));
+        rollback.verify(roster).remove(eq(SID), anyString());
         verify(presenceStore, never()).save(anyString(), anyString(), any());
     }
 
@@ -930,6 +950,7 @@ class LiveSessionOrchestratorTest {
         assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
                 .isInstanceOf(ConflictException.class);
         verify(participants).delete(any(Participant.class));
+        verify(roster).remove(eq(SID), anyString());
     }
 
     /** A live session reachable by room code, with nothing roster-related stubbed. */

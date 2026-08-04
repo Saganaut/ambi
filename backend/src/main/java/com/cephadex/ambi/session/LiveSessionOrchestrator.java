@@ -377,7 +377,8 @@ public class LiveSessionOrchestrator {
      *
      * <p>The participant document is written before the roster admits it, so a
      * client can never see a join announced for a player it can't load; a rejected
-     * join deletes the document it speculatively wrote.
+     * join rolls back both the document it speculatively wrote and any roster
+     * membership the script managed to record ({@link #rollbackJoin}).
      *
      * <p>Terminality is decided on the room-code read. A session that ends in the
      * microseconds between that read and the admit can therefore still take one
@@ -407,16 +408,32 @@ public class LiveSessionOrchestrator {
             admitted = roster.admit(session.getId(), session.getPublicId(), participant.getParticipantId(),
                     maxParticipants(session), SessionEvents.participantJoined(participant));
         } catch (RuntimeException e) {
-            participants.delete(participant);
+            rollbackJoin(session, participant);
             throw e;
         }
         if (!admitted) {
-            participants.delete(participant);
+            rollbackJoin(session, participant);
             throw new ConflictException("SESSION_FULL", "this session has reached its participant limit");
         }
 
         presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
         return new JoinResult(session, participant);
+    }
+
+    /**
+     * Undoes a join that was not admitted — the cap refused it, or the admit blew
+     * up after the script may already have run. The Redis member is dropped as
+     * well as the document, because a failure between the {@code SADD} and the
+     * reply would otherwise leave a phantom inflating the cap for the set's whole
+     * TTL.
+     *
+     * <p>Order matters: the document goes first so a rehydrate racing this
+     * rollback reads Mongo <em>after</em> the delete and therefore never re-seeds
+     * the id the {@code SREM} is about to drop.
+     */
+    private void rollbackJoin(LiveSession session, Participant participant) {
+        participants.delete(participant);
+        roster.remove(session.getId(), participant.getParticipantId());
     }
 
     /**

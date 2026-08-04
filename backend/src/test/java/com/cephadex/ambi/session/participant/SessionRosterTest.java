@@ -1,6 +1,7 @@
 package com.cephadex.ambi.session.participant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -128,6 +129,40 @@ class SessionRosterTest {
         verify(redis).expire(ROSTER_KEY, Duration.ofHours(6));
     }
 
+    @Test
+    void admitLeavesTheJoinerOutOfTheRehydrateSoTheLastSeatIsStillFree() {
+        when(redis.hasKey(ROSTER_KEY)).thenReturn(false);
+        Participant host = participant();
+        Participant joining = participant();
+        // The joiner's document is saved before the admit, so the durable roster
+        // already lists them.
+        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID))
+                .thenReturn(List.of(host, joining));
+        when(redis.execute(ArgumentMatchers.<RedisScript<Long>>any(), anyList(),
+                any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(3L);
+
+        assertThat(roster.admit(SID, PUB, joining.getParticipantId(), 2,
+                SessionEvents.participantJoined(joining))).isTrue();
+
+        // Seeding the joiner would have the script count them before it adds them,
+        // making the effective cap one seat short on every rehydrate.
+        verify(sets).add(ROSTER_KEY, host.getParticipantId());
+    }
+
+    @Test
+    void admitFailsLoudlyWhenTheScriptReturnsNoReply() {
+        when(redis.hasKey(ROSTER_KEY)).thenReturn(true);
+        when(redis.execute(ArgumentMatchers.<RedisScript<Long>>any(), anyList(),
+                any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(null);
+
+        // A missing reply is a Redis failure, not a full session — reporting it as
+        // "full" would surface infrastructure trouble as a 409 SESSION_FULL.
+        assertThatThrownBy(() -> roster.admit(SID, PUB, P1, 2, SessionEvents.participantJoined(participant())))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     // ── contains ─────────────────────────────────────────────────────────────
 
     @Test
@@ -139,12 +174,35 @@ class SessionRosterTest {
     }
 
     @Test
-    void containsFallsBackToMongoAndHealsTheSetOnAMiss() {
+    void containsFallsBackToMongoAndRehydratesTheWholeSetOnAMiss() {
+        Participant host = participant();
+        Participant asking = participant();
+        when(sets.isMember(ROSTER_KEY, asking.getParticipantId())).thenReturn(false);
+        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(asking.getParticipantId(), SID))
+                .thenReturn(true);
+        when(redis.hasKey(ROSTER_KEY)).thenReturn(false);
+        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID)).thenReturn(List.of(host, asking));
+
+        assertThat(roster.contains(SID, asking.getParticipantId())).isTrue();
+
+        // The whole durable roster is seeded. Healing the asking member alone would
+        // re-create the key with one id, and rehydrateIfMissing only seeds an absent
+        // key — so every later admit would check its cap against a set missing
+        // everyone who never called contains.
+        verify(sets).add(ROSTER_KEY, host.getParticipantId(), asking.getParticipantId());
+    }
+
+    @Test
+    void containsHealsTheAskingMemberWhenTheKeyIsStillThere() {
         when(sets.isMember(ROSTER_KEY, P1)).thenReturn(false);
         when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(P1, SID)).thenReturn(true);
+        when(redis.hasKey(ROSTER_KEY)).thenReturn(true);
 
         assertThat(roster.contains(SID, P1)).isTrue();
+        // A live key can't be rebuilt wholesale (Redis can't say what it is missing),
+        // so the member that was asked for is put back on its own.
         verify(sets).add(ROSTER_KEY, P1);
+        verify(participants, never()).findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(anyString());
     }
 
     @Test
