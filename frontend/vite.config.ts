@@ -72,5 +72,14 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
+    // Persist every run to disk so a failure survives the terminal scrollback —
+    // the backend's Surefire reports are the equivalent. `junit` is the portable
+    // format for viewers; `json` is what scripts/test-report.sh summarises.
+    // See z-docs/runbooks/running-tests.md.
+    reporters: ["default", "junit", "json"],
+    outputFile: {
+      junit: "./test-results/junit.xml",
+      json: "./test-results/results.json",
+    },
   },
 });

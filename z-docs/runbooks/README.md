@@ -5,6 +5,7 @@ Step-by-step procedures with concrete commands — One file per procedure, named
 ## Index
 
 - [Running the project](running-the-project.md) — local startup, codegen, seeding, data inspection, screenshots.
+- [Running tests & reading the reports](running-tests.md) — both suites, where failures are written to disk, `scripts/test-report.sh`.
 - [Using Mongo Express](using-mongo-express.md) — browse and drop collections at `:8081`.
 - [Using the observability stack](using-the-observability-stack.md) — logging conventions and the `X-Request-Id`→`traceId` check.
 - [Dev login & app screenshots](dev-login-and-screenshots.md) — `POST /api/dev/login` and headless capture.

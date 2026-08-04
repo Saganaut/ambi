@@ -11,6 +11,7 @@ prod.env
 frontend/dist
 frontend/.tanstack
 frontend/.screenshots
+frontend/test-results
 
 ### JAVA BACKEND ###
 backend/HELP.md

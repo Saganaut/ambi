@@ -4,7 +4,9 @@ Test stacks for both layers and the local verification tiers.
 
 > Testing conventions (never change a test to make it pass, etc.) live in
 > [backend-rules](../rules/backend-rules.md) and
-> [frontend-rules](../rules/frontend-rules.md).
+> [frontend-rules](../rules/frontend-rules.md). Running the suites and reading
+> the failure reports they write to disk is the
+> [Running tests](../runbooks/running-tests.md) runbook.
 
 ## Backend (Spring Boot)
 
@@ -28,6 +30,10 @@ registers the custom matchers. Run `npm test` (watch) or `npm run test:run`
 (single pass). Co-locate tests with the component they cover
 (`Btn.test.tsx` next to `Btn.tsx`).
 
+Every run writes `frontend/test-results/{results.json,junit.xml}` (gitignored),
+mirroring the backend's Surefire reports so failures outlive the terminal —
+see [Running tests](../runbooks/running-tests.md).
+
 Visual verification of the running app goes through the Playwright screenshot
 harness — see
 [dev login & screenshots](../runbooks/dev-login-and-screenshots.md).
@@ -49,6 +55,9 @@ ln -sf ../../scripts/pre-push   .git/hooks/pre-push
 | **Push** — [`scripts/pre-push`](../../scripts/pre-push) | push to `main` | Both test suites (`npm run test:run`, `./mvnw test -q`). Other branches unaffected. |
 
 Each standalone script can also be run on its own at any time.
+[`scripts/test-report.sh`](../../scripts/test-report.sh) runs both suites outside the
+push tier and prints one consolidated failure list — `--summary` re-reads the last
+run without re-running it.
 
 Two mechanisms keep the heavy tier cheap: every JVM-heavy invocation is wrapped
 in `flock` on a shared `/tmp/ambi-backend-$USER.lock`, so concurrent agent
