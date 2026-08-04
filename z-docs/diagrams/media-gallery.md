@@ -123,6 +123,11 @@ frontend reads it with a plain authenticated `fetch` → `Blob`
 (`fetchGalleryImageFile` in `shared/utils/imageEditing.ts`). The response is
 cached `private` because the bytes are per-user authorized.
 
+That a crop lands as a **new gallery image** is the behaviour
+[Image Cropping](../features/image-cropping.md) is specified to replace: crop
+bytes become deck-owned placement data uploaded under `deck/{deckId}/`, so the
+gallery keeps only originals. This file describes what is built today.
+
 ## Opaque image proxy — URLs that hide their key
 
 `GET /api/media/opaque-image?t={token}` streams a stored object addressed by a

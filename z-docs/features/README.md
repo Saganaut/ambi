@@ -13,6 +13,7 @@ Per-feature design docs. One subfolder (or single file) per feature; each owns i
 - [Membership](membership/README.md) — Pricing page scaffolding and components.
 - [Exception Handling](exceptions.md) — Centralized RFC 9457 ProblemDetail error contract, ApiException hierarchy, 5xx disclosure policy, tiered 404-vs-403.
 - [Results Visualization](results-visualization.md) — Which chart suits which slide type, the ChartDatum/registry/adapter pipeline, and the still-missing visualizations (heatmap, diverging bar, image overlay, …) with build priority.
+- [Image Cropping](image-cropping.md) — Placement-only crops (spec): the gallery keeps originals, cropped bytes are uploaded into the deck's own `deck/{deckId}/` namespace via a new deck-scoped route, and `AppImage.metadata` carries crop provenance so re-crop reopens the original.
 - [Invite Settings](invite-settings.md) — Sharing-preferences model (room code in header, join info on results), design rationale, and where each flag is consumed during a live session.
 - [Code Connect](code-connect.md) — Figma Code Connect mappings for `Btn`/`IconBtn`, the config, property mapping, and the plan-gated publish steps.
 - [Missing Features](missing-features.md) — Running backlog of cross-cutting gaps and TODOs across features.
