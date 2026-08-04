@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/react/sortable";
 
 import { ChartSegmentRenderProps } from "@/shared/components/Charts/Chart.types";
 import { CorrectBadge } from "@/shared/components/Charts/CorrectBadge/CorrectBadge";
+import { AppImg } from "@components/Images/AppImg";
 import { numberToLetter } from "@/shared/utils/utils";
 import { PlusCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
@@ -71,7 +72,7 @@ const McqOptionEditable = ({
         <div className={styles.imgThumbnail} style={thumbnailSrc ? {} : { backgroundColor: color }}>
           {thumbnailSrc && (
             <>
-              <img src={thumbnailSrc} alt="" />
+              <AppImg src={thumbnailSrc} alt="" fallbackSeed={datum.id} />
               {onClearImage && (
                 <IconBtn
                   fill="ghost"

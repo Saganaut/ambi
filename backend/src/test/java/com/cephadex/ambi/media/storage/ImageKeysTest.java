@@ -44,6 +44,17 @@ class ImageKeysTest {
     }
 
     @Test
+    void deckPrefixBoundsOwnershipWithATrailingSlash() {
+        assertThat(ImageKeys.deckPrefix("deck-1")).isEqualTo("deck/deck-1/");
+        assertThat(ImageKeys.isOwnedByDeck("deck/deck-1/abc/original", "deck-1")).isTrue();
+        assertThat(ImageKeys.isOwnedByDeck("deck/deck-2/abc/original", "deck-1")).isFalse();
+        // The slash keeps a deck id that merely extends another out of its namespace.
+        assertThat(ImageKeys.isOwnedByDeck("deck/deck-12/abc/original", "deck-1")).isFalse();
+        assertThat(ImageKeys.isOwnedByDeck("gallery/abc/original", "deck-1")).isFalse();
+        assertThat(ImageKeys.isOwnedByDeck(null, "deck-1")).isFalse();
+    }
+
+    @Test
     void newDeckImagePrefixMintsUniquePrefixesTheKeySchemeCanDeriveFrom() {
         String prefix = ImageKeys.newDeckImagePrefix("deck-1");
 

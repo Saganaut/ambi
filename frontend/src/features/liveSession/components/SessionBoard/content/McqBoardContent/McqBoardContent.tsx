@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
+import { AppImg } from "@components/Images/AppImg";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { useCappedSelection } from "../useCappedSelection";
@@ -127,7 +128,7 @@ const McqBoardContent = ({ slide, mode, interactive }: McqBoardContentProps) => 
                 />
               )}
               {thumbnailSrc && (
-                <img className={styles.thumbnail} src={thumbnailSrc} alt='' />
+                <AppImg className={styles.thumbnail} src={thumbnailSrc} alt='' fallbackSeed={id} />
               )}
               <span className={styles.label}>{option.text}</span>
               {showResults && (

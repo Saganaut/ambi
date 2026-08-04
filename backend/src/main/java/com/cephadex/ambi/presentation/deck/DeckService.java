@@ -62,16 +62,19 @@ public class DeckService {
     private final SlideRankService rankService;
     private final DeckDefaultsProperties deckDefaults;
     private final RichTextSanitizer richTextSanitizer;
+    private final DeckImageLifecycleService imageLifecycle;
     private final ImageIngestService imageIngest;
 
     public DeckService(DeckRepository deckRepository, OrgRoleResolver orgRoles,
             SlideRankService rankService, DeckDefaultsProperties deckDefaults,
-            RichTextSanitizer richTextSanitizer, ImageIngestService imageIngest) {
+            RichTextSanitizer richTextSanitizer, DeckImageLifecycleService imageLifecycle,
+            ImageIngestService imageIngest) {
         this.deckRepository = deckRepository;
         this.orgRoles = orgRoles;
         this.rankService = rankService;
         this.deckDefaults = deckDefaults;
         this.richTextSanitizer = richTextSanitizer;
+        this.imageLifecycle = imageLifecycle;
         this.imageIngest = imageIngest;
     }
 
@@ -181,6 +184,7 @@ public class DeckService {
      */
     public Slide addSlide(String deckId, Slide slide, AmbiPrincipal principal) {
         Deck deck = getEditable(deckId, principal);
+        Set<String> beforeKeys = DeckImages.keys(deck);
         String userId = principal.userId();
         if (slide.getId() == null) {
             slide.setId(UUID.randomUUID().toString());
@@ -197,7 +201,9 @@ public class DeckService {
         slide.setSortOrder(rankService.after(deck.maxSortOrder()));
         deck.addSlide(slide);
         deck.resort();
+        imageLifecycle.adoptImages(deck);
         deckRepository.save(deck);
+        imageLifecycle.cleanupRemoved(deckId, beforeKeys, DeckImages.keys(deck));
         return slide;
     }
 
@@ -266,6 +272,7 @@ public class DeckService {
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
 
         requireValidContentTransition(deck, slide, changes.getContent());
+        Set<String> beforeKeys = DeckImages.keys(deck);
 
         slide.setTitle(changes.getTitle());
         slide.setSection(changes.getSection());
@@ -279,7 +286,9 @@ public class DeckService {
 
         deck.backfillRanks(rankService);
         deck.resort();
+        imageLifecycle.adoptImages(deck);
         deckRepository.save(deck);
+        imageLifecycle.cleanupRemoved(deckId, beforeKeys, DeckImages.keys(deck));
         return slide;
     }
 
@@ -408,28 +417,39 @@ public class DeckService {
                 .toList();
     }
 
-    /** Remove a slide from a deck (EDIT). */
+    /** Remove a slide from a deck (EDIT). Its deck-owned image objects are freed. */
     public void removeSlide(String deckId, String slideId, AmbiPrincipal principal) {
         Deck deck = getEditable(deckId, principal);
+        Set<String> beforeKeys = DeckImages.keys(deck);
         if (!deck.removeSlide(slideId)) {
             throw new NotFoundException("SLIDE_NOT_FOUND", "Slide not found");
         }
         deckRepository.save(deck);
+        imageLifecycle.cleanupRemoved(deckId, beforeKeys, DeckImages.keys(deck));
     }
 
     // ── Images ────────────────────────────────────────────────────────────────
     // Cover/background images get a dedicated home so attaching one is a single,
     // explicit operation — while a metadata/slide edit can never clobber them.
-    // These take a pre-resolved AppImage: bytes are ingested via the gallery
-    // upload route first, then the resulting AppImage is set here. PUT sets, the
-    // clear* methods null the slot. Slides are embedded, so a slide image change
-    // saves the whole deck, exactly like updateSlide.
+    // These take a pre-resolved AppImage: bytes are ingested either by the
+    // gallery upload route or by uploadImage below, then the resulting AppImage
+    // is set here. PUT sets, the clear* methods null the slot. Slides are
+    // embedded, so a slide image change saves the whole deck, exactly like
+    // updateSlide. Every set is a copy-on-select adoption and every
+    // clear/replace frees the deck-owned copy — see DeckImageLifecycleService.
 
     /**
      * Ingest raw image bytes straight into this deck's own key namespace (EDIT)
      * and hand back the bare {@link AppImage}. This is the placement-only
      * ingest: <strong>no {@code GalleryImage} is created and no gallery is
      * touched</strong> — the bytes are one slot's content, not a library item.
+     *
+     * <p>Because the keys are minted under {@code deck/{deckId}/} the deck's
+     * existing lifecycle owns them with no special casing: adoption skips them
+     * (already deck-owned), {@code cleanupRemoved} frees them when the placement
+     * is cleared or replaced, and deck delete sweeps them. Bytes are ingested
+     * before any slide save, so an abandoned edit orphans deck-prefix objects —
+     * the same trade-off adoption already makes.
      *
      * @throws NotFoundException   if the deck doesn't exist
      * @throws ForbiddenException  if the caller may not edit the deck
@@ -523,12 +543,17 @@ public class DeckService {
      */
     public Deck promoteBackgroundImageToDeck(String id, AppImage image, AmbiPrincipal principal) {
         Deck deck = getEditable(id, principal);
+        Set<String> beforeKeys = DeckImages.keys(deck);
+        // Adopt before the targeted update persists the image; promoting an
+        // already-adopted slide background is a no-op copy-wise.
+        imageLifecycle.adoptImage(id, image);
         deck.setBackgroundImage(image);
         deck.getSlides().forEach(s -> {
             s.setBackgroundImage(null);
             s.setHideBackground(false);
         });
         deckRepository.promoteBackgroundImageToDeck(id, image);
+        imageLifecycle.cleanupRemoved(id, beforeKeys, DeckImages.keys(deck));
         return deck;
     }
 
@@ -545,10 +570,21 @@ public class DeckService {
         return promoteBackgroundImageToDeck(id, null, principal);
     }
 
+    /**
+     * The shared load → mutate → adopt → save → cleanup pipeline behind the
+     * deck-level image (and background-color) writes: newly placed images are
+     * adopted into the deck's own S3 namespace before the save, and deck-owned
+     * objects whose placement the mutation removed are freed after it (see
+     * {@link DeckImageLifecycleService}).
+     */
     private Deck applyDeckImage(String id, AmbiPrincipal principal, Consumer<Deck> mutation) {
         Deck deck = getEditable(id, principal);
+        Set<String> beforeKeys = DeckImages.keys(deck);
         mutation.accept(deck);
-        return deckRepository.save(deck);
+        imageLifecycle.adoptImages(deck);
+        Deck saved = deckRepository.save(deck);
+        imageLifecycle.cleanupRemoved(id, beforeKeys, DeckImages.keys(deck));
+        return saved;
     }
 
     // ── Background color ──────────────────────────────────────────────────────
@@ -815,16 +851,20 @@ public class DeckService {
                 invite);
     }
 
+    /** The slide-level counterpart of {@link #applyDeckImage} (same image lifecycle). */
     private Slide applySlideMutation(String deckId, String slideId, AmbiPrincipal principal,
             Consumer<Slide> mutation) {
         Deck deck = getEditable(deckId, principal);
         Slide slide = deck.findSlide(slideId)
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
+        Set<String> beforeKeys = DeckImages.keys(deck);
         mutation.accept(slide);
         slide.setLastEditedByUserId(principal.userId());
         deck.backfillRanks(rankService);
         deck.resort();
+        imageLifecycle.adoptImages(deck);
         deckRepository.save(deck);
+        imageLifecycle.cleanupRemoved(deckId, beforeKeys, DeckImages.keys(deck));
         return slide;
     }
 
@@ -855,11 +895,15 @@ public class DeckService {
         return deckRepository.save(deck);
     }
 
-    /** Delete a deck (MANAGE capability). Embedded slides go with it. */
+    /**
+     * Delete a deck (MANAGE capability). Embedded slides go with it, and every
+     * S3 object under the deck's image namespace is freed afterwards (best-effort).
+     */
     public void delete(String id, AmbiPrincipal principal) {
         Deck deck = load(id);
         requireManage(deck, principal);
         deckRepository.delete(deck);
+        imageLifecycle.deleteAllImages(id);
     }
 
     // ── Listing ───────────────────────────────────────────────────────────────

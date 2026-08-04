@@ -101,7 +101,7 @@ const LineChartInner = ({
               style={{ left: `${xPct(index).toFixed(2)}%` }}
             >
               <div className={styles.optionControls}>
-                <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
+                <OptionImage src={datum.imageUrl} alt={datum.imageAlt} fallbackSeed={datum.id} />
                 {renderLabelWithMenu ? (
                   <>
                     {renderLabelWithMenu(datum)} {renderMenu?.(datum, menuAlignFor(index))}

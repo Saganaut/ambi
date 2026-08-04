@@ -29,6 +29,7 @@ import { useState, type CSSProperties, type HTMLProps, type ReactNode } from "re
 import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
 import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { AppImg } from "@components/Images/AppImg";
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { useFitText } from "@hooks/useFitText";
@@ -203,7 +204,7 @@ const PhraseOrImageCard = ({
                 aria-expanded={menuOpen}
               >
                 {thumbnailSrc ? (
-                  <img className={styles.imageThumbnail} src={thumbnailSrc} alt="" />
+                  <AppImg className={styles.imageThumbnail} src={thumbnailSrc} alt="" fallbackSeed={itemId} />
                 ) : (
                   <span className={styles.uploadHint}>
                     <PhotoIcon className={styles.uploadHintIcon} aria-hidden="true" />

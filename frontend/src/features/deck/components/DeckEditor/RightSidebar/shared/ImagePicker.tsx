@@ -5,6 +5,7 @@
 // caller owns the Image record and the pick/clear handlers (typically wired to
 // useGalleryPicker + a commit path).
 import { IconBtn } from "@ui/Buttons/IconBtn";
+import { AppImg } from "@components/Images/AppImg";
 import { XMarkIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { isImageEmpty, resolveImageUrl } from "@utils/image";
 import type { AppImage } from "@deck/store/deckApi.gen";
@@ -42,7 +43,7 @@ const ImagePicker = ({
           onClick={onPick}
           aria-label={`Pick ${label.toLowerCase()}`}>
           {hasImage && thumbnailSrc ? (
-            <img src={thumbnailSrc} alt='' />
+            <AppImg src={thumbnailSrc} alt='' fallbackSeed={seed} />
           ) :
             <div className={styles.imageTileEmpty} style={{ '--empty-background': `url(${(placeholderBackgroundImageUrl)})` } as React.CSSProperties}>
 

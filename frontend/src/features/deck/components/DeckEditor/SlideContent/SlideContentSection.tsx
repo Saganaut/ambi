@@ -1,29 +1,40 @@
 import { ReactNode } from "react";
 import styles from "./SlideWrapper.module.css";
-const SlideContentSection = ({ children }: { children: ReactNode }) => {
-  return <div className={styles.slideContentSection}>{children}</div>;
+
+interface BaseProps {
+  children: ReactNode;
+  className?: string;
+}
+
+const SlideContentSection = ({ children, className }: BaseProps) => {
+  const combinedClassName = [styles.slideContentSection, className].filter(Boolean).join(" ");
+
+  return <div className={combinedClassName}>{children}</div>;
 };
 
-const Header = ({ children }: { children: ReactNode }) => {
-  return <div className={styles.header}>{children}</div>;
+const Header = ({ children, className }: BaseProps) => {
+  const combinedClassName = [styles.header, className].filter(Boolean).join(" ");
+  return <div className={combinedClassName}>{children}</div>;
 };
 
-const Body = ({ children }: { children: ReactNode }) => {
-  return <div className={styles.sectionBody}>{children}</div>;
+const Body = ({ children, className }: BaseProps) => {
+  const combinedClassName = [styles.sectionBody, className].filter(Boolean).join(" ");
+
+  return <div className={combinedClassName}>{children}</div>;
 };
 
-const Footer = ({ children }: { children: ReactNode }) => {
-  return <div className={styles.footer}>{children}</div>;
+const Footer = ({ children, className }: BaseProps) => {
+  const combinedClassName = [styles.footer, className].filter(Boolean).join(" ");
+  return <div className={combinedClassName}>{children}</div>;
 };
 
 SlideContentSection.Header = Header;
 SlideContentSection.Body = Body;
 SlideContentSection.Footer = Footer;
 
-const SlideContent = ({ children }: { children: ReactNode }) => {
-  return <div className={styles.content}>{children}</div>;
+const SlideContent = ({ children, className }: BaseProps) => {
+  const combinedClassName = [styles.content, className].filter(Boolean).join(" ");
+  return <div className={combinedClassName}>{children}</div>;
 };
 
-export { SlideContentSection };
-
-export { SlideContent };
+export { SlideContent, SlideContentSection };

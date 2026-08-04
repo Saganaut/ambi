@@ -5,6 +5,7 @@ import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { AppImg } from "@components/Images/AppImg";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { ALLOCATION_OPTION_LABEL_MAX } from "@deck/hooks/useAllocationEditor";
 import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
@@ -109,7 +110,7 @@ const AllocationOptionEditable = ({
         />
         {thumbnailSrc && (
           <span className={styles.optionThumbnailWrap}>
-            <img className={styles.optionThumbnail} src={thumbnailSrc} alt="" />
+            <AppImg className={styles.optionThumbnail} src={thumbnailSrc} alt="" fallbackSeed={option.id} />
             <IconBtn
               fill="ghost"
               size="xs"

@@ -23,6 +23,7 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { formatScaleValue, positionToValue } from "@/shared/utils/scaleValue";
+import { AppImg } from "@components/Images/AppImg";
 import { AXIS_TALLY_BUCKETS, tallyTotalsBySlot } from "../answerTally";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { indexedLabel, labelOrFallback } from "../itemLabels";
@@ -124,7 +125,7 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
             >
               <div className={styles.statementFace}>
                 {item.imageUrl && (
-                  <img className={styles.statementImage} src={item.imageUrl} alt="" />
+                  <AppImg className={styles.statementImage} src={item.imageUrl} alt="" fallbackSeed={statementId} />
                 )}
                 <span className={styles.statementLabel}>{label}</span>
               </div>

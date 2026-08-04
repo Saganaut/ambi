@@ -71,6 +71,7 @@ const SortableListItem = ({
           src={datum.imageUrl}
           alt={datum.imageAlt}
           variant={orientation === "vertical" ? "barVertical" : "barHorizontal"}
+          fallbackSeed={datum.id}
         />
       </div>
       <span className={styles.value}>

@@ -2,6 +2,7 @@ import { AppImage } from "@/features/liveSession/store/liveSessionApi.gen";
 import DragIcon from "@assets/icons/action/drag.svg?react";
 
 import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
+import { AppImg } from "@/shared/components/Images/AppImg";
 import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
@@ -225,10 +226,11 @@ const ItemBankRow = (props: ItemBankRowProps) => {
       <div className={`${styles.collapsable} ${thumbnailSrc !== null ? styles.expanded : ""}`}>
         <span className={styles.thumbnailWrap}>
           {thumbnailSrc && (
-            <img
+            <AppImg
               className={styles.thumbnail}
               src={thumbnailSrc}
               alt={`Img Option ${displayIndex}`}
+              fallbackSeed={item.id}
             />
           )}
           <IconBtn

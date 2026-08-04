@@ -33,6 +33,7 @@ import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import type { PlaceItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { AppImg } from "@components/Images/AppImg";
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "@utils/placementGeometry";
@@ -190,7 +191,13 @@ const PlaceOnImageBoardContent = ({
           {/* The img is the box: block-level, full width, intrinsic ratio
               height, so the normalized overlay coordinates land where the grader
               measures. */}
-          <img className={styles.surfaceImage} src={imageUrl} alt="" draggable={false} />
+          <AppImg
+            className={styles.surfaceImage}
+            src={imageUrl}
+            alt=""
+            draggable={false}
+            fallbackSeed={slideId}
+          />
 
           {/* Live density scatter: a dot at each occupied bucket's centre, its
               size and opacity scaled by the bucket's share of the busiest one. */}

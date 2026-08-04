@@ -2,16 +2,19 @@ package com.cephadex.ambi.media.storage;
 
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -63,6 +66,64 @@ public class S3StorageService {
         } catch (S3Exception | java.io.IOException e) {
             throw new MediaStorageException("Failed to read object " + key, e);
         }
+    }
+
+    /** Server-side copy of a stored object to another key (overwrites). */
+    public void copy(String sourceKey, String destinationKey) {
+        try {
+            s3.copyObject(copyRequest(sourceKey, destinationKey));
+        } catch (S3Exception e) {
+            throw new MediaStorageException(
+                    "Failed to copy object " + sourceKey + " to " + destinationKey, e);
+        }
+    }
+
+    /**
+     * As {@link #copy}, but a missing source object is not an error: returns
+     * {@code false} and copies nothing, so callers can adopt an image whose
+     * bytes are already gone without failing the surrounding operation.
+     */
+    public boolean copyIfExists(String sourceKey, String destinationKey) {
+        try {
+            s3.copyObject(copyRequest(sourceKey, destinationKey));
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            throw new MediaStorageException(
+                    "Failed to copy object " + sourceKey + " to " + destinationKey, e);
+        }
+    }
+
+    private CopyObjectRequest copyRequest(String sourceKey, String destinationKey) {
+        return CopyObjectRequest.builder()
+                .sourceBucket(bucket)
+                .sourceKey(sourceKey)
+                .destinationBucket(bucket)
+                .destinationKey(destinationKey)
+                .build();
+    }
+
+    /** Every stored key under {@code prefix} (paginated list, may be empty). */
+    public List<String> listKeys(String prefix) {
+        try {
+            List<String> keys = new ArrayList<>();
+            s3.listObjectsV2Paginator(
+                    ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
+                    .contents()
+                    .forEach(object -> keys.add(object.key()));
+            return keys;
+        } catch (S3Exception e) {
+            throw new MediaStorageException("Failed to list objects under " + prefix, e);
+        }
+    }
+
+    /** Delete every stored object under {@code prefix} (idempotent). */
+    public void deletePrefix(String prefix) {
+        delete(listKeys(prefix));
     }
 
     /**

@@ -8,11 +8,16 @@
 
 /* ─── Scale settings card ─────────────────────────────────────────────── */
 
+/* Need to find a container to have this adjust to or smarter flex handling */
+.scaleSection {
+  max-width: 500px;
+}
+
 .scaleGrid {
-  display: grid;
-  grid-template-columns: 1fr minmax(0, 1.1fr) 1fr;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--gap-md);
+  gap: var(--gap-sm);
 }
 
 @container (width <= 560px) {
@@ -27,20 +32,23 @@
 
   display: flex;
   flex-direction: column;
+  width: 100%;
   gap: var(--gap-sm);
   padding: var(--p-square-sm);
-  border: var(--border-size-sm) solid var(--endpoint-accent);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
 
   &.endpointLeft {
-    --endpoint-accent: var(--bg-primary);
+    --endpoint-accent: var(--action-hover);
 
+    border: 1px solid var(--action-hover);
     background-color: var(--bg-secondary);
   }
 
   &.endpointRight {
     --endpoint-accent: var(--border-brand);
 
+    border: 1px solid var(--text-brand);
     background-color: var(--bg-surface-raised);
   }
 }
@@ -115,8 +123,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--gap-sm);
+  gap: var(--gap-xs);
   min-width: 0;
+  width: 100%;
   padding: 0 var(--gap-xs);
 }
 
@@ -132,15 +141,15 @@
 .trackLine {
   position: absolute;
   inset-inline: var(--space-1);
-  height: var(--border-size-sm);
+  height: var(--border-size-lg);
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--bg-primary), var(--border-brand));
+  background: linear-gradient(90deg, var(--action-hover), var(--text-brand));
 }
 
 .trackDot {
   position: relative;
-  width: var(--space-2);
-  height: var(--space-2);
+  width: var(--space-3);
+  height: var(--space-3);
   border-radius: var(--radius-full);
   background-color: var(--border-default);
   opacity: 0.4;
@@ -148,17 +157,15 @@
 
 .trackDotStart,
 .trackDotEnd {
-  width: var(--space-3);
-  height: var(--space-3);
   opacity: 1;
 }
 
 .trackDotStart {
-  background-color: var(--bg-primary);
+  background-color: var(--action-hover);
 }
 
 .trackDotEnd {
-  background-color: var(--border-brand);
+  background-color: var(--text-brand);
 }
 
 .trackCaption {

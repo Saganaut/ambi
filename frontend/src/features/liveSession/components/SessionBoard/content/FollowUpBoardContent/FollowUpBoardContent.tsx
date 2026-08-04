@@ -38,6 +38,7 @@ import { useEffect, useState } from "react";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { RichTextDisplay } from "@/shared/components/Forms/Input/RichTextDisplay/RichTextDisplay";
+import { AppImg } from "@components/Images/AppImg";
 
 import type {
   FollowUpConfigView,
@@ -214,7 +215,7 @@ const FollowUpBoardContent = ({
                 // these cards is the author's own picture rather than a
                 // submission, and an alt text that said so would hand the
                 // answer to anyone reading the accessibility tree.
-                <img className={styles.drawing} src={option.imageUrl} alt='A drawing' />
+                <AppImg className={styles.drawing} src={option.imageUrl} alt='A drawing' fallbackSeed={id} />
               ) : (
                 <span className={styles.label}>{option.text}</span>
               )}

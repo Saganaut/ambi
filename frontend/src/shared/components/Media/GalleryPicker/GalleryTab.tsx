@@ -20,25 +20,25 @@
 // from a focused tile to the parent's Insert button would be tabbing past every
 // remaining tile in the grid. Keyboard activation is told apart from a mouse
 // click by `event.detail`, which is 0 for Enter/Space and ≥1 for a real click.
-import { useEffect, useState } from "react";
-import { ChevronUpIcon } from "@heroicons/react/24/outline";
+import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
 import CheckIcon from "@assets/icons/status/check-solid.svg?react";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Input } from "@components/Forms/Input/Input/Input";
-import { EmptyState } from "@ui/EmptyState/EmptyState";
-import { IconBtn } from "@ui/Buttons/IconBtn";
-import { Loader } from "@ui/Loader/Loader";
-import { Pagination } from "@ui/Pagination/Pagination";
 import {
   useListImagesQuery,
   type GalleryImageResponse,
 } from "@features/gallery/store/galleryApi.gen";
-import { IMAGE_QUERY_REFRESH } from "@/shared/store/imageRefreshPolicy.ts";
+import { ChevronUpIcon } from "@heroicons/react/24/outline";
+import { IconBtn } from "@ui/Buttons/IconBtn";
+import { EmptyState } from "@ui/EmptyState/EmptyState";
+import { Loader } from "@ui/Loader/Loader";
+import { Pagination } from "@ui/Pagination/Pagination";
 import { resolveImageUrl } from "@utils/image";
+import { useEffect, useState } from "react";
 import styles from "./GalleryPicker.module.css";
 
 // One 3×2 grid per page, matching the picker's fixed-height body.
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 
 // Long enough that a typed word is one request, short enough to feel live.
 const SEARCH_DEBOUNCE_MS = 300;
@@ -73,13 +73,7 @@ interface GalleryTabProps {
   onSelect?: (image: GalleryImageResponse | null) => void;
 }
 
-const GalleryTab = ({
-  galleryId,
-  galleryError,
-  onPick,
-  selectedId,
-  onSelect,
-}: GalleryTabProps) => {
+const GalleryTab = ({ galleryId, galleryError, onPick, selectedId, onSelect }: GalleryTabProps) => {
   const [page, setPage] = useState(0);
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -150,7 +144,7 @@ const GalleryTab = ({
     const isSelected = selectable && img.id === selectedId;
     return (
       <button
-        type='button'
+        type="button"
         key={img.id}
         className={styles.tile}
         // A selectable tile is a toggle, so its state belongs on aria-pressed —
@@ -189,15 +183,16 @@ const GalleryTab = ({
                 onPick(img);
               }
             : undefined
-        }>
+        }
+      >
         <span className={styles.thumbFrame}>
           {thumb ? (
             <img src={thumb} alt={name} className={styles.thumb} />
           ) : (
-            <div className={styles.thumb} aria-hidden='true' />
+            <div className={styles.thumb} aria-hidden="true" />
           )}
           {isSelected && (
-            <span className={styles.tileSelectedBadge} aria-hidden='true'>
+            <span className={styles.tileSelectedBadge} aria-hidden="true">
               <CheckIcon className={styles.tileSelectedIcon} />
             </span>
           )}
@@ -214,11 +209,11 @@ const GalleryTab = ({
       <div className={styles.toolbarRow}>
         <div className={styles.searchInput}>
           <Input
-            type='text'
+            type="text"
             fullWidth
             withPadding={false}
-            ariaLabel='Search gallery by name'
-            placeholder='Search by name…'
+            ariaLabel="Search gallery by name"
+            placeholder="Search by name…"
             value={searchDraft}
             onChange={(e) => {
               setSearchDraft(e.target.value);
@@ -230,29 +225,23 @@ const GalleryTab = ({
           <span className={styles.sortLabel}>Sort by</span>
           <div className={styles.sortSelect}>
             <Dropdown
-              ariaLabel='Sort by'
+              ariaLabel="Sort by"
               fullWidth
               withPadding={false}
               options={SORT_OPTIONS}
               value={[sortField]}
               onChange={(values) => {
-                setSortField(
-                  (values[0] as SortField | undefined) ?? "createdAt",
-                );
+                setSortField((values[0] as SortField | undefined) ?? "createdAt");
                 setPage(0);
               }}
             />
           </div>
           <IconBtn
-            fill='ghost'
-            size='sm'
+            fill="ghost"
+            size="sm"
             icon={<ChevronUpIcon className={styles.sortDirectionIcon} />}
-            className={
-              sortDirection === "desc" ? styles.sortDirectionDesc : undefined
-            }
-            aria-label={
-              sortDirection === "asc" ? "Sort descending" : "Sort ascending"
-            }
+            className={sortDirection === "desc" ? styles.sortDirectionDesc : undefined}
+            aria-label={sortDirection === "asc" ? "Sort descending" : "Sort ascending"}
             onClick={() => {
               setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
               setPage(0);
@@ -265,8 +254,8 @@ const GalleryTab = ({
         <div className={styles.stateFill}>
           <EmptyState
             className={styles.empty}
-            title='Unable to load images'
-            message='Something went wrong. Please try again.'
+            title="Unable to load images"
+            message="Something went wrong. Please try again."
           />
         </div>
       )}
@@ -300,7 +289,7 @@ const GalleryTab = ({
             page={page}
             pageCount={pageCount}
             onPageChange={setPage}
-            ariaLabel='Gallery pages'
+            ariaLabel="Gallery pages"
           />
         </div>
       )}

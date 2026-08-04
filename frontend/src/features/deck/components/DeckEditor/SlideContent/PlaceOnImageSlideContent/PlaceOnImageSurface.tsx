@@ -25,6 +25,7 @@
  * "Clear target", see `PlaceOnImageSlideContent`).
  */
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
+import { AppImg } from "@components/Images/AppImg";
 import { isPlaced, type PlaceItemView } from "@deck/hooks/usePlaceOnImageEditor";
 import type { PlacePoint } from "@deck/store/deckApi.gen";
 import { PENDING_PLACEMENT_KEY, PlacementMarker, usePlacementSurface } from "../_shared";
@@ -103,7 +104,7 @@ const PlaceOnImageSurface = ({
     >
       {imageUrl ? (
         // The img is the box: block-level, full width, intrinsic ratio height.
-        <img className={styles.surfaceImage} src={imageUrl} alt="" draggable={false} />
+        <AppImg className={styles.surfaceImage} src={imageUrl} alt="" draggable={false} />
       ) : (
         <span className={styles.surfacePlaceholder}>Choose an image to place targets on.</span>
       )}

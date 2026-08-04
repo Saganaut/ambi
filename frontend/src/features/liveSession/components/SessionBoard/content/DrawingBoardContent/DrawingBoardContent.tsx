@@ -24,6 +24,7 @@ import {
   DrawingCanvas,
   type DrawingCanvasHandle,
 } from "@/shared/components/DrawingCanvas/DrawingCanvas";
+import { AppImg } from "@components/Images/AppImg";
 import { extractErrorMessage } from "@utils/utils";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
@@ -90,10 +91,11 @@ const DrawingBoardContent = ({ slide, mode, interactive }: DrawingBoardContentPr
             {gallery.map((entry) => (
               <li key={entry.participantId} className={styles.galleryTile}>
                 {entry.imageUrl && (
-                  <img
+                  <AppImg
                     className={styles.galleryImage}
                     src={entry.imageUrl}
                     alt={`Drawing by ${entry.displayName ?? "a player"}`}
+                    fallbackSeed={entry.participantId}
                   />
                 )}
                 <span className={styles.galleryName}>
@@ -114,7 +116,7 @@ const DrawingBoardContent = ({ slide, mode, interactive }: DrawingBoardContentPr
     // plus what to do — drawing happens on each participant's own device.
     return (
       <div className={styles.drawingBoardContent}>
-        {promptUrl && <img className={styles.prompt} src={promptUrl} alt='' />}
+        {promptUrl && <AppImg className={styles.prompt} src={promptUrl} alt='' fallbackSeed={slideId} />}
         <p className={styles.note}>
           {accepting
             ? "Draw your answer on your own device."
@@ -128,7 +130,7 @@ const DrawingBoardContent = ({ slide, mode, interactive }: DrawingBoardContentPr
     <div className={styles.drawingBoardContent}>
       <div className={styles.workspace}>
         {promptUrl && !traceable && (
-          <img className={styles.prompt} src={promptUrl} alt='Prompt image' />
+          <AppImg className={styles.prompt} src={promptUrl} alt='Prompt image' fallbackSeed={slideId} />
         )}
         <div className={styles.canvasColumn}>
           <DrawingCanvas

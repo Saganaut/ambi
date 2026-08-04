@@ -6,6 +6,7 @@
  * through the shared prompt slot.
  */
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { AppImg } from "@components/Images/AppImg";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
@@ -121,10 +122,11 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         <div className={styles.mediaBlock}>
           {image ? (
             <>
-              <img
+              <AppImg
                 className={styles.imagePreview}
                 src={imagePreviewSrc(image)}
                 alt={image.altText ?? "Slide media"}
+                fallbackSeed={slide.id}
               />
               <div className={styles.imageActions}>
                 <Btn size="sm" fill="bordered" variant="secondary" onClick={pickImage}>

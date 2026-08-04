@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -70,6 +72,10 @@ import com.cephadex.ambi.user.enums.UserLevel;
  * still honour the deck's EDIT gate and the {@code SLIDE_NOT_FOUND} contract.
  * Permission predicates themselves live on the aggregate; here the repository is
  * mocked and a real {@link SlideRankService} does the key math.
+ *
+ * <p>The image sections cover copy-on-select adoption and the placement-only
+ * upload; a real {@link ImageIngestService} over a mocked store means the keys
+ * asserted are the ones actually minted.
  */
 class DeckServiceTest {
 
@@ -86,6 +92,7 @@ class DeckServiceTest {
         storage = mock(S3StorageService.class);
         deckService = new DeckService(deckRepository, new OrgRoleResolver(userService),
                 new SlideRankService(), new DeckDefaultsProperties(), new RichTextSanitizer(),
+                new DeckImageLifecycleService(storage),
                 new ImageIngestService(storage, new MediaProperties()));
         owner = principal("owner-1");
         // Echo back whatever the service saves — tests inspect the in-flight deck.
@@ -120,6 +127,7 @@ class DeckServiceTest {
         props.getPoints().setPoints(500);
         DeckService service = new DeckService(deckRepository, new OrgRoleResolver(userService),
                 new SlideRankService(), props, new RichTextSanitizer(),
+                new DeckImageLifecycleService(storage),
                 new ImageIngestService(storage, new MediaProperties()));
 
         Deck created = service.create("deck-1", owner);
@@ -600,8 +608,10 @@ class DeckServiceTest {
 
         deckService.updateSlide("deck-1", "p", changes, owner);
 
+        // The replacement survives — adopted into the deck's own S3 namespace.
         assertThat(deck.findSlide("p").orElseThrow().getContent())
-                .isEqualTo(drawingContent(storedImage("gallery/replacement.png")));
+                .isInstanceOfSatisfying(DrawingContent.class, content -> assertThat(
+                        content.correctImage().getSrcKey()).startsWith("deck/deck-1/"));
         verify(deckRepository).save(deck);
     }
 
@@ -712,6 +722,137 @@ class DeckServiceTest {
 
         assertThat(result.getTitle()).isEqualTo("Renamed slide");
         assertThat(result.getCoverImage()).isSameAs(cover);
+    }
+
+    // ── Copy-on-select image lifecycle ───────────────────────────────────────────
+    // Placing a gallery image copies its objects under deck/{deckId}/ before the
+    // save; dropping a placement frees the deck-owned copy after it. Gallery keys
+    // are never deleted from here, and a failed save deletes nothing.
+
+    @Test
+    void settingAGalleryImageAdoptsACopyIntoTheDeckNamespace() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        AppImage picked = internalImage("gallery/abc");
+
+        Slide result = deckService.setSlideCoverImage("deck-1", "s1", picked, owner);
+
+        assertThat(result.getCoverImage().getSrcKey())
+                .startsWith("deck/deck-1/").endsWith("/original");
+        verify(storage).copyIfExists("gallery/abc/original", result.getCoverImage().getSrcKey());
+        verify(storage).copyIfExists(eq("gallery/abc/sm.webp"), anyString());
+        verify(storage, never()).delete(anyCollection());
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
+    void settingADeckOwnedOrExternalImageCopiesNothing() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        AppImage owned = internalImage("deck/deck-1/abc");
+
+        deckService.setSlideCoverImage("deck-1", "s1", owned, owner);
+        deckService.setDeckCoverImage("deck-1", image("https://img/cover.jpg"), owner);
+
+        assertThat(owned.getSrcKey()).isEqualTo("deck/deck-1/abc/original");
+        verify(storage, never()).copyIfExists(anyString(), anyString());
+        verify(storage, never()).delete(anyCollection());
+    }
+
+    @Test
+    void replacingASlideImageFreesTheOldDeckOwnedCopyAfterTheSave() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setCoverImage(internalImage("deck/deck-1/old"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.setSlideCoverImage("deck-1", "s1", image("https://img/new.jpg"), owner);
+
+        ArgumentCaptor<Collection<String>> deleted = ArgumentCaptor.forClass(Collection.class);
+        verify(storage).delete(deleted.capture());
+        assertThat(deleted.getValue()).containsExactlyInAnyOrder(
+                "deck/deck-1/old/original", "deck/deck-1/old/sm.webp");
+    }
+
+    @Test
+    void droppingALegacyGalleryPlacementNeverDeletesGalleryKeys() {
+        // A pre-migration deck may still reference gallery keys directly; only
+        // deck-owned objects are ever freed from a deck edit.
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setCoverImage(internalImage("gallery/legacy"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.clearSlideCoverImage("deck-1", "s1", owner);
+
+        verify(storage, never()).delete(anyCollection());
+    }
+
+    @Test
+    void aFailedSaveFreesNothing() {
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setCoverImage(internalImage("deck/deck-1/old"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        when(deckRepository.save(any(Deck.class))).thenThrow(new RuntimeException("mongo down"));
+
+        assertThatThrownBy(() -> deckService.clearSlideCoverImage("deck-1", "s1", owner))
+                .isInstanceOf(RuntimeException.class);
+        verify(storage, never()).delete(anyCollection());
+    }
+
+    @Test
+    void removeSlideFreesItsDeckOwnedImageObjects() {
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        deck.findSlide("s1").orElseThrow().setCoverImage(internalImage("deck/deck-1/a"));
+        deck.findSlide("s2").orElseThrow().setCoverImage(internalImage("deck/deck-1/b"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.removeSlide("deck-1", "s1", owner);
+
+        ArgumentCaptor<Collection<String>> deleted = ArgumentCaptor.forClass(Collection.class);
+        verify(storage).delete(deleted.capture());
+        assertThat(deleted.getValue()).containsExactlyInAnyOrder(
+                "deck/deck-1/a/original", "deck/deck-1/a/sm.webp");
+    }
+
+    @Test
+    void removeSlideKeepsKeysStillReferencedElsewhereInTheDeck() {
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        deck.findSlide("s1").orElseThrow().setCoverImage(internalImage("deck/deck-1/shared"));
+        deck.findSlide("s2").orElseThrow().setCoverImage(internalImage("deck/deck-1/shared"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.removeSlide("deck-1", "s1", owner);
+
+        verify(storage, never()).delete(anyCollection());
+    }
+
+    @Test
+    void deleteDeckSweepsItsImageNamespace() {
+        Deck deck = deck("owner-1");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.delete("deck-1", owner);
+
+        verify(deckRepository).delete(deck);
+        verify(storage).deletePrefix("deck/deck-1/");
+    }
+
+    @Test
+    void promoteBackgroundImageAdoptsTheIncomingImageAndFreesDroppedOverrides() {
+        Deck deck = keyedDeck("owner-1", "s1", "s2");
+        deck.findSlide("s2").orElseThrow().setBackgroundImage(internalImage("deck/deck-1/override"));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+        AppImage promoted = internalImage("gallery/new-bg");
+
+        deckService.promoteBackgroundImageToDeck("deck-1", promoted, owner);
+
+        // Adopted before the targeted update persisted it...
+        assertThat(promoted.getSrcKey()).startsWith("deck/deck-1/");
+        verify(deckRepository).promoteBackgroundImageToDeck("deck-1", promoted);
+        // ...and the dropped per-slide override's copies are freed.
+        ArgumentCaptor<Collection<String>> deleted = ArgumentCaptor.forClass(Collection.class);
+        verify(storage).delete(deleted.capture());
+        assertThat(deleted.getValue()).containsExactlyInAnyOrder(
+                "deck/deck-1/override/original", "deck/deck-1/override/sm.webp");
     }
 
     // ── Placement-only image upload ──────────────────────────────────────────────
@@ -1353,6 +1494,15 @@ class DeckServiceTest {
     /** A Drawing slide carrying (or not) the authored answer SPOT_THE_ANSWER needs. */
     private static DrawingContent drawingContent(AppImage correctImage) {
         return new DrawingContent(null, PromptPlacement.ALONGSIDE, correctImage, List.of(), Set.of());
+    }
+
+    /** A stored image laid out canonically under {@code prefix} (original + SM). */
+    private static AppImage internalImage(String prefix) {
+        AppImage image = new AppImage();
+        image.setExternal(false);
+        image.setSrcKey(prefix + "/original");
+        image.setVariants(Map.of(ImageSizeOptions.SM, prefix + "/sm.webp"));
+        return image;
     }
 
     /** A stored (gallery) image with a renderable variant — what a board can show. */

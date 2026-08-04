@@ -53,7 +53,7 @@ const PieChartSegment = ({
         style={{ background: resolveDatumColor(datum.color, sortIndex) }}
         aria-hidden="true"
       />
-      <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
+      <OptionImage src={datum.imageUrl} alt={datum.imageAlt} fallbackSeed={datum.id} />
       <div className={styles.optionControls}>
         {renderLabelWithMenu ? (
           renderLabelWithMenu(datum)

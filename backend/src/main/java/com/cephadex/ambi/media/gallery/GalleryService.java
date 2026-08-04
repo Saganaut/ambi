@@ -253,12 +253,12 @@ public class GalleryService {
      * every variant) are deleted first so we never orphan the document onto
      * missing bytes; only once they're gone do we drop the document.
      *
-     * <p><strong>Shared-bytes caveat:</strong> when a usage site selects this
-     * image it embeds a copy of the {@link AppImage}, which references the
-     * <em>same</em> content-addressed S3 keys. Deleting the bytes here therefore
-     * also blanks any deck/slide that selected this image. Independent per-copy
-     * bytes would need copy-time object duplication or reference counting; until
-     * then, "delete frees the bytes" is the intended behaviour.
+     * <p><strong>Shared-bytes caveat:</strong> deck placements are safe — a deck
+     * adopts its own copy of the objects under {@code deck/{deckId}/} at
+     * selection time (see {@code DeckImageLifecycleService}), so deleting the
+     * gallery bytes here cannot blank an adopted/migrated deck. Themes and
+     * avatars still embed the {@link AppImage} referencing the <em>same</em> S3
+     * keys, so those placements do go blank when the gallery image is deleted.
      */
     public void removeImage(String galleryId, String imageId, AmbiPrincipal principal) {
         Gallery gallery = load(galleryId);

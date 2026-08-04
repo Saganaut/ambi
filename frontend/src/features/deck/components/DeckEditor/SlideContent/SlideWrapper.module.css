@@ -79,6 +79,7 @@
           width: 100%;
           display: flex;
           flex-direction: column;
+          min-width: 300px;
 
           .header {
             height: var(--navbar-height);

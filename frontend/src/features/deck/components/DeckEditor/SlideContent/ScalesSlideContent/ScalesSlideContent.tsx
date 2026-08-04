@@ -21,7 +21,6 @@
 import { useState } from "react";
 
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { formatScaleValue } from "@/shared/utils/scaleValue";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import {
@@ -34,7 +33,6 @@ import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { AddItemCard, EmptySelect, useSlideComposerState } from "../_shared";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
-import shared from "../_shared/_shared.module.css";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
 import styles from "./ScalesSlideContent.module.css";
@@ -125,65 +123,63 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
             <span>Drag along a statement's scale</span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
-            <div className={shared.itemList}>
-              <DragDropWrapper onReorder={handleStatementDragEnd}>
-                {question.items.map((statement, idx) => (
-                  <SortableItemBankRow
-                    type={"scales"}
-                    key={statement.id}
-                    item={statement}
-                    index={idx}
-                    color={statement.color ?? "#FFFFFF"}
-                    menuOpen={composer.openMenuId === statement.id}
-                    canRemove={canRemove}
-                    correctValue={question.correctValues[statement.id]}
-                    minScale={min}
-                    maxScale={max}
-                    toleranceScale={question.tolerance}
-                    leftLabel={leftLabel}
-                    rightLabel={rightLabel}
-                    onMenuOpenChange={(open) => {
-                      composer.setOpenMenuId(open ? statement.id : null);
-                    }}
-                    onScheduleLabel={(label) => {
-                      scheduleStatementLabel(statement.id, label);
-                    }}
-                    onCommit={(value) => {
-                      commitCorrectValue(statement.id, value);
-                    }}
-                    onScheduleAnswer={(value) => {
-                      scheduleCorrectValue(statement.id, value);
-                    }}
-                    onClear={() => {
-                      clearCorrectValue(statement.id);
-                    }}
-                    onFlush={flush}
-                    onSetColor={(color) => {
-                      setStatementColor(statement.id, color);
-                    }}
-                    onSetImage={(image) => {
-                      setStatementImage(statement.id, image);
-                    }}
-                    onRemove={() => {
-                      removeStatement(statement.id);
-                    }}
-                    openPicker={openPicker}
-                  />
-                ))}
-                <AddItemCard
-                  label={
-                    canAddStatement
-                      ? "Add statement"
-                      : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
-                  }
-                  disabled={!canAddStatement}
-                  onAdd={addStatement}
+            <DragDropWrapper onReorder={handleStatementDragEnd}>
+              {question.items.map((statement, idx) => (
+                <SortableItemBankRow
+                  type={"scales"}
+                  key={statement.id}
+                  item={statement}
+                  index={idx}
+                  color={statement.color ?? "#FFFFFF"}
+                  menuOpen={composer.openMenuId === statement.id}
+                  canRemove={canRemove}
+                  correctValue={question.correctValues[statement.id]}
+                  minScale={min}
+                  maxScale={max}
+                  toleranceScale={question.tolerance}
+                  leftLabel={leftLabel}
+                  rightLabel={rightLabel}
+                  onMenuOpenChange={(open) => {
+                    composer.setOpenMenuId(open ? statement.id : null);
+                  }}
+                  onScheduleLabel={(label) => {
+                    scheduleStatementLabel(statement.id, label);
+                  }}
+                  onCommit={(value) => {
+                    commitCorrectValue(statement.id, value);
+                  }}
+                  onScheduleAnswer={(value) => {
+                    scheduleCorrectValue(statement.id, value);
+                  }}
+                  onClear={() => {
+                    clearCorrectValue(statement.id);
+                  }}
+                  onFlush={flush}
+                  onSetColor={(color) => {
+                    setStatementColor(statement.id, color);
+                  }}
+                  onSetImage={(image) => {
+                    setStatementImage(statement.id, image);
+                  }}
+                  onRemove={() => {
+                    removeStatement(statement.id);
+                  }}
+                  openPicker={openPicker}
                 />
-              </DragDropWrapper>
-            </div>
+              ))}
+              <AddItemCard
+                label={
+                  canAddStatement
+                    ? "Add statement"
+                    : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
+                }
+                disabled={!canAddStatement}
+                onAdd={addStatement}
+              />
+            </DragDropWrapper>
           </SlideContentSection.Body>
         </SlideContentSection>
-        <SlideContentSection>
+        <SlideContentSection className={styles.scaleSection}>
           <SlideContentSection.Header>Scale</SlideContentSection.Header>
           <SlideContentSection.Body>
             <div className={styles.scaleGrid}>
@@ -238,7 +234,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                   setTolerance((next / 100) * span);
                 }}
               />
-              <span className={styles.toleranceValue}>±{formatScaleValue(question.tolerance)}</span>
+              {/* <span className={styles.toleranceValue}>±{formatScaleValue(question.tolerance)}</span> */}
             </div>
           </SlideContentSection.Body>
         </SlideContentSection>

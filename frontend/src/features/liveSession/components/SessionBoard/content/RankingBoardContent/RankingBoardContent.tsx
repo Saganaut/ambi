@@ -19,6 +19,7 @@
 // grid/matching boards.
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
+import { AppImg } from "@components/Images/AppImg";
 import type { RankItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
@@ -128,7 +129,12 @@ const RankingBoardContent = ({ slide, mode, interactive }: RankingBoardContentPr
     const label = item.label?.trim();
     return item.imageUrl ? (
       <span className={styles.face}>
-        <img className={styles.thumbnail} src={item.imageUrl} alt={label ? "" : fallback} />
+        <AppImg
+          className={styles.thumbnail}
+          src={item.imageUrl}
+          alt={label ? "" : fallback}
+          fallbackSeed={item.id}
+        />
         {label && <span className={styles.label}>{label}</span>}
       </span>
     ) : (

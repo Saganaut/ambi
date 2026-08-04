@@ -27,6 +27,7 @@ import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSession
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
+import { AppImg } from "@components/Images/AppImg";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { indexedLabel } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
@@ -123,9 +124,14 @@ const MatchingBoardContent = ({ slide, mode, interactive }: MatchingBoardContent
   );
   const leftIdByRightId = new Map(Object.entries(matches).map(([l, r]) => [r, l]));
 
-  const face = (card: { label?: string; imageUrl?: string }, index: number) =>
+  const face = (card: { id?: string; label?: string; imageUrl?: string }, index: number) =>
     card.imageUrl ? (
-      <img className={styles.cardImage} src={card.imageUrl} alt={card.label?.trim() || ""} />
+      <AppImg
+        className={styles.cardImage}
+        src={card.imageUrl}
+        alt={card.label?.trim() || ""}
+        fallbackSeed={card.id}
+      />
     ) : (
       <span className={styles.cardPhrase}>{cardLabel(card, index)}</span>
     );

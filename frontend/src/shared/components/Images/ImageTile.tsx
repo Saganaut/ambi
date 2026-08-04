@@ -1,6 +1,7 @@
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import React from "react";
 import { IconBtn } from "../UIElements/Buttons/IconBtn";
+import { AppImg } from "./AppImg";
 import styles from "./ImageTile.module.css";
 
 interface ImageTileProps {
@@ -21,7 +22,7 @@ const ImageTile: React.FC<ImageTileProps> = ({ imgUrl, altText, onPick, onClear,
         aria-label="Pick cover image"
       >
         {imgUrl ? (
-          <img src={imgUrl} alt={altText} />
+          <AppImg src={imgUrl} alt={altText} />
         ) : (
           <div className={styles.imageTileEmpty}>
             <PhotoIcon aria-hidden="true" />

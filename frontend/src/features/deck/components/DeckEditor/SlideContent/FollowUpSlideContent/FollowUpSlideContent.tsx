@@ -15,6 +15,7 @@ import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { FollowUpMode } from "@deck/store/deckEnums.gen";
 import { FOLLOW_UP_MODE_LABELS, linkedParentOf } from "@deck/utils/followUp";
+import { AppImg } from "@components/Images/AppImg";
 import { isImageEmpty, largestUrl } from "@utils/image";
 import React, { useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
@@ -145,10 +146,11 @@ const FollowUpSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 <div className={styles.ghostOptions} style={{ "--cols": 3 } as React.CSSProperties}>
                   <div className={styles.ghostOption} aria-hidden="true" />
                   <div className={styles.ghostAnswer}>
-                    <img
+                    <AppImg
                       className={styles.ghostAnswerImage}
                       src={answerImageUrl}
                       alt="The authored correct answer"
+                      fallbackSeed={`${slide.id}-answer`}
                     />
                     <span className={styles.ghostAnswerBadge}>Your answer</span>
                   </div>

@@ -8,6 +8,7 @@ import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
 import { SCALES_STATEMENT_LABEL_MAX } from "@deck/hooks/useScalesEditor";
 import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
+import { AppImg } from "@components/Images/AppImg";
 import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@utils/image";
@@ -167,7 +168,7 @@ const ScaleStatementEditable = ({
       <div className={styles.statementBody}>
         {thumbnailSrc && (
           <span className={styles.statementThumbnailWrap}>
-            <img className={styles.statementThumbnail} src={thumbnailSrc} alt="" />
+            <AppImg className={styles.statementThumbnail} src={thumbnailSrc} alt="" fallbackSeed={statement.id} />
             <IconBtn
               fill="ghost"
               size="xs"

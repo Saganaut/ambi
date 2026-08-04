@@ -120,6 +120,7 @@
 .tile {
   display: flex;
   flex-direction: column;
+  max-width: 200px;
   gap: var(--gap-xs);
   background: var(--bg-surface-raised);
   border: var(--border-size-sm) solid var(--border-subtle);

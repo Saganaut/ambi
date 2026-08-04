@@ -54,3 +54,10 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/node_modules
 .ds-sync/
+
+
+#### AI stuff ###
+.claude/
+.design-sync/
+memory/
+no-commit/

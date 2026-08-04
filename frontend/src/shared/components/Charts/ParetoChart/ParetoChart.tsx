@@ -108,7 +108,7 @@ const ParetoChartInner = ({
               className={`${styles.label} ${it.datum.highlight ? styles.highlight : ""}`}
             >
               <div className={styles.optionControls}>
-                <OptionImage src={it.datum.imageUrl} alt={it.datum.imageAlt} />
+                <OptionImage src={it.datum.imageUrl} alt={it.datum.imageAlt} fallbackSeed={it.datum.id} />
                 {renderLabelWithMenu ? (
                   renderLabelWithMenu(it.datum)
                 ) : (

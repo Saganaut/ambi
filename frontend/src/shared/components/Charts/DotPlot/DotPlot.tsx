@@ -33,7 +33,7 @@ const DotPlot = ({
               }
             >
               <div className={styles.optionControls}>
-                <OptionImage src={datum.imageUrl} alt={datum.imageAlt} />
+                <OptionImage src={datum.imageUrl} alt={datum.imageAlt} fallbackSeed={datum.id} />
                 {renderLabelWithMenu ? (
                   renderLabelWithMenu(datum)
                 ) : (

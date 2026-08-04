@@ -29,6 +29,7 @@ import { useState } from "react";
 
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { RadioGroup } from "@components/Forms/Input/RadioGroup/RadioGroup";
+import { AppImg } from "@components/Images/AppImg";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { useDrawingEditor } from "@deck/hooks/useDrawingEditor";
 import { useSlide } from "@deck/hooks/useSlide";
@@ -201,10 +202,11 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             {hasImage ? (
               <div className={styles.imageSection}>
                 {" "}
-                <img
+                <AppImg
                   className={styles.imagePreview}
                   src={imageUrl}
                   alt={question.imagePrompt?.altText ?? "Prompt image"}
+                  fallbackSeed={question.id}
                 />
                 <RadioGroup
                   name={`draw-placement-${question.id}`}
@@ -252,10 +254,11 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             {hasCorrectImage ? (
               <>
                 <div className={styles.imageSection}>
-                  <img
+                  <AppImg
                     className={styles.imagePreview}
                     src={correctImageUrl}
                     alt={question.correctImage?.altText ?? "Correct answer image"}
+                    fallbackSeed={`${question.id}-answer`}
                   />
                 </div>
                 <p className={styles.imageHint}>Players try to spot this among the drawings.</p>

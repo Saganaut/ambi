@@ -8,23 +8,27 @@
 //                     base — anchored to the track, not the fill, so it stays
 //                     visible even when a low value makes the fill shorter
 //                     than the image
+import { AppImg } from "@components/Images/AppImg";
 import styles from "./OptionImage.module.css";
 
 interface OptionImageProps {
   src?: string;
   alt?: string;
   variant?: "thumb" | "barHorizontal" | "barVertical";
+  /** Stable tint seed for the load-error fallback (typically the option id). */
+  fallbackSeed?: string;
 }
 
-const OptionImage = ({ src, alt, variant = "thumb" }: OptionImageProps) => {
+const OptionImage = ({ src, alt, variant = "thumb", fallbackSeed }: OptionImageProps) => {
   if (src == null) return null;
   return (
-    <img
+    <AppImg
       className={`${styles.image} ${styles[variant]}`}
       src={src}
       alt={alt ?? ""}
       loading="lazy"
       draggable={false}
+      fallbackSeed={fallbackSeed}
     />
   );
 };
