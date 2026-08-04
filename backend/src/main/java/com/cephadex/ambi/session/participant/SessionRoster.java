@@ -37,10 +37,10 @@ import com.cephadex.ambi.session.redis.SessionRedisProperties;
  * a Redis restart leaves it missing, and every read here falls back to MongoDB
  * and writes what it found back. Nothing but a durable {@code leftAt} can take a
  * participant off the roster, so a rehydrate can't resurrect someone who left.
- * The healing is add-only — nothing prunes the set short of {@link #clear} on a
- * terminal session, and the admit script's {@code PEXPIRE} refreshes the TTL on
- * every join — so a phantom member that slips past a join's rollback stays for
- * the session's life.
+ * The healing is add-only — no heal ever prunes, only an explicit
+ * {@link #remove} or {@link #clear} does — and the admit script's
+ * {@code PEXPIRE} refreshes the TTL on every join, so a phantom member that
+ * slips past a join's rollback stays for the session's life.
  */
 @Component
 public class SessionRoster {
@@ -54,15 +54,19 @@ public class SessionRoster {
      * {@code RedisEventPublisher.SCRIPT}: the sequence is spliced into
      * pre-serialized JSON fragments, so Lua only ever contributes an integer.
      *
-     * <p>The cap only refuses a member the set does not already hold: a
-     * concurrent rehydrate that seeded the joiner's own durable document (a heal
-     * from another request passes no exclude id) would otherwise make the joiner's
-     * admit report a full session while the set counts them, and a retry after a
-     * {@code SADD} that landed would refuse the member it already added.
+     * <p>The cap counts the seats <em>other</em> members hold: a joiner the set
+     * already carries is discounted from the cardinality rather than waved past the
+     * check. That keeps the two cases the set can be in honest — a concurrent
+     * rehydrate that pre-seeded the joiner's own durable document (a heal from
+     * another request passes no exclude id) has not given them a seat, so the
+     * discount restores the count the cap should see; a retry after a {@code SADD}
+     * that landed finds them occupying a counted seat, so the discount cancels it
+     * and the admit stays idempotent. Waiving the check outright would instead let
+     * any pre-seeded id join a session already at its limit.
      */
     private static final RedisScript<Long> ADMIT = new DefaultRedisScript<>("""
-            if redis.call('sismember', KEYS[1], ARGV[1]) == 0
-                    and redis.call('scard', KEYS[1]) >= tonumber(ARGV[2]) then return -1 end
+            local held = redis.call('sismember', KEYS[1], ARGV[1])
+            if redis.call('scard', KEYS[1]) - held >= tonumber(ARGV[2]) then return -1 end
             redis.call('sadd', KEYS[1], ARGV[1])
             redis.call('pexpire', KEYS[1], ARGV[3])
             local sequence = redis.call('incr', KEYS[2])

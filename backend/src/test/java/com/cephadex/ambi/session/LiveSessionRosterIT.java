@@ -39,7 +39,8 @@ import com.cephadex.ambi.session.redis.SessionKeys;
  * points at — the properties this change exists for can only be shown with both:
  * concurrent joins all succeed (they used to lose the fail-fast session lock and
  * 409 with {@code SESSION_LOCKED}), the participant cap still holds exactly under
- * that concurrency <em>and</em> across a rehydrate from either entry point, an
+ * that concurrency <em>and</em> across a rehydrate from either entry point (and is
+ * never exceeded even when a cold key makes every joiner in a burst rehydrate), an
  * evicted Redis set rehydrates instead of failing the request, a refused join
  * strands nothing in the set, and join order survives into the roster listing.
  */
@@ -212,6 +213,73 @@ class LiveSessionRosterIT {
                 SessionEvents.participantJoined(pending))).isTrue();
         assertThat(roster.participants(session.getId())).hasSize(cap);
         assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
+    }
+
+    @Test
+    void anAdmitIsStillRefusedForAPreSeededMemberWhenEveryRealSeatIsTaken() {
+        int cap = 2;
+        LiveSession session = openSession(cap);
+        // Host + early fill the session exactly: there is no seat left to give.
+        orchestrator.join(session.getRoomCode(), "user-early", "Early", null, null);
+
+        Participant pending = Participant.join("user-pending", "Pending", null, null);
+        pending.joinSession(session.getId());
+        mongoTemplate.save(pending);
+
+        // The heal knows nothing about the in-flight joiner, so it seeds them into a
+        // set that is already at the cap.
+        redis.delete(keys.rosterKey(session.getId()));
+        assertThat(roster.contains(session.getId(), pending.getParticipantId())).isTrue();
+        assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo(cap + 1L);
+
+        // Being pre-seeded is not the same as holding a seat. Waving the cap check for
+        // any id the set happens to carry would put a third member in a two-seat
+        // session; discounting the joiner from the cardinality instead still counts
+        // the two real members and refuses.
+        assertThat(roster.admit(session.getId(), session.getPublicId(), pending.getParticipantId(), cap,
+                SessionEvents.participantJoined(pending))).isFalse();
+        // A joiner the set never held is refused for the same reason.
+        assertThatThrownBy(() -> orchestrator.join(session.getRoomCode(), "user-over", "Over", null, null))
+                .isInstanceOfSatisfying(ConflictException.class,
+                        full -> assertThat(full.getCode()).isEqualTo("SESSION_FULL"));
+    }
+
+    @Test
+    void aColdKeyJoinBurstNeverExceedsTheCap() throws Exception {
+        int cap = 5;
+        LiveSession session = openSession(cap);
+        // With the set evicted, every joiner in the burst rehydrates — and each
+        // rehydrate seeds the speculative documents its peers have already written.
+        redis.delete(keys.rosterKey(session.getId()));
+
+        AtomicInteger full = new AtomicInteger();
+        int joiners = 12;
+        List<Future<Participant>> joins = runConcurrently(joiners, index -> {
+            try {
+                return orchestrator.join(session.getRoomCode(), "user-" + index, "Player " + index, null, null)
+                        .participant();
+            } catch (ConflictException rejected) {
+                assertThat(rejected.getCode()).isEqualTo("SESSION_FULL");
+                full.incrementAndGet();
+                return null;
+            }
+        });
+
+        int admitted = 0;
+        for (Future<Participant> join : joins) {
+            if (join.get(30, TimeUnit.SECONDS) != null) {
+                admitted++;
+            }
+        }
+        // Cross-seeding rehydrates can refuse a joiner that would have fit, so the cap
+        // is a ceiling here rather than an exact count — the safe direction, and a
+        // recorded follow-up. What must never happen is the reverse: the host holds a
+        // seat, so no burst may land more than cap-1 joiners on top of it.
+        assertThat(admitted + full.get()).isEqualTo(joiners);
+        assertThat(admitted).isLessThanOrEqualTo(cap - 1);
+        assertThat(roster.participants(session.getId())).hasSizeLessThanOrEqualTo(cap);
+        assertThat(mongoTemplate.count(new Query(Criteria.where("session_id").is(session.getId())),
+                Participant.class)).isLessThanOrEqualTo(cap);
     }
 
     @Test

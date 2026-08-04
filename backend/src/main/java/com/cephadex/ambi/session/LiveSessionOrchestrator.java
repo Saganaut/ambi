@@ -433,19 +433,31 @@ public class LiveSessionOrchestrator {
      * rollback reads Mongo <em>after</em> the delete and therefore never re-seeds
      * the id the {@code SREM} is about to drop.
      *
-     * <p>The {@code SREM} is only needed when Redis is misbehaving, which is
-     * precisely when it fails too — so its failure is attached to {@code failure}
-     * rather than thrown, and the caller still surfaces the reason the join was
-     * refused instead of a masking cleanup error.
+     * <p>Neither cleanup may become the exception the caller sees: the {@code SREM}
+     * is only needed when Redis is misbehaving, which is precisely when it fails
+     * too, and a Mongo failure on the delete would mask the reason the join was
+     * refused. Both are attached to {@code failure} as suppressed instead — and
+     * logged, because the {@code SESSION_FULL} branch rides a
+     * {@link ConflictException} the exception handler maps to a 409 without logging,
+     * so a stranded phantom member would otherwise leave no trace at all.
      *
-     * @param failure the exception the caller is about to throw; a failed
-     *                {@code SREM} is recorded as suppressed on it
+     * @param failure the exception the caller is about to throw; a failed cleanup is
+     *                recorded as suppressed on it
      */
     private void rollbackJoin(LiveSession session, Participant participant, RuntimeException failure) {
-        participants.delete(participant);
+        try {
+            participants.delete(participant);
+        } catch (RuntimeException e) {
+            log.warn("Could not delete participant {} while rolling back a refused join to session {} — "
+                    + "the document is orphaned", participant.getParticipantId(), session.getId(), e);
+            failure.addSuppressed(e);
+        }
         try {
             roster.remove(session.getId(), participant.getParticipantId());
         } catch (RuntimeException e) {
+            log.warn("Could not drop participant {} from the roster of session {} while rolling back a refused "
+                    + "join — the member inflates the cap until the set expires",
+                    participant.getParticipantId(), session.getId(), e);
             failure.addSuppressed(e);
         }
     }

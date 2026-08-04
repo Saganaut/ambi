@@ -976,6 +976,7 @@ class LiveSessionOrchestratorTest {
                 .satisfies(thrown -> assertThat(thrown.getSuppressed())
                         .singleElement().isInstanceOf(RedisConnectionFailureException.class));
         verify(participants).delete(any(Participant.class));
+        verify(presenceStore, never()).save(anyString(), anyString(), any());
     }
 
     @Test

@@ -84,10 +84,10 @@ class SessionRosterTest {
         // The cap check, the membership write, the sequence and the publish are one
         // server-side step — that is what removes the session lock from the join.
         assertThat(script.getValue().getScriptAsString())
-                .contains("redis.call('scard', KEYS[1]) >= tonumber(ARGV[2])")
-                // The cap only refuses ids the set does not already hold, so a member
-                // a concurrent rehydrate pre-seeded can still take their own seat.
-                .contains("redis.call('sismember', KEYS[1], ARGV[1]) == 0")
+                // The cap counts the seats other members hold: a pre-seeded joiner is
+                // discounted from the cardinality, never waved past the check.
+                .contains("local held = redis.call('sismember', KEYS[1], ARGV[1])")
+                .contains("redis.call('scard', KEYS[1]) - held >= tonumber(ARGV[2])")
                 .contains("redis.call('sadd', KEYS[1], ARGV[1])")
                 .contains("redis.call('incr', KEYS[2])")
                 .contains("redis.call('publish', ARGV[5], ARGV[6] .. sequence .. ARGV[7])");
