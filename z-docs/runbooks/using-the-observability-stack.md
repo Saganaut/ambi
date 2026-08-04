@@ -1,9 +1,11 @@
 # Using the observability stack
 
+**Not implemented:** A lot of this is aspirational and deferred work.
+
 The "why" is in **[ADR 001 — Observability & logging stack](../decisions/001-observability-stack.md)**;
 this is the "how".
 
-The one idea to hold onto: **every request carries an `X-Request-Id`**. The frontend mints it, the
+**every request carries an `X-Request-Id`**. The frontend mints it, the
 backend adopts it into the SLF4J MDC as `traceId`, and it comes back on the `X-Request-Id` response
 header and in error bodies. That id ties a user click to a server-side stack trace.
 

@@ -1,5 +1,6 @@
 # Storybook stories
 
+**Only create storybook stories if explicitely requested,otherwise skip this step**
 **Rule:** A component should have a co-located `*.stories.tsx` where one is practical — aspirational, not yet universal. New stories follow the shape of the existing ones (`features/deck/components/DeckCard/DeckCard.stories.tsx`, `shared/components/UIElements/Alert/Alert.stories.tsx`).
 
 - `@storybook/react-vite` `Meta` / `StoryObj`, with `satisfies Meta<typeof X>`.

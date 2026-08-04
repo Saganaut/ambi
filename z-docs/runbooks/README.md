@@ -1,7 +1,6 @@
 # Runbooks
 
-Step-by-step procedures with concrete commands — what you'd want to grab at 2 a.m. without
-rederiving it. One file per procedure, named for the action.
+Step-by-step procedures with concrete commands — One file per procedure, named for the action.
 
 ## Index
 

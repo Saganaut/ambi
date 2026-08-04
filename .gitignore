@@ -57,7 +57,11 @@ ds-bundle/
 
 
 #### AI stuff ###
-.claude/
+.claude/agent-memory/*
+.claude/worktrees/*
+.claude/worktrees/settings.local.json
+.claude/worktrees/scheduled_tasks.lock
+.claude/screenshots/*
 .design-sync/
 memory/
 no-commit/
