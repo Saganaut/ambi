@@ -70,4 +70,4 @@ curl -s http://localhost:8080/api/auth/me -b /tmp/dev-cookies.txt | jq
   screenshot populated views and get real ids.
 - `/` redirects to `/decks` for a registered user; screenshot the landing page from a logged-out
   context.
-- Background: [Testing & CI → Screenshot verification](../infrastructure/testing-and-ci.md#screenshot-verification-dev-only).
+- Background: [Testing & CI](../infrastructure/testing-and-ci.md).

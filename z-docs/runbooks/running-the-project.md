@@ -85,7 +85,7 @@ alongside a backend on 8080), rewrites documents in place, and is idempotent. **
 | Script | Rewrites |
 | --- | --- |
 | `scripts/migrate-place-on-image.sh` | Legacy `PLACE_ON_IMAGE` `content.correctTargets` → `items` + `correctPositions` + `tolerance`, in `decks` and in `LiveSessions` deck snapshots. |
-| `scripts/migrate-deck-images.sh` | Gives pre-existing decks their own S3 image copies — the one-off counterpart of [copy-on-select adoption](../diagrams/media-gallery.md#deck-image-ownership-copy-on-select). `decks` only. |
+| `scripts/migrate-deck-images.sh` *(not on the branch yet)* | Gives pre-existing decks their own S3 image copies — the one-off counterpart of [copy-on-select adoption](../diagrams/media-gallery.md#deck-image-ownership-copy-on-select). `decks` only. |
 
 ## 8. Inspecting the data
 

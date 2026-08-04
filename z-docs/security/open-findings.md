@@ -16,18 +16,18 @@ acceptance. **All five are still open.**
 
 | # | Finding | Status |
 |---|---------|--------|
-| 1 | Mongo-Express admin GUI with auth disabled, published on all interfaces | **Open** — `compose.yaml:44` `"8081:8081"`, `:49` `ME_CONFIG_BASICAUTH=false` |
+| 1 | Mongo-Express admin GUI with auth disabled, published on all interfaces | **Open** — `compose.yaml:46` `"8081:8081"`, `:51` `ME_CONFIG_BASICAUTH=false` |
 | 4 | Fail-open default Spring profile (`DEV`) | **Open** — `application.properties:12` still `${ENV:DEV}`, no startup guard |
 | 5 | JWT signing key falls back to a committed default | **Open** — `application.properties:87` still defaults; `application-PROD.properties` only disables springdoc |
 | 6 | `Secure` cookie flag derived from `request.isSecure()` | **Open** — no `server.forward-headers-strategy` in any properties file; `SessionCookieFactory.java:50` unchanged |
-| 12 | MongoDB/Redis default creds on all interfaces, RedisInsight console on `:8001` | **Open** — `compose.yaml` mongo `27017`, redis `6379`+`8001`, `root`/`secret` and `--requirepass password --protected-mode no` |
+| 12 | MongoDB/Redis reachable on all interfaces with default creds | **Open** — `compose.yaml` mongo `27017` (`root`/`secret`), redis `6379` (`--requirepass password --protected-mode no`) |
 
 ## All findings
 
 | # | Sev | Area | Finding | Status |
 |---|-----|------|---------|--------|
 | 1 | High | Config/Infra | Mongo-Express GUI, `ME_CONFIG_BASICAUTH=false`, port on `0.0.0.0` | **Open** |
-| 2 | High | Front + Back | Cross-user stored XSS: host-authored slide HTML rendered raw to every participant | **Fixed** — DOMPurify at the `dangerouslySetInnerHTML` sink (`shared/utils/sanitizeHtml.ts`) plus OWASP `presentation/slide/content/RichTextSanitizer.java`, called on every write from `DeckService.java:192,279` |
+| 2 | High | Front + Back | Cross-user stored XSS: host-authored slide HTML rendered raw to every participant | **Fixed** — DOMPurify at the `dangerouslySetInnerHTML` sink (`shared/utils/sanitizeHtml.ts`) plus OWASP `presentation/slide/content/RichTextSanitizer.java`, called on every write from `DeckService.java:193,277` |
 | 3 | High | Frontend | Open redirect on post-registration `returnUrl` | **Fixed** — shared `toLocalReturnUrl` (`shared/utils/returnUrl.ts:16`) applied at `routes/register.tsx:14`; accepts only same-origin after browser-equivalent resolution |
 | 4 | Med | Auth | Default profile `DEV` exposes `POST /api/dev/login` + Swagger on a mis-provisioned prod | **Open** |
 | 5 | Med | Auth | JWT signing key defaults to a committed value; no PROD fail-fast | **Open** |
@@ -106,8 +106,9 @@ response header.
 ### 12 · Datastore exposure
 
 Mongo (`root`/`secret`) and Redis (`--requirepass password --protected-mode no`) publish on
-`0.0.0.0`, and RedisInsight's console sits on `:8001`. **Fix:** bind dev ports to `127.0.0.1`,
-never reuse these credentials off-loopback, document `compose.yaml` as dev-only.
+`0.0.0.0`. (The mapped `:8001` is not an exposure — the `redis-stack-server` image ships no UI and
+nothing listens there.) **Fix:** bind dev ports to `127.0.0.1`, never reuse these credentials
+off-loopback, document `compose.yaml` as dev-only.
 
 ### 13 · Low / Info
 

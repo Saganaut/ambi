@@ -116,7 +116,7 @@ uploaded as a **new gallery image** — the behaviour
 token instead of by anything the client can read. A presigned URL is path-style,
 so it spells its key out — `…/drawing/{sessionId}/…` for a live submission,
 `…/gallery/{uuid}/…` for an authored image. A
-[`SPOT_THE_ANSWER` follow-up board](../features/follow-up-slides/README.md#spot_the_answer)
+[`SPOT_THE_ANSWER` follow-up board](../features/follow-up-slides/README.md#modes)
 mixes the two on purpose, so the URL would name the seeded answer to anyone
 reading devtools. Proxying only the seed would recreate the tell, so **every**
 candidate image on a follow-up board is served this way.
@@ -164,6 +164,10 @@ Deck placements survive either delete because a deck owns its own copies
 go blank.
 
 ## Deck image ownership (copy-on-select)
+
+> **Landing, not landed.** `DeckImageLifecycleService`, `DeckImages`,
+> `DeckImageOwnershipMigration` and `scripts/migrate-deck-images.sh` are not on the branch yet —
+> this section describes the design as it is being implemented. Re-verify it when that work commits.
 
 Placing a gallery image into a deck **adopts** it: `DeckImageLifecycleService`
 server-side-copies the original and every variant into a fresh
@@ -216,8 +220,7 @@ placement is cleared.
 ### Migration for pre-existing decks
 
 `DeckImageOwnershipMigration` (an `ApplicationRunner` gated on
-`migrate.deckImages.run=true`, run via
-[`scripts/migrate-deck-images.sh`](../../scripts/migrate-deck-images.sh))
+`migrate.deckImages.run=true`, run via `scripts/migrate-deck-images.sh`)
 adopts older decks. It walks the `decks` collection only — not the deck snapshots
 embedded in `LiveSessions` — writes each deck back filtered on `_id` **and**
 `version`, and is idempotent and `--dry-run`-able. Ship the code first: decks

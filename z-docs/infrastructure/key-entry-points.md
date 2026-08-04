@@ -15,4 +15,4 @@ The files worth knowing first when navigating the codebase.
 | `compose.yaml`                             | Docker services (MongoDB, Redis, Garage S3)               |
 | `dev.env`                                  | Local dev secrets (copy from `example.env`)               |
 
-Feature-specific file maps live in each feature doc — e.g. [deck editor key files](../features/deck-editor/README.md#key-files).
+Feature-specific file maps live in each feature doc — e.g. [deck editor](../features/deck-editor/README.md).

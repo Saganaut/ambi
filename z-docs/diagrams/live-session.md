@@ -166,7 +166,7 @@ transition holds the session lock.
 | Event | Trigger | Locked? |
 |---|---|---|
 | `LiveSessionStarted` | host starts | yes |
-| `ParticipantJoined` | joins by roomCode | **no** |
+| `ParticipantJoined` | joins by roomCode | yes — `join` holds the lock for the `SESSION_FULL` roster cap |
 | `ParticipantLeft` | leaves roster | yes |
 | `ParticipantReconnected` | rejoins | **no** |
 | `ParticipantRemoved` | defined, **never published** (dead) | — |

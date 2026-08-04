@@ -14,7 +14,7 @@ flowchart TB
 
     subgraph Docker["docker compose"]
         MongoDB[("MongoDB :27017")]
-        Redis[("Redis Stack :6379<br/>UI :8001")]
+        Redis[("Redis Stack :6379")]
         Garage["Garage S3-compat :3900"]
         Mx["mongo-express :8081"]
         Ls["LocalStack :4566"]
@@ -42,7 +42,7 @@ storage are `media/storage/ImageIngestService` and
 | Service | Image | Ports | Role |
 | --- | --- | --- | --- |
 | `mongodb` | `mongo:7.0` | 27017 | Primary database |
-| `redis` | `redis/redis-stack-server` | 6379 / 8001 | Sessions, cache, live-session state, pub/sub |
+| `redis` | `redis/redis-stack-server` | 6379 | Sessions, cache, live-session state, pub/sub. `:8001` is mapped but nothing listens — the `-server` image ships no UI. |
 | `garage` | `dxflrs/garage:v1.0.1` | 3900 / 3903 | Local S3-compatible object storage |
 | `mongo-express` | `mongo-express:latest` | 8081 | MongoDB admin UI — [runbook](../runbooks/using-mongo-express.md) |
 | `localstack` | `localstack/localstack:4` | 4566 | Local AWS emulation, scoped to `cloudwatch,logs` |

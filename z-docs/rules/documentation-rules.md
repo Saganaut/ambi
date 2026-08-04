@@ -41,5 +41,5 @@ The same discipline applied to prose. Copy the shape of [backend/jackson-full-ob
 - **One fact, one home.** Everything else links to it. A fact stated in three places is a fact that will be wrong in two.
 - **A rule plus at most one clause of justification.** If the reasoning needs a paragraph, it belongs in the code's own doc comment, not here.
 - **Delete superseded rationale.** Rewrite the doc to say what is true now; never layer a "✅ RESOLVED" or "update:" note over a stale passage.
-- **Never hand-maintain an inventory of code.** Class lists, field lists, file lists, and per-instance audits rot on the first commit that touches them — point at the package or directory instead.
+- **Never hand-maintain an inventory of code** in a rules or feature doc. Class lists, field lists, file lists, and per-instance audits rot on the first commit that touches them — point at the package or directory instead. `diagrams/` and `security/` are the exceptions: an ERD, an event catalog, and a findings register *are* inventories, and that is what they are for. They pay for it by being re-verified against the code whenever they are touched.
 - **New docs live in `z-docs/<category>/`** and must be linked from that folder's `README.md`. Run [`scripts/check-docs.sh`](../../scripts/check-docs.sh) after any change.

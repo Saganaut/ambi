@@ -10,7 +10,7 @@ Short Architecture Decision Records (ADRs): "we chose X over Y because Z". One f
 
 ## Decisions taken
 
-Design calls settled during the live-session build that never earned their own ADR. All four are
+Design calls settled during the live-session build that never earned their own ADR. All are
 implemented and verified against the code:
 
 - **No participant reuse.** One `Participant` document per (session, user) — `Participant.join(...)`
@@ -22,7 +22,7 @@ implemented and verified against the code:
   authenticated caller to their roster participant server-side, so identity is never client-supplied.
 - **One join code.** `roomCode` is the only code — human-typed *and* URL-embeddable. The separate
   `inviteToken` is commented out rather than deleted in `LiveSession.java` (`:64`, `:111`,
-  `:260-262`); `roomCode` and `publicId` are `@Indexed(unique = true)`.
+  `:261-263`); `roomCode` and `publicId` are `@Indexed(unique = true)`.
 - **Live and durable tallies are deliberately kept separate.** `TallyStore` (Redis, `HINCRBY` at
   submit) serves the pre-reveal bar; `RoundResult.optionCounts()` — rebuilt from the stored
   `List<TallyEntry> optionTally` — is the durable record. Both derive keys from the shared
@@ -32,6 +32,25 @@ implemented and verified against the code:
   (`scoreAndPersistRound` → `RoundResultProjector`). If Redis is lost mid-round, recovery rebuilds
   `LiveRoundState`/roster from the last Mongo snapshot and the open round restarts; its in-flight
   answers are gone. Continuous answer flushing is explicitly not built.
+
+### Legacy `open-decisions` IDs
+
+Source comments across `session/` and `liveSessionSlice.ts` still cite IDs from the retired
+`live-session-open-decisions.md` review (all 24 of its items were resolved before it was deleted).
+What each one settled:
+
+| ID | Settled as |
+|----|------------|
+| A1 | STOMP over native WebSocket — no SSE, no polling. See [live-session](../diagrams/live-session.md). |
+| A2 | Redis pub/sub relay fans events to every instance (`LiveSessionStompRelay`). |
+| B1 | `Round.java` deleted; `LiveRoundState` on the session document is the only round state. |
+| B2 | Lifecycle and round phase are separate axes — `LiveSessionLifecycle` vs `RoundPhase`. |
+| B3 | The host owns slide navigation; participants follow the broadcast round. |
+| C1 | No participant reuse — see above. |
+| C2 | `userId` stripped on the wire, not on the document — see above. |
+| D5 | Live and durable tallies deliberately separate — see above. |
+| F1 | `roomCode` and `publicId` are `@Indexed(unique = true)`. |
+| F4 | Host actions are guarded by phase preconditions and the per-session lock; a stale slide 409s `ROUND_NOT_CURRENT`. |
 
 ## Template
 

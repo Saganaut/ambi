@@ -36,7 +36,6 @@ flowchart LR
         ORR["OrgRoleResolver"]
         DS["DeckService"]
         SR["SlideRankService"]
-        DIL["DeckImageLifecycleService"]
         CS["CommentThreadService"]
         DRS["DeckReviewService"]
         THS["ThemeService"]
