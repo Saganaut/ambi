@@ -1,11 +1,9 @@
 # Collaboration — Comments & Reviews
 
 Two feedback surfaces on a deck: **comment threads** anchored to a slide, and
-**star reviews** of the whole deck. Both snapshot the author's profile at write
-time and overlay the current profile on read, and both gate reads on deck VIEW.
+**star reviews** of the whole deck. Both gate reads on deck VIEW.
 
-Key classes: `CommentThreadController`, `CommentThreadService`,
-`ReviewController`, `DeckReviewService`, `DeckService`. Data shapes:
+Entry points: `CommentThreadController`, `ReviewController`. Data shapes:
 [Domain Model — Content](domain-model.md#content--decks-slides-theming-feedback).
 
 ## Comment thread model
@@ -84,12 +82,6 @@ sequenceDiagram
     RS->>DS: setRatingStats (recompute)
 ```
 
-## Read overlay — snapshot vs live profile
-
-```mermaid
-flowchart LR
-    W["Write time<br/>store Author snapshot<br/>(userId, displayName, avatar)"] --> DB[("Mongo: Comment / DeckReview")]
-    DB --> R["Read time"]
-    R --> OV["overlay current User profile<br/>(fresh displayName/avatar by userId)"]
-    OV --> OUT["response DTO"]
-```
+Both surfaces store an `Author` snapshot (userId, displayName, avatar) at write
+time and overlay the *current* `User` profile by userId on read, so a renamed
+author's old comments still render with their live name.

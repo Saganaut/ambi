@@ -95,4 +95,4 @@ of this layer, not inside it: `SessionDeadline` + `DeadlineStore` hold the
 global deadline ZSET; `../DeadlineScheduler.java` is the leader-elected poller
 that drains it and dispatches into `LiveSessionOrchestrator`. See
 [ADR 002](../../../../../../../../../z-docs/decisions/002-live-session-round-timers.md)
-and [live-session-flow](../../../../../../../../../z-docs/live-session-flow.md#round-timer-auto-close-adr-002).
+and [live-session](../../../../../../../../../z-docs/diagrams/live-session.md).

@@ -1,6 +1,6 @@
 # Frontend conventions — errors, types, and shared idioms
 
-Small but universal patterns that recur across every feature. None is exotic; the point is that there's exactly one way to do each.
+Small but universal patterns — exactly one sanctioned way to do each.
 
 ## API errors are `ProblemDetail` — extract, branch on `code`/`status`
 
@@ -9,7 +9,7 @@ API errors are RFC 9457 `ProblemDetail` (`{ status, title, detail, code, … }`)
 - `extractApiError(error)` → `{ statusCode, title, message }` for the full-page `ErrorPage`.
 - `extractErrorMessage(error, fallback)` → a user-readable string for inline form/toast errors.
 
-Narrowing lives in `shared/types/typeguards.ts` (`isFetchBaseQueryError`, `isProblemDetail`). When code-driven branching is needed, branch on `status` / `code` (e.g. `useRegister` treats `409` as a username conflict) — **never on `detail`**, which is human-facing and may be reworded. This mirrors the backend [exception rules](../exception-rules.md).
+Narrowing lives in `shared/types/typeguards.ts` (`isFetchBaseQueryError`, `isProblemDetail`). Branch on `status` / `code` — **never on `detail`**, which is human-facing and may be reworded. Mirrors the backend [exception rules](../exception-rules.md).
 
 ## Type discipline
 
@@ -18,7 +18,7 @@ Narrowing lives in `shared/types/typeguards.ts` (`isFetchBaseQueryError`, `isPro
 
 ## Shared idioms
 
-- **Typed Redux hooks.** Import `useAppDispatch` / `useAppSelector` from `shared/store/hooks.ts` — never the raw react-redux `useDispatch` / `useSelector`.
+- **Typed Redux hooks.** Import `useAppDispatch` / `useAppSelector` from `shared/store/hooks.ts` (alias `@store/hooks`) — never the raw react-redux `useDispatch` / `useSelector`. A second, equivalent module `shared/hooks/storeHooks.ts` also exists and has a few importers; it is **not** the sanctioned home — don't add importers, and migrate one when you touch it.
 - **className merging is `[...classes].filter(Boolean).join(" ")`** — there is **no `clsx`/`classnames` dependency**. Conditional classes go in the array (`shape !== "default" && styles[shape]`). See `Btn.tsx`, `DropdownMenu.tsx`.
 - **Polymorphic structural components take an `as` prop.** Layout wrappers (`Container`, `Card`) accept `as?: ElementType` (default `"div"`) and spread `HTMLAttributes`. Leaf controls (Btn, Icon) don't.
-- **Imperative confirmation is a promise-based hook.** `useConfirm` resolves a promise rather than taking a callback — `const ok = await confirm({...}); if (!ok) return;`. `useRequireLogin` is callback-based instead: `openLoginModal(): void` pops the login modal directly, and `requireLogin(action)` wraps an action and returns a new function that either calls `action` (already authenticated) or opens the modal — there's no `await requireLogin(...)`. This is also why `window.confirm`/`alert`/`prompt` are banned (see the accessibility rule in [styling-rules.md](../styling-rules.md)).
+- **Imperative confirmation is a promise-based hook.** `useConfirm` resolves a promise rather than taking a callback: `const ok = await confirm({...}); if (!ok) return;`. `useRequireLogin` is callback-based instead — `openLoginModal()` pops the modal, `requireLogin(action)` wraps an action; never `await` it. Hence the ban on `window.confirm`/`alert`/`prompt` (see [styling-rules.md](../styling-rules.md) rule 10).

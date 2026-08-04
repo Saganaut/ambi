@@ -16,4 +16,6 @@ A **signpost** only. Each category file below states its rules tersely; a rule w
 | Timestamps and dates                             | [time-rules.md](time-rules.md)           |
 | Test naming, fixtures, setup, queries            | [testing-rules.md](testing-rules.md)     |
 
+Storybook story conventions live in [frontend/storybook-stories.md](frontend/storybook-stories.md), linked from the frontend rules.
+
 > Adding a rule domain? Drop a `<concern>-rules.md` file here and add a row above. Put deep per-rule detail in a `<concern>/` folder and link it from the category file. Cross-references use standard markdown links so the doc-lint chain stays intact.

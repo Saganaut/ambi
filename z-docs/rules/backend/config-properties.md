@@ -12,10 +12,6 @@ Validation bounds can't be config — annotation args must be compile-time const
 
 This is also the **single source of truth shared with the frontend**: SpringDoc projects the constraints into the OpenAPI schema (`maxLength`/`minLength`/`minimum`/`maximum`/`pattern`), and `frontend/scripts/generate-validation.mjs` lifts them into committed per-feature `<feature>ValidationConstants.ts` files (+ `sharedValidationConstants.ts`). Change a bound once here, regenerate, and both tiers move together. `OpenApiValidationFacetsTest` guards that the facets keep reaching the schema.
 
-## Collection-element constraints need help to cross the bridge
+**Collection elements need help crossing the bridge:** SpringDoc doesn't propagate an element-level `@Size`/`@Pattern` on a generic (e.g. `Set<@Size(max=50) String>`) into the schema's `items{}`. Add an explicit `@ArraySchema(maxItems = …, schema = @Schema(maxLength = …))` alongside the Jakarta annotation, referencing the same `ValidationConstants`. Worked example: `SetTagsRequest.tags`.
 
-SpringDoc does *not* propagate an element-level `@Size`/`@Pattern` on a generic (e.g. `Set<@Size(min=1,max=50) String>`) into the schema's `items{}` — only the array-level facet (`maxItems`) surfaces. To carry the element bound to the frontend, add an explicit `@ArraySchema(maxItems = …, schema = @Schema(minLength = …, maxLength = …))` referencing the same `ValidationConstants` (keep the Jakarta `@Size` for runtime validation). `SetTagsRequest.tags` is the worked example. Note `@ArraySchema`'s array facets live on the annotation itself (`maxItems`/`minItems`), not inside its nested `@Schema`.
-
-## Other exceptions (keep as code constants too)
-
-Safety invariants that must never be environment-tunable — e.g. a new deck defaults to `DRAFT`/`PRIVATE`.
+Safety invariants that must never be environment-tunable — e.g. a new deck defaulting to `DRAFT`/`PRIVATE` — also stay as code constants.

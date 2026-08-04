@@ -10,16 +10,9 @@ The parent is one MongoDB document under one `@Version`. A whole-aggregate `repo
 
 Load the parent for the **authorization check** and to build the response, mutate the sub-object **in memory** (so the response reflects it), then persist with a positional / sub-path `MongoTemplate.updateFirst` (`$set` the whole sub-document, or `$unset` to clear) that leaves the parent `@Version` untouched. Keep these in a `*RepositoryCustom` fragment. Worked examples: `DeckRepositoryImpl.updateSlideSettings` (positional `slides.$[s].settings`) and `updateDeck{Point,Answer,Audience}Settings` (`settings.<sub>`), driven by `DeckService.applySlideSettings` / `setDeck*Settings` and the `PUT .../point-settings|answer-settings|audience-settings` endpoints.
 
-## Trade-off
+## Consequences
 
-A targeted update is not version-guarded against a concurrent whole-aggregate save, so it is last-writer-wins on the touched sub-document (no `500`, but no merge). Acceptable for settings; if a sub-object ever needs real concurrency control, give it its own version field rather than reusing the parent's.
-
-## Consequence
-
-Drop the sub-object from the parent's general update DTO so it has exactly one writer (e.g. `UpdateDeckRequest` carries no `settings`) — the same single-owner split already applied to deck tags and cover/background images.
-
-## Also applies without `@Version`
-
-`Deck` is one of the few documents that carries a `@Version` (`Gallery` and `GalleryImage` also do), so the example above isn't the only place a whole-aggregate `save()` can throw the `500`. But the rule still holds for an independently-editable embedded **collection** on a non-versioned document (one that extends `BaseDocument` with no version): a whole-document `save()` there is *last-writer-wins* and silently drops a concurrent edit — quieter than a `500`, but still data loss. Persist each element with a targeted `$push` / positional `$set` instead. Worked example: `CommentThreadRepositoryImpl` (`comments.$[c]`), driven by `CommentThreadService.addComment` / `editComment` / `deleteComment`.
-
-(A small value object that is wholesale-replaced — `User.preferences`, `Theme.spec` — is fine to `save()`: it has a single writer and no siblings to clobber.)
+- **Drop the sub-object from the parent's general update DTO** so it has exactly one writer (`UpdateDeckRequest` carries no `settings`).
+- **A targeted update is last-writer-wins** on the touched sub-document — not version-guarded against a concurrent whole-aggregate save. Acceptable for settings; a sub-object needing real concurrency control gets its own version field, not the parent's.
+- **The rule holds without `@Version` too.** On a non-versioned document, a whole-document `save()` silently drops a concurrent edit instead of throwing — quieter, still data loss. Persist each element of an independently-editable embedded collection with a targeted `$push` / positional `$set`. Worked example: `CommentThreadRepositoryImpl` (`comments.$[c]`).
+- **A wholesale-replaced value object is fine to `save()`** (`User.preferences`, `Theme.spec`): single writer, no siblings to clobber.

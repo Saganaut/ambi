@@ -1,27 +1,29 @@
 # Infrastructure
 
-Notes on the local dev stack (Docker Compose, MongoDB, Redis, Garage/S3) and per-directory READMEs.
+The local dev stack, how it is configured, and how work is verified.
 
 ## In this folder
 
-- [Architecture at a glance](architecture-overview.md) — Frontend/backend tech stacks, REST API, and the authentication model.
-- [Running locally & environment](environment-variables.md) — Dev secrets, `dev.env` sourcing, and the environment-variable reference.
-- [Key entry points](key-entry-points.md) — The files worth knowing first when navigating the codebase.
-- [Gotchas](gotchas.md) — Non-obvious behaviours (codegen, Docker, seeding, `dev.env`).
-- [Infrastructure overview](infrastructure.md) — Full notes on Docker services, persistence, sessions, and deployment-relevant details.
-- [Testing & CI](testing-and-ci.md) — Backend + frontend test stacks, CI status, and the local enforcement tiers (fast pre-commit hook, per-feature gate, pre-push tests).
+- [Infrastructure](infrastructure.md) — the Docker Compose services, ports, and where state lives.
+- [Environment variables](environment-variables.md) — `dev.env` sourcing and the variable reference.
+- [Key entry points](key-entry-points.md) — the files worth knowing first.
+- [Gotchas](gotchas.md) — non-obvious behaviours (codegen, Docker, seeding, `dev.env`).
+- [Testing & CI](testing-and-ci.md) — test stacks and the three local enforcement tiers.
 
-## Per-directory READMEs (live next to their code)
+The stack tables and package layout live in
+[System Overview](../diagrams/system-overview.md).
 
-- [Frontend README](../../frontend/README.md) — Frontend setup, Vite, scripts.
-- [Frontend STYLES.md](../../frontend/STYLES.md) — Full styling guide (the source of truth that [styling-rules.md](../rules/styling-rules.md) summarizes).
-- [Frontend SOCKJS global fix](../../frontend/SOCKJS_GLOBAL_FIX.md) — Why `vite.config.ts` defines `global: "globalThis"`.
-- [Tools README](../../tools/README.md) — Repo-level tooling, including `doc-lint.js`.
+## Per-directory READMEs (next to their code)
 
-## Backend package design docs (live next to their code)
+- [Frontend README](../../frontend/README.md) — setup, Vite, scripts.
+- [Frontend STYLES.md](../../frontend/STYLES.md) — the styling source of truth that [styling-rules](../rules/styling-rules.md) summarizes.
+- [Frontend SOCKJS global fix](../../frontend/SOCKJS_GLOBAL_FIX.md) — why `vite.config.ts` defines `global: "globalThis"`.
+- [Tools README](../../tools/README.md) — repo tooling, including `doc-lint.js`.
 
-- [`auth` package](../../backend/src/main/java/com/cephadex/ambi/auth/README.md) — Authoritative design + security-invariants doc for identity, sessions, and the auth rewrite.
-- [`session` package](../../backend/src/main/java/com/cephadex/ambi/session/README.md) — DDD-light domain notes for a live session (deckRun) — presentation or game.
-- [Session Redis layer](../../backend/src/main/java/com/cephadex/ambi/session/redis/README.md) — Per-session locks and the in-flight round-state store backed by Redis.
-- [`deck` domain](../../backend/src/main/java/com/cephadex/ambi/presentation/deck/README.md) — The `Deck` aggregate, its CRUD, and who may view/edit/manage a deck.
-- [`slide` domain](../../backend/src/main/java/com/cephadex/ambi/presentation/slide/README.md) — The embedded `Slide` model and its permissions within the `Deck` aggregate.
+## Backend package design docs (next to their code)
+
+- [`auth`](../../backend/src/main/java/com/cephadex/ambi/auth/README.md) — identity, sessions, and the security invariants.
+- [`session`](../../backend/src/main/java/com/cephadex/ambi/session/README.md) — the live-session domain.
+- [Session Redis layer](../../backend/src/main/java/com/cephadex/ambi/session/redis/README.md) — per-session locks and round state.
+- [`deck`](../../backend/src/main/java/com/cephadex/ambi/presentation/deck/README.md) — the `Deck` aggregate and who may view/edit/manage it.
+- [`slide`](../../backend/src/main/java/com/cephadex/ambi/presentation/slide/README.md) — the embedded `Slide` model.

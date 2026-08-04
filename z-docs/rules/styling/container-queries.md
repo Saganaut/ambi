@@ -2,7 +2,7 @@
 
 **Rule:** Responsive behavior comes from **container queries**, not viewport media queries — a component adapts to the space *it* is given, so the same component works in a wide board, a narrow sidebar, or a component-gallery cell.
 
-Full explanation, examples, and pitfalls: [frontend/STYLES.md §12](../../../frontend/STYLES.md). The reusable `Container` component (`frontend/src/components/Containers/Container.tsx`) is the component-level primitive (it requires a `name`, defaults to `inline-size`); `Kpi.module.css` is the reference example.
+The reusable `Container` component (`frontend/src/shared/components/Containers/Container.tsx`) is the component-level primitive: it requires a `name` and defaults to `inline-size`. Reference example: `ItemBankRow/ScaleTracker.module.css`. Long-form treatment, worked examples, and pitfalls: [frontend/STYLES.md §12](../../../frontend/STYLES.md) — the rules below are canonical.
 
 ## Rules
 
@@ -15,12 +15,10 @@ Full explanation, examples, and pitfalls: [frontend/STYLES.md §12](../../../fro
 
 ## Layout containers today
 
-Shared layout regions live in `frontend/src/components/Layout/`.
+Shared layout regions live in `frontend/src/shared/components/Layout/`.
 
-| Region                                     | Container?  | Why                                                                                          |
-| ------------------------------------------ | ----------- | -------------------------------------------------------------------------------------------- |
-| `innerDisplay` (`container-name: display`) | ✅          | `flex: 1` (layout-owned width), no inline fixed descendants.                                  |
-| `canvasBody`, `mainBodyDashboard`          | ⏳ deferred | Layout-owned, but hold inline `position: fixed` overlays. Gated on portaling overlays first.  |
-| `leftSidebar`, `rightSidebar`              | ❌ not yet  | Content-sized — need a defined width token first.                                            |
-
-When overlays are portaled, promote `canvasBody` / `mainBodyDashboard` to named containers; when sidebars get a width token, make them `container-name: sidebar`.
+| Region                                     | Container?  |
+| ------------------------------------------ | ----------- |
+| `innerDisplay` (`container-name: display`) | ✅          |
+| `canvasBody`, `mainBodyDashboard`          | ⏳ deferred — hold inline `position: fixed` overlays |
+| `leftSidebar`, `rightSidebar`              | ❌ not yet — content-sized, need a width token first |

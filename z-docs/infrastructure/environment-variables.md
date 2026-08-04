@@ -1,50 +1,33 @@
 # Environment Variables
 
-Local dev secrets live in `dev.env` at the project root (copy from `example.env`; not committed). `scripts/ambi.sh` sources `dev.env` into the process environment (`set -a; source dev.env; set +a`) before launching the backend, so Spring resolves them as ordinary `${...}` placeholders — there is no dotenv loader in the app itself. Frontend accesses `VITE_`-prefixed vars.
+Local dev secrets live in `dev.env` at the project root (copy from `example.env`;
+not committed). The scripts that launch the app source it into the process
+environment (`set -a; source dev.env; set +a`), so Spring resolves the values as
+ordinary `${...}` placeholders — there is no dotenv loader in the app. A bare
+`./mvnw spring-boot:run` therefore sees none of them and falls back to the
+defaults baked into `application.properties`.
 
-## Auth
+`example.env` documents most variables inline; the table below covers the
+backend ones whose behaviour is not obvious from the file.
 
-| Variable                                       | Used By                                        |
-| ----------------------------------------------- | ---------------------------------------------- |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`     | Backend (OAuth) — `spring.security.oauth2.client.registration.google.*` |
-| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`   | Backend (OAuth) — `spring.security.oauth2.client.registration.discord.*` |
-| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Backend (OAuth) — `spring.security.oauth2.client.registration.microsoft.*` |
-| `AMBI_JWT_SIGNING_KEY`                          | Backend — `ambi.auth.token.signing-key` (HMAC signing key for access/refresh tokens; dev falls back to an insecure built-in default, **must** be overridden in production) |
-| `FRONTEND_ORIGIN`                               | Backend — `ambi.auth.cors.frontend-origin` (default `http://localhost:5173`) |
-| `ENV`                                           | Backend — `spring.profiles.active=${ENV:DEV}` (selects the active Spring profile, e.g. `DEV`/`PROD`/`test`) |
+| Variable | Notes |
+| --- | --- |
+| `GOOGLE_*`, `DISCORD_*`, `MICROSOFT_*` `_CLIENT_ID`/`_SECRET` | OAuth client credentials, one pair per provider. |
+| `AMBI_JWT_SIGNING_KEY` | HMAC key for access/refresh tokens. Dev falls back to an insecure built-in default — **must** be overridden in production. |
+| `AMBI_OPAQUE_IMAGE_SECRET` | HMAC secret behind the [opaque image proxy](../diagrams/media-gallery.md#opaque-image-proxy--urls-that-hide-their-key). Insecure dev default; **≥ 32 characters or the app refuses to start**. |
+| `AMBI_PUBLIC_BASE_URL` | Origin opaque image URLs are minted absolute against (default `http://localhost:8080`). Set empty when one origin fronts both API and frontend. |
+| `FRONTEND_ORIGIN` | The single allowed CORS origin (default `http://localhost:5173`). |
+| `ENV` | Selects the Spring profile — `spring.profiles.active=${ENV:DEV}`. **Not present in `example.env`**, so a fresh copy silently gets the `DEV` fallback; add it explicitly for `PROD`. |
+| `MONGO_URI`, `REDIS_HOST` / `_PORT` / `_PASSWORD` | Datastore connections. |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `ambi.s3.*`. Defaults target local Garage: `http://localhost:3900`, region `garage`, bucket `ambi-images`. |
+| `S3_KEY_NAME` | **Not a Spring property.** Consumed only by `scripts/init-garage.sh` as the name of the Garage API key it mints (`ambi-key`). |
+| `LOGGING_LEVEL_ROOT` | Bound by Spring's relaxed binding to `logging.level.root`. No properties entry exists — env only. |
+| `AWS_ENDPOINT_URL`, `AWS_REGION` | Read by the AWS SDK's own env chain; point CloudWatch-bound clients at LocalStack in dev. Leave unset in production. |
 
-## Data stores
+Frontend: `VITE_API_BASE_URL` (defaults to `http://localhost:8080`) is the only
+one, read in `shared/store/emptyApi.ts`. Only `VITE_`-prefixed vars reach the
+browser bundle.
 
-| Variable                                       | Used By                                        |
-| ----------------------------------------------- | ----------------------------------------------- |
-| `MONGO_URI`                                     | Backend                                         |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`  | Backend                                         |
-
-## Storage (S3 / Garage)
-
-| Variable        | Used By                                                                 |
-| ---------------- | ------------------------------------------------------------------------ |
-| `S3_ENDPOINT`    | Backend — `ambi.s3.endpoint` (default `http://localhost:3900`)          |
-| `S3_REGION`      | Backend — `ambi.s3.region` (default `garage`)                            |
-| `S3_BUCKET`      | Backend — `ambi.s3.bucket` (default `ambi-images`)                       |
-| `S3_ACCESS_KEY`  | Backend — `ambi.s3.access-key`                                           |
-| `S3_SECRET_KEY`  | Backend — `ambi.s3.secret-key`                                           |
-| `AMBI_OPAQUE_IMAGE_SECRET` | Backend — `ambi.media.opaque-token-secret` (HMAC secret behind the [opaque image proxy](../diagrams/media-gallery.md#opaque-image-proxy--urls-that-hide-their-key)'s tokens; dev falls back to an insecure built-in default, **must** be overridden in production, >= 32 chars — the app refuses to start otherwise) |
-| `AMBI_PUBLIC_BASE_URL` | Backend — `ambi.media.public-base-url` (origin those opaque image URLs are minted absolute against; default `http://localhost:8080`, set empty when one origin fronts both API and frontend) |
-| `S3_KEY_NAME`    | Not a Spring property — consumed only by `scripts/init-garage.sh`, which uses it as the name of the Garage API key it mints (defaults to `ambi-key` in `example.env`) |
-
-## Observability / AWS SDK
-
-| Variable              | Used By                                                                                   |
-| ---------------------- | -------------------------------------------------------------------------------------------- |
-| `LOGGING_LEVEL_ROOT`   | Backend — Spring Boot relaxed binding to `logging.level.root` (no explicit properties entry; set via env only) |
-| `AWS_ENDPOINT_URL`     | Backend — read by the AWS SDK's standard env chain to point CloudWatch-bound clients at LocalStack in dev (unset in production so the SDK uses real AWS endpoints) |
-| `AWS_REGION`           | Backend — read by the AWS SDK's standard env chain                                          |
-
-## Frontend
-
-| Variable                                       | Used By                                        |
-| ----------------------------------------------- | ----------------------------------------------- |
-| `VITE_API_BASE_URL`                            | Frontend (defaults to `http://localhost:8080`) |
-
-Test-profile values live in `backend/src/test/resources/application-test.properties` with test-safe defaults — see [Testing & CI](testing-and-ci.md).
+Test-profile values live in
+`backend/src/test/resources/application-test.properties` — see
+[Testing & CI](testing-and-ci.md).

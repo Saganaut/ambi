@@ -1,78 +1,23 @@
-# TODO
+# Missing Features
 
-- ~~Show results as % (we have counts, but not %).~~ DONE — `AnswerPanel`'s
-  `displayResultsAsPercentage` toggle feeds `ResultsDisplaySwitch`, and every
-  chart accepts `displayAsPercentage`.
-- label for deck heading ADDED TO BACKEND NEED TO ADD TO FRONT
-- On MCQ questions, we need to add an option to make the question focus on an image.  Like image mode vs text mode. In image mode the image takes center stage, text mode the image is secondary. Otherwise images could be too small for certain use cases
-- vote for hte best answer doesn't make any sense for MCQ, it should only be for free form text or drawings..
-- How do we know if a slide is actually scorable?
-- We need to use more apply to all:
+Running backlog of cross-cutting gaps — things that span features and have no
+home in a single feature doc. Anything actionable should become a Trello card;
+this list is the holding pen, not the tracker. Feature-specific deferrals live
+with their feature (e.g.
+[follow-up slides → Deferred](follow-up-slides/README.md#deferred)).
 
-- Content image should be added directly in the slide.  On hover a box should appear that allows for an upload.. or on mobile a menu or placeholder.
+## Open
 
-- We have anonymize answers, allow anonynmous responses, and anonymous mode.  We need to make sense of it all.  
+- **Deck `label` has no editor UI.** `Deck.label` exists on the backend and round-trips, but nothing in the editor reads or writes it.
+- **MCQ image mode.** An MCQ should be able to put its images centre-stage rather than treating them as secondary decoration — at present the frontend hardcodes `optionType: "TEXT"` when building option content (`slideContent.ts`), so the image-first layout has no way to be authored.
+- **Inline content-image upload.** A slide's content image should be settable from the slide surface itself — a hover affordance on desktop, a placeholder/menu on mobile — instead of only through the inspector.
+- **Three unreconciled anonymity flags.** `Settings` carries anonymize-answers, allow-anonymous-responses, and anonymous-mode. Their interaction has never been specified; decide what each means and collapse or document the overlap.
+- **Modal sizing.** `Modal` has variants, but they are colour tints, not sizes — there is no `size` prop and no responsive breakpoints. The sm/md/lg + responsive treatment is still to do.
+- **"Apply to all" is under-used.** The promote-to-deck pattern exists for point settings, answer settings, background image and background colour ([deck editor](deck-editor/README.md#apply-to-deck)); other per-slide settings could use it.
+- **Terminology: player → participant.** The domain model migrated; the remaining identifier debt is `PlayerInfo/`, `SessionPlayerList/`, and `playerCount`, plus scattered copy.
 
-- SlideTyepGraphics.tsx right now all these graphic components have the same color and not really modifiable.  We need to be able to change the color easily, so fill and stroke as a prop?  Difficulty is some contain multiple colors.
-
-- Fix modal, come up with consistent style for modals and variants.  sm md lg. Make responsive.
-
-- Input components need to be more re-usable and better styles. For example they should have style defaults and variants but be able to be customized by ecah parent, especially layout.  Also need to allow space for info messages.
-
-- We need to stop using the term player, instead we should use participant
-
-BUGS
-~~Allow multiple selection correct answers~~ DONE — `McqContent.correctOptionIds`
-is a `Set<String>`, `RoundEvaluator.gradeMcq` does an exact-set match, and the
-editor's `toggleCorrect` (in `useMcqEditor.ts`) lets authors mark more than one
-option correct.
-
- --- [ambi] [io-8080-exec-10] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot map `null` into type `boolean` (set `DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES` to 'false' to allow)]
-
-FUTURE (NOT TO BE WORKED ON NOW):
+## Future (not to be worked on now)
 
 - Response segmentation
-- Response moderations
-- Reactions (we already have emojies so how can we reconcile these).
-
-## Follow-up slides (deferred)
-
-The [follow-up slide](follow-up-slides/README.md) live-session runtime shipped
-(minting, the pick-is-the-answer round, the board), but several pieces named
-in its design were deliberately left for later:
-
-- **Scoring on the other two modes.** `SPOT_THE_ANSWER` scores — see
-  [follow-up slides](follow-up-slides/README.md#spot_the_answer) — but a
-  `BEST_ANSWER_VOTE` or `PREDICT_POPULAR` pick still grades `false` and awards
-  nothing. Neither has an answer key, and paying the most-picked submission is
-  a scoring pass over the whole field rather than a per-answer grade.
-- **Revealing the spotted answer.** A `SPOT_THE_ANSWER` round grades picks,
-  but `RoundEvaluator.correctKey` deliberately grows no follow-up branch, so
-  `RoundResult.correctOption` stays `null` and the board renders no
-  correct-answer affordance at reveal — the mode is scoring-only for now.
-- **Shuffle on the unscored modes.** A `SPOT_THE_ANSWER` board is shuffled
-  once per mint, server-side, because any reconstructible arrangement would
-  point at the seeded answer. Every other mode still renders in its derived
-  snapshot order (authored order for MCQ, submission order elsewhere) —
-  deliberate, since that order is meaningful there, but it does mean a
-  best-answer board discloses the sequence its submissions arrived in.
-- **Per-participant STOMP user-destination channel.** `myFollowUpOptionId`
-  (which candidate the viewer authored) can only travel on the REST
-  snapshot today, because it's per-participant while the session's STOMP
-  topic is shared by every client. `SessionConnectionProvider` works around
-  this with a one-time snapshot refetch per follow-up round
-  (keyed `slideId@roundStartedAt`); a dedicated per-user STOMP destination
-  would let this ride the broadcast instead.
-- **Historical option text.** `FollowUpOptionStore`'s Redis snapshot (6h
-  TTL) is the only place a follow-up round's candidate text/images live —
-  the persisted `RoundResult.optionCounts` only carries derived option ids.
-  Once the snapshot expires, a past follow-up round's results are still
-  countable but no longer interpretable (an id with no text/image behind
-  it). Persisting the option text/images alongside the round result would
-  fix this.
-- **`AFTER_FOLLOWUP` enum retirement.** `ResultsDisplayMode.AFTER_FOLLOWUP`
-  predates this runtime and is retired from the deck editor's
-  reveal-results dropdown (shown only as a reselectable "(legacy)" entry
-  when an existing slide already carries it). The wire enum value itself
-  is still kept for back-compat; removing it outright is future cleanup
-  once no decks reference it.
+- Response moderation
+- Reactions (reconcile with the emoji support that already exists)

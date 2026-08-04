@@ -18,7 +18,7 @@ How the backend produces errors. Full design and rationale: [features/exceptions
 
 4. **Disclosure: `4xx` specific, `5xx` silent** — `4xx` → `detail` is a safe, actionable user-facing message. `5xx` → `detail` is the fixed `"Something went wrong, please try again."`; never expose `ex.getMessage()`, a class name, or a stack frame — log the full exception at `ERROR` with the `traceId`. Never weaken the `spring.web.error.include-*=never` properties.
 
-5. **404 vs 403 — tiered by key guessability** — Random-id resources (decks, themes, organizations, media) return an **honest 403** on unauthorized access. Guessable-key resources (interactive sessions by room code, invites by token) return a **masked 404** with a `*_NOT_FOUND` code. A `FORBIDDEN` code on a room-code or invite-token path is a bug.
+5. **404 vs 403 — tiered by key guessability** *(canonical statement — link here, don't restate)* — Random-id resources (decks, themes, organizations, media) return an **honest 403** on unauthorized access. Guessable-key resources (interactive sessions by room code, invites by token) return a **masked 404** with a `*_NOT_FOUND` code. A `FORBIDDEN` code on a room-code or invite-token path is a bug.
 
 6. **One handler, one place** — All REST error mapping lives in `GlobalExceptionHandler` (`@RestControllerAdvice`). Don't add `@ExceptionHandler` methods to individual controllers.
 

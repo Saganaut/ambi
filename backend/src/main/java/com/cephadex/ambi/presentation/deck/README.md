@@ -5,7 +5,7 @@ authority for **who may do what to a deck**. The permission rules below are enfo
 pure predicates on the `Deck` aggregate (`canBeViewedBy` / `canBeEditedBy` /
 `canBeManagedBy`) and applied by `DeckService` (`requireView` / `requireEdit` /
 `requireManage`), which translates a denial into the typed exceptions from the
-[exception contract](../../../../../../../../z-docs/features/exceptions.md).
+[exception contract](../../../../../../../../../z-docs/features/exceptions.md).
 
 > A deck used **as a presentation** is out of scope here. A live run takes a _snapshot_
 > of the deck into a separate object (see `session/`), so nothing in this package has to
@@ -166,7 +166,7 @@ persists a fresh **personal** deck owned by the caller with the aggregate's fiel
 (`name`, `PRIVATE`, `DRAFT`, `en`, …). Org-owned decks aren't created directly — a deck is
 born personal and moved to an org via a (future) MANAGE-gated transfer.
 
-**404 vs 403.** Per the [exception contract's tiered policy](../../../../../../../../z-docs/features/exceptions.md#404-vs-403-the-disclosure-decision),
+**404 vs 403.** Per the [exception contract's tiered policy](../../../../../../../../../z-docs/features/exceptions.md#404-vs-403-the-disclosure-decision),
 decks are keyed by a high-entropy id, so we use an **honest 403** — a forbidden view
 returns `403`, not a masked `404`. (Room-code resources mask; decks do not.)
 

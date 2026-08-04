@@ -1,8 +1,8 @@
 # Error Codes
 
-The registry of every `code` used in an `ApiException` (see [exception-rules](exception-rules.md) / [features/exceptions.md](../features/exceptions.md)), plus the naming convention for adding new ones. `code` is the stable, machine-readable contract the frontend branches on — this file exists so a new throw-site reuses an existing code instead of minting a near-duplicate.
+The registry of every `code` used in an `ApiException` (see [exception-rules](exception-rules.md)), plus the naming convention for new ones.
 
-**Before adding a new code:** check this table for one that already fits. Reuse beats a new, slightly-differently-worded code for the same condition. If nothing fits, add one following the shapes below and add a row here in the same commit.
+**Before adding a new code:** check the registry for one that already fits — reuse beats a near-duplicate. If nothing fits, follow the shapes below and add a row here **in the same commit**.
 
 ---
 
@@ -12,14 +12,14 @@ The registry of every `code` used in an `ApiException` (see [exception-rules](ex
 | --- | --- | --- |
 | 404 | `{RESOURCE}_NOT_FOUND` | `DECK_NOT_FOUND` |
 | 403 | `{RESOURCE}_{ACTION}_FORBIDDEN`, action one of `VIEW` / `EDIT` / `MANAGE` | `DECK_EDIT_FORBIDDEN` |
-| 403 | Role/relationship violation that isn't a resource+action check — no fixed template, but must read as a specific reason, not a generic denial | `NOT_HOST`, `COMMENT_FORBIDDEN` |
-| 409 | Free-form state description — conflicts are inherently state-specific, so there's no shared template. Still `SCREAMING_SNAKE_CASE`, still reused for the exact same condition everywhere it recurs | `ROOM_CODE_UNAVAILABLE`, `EMAIL_TAKEN` |
-| 401 | Exactly one code for "no signed-in principal": `AUTH_REQUIRED`. Anything more specific about *why* the credential failed gets its own code (see below) | `AUTH_REQUIRED`, `REFRESH_FAILED` |
-| 400 | Fixed at `VALIDATION_FAILED`, hardcoded by `ValidationException`. Never pass a different code to it | `VALIDATION_FAILED` |
+| 403 | Role/relationship violation — no fixed template; must name a specific reason | `NOT_HOST`, `COMMENT_FORBIDDEN` |
+| 409 | Free-form state description — no shared template | `ROOM_CODE_UNAVAILABLE`, `EMAIL_TAKEN` |
+| 401 | `AUTH_REQUIRED` for "no signed-in principal"; a specific credential failure gets its own code | `AUTH_REQUIRED`, `REFRESH_FAILED` |
+| 400 | Always `VALIDATION_FAILED`, hardcoded by `ValidationException` | `VALIDATION_FAILED` |
 
-All codes are `SCREAMING_SNAKE_CASE`. Scope by resource where the resource is the point of the check (`DECK_NOT_FOUND`, not `NOT_FOUND`); don't scope where the condition is inherently caller-relative rather than resource-relative (`NOT_HOST`, not `SESSION_HOST_FORBIDDEN` — the deciding fact is "you aren't the host," not an action on the session).
+All codes are `SCREAMING_SNAKE_CASE`. Scope by resource where the resource is the point of the check (`DECK_NOT_FOUND`, not `NOT_FOUND`); don't scope where the condition is caller-relative (`NOT_HOST`, not `SESSION_HOST_FORBIDDEN`).
 
-A masked 404 (see the [404-vs-403 disclosure policy](../features/exceptions.md#404-vs-403-the-disclosure-decision)) still uses a `*_NOT_FOUND` code, never a `FORBIDDEN` one — a `FORBIDDEN` code on a room-code or invite-token path is a bug.
+A masked 404 still uses a `*_NOT_FOUND` code — see [exception-rules.md](exception-rules.md) §5.
 
 ---
 

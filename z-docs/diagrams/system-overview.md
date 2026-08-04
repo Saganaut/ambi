@@ -18,7 +18,7 @@ flowchart TB
         PART["Participant<br/>(guest or registered)"]
     end
 
-    AMBI["Ambi<br/>Competitive brain-games platform<br/>React 19 SPA + Spring Boot 4 API"]
+    AMBI["Ambi<br/>Interactive presentation platform<br/>React 19 SPA + Spring Boot 4 API"]
 
     subgraph ext["External services"]
         IDP["Google / Discord / Microsoft OAuth"]
@@ -69,61 +69,25 @@ flowchart LR
     REST -->|"OAuth code exchange"| IDP2["Google / Discord / Microsoft OAuth"]
 ```
 
-## Deployment topology
+### The stack in that picture
 
-Local dev today; AWS is the planned production target (see
-[infrastructure.md](../infrastructure/infrastructure.md)).
+| Layer | Tools |
+| --- | --- |
+| Frontend | React 19 (React Compiler) · TypeScript strict · Vite · TanStack Router (file-based) · Redux Toolkit + RTK Query · CSS Modules + `tokens.css` · TipTap · `vite-plugin-svgr` |
+| Backend | Java 26 · Spring Boot 4 · Maven (`./mvnw`) · Spring Data MongoDB · Redis · Spring Security + OAuth2 · SpringDoc OpenAPI · Lombok |
 
-```mermaid
-flowchart TB
-    subgraph local["Local dev (docker compose)"]
-        direction LR
-        FE1["Vite dev server :5173"]
-        BE1["Spring Boot :8080"]
-        subgraph containers["compose.yaml"]
-            M1[("mongo:7.0 :27017")]
-            R1[("redis-stack :6379 · UI :8001")]
-            G1[("garage v1 :3900/:3903")]
-            MX["mongo-express :8081"]
-            LS["localstack :4566<br/>cloudwatch + logs"]
-        end
-        FE1 --> BE1 --> M1 & R1 & G1
-        BE1 -.->|metrics/logs| LS
-    end
+The API client, validation bounds, and enums are **generated** from the backend
+OpenAPI schema — never hand-edited. Backend package `com.cephadex.ambi` is
+feature-based (`auth/`, `billing/`, `common/`, `config/`, `media/`, `org/`,
+`presentation/`, `session/`, `theme/`, `user/`), each with its own
+`controller/`/`service/`/`dto/`/`enums/` — there are no flat layer packages.
+Endpoints are prefixed `/api` and documented at
+`http://localhost:8080/swagger-ui/`; CORS allows only `http://localhost:5173`,
+with credentials. Conventions: [frontend-rules](../rules/frontend-rules.md),
+[backend-rules](../rules/backend-rules.md),
+[styling-rules](../rules/styling-rules.md).
 
-    subgraph aws["Planned production (AWS)"]
-        direction LR
-        ALB["ALB + nginx (TLS)"]
-        EC2["EC2 · Spring Boot"]
-        SQS["SQS → Lambda workers<br/>EXTRACT · PROCESS · IMAGE"]
-        SNS["SNS notify"]
-        ATLAS[("MongoDB Atlas")]
-        EC["ElastiCache Redis"]
-        S3P[("AWS S3")]
-        CW["CloudWatch + Sentry"]
-        ALB --> EC2 --> ATLAS & EC & S3P
-        EC2 --> SQS --> SNS
-        EC2 -.-> CW
-    end
-
-    local -.->|"lift & shift"| aws
-```
-
-## Observability path
-
-Only the MDC/traceId wiring and the RFC 9457 error path are implemented today;
-JSON structured logging, CloudWatch metrics delivery, and error-tracking
-vendors (Sentry) are all deferred. See
-[ADR 001](../decisions/001-observability-stack.md).
-
-```mermaid
-flowchart LR
-    FE["Frontend<br/>stamps X-Request-Id"] --> BE
-    BE["Backend<br/>MdcLoggingFilter<br/>requestId → traceId → userId"]
-    BE -.->|"deferred: JSON logs to stdout<br/>(no logback-spring.xml yet)"| LOGS["CloudWatch Logs<br/>(LocalStack in dev)"]
-    BE -.->|"deferred: Actuator + Micrometer<br/>(no CloudWatch registry dep)"| METRICS["CloudWatch Metrics"]
-    BE -->|"RFC 9457 ProblemDetail"| ERR["Error responses<br/>(traceId echoed)"]
-    ERR -.->|deferred| SENTRY["Sentry (per-layer DSN)"]
-    LOGS --> INSIGHTS["Logs Insights / alarms"]
-    METRICS --> INSIGHTS
-```
+Deployment is local-only today — see
+[infrastructure.md](../infrastructure/infrastructure.md) for the container set
+and [ADR 001](../decisions/001-observability-stack.md) for the logging/metrics
+plan.

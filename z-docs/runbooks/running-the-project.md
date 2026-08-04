@@ -3,28 +3,45 @@
 The everyday local dev loop: bring up infrastructure, run both servers, and keep generated
 artifacts / sample data / screenshots in sync as you work.
 
-## 1. Start infrastructure
+## 1. Start everything (the normal way)
+
+```bash
+./scripts/ambi.sh          # run from the repo root; Ctrl+C stops everything
+```
+
+Brings up Docker, the Vite frontend, and the backend (with `dev.env` exported) in one terminal.
+`-f` / `--file-logs` is currently a no-op — see [Using the observability stack](using-the-observability-stack.md).
+
+The steps below are the same thing by hand, for when you only want one piece.
+
+## 2. Infrastructure
 
 ```bash
 docker compose up -d
 ```
 
-Brings up MongoDB (`:27017`), Redis (`:6379`), and Garage S3 (`:3900`). Required before the backend
-will boot. See [Environment Variables](../infrastructure/environment-variables.md) for the values
-the backend needs (S3/OAuth credentials, etc.) and [Gotchas](../infrastructure/gotchas.md) for
-known rough edges.
+Starts MongoDB (`:27017`), Redis (`:6379`), Garage S3 (`:3900`), Mongo Express (`:8081`), and
+LocalStack (`:4566`). The Redis container also maps `:8001`, but nothing listens there —
+`redis-stack-server` bundles no UI. See
+[Environment Variables](../infrastructure/environment-variables.md) and
+[Gotchas](../infrastructure/gotchas.md).
 
-## 2. Start the backend
+## 3. Backend
 
 ```bash
+set -a; source dev.env; set +a
 cd backend && ./mvnw spring-boot:run
 ```
+
+**Sourcing `dev.env` is mandatory.** There is no in-app dotenv loader — without it `S3_ACCESS_KEY`
+/ `S3_SECRET_KEY` default to empty (`application.properties`), the app still boots, and every
+image/gallery path then fails at runtime looking like an application bug.
 
 - App: <http://localhost:8080>
 - Swagger UI: `/swagger-ui/`
 - OpenAPI spec: `/v3/api-docs`
 
-## 3. Start the frontend
+## 4. Frontend
 
 ```bash
 cd frontend && npm install && npm run dev
@@ -32,7 +49,7 @@ cd frontend && npm install && npm run dev
 
 - App: <http://localhost:5173>
 
-## 4. Regenerate frontend codegen artifacts
+## 5. Regenerate frontend codegen artifacts
 
 After backend changes (the backend must be running):
 
@@ -41,11 +58,15 @@ cd frontend
 npm run generate          # API client + validation constants + enums
 ```
 
-All of these are committed and **must not be hand-edited**. How the codegen single source of truth
-works — and the individual `generate-api` / `generate-validation` / `generate-enums` scripts — is
-documented in [generated-artifacts](../rules/frontend/generated-artifacts.md).
+> **Known abort:** `generate-api` currently dies on the dev-auth-controller tag (it emits a
+> `features/undefined` devApi). When that happens, run the three scripts individually —
+> `npm run generate-api`, `npm run generate-validation`, `npm run generate-enums` — and discard
+> the stray devApi output.
 
-## 5. Seed sample data
+All generated files are committed and **must not be hand-edited** — see
+[generated-artifacts](../rules/frontend/generated-artifacts.md).
+
+## 6. Seed sample data
 
 ```bash
 ./scripts/seed-sample-data.sh
@@ -54,24 +75,32 @@ documented in [generated-artifacts](../rules/frontend/generated-artifacts.md).
 Loads the LOTR sample dataset. Idempotent per collection per user and never destructive — but stop
 any running backend first.
 
-## 6. One-off data migrations
+## 7. One-off data migrations
 
-A schema change that the current model can no longer read gets a one-shot `ApplicationRunner` under
-`backend/src/main/java/com/cephadex/ambi/config/`, activated by its own `*.run=true` property and
-fronted by a script in `scripts/`. Each runs once, rewrites documents in place, exits, and is
-idempotent — re-running matches nothing.
+Schema changes the current model can no longer read get a one-shot `ApplicationRunner` under
+`backend/.../config/`, fronted by a script in `scripts/`. Each binds a random port (so it can run
+alongside a backend on 8080), rewrites documents in place, and is idempotent. **Always
+`--dry-run` first.**
+
+| Script | Rewrites |
+| --- | --- |
+| `scripts/migrate-place-on-image.sh` | Legacy `PLACE_ON_IMAGE` `content.correctTargets` → `items` + `correctPositions` + `tolerance`, in `decks` and in `LiveSessions` deck snapshots. |
+| `scripts/migrate-deck-images.sh` | Gives pre-existing decks their own S3 image copies — the one-off counterpart of [copy-on-select adoption](../diagrams/media-gallery.md#deck-image-ownership-copy-on-select). `decks` only. |
+
+## 8. Inspecting the data
+
+Mongo: <http://localhost:8081> — see [Using Mongo Express](using-mongo-express.md).
+
+Redis (no GUI in this stack):
 
 ```bash
-./scripts/migrate-place-on-image.sh --dry-run   # log the affected counts, write nothing
-./scripts/migrate-place-on-image.sh             # rewrite
+docker exec -it ambi-redis redis-cli -a password
+KEYS spring:session:*                 # Spring Session keys
+TTL spring:session:sessions:<id>      # confirm guest TTLs count down
+FLUSHALL                              # dev only — invalidates every session
 ```
 
-`migrate-place-on-image.sh` rewrites legacy `PLACE_ON_IMAGE` slide content from the old
-`content.correctTargets` list into the current `items` + `correctPositions` + `tolerance` shape, in
-both the `decks` collection and the deck snapshots embedded in `LiveSessions`. Like the seeder it
-binds a random port, so it can run alongside a backend on 8080. Always take a dry run first.
-
-## 7. Screenshot verification
+## 9. Screenshot verification
 
 Capture screenshots of the running app (including behind-login pages) to verify UI work:
 
@@ -83,7 +112,4 @@ One-time setup: `npx playwright install chromium`. The script uses the DEV-only
 `POST /api/dev/login` endpoint to reach behind-login pages without real OAuth; PNGs land in
 `frontend/.screenshots/` (git-ignored). Requires infra plus both servers up.
 
-See [Testing & CI → Screenshot verification](../infrastructure/testing-and-ci.md#screenshot-verification-dev-only)
-for the design/implementation background, and the
-[Dev login & app screenshots](dev-login-and-screenshots.md) runbook for the full walkthrough
-(manual browser login, curl-based API testing, notes & gotchas).
+Full walkthrough: [Dev login & app screenshots](dev-login-and-screenshots.md).

@@ -40,28 +40,12 @@ flowchart TB
     DECK --> SLIDE
 ```
 
-## Permission resolution
-
-`DeckService` delegates authorization to pure predicates on the `Deck` aggregate.
-
-```mermaid
-flowchart TB
-    REQ["request + AmbiPrincipal"] --> Q{"required capability"}
-    Q -->|read| V["canBeViewedBy"]
-    Q -->|edit| E["canBeEditedBy"]
-    Q -->|manage| M["canBeManagedBy"]
-
-    V --> VR{"owner? · ACL editor?<br/>PUBLIC+PUBLISHED? · org member?"}
-    E --> ER{"owner? · ACL EDITOR?<br/>org OWNER/ADMIN?"}
-    M --> MR{"owner? · org OWNER?"}
-
-    VR -->|no| D403V["403 ForbiddenException<br/>(honest — decks are high-entropy ids)"]
-    ER -->|no| D403["403"]
-    MR -->|no| D403
-    VR -->|yes| OK["proceed"]
-    ER -->|yes| OK
-    MR -->|yes| OK
-```
+`DeckService` delegates authorization to pure predicates on the aggregate —
+`canBeViewedBy` (owner · ACL editor · PUBLIC+PUBLISHED · org member),
+`canBeEditedBy` (owner · ACL EDITOR · org OWNER/ADMIN), `canBeManagedBy` (owner ·
+org OWNER) — each failing with an honest `403`, since deck ids are high-entropy.
+The chain-level rules are in
+[Backend Service Map](backend-services.md#authorization-model).
 
 ## Optimistic create & edit round-trip
 
@@ -128,7 +112,12 @@ flowchart TB
     classDef n fill:#f6f6f6,stroke:#bbb,color:#333
 ```
 
-### Slide background — three states
+`backgroundColor` follows the same shape on its own endpoints: a slide value
+overrides the deck's, `null` inherits, and
+`DeckRepositoryImpl.promoteBackgroundColorToDeck` promotes a slide colour to the
+deck and unsets every slide's override. Both layers are validated `#RRGGBB`.
+
+### Slide background image — three states
 
 ```mermaid
 stateDiagram-v2

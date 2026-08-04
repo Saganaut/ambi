@@ -1,488 +1,148 @@
 # Follow-Up Slides
 
-A **follow-up slide** is chained off a parent scorable slide and, at live-session
-runtime, builds its question out of the parent round's participant submissions
-(e.g. the parent collects answers; the follow-up presents them as pickable
-options). Authoring — adding, editing, reordering, and deleting follow-ups in
-the deck editor — and the live-session runtime — minting candidates from the
-parent round's submissions, running the follow-up as an ordinary round of its
-own, and presenting the board — are both implemented; see [Runtime](#runtime).
-**Scoring is per-mode**: [`SPOT_THE_ANSWER`](#spot_the_answer) scores — it mixes
-the parent's authored answer in among the submissions and pays both the players
-who spot it and the players whose own card fooled the room — while
-`BEST_ANSWER_VOTE` and `PREDICT_POPULAR` still grade a permanent `false` and
-award nothing (see also [Missing Features](../missing-features.md)).
+A **follow-up slide** is chained off a parent scorable slide and builds its
+question, at live-session runtime, out of that parent round's participant
+submissions. Authoring and runtime are both implemented. **Scoring is
+per-mode:** `SPOT_THE_ANSWER` scores — it mixes the parent's authored answer in
+among the submissions and pays both the players who spot it and the players
+whose own card fooled the room — while `BEST_ANSWER_VOTE` and `PREDICT_POPULAR`
+grade a permanent `false` and award nothing (see [Deferred](#deferred)).
 
 ## Model
 
-- The parent/child link lives on the slides themselves: `Slide.parentId` /
-  `Slide.childId` — **server-owned**. The only way to mint a link is the
-  dedicated endpoint below; deletes clear or cascade it. `SlideRequest` carries
-  neither field, so a slide update can never rewrite a link.
-- A link is **real** only when both back-pointers agree *and* the child's
-  content is `FollowUpContent`. Anything else (dangling ids, half-written
-  legacy links) degrades to plain unlinked slides everywhere, and
-  `addFollowUpSlide` self-heals a dangling `childId` before attaching.
-- `FollowUpContent` is just `{ mode: FollowUpMode }`. Submissions are runtime
-  session data, not deck content, so nothing else is authorable; the question
-  prompt is `Slide.title`, like every other kind.
+- The parent/child link lives on the slides: `Slide.parentId` / `Slide.childId`, **server-owned**. The only way to mint one is the dedicated endpoint; deletes clear or cascade it. `SlideRequest` carries neither field, so a slide update can never rewrite a link.
+- A link is **real** only when both back-pointers agree *and* the child's content is `FollowUpContent`. Anything else — dangling ids, half-written legacy links — degrades to plain unlinked slides everywhere, and `addFollowUpSlide` self-heals a dangling `childId` before attaching.
+- `FollowUpContent` is just `{ mode: FollowUpMode }`. Submissions are runtime session data, not deck content, so nothing else is authorable; the prompt is `Slide.title`, like every other kind.
 
-## Invariants
+### Invariants
 
-1. **Adjacency** — a follow-up sits immediately after its parent. The add
-   endpoint ranks it between the parent and its successor; a move targets the
-   *unit* (parent + follow-up move as one block), the target index is
-   normalized so a unit can never land inside another pair, and moving a
-   follow-up itself is rejected (`400`) — it only moves with its parent.
-2. **Multiplicity** — at most one follow-up per slide (`409 FOLLOW_UP_EXISTS`),
-   no chains (a follow-up can't have its own follow-up), and only scorable,
-   non-follow-up parents qualify.
-3. **Cascade delete** — deleting the parent deletes its attached follow-up
-   (the editor confirms first); deleting just the follow-up clears the
-   parent's `childId`.
+1. **Adjacency** — a follow-up sits immediately after its parent. The add endpoint ranks it between parent and successor; a move targets the *unit* (parent + follow-up move as one block), the target index is normalized so a unit can never land inside another pair, and moving a follow-up alone is a `400`.
+2. **Multiplicity** — at most one follow-up per slide (`409 FOLLOW_UP_EXISTS`), no chains, and only scorable non-follow-up parents qualify.
+3. **Cascade delete** — deleting the parent deletes its follow-up (the editor confirms first); deleting the follow-up clears the parent's `childId`.
 
-## Endpoint
-
-`POST /api/decks/{id}/slides/{slideId}/follow-up` (EDIT) with
+Endpoint: `POST /api/decks/{id}/slides/{slideId}/follow-up` (EDIT) with
 `AddFollowUpRequest { id, mode, title? }` → `201` + the deck's slides in
-canonical order (the operation touches two slides and inserts mid-list, so the
-client reconciles its cache from the response, like a move).
+canonical order, since the operation touches two slides and inserts mid-list.
 
 ## Modes
 
-`FollowUpMode` declares which parent content types each mode supports — the
-backend enum (`presentation/slide/enums/FollowUpMode.java`) is the
-authoritative validator:
+`FollowUpMode` (`presentation/slide/enums/FollowUpMode.java`) is the
+authoritative validator for which parent content types each mode accepts:
 
-| Mode               | Valid parents                                                                                    | Question it asks                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `PREDICT_POPULAR`  | `MCQ`                                                                                              | Which option was picked most?                                                     |
-| `BEST_ANSWER_VOTE` | every scorable parent except `FOLLOW_UP` itself: `MCQ`, `TEXT`, `DRAWING`, `NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`, `PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION` | Which submission was best? (vote — picked options on MCQ, a compact text summary on every other kind) |
-| `SPOT_THE_ANSWER`  | a parent **with an authored answer**: `TEXT` with a non-empty `TextContent.acceptedAnswers`, or `DRAWING` with an authored `DrawingContent.correctImage` | Which of these is the real answer? (the authored one is hidden among the submissions) |
+| Mode | Valid parents | Question it asks |
+|---|---|---|
+| `PREDICT_POPULAR` | `MCQ` | Which option was picked most? |
+| `BEST_ANSWER_VOTE` | every scorable parent except `FOLLOW_UP` | Which submission was best? |
+| `SPOT_THE_ANSWER` | a parent **with an authored answer**: `TEXT` with non-empty `acceptedAnswers`, or `DRAWING` with an authored `correctImage` | Which of these is the real answer? |
 
-Any scorable slide type can attach a `BEST_ANSWER_VOTE` follow-up. `MCQ`, a
-keyed `TEXT` and a `DRAWING` slide carrying a correct-answer image are the
-parents with more than one valid mode — the author picks
-one when adding the follow-up and can change it in the inspector; every other
-parent type is `BEST_ANSWER_VOTE` only. `BEST_ANSWER_VOTE` gets the same
-runtime as `PREDICT_POPULAR` — see [Runtime](#runtime) — the mode only changes
-the board's prompt text, and neither of the two scores (see
-[Missing Features](../missing-features.md)). `SPOT_THE_ANSWER` is the one mode
-that changes what is minted *and* scores; it has its own
-[section](#spot_the_answer).
+`supportsParent` settles the parent's *type*; `requiresAnswerKey()` is the
+second half of the rule, because an unkeyed `TEXT` slide (or a Drawing with no
+authored image) is a legitimate collect-only prompt with nothing to hide.
+**What "an authored answer" means is per parent kind, and
+`DeckService.hasAnswerKey` is the single place that resolves it** — deliberately
+the exact negation of the frontend's `isImageEmpty`, so the mode the editor
+offers and the mode the API accepts agree by construction. `DeckService`
+enforces both halves at the add endpoint, the inspector's mode edit, and a
+parent content update that would strip the answer out from under an attached
+`SPOT_THE_ANSWER` child; each is a `400`.
 
-`FollowUpMode.requiresAnswerKey()` is the authoritative second half of the
-pairing rule: `supportsParent` only settles the parent's *type*, and an unkeyed
-`TEXT` slide — or a Drawing slide with no authored correct image — is a
-legitimate collect-only prompt with no authored answer to hide. The flag
-deliberately says only that *an* authored answer is required; **what one is**
-is per parent kind, and `DeckService.hasAnswerKey` is the single place that
-resolves it against the content (a non-blank accepted answer on `TEXT`; a
-`correctImage` that is stored — not external — and carries a renderable variant
-on `DRAWING`, exactly the negation of the frontend's `isImageEmpty`, so the
-mode the editor offers and the mode the API accepts agree by construction).
-`DeckService` enforces both halves wherever the pairing can change — the
-add endpoint, the inspector's mode edit, and a parent content update that would
-strip the authored answer out from under an attached `SPOT_THE_ANSWER` child —
-each a `400`.
-
-The frontend mirrors the table in
-`frontend/src/features/deck/utils/followUp.ts` (`FOLLOW_UP_MODE_PARENTS`),
-typed `satisfies Record<FollowUpMode, readonly SlideType[]>` against the
-**generated** unions — a new backend mode regenerated into `deckEnums.gen.ts`
-breaks compilation there until its row is added, so the mirror can't silently
-drift. `utils/followUp.ts` is also the single frontend home of the pairing
-rule (`groupIntoUnits`, `attachedFollowUpOf`, `canHaveFollowUp`), shared by the
-rail, the optimistic move patch, and the add affordances.
-
-### `SPOT_THE_ANSWER`
-
-A dixit-style mode, and the **first follow-up mode to score**: the parent
-question's **authored** correct answer is mixed in among the
-participant-submitted candidates, and the room has to spot it.
-
-- **Valid parents** — the two kinds that can carry an authored answer: `TEXT`
-  slides with a non-empty answer key (`TextContent.acceptedAnswers`), and
-  `DRAWING` slides with an authored answer picture
-  (`DrawingContent.correctImage`) — the [image board](#the-image-board-dixit-on-drawing-parents)
-  below. A parent carrying neither is unscored and has nothing to mix in, so it
-  stays `BEST_ANSWER_VOTE` only — see `FollowUpMode.requiresAnswerKey()` above.
-- **Seeding** — `FollowUpOptions.mint` takes the child's mode, and on this one
-  `fromText` seeds the answer key's own wording in beside the deduped
-  submissions (`fromDrawings` does the picture equivalent). One accepted answer
-  stands for the whole set: the first
-  non-blank one in iteration order (a stored `Set` field hydrates as a
-  `LinkedHashSet`, so that is the authored order, and a live session mints from
-  one immutable deck snapshot — every re-mint of a round therefore reads the
-  same wording). The wording is **stripped first**, and that stripped form is
-  both what the card shows and what the key normalizes from, so the seed obeys
-  the same `optionId == derivedId(normalize(displayText))` relation every
-  submission card does — keying off the raw wording instead would leave the seed
-  as the one card on a `trimWhitespace = false` board whose id doesn't match its
-  text.
-- **Merging** — the seed is keyed under `TextContent.normalize` exactly as a
-  submission is, so a participant who typed the authored answer lands on the
-  *same* candidate: one card that is both the answer key and their submission,
-  carrying the flag and them as an author. The existing self-pick `409` then
-  correctly stops them picking the card they wrote. (On a Drawing parent the
-  same merge is written but cannot fire — see
-  [the image board](#the-image-board-dixit-on-drawing-parents).)
-- **Where the seeded card lands** — nowhere in particular: the seed is appended
-  after the last submission and then the **whole board is shuffled** with a
-  `SecureRandom`, freshly per mint (`FollowUpOptions.finishShuffled`). Shuffling
-  everything rather than hiding the seed in one random slot is the point. With
-  the submissions holding submission order, two mints of one unchanged round
-  differ in exactly *one* card's index, so a participant who holds arrangement A
-  (the live board) beside arrangement B (a snapshot refetched after a reconnect
-  or reload, or the board a re-open republishes) reads the seed off the diff —
-  the single card that moved — with probability `n/(n+1)`. Independent
-  permutations leak nothing by comparison: every card moves, and the seed no more
-  than the rest. The order cannot be *derived* from the cards either — a card's
-  text and its board position both travel on `FollowUpOptionView`, so any
-  derivation a client can re-run identifies the seed outright — and it is a
-  CSPRNG rather than `java.util.Random` because a predictable stream would hand
-  the arrangement back to anyone who watched a few boards. Nothing depends on the
-  arrangement being reproducible: candidate **ids** stay content-derived and every
-  consumer addresses a card by id, so a re-mint yields the same cards rearranged,
-  and the only paths that re-mint (a round open or restart, or a parent replay)
-  clear that round's cast answers with it. A *merged* seed needs no special
-  handling for the same reason — once the whole list is shuffled, no position is
-  special. A side benefit: a shuffled board no longer discloses the order the
-  parent round's answers arrived in, which every other mode's board does carry.
-- **Secrecy** — `FollowUpOption.authoredAnswer` is server-only, exactly like
-  `authorParticipantIds`: `FollowUpOptionView` projects only
-  id/text/imageUrl, and `FollowUpConfigView` carries no correct-answer field.
-  The parent itself never reveals either (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`).
-  The card also shows the authored wording **stripped**, so stray padding
-  can't render as a tell no submitted card has. The invariant is an *in-round*
-  one: at `REVEAL_RESULTS` the round's own outcomes carry each participant's
-  `choice` alongside whether it graded `correct`, from which any client can read
-  off the authored option id. That is disclosure by design — the round is over —
-  and it is why the secrecy argument is about what the board leaks *while it is
-  being played*.
-- **Graceful degradation** — if the author empties the parent's authored
-  answer after attaching the follow-up — the answer key on `TEXT`, the
-  `correctImage` on `DRAWING` (the editor rejects both, but a session's deck
-  snapshot can predate the rule) — the mint seeds nothing and produces exactly
-  the `BEST_ANSWER_VOTE` board. No candidate carries the flag, so no pick can
-  grade correct and the **picker** side scores nobody, rather than the round
-  failing. Authors are unaffected: `RoundEvaluator.followUpPicksByAuthor` gates
-  on the mode and a non-empty board, not on the flag, so cards that drew picks
-  still pay deception points.
-- **Scoring** — pickers earn through the ordinary correct-answer path, authors
-  through deception points; see *Scoring a follow-up round* under
-  [Runtime](#runtime).
-- **Frontend mirror** — the enum value breaks compilation in
-  `FOLLOW_UP_MODE_PARENTS` (`frontend/src/features/deck/utils/followUp.ts`)
-  until its row is added, so the parent-type table above can't silently drift.
-
-#### The image board (dixit on Drawing parents)
-
-The same mode, on a `DRAWING` parent: the author's own picture of the right
-answer sits among the players' drawings and the room has to spot it. It is the
-original dixit shape, and it needs no new model — `DrawingContent.correctImage`
-already existed and round-tripped; what changed is that it now has a consumer
-and a meaning ("the parent's authored answer"), plus an editor surface to set
-it. Everything below the mint is untouched: grading, deception payouts,
-playability, the store and the board are all mode/flag-generic and never look
-at whether a candidate is text or a picture.
-
-- **Seeding, by `srcKey`.** `FollowUpOptions.withAuthoredImage` is the twin of
-  `withAuthoredAnswer`: the authored image is keyed on its stored `srcKey`,
-  exactly as every submitted drawing is, so its id is the same
-  `derivedId(srcKey)` derivation and a re-mint reproduces it. Its display URL is
-  resolved through the *same* `imageUrl` function the submissions go through, so
-  it leaves as an opaque proxy URL like every other candidate (*Candidate images
-  travel as opaque URLs* under [Runtime](#runtime)) — a presigned URL would
-  spell out its
-  `gallery/…` key and hand the answer to anyone with devtools open, which is
-  every bit as fatal as an unshuffled arrangement.
-- **Merging can't happen (and is handled anyway).** The text seed merges with a
-  participant who typed the authored answer; the image seed structurally cannot,
-  because `LiveSessionAnswerService.validateDrawing` only accepts a submission
-  whose key sits under `drawing/{sessionId}/{participantId}/`, while an authored
-  image is a gallery object (`gallery/…`) — two disjoint namespaces, so no
-  submitted drawing can ever key onto the seed. The merge is still written as a
-  `computeIfAbsent` rather than a bare `put`, so if those namespaces ever meet
-  the seed gains the submitters as authors instead of silently discarding them.
-- **Shuffle and degradation are shared.** The board ends on the same
-  unconditional `finishShuffled`, and a parent whose `correctImage` is missing,
-  external, or carries no renderable variant seeds nothing and mints exactly the
-  `BEST_ANSWER_VOTE` board — identical to the keyless TEXT degradation above,
-  including that authors are still paid.
-- **The parent round never leaks it.** `DrawingConfigView` carries no
-  `correctImage` field and nothing on the parent round's path even resolves the
-  image, so players draw without having seen the answer.
-- **Authoring.** The Drawing editor's "Correct answer image" card
-  (`DrawingSlideContent`) sets it — gallery pick or draw-it-yourself, both
-  cropped 1:1 like the prompt image — and setting one is what unlocks the mode
-  in the follow-up mode picker. Removing it is blocked client-side while a keyed
-  follow-up is attached (`wouldOrphanKeyedFollowUp`), mirroring the TEXT answer
-  key, because the slide PUT is fire-and-forget and could never surface the
-  backend's `400`; *replacing* it stays allowed. The follow-up's own canvas
-  previews that picture among ghost tiles — an author-only surface, so marking
-  which one is the answer is correct there, unlike the live board.
-- **Content tell — the author's problem, not the code's.** Nothing about the
-  URL, the id, the arrangement or the markup distinguishes the seeded card, but
-  the *picture* can: a photograph or polished illustration among six freehand
-  sketches is spotted at a glance, with none of the above mattering. The editor
-  says so in the card's hint ("pick something that could pass for a player's
-  drawing") and the draw-it-yourself path exists precisely so an author can
-  produce one in the same medium. There is no mitigation in code — the room is
-  looking at the images.
+The frontend mirrors the table in `deck/utils/followUp.ts`
+(`FOLLOW_UP_MODE_PARENTS`), typed `satisfies Record<FollowUpMode, readonly
+SlideType[]>` against the **generated** unions — a new backend mode breaks
+compilation there until its row is added. That file is also the single frontend
+home of the pairing rule (`groupIntoUnits`, `attachedFollowUpOf`,
+`canHaveFollowUp`), shared by the rail, the optimistic move patch, and the add
+affordances.
 
 ## Editor UX
 
-- **Add**: "Add follow-up slide" in an eligible slide's thumbnail context menu
-  (fast path) and in the inspector's Follow-up section (discoverable home).
-  Creation defaults to the first valid mode; the inspector changes it after.
-- **Rail**: the left rail renders *units* — a follow-up shows as an indented
-  tile attached under its parent, numbered `Na`, selectable but not draggable;
-  dragging the parent drags the pair. `FOLLOW_UP` is excluded from the New
-  Slide picker.
-- **Canvas**: `FollowUpSlideContent` — prompt, mode banner, and a read-only
-  preview (ghosted parent options for `PREDICT_POPULAR`) that makes the
-  runtime contract legible without runtime data.
-- **Move index math**: three index spaces exist (dnd unit index → frontend
-  flat index → server flat index). The unit→flat conversion happens in exactly
-  one place (`useDeckEditor.handleDragEnd`); the optimistic patch and the
-  server apply the same snap-normalization, and the move/add responses carry
-  the full canonical list so any divergence self-heals on reconcile.
+Add from an eligible slide's thumbnail context menu (fast path) or the
+inspector's Follow-up section (discoverable home); creation defaults to the
+first valid mode. The rail renders *units* — the follow-up is an indented tile
+numbered `Na`, selectable but not draggable, and dragging the parent drags the
+pair. `FollowUpSlideContent` shows the prompt, a mode banner, and a read-only
+preview that makes the runtime contract legible without runtime data.
+
+**Move index math is the sharp edge**: three index spaces exist (dnd unit index
+→ frontend flat index → server flat index). The unit→flat conversion happens in
+exactly one place (`useDeckEditor.handleDragEnd`); the optimistic patch and the
+server apply the same snap-normalization, and move/add responses carry the full
+canonical list so any divergence self-heals on reconcile.
 
 ## Runtime
 
-Live sessions snapshot the deck's slides verbatim, so `Slide.parentId`/
-`childId` and the mode carry into rounds with no extra model work. A
-follow-up round is a **regular round**, not a special phase: it runs the same
-`SUBMIT` → (optional `SUBMIT_LIVE`) → `LOCKED`/`REVEAL_RESPONSES` →
-`REVEAL_RESULTS` sequence as any other slide, and does **not** use the `VOTE`
-phase — that machinery stays reserved for voting on the *current* round's own
-free-text/drawing submissions (open-decisions
-[D3](../../live-session-open-decisions.md#d3-best-answer--deception-are-hard-coded-off)).
-A follow-up's pick already
-**is** the round's answer, so it travels the ordinary answer path instead.
+A follow-up round is a **regular round**, not a special phase: same `SUBMIT` →
+(optional `SUBMIT_LIVE`) → `LOCKED`/`REVEAL_RESPONSES` → `REVEAL_RESULTS`
+sequence, and it does **not** use the `VOTE` phase — that machinery stays with
+same-round voting on free-text/drawing submissions
+([the `VOTE` phase](../../diagrams/live-session.md)).
 
-**Minting the candidates.** `session/followUp/FollowUpOptions` derives the
-board's candidate set from the parent slide and the answers its round
-collected: an MCQ parent hands back its own authored options verbatim (same
-ids, same order, no submitters); a TEXT parent dedupes submissions under the
-parent's own trim/case normalization (`TextContent.normalize`), unioning
-authors onto whichever submission's wording landed first — and, on a
-`SPOT_THE_ANSWER` child, mixes the authored answer in with them
-([above](#spot_the_answer)); a DRAWING parent
-mints one candidate per submitted image, keyed by its stored `srcKey` — and, on
-a `SPOT_THE_ANSWER` child, seeds the parent's authored `correctImage` in among
-them under that same keying
-([the image board](#the-image-board-dixit-on-drawing-parents)). Every
-other scorable parent kind (`NUMBER`, `RANKING`, `SCALES`, `GRID`, `AXIS`,
-`PLACE_ON_IMAGE`, `MATCHING`, `ALLOCATION`) has no submission a board can show
-verbatim, so its answers are rendered into a compact text summary built from
-the parent's own authored labels — a number with its unit, a ranking as
-`"Alpha > Beta > Gamma"`, a match as `"Alpha ↔ X · Beta ↔ Y"`, a grid
-placement as `"Alpha → Mammal/Africa"`, an allocation as `"Alpha 60 · Beta 40"`
-(points, not percentages), a scale position denormalized to scale units, and
-an axis/place-on-image placement as whole-percent coordinates. That rendered
-summary doubles as both the candidate's display text and its dedup key, so
-two submissions that render identically merge into one candidate. Every
-candidate's id is a UUID hashed from the content it stands for (the summary
-text for these kinds), never random, so re-minting over the same submissions
-reproduces the same set — a round restart doesn't orphan votes already cast
-against it. Board *order* is derived the same way for every mode but
-`SPOT_THE_ANSWER`, whose board is shuffled per mint
-([above](#spot_the_answer)): authored order for MCQ, submission order
-(`submittedAt`, ties broken by participant id) for the kinds minted from
-answers. See `FollowUpOptions`'s class Javadoc and its `summaryOf`
-overloads for the exact per-type formats.
+**Mint.** `session/followUp/FollowUpOptions` derives the candidate set from the
+parent slide and its round's answers. An MCQ parent hands back its authored
+options verbatim; a TEXT parent dedupes submissions under
+`TextContent.normalize`; a DRAWING parent mints one candidate per submitted
+image keyed by `srcKey`; every other scorable kind renders its answers into a
+compact text summary built from the parent's own authored labels, which doubles
+as the candidate's display text and its dedup key. **Read
+`FollowUpOptions`'s class Javadoc and its `summaryOf` overloads for the exact
+per-type formats.** Candidate ids are UUIDs hashed from the content they stand
+for, never random, so re-minting over the same submissions reproduces the same
+set and a round restart doesn't orphan votes already cast.
 
-**Snapshot, not re-mint-per-read.** The mint runs once, when the follow-up
-round opens, and is written to Redis (`FollowUpOptionStore`,
-`ambi:session:followup:{sessionId}:{slideId}`, 6h TTL) as a single ordered
-JSON value — a Hash has no ordering to preserve, and the board's numbered
-layout is part of what every participant shares. Every later read (the board,
-a late-joiner's snapshot, the answer validator) comes back from that saved
-snapshot, never a fresh mint, so all consumers agree on one board. That read is
-lenient (`RedisJsonCodec.deserializeLenient`) because the blob outlives a
-deploy: a set written before `authoredAnswer` existed reads back with the flag
-`false`, which is exactly what "no answer was seeded into this board" means. The
-parent round's answers backing the mint are read from Redis if that round is
-still open, falling back to the flushed Mongo copy
-(`RoundResultProjector.answersOf`) once it has closed — persisting a round's
-answers **replaces** the prior set rather than appending, so a re-scored round
-can't leave two runs' answers layered on top of each other.
+**Snapshot, not re-mint-per-read.** The mint runs once, when the round opens,
+and is written to Redis (`FollowUpOptionStore`,
+`ambi:session:followup:{sessionId}:{slideId}`, 6h TTL) as one ordered JSON
+value. Every later read — the board, a late-joiner's snapshot, the answer
+validator, the grader — comes back from that snapshot, so all consumers agree
+on one board. The read is lenient (`RedisJsonCodec.deserializeLenient`) because
+the blob outlives a deploy. Backing answers come from Redis while the parent
+round is open, falling back to the flushed Mongo copy once it closes.
 
-**The pick is the answer.** `FollowUpAnswer { optionId }`
-(`session/answer/payload/FollowUpAnswer.java`, in the sealed `AnswerPayload`
-hierarchy) carries the candidate a participant picked, and it's re-castable
-until the round closes (the answer service zeroes `maxSelections` for it). It
-rides the regular answer/tally path — submit, live tally
-(`AnswerTallyKeys`), `RoundResult.optionCounts` via
-`RoundEvaluator.describeChoice` — never `VoteStore`. How it *grades* is the
-mode's business: `BEST_ANSWER_VOTE` and `PREDICT_POPULAR` still grade a
-permanent `false` in `RoundEvaluator.isCorrect` and award nothing, while
-`SPOT_THE_ANSWER` scores — see below.
+**The pick is the answer.** `FollowUpAnswer { optionId }` rides the ordinary
+answer/tally path — submit, live tally, `RoundResult.optionCounts` via
+`describeChoice` — never `VoteStore`, and it stays re-castable until the round
+closes via the [whole-answer resubmit override](../axis-slides/README.md#whole-answer-resubmit-override).
+`LiveSessionAnswerService` validates a pick against the *snapshot*, not
+authored content: a blank or absent id is a `400`, and picking one's own
+candidate is `409 CANNOT_VOTE_FOR_OWN_ANSWER`.
 
-**Scoring a follow-up round.** A follow-up's answer key is *runtime* state, so
-`RoundEvaluator`/`RoundScorer` take the round's saved `FollowUpOptionSet`
-alongside the slide — always the `FollowUpOptionStore` snapshot the round
-opened on, never a re-mint, so grading can never disagree with the board the
-participants picked from. `FollowUpOptionSet.empty()` for every round that
-isn't a follow-up. Two independent earnings, both on `SPOT_THE_ANSWER` only:
+**Scoring.** `RoundEvaluator`/`RoundScorer` take the round's saved
+`FollowUpOptionSet` alongside the slide — always the snapshot the round opened
+on, so grading can never disagree with the board people picked from
+(`FollowUpOptionSet.empty()` for non-follow-up rounds). On `SPOT_THE_ANSWER`
+only, two independent earnings: the **picker** is correct when the picked
+candidate carries `authoredAnswer`, and everything downstream (base points,
+streaks, fastest-correct) is the ordinary path with no special case; the
+**author** of a card that drew picks from *others* is paid through the existing
+`deceivedCount × deceptionPoints` mechanic, and unlike a VOTE-phase deception
+it is not zeroed when the author also picked correctly. Authors who never
+submitted a pick are reached by `awardAbsentAuthors`, which goes through
+`Participant.awardDeception` and mints no `ParticipantOutcome` — so streaks and
+the round's participant count stay honest.
 
-- **The picker.** `isCorrect` is true when the picked candidate carries
-  `authoredAnswer`. From there the ordinary path does the rest — base
-  `points`, streak bonuses, and the fastest-correct bonus all arrive through
-  the existing `Participant.awardPoints`, with no follow-up special case.
-- **The author.** A card that drew picks from *other* participants pays its
-  author through the existing `deceivedCount` × `deceptionPoints` mechanic —
-  a card that fooled the room is deception, so no new `PointSettings` field.
-  `RoundEvaluator.followUpPicksByAuthor` counts picks against the snapshot's
-  `authorParticipantIds` (every author of a merged card is credited; self-picks
-  excluded), and it pays regardless of whether that card is also the seeded
-  answer. Unlike a VOTE-phase deception it is *not* zeroed when the author also
-  picked correctly: spotting the answer and writing a card that fooled others
-  are two separate things to have done in one round.
+## Gotchas
 
-**Authors who never answered.** The cards on a follow-up board were written in
-the *parent* round, so an author may earn without submitting a pick — and
-`RoundScorer` iterates evaluations, which are one-per-answer. `awardAbsentAuthors`
-is the extra step that reaches them, with two deliberate consequences:
+- **The parent never reveals.** `revealResults` on a slide with an attached follow-up is rejected unconditionally, regardless of its own `resultsDisplayMode` (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`). The host closes the parent and advances; the follow-up round is where the parent's results are presented.
+- **Playability gating differs by entry point.** Navigation *skips* a follow-up whose parent never scored or whose submissions mint no candidates; `goTo` applies the same rule but *rejects*, splitting the reasons because they mean different things to the host — `409 PARENT_ROUND_NOT_SCORED` vs `409 FOLLOW_UP_NOT_PLAYABLE`. On a mode that seeds an answer key the test is stricter: the mint must hold at least one **non-seeded** candidate, or the whole room would collect full points for reading the only card on screen.
+- **Board order is server-owned.** Candidates render in snapshot order and the client never reorders them. A `SPOT_THE_ANSWER` board is shuffled per mint with `SecureRandom`; ids are content-derived, so a re-mint reproduces the same cards in a different order. Shuffling *everything* rather than hiding the seed in a random slot is the point — independent permutations are what stop a diff-two-boards attack. Secrecy is an **in-round** property: at `REVEAL_RESULTS` the outcomes disclose which option graded correct, by design.
+- **Candidate images travel as opaque URLs.** `LiveSessionOrchestrator.followUpCandidateImageUrl` mints a signed [opaque proxy URL](../../diagrams/media-gallery.md#opaque-image-proxy--urls-that-hide-their-key) rather than presigning S3, because a path-style presigned URL spells its key out — `drawing/…` vs `gallery/…` would hand the seeded answer to anyone with devtools open, and proxying only the seed is the same tell. It also outlives the presigner: the URLs are frozen into a 6h snapshot while `ambi.media.presign-ttl` is 1h. External images own no stored object and pass through as-is.
+- **The content itself can give a Drawing seed away.** Nothing about the URL, id, arrangement or markup distinguishes the seeded card — but a polished illustration among six freehand sketches is spotted at a glance. There is no mitigation in code; the editor's hint and the draw-it-yourself path are the whole answer.
+- **`myFollowUpOptionId` can only ride the snapshot.** It is per-viewer while the STOMP topic is shared, so `SessionConnectionProvider` refetches once per follow-up round keyed on `slideId@roundStartedAt`. That same refetch is what converges every client on a re-minted board after a restart (`SessionConnectionProvider.test.tsx`).
+- **`authorParticipantIds` never travels.** The id→author mapping stays server-side, which is what makes the self-pick check trustworthy. The viewer's own candidate is disabled and badged from `myFollowUpOptionId`, pre-empting the `409` — `sendAnswer` is fire-and-forget, so a rejection would never otherwise surface.
+- **Graceful degradation.** If the parent's authored answer is emptied after the follow-up is attached (the editor blocks it, but a session's deck snapshot can predate the rule), the mint seeds nothing and produces exactly the `BEST_ANSWER_VOTE` board — no candidate carries the flag, so no pick grades correct. Authors are still paid, because `followUpPicksByAuthor` gates on the mode and a non-empty board, not on the flag.
 
-- **Their streak is untouched.** `awardPoints(false, …)` would record a miss
-  and possibly end a streak, which is wrong — not answering is not answering
-  *incorrectly*. They go through `Participant.awardDeception` instead, which
-  applies the points and nothing else.
-- **They get no `ParticipantOutcome`.** A phantom outcome would inflate the
-  round's `numberOfParticipants` (defined as the answers it collected) and add
-  a fictitious 0 ms response time to its average. Their points land on the
-  running `ParticipantScore` — which is what the scoreboard and every later
-  snapshot read — while the round's per-participant list stays exactly the set
-  of people who played it. The trade-off: the reveal's per-round delta can't
-  show them, so scoreboard movement is where their points surface. A banned
-  author is skipped entirely.
+The reasoning behind the shuffle, the opaque URLs, and the absent-author
+payout is carried in the Javadoc of `FollowUpOptions`, `FollowUpOptionStore`,
+`OpaqueImageUrls` and `RoundScorer` — read those before changing any of it.
 
-`RoundEvaluator.correctKey` deliberately grows **no** follow-up branch, so a
-follow-up round's `RoundResult.correctOption` stays `null` even when the round
-scored: revealing which card was the authored answer is a board affordance
-nobody has built yet (see [Missing Features](../missing-features.md)).
+## Deferred
 
-**One store for votes (direction, decided 2026-07-30).** A vote *is* an answer
-to a follow-up question, so voting features go through the answer store from
-here on — exactly as this runtime already does. The separate `VoteStore`
-behind the same-round `VOTE` phase (open-decisions
-[D3](../../live-session-open-decisions.md#d3-best-answer--deception-are-hard-coded-off))
-is unchanged and still shipped, but **deprecated in direction**: new voting
-work must not extend it, and it is eventually to be reworked onto — or
-replaced by — the answer-store pattern. Nothing about the built VOTE-phase
-feature changes today; this only settles which way new work goes.
+The runtime shipped, but several pieces named in its design were deliberately
+left for later:
 
-**The parent never reveals.** `LiveSessionOrchestrator` wires the round
-itself: opening a follow-up snapshots its candidates first — minted from the
-parent round's answers and saved to `FollowUpOptionStore` — before the
-round-started event is published, so the board is never live without its
-options. Opening the *parent* again (a restart) replays the pair, clearing
-the child's per-round Redis state with it. `revealResults` on a slide with an
-attached follow-up is rejected unconditionally, regardless of the slide's own
-`resultsDisplayMode` (`409 REVEAL_BLOCKED_BY_FOLLOW_UP`) — the host closes the
-parent and advances, and the follow-up round is where the parent's results are
-presented. Navigation skips a follow-up that can't be played (parent never
-scored, or its submissions mint no candidates) rather than opening an empty
-board. On a mode that seeds the answer key (`requiresAnswerKey`) the second test
-is stricter — the mint must hold at least one **non-seeded** candidate, because
-the seed alone would open a one-card board where the only pick available is the
-authored answer, and the whole room would collect full points, a streak, and the
-fastest-correct bonus for reading the only card on screen. `goTo` applies the
-*same* playability rule — a host clicking the follow-up in the rail can't open a
-board navigation would have stepped over — but rejects outright instead of
-skipping, and reports the two halves apart because they mean different things to
-the host: `409 PARENT_ROUND_NOT_SCORED` ("play the parent first") and
-`409 FOLLOW_UP_NOT_PLAYABLE` (the parent round backs no board worth opening).
-
-A pre-existing `ResultsDisplayMode.AFTER_FOLLOWUP` value predates this design
-and is retired from the deck editor's reveal-results dropdown (the wire enum
-keeps the value for back-compat): a deck authored before this runtime settled
-could still carry it on a slide, and the settings UI shows it as a
-clearly-labelled, reselectable "(legacy)" entry rather than silently dropping
-it — picking any other entry moves the slide off the legacy value for good.
-
-**On the wire.** A follow-up round's `SlideView` carries `FollowUpConfigView`
-(mode, parent id/title, and the candidates as `FollowUpOptionView`); a slide
-that *has* an attached follow-up carries `hasFollowUp` instead, so the host
-bar knows the round never reveals and advances into the child. Both are
-resolved by the caller against the deck (`SlideView.from` has no deck access),
-and the candidates are read back from the saved `FollowUpOptionStore`
-snapshot, never re-minted. **`authorParticipantIds` never travels**: like
-`VoteOptionView`, the id→author mapping stays server-side, which is also what
-makes the self-pick check trustworthy. `LiveSessionSnapshotService` adds the
-per-viewer `myFollowUpOptionId` — the candidate the caller authored — which
-can only travel on the snapshot, never a broadcast, since it's per-participant
-on a topic every client shares. The frontend provider refetches the snapshot
-once per follow-up round, keyed on `slideId@roundStartedAt`, so a client that
-was already connected when the round opened still picks the field up.
-
-That same refetch is what keeps the **one-board** invariant true across a
-re-mint, which matters now that a `SPOT_THE_ANSWER` restart re-arranges the
-board. `restartRound` publishes `RoundRestarted`, which deliberately carries no
-`SlideView` (and so no `followUpConfig`) — the client already has the round's
-view — but it *does* carry the fresh `roundStartedAt` that `openRoundUnlocked`
-stamped, and the slice writes it. The provider's guard key therefore changes,
-its effect fires a second refetch, and `seed` replaces `currentSlide` wholesale
-with the snapshot's — which `LiveSessionSnapshotService` built from the board
-`FollowUpOptionStore` was just re-saved with. So every connected client converges
-on the new arrangement without the event needing to republish it, exactly as it
-converges on the new `myFollowUpOptionId`
-(`SessionConnectionProvider.test.tsx`, "refetches again when the same follow-up
-round restarts"). `goTo`/`startRound` on the same slide reach the same board by
-the shorter road: they publish `RoundStarted`/`LiveResultsShown`, which carry the
-re-minted `followUpConfig` outright.
-
-**Candidate images travel as opaque URLs.** A candidate that carries an image
-(a DRAWING parent's submissions, the authored `correctImage` a
-`SPOT_THE_ANSWER` child seeds among them, an MCQ parent's option art) resolves through
-`LiveSessionOrchestrator.followUpCandidateImageUrl`, which mints a signed
-[opaque proxy URL](../../diagrams/media-gallery.md#opaque-image-proxy--urls-that-hide-their-key)
-— `/api/media/opaque-image?t={token}` — rather than presigning S3 directly.
-Two reasons, and the first is the reason it applies to *every* candidate:
-
-- **The URL namespace must not distinguish a seeded card from a submitted
-  one.** Presigned URLs are path-style, so they spell their key out:
-  `drawing/{sessionId}/{participantId}/…` for a submission,
-  `gallery/{uuid}/…` for an authored image. On a `SPOT_THE_ANSWER` board that
-  hands the answer to anyone with devtools open — as good a tell as a label,
-  and every bit as fatal as an unshuffled arrangement would be. Proxying only
-  the seed would be no better: being the one card served from a different route
-  *is* the tell. So all of them go out identically shaped, and the only thing
-  distinguishing two candidate URLs is the opaque token.
-- **A presigned URL dies inside the snapshot that holds it.** These URLs are
-  frozen into the `FollowUpOptionStore` snapshot when the round opens, and that
-  snapshot lives 6h (`ambi.session.follow-up.ttl`) while a presigned URL
-  lives 1h (`ambi.media.presign-ttl`) — a board still on screen five hours in
-  would render broken images. The opaque token's TTL is 6h to match.
-
-The proxy route sits at the same `hasRole("GUEST")` floor as the other
-live-session player routes, since guests are players; the token is what
-authorizes the one object behind it. An *external* image (an authored option
-pointing at someone else's origin) owns no stored object to proxy and passes
-through as its own URL, as it always did.
-
-`LiveSessionAnswerService` validates a pick against that snapshot rather than
-any authored content (the board is runtime state): a blank id or one absent
-from the round's set is a `400`, and picking one's own candidate is the same
-`409 CANNOT_VOTE_FOR_OWN_ANSWER` `submitVote` raises.
-
-**Board UI.** `FollowUpBoardContent`, under the live session's
-`components/SessionBoard/content/`, reached from `BoardQuestion`'s
-`FOLLOW_UP` case, covers every moment with one component switched by mode:
-`prompt` (pickable cards), `liveResults` (the same cards with the running
-tally filling in — still pickable, since a pick stays re-castable), and
-`results` (the final distribution, most-picked card(s) badged; no
-correct-answer affordance ever renders — a `SPOT_THE_ANSWER` round *has* an
-answer key, but revealing it is deliberately not built, and
-`RoundResult.correctOption` stays `null` for every follow-up round).
-Candidates render in snapshot order — the client never reorders them, so every
-device shows the one board; on a `SPOT_THE_ANSWER` round that snapshot order is
-itself a shuffle applied once at mint ([above](#spot_the_answer)), while every
-other mode's is the derived authored/submission order — and picking is
-single-select regardless of the parent's own answer settings. The viewer's own candidate is disabled and
-badged from `myFollowUpOptionId`, pre-empting the self-pick `409` —
-`sendAnswer` is fire-and-forget, so a rejection would never otherwise surface
-to the board.
+- **Scoring on the other two modes.** A `BEST_ANSWER_VOTE` or `PREDICT_POPULAR` pick still grades `false` and awards nothing. Neither has an answer key, and paying the most-picked submission is a scoring pass over the whole field rather than a per-answer grade.
+- **Revealing the spotted answer.** `RoundEvaluator.correctKey` deliberately grows no follow-up branch, so `RoundResult.correctOption` stays `null` even on a scored `SPOT_THE_ANSWER` round and the board renders no correct-answer affordance at reveal.
+- **Shuffle on the unscored modes.** Only `SPOT_THE_ANSWER` shuffles. Every other mode renders in derived snapshot order (authored for MCQ, submission order elsewhere) — deliberate, since that order is meaningful there, but it does mean a best-answer board discloses the sequence its submissions arrived in.
+- **Per-participant STOMP user-destination channel.** Would let `myFollowUpOptionId` ride the broadcast instead of the snapshot-refetch workaround above.
+- **Historical option text.** The 6h Redis snapshot is the only place candidate text/images live; persisted `RoundResult.optionCounts` carries only derived ids. Once it expires a past follow-up round's results are countable but no longer interpretable. Persisting option text alongside the round result would fix it.
+- **`AFTER_FOLLOWUP` enum retirement.** `ResultsDisplayMode.AFTER_FOLLOWUP` predates this runtime and is retired from the reveal-results dropdown, shown only as a reselectable "(legacy)" entry when a slide already carries it. Removing the wire value outright is future cleanup once no decks reference it.

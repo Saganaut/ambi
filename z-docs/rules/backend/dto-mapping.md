@@ -25,6 +25,4 @@ public UserPreferences toPreferences() // UpdatePreferencesRequest
 
 The controller calls `body.toDeck()` / `body.toSlide()` rather than assembling the domain object field-by-field at the call site.
 
-## Why on the record
-
-Records already own the wire shape; co-locating the projection keeps the mapping next to the fields it reads, makes it trivially testable, and avoids a parallel hierarchy of mapper beans that drift from the DTOs. This composes with the [DTO naming rules](../naming-rules.md) — the suffix tells you the direction, the factory name (`from` / `to*`) tells you which way the data flows.
+Records already own the wire shape, so co-locating the projection avoids a parallel hierarchy of mapper beans that drift from the DTOs. Composes with the [DTO naming rules](../naming-rules.md): the suffix tells you the direction, the factory name (`from` / `to*`) tells you which way the data flows.

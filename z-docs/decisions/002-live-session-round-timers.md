@@ -6,8 +6,7 @@
 ## Context
 
 Live-session rounds are entirely host-driven today: submissions stay open until
-the host clicks close/reveal. The
-[open-decisions review](../live-session-open-decisions.md) (item A3) deferred
+the host clicks close/reveal. The 2026-06 live-session design review deferred
 timers but flagged one constraint as urgent: `LiveRoundState` is a record
 serialized into Redis, so adding pause/duration fields later is a breaking
 change to stored state — pause support had to be decided even while the timer
@@ -27,10 +26,10 @@ Rounds get **full auto-close timers**, not just a display countdown:
 - `pauseTimer`/`resumeTimer` become host operations: pause stamps `pausedAt`
   and removes the ZSET entry; resume folds the pause into
   `accumulatedPauseMs` and re-inserts the recomputed deadline.
-- **Host-disconnect policy** (open-decisions F5) rides the same scheduler: on
-  host presence loss the open round auto-pauses and a grace deadline is
-  enqueued; if the host doesn't reconnect before it fires, the session is
-  `cancel()`ed.
+- **Host-disconnect policy** rides the same scheduler: on host presence loss the
+  open round auto-pauses (flagged `autoPaused` on `LiveRoundState`, to
+  distinguish it from a deliberate host pause) and a grace deadline is enqueued;
+  if the host doesn't reconnect before it fires, the session is `cancel()`ed.
 
 ## Consequences
 

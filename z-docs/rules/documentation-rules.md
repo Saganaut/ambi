@@ -1,18 +1,16 @@
 # Documentation & Comments Rules
 
-How we document code in-place. The goal is orientation with minimal noise: **the code explains itself; comments explain what code cannot.**
+Two subjects, one goal — orientation with minimal noise: **the code explains itself; comments explain what code cannot.**
 
-## Guiding principle — names first, comments last
+## In-code comments
 
-1. **Self-explanatory code beats comments.** Favour descriptive names for files, classes, functions, and variables so the code reads without narration. A comment that restates the code is noise — delete it and improve the name instead. See [naming-rules.md](naming-rules.md).
-2. **Comment only when necessary.** A comment earns its place only when it says something the code *cannot*: the non-obvious *why*, a constraint, an invariant, a gotcha, or a deliberate trade-off. Never comment *what* the code plainly does.
-3. **Be brief.** When a comment is warranted, keep it to the fewest words that carry the meaning. Prefer one sharp line over a paragraph.
+**Names first, comments last.** Favour descriptive names for files, classes, functions, and variables so the code reads without narration (see [naming-rules.md](naming-rules.md)). A comment earns its place only when it says something the code *cannot* — a non-obvious *why*, a constraint, an invariant, a gotcha, or a deliberate trade-off — and then in the fewest words that carry it. A comment restating the code is noise: delete it and sharpen the name.
 
 ## File headers
 
 Every non-exempt source file starts with a doc comment in the language's native syntax — Javadoc `/** … */` on backend, TSDoc `/** … */` on frontend — so IDE tooling picks it up.
 
-1. **Line 1 — responsibility (mandatory).** One sentence naming the file's single responsibility. It **must add information the file/class name does not already convey.** If the sentence just restates the name, it is failing — sharpen it or the name.
+1. **Line 1 — responsibility (mandatory).** One sentence naming the file's single responsibility. It **must add information the file/class name does not already convey**.
 
    ```java
    // ✗ noise — restates the name
@@ -22,29 +20,26 @@ Every non-exempt source file starts with a doc comment in the language's native 
    /** Resolves the current member from the Spring Session principal and enforces org-scoped access. */
    ```
 
-2. **Lines 2+ — the non-obvious (only when there is something to say).** Present *only* when the file carries something a reader would otherwise get wrong: a *why*, an invariant, a gotcha, or a genuinely non-obvious structural pattern. Omit entirely when there is nothing non-obvious — a header that varies in length signals "this one has something to tell you."
-
-   ```typescript
-   /**
-    * Renders a slide for a live-session participant (host-only controls stripped).
-    *
-    * Kept separate from SlideView because participant vs. host visibility diverges;
-    * optionIds is a Set today, becomes ordered on the multi-select change.
-    */
-   ```
-
-   Only label a **pattern** here when it is non-obvious from the code (e.g. `Optimistic locking via @Version`). Do not label ordinary code with pattern names, and never write filler like "Patterns: none."
+2. **Lines 2+ — the non-obvious (only when there is something to say).** A *why*, an invariant, a gotcha, or a genuinely non-obvious structural pattern. Omit entirely when there is nothing non-obvious, so a header that varies in length signals "this one has something to tell you." Only name a **pattern** when it isn't obvious from the code (e.g. `Optimistic locking via @Version`); never write filler like "Patterns: none."
 
 ## Exemptions
 
 A file header is **not** required for:
 
 - Barrel / re-export files (`index.ts` that only re-exports).
-- Generated artifacts (`*.gen.ts`, `*ValidationConstants.ts`, `*Enums.gen.ts`) — never hand-edited; see [frontend/generated-artifacts.md](frontend/generated-artifacts.md).
+- Generated artifacts (`*.gen.ts`, `*ValidationConstants.ts`, `*Enums.gen.ts`) — see [frontend/generated-artifacts.md](frontend/generated-artifacts.md).
 - Pure config files.
 - Test files — the top-level `describe` / test-class name is the header.
 
-## Enforcement
+**Enforcement:** there is no mechanical header check. Both presence and quality — does it add information, is it brief, is it warranted — are judged in review by the `code-reviewer` agent.
 
-- **Presence** of a header on non-exempt source files is a mechanical check (and a code-review dimension).
-- **Quality** of the content — does it add information, is it brief, is it warranted — is judged in review by the `code-reviewer` agent.
+## Writing docs in `z-docs/`
+
+The same discipline applied to prose. Copy the shape of [backend/jackson-full-object-puts.md](backend/jackson-full-object-puts.md) (109 words) and [AGENTS.md](../../AGENTS.md) (492 words).
+
+- **State the decision; link for the detail.** A category file gives each rule one clause plus a link — never a précis of the file it links to.
+- **One fact, one home.** Everything else links to it. A fact stated in three places is a fact that will be wrong in two.
+- **A rule plus at most one clause of justification.** If the reasoning needs a paragraph, it belongs in the code's own doc comment, not here.
+- **Delete superseded rationale.** Rewrite the doc to say what is true now; never layer a "✅ RESOLVED" or "update:" note over a stale passage.
+- **Never hand-maintain an inventory of code.** Class lists, field lists, file lists, and per-instance audits rot on the first commit that touches them — point at the package or directory instead.
+- **New docs live in `z-docs/<category>/`** and must be linked from that folder's `README.md`. Run [`scripts/check-docs.sh`](../../scripts/check-docs.sh) after any change.

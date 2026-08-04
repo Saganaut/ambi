@@ -1,6 +1,6 @@
 # Persistence & package conventions
 
-Mechanical conventions for documents, controllers, and feature packages. Established across every feature; the point is to remove judgment.
+Mechanical conventions for documents, controllers, and feature packages.
 
 ## Document base classes
 
@@ -24,4 +24,4 @@ Enums live in a **`<feature>/enums/`** sub-package (`presentation/deck/enums/`, 
 
 ## Dependency injection
 
-Services and controllers use **plain constructor injection** — an explicit constructor with manual `this.field = field` assignment. No `@Autowired` on services or controllers (one deliberate use exists elsewhere, on `ImageUrlResolver`, a `@Component` that uses it to disambiguate constructors) and **no Lombok `@RequiredArgsConstructor`** on services/controllers; Lombok is for models only (see [backend-rules.md](../backend-rules.md) §2). Spring wires the single constructor automatically.
+Services and controllers use **plain constructor injection** — an explicit constructor with manual `this.field = field` assignment. No `@Autowired` on services or controllers (two deliberate uses exist elsewhere, on the `media/storage/` `@Component`s `ImageUrlResolver` and `OpaqueImageUrls`, which use it to disambiguate constructors) and **no Lombok `@RequiredArgsConstructor`** on services/controllers; Lombok is for models only (see [backend-rules.md](../backend-rules.md) §2). Spring wires the single constructor automatically.

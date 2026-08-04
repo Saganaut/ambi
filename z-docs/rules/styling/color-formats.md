@@ -1,23 +1,18 @@
 # Color Formats
 
-**Rule:** Colors are authored in exactly two textual formats — `oklch()` and hex — never `hsl()`, named colors, or anything else, with one documented exception: `rgb()`/`rgba()` is allowed for pure black/white alpha scrims, overlays, and shadows, since those are alpha operations with no semantic token equivalent. `frontend/stylelint.config.mjs`'s `scale-unlimited/declaration-strict-value` allowlist explicitly permits `/^rgb\(/` and `/^rgba\(/` alongside `/^oklch\(/`. The canonical example is `frontend/src/tokens.css`'s `--bg-overlay: rgb(0 0 0 / 50%)`; `ImagePicker.module.css` uses the same pattern for a scrim gradient (`rgba(0, 0, 0, 0.5)`).
+**Rule:** Colors are authored in exactly two textual formats — `oklch()` and hex — never `hsl()`, named colors, or anything else.
+
+One documented exception: `rgb()`/`rgba()` for pure black/white alpha scrims, overlays, and shadows, which are alpha operations with no semantic token equivalent. All three are allowlisted in `frontend/stylelint.config.mjs`'s `scale-unlimited/declaration-strict-value` rule. Canonical example: `tokens.css`'s `--bg-overlay: rgb(0 0 0 / 50%)`.
 
 ## OKLCH — the primary format
 
-- The design-token palette (`frontend/src/tokens.css`) is authored almost entirely in `oklch(...)`. Brand color scales (`--violet-*`, `--orange-*`, `--tolopea-*`, `--cyan-*`) use CSS relative-color syntax on a hex seed — e.g. `--violet-500: oklch(from #6019ff l c h);` — the hex is only the seed; every derived shade is still an `oklch()` value. The neutral greyscale is the single `--zinc-100`…`--zinc-900` ramp (almost-white to almost-black, faintly brand-violet-tinted), authored as literal `oklch()` values; it replaced the former `--white-*`, `--concrete-*`, `--grey-*`, and `--black-russian-*` scales.
-- Semantic tokens (`--bg-*`, `--text-*`, `--border-*`) build on the role vars with `color-mix(in oklab, ...)`.
-- Generated/derived palettes are `oklch()` too: `buildOptionPalette()` (`frontend/src/shared/components/Charts/optionPalette.ts`) emits `oklch(0.65 0.40 <hue>)` swatches — the single source of truth for MCQ/Ranking/Grid/Axis/Place-on-Image/Matching option colors. `paletteColorAt`/`resolveDatumColor`/`nextPaletteColor` live alongside it in the same file and are imported directly by each kind's editor and live board (MCQ's own `optionColor.ts` re-exports `resolveDatumColor` as `resolveOptionColor`); the second cycle re-derives a darker lightness via relative-color syntax: `` oklch(from ${base} 0.42 c h) ``.
+- The design-token palette (`frontend/src/tokens.css`) is authored almost entirely in `oklch(...)`. Brand scales use CSS relative-color syntax on a hex seed — `--violet-500: oklch(from #6019ff l c h);` — so every derived shade is still an `oklch()` value. The neutral ramp is the single `--zinc-100`…`--zinc-900` scale.
+- Semantic tokens (`--bg-*`, `--text-*`, `--border-*`) build on the role vars with `color-mix(in oklab, …)`.
+- Derived palettes are `oklch()` too, and OKLCH is the canonical form the app *produces* when it computes rather than passes through a stored color. `frontend/src/shared/components/Charts/optionPalette.ts` is the single source of truth for option colors across MCQ/Ranking/Grid/Axis/Place-on-Image/Matching.
 
 ## Hex — the fallback and user-input format
 
-- Hex is what a user types or picks when authoring a custom color. The DS color picker's custom view (`frontend/src/shared/components/Forms/Input/ColorPicker/ColorPickerPanel.tsx`) accepts hex in its text field and always commits hex on Apply (`#rrggbb`, or `#rrggbbaa` when translucent), even when its starting point was an `oklch()` palette default or a resolved theme variable. Hosts whose field can only hold an opaque colour pass `allowAlpha={false}`, which hides the opacity slider and pins commits to `#rrggbb`.
-- `parseColor()` (`frontend/src/shared/components/Forms/Input/ColorPicker/colorConversion.ts`) is the read direction: best-effort parsing of hex, `oklch(...)`, or a serialized `rgb()`/`color(srgb …)` computed value into the picker's HSVA working model.
+- Hex is what a user types or picks. The DS color picker (`shared/components/Forms/Input/ColorPicker/`) accepts hex in its text field and always commits hex on Apply (`#rrggbb`, or `#rrggbbaa` when translucent); hosts whose field can only hold an opaque colour pass `allowAlpha={false}`.
+- `parseColor()` (`ColorPicker/colorConversion.ts`) is the read direction — best-effort parsing of hex, `oklch(...)`, or a serialized `rgb()`/`color(srgb …)` computed value into the picker's working model. That file also types the contract: `ColorString = HEX | OKLCH`, plus `var(--role-*)` refs as `ThemeVarColor`.
 
-## Display normalizes to OKLCH
-
-When the app needs to show or derive a color value — rather than pass a stored string straight into CSS — the canonical form it produces is OKLCH. `buildOptionPalette()` above is the concrete example: it takes a hue and returns `oklch(...)`, never hex.
-
-## Not yet enforced everywhere
-
-- The backend stores `color` as a plain `String` (`RankItem`, `GridItem`, `AxisItem`, `MatchItem` in `SlideContentTypes.java`) — no format is enforced at the type level. This is a frontend-authored convention, not a backend-validated one.
-- `ColorPicker` (`frontend/src/shared/components/Forms/Input/ColorPicker/`) — the DS color picker that replaced the `@uiw`-based pickers — formalizes the contract as types (`colorConversion.ts`: `ColorString = HEX | OKLCH`, plus `var(--role-*)` refs as `ThemeVarColor`) and emits hex from its custom view. It's wired into the rich-text toolbar and the deck editor's background/option color pickers; see [deck-editor's Color pickers section](../../features/deck-editor/README.md#color-pickers).
+**Not backend-enforced:** the backend stores `color` as a plain `String` (`RankItem`, `GridItem`, `AxisItem`, `MatchItem` in `SlideContentTypes.java`). This is a frontend-authored convention.

@@ -20,13 +20,13 @@ boolean canBeManagedBy(String userId, UserLevel level, OrgRole orgRole)
 
 The service is the only thing that decides which capability an operation needs. Each public method **loads** the aggregate (`private X load(id)` → `*_NOT_FOUND`), runs a private **`requireView` / `requireEdit` / `requireManage`** gate that throws `ForbiddenException` (`*_FORBIDDEN`) on denial, then proceeds. See `DeckService.load` / `requireView` / `requireEdit` / `requireManage`.
 
-Org role is resolved through the shared [`OrgRoleResolver`](../../../backend/src/main/java/com/cephadex/ambi/org/OrgRoleResolver.java) bean, injected into each service — one implementation of the membership lookup rather than a copy per service. `roleFor(OwnableResource, principal)` resolves lazily: it short-circuits non-org-owned resources so a personal-resource check never hits the user store, and defers to `roleFor(orgId, userId)` for the membership lookup otherwise. The aggregates satisfy [`OwnableResource`](../../../backend/src/main/java/com/cephadex/ambi/common/OwnableResource.java) (`getOwnership` / `getOrganizationId` / `isOrgOwned`) so the resolver stays type-agnostic.
+Org role is resolved through the shared [`OrgRoleResolver`](../../../backend/src/main/java/com/cephadex/ambi/org/OrgRoleResolver.java) bean, injected into each service — never a per-service copy of the membership lookup. It works against the [`OwnableResource`](../../../backend/src/main/java/com/cephadex/ambi/common/OwnableResource.java) interface, so it stays type-agnostic.
 
-Principal plumbing lives in the [`AmbiPrincipals`](../../../backend/src/main/java/com/cephadex/ambi/auth/security/AmbiPrincipals.java) utility, static-imported by each service: null-tolerant `userId(AmbiPrincipal)`, `level(...)`, `isPlatformAdmin(...)`, and `requireUserId(...)` (→ `UnauthorizedException` when identity is missing). Don't reach into the principal inline; use the helpers.
+Principal plumbing lives in the [`AmbiPrincipals`](../../../backend/src/main/java/com/cephadex/ambi/auth/security/AmbiPrincipals.java) utility, static-imported by each service. Don't reach into the principal inline; use the helpers.
 
 ## 3. Capabilities ride back on the response
 
-A public `ViewerPermissions permissionsFor(aggregate, AmbiPrincipal)` computes the requester's `(canView, canEdit, canManage)` triple, and the controller stamps it onto the response DTO — `DeckController.toResponse` is `DeckResponse.from(deck, deckService.permissionsFor(deck, principal))`. The client reads these booleans to decide which affordances to show; the backend stays the single source of truth. Rationale (the client can't evaluate the rules itself — ownership/ACL are keyed by internal id) is in the [`ViewerPermissions`](../../../backend/src/main/java/com/cephadex/ambi/common/ViewerPermissions.java) Javadoc. Present on `DeckService`, `GalleryService`, `ThemeService`.
+A public `ViewerPermissions permissionsFor(aggregate, AmbiPrincipal)` computes the requester's `(canView, canEdit, canManage)` triple, and the controller stamps it onto the response DTO — `DeckController.toResponse` is `DeckResponse.from(deck, deckService.permissionsFor(deck, principal))`. The client reads these booleans to decide which affordances to show; the backend stays the single source of truth. Rationale: the [`ViewerPermissions`](../../../backend/src/main/java/com/cephadex/ambi/common/ViewerPermissions.java) Javadoc.
 
 ## 4. Ownership is a polymorphic value object
 
@@ -34,4 +34,4 @@ Shareable aggregates carry `Ownership(type, ownerId)` where `type ∈ {USER, ORG
 
 ## 5. Disclosure (404 vs 403)
 
-Which denials mask as `404` and which are honest `403` is governed by the [exception rules](../exception-rules.md) §5 (random-id resources → honest 403; guessable-key resources → masked 404). Don't re-decide it here.
+Governed by [exception-rules.md](../exception-rules.md) §5.

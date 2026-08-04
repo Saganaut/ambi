@@ -14,11 +14,4 @@ screenshots or memory.
 | Live session designs          | All live-session screens (host board, player view, round states)     | <https://www.figma.com/design/gWOvYXLf21iAzGDcNHsY2U/Ambi-DS?node-id=637-6751&p=f&m=draw>      |
 | Other pages                   | Everything not covered above (marketing, account, misc flows)        | <https://www.figma.com/design/gWOvYXLf21iAzGDcNHsY2U/Ambi-DS?node-id=637-6752&p=f&m=draw>      |
 
-## How this relates to other Figma docs
-
-- [Named color combinations & button variants](../styling/color-and-button-variants.md) treats the
-  **component library** page above as the live catalog for text/background pairings and button
-  variants — if this doc and that page disagree, the Figma page wins.
-- [Figma Code Connect](../../features/code-connect.md) documents the separate, component-level
-  `figma.connect()` mappings (`Btn`, `IconBtn`) that let Figma Dev Mode show real code snippets —
-  narrower in scope than this page map, and gated behind a Figma plan upgrade.
+Where the **component library** page and [color-and-button-variants.md](../styling/color-and-button-variants.md) disagree, the Figma page wins. Component-level `figma.connect()` mappings are a separate concern — see [Figma Code Connect](../../features/code-connect.md).

@@ -1,6 +1,6 @@
 # Testing Rules
 
-How tests are written on both tiers. The stacks, CI workflow, and local hooks are in [Testing & CI](../infrastructure/testing-and-ci.md); this file is the house style. The overriding rule from [AGENTS.md](../../AGENTS.md) stands: **never change a test to make it pass without fixing the underlying issue.**
+House style for tests on both tiers. Stacks, CI workflow, and local hooks: [Testing & CI](../infrastructure/testing-and-ci.md).
 
 ## Both tiers
 
@@ -12,13 +12,11 @@ How tests are written on both tiers. The stacks, CI workflow, and local hooks ar
 
 1. **Pick the setup by test kind** — three established shapes, don't mix them:
 
-   | Test kind            | Setup                                                                                              | Examples                                              |
-   | -------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-   | Service unit test    | Plain `mock(Foo.class)` fields wired in `@BeforeEach`, real collaborators where cheap; no Mockito annotations | `DeckServiceTest`, `GalleryServiceTest`, `UserServiceTest`, `CommentThreadServiceTest` |
-   | Controller unit test | `@ExtendWith(MockitoExtension.class)` + `@Mock` deps + `MockMvcBuilders.standaloneSetup(controller)` (register `AuthenticationPrincipalArgumentResolver` when the controller reads `@AuthenticationPrincipal`) | `DeckControllerTest`, `AuthControllerTest`            |
-   | Integration / config | `@SpringBootTest(classes = AmbiApplication.class)`                                                  | `CsrfEnforcementTest`, `OpenApiValidationFacetsTest`  |
-
-   (`AuthServiceTest` predates the service-test shape and uses `@Mock` + `MockitoAnnotations.openMocks(this)` closed via an `AutoCloseable` — don't copy it for new service tests; use plain `mock(...)`.)
+   | Test kind            | Setup                                                                       | Examples                                   |
+   | -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
+   | Service unit test    | Plain `mock(Foo.class)` fields wired in `@BeforeEach`; no Mockito annotations (`AuthServiceTest` predates this — don't copy it) | `DeckServiceTest`, `GalleryServiceTest`   |
+   | Controller unit test | `@ExtendWith(MockitoExtension.class)` + `@Mock` + `MockMvcBuilders.standaloneSetup(controller)`, registering `AuthenticationPrincipalArgumentResolver` when the controller reads `@AuthenticationPrincipal` | `DeckControllerTest`, `AuthControllerTest` |
+   | Integration / config | `@SpringBootTest(classes = AmbiApplication.class)`                           | `CsrfEnforcementTest`                      |
 
 2. **No `@WebMvcTest` slices.** Boot 4's slice has controller-registration quirks; use standalone `MockMvc` (unit) or full `@SpringBootTest` (integration) instead. See `TestBootstrapConfig` / `AuthControllerTest` for the rationale.
 3. **AssertJ for assertions** (`assertThat(...)`, `assertThatThrownBy(...)`) — not raw JUnit `assertEquals` or Hamcrest. Assert on typed payloads with `isInstanceOfSatisfying(...)`.

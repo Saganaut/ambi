@@ -23,7 +23,9 @@ flowchart LR
         THEME["ThemeController /themes"]
         GAL["GalleryController /galleries"]
         RIMG["RemoteImageController /media"]
+        OIMG["OpaqueImageController /media"]
         LSC["LiveSessionController /liveSessions"]
+        DEV["DevAuthController /dev<br/>@Profile(DEV) only"]
     end
 
     subgraph services["Services"]
@@ -34,6 +36,7 @@ flowchart LR
         ORR["OrgRoleResolver"]
         DS["DeckService"]
         SR["SlideRankService"]
+        DIL["DeckImageLifecycleService"]
         CS["CommentThreadService"]
         DRS["DeckReviewService"]
         THS["ThemeService"]
@@ -49,6 +52,7 @@ flowchart LR
         SCHED["DeadlineScheduler<br/>@Scheduled poll, leader-elected"]
         S3["S3StorageService"]
         IUR["ImageUrlResolver"]
+        OIU["OpaqueImageUrls"]
     end
 
     subgraph stores["Stores"]
@@ -68,6 +72,7 @@ flowchart LR
 
     DECK --> DS --> MONGO
     DS --> SR
+    DS --> DIL --> S3
     DS --> ORR --> USVC
     COMMENT --> CS --> MONGO
     COMMENT --> DS
@@ -80,6 +85,8 @@ flowchart LR
     GS --> S3
     IUR --> OBJ
     RIMG --> RIS
+    OIMG --> OIU --> S3
+    DEV --> AS
 
     LSC --> LLS --> ORCH
     LSC --> LAS --> ORCH
@@ -95,18 +102,34 @@ flowchart LR
 
 ## Authorization model
 
+Two stages: the `SecurityConfig` filter chain decides *what level of principal*
+may reach a route, then the service layer decides *whether this principal may
+touch this resource*. The chain has exactly four buckets — the matchers below
+are the whole list, in order, and everything not matched falls to
+`.anyRequest().hasRole("USER")`.
+
 ```mermaid
 flowchart TB
-    REQ["request"] --> KIND{"route class"}
-    KIND -->|public| PUB["/auth/me · /username-available · /logout<br/>/auth/guest · /auth/refresh<br/>/decks/public · /themes/built-in"]
-    KIND -->|"ROLE_USER"| RU["/users · /galleries · /media"]
-    KIND -->|"ROLE_PRE_REGISTRATION"| PREG["/auth/register"]
-    KIND -->|"sign-in"| SI["/orgs · liveSessions/join<br/>comments · reviews (write)"]
-    KIND -->|"resource ACL"| ACL["Deck / Theme / Gallery / Comment / Review<br/>canBeViewedBy · EditedBy · ManagedBy"]
-    KIND -->|"org membership"| OM["org-owned Deck / Theme / Gallery<br/>OrgRole OWNER/ADMIN/USER"]
-    KIND -->|"host only"| HO["liveSessions start · end · cancel"]
-    KIND -->|"self only"| SO["/users/me"]
+    REQ["request"] --> CHAIN["SecurityConfig filter chain"]
+    CHAIN -->|permitAll| PUB["/api/auth/me · /username-available<br/>/guest · /refresh · /logout<br/>/oauth2/** · /login/oauth2/**<br/>/actuator/health/** · swagger · /ws/**"]
+    CHAIN -->|"hasRole(PRE_REGISTRATION)"| PREG["POST /api/auth/register"]
+    CHAIN -->|"hasRole(GUEST) — player floor"| GST["POST /liveSessions/join · /{id}/answers<br/>/votes · /drawings · /leave<br/>/reconnect · /heartbeat<br/>GET /api/media/opaque-image"]
+    CHAIN -->|"anyRequest().hasRole(USER)"| RU["everything else — decks · slides · themes<br/>galleries · orgs · users · comments · reviews<br/>live-session host commands"]
+
+    RU --> SVC["service-layer checks"]
+    SVC --> ACL["resource ACL<br/>canBeViewedBy · EditedBy · ManagedBy"]
+    SVC --> OM["org membership<br/>OrgRole OWNER/ADMIN/USER"]
+    SVC --> HO["host only — start · end · cancel · round control"]
+    SVC --> SO["self only — /users/me"]
 ```
+
+**There are no anonymous read routes.** `GET /api/decks/public` and
+`GET /api/themes/built-in` require a registered user like everything else — they
+are public in *visibility*, not in *authentication*. `hasRole("GUEST")` is a
+minimum level, not an exact one: `AuthorityResolver` grants a cumulative
+`ROLE_<LEVEL>`, so registered users satisfy it too while visitors and
+pre-registration principals don't. Under the `DEV` profile only, an ordered
+`/api/dev/**` chain (`DevSecurityConfig`) permits all and skips CSRF.
 
 ## Collections & repositories
 
@@ -127,4 +150,4 @@ flowchart TB
 | RoundResult | `RoundResultRepository` (package-private) | `round_results` |
 
 Volatile live-session state (locks, round state, tallies, answers, presence,
-pub/sub) lives in **Redis** — see [Live Session](live-session.md#redis-stores-at-runtime).
+pub/sub) lives in **Redis** — see [Live Session](live-session.md#redis-keys).

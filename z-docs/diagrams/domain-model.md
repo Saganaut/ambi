@@ -4,13 +4,11 @@ The MongoDB persistence model. Aggregate roots are separate `@Document`
 collections; value objects and child entities are **embedded**. References
 across aggregate boundaries are by id (no DB-level joins).
 
-> The deck/slide/answer content model is under active rework as part of the
-> backend rewrite — kind enums and field names may shift. See
-> [deck-editor](../features/deck-editor/README.md) and
-> [follow-up-slides](../features/follow-up-slides/README.md).
-
-Legend: `PK` primary key · `FK`/`ref` cross-aggregate reference by id ·
-`emb` embedded document · relationship crow's-foot shows cardinality.
+Blocks show the fields other aggregates or the API depend on, not every field.
+Legend: `PK` primary key · `ref` cross-aggregate reference by id · `emb`
+embedded. The deck/slide/answer content model is still under rework — see
+[deck-editor](../features/deck-editor/README.md) and
+[follow-up-slides](../features/follow-up-slides/README.md).
 
 ## Identity, access & billing
 
@@ -76,6 +74,7 @@ erDiagram
         string organizationId "ref, indexed"
         AppImage coverImage "emb"
         AppImage backgroundImage "emb"
+        string backgroundColor "#RRGGBB, own promote endpoint"
         DeckSettings settings "emb"
         DeckStats stats "emb, denormalized"
         long version "optimistic lock"
@@ -87,8 +86,13 @@ erDiagram
         string sortOrder "LexoRank"
         string parentId "follow-up link"
         string childId "follow-up link"
+        AppImage coverImage "emb"
+        AppImage backgroundImage "emb"
+        string backgroundColor "override; null inherits deck"
+        boolean hideBackground "suppress inherited image"
         SlideSettings settings "emb overrides"
         enum difficulty "EASY..IMPOSSIBLE"
+        string explanation "+ speakerNotes, participantInstructions, section"
     }
     DECK_ACCESS_GRANT {
         string userId "ref"
@@ -129,24 +133,19 @@ erDiagram
     }
     DECK_ANALYTICS {
         string id PK "== deck id"
-        int schemaVersion
         Instant computedAt
-        long sampleSessionCount
-        long totalSessions "+ completed/abandoned, completionRate"
-        long uniquePlayers "+ totalParticipations, avgParticipantsPerSession"
-        long viewCount
-        long forkCount
-        Instant firstPlayedAt "+ lastPlayedAt, averageSessionDurationMs"
+        long totalSessions
+        long uniquePlayers
         long ratingCount
         Double ratingAverage
         map ratingDistribution "star (1..5) -> count"
-        double averageScorePercent "+ medianScorePercent"
-        ScoreBucket[] scoreDistribution "emb list"
-        SlideStats[] slides "emb list, per-slide difficulty stats"
-        string[] hardestSlideIds "+ easiestSlideIds"
-        string[] mostSkippedSlideIds "+ slowestSlideIds"
     }
 ```
+
+`DeckAnalytics` is a ~30-field precomputed record (play counts, score and
+duration distributions, per-slide difficulty stats, hardest/easiest slide ids);
+only the fields other aggregates read are shown. `ratingDistribution` really is a
+`Map<Integer,Integer>` — integer keys, so the dot problem below doesn't apply.
 
 ## Live session — runtime play
 
@@ -193,7 +192,9 @@ erDiagram
         int numberOfParticipants
         int numberOfCorrectAnswers
         string correctOption
-        map optionCounts "tally"
+        TallyEntry[] optionTally "list of (choice, count) — NOT a map"
+        double[] responseTimes
+        Instant closedAt
     }
     PARTICIPANT_OUTCOME {
         string participantId "ref"
@@ -203,6 +204,13 @@ erDiagram
         long responseTimeMs
     }
 ```
+
+> `optionTally` is a **list of `TallyEntry(choice, count)` records, not a map** —
+> deliberately. Choice strings are used verbatim as keys and can contain a `.`
+> (a NUMBER round keys on `"42.5"`, a free-text round on `"Mr. Smith"`), and
+> MongoDB forbids dots in field names, so a map fails to persist the whole
+> document. `RoundResult.optionCounts()` rebuilds the map view the reveal events
+> expose. Do not "simplify" this back to a `Map`.
 
 ## Media
 
@@ -236,8 +244,8 @@ erDiagram
 ```
 
 `AppImage` is also embedded directly into `Deck`, `Slide`, `Theme`, and
-`Avatar` — the image bytes/keys are copied in when selected, so deleting a
-gallery image does not remove copies already placed in a deck.
+`Avatar`. Only the deck/slide case owns independent bytes — see
+[Deck image ownership](media-gallery.md#deck-image-ownership-copy-on-select).
 
 ## Polymorphic content hierarchies
 
@@ -277,32 +285,11 @@ classDiagram
     NonScorableContent <|.. QAndAContent
 ```
 
-```mermaid
-classDiagram
-    direction LR
-    class AnswerPayload {
-        <<sealed interface>>
-        +answerType
-    }
-    AnswerPayload <|.. McqAnswer
-    AnswerPayload <|.. NumberAnswer
-    AnswerPayload <|.. TextAnswer
-    AnswerPayload <|.. RankingAnswer
-    AnswerPayload <|.. ScalesAnswer
-    AnswerPayload <|.. QAndAAnswer
-    AnswerPayload <|.. QAndAQuestions
-    AnswerPayload <|.. MatchingAnswer
-    AnswerPayload <|.. GridAnswer
-    AnswerPayload <|.. AxisAnswer
-    AnswerPayload <|.. PlaceOnImageAnswer
-    AnswerPayload <|.. AllocationAnswer
-    AnswerPayload <|.. DrawingAnswer
-    AnswerPayload <|.. FollowUpAnswer
-```
+`AnswerPayload` is a flat sealed interface of 14: `Mcq`, `Number`, `Text`,
+`Ranking`, `Scales`, `QAndAAnswer`, `QAndAQuestions`, `Matching`, `Grid`, `Axis`,
+`PlaceOnImage`, `Allocation`, `Drawing`, `FollowUp`.
 
-Q&A is the one payload with two kinds: `QAndAAnswer` is the wire shape a
-participant submits (one free-text question); the orchestrator appends it
-server-side into `QAndAQuestions`, the stored per-participant aggregate (a
-player may ask several questions in a round, but the answer model keeps one
-`Answer` document per participant). A client submitting `QAndAQuestions`
-directly is rejected at validation.
+Q&A is the one payload with two kinds: `QAndAAnswer` is the submitted wire shape
+(one free-text question); the orchestrator appends it into `QAndAQuestions`, the
+stored per-participant aggregate, keeping one `Answer` document per participant.
+Submitting `QAndAQuestions` directly is rejected at validation.

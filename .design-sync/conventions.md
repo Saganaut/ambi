@@ -1,6 +1,6 @@
 # Ambi Design System — conventions
 
-Ambi is a competitive brain-games web app. Its look is driven entirely by **CSS
+Ambi is an interactive presentation platform. Its look is driven entirely by **CSS
 custom-property design tokens** (no utility-class framework, no Tailwind). Build
 on-brand UI by styling with these tokens; the truth lives in `tokens/tokens.css`,
 with element defaults in `tokens/base.css` (both reachable from `styles.css`).

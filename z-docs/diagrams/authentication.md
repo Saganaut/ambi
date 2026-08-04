@@ -4,20 +4,20 @@ Cookie-based auth with Redis as the authoritative session store. Access
 (`AMBI_AT`) and refresh (`AMBI_RT`) tokens are HttpOnly cookies; the servlet
 session is **stateless** — every request is validated against Redis.
 
-Key classes: `SecurityConfig`, `CookieAuthenticationFilter`,
-`OAuth2SuccessHandler`, `OAuthReturnUrlCaptureFilter`,
-`RedisTokenSessionService`, `AmbiPrincipal`. Related: [Domain Model](domain-model.md),
+Entry points: `SecurityConfig`, `CookieAuthenticationFilter`,
+`OAuth2SuccessHandler`, `RedisTokenSessionService`. Client side:
 [Frontend Architecture](frontend-architecture.md#auth-state-machine).
 
-Three providers are wired: Google and Microsoft (both OIDC), and Discord
-(plain OAuth2). The success-handler flow below is identical for all three —
-only the per-provider claim mapping differs (see the class's Javadoc): Google
-and Microsoft key on the OIDC `sub`, Discord keys on its `id`; an unverified
-Discord email is treated as absent.
+Three providers are wired — Google and Microsoft (OIDC, keyed on `sub`) and
+Discord (plain OAuth2, keyed on `id`, unverified email treated as absent). The
+flow below is identical for all three; only the claim mapping differs.
 
 ## Identity state machine
 
 Every caller resolves to one of four states via `GET /api/auth/me` (never 401s).
+`PRE_REGISTRATION` identity lives only in the session — no `User` document yet.
+`/refresh` is `permitAll` with no identity check: it slides whichever session
+cookie it is given, in any state.
 
 ```mermaid
 stateDiagram-v2
@@ -30,16 +30,6 @@ stateDiagram-v2
     REGISTERED --> REGISTERED : POST /api/auth/refresh (slide)
     GUEST --> VISITOR : logout / guest TTL expiry
     REGISTERED --> VISITOR : POST /api/auth/logout
-    note right of PRE_REGISTRATION
-        identity lives only in the
-        session — no User document yet
-    end note
-    note left of GUEST
-        /refresh is permitAll with no
-        identity check — it slides
-        whichever session cookie it's
-        given, at any state
-    end note
 ```
 
 ## OAuth 2.0 login (Google shown; Discord/Microsoft are identical)
@@ -153,7 +143,7 @@ flowchart TB
     REQ["Incoming /api/** request"] --> CAP["OAuthReturnUrlCaptureFilter<br/>(OAuth start only)"]
     CAP --> CSRF["CSRF: double-submit cookie<br/>X-XSRF-TOKEN + CookieCsrfTokenRepository<br/>(fixed early chain position)"]
     CSRF --> COOKIE["CookieAuthenticationFilter<br/>AMBI_AT → RedisTokenSessionService.validate<br/>→ AmbiAuthenticationToken<br/>(added just before AuthorizationFilter)"]
-    COOKIE --> AUTHZ["AuthorizationFilter<br/>public routes · ROLE_USER · resource ACL"]
+    COOKIE --> AUTHZ["AuthorizationFilter<br/>permitAll · ROLE_PRE_REGISTRATION<br/>ROLE_GUEST floor · ROLE_USER catch-all"]
     AUTHZ --> CTRL["Controller + @AuthenticationPrincipal"]
 
     subgraph redis["Redis (authority)"]

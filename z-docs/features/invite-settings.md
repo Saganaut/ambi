@@ -24,27 +24,10 @@ Set via `PUT /api/decks/{id}/invite-settings`
 same targeted-sub-document-update pattern as `pointSettings`/`answerSettings`/
 `audienceSettings` (no deck `@Version` bump).
 
-## Design rationale
-
-An earlier version of this model offered two independent flag+multi-location
-toggles (QR code, room code), each choosable across five surfaces (Lobby,
-Title slides, Header, Content slides, Results screen) — 10+ controls for what
-should be a simple decision. Three UX observations collapsed it to two
-booleans:
-
-1. **The lobby's whole purpose is getting people to join.** Hiding join info
-   there is a degenerate case nobody wants, so it's hardcoded always-on (both
-   QR and room code) rather than a toggle.
-2. **Header (all slides) already covers Title and Content slides** — those
-   were redundant controls over the same visual real estate. Header is the
-   only "on slides" control.
-3. **A QR code has a legibility floor.** It needs real pixel size to be
-   scannable, so a thin persistent header strip is a bad home for one; the
-   header option only ever offers the room code, never a QR.
-
-The results screen is full-screen like the lobby, so it gets one combined
-toggle (`showJoinInfoInResults`) showing both codes together, rather than
-independent QR/room-code toggles.
+Two booleans, not a matrix: the lobby always shows join info (hiding it there
+is a degenerate case), the header only ever offers the room code (a QR needs
+real pixel size to scan, which a thin header strip can't give it), and the
+full-screen results view gets one combined toggle for both codes.
 
 ## Where each flag is consumed
 

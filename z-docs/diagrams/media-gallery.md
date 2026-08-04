@@ -4,12 +4,8 @@ Image ingest, storage, and delivery. Originals plus five WebP renditions are
 stored in Garage/S3 under a content-addressed prefix; MongoDB holds only S3
 keys, and reads are hydrated into short-lived presigned URLs.
 
-Key classes: `GalleryController`, `RemoteImageController`,
-`OpaqueImageController`, `GalleryService`, `ImageIngestService`,
-`S3StorageService`, `S3Config`, `ImageUrlResolver`, `OpaqueImageUrls`,
-`AppImageSerializer`, `AppImageDeserializer`, `RemoteImageService`. Data shapes:
-[Domain Model — Media](domain-model.md#media). Infra:
-[infrastructure.md](../infrastructure/infrastructure.md).
+Entry points: `GalleryController`, `ImageIngestService`, `S3StorageService`,
+`ImageUrlResolver`. Data shapes: [Domain Model — Media](domain-model.md#media).
 
 ## Upload & rendition pipeline
 
@@ -39,21 +35,15 @@ sequenceDiagram
     GS-->>U: GalleryImage (keys hydrated → presigned URLs)
 ```
 
-`ImageIngestService.ingest` also has a prefix-parameterized overload used by
-non-gallery flows that need their own key namespace and ownership scoping:
-live-session [Drawing](../features/drawing-slide/README.md#live-session--draw-and-submit)
-answer uploads key their objects under `drawing/{sessionId}/{participantId}/{uuid}`
-(sibling to `gallery/{uuid}`, minted by `LiveSessionAnswerService.storeDrawing`)
-so answer validation can check a submitted image is one this participant
-uploaded through this session, and a resubmit's delete can target exactly its
-own objects. Deck-scoped uploads use it too — see
-[placement-only ingest](#placement-only-ingest) below. The 3-arg overload
-(gallery uploads, shown above) is just this one with the prefix defaulted to
-`gallery/` + a fresh UUID.
-
-Nothing is written until the payload is known good: the content-type/size
-check and the Scrimage decode both run before the original is stored, so a
+Validation and the Scrimage decode both run before the original is stored, so a
 rejected upload leaves no objects behind.
+
+`ingest` has a prefix-parameterized overload for flows needing their own key
+namespace and ownership scoping: live-session
+[drawing](../features/drawing-slide/README.md#live-session--draw-and-submit)
+answers under `drawing/{sessionId}/{participantId}/{uuid}`, and deck uploads
+under `deck/{deckId}/` ([below](#placement-only-ingest)). The 3-arg overload
+shown above is this one with the prefix defaulted to `gallery/{uuid}`.
 
 ## Read hydration — keys to presigned URLs
 
@@ -64,8 +54,8 @@ client echoes a URL back on write, the deserializer inverts it to the key.
 ```mermaid
 flowchart LR
     subgraph read["Read path"]
-        M1[("Mongo: AppImage.srcKey + variants (S3 keys)")] --> UR["ImageUrlResolver.hydrate"]
-        UR -->|"presign SigV4 (Caffeine cache, TTL)"| OUT["AppImage with presigned URLs"]
+        M1[("Mongo: AppImage.srcKey + variants")] --> UR["ImageUrlResolver.hydrate"]
+        UR -->|"presign SigV4 (Caffeine cache)"| OUT["AppImage with presigned URLs"]
         OUT --> FE1["Browser renders"]
     end
     subgraph write["Write path (echo-back)"]
@@ -74,10 +64,15 @@ flowchart LR
     end
 ```
 
-## Remote image proxy (SSRF-guarded)
+## Byte-serving routes
 
-Authors can paste an external URL; the server fetches it (never the browser),
-guarding against SSRF before the bytes enter the ingest pipeline.
+Three routes return raw bytes rather than JSON. All three are `@Hidden` from
+OpenAPI for the same reason: raw bytes are not a typed resource, so a generated
+RTK Query hook could only mis-parse them.
+
+### Remote image proxy (SSRF-guarded)
+
+Authors can paste an external URL; the server fetches it (never the browser).
 
 ```mermaid
 flowchart TB
@@ -91,137 +86,142 @@ flowchart TB
     G3 -->|no| REJ
     G3 -->|yes| G4{"content-type allowed<br/>& size ≤ cap?"}
     G4 -->|no| REJ
-    G4 -->|yes| OK["RemoteImage(bytes, contentType)"]
-    OK --> BR["Browser<br/>ResponseEntity of raw bytes → canvas crop"]
+    G4 -->|yes| OK["ResponseEntity of raw bytes → canvas crop"]
 ```
 
-The proxy terminates here: it streams the fetched bytes straight back to the
-browser (`ResponseEntity<byte[]>`) for client-side canvas cropping. Ingestion
-into the gallery happens later, via a separate
-`POST /api/galleries/{id}/images/upload` (the pipeline above).
+The proxy terminates there — it streams bytes back for client-side cropping.
+Ingestion happens later via a separate `POST /api/galleries/{id}/images/upload`.
 
-## Same-origin file read — re-cropping an owned image
+### Same-origin file read — re-cropping an owned image
 
-`GET /api/galleries/{id}/images/{imageId}/file` streams a gallery image's stored
-original from our own origin, so the browser can draw an image the user already
-owns onto a canvas and re-crop it. Neither existing route can serve that:
+`GET /api/galleries/{id}/images/{imageId}/file` (`GalleryService.getImageFile`,
+deck VIEW) streams a gallery image's stored original from our own origin so the
+browser can draw an image the user already owns onto a canvas and re-crop it.
+Neither other route can serve that: presigned URLs point at the storage endpoint,
+which is cross-origin and sends no CORS headers (render-only, canvas-tainting),
+and the remote proxy **rejects** those URLs by design — blocking internal hosts
+is what its SSRF guards are for.
 
-- the presigned URLs a normal read hands out point at the storage endpoint,
-  which is cross-origin and sends no CORS headers — render-only, canvas-tainting;
-- the remote-image proxy above **rejects** those URLs by design, since blocking
-  requests aimed at internal hosts is exactly what its SSRF guards are for.
-
-```mermaid
-flowchart LR
-    FE["Picker: gallery pick needing a<br/>differently shaped crop"] --> GC["GalleryController<br/>GET /{id}/images/{imageId}/file"]
-    GC --> GS["GalleryService.getImageFile — VIEW"]
-    GS --> Q{"internal image<br/>with a srcKey?"}
-    Q -->|no| NF["404 GALLERY_IMAGE_NOT_FOUND"]
-    Q -->|yes| S3["S3StorageService.get(srcKey)"]
-    S3 -->|absent| NF
-    S3 -->|StoredObject| OUT["bytes + stored content type<br/>Cache-Control: private, max-age=300"]
-    OUT --> CROP["canvas crop → POST …/images/upload<br/>(a NEW gallery image; the original is untouched)"]
-```
-
-Like the remote-image proxy, it is `@Hidden` from OpenAPI — raw bytes are not a
-typed JSON resource, so a generated RTK Query hook could only mis-parse them; the
+An external image or a missing object is `404 GALLERY_IMAGE_NOT_FOUND`;
+otherwise the bytes come back with their stored content type and
+`Cache-Control: private, max-age=300`, since they are per-user authorized. The
 frontend reads it with a plain authenticated `fetch` → `Blob`
-(`fetchGalleryImageFile` in `shared/utils/imageEditing.ts`). The response is
-cached `private` because the bytes are per-user authorized.
+(`fetchGalleryImageFile` in `shared/utils/imageEditing.ts`). The crop is then
+uploaded as a **new gallery image** — the behaviour
+[Image Cropping](../features/image-cropping.md) is specified to replace.
 
-That a crop lands as a **new gallery image** is the behaviour
-[Image Cropping](../features/image-cropping.md) is specified to replace: crop
-bytes become deck-owned placement data uploaded under `deck/{deckId}/`, so the
-gallery keeps only originals. This file describes what is built today.
+### Opaque image proxy — URLs that hide their key
 
-## Opaque image proxy — URLs that hide their key
-
-`GET /api/media/opaque-image?t={token}` streams a stored object addressed by a
-signed token instead of by anything the client can read. It exists for one
-problem the presigner cannot solve: a presigned URL is **path-style**, so it
-spells its object's key out — `…/drawing/{sessionId}/{participantId}/…` for a
-live-session submission, `…/gallery/{uuid}/…` for an authored image. A
+`GET /api/media/opaque-image?t={token}` streams an object addressed by a signed
+token instead of by anything the client can read. A presigned URL is path-style,
+so it spells its key out — `…/drawing/{sessionId}/…` for a live submission,
+`…/gallery/{uuid}/…` for an authored image. A
 [`SPOT_THE_ANSWER` follow-up board](../features/follow-up-slides/README.md#spot_the_answer)
-mixes the two on purpose, so the URL itself would name the seeded answer to
-anyone reading devtools. Proxying only the seed would recreate the tell (being
-the one proxied card is just as distinguishing), so **every** candidate image on
-a follow-up board is served this way.
+mixes the two on purpose, so the URL would name the seeded answer to anyone
+reading devtools. Proxying only the seed would recreate the tell, so **every**
+candidate image on a follow-up board is served this way.
 
 ```mermaid
 flowchart LR
-    OR["LiveSessionOrchestrator<br/>followUpCandidateImageUrl"] --> OU["OpaqueImageUrls.url(key)"]
-    OU -->|"base64url(exp:key).base64url(HMAC-SHA256)"| SNAP[("FollowUpOptionStore snapshot<br/>(Redis, 6h TTL)")]
+    OR["Orchestrator<br/>followUpCandidateImageUrl"] --> OU["OpaqueImageUrls.url(key)"]
+    OU -->|"base64url(exp:key).base64url(HMAC-SHA256)"| SNAP[("FollowUpOptionStore snapshot<br/>Redis, 6h TTL")]
     SNAP --> IMG["Board &lt;img src&gt;"]
     IMG --> OC["OpaqueImageController<br/>GET /api/media/opaque-image (ROLE_GUEST floor)"]
     OC --> V{"signature valid<br/>& not expired?"}
     V -->|no| BAD["400 VALIDATION_FAILED"]
     V -->|yes| S3["S3StorageService.get(key)"]
     S3 -->|absent| NF2["404 GALLERY_IMAGE_NOT_FOUND"]
-    S3 -->|StoredObject| OUT2["bytes + stored content type<br/>Cache-Control: private, max-age=3600"]
+    S3 -->|StoredObject| OUT2["bytes + content type<br/>Cache-Control: private, max-age=3600"]
 ```
 
-- **Token** — `base64url({expiryEpochSeconds}:{key}).base64url(HMAC-SHA256)`
-  under `ambi.media.opaque-token-secret` (`OpaqueImageUrls`), compared in
+- **Token** — HMAC-SHA256 under `ambi.media.opaque-token-secret`, compared in
   constant time. `OpaqueImageUrls` refuses to start on an unset or
   shorter-than-32-character secret, so tokens are never forgeable by default.
-- **TTL** — `ambi.media.opaque-token-ttl`, 6h, deliberately matching the Redis
-  round-snapshot TTL these URLs get frozen into. The 1h presign TTL is the
-  shorter of the two, so a snapshot minted with presigned URLs goes dead while
-  its round is still playable; this one cannot.
-- **Reachability** — `SecurityConfig` permits the route at the same
-  `hasRole("GUEST")` floor as the live-session player commands, because guests
-  are players. The token is the authorization for the single object behind it;
+- **TTL** — `opaque-token-ttl` is 6h, matching the Redis round-snapshot TTL these
+  URLs freeze into. The 1h presign TTL is shorter, so a snapshot of presigned
+  URLs would go dead mid-round; this one cannot.
+- **Reachability** — permitted at the same `hasRole("GUEST")` floor as the
+  live-session player commands. The token authorizes the single object behind it;
   the floor only keeps anonymous visitors out.
-- **Absolute** — minted against `ambi.media.public-base-url`, since the browser
-  rendering the URL is on the frontend's origin (a different one in dev). Blank
-  mints root-relative URLs for a single-origin deployment.
-- Like the two proxies above it is `@Hidden` from OpenAPI (raw bytes, not a
-  typed JSON resource) — but unlike them the client needs no `fetch` wrapper:
-  the URL arrives ready to use on the round payload and goes straight into an
-  `<img src>`.
+- **Absolute** — minted against `ambi.media.public-base-url` (blank ⇒
+  root-relative, for a single-origin deployment). Unlike the other two byte routes
+  this one needs no `fetch` wrapper — the URL goes straight into an `<img src>`.
 
-Ordinary image reads keep presigning: this path costs a proxied read through our
-own origin, and is only worth it where the **key namespace itself** is
-confidential.
+Ordinary reads keep presigning: this path costs a proxied read through our own
+origin and is only worth it where the **key namespace itself** is confidential.
 
 ## Deletion
+
+`DELETE /api/galleries/{id}/images/{imageId}` (EDIT) collects
+`ImageKeys.allKeys(image)` — original plus every variant — deletes them from S3
+(batched, idempotent), then removes the `GalleryImage` document. Deleting a whole
+gallery does the same in the same order for every image before dropping the
+`Gallery`. `S3StorageService.delete` chunks at S3's 1000-key `DeleteObjects` cap,
+so a gallery of any size deletes cleanly.
+
+Deck placements survive either delete because a deck owns its own copies
+(below); `ThemeSpec` and `Avatar` embed the *same* keys, so those placements do
+go blank.
+
+## Deck image ownership (copy-on-select)
+
+Placing a gallery image into a deck **adopts** it: `DeckImageLifecycleService`
+server-side-copies the original and every variant into a fresh
+`deck/{deckId}/{uuid}` prefix and rewrites the embedded `AppImage` before the
+deck is saved, so deleting the source gallery image can never blank the deck.
+External images are never adopted, and an image already under this deck's prefix
+is left alone. `DeckImages` walks every image-bearing slot in a `Deck` and is
+what the lifecycle service diffs before/after a save.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant U as Author
-    participant GS as GalleryService
+    participant DS as DeckService
+    participant DIL as DeckImageLifecycleService
     participant S3 as S3StorageService
     participant M as MongoDB
-    U->>GS: DELETE /api/galleries/{id}/images/{imageId} (EDIT)
-    GS->>GS: ImageKeys.allKeys(image) — original + all variants
-    GS->>S3: delete(keys) — batch, idempotent
-    GS->>M: delete GalleryImage document
-    Note over M: usage sites (decks/themes) embed a copy of the AppImage<br/>referencing the SAME S3 keys — deleting the bytes blanks them too<br/>(only the DB document is copied at selection time)
+
+    DS->>DS: beforeKeys = DeckImages.keys(deck)
+    DS->>DS: apply the mutation in memory
+    DS->>DIL: adoptImages(deck)
+    loop every image not already under deck/{deckId}/
+        DIL->>S3: copyIfExists(original + each variant)
+        DIL->>DIL: rewrite AppImage.srcKey/variants
+    end
+    DS->>M: save(deck) — @Version-guarded
+    DS->>DIL: cleanupRemoved(deckId, beforeKeys, afterKeys)
+    DIL->>S3: delete(removed keys, restricted to deck/{deckId}/) — best-effort
 ```
+
+Every deck-persisting write in `DeckService` runs this adopt → save → cleanup
+shape, so slide deletion, option removal, an image replace or clear, and the
+background promote paths all free their deck-owned bytes the same way; deleting
+a deck wipes the whole `deck/{deckId}/` prefix. Ordering keeps failures cheap —
+copies before the save, deletes after and best-effort — so either failure only
+orphans objects, never fails the request. There is no orphan sweeper.
 
 ### Placement-only ingest
 
-`POST /api/decks/{id}/images/upload` (multipart `file`, optional `altText`,
-deck EDIT) ingests bytes straight into the deck's own namespace and returns a
-bare `AppImage` — **no `GalleryImage` is created and no gallery is touched**.
-`DeckController.uploadDeckImage` → `DeckService.uploadImage` → the
-prefix-parameterized `ImageIngestService.ingest` at
-`ImageKeys.newDeckImagePrefix(deckId)`, so the same validation and the same
-five WebP tiers apply; only the owner differs.
+`POST /api/decks/{id}/images/upload` (multipart `file`, optional `altText`, deck
+EDIT) ingests straight into the deck's namespace and returns a bare `AppImage` —
+**no `GalleryImage` is created**. Same validation and tiers; only the owner
+differs. It exists for bytes that are one slot's *content* rather than a library
+image, per [image-cropping](../features/image-cropping.md). The keys are already
+deck-scoped, so adoption is a no-op and `cleanupRemoved` frees them when the
+placement is cleared.
 
-It exists for bytes that are one slot's *content* rather than a library image
-— a crop framed for that slot, per
-[image-cropping](../features/image-cropping.md). Because the keys are already
-under `deck/{deckId}/`, the lifecycle above needs no special case: adoption is
-a no-op, `cleanupRemoved` frees the objects when the placement is cleared or
-replaced, and deck delete sweeps them. Bytes are ingested before the slide
-save, so an abandoned edit orphans deck-prefix objects — the same accepted
-trade-off as adoption's copy-before-save.
+> The route is live; the frontend crop flow that consumes it is not yet wired, so
+> crops still mint gallery entries today.
 
-> The route is live; the frontend crop flow that consumes it (upload the
-> *original* to the gallery, the crop to the deck) is not yet wired, so crops
-> still mint gallery entries today.
+### Migration for pre-existing decks
+
+`DeckImageOwnershipMigration` (an `ApplicationRunner` gated on
+`migrate.deckImages.run=true`, run via
+[`scripts/migrate-deck-images.sh`](../../scripts/migrate-deck-images.sh))
+adopts older decks. It walks the `decks` collection only — not the deck snapshots
+embedded in `LiveSessions` — writes each deck back filtered on `_id` **and**
+`version`, and is idempotent and `--dry-run`-able. Ship the code first: decks
+touched afterwards self-heal on their next write.
 
 ## S3 client configuration
 
@@ -230,7 +230,7 @@ flowchart LR
     P["S3Properties (ambi.s3)<br/>endpoint · region · bucket · keys · pathStyleAccess"] --> CFG["S3Config"]
     CFG --> C1["S3Client"]
     CFG --> C2["S3Presigner"]
-    C1 --> DEV[("dev: Garage<br/>endpoint=localhost:3900<br/>pathStyle=true")]
+    C1 --> DEV[("dev: Garage<br/>localhost:3900 · pathStyle=true")]
     C1 --> PROD[("prod: AWS S3<br/>region endpoint · IAM creds")]
     C2 --> URLS["presigned GET URLs (ambi.media.presign-ttl)"]
 ```

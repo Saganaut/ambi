@@ -64,7 +64,7 @@ Status colors mean exactly one thing: feedback about an operation. Never decorat
 
 ## Named button + icon-button variants
 
-`Btn` and `IconBtn` (from `components/Common/Buttons/BtnTypes.ts`) take **two orthogonal style props**: `variant` picks the color slot, `fill` picks how that color is rendered. Any color × any fill is legal — e.g. `variant="error" fill="ghost"` is a red text-only destructive control. Defaults are `variant="primary"`, `fill="default"`.
+`Btn` and `IconBtn` (props in `frontend/src/shared/components/UIElements/Buttons/Btn.types.ts`) take **two orthogonal style props**: `variant` picks the color slot, `fill` picks how that color is rendered. Any color × any fill is legal — e.g. `variant="error" fill="ghost"` is a red text-only destructive control. Defaults are `variant="primary"`, `fill="default"`.
 
 ### `variant` — color slot
 
@@ -79,8 +79,6 @@ Status colors mean exactly one thing: feedback about an operation. Never decorat
 | `warning`   | `--text-warning` + `--bg-warning` + `--border-warning`    |
 | `disabled`  | `--text-disabled` + `--bg-disabled` + `--border-disabled` |
 
-`error` is also called **destructive**; reach for it on permanent-removal actions.
-
 ### `fill` — background + border treatment
 
 | Fill       | Effect                                                                                       |
@@ -89,25 +87,14 @@ Status colors mean exactly one thing: feedback about an operation. Never decorat
 | `bordered` | Background from the variant + the variant's matching border color, plus the resting shadow.   |
 | `ghost`    | Transparent background, border, and shadow. Text/icon only (variant's color).                 |
 
-For a close (X) button on `IconBtn`, pass `XMarkIcon` as the `icon` with `fill="ghost"` — there is no `variant="close"` shortcut.
+Variants and fills are nested rules under `.btn` / `.iconBtn` in the same directory's `Buttons.module.css`, flipping the manifest vars per [tokens-and-variables](tokens-and-variables.md); the resting shadow follows [elevation-over-borders](elevation-over-borders.md).
 
-Variants and fills are each a nested rule under `.btn` / `.iconBtn` in `Buttons.module.css`. Variants set `--color` / `--bg-fill` / `--border-fill`; fills decide whether `--background-color` and `--border-color` consume those or fall back to transparent, and whether the resting `--btn-shadow` (`--shadow-xs`, stepping up to `--shadow-sm` on hover per [elevation-over-borders](elevation-over-borders.md)) applies — `ghost` opts out with `--btn-shadow: none`. Sizes and shapes compose on top.
+## Modifiers
 
-## Modifier vocabulary
-
-Sizes and shapes compose with the variant:
+Compose on top of the variant, in this order of reach: `variant` (color) → `size` → `shape` → platform pseudo-class → a module class on the component for component-specific layout. Anything that fits none of those needs raising before you invent a one-off.
 
 - `size` — `xs | sm | md | lg`. Sets padding, font size, radius, gap. Default `md`.
 - `shape` — `default | round | pill | avatar` (avatar is IconBtn-only). Default `default`.
+- Native interactive state stays on platform pseudo-classes (`:disabled`, `:hover`, `:focus-visible`, `[aria-pressed]`, `[aria-selected]`). Don't invent state classes.
 
-Native interactive state stays on platform pseudo-classes (`:disabled`, `:hover`, `:focus-visible`, `[aria-pressed]`, `[aria-selected]`). Don't invent state classes.
-
-## When to do what
-
-1. Recolor / change emphasis → `variant`.
-2. Resize → `size`.
-3. Round / pill / avatar shape → `shape`.
-4. Native interactive state → platform pseudo-class / aria attribute.
-5. Component-specific layout (slot positioning, custom spacing) → a module class on the component.
-
-If a change fits none of those, raise it before inventing a one-off pattern.
+**Notes:** `error` is also called *destructive* — reach for it on permanent-removal actions. A close (X) button is `IconBtn` with `XMarkIcon` and `fill="ghost"`; there is no `variant="close"`.
