@@ -27,6 +27,7 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import { AppImg } from "@components/Images/AppImg";
 import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
+import { TALLY_KEY_SEPARATOR } from "../answerTally";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { indexedLabel } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
@@ -58,12 +59,6 @@ interface AllocationTotals {
 }
 
 const NO_TOTALS: OptionTotals = { responses: 0, points: 0, mean: 0 };
-
-/**
- * Separator of the `optionId@points` tally key, mirroring the backend's
- * `AnswerTallyKeys.GRID_KEY_SEPARATOR` (see `answerTally.ts`).
- */
-const TALLY_KEY_SEPARATOR = "@";
 
 /**
  * Fold the round's `optionId@points` tally straight into per-option sums. The

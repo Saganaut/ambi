@@ -15,9 +15,10 @@
  */
 
 /**
- * Separator between the item id and the cell in a tally key. Mirrors the
- * backend's `AnswerTallyKeys.GRID_KEY_SEPARATOR`: neither half can contain it,
- * so a key splits unambiguously.
+ * Separator between the item id and the cell in a tally key. Manual mirror of
+ * the backend's `AnswerTallyKeys.GRID_KEY_SEPARATOR`: neither half can contain
+ * it, so a key splits unambiguously. It is not a request-DTO bound, so it does
+ * not flow through codegen; keep the two in sync by hand.
  */
 const TALLY_KEY_SEPARATOR = "@";
 
@@ -99,6 +100,7 @@ export type { BucketCoordinates };
 export {
   AXIS_TALLY_BUCKETS,
   PLACE_TALLY_BUCKETS,
+  TALLY_KEY_SEPARATOR,
   parseBucketKey,
   tallyTotalsByBucket,
   tallyTotalsBySlot,

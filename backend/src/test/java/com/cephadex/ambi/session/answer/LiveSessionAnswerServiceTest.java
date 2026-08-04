@@ -508,7 +508,8 @@ class LiveSessionAnswerServiceTest {
         // shorthand for "the rest are zero" — it is rejected.
         assertThatThrownBy(() -> service.submit(SID,
                 request(new AllocationAnswer(java.util.Map.of("opt-a", 10))), registered))
-                .isInstanceOf(ValidationException.class);
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("every option must be allocated");
         verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
     }
 
