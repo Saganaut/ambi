@@ -37,6 +37,10 @@ import com.cephadex.ambi.session.redis.SessionRedisProperties;
  * a Redis restart leaves it missing, and every read here falls back to MongoDB
  * and writes what it found back. Nothing but a durable {@code leftAt} can take a
  * participant off the roster, so a rehydrate can't resurrect someone who left.
+ * The healing is add-only — nothing prunes the set short of {@link #clear} on a
+ * terminal session, and the admit script's {@code PEXPIRE} refreshes the TTL on
+ * every join — so a phantom member that slips past a join's rollback stays for
+ * the session's life.
  */
 @Component
 public class SessionRoster {
@@ -49,9 +53,16 @@ public class SessionRoster {
      * (nothing is added and nothing is published). Mirrors
      * {@code RedisEventPublisher.SCRIPT}: the sequence is spliced into
      * pre-serialized JSON fragments, so Lua only ever contributes an integer.
+     *
+     * <p>The cap only refuses a member the set does not already hold: a
+     * concurrent rehydrate that seeded the joiner's own durable document (a heal
+     * from another request passes no exclude id) would otherwise make the joiner's
+     * admit report a full session while the set counts them, and a retry after a
+     * {@code SADD} that landed would refuse the member it already added.
      */
     private static final RedisScript<Long> ADMIT = new DefaultRedisScript<>("""
-            if redis.call('scard', KEYS[1]) >= tonumber(ARGV[2]) then return -1 end
+            if redis.call('sismember', KEYS[1], ARGV[1]) == 0
+                    and redis.call('scard', KEYS[1]) >= tonumber(ARGV[2]) then return -1 end
             redis.call('sadd', KEYS[1], ARGV[1])
             redis.call('pexpire', KEYS[1], ARGV[3])
             local sequence = redis.call('incr', KEYS[2])
@@ -127,7 +138,10 @@ public class SessionRoster {
         return sequence > 0;
     }
 
-    /** Drops a participant from the live membership (an explicit leave). */
+    /**
+     * Drops a participant from the live membership — an explicit leave, or the
+     * rollback of a join the roster refused or failed to complete.
+     */
     public void remove(String sessionId, String participantId) {
         redis.opsForSet().remove(keys.rosterKey(sessionId), participantId);
     }
@@ -138,11 +152,13 @@ public class SessionRoster {
      * evicted key costs one slower read instead of locking a participant out of
      * their own session.
      *
-     * <p>The heal rebuilds the <em>whole</em> set, not just the member asked
+     * <p>An absent key is rebuilt <em>whole</em>, not just with the member asked
      * about: a lone {@code SADD} would re-create the key with one id, and
      * {@link #rehydrateIfMissing} — which only seeds an absent key — could never
      * repair it again, so every later {@link #admit} would check its cap against a
-     * set missing everyone who did not happen to call this method.
+     * set missing everyone who did not happen to call this method. The single-member
+     * heal is therefore reserved for a key that is already live, where it can add
+     * nothing but the id it was asked about to a set Redis is still holding.
      */
     public boolean contains(String sessionId, String participantId) {
         if (Boolean.TRUE.equals(redis.opsForSet().isMember(keys.rosterKey(sessionId), participantId))) {
@@ -151,8 +167,10 @@ public class SessionRoster {
         if (!participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(participantId, sessionId)) {
             return false;
         }
-        rehydrateIfMissing(sessionId, null);
-        add(sessionId, participantId);
+        boolean keyWasLive = rehydrateIfMissing(sessionId, null);
+        if (keyWasLive) {
+            add(sessionId, participantId);
+        }
         return true;
     }
 
@@ -167,15 +185,23 @@ public class SessionRoster {
      * an existing member is a no-op, so a concurrent join can't be undone by a
      * rehydrate that overlaps it.
      *
+     * <p>An absent key with nothing durable to seed it from is left absent: writing
+     * a partial set would strand the roster below the real membership with no way
+     * to rehydrate again, since only a missing key rehydrates.
+     *
      * @param excludeParticipantId a joiner whose document is already durable but
      *                             who has not been admitted yet, so the cap check
      *                             does not count them twice; {@code null} to seed
      *                             the roster whole
+     * @return {@code true} when the key was already live and was left untouched —
+     *         the one case in which a caller may safely {@link #add} a single
+     *         missing member; {@code false} when the key was absent, whether or not
+     *         this call seeded it
      */
-    private void rehydrateIfMissing(String sessionId, String excludeParticipantId) {
+    private boolean rehydrateIfMissing(String sessionId, String excludeParticipantId) {
         String key = keys.rosterKey(sessionId);
         if (Boolean.TRUE.equals(redis.hasKey(key))) {
-            return;
+            return true;
         }
         List<String> ids = new ArrayList<>();
         for (Participant participant : participants(sessionId)) {
@@ -183,10 +209,10 @@ public class SessionRoster {
                 ids.add(participant.getParticipantId());
             }
         }
-        if (ids.isEmpty()) {
-            return;
+        if (!ids.isEmpty()) {
+            redis.opsForSet().add(key, ids.toArray(String[]::new));
+            redis.expire(key, props.getRoster().getTtl());
         }
-        redis.opsForSet().add(key, ids.toArray(String[]::new));
-        redis.expire(key, props.getRoster().getTtl());
+        return false;
     }
 }

@@ -28,6 +28,7 @@ import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.config.AmbiApplication;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
+import com.cephadex.ambi.session.event.SessionEvents;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.SessionRoster;
@@ -184,6 +185,33 @@ class LiveSessionRosterIT {
         assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
         assertThat(mongoTemplate.count(new Query(Criteria.where("session_id").is(session.getId())),
                 Participant.class)).isEqualTo(cap);
+    }
+
+    @Test
+    void anAdmitIsNotRefusedForAMemberTheSetAlreadyHolds() {
+        int cap = 3;
+        LiveSession session = openSession(cap);
+        orchestrator.join(session.getRoomCode(), "user-early", "Early", null, null);
+
+        // A joiner whose document is saved but who has not been admitted yet, exactly
+        // as the orchestrator's join leaves them mid-flight.
+        Participant pending = Participant.join("user-pending", "Pending", null, null);
+        pending.joinSession(session.getId());
+        mongoTemplate.save(pending);
+
+        // A heal on another request rehydrates the whole durable roster — it knows
+        // nothing about the in-flight joiner, so it seeds them too and the set is at
+        // the cap before their own admit runs.
+        redis.delete(keys.rosterKey(session.getId()));
+        assertThat(roster.contains(session.getId(), pending.getParticipantId())).isTrue();
+        assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
+
+        // Counting that pre-seeded id against the cap would refuse the seat it is
+        // already occupying: only two real members hold seats.
+        assertThat(roster.admit(session.getId(), session.getPublicId(), pending.getParticipantId(), cap,
+                SessionEvents.participantJoined(pending))).isTrue();
+        assertThat(roster.participants(session.getId())).hasSize(cap);
+        assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
     }
 
     @Test

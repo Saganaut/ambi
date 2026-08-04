@@ -408,12 +408,14 @@ public class LiveSessionOrchestrator {
             admitted = roster.admit(session.getId(), session.getPublicId(), participant.getParticipantId(),
                     maxParticipants(session), SessionEvents.participantJoined(participant));
         } catch (RuntimeException e) {
-            rollbackJoin(session, participant);
+            rollbackJoin(session, participant, e);
             throw e;
         }
         if (!admitted) {
-            rollbackJoin(session, participant);
-            throw new ConflictException("SESSION_FULL", "this session has reached its participant limit");
+            ConflictException full = new ConflictException("SESSION_FULL",
+                    "this session has reached its participant limit");
+            rollbackJoin(session, participant, full);
+            throw full;
         }
 
         presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
@@ -430,10 +432,22 @@ public class LiveSessionOrchestrator {
      * <p>Order matters: the document goes first so a rehydrate racing this
      * rollback reads Mongo <em>after</em> the delete and therefore never re-seeds
      * the id the {@code SREM} is about to drop.
+     *
+     * <p>The {@code SREM} is only needed when Redis is misbehaving, which is
+     * precisely when it fails too — so its failure is attached to {@code failure}
+     * rather than thrown, and the caller still surfaces the reason the join was
+     * refused instead of a masking cleanup error.
+     *
+     * @param failure the exception the caller is about to throw; a failed
+     *                {@code SREM} is recorded as suppressed on it
      */
-    private void rollbackJoin(LiveSession session, Participant participant) {
+    private void rollbackJoin(LiveSession session, Participant participant, RuntimeException failure) {
         participants.delete(participant);
-        roster.remove(session.getId(), participant.getParticipantId());
+        try {
+            roster.remove(session.getId(), participant.getParticipantId());
+        } catch (RuntimeException e) {
+            failure.addSuppressed(e);
+        }
     }
 
     /**

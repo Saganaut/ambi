@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.cephadex.ambi.common.exception.ConflictException;
@@ -940,6 +941,41 @@ class LiveSessionOrchestratorTest {
         rollback.verify(participants).delete(any(Participant.class));
         rollback.verify(roster).remove(eq(SID), anyString());
         verify(presenceStore, never()).save(anyString(), anyString(), any());
+    }
+
+    @Test
+    void aRosterRollbackThatFailsDoesNotMaskWhyTheJoinFailed() {
+        joinableSession();
+        IllegalStateException admitFailure = new IllegalStateException("no reply");
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenThrow(admitFailure);
+        // The compensating SREM is only needed when Redis is misbehaving — which is
+        // exactly when it fails too, so it must not become the exception the caller
+        // sees (and must not skip the rethrow).
+        doThrow(new RedisConnectionFailureException("redis is down"))
+                .when(roster).remove(eq(SID), anyString());
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isSameAs(admitFailure)
+                .satisfies(thrown -> assertThat(thrown.getSuppressed())
+                        .singleElement().isInstanceOf(RedisConnectionFailureException.class));
+        // The document still goes, so nothing is orphaned by the failed SREM.
+        verify(participants).delete(any(Participant.class));
+        verify(presenceStore, never()).save(anyString(), anyString(), any());
+    }
+
+    @Test
+    void aRosterRollbackThatFailsStillReportsTheFullSession() {
+        joinableSession();
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(false);
+        doThrow(new RedisConnectionFailureException("redis is down"))
+                .when(roster).remove(eq(SID), anyString());
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isInstanceOfSatisfying(ConflictException.class,
+                        full -> assertThat(full.getCode()).isEqualTo("SESSION_FULL"))
+                .satisfies(thrown -> assertThat(thrown.getSuppressed())
+                        .singleElement().isInstanceOf(RedisConnectionFailureException.class));
+        verify(participants).delete(any(Participant.class));
     }
 
     @Test

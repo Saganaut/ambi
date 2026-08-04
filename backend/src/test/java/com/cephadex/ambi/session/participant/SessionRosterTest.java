@@ -85,6 +85,9 @@ class SessionRosterTest {
         // server-side step — that is what removes the session lock from the join.
         assertThat(script.getValue().getScriptAsString())
                 .contains("redis.call('scard', KEYS[1]) >= tonumber(ARGV[2])")
+                // The cap only refuses ids the set does not already hold, so a member
+                // a concurrent rehydrate pre-seeded can still take their own seat.
+                .contains("redis.call('sismember', KEYS[1], ARGV[1]) == 0")
                 .contains("redis.call('sadd', KEYS[1], ARGV[1])")
                 .contains("redis.call('incr', KEYS[2])")
                 .contains("redis.call('publish', ARGV[5], ARGV[6] .. sequence .. ARGV[7])");
@@ -190,6 +193,26 @@ class SessionRosterTest {
         // key — so every later admit would check its cap against a set missing
         // everyone who never called contains.
         verify(sets).add(ROSTER_KEY, host.getParticipantId(), asking.getParticipantId());
+        // The seed already carries the asking member, so no second SADD follows it.
+        verify(sets, never()).add(ROSTER_KEY, asking.getParticipantId());
+    }
+
+    @Test
+    void containsLeavesTheKeyAbsentWhenTheRehydrateFoundNobody() {
+        when(sets.isMember(ROSTER_KEY, P1)).thenReturn(false);
+        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(P1, SID)).thenReturn(true);
+        when(redis.hasKey(ROSTER_KEY)).thenReturn(false);
+        // The durable roster came back empty — the member was removed between the two
+        // reads (a join rollback racing this heal).
+        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID)).thenReturn(List.of());
+
+        assertThat(roster.contains(SID, P1)).isTrue();
+
+        // Re-creating the key with the one id asked about would leave a set that
+        // undercounts the roster forever: only an absent key rehydrates, so nothing
+        // could ever repair it and every later admit would check its cap against it.
+        verify(sets, never()).add(eq(ROSTER_KEY), any(String[].class));
+        verify(redis, never()).expire(eq(ROSTER_KEY), any());
     }
 
     @Test
