@@ -41,20 +41,24 @@ populated only once the round enters `REVEAL_RESULTS`, `null` otherwise.
 1. **Key privacy** — `AllocationConfigView` never carries `correctAllocations`
    or `tolerancePerOption`; both stay server-side until `AllocationTargetView`
    discloses them at reveal.
-2. **Exact-sum wire bound** — `LiveSessionAnswerService.validateAllocation`
-   requires every submitted key to be an option on the slide, every value in
-   `[0, totalPointsToAllocate]`, and the values to sum to
+2. **Full-map, exact-sum wire bound** — `LiveSessionAnswerService.validateAllocation`
+   requires every submitted key to be an option on the slide, *every* option on
+   the slide to be a key (an explicit `0` is how an option is passed over),
+   every value in `[0, totalPointsToAllocate]`, and the values to sum to
    `totalPointsToAllocate` exactly (plain `ValidationException` messages, no
-   new error codes). Unlike the partial-map kinds (Grid, Axis, Matching), the
-   exact sum is required — splits are only comparable across participants when
-   everyone spent the same pool, and grading against `correctAllocations`
-   assumes it.
+   new error codes). Unlike the partial-map kinds (Grid, Axis, Matching), both
+   the full map and the exact sum are required — splits are only comparable
+   across participants when everyone spent the same pool over the same options,
+   the live tally reads an option's key counts as its respondent count, and
+   grading against `correctAllocations` assumes it.
 3. **Key consistency** — `removeOption` in `useAllocationEditor` drops the
    removed option's `correctAllocations` entry, so a stale key can't keep the
    slide "scored" against an option the author deleted.
 4. **Authoring bounds** — `MIN_ALLOCATION_OPTIONS = 2` / `MAX_ALLOCATION_OPTIONS
-   = 6`; `ALLOCATION_TOTAL_MIN = 1`; `tolerancePerOption` is clamped to
-   `[0, totalPointsToAllocate]` on every pool or tolerance edit.
+   = 6`; `ALLOCATION_TOTAL_MIN = 1`; a `tolerancePerOption` edit is clamped to
+   `[0, totalPointsToAllocate]`. A later pool *lowering* does not re-clamp the
+   tolerance, so a stale higher tolerance can survive — the same
+   deliberately-uncorrected drift the pool-edit note in Seams describes.
 5. **Zero-point entries are kept on purpose** — the live tally key for an
    allocated-but-zero option is still emitted, so an option's keys sum to the
    respondent count (see Seams below).
@@ -91,9 +95,12 @@ populated only once the round enters `REVEAL_RESULTS`, `null` otherwise.
 - **Board** — `AllocationBoardContent.tsx` covers every moment off one
   component, switched by `mode`: `prompt` is one point-entry input per option
   (round-local draft, submit only enabled once the whole pool is spent,
-  re-sendable until the round locks); `liveResults`/`results` aggregate the
-  `optionId@points` tally into per-option share/average bars via
-  `tallyTotalsBySlot`; `results` additionally discloses a `Key n ±t` pill and a
+  re-sendable until the round locks; a non-interactive viewer reads a
+  third-person note while the round is open and a closed-round note once it
+  locks); `liveResults`/`results` aggregate the `optionId@points` tally into
+  per-option share/average bars — folded key-by-key in the board rather than
+  through the shared `tallyTotalsBySlot`, whose per-item array would be as long
+  as the (unbounded) pool; `results` additionally discloses a `Key n ±t` pill and a
   track tick per keyed option from `allocationTargets`, plus the viewer's own
   outcome banner (`OutcomeBanner` / `findViewerOutcome`).
 
@@ -112,3 +119,12 @@ populated only once the round enters `REVEAL_RESULTS`, `null` otherwise.
   one `tolerancePerOption` applies to every keyed option, Scales' precedent.
 - **Partial credit** — grading is boolean-only (`RoundEvaluator` has no partial
   scoring machinery); a near-miss split scores identically to a wild one.
+- **The pool has no upper bound** — the editor's number entry is `min`-only
+  (`ALLOCATION_TOTAL_MIN`) and `AllocationContent.totalPointsToAllocate` carries
+  no `@Max`, so an absurdly large pool is legal end to end. It costs nothing on
+  the board (the tally is folded key-by-key, not slot-by-slot), but it makes for
+  an unplayable slide; a sane authoring cap is still owed.
+- **A zero pool disables submit forever** — `ALLOCATION_TOTAL_MIN = 1` keeps the
+  editor off it, but a `totalPointsToAllocate` of `0` written through the raw
+  API leaves the board's completeness gate (`pool > 0 && remaining === 0`)
+  permanently false, so nobody can answer the round.

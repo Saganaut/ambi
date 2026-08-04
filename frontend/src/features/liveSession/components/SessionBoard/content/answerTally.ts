@@ -8,7 +8,7 @@
  *   - totals keyed by the key's suffix — grid cells (`"row,col"`), axis and
  *     place-on-image buckets (`"bucketX,bucketY"`);
  *   - per-item arrays indexed by a small integer suffix — scales buckets,
- *     ranking slots, allocation points.
+ *     ranking slots.
  * Both drop malformed and non-positive entries, so a board can render straight
  * from the result. What each board then DOES with the numbers — heat cells,
  * density dots, per-row strips — stays with the board.
@@ -74,9 +74,9 @@ const tallyTotalsByBucket = (optionCounts: Record<string, number>): Record<strin
 /**
  * Sum the live per-`itemId@slot` tally into per-item arrays of length
  * {@link slotCount}, indexed by the 0-based slot the suffix names (a scales
- * bucket, a ranking position, an allocated point count). Items with no votes
- * are absent rather than zero-filled; keys whose slot is missing, non-integer
- * or out of range contribute nothing.
+ * bucket, a ranking position). Items with no votes are absent rather than
+ * zero-filled; keys whose slot is missing, non-integer or out of range
+ * contribute nothing.
  */
 const tallyTotalsBySlot = (
   optionCounts: Record<string, number>,

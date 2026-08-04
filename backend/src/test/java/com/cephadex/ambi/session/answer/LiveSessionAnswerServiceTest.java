@@ -500,10 +500,24 @@ class LiveSessionAnswerServiceTest {
     }
 
     @Test
+    void allocationOmittingAnOptionIsRejected() {
+        givenLiveSession(answerSettings(true, 1), allocationContent());
+
+        // The board's share/average maths and the live tally's respondent count both
+        // read every option out of every submission, so a partial map is not a
+        // shorthand for "the rest are zero" — it is rejected.
+        assertThatThrownBy(() -> service.submit(SID,
+                request(new AllocationAnswer(java.util.Map.of("opt-a", 10))), registered))
+                .isInstanceOf(ValidationException.class);
+        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
     void allocationSpendingTheWholePoolOnOneOptionIsAccepted() {
         givenLiveSession(answerSettings(true, 1), allocationContent());
 
-        service.submit(SID, request(new AllocationAnswer(java.util.Map.of("opt-a", 10))), registered);
+        service.submit(SID,
+                request(new AllocationAnswer(java.util.Map.of("opt-a", 10, "opt-b", 0))), registered);
 
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(AllocationAnswer.class), eq(0));

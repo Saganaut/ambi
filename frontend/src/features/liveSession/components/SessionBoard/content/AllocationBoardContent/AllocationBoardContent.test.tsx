@@ -19,6 +19,7 @@ const h = vi.hoisted(() => ({
     results: null as unknown,
     viewerParticipantId: "p-me" as string | null,
     allocationTargets: null as unknown,
+    phase: "SUBMIT" as string | null,
   },
 }));
 
@@ -61,6 +62,7 @@ const resetQuery = () => {
   h.query.results = null;
   h.query.viewerParticipantId = "p-me";
   h.query.allocationTargets = null;
+  h.query.phase = "SUBMIT";
 };
 
 describe("AllocationBoardContent answering", () => {
@@ -159,6 +161,18 @@ describe("AllocationBoardContent answering", () => {
     expect(screen.getByText("Players are splitting 12 points across 4 options.")).toBeInTheDocument();
   });
 
+  it("tells a closed round it is closed rather than narrating the players", () => {
+    // `mode` stays "prompt" once the round locks, and everyone is non-interactive
+    // then — so the host-facing third-person line must not be what they read.
+    h.query.phase = "LOCKED";
+    renderContent("prompt", false);
+
+    expect(screen.getByText("Answers are in — this round is closed.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Players are splitting 12 points across 4 options."),
+    ).not.toBeInTheDocument();
+  });
+
   it("is read-only at results even for a participant", () => {
     renderContent("results", true);
 
@@ -251,6 +265,21 @@ describe("AllocationBoardContent aggregate and reveal", () => {
     renderContent("results", false);
 
     expect(screen.getByText("Key 6 ±1")).toBeInTheDocument();
+  });
+
+  it("marks a row on key only once the crowd has actually answered", () => {
+    // A key of 0 sits inside its own tolerance of the placeholder average, so a
+    // response-less round must not read as everyone having nailed the split.
+    h.query.allocationTargets = [{ optionId: "alloc_frodo", points: 0, tolerance: 1 }];
+    const { rerender } = renderContent("results", false);
+
+    expect(screen.getByText("No responses yet.")).toBeInTheDocument();
+    expect(screen.getByText("Frodo").closest("li")?.className).not.toContain("onKey");
+
+    h.query.optionCounts = { "alloc_frodo@0": 2, "alloc_sam@6": 2 };
+    rerender(<AllocationBoardContent slide={slide} mode="results" interactive={false} />);
+
+    expect(screen.getByText("Frodo").closest("li")?.className).toContain("onKey");
   });
 
   it("falls back to the snapshot's key splits for a late joiner", () => {

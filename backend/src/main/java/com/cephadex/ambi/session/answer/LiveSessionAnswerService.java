@@ -298,12 +298,14 @@ public class LiveSessionAnswerService {
 
     /**
      * An allocation submission must spend the whole pool across the slide's own
-     * options: every key an option on the slide, every value within
+     * options: every option on the slide a key of the map (an explicit zero is
+     * how an option is passed over), every value within
      * {@code [0, totalPointsToAllocate]}, and the values summing to
-     * {@code totalPointsToAllocate} exactly. Unlike the partial-map kinds, the
-     * exact sum is required — splits are only comparable across participants when
-     * everyone spent the same pool, and grading against {@code correctAllocations}
-     * assumes it.
+     * {@code totalPointsToAllocate} exactly. Unlike the partial-map kinds, both
+     * the full map and the exact sum are required — splits are only comparable
+     * across participants when everyone spent the same pool over the same
+     * options, the live tally reads an option's key counts as its respondent
+     * count, and grading against {@code correctAllocations} assumes it.
      */
     private void validateAllocation(AllocationContent content, AllocationAnswer answer) {
         Map<String, Integer> allocations = answer.allocations();
@@ -324,6 +326,9 @@ public class LiveSessionAnswerService {
                 throw new ValidationException("allocation is outside the point pool");
             }
             total += points;
+        }
+        if (!allocations.keySet().containsAll(optionIds)) {
+            throw new ValidationException("every option must be allocated (zero is allowed)");
         }
         if (total != content.totalPointsToAllocate()) {
             throw new ValidationException("the whole point pool must be allocated");

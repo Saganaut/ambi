@@ -3,7 +3,10 @@
 //   - prompt      → one point entry per option; Submit posts the whole
 //                   allocations map (AllocationAnswer) and may be re-sent until
 //                   the round locks (the backend overrides maxSelections, so
-//                   the last write before the lock wins).
+//                   the last write before the lock wins). Host/projector sees a
+//                   third-person note instead — or, once the round stops
+//                   accepting submissions (`mode` stays "prompt" for a LOCKED
+//                   round), an answers-are-in note.
 //   - liveResults → per-option share / average bars aggregated from the
 //                   `optionId@points` tally keys; still answerable pre-lock.
 //   - results     → the bars stay, the authored key splits are disclosed (a
@@ -13,9 +16,9 @@
 // The pool and the options (label, colour, presigned image) travel on the
 // participant-safe `slide.allocation`; the key splits stay hidden until reveal
 // and then arrive keyed by `optionId`, joined back to the config for display.
-// Every option rides the submitted map, zeros included: the server validates
-// each value against [0, pool] and the map's sum against the pool exactly, so
-// an omitted option would read as an under-spend.
+// Every option rides the submitted map, zeros included: the server requires
+// every option to be keyed, each value within [0, pool], and the map's sum to
+// equal the pool exactly.
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 
@@ -24,7 +27,6 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import { AppImg } from "@components/Images/AppImg";
 import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { tallyTotalsBySlot } from "../answerTally";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { indexedLabel } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
@@ -58,33 +60,48 @@ interface AllocationTotals {
 const NO_TOTALS: OptionTotals = { responses: 0, points: 0, mean: 0 };
 
 /**
- * Fold the per-option point arrays (index = points allocated, value = how many
- * participants chose that amount) into the numbers the bars read from. Zero-point
- * entries are emitted by the backend, so an option's row sum IS its respondent
- * count — and every respondent appears in every option's row, which is why the
- * round's response count is the busiest row rather than a sum.
+ * Separator of the `optionId@points` tally key, mirroring the backend's
+ * `AnswerTallyKeys.GRID_KEY_SEPARATOR` (see `answerTally.ts`).
+ */
+const TALLY_KEY_SEPARATOR = "@";
+
+/**
+ * Fold the round's `optionId@points` tally straight into per-option sums. The
+ * spend rides the key, so the aggregation stays proportional to the number of
+ * keys rather than to the pool — an author-set pool can be arbitrarily large.
+ * Zero-point entries are emitted by the backend, so an option's key counts sum
+ * to its respondent count — and every respondent appears under every option,
+ * which is why the round's response count is the busiest option rather than a
+ * sum. Keys naming no option on the slide, or carrying a spend that is missing,
+ * non-integer, negative or beyond the pool, contribute nothing.
  */
 const summarize = (
-  slots: Record<string, number[]>,
+  optionCounts: Record<string, number>,
   optionIds: string[],
+  pool: number,
 ): AllocationTotals => {
   const byOption: Record<string, OptionTotals> = {};
+  for (const optionId of optionIds) byOption[optionId] = { responses: 0, points: 0, mean: 0 };
+
+  for (const [key, count] of Object.entries(optionCounts)) {
+    if (count <= 0) continue;
+    const split = key.lastIndexOf(TALLY_KEY_SEPARATOR);
+    if (split <= 0 || split === key.length - 1) continue;
+    const optionTotals = byOption[key.slice(0, split)];
+    const points = Number(key.slice(split + 1));
+    if (!optionTotals || !Number.isInteger(points) || points < 0 || points > pool) continue;
+    optionTotals.responses += count;
+    optionTotals.points += points * count;
+  }
+
   let totalPoints = 0;
   let responses = 0;
-  for (const optionId of optionIds) {
-    let optionResponses = 0;
-    let optionPoints = 0;
-    (slots[optionId] ?? []).forEach((count, points) => {
-      optionResponses += count;
-      optionPoints += points * count;
-    });
-    byOption[optionId] = {
-      responses: optionResponses,
-      points: optionPoints,
-      mean: optionResponses ? optionPoints / optionResponses : 0,
-    };
-    totalPoints += optionPoints;
-    responses = Math.max(responses, optionResponses);
+  for (const optionTotals of Object.values(byOption)) {
+    optionTotals.mean = optionTotals.responses
+      ? optionTotals.points / optionTotals.responses
+      : 0;
+    totalPoints += optionTotals.points;
+    responses = Math.max(responses, optionTotals.responses);
   }
   return { byOption, totalPoints, responses };
 };
@@ -96,7 +113,11 @@ const AllocationBoardContent = ({ slide, mode, interactive }: AllocationBoardCon
   const pool = allocation?.totalPointsToAllocate ?? 0;
 
   const { sendAnswer } = useSessionConnection();
-  const { optionCounts, results, viewerParticipantId, allocationTargets } = useLiveSessionQuery();
+  // `mode` stays "prompt" for a LOCKED round, so the phase is what tells a host
+  // projecting an open round apart from everyone reading a closed one.
+  const { optionCounts, results, viewerParticipantId, allocationTargets, phase } =
+    useLiveSessionQuery();
+  const accepting = phase === "SUBMIT" || phase === "SUBMIT_LIVE";
 
   // Round-local draft: optionId → points, holding only the options the player
   // has actually typed into. Reset on round change; an untouched option reads
@@ -133,12 +154,10 @@ const AllocationBoardContent = ({ slide, mode, interactive }: AllocationBoardCon
   };
 
   const showTotals = mode === "results" || mode === "liveResults";
-  // Per-option arrays indexed by the point count the backend keyed on — a spend
-  // runs 0..pool inclusive, so the slot count is pool + 1.
-  const slots = showTotals ? tallyTotalsBySlot(optionCounts, pool + 1) : {};
   const totals = summarize(
-    slots,
+    showTotals ? optionCounts : {},
     options.map((option) => option.id ?? ""),
+    pool,
   );
   const showBars = showTotals && totals.responses > 0;
   const showTrack = showTotals || !canAllocate;
@@ -175,7 +194,9 @@ const AllocationBoardContent = ({ slide, mode, interactive }: AllocationBoardCon
 
       {mode === "prompt" && !interactive && (
         <p className={styles.note}>
-          Players are splitting {pool.toString()} points across {options.length.toString()} options.
+          {accepting
+            ? `Players are splitting ${pool.toString()} points across ${options.length.toString()} options.`
+            : "Answers are in — this round is closed."}
         </p>
       )}
 
@@ -186,12 +207,18 @@ const AllocationBoardContent = ({ slide, mode, interactive }: AllocationBoardCon
           const optionId = option.id ?? "";
           const label = indexedLabel(option.text, "Option", index);
           const optionTotals = totals.byOption[optionId] ?? NO_TOTALS;
-          // A full-pool spend makes the share equal mean / pool, so the two
-          // readouts agree by construction — the server enforces that sum.
+          // The server enforces a full map — every option keyed, summing to the
+          // pool exactly — so an option's key counts are the respondent count
+          // and the share equals mean / pool, agreeing with the average readout.
           const share = totals.totalPoints ? optionTotals.points / totals.totalPoints : 0;
           const target = targets.find((candidate) => candidate.optionId === optionId);
           const keyPoints = target?.points ?? 0;
-          const onKey = target != null && Math.abs(optionTotals.mean - keyPoints) <= (target.tolerance ?? 0);
+          // With no responses the mean is a placeholder 0, not a crowd answer,
+          // so a key near zero must not wash the row as "on key".
+          const onKey =
+            optionTotals.responses > 0 &&
+            target != null &&
+            Math.abs(optionTotals.mean - keyPoints) <= (target.tolerance ?? 0);
 
           return (
             <li
@@ -250,7 +277,7 @@ const AllocationBoardContent = ({ slide, mode, interactive }: AllocationBoardCon
 
               {showBars && (
                 <p className={styles.readout}>
-                  <span className={styles.mean}>
+                  <span>
                     {optionTotals.mean.toFixed(1)} of {pool.toString()}
                   </span>
                   <span className={styles.share}>{Math.round(share * 100).toString()}%</span>
