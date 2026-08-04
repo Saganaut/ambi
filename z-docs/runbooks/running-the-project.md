@@ -20,9 +20,8 @@ The steps below are the same thing by hand, for when you only want one piece.
 docker compose up -d
 ```
 
-Starts MongoDB (`:27017`), Redis (`:6379`), Garage S3 (`:3900`), Mongo Express (`:8081`), and
-LocalStack (`:4566`). The Redis container also maps `:8001`, but nothing listens there —
-`redis-stack-server` bundles no UI. See
+Starts MongoDB (`:27017`), Redis (`:6379`), RedisInsight (`:8001`), Garage S3 (`:3900`),
+Mongo Express (`:8081`), and LocalStack (`:4566`). See
 [Environment Variables](../infrastructure/environment-variables.md) and
 [Gotchas](../infrastructure/gotchas.md).
 
@@ -85,7 +84,7 @@ alongside a backend on 8080), rewrites documents in place, and is idempotent. **
 | Script | Rewrites |
 | --- | --- |
 | `scripts/migrate-place-on-image.sh` | Legacy `PLACE_ON_IMAGE` `content.correctTargets` → `items` + `correctPositions` + `tolerance`, in `decks` and in `LiveSessions` deck snapshots. |
-| `scripts/migrate-deck-images.sh` *(not on the branch yet)* | Gives pre-existing decks their own S3 image copies — the one-off counterpart of [copy-on-select adoption](../diagrams/media-gallery.md#deck-image-ownership-copy-on-select). `decks` only. |
+| `scripts/migrate-deck-images.sh` | Gives pre-existing decks their own S3 image copies — the one-off counterpart of [copy-on-select adoption](../diagrams/media-gallery.md#deck-image-ownership-copy-on-select). `decks` only. |
 
 ## 8. Inspecting the data
 

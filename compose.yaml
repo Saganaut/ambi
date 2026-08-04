@@ -16,13 +16,24 @@ services:
     container_name: ambi-redis
     ports:
       - "6379:6379"
-      - "8001:8001"
     # environment:
     #   - REDIS_ARGS=--requirepass password
     command:
       ["redis-server", "--requirepass", "password", "--protected-mode", "no"]
     volumes:
       - redis-data:/data
+  redisinsight:
+    # The redis-stack-server image ships no UI, so the Redis admin UI is its own
+    # service. RedisInsight listens on 5540 internally; published as 8001.
+    image: redis/redisinsight:latest
+    container_name: ambi-redisinsight
+    ports:
+      - "8001:5540"
+    depends_on:
+      - redis
+    volumes:
+      - redisinsight-data:/data
+    restart: unless-stopped
   garage:
     image: dxflrs/garage:v1.0.1
     container_name: ambi-garage
@@ -68,6 +79,7 @@ services:
 volumes:
   mongo-data:
   redis-data:
+  redisinsight-data:
   garage-meta:
   garage-data:
   localstack-data:

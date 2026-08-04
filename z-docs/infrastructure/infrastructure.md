@@ -42,7 +42,8 @@ storage are `media/storage/ImageIngestService` and
 | Service | Image | Ports | Role |
 | --- | --- | --- | --- |
 | `mongodb` | `mongo:7.0` | 27017 | Primary database |
-| `redis` | `redis/redis-stack-server` | 6379 | Sessions, cache, live-session state, pub/sub. `:8001` is mapped but nothing listens — the `-server` image ships no UI. |
+| `redis` | `redis/redis-stack-server` | 6379 | Sessions, cache, live-session state, pub/sub |
+| `redisinsight` | `redis/redisinsight:latest` | 8001 → 5540 | Redis admin UI — the `-server` image ships none, so it runs as its own service |
 | `garage` | `dxflrs/garage:v1.0.1` | 3900 / 3903 | Local S3-compatible object storage |
 | `mongo-express` | `mongo-express:latest` | 8081 | MongoDB admin UI — [runbook](../runbooks/using-mongo-express.md) |
 | `localstack` | `localstack/localstack:4` | 4566 | Local AWS emulation, scoped to `cloudwatch,logs` |

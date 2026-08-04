@@ -168,10 +168,6 @@ go blank.
 
 ## Deck image ownership (copy-on-select)
 
-> **Landing, not landed.** `DeckImageLifecycleService`, `DeckImages`,
-> `DeckImageOwnershipMigration` and `scripts/migrate-deck-images.sh` are not on the branch yet —
-> this section describes the design as it is being implemented. Re-verify it when that work commits.
-
 Placing a gallery image into a deck **adopts** it: `DeckImageLifecycleService`
 server-side-copies the original and every variant into a fresh
 `deck/{deckId}/{uuid}` prefix and rewrites the embedded `AppImage` before the
@@ -195,17 +191,19 @@ sequenceDiagram
         DIL->>S3: copyIfExists(original + each variant)
         DIL->>DIL: rewrite AppImage.srcKey/variants
     end
-    DS->>M: save(deck) — @Version-guarded
+    DS->>M: persist deck (save — @Version-guarded;<br/>promote paths use a targeted update instead)
     DS->>DIL: cleanupRemoved(deckId, beforeKeys, afterKeys)
     DIL->>S3: delete(removed keys, restricted to deck/{deckId}/) — best-effort
 ```
 
-Every deck-persisting write in `DeckService` runs this adopt → save → cleanup
-shape, so slide deletion, option removal, an image replace or clear, and the
-background promote paths all free their deck-owned bytes the same way; deleting
-a deck wipes the whole `deck/{deckId}/` prefix. Ordering keeps failures cheap —
-copies before the save, deletes after and best-effort — so either failure only
-orphans objects, never fails the request. There is no orphan sweeper.
+Every deck write that can place or remove an image runs an adopt → persist →
+cleanup shape (the promote paths persist via a targeted update rather than a
+versioned save), so slide deletion, option removal, an image replace or clear,
+and the background promote paths all free their deck-owned bytes the same way;
+deleting a deck wipes the whole `deck/{deckId}/` prefix. Ordering keeps
+failures cheap — copies before the persist, deletes after and best-effort — so
+either failure only orphans objects, never fails the request. There is no
+orphan sweeper.
 
 ### Placement-only ingest
 

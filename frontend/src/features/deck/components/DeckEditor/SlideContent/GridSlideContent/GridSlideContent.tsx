@@ -304,11 +304,6 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                       index={index}
                       color={resolveDatumColor(item.color, index)}
                       hasTarget={cell != null}
-                      meta={
-                        cell == null ? undefined : (
-                          <span className={styles.rowMeta}>{cellNameOf(cell)}</span>
-                        )
-                      }
                       selected={composer.selectedItemId === item.id}
                       menuOpen={composer.openMenuId === item.id}
                       canRemove={editor.canRemoveItem}

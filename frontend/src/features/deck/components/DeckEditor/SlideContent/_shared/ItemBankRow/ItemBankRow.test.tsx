@@ -31,10 +31,7 @@ const baseProps = () => ({
   isDragging: false,
 });
 
-const renderPlacementRow = (
-  hasTarget: boolean,
-  overrides: { menuOpen?: boolean; meta?: string } = {},
-) => {
+const renderPlacementRow = (hasTarget: boolean, overrides: { menuOpen?: boolean } = {}) => {
   const props = {
     ...baseProps(),
     selected: false,
@@ -43,14 +40,7 @@ const renderPlacementRow = (
     onClearTarget: vi.fn(),
     menuOpen: overrides.menuOpen ?? false,
   };
-  const { container } = render(
-    <ItemBankRow
-      type="placement"
-      hasTarget={hasTarget}
-      meta={overrides.meta === undefined ? undefined : <span>{overrides.meta}</span>}
-      {...props}
-    />,
-  );
+  const { container } = render(<ItemBankRow type="placement" hasTarget={hasTarget} {...props} />);
   return { ...props, row: container.firstElementChild };
 };
 
@@ -112,12 +102,6 @@ describe("ItemBankRow (placement)", () => {
     // also arms the row for a placement the author did not ask for.
     expect(onSetTarget).toHaveBeenCalledOnce();
     expect(onSelect).toHaveBeenCalledOnce();
-  });
-
-  it("renders the caller's trailing meta, the status the row itself knows nothing about", () => {
-    renderPlacementRow(true, { meta: "Forest × Small" });
-
-    expect(screen.getByText("Forest × Small")).toBeInTheDocument();
   });
 
   it("leaves a ranking row without a scoring toggle or a selection", () => {

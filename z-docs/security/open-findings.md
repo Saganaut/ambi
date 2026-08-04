@@ -106,8 +106,8 @@ response header.
 ### 12 · Datastore exposure
 
 Mongo (`root`/`secret`) and Redis (`--requirepass password --protected-mode no`) publish on
-`0.0.0.0`. (The mapped `:8001` is not an exposure — the `redis-stack-server` image ships no UI and
-nothing listens there.) **Fix:** bind dev ports to `127.0.0.1`, never reuse these credentials
+`0.0.0.0`, as does the unauthenticated RedisInsight UI on `:8001`. **Fix:** bind dev ports to
+`127.0.0.1`, never reuse these credentials
 off-loopback, document `compose.yaml` as dev-only.
 
 ### 13 · Low / Info

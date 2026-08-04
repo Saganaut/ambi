@@ -52,6 +52,7 @@ flowchart LR
         S3["S3StorageService"]
         IUR["ImageUrlResolver"]
         OIU["OpaqueImageUrls"]
+        DIL["DeckImageLifecycleService"]
     end
 
     subgraph stores["Stores"]
@@ -72,6 +73,7 @@ flowchart LR
     DECK --> DS --> MONGO
     DS --> SR
     DS --> DIL --> S3
+    DS --> IIS --> S3
     DS --> ORR --> USVC
     COMMENT --> CS --> MONGO
     COMMENT --> DS
