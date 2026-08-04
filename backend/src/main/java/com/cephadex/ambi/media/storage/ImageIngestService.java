@@ -74,10 +74,10 @@ public class ImageIngestService {
         validate(bytes, contentType);
 
         String originalKey = ImageKeys.originalKey(prefix);
-        storage.put(originalKey, bytes, contentType);
 
         // AVIF cannot be decoded by Scrimage; store the original as-is with no variants.
         if ("image/avif".equalsIgnoreCase(contentType)) {
+            storage.put(originalKey, bytes, contentType);
             AppImage image = new AppImage();
             image.setExternal(false);
             image.setSrcKey(originalKey);
@@ -97,6 +97,10 @@ public class ImageIngestService {
         } catch (IOException e) {
             throw new ValidationException("Uploaded file is not a readable image.");
         }
+
+        // Stored only once the payload is known decodable, so a corrupt upload
+        // leaves nothing behind.
+        storage.put(originalKey, bytes, contentType);
 
         Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
         for (Map.Entry<ImageSizeOptions, Integer> tier : TIER_BOUNDS.entrySet()) {
