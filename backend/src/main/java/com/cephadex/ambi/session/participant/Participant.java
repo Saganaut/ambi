@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -41,6 +42,27 @@ public class Participant {
 
     @Id
     private String participantId;
+
+    /**
+     * The run this participant belongs to — the {@code LiveSession}'s internal
+     * Mongo id, the same id the orchestrator and {@code SessionKeys} thread
+     * everywhere (never the {@code publicId}). The only session→participant link,
+     * so every roster read is a query on it; the indexes that serve those queries
+     * are created by {@link ParticipantIndexInitializer}, not by the annotation
+     * here (auto-index-creation is off).
+     */
+    @Indexed
+    @Field("session_id")
+    private String sessionId;
+
+    /**
+     * When the participant explicitly left the run, else {@code null}. A departure
+     * has to be durable: the Redis roster set is a cache that can be evicted, and
+     * rehydrating it from Mongo would otherwise resurrect everyone who ever left.
+     * Only an explicit {@code leave} sets it — a disconnect does not.
+     */
+    @Field("left_at")
+    private Instant leftAt;
 
     @Field("user_id")
     private String userId;
@@ -111,6 +133,35 @@ public class Participant {
         p.score = new ParticipantScore();
         p.banned = false;
         return p;
+    }
+
+    /**
+     * Binds the participant to the run they are joining, clearing any recorded
+     * departure. Separate from {@link #join} because the host's participant is
+     * minted <em>before</em> the session document exists — the session is created
+     * from the host's participant id, so its own id can only be stamped once
+     * MongoDB has assigned it.
+     *
+     * @param sessionId the session's internal id; required
+     * @throws NullPointerException if {@code sessionId} is {@code null}
+     */
+    public void joinSession(String sessionId) {
+        this.sessionId = Objects.requireNonNull(sessionId, "sessionId required");
+        this.leftAt = null;
+    }
+
+    /**
+     * Records that the participant explicitly left the run. The document (and its
+     * {@link #sessionId}) is kept so the run's history still resolves; membership
+     * queries exclude it from here on.
+     */
+    public void leaveSession() {
+        this.leftAt = Instant.now();
+    }
+
+    /** Whether the participant is still on the run's roster (they never left). */
+    public boolean isOnRoster() {
+        return leftAt == null;
     }
 
     /**

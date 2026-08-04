@@ -154,7 +154,7 @@ Durable Mongo aggregates below; the **volatile round state lives in Redis**
 
 ```mermaid
 erDiagram
-    LIVE_SESSION ||--o{ PARTICIPANT : "roster + host ref"
+    LIVE_SESSION ||--o{ PARTICIPANT : "sessionId ref"
     LIVE_SESSION ||--o{ ANSWER : "sessionId ref"
     LIVE_SESSION ||--o{ ROUND_RESULT : "sessionId ref"
     LIVE_SESSION ||--|| DECK : "frozen snapshot (emb)"
@@ -173,9 +173,12 @@ erDiagram
     }
     PARTICIPANT {
         string participantId PK
+        string sessionId "ref, indexed"
         string userId "ref, stripped live"
         string displayName
         enum connectionStatus "ONLINE, DISCONNECTED, IDLE, RECONNECTING"
+        Instant joinedAt "roster order"
+        Instant leftAt "null while on the roster"
         ParticipantScore score "emb: points, streak"
         boolean banned
     }
@@ -204,6 +207,17 @@ erDiagram
         long responseTimeMs
     }
 ```
+
+Membership is **not** an array on `LiveSession`: a `Participant` points up at its
+run by `sessionId` (the session's internal Mongo id), exactly like `Answer` and
+`RoundResult`, so joining is an insert rather than a rewrite of the session
+document and its embedded deck snapshot. `leftAt` — set only by an explicit
+leave, never by a disconnect — is what takes a participant off the roster;
+`ParticipantIndexInitializer` creates the two compound indexes that serve the
+roster listing (`session_id, left_at, joined_at`) and the caller→participant
+lookup (`session_id, user_id, left_at`), since auto-index-creation is off. The
+Redis roster SET in front of this is described in
+[live-session](live-session.md#redis-keys).
 
 > `optionTally` is a **list of `TallyEntry(choice, count)` records, not a map** —
 > deliberately. Choice strings are used verbatim as keys and can contain a `.`

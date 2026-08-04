@@ -25,6 +25,7 @@ public class SessionRedisProperties {
     private final FollowUp followUp = new FollowUp();
     private final QandaHostAnswers qandaHostAnswers = new QandaHostAnswers();
     private final Presence presence = new Presence();
+    private final Roster roster = new Roster();
     private final Events events = new Events();
     private final EventSequence eventSequence = new EventSequence();
     private final Deadlines deadlines = new Deadlines();
@@ -146,6 +147,26 @@ public class SessionRedisProperties {
         /**
          * TTL on a session's presence hash — the same abandoned-session backstop as
          * the state TTL. Refreshed on every write.
+         */
+        private Duration ttl = Duration.ofHours(6);
+    }
+
+    @Data
+    public static class Roster {
+        /**
+         * Redis key namespace for a session's live membership. The roster is a Redis
+         * SET at {@code <namespace>:<sessionId>} holding participant ids. Deliberately
+         * a different key from {@link Presence}: presence answers "who is connected
+         * right now", the roster answers "who is in this run" — an entry leaves only
+         * on an explicit {@code leave}, never on a disconnect. Fronting MongoDB with
+         * it lets a join enforce the participant cap ({@code SCARD}) and admit the
+         * player ({@code SADD}) in one atomic server-side step.
+         */
+        private String namespace = "ambi:session:roster";
+        /**
+         * TTL on a session's roster set — the same abandoned-session backstop as the
+         * state TTL. Refreshed on every write; an expired set rehydrates from the
+         * {@code Participant} documents on the next read.
          */
         private Duration ttl = Duration.ofHours(6);
     }

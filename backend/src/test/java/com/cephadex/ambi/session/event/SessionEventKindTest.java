@@ -29,8 +29,8 @@ class SessionEventKindTest {
     /** One instance of each permitted event type; payloads are irrelevant here. */
     private static final List<SessionEvent> ALL = List.of(
             new LiveSessionStarted(LiveSessionLifecycle.IN_PROGRESS, RoundPhase.SUBMIT),
-            new ParticipantJoined(participant(), List.of("p-1")),
-            new ParticipantLeft("p-1", List.of()),
+            new ParticipantJoined(participant()),
+            new ParticipantLeft("p-1"),
             new ParticipantReconnected(participant()),
             new ParticipantRemoved("p-1", RemovalReason.KICKED, List.of()),
             new PresenceChanged("p-1", ConnectionStatus.ONLINE, AT),

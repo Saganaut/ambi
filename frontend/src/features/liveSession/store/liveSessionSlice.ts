@@ -331,22 +331,25 @@ function applyEvent(state: LiveSessionState, e: SessionEvent) {
       state.status = e.status;
       state.phase = e.phase;
       break;
-    case "ParticipantJoined":
-      if (e.participant.participantId != null) {
-        state.participants[e.participant.participantId] = e.participant;
+    case "ParticipantJoined": {
+      const joinedId = e.participant.participantId;
+      if (joinedId != null) {
+        state.participants[joinedId] = e.participant;
+        // A delta, so the roster is patched, not replaced — and the same join can
+        // be redelivered after a reconnect replay, hence the membership guard.
+        if (!state.roster.includes(joinedId)) state.roster.push(joinedId);
       }
-      state.roster = e.roster;
-      break;
-    case "ParticipantLeft":
-    case "ParticipantRemoved": {
-      state.roster = e.roster;
-      // delete state.participants[e.participantId];
-
-      const { [e.participantId]: _removed, ...remainingParticipants } = state.participants;
-      state.participants = remainingParticipants;
-
       break;
     }
+    case "ParticipantLeft":
+      state.roster = state.roster.filter((id) => id !== e.participantId);
+      dropParticipant(state, e.participantId);
+      break;
+    case "ParticipantRemoved":
+      // A removal still carries the authoritative roster, so it replaces.
+      state.roster = e.roster;
+      dropParticipant(state, e.participantId);
+      break;
     case "ParticipantReconnected":
       if (e.participant.participantId != null) {
         state.participants[e.participant.participantId] = e.participant;
@@ -531,6 +534,12 @@ function drainPendingEvents(state: LiveSessionState) {
     if (next) applyEnvelope(state, next);
   }
   state.resyncNeeded = state.pendingEvents.length > 0;
+}
+
+/** Forget a departed participant's record (the roster is patched by the caller). */
+function dropParticipant(state: LiveSessionState, participantId: string) {
+  const { [participantId]: _removed, ...remaining } = state.participants;
+  state.participants = remaining;
 }
 
 /** Clear the voting sub-state when a round (re)opens or voting starts afresh. */

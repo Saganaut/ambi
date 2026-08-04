@@ -45,12 +45,12 @@ public final class SessionEvents {
         return new LiveSessionStarted(session.getStatus(), session.getPhase());
     }
 
-    public static ParticipantJoined participantJoined(Participant participant, List<String> roster) {
-        return new ParticipantJoined(ParticipantView.from(participant), List.copyOf(roster));
+    public static ParticipantJoined participantJoined(Participant participant) {
+        return new ParticipantJoined(ParticipantView.from(participant));
     }
 
-    public static ParticipantLeft participantLeft(String participantId, List<String> roster) {
-        return new ParticipantLeft(participantId, List.copyOf(roster));
+    public static ParticipantLeft participantLeft(String participantId) {
+        return new ParticipantLeft(participantId);
     }
 
     public static ParticipantReconnected participantReconnected(Participant participant) {

@@ -10,9 +10,13 @@ import com.cephadex.ambi.session.liveSession.LiveSession;
 
 /**
  * Resolves an authenticated caller to their (non-banned) participant on a live
- * session's roster. The roster holds participant ids while a request carries a user
- * id, so this is the single place that turns "who is calling" into "which
- * participant" for the session command endpoints (answer, leave, host checks).
+ * session's roster. The roster is the session's ACL — this is the single place
+ * that turns "who is calling" into "which participant" for the session command
+ * endpoints (answer, leave, host checks) and the STOMP subscribe authorization.
+ *
+ * <p>The lookup is one indexed query on {@code (sessionId, userId)}: the request
+ * carries a user id, the roster is keyed by participant id, and a participant
+ * that left carries a {@code leftAt} that takes it out of both.
  */
 @Component
 public class ParticipantResolver {
@@ -46,8 +50,7 @@ public class ParticipantResolver {
         if (userId == null) {
             return Optional.empty();
         }
-        return participants.findAllById(session.getRoster()).stream()
-                .filter(p -> !p.isBanned() && userId.equals(p.getUserId()))
-                .findFirst();
+        return participants.findFirstBySessionIdAndUserIdAndLeftAtIsNull(session.getId(), userId)
+                .filter(p -> !p.isBanned());
     }
 }

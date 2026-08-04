@@ -85,6 +85,7 @@ alongside a backend on 8080), rewrites documents in place, and is idempotent. **
 | --- | --- |
 | `scripts/migrate-place-on-image.sh` | Legacy `PLACE_ON_IMAGE` `content.correctTargets` → `items` + `correctPositions` + `tolerance`, in `decks` and in `LiveSessions` deck snapshots. |
 | `scripts/migrate-deck-images.sh` | Gives pre-existing decks their own S3 image copies — the one-off counterpart of [copy-on-select adoption](../diagrams/media-gallery.md#deck-image-ownership-copy-on-select). `decks` only. |
+| `scripts/migrate-participant-session-id.sh` | Backfills `participants.session_id` from each `LiveSessions.roster` array, then `$unset`s the array — membership now hangs off the participant document (see [membership](../diagrams/live-session.md#membership)). |
 
 ## 8. Inspecting the data
 

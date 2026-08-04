@@ -89,11 +89,7 @@ describe("liveSessionSlice", () => {
   it("drives a full round through the event stream", () => {
     const events: SessionEvent[] = [
       { type: "LiveSessionStarted", status: "IN_PROGRESS", phase: "SUBMIT" },
-      {
-        type: "ParticipantJoined",
-        participant: participant("player-3", "Late"),
-        roster: ["host-1", "player-2", "player-3"],
-      },
+      { type: "ParticipantJoined", participant: participant("player-3", "Late") },
       {
         type: "RoundStarted",
         slideId: "slide-1",
@@ -459,6 +455,69 @@ describe("liveSessionSlice", () => {
     );
     expect(cancelled.status).toBe("CANCELLED");
     expect(cancelled.cancelReason).toBe("Host left");
+  });
+
+  it("appends joins to the roster in the order they arrive", () => {
+    const state = play(
+      seed(lobbySnapshot),
+      ...stream(
+        { type: "ParticipantJoined", participant: participant("player-4", "Fourth") },
+        { type: "ParticipantJoined", participant: participant("player-3", "Third") },
+        { type: "ParticipantJoined", participant: participant("player-5", "Fifth") },
+      ),
+    );
+
+    expect(state.roster).toEqual([
+      "host-1",
+      "player-2",
+      "player-4",
+      "player-3",
+      "player-5",
+    ]);
+    expect(state.participants["player-3"]?.displayName).toBe("Third");
+  });
+
+  it("keeps the roster free of duplicates when a join is re-delivered", () => {
+    const joined: SessionEvent = {
+      type: "ParticipantJoined",
+      participant: participant("player-3", "Late"),
+    };
+    // The envelope dedup only catches a repeat of the same emission; a reconnect
+    // replay can re-announce the same participant under a fresh id/sequence, so
+    // the reducer itself has to stay idempotent.
+    const state = play(seed(lobbySnapshot), ...stream(joined, joined));
+
+    expect(state.roster).toEqual(["host-1", "player-2", "player-3"]);
+    expect(state.lastSequence).toBe(2);
+  });
+
+  it("removes only the departed participant when one leaves", () => {
+    const state = play(
+      seed(lobbySnapshot),
+      ...stream(
+        { type: "ParticipantJoined", participant: participant("player-3", "Late") },
+        { type: "ParticipantLeft", participantId: "player-2" },
+      ),
+    );
+
+    expect(state.roster).toEqual(["host-1", "player-3"]);
+    expect(state.participants["player-2"]).toBeUndefined();
+    expect(state.participants["player-3"]?.displayName).toBe("Late");
+  });
+
+  it("takes the roster from the snapshot a host removal carries", () => {
+    const state = play(
+      seed(lobbySnapshot),
+      ...stream({
+        type: "ParticipantRemoved",
+        participantId: "player-2",
+        reason: "KICKED",
+        roster: ["host-1"],
+      }),
+    );
+
+    expect(state.roster).toEqual(["host-1"]);
+    expect(state.participants["player-2"]).toBeUndefined();
   });
 
   it("tracks connection status and resets", () => {

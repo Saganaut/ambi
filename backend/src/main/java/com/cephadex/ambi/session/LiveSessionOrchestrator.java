@@ -60,6 +60,7 @@ import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
+import com.cephadex.ambi.session.participant.SessionRoster;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.DeadlineStore;
@@ -82,12 +83,15 @@ import com.cephadex.ambi.user.Avatar;
 
 /**
  * Drives a live session end to end — session lifecycle, the participant roster,
- * the round lifecycle, and navigation. Every state transition runs inside the
- * session's lock ({@link SessionLocks#withLock}) and read-modify-writes the
- * {@link LiveRoundState} snapshot through {@link LiveRoundStateStore}, so two
- * concurrent operations on the same session (a double-clicked start, a host
- * reveal racing a late submission, two app instances) can't interleave. After a
- * successful transition the orchestrator publishes a {@code SessionEvent} via
+ * the round lifecycle, and navigation. Every state transition that
+ * read-modify-writes the {@link LiveRoundState} snapshot through
+ * {@link LiveRoundStateStore} runs inside the session's lock
+ * ({@link SessionLocks#withLock}), so two concurrent operations on the same
+ * session (a double-clicked start, a host reveal racing a late submission, two
+ * app instances) can't interleave. Membership is deliberately outside that lock:
+ * a join/leave writes no shared document, and its one atomicity requirement (the
+ * roster cap) is met server-side by {@link SessionRoster}. After a successful
+ * transition the orchestrator publishes a {@code SessionEvent} via
  * {@link EventPublisher} — it never talks to a transport directly.
  *
  * <p>A round has no durable document and no identity beyond
@@ -127,6 +131,7 @@ public class LiveSessionOrchestrator {
 
     private final LiveSessionRepository repo;
     private final ParticipantRepository participants;
+    private final SessionRoster roster;
     private final SessionLocks locks;
     private final LiveRoundStateStore roundStateStore;
     private final AnswerStore answerStore;
@@ -171,13 +176,15 @@ public class LiveSessionOrchestrator {
     private static final int SNAPSHOT_WARN_BYTES = 8 * 1024 * 1024;
 
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
-            SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore, TallyStore tallyStore,
-            VoteStore voteStore, PresenceStore presenceStore, QAndAHostAnswerStore qandaHostAnswers,
+            SessionRoster roster, SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore,
+            TallyStore tallyStore, VoteStore voteStore, PresenceStore presenceStore,
+            QAndAHostAnswerStore qandaHostAnswers,
             FollowUpOptionStore followUpOptions, EventPublisher publisher, RoundResultProjector roundResults,
             ImageUrlResolver imageUrls, OpaqueImageUrls opaqueImageUrls, S3StorageService storage,
             RedisJsonCodec codec, DeadlineStore deadlines, SessionRedisProperties redisProps) {
         this.repo = repo;
         this.participants = participants;
+        this.roster = roster;
         this.locks = locks;
         this.roundStateStore = roundStateStore;
         this.answerStore = answerStore;
@@ -252,9 +259,15 @@ public class LiveSessionOrchestrator {
      */
     public LiveSession createSession(String hostUserId, String displayName, Avatar avatar, Deck deck) {
         Participant host = Participant.join(hostUserId, displayName, avatar, null);
-        participants.save(host);
 
+        // The session is created from the host's participant id and the host is
+        // bound to the session's id, so the two can only be stamped in this order:
+        // save the session first, then attach and persist the host.
         LiveSession session = saveWithUniqueRoomCode(LiveSession.create(host.getParticipantId(), deck));
+        host.joinSession(session.getId());
+        participants.save(host);
+        roster.add(session.getId(), host.getParticipantId());
+
         roundStateStore.save(session.getId(), LiveRoundState.idle(session.getPublicId()));
         warnIfSnapshotLarge(session);
         return session;
@@ -310,9 +323,9 @@ public class LiveSessionOrchestrator {
             requireNotTerminal(session);
             session.endLiveSession();
             repo.save(session);
+            List<Participant> standings = roster.participants(sessionId);
             clearSessionRedis(session);
-            publisher.publish(session.getPublicId(),
-                    SessionEvents.liveSessionEnded(participants.findAllById(session.getRoster())));
+            publisher.publish(session.getPublicId(), SessionEvents.liveSessionEnded(standings));
         });
     }
 
@@ -347,14 +360,30 @@ public class LiveSessionOrchestrator {
 
     /**
      * Joins a participant via the room code (public join; guests allowed): resolves
-     * the live session, creates the {@link Participant#join} record, adds it to the
-     * roster, seeds presence, persists, and publishes the roster change. An unknown
-     * or terminal room code is masked as a 404 (the code is a guessable key).
+     * the live session, inserts the {@link Participant#join} record pointing at it,
+     * admits them to the roster, seeds presence, and publishes the join delta. An
+     * unknown or terminal room code is masked as a 404 (the code is a guessable
+     * key).
      *
-     * <p>The roster mutation runs under the session lock so two concurrent joins
-     * can't lose an update or race past the roster cap (F5): a session at the
-     * deck's {@link Settings.AudienceSettings#maxParticipants()} (or
-     * {@link #DEFAULT_MAX_PARTICIPANTS} when unset) rejects further joins.
+     * <p><strong>No session lock.</strong> A join writes nothing on the
+     * {@link LiveSession} document — the participant carries the link — so there is
+     * no read-modify-write to serialize. The one thing that still has to be atomic
+     * is the roster cap (F5): a session at the deck's
+     * {@link Settings.AudienceSettings#maxParticipants()} (or
+     * {@link #DEFAULT_MAX_PARTICIPANTS} when unset) must reject further joins
+     * exactly, and {@link SessionRoster#admit} does that check, the membership
+     * write, and the publish in a single Redis script. Concurrent joins therefore
+     * all succeed instead of losing the fail-fast lock and 409-ing.
+     *
+     * <p>The participant document is written before the roster admits it, so a
+     * client can never see a join announced for a player it can't load; a rejected
+     * join deletes the document it speculatively wrote.
+     *
+     * <p>Terminality is decided on the room-code read. A session that ends in the
+     * microseconds between that read and the admit can therefore still take one
+     * last joiner — an accepted trade for dropping the lock, and a harmless one:
+     * every command a participant can issue re-checks the session's state, so the
+     * late arrival lands in a finished session that does nothing for them.
      *
      * @param roomCode    the human-typed room code (also the link-join code)
      * @param userId      the joining user's id (a minted guest id for guests)
@@ -365,30 +394,29 @@ public class LiveSessionOrchestrator {
      * @throws ConflictException if the session is already at its participant limit
      */
     public JoinResult join(String roomCode, String userId, String displayName, Avatar avatar, String colorTag) {
-        LiveSession found = repo.findByRoomCode(roomCode)
+        LiveSession session = repo.findByRoomCode(roomCode)
                 .filter(candidate -> !candidate.isTerminal())
                 .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
 
         Participant participant = Participant.join(userId, displayName, avatar, colorTag);
+        participant.joinSession(session.getId());
+        participants.save(participant);
 
-        return locks.withLock(found.getId(), () -> {
-            LiveSession session = requireSession(found.getId());
-            if (session.isTerminal()) {
-                throw new NotFoundException("SESSION_NOT_FOUND", "session not found");
-            }
-            if (session.participantCount() >= maxParticipants(session)) {
-                throw new ConflictException("SESSION_FULL",
-                        "this session has reached its participant limit");
-            }
-            participants.save(participant);
-            session.addParticipant(participant.getParticipantId());
-            repo.save(session);
-            presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
+        boolean admitted;
+        try {
+            admitted = roster.admit(session.getId(), session.getPublicId(), participant.getParticipantId(),
+                    maxParticipants(session), SessionEvents.participantJoined(participant));
+        } catch (RuntimeException e) {
+            participants.delete(participant);
+            throw e;
+        }
+        if (!admitted) {
+            participants.delete(participant);
+            throw new ConflictException("SESSION_FULL", "this session has reached its participant limit");
+        }
 
-            publisher.publish(session.getPublicId(),
-                    SessionEvents.participantJoined(participant, session.getRoster()));
-            return new JoinResult(session, participant);
-        });
+        presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
+        return new JoinResult(session, participant);
     }
 
     /**
@@ -405,24 +433,31 @@ public class LiveSessionOrchestrator {
     }
 
     /**
-     * Removes a participant from the roster
-     * ({@link LiveSession#removeParticipant}) and drops their presence, then
-     * publishes. The host cannot leave — ending/cancelling the session is the host
-     * exit path.
+     * Takes a participant off the roster and drops their presence, then publishes
+     * the leave delta. The host cannot leave — ending/cancelling the session is the
+     * host exit path.
+     *
+     * <p>Lock-free for the same reason {@link #join} is: nothing on the
+     * {@link LiveSession} document changes. The departure is stamped on the
+     * participant ({@link Participant#leaveSession}) as well as removed from the
+     * Redis set, because that set is a cache — without the durable marker a
+     * rehydrate would put them straight back.
      */
     public void leave(String sessionId, String participantId) {
-        locks.withLock(sessionId, () -> {
-            LiveSession session = requireSession(sessionId);
-            if (session.isHost(participantId)) {
-                throw new ConflictException("HOST_CANNOT_LEAVE",
-                        "the host ends or cancels the session instead of leaving");
-            }
-            session.removeParticipant(participantId);
-            presenceStore.remove(sessionId, participantId);
-            repo.save(session);
-            publisher.publish(session.getPublicId(),
-                    SessionEvents.participantLeft(participantId, session.getRoster()));
-        });
+        LiveSession session = requireSession(sessionId);
+        if (session.isHost(participantId)) {
+            throw new ConflictException("HOST_CANNOT_LEAVE",
+                    "the host ends or cancels the session instead of leaving");
+        }
+        participants.findById(participantId)
+                .filter(p -> sessionId.equals(p.getSessionId()))
+                .ifPresent(p -> {
+                    p.leaveSession();
+                    participants.save(p);
+                });
+        roster.remove(sessionId, participantId);
+        presenceStore.remove(sessionId, participantId);
+        publisher.publish(session.getPublicId(), SessionEvents.participantLeft(participantId));
     }
 
     /**
@@ -440,7 +475,7 @@ public class LiveSessionOrchestrator {
         Participant participant = participants.findById(participantId)
                 .orElseThrow(() -> new NotFoundException("PARTICIPANT_NOT_FOUND", "participant not found"));
         LiveSession session = requireSession(sessionId);
-        if (!session.hasParticipant(participantId)) {
+        if (!roster.contains(sessionId, participantId)) {
             throw new ForbiddenException("NOT_A_PARTICIPANT", "participant is not on this session's roster");
         }
         participant.heartbeat(); // ONLINE + lastSeenAt
@@ -960,9 +995,9 @@ public class LiveSessionOrchestrator {
         LiveSession session = requireSession(sessionId);
         Slide slide = requireSlide(session, slideId);
         List<Answer> flushed = answerStore.answers(sessionId, slideId);
-        List<Participant> roster = participants.findAllById(session.getRoster());
+        List<Participant> players = roster.participants(sessionId);
         Map<String, Participant> byId = new HashMap<>();
-        for (Participant participant : roster) {
+        for (Participant participant : players) {
             byId.put(participant.getParticipantId(), participant);
         }
         Settings.PointSettings points = resolvePoints(session, slide);
@@ -976,8 +1011,8 @@ public class LiveSessionOrchestrator {
         RoundResult result = RoundScorer.score(
                 sessionId, slide, flushed, byId, points, votesReceived(sessionId, slideId),
                 candidates, roundStartedAt, Instant.now());
-        // byId values are the same objects as `roster`, so scoring mutated them.
-        roundResults.persist(result, roster, flushed);
+        // byId values are the same objects as `players`, so scoring mutated them.
+        roundResults.persist(result, players, flushed);
     }
 
     /**
@@ -1122,16 +1157,16 @@ public class LiveSessionOrchestrator {
                 return;
             }
             RoundResult result = roundResults.find(sessionId, slideId).orElse(null);
-            List<Participant> roster = participants.findAllById(session.getRoster());
+            List<Participant> players = roster.participants(sessionId);
             boolean terminal = isLastRound(session, slideId);
             SessionEvent event;
             if (result == null) {
-                event = SessionEvents.resultsRevealedWithoutRecord(slideId, roster, terminal);
+                event = SessionEvents.resultsRevealedWithoutRecord(slideId, players, terminal);
             } else {
-                List<DrawingSubmissionView> drawings = drawingSubmissions(session, slideId, roster);
+                List<DrawingSubmissionView> drawings = drawingSubmissions(session, slideId, players);
                 List<PlaceTargetView> placeTargets = placeOnImageTargets(session, slideId);
                 List<AllocationTargetView> allocationTargets = allocationTargets(session, slideId);
-                event = SessionEvents.resultsRevealed(result, roster, drawings, placeTargets, allocationTargets,
+                event = SessionEvents.resultsRevealed(result, players, drawings, placeTargets, allocationTargets,
                         terminal);
             }
             publisher.publish(current.publicId(), event);
@@ -1167,7 +1202,7 @@ public class LiveSessionOrchestrator {
      * projected results grid.
      */
     private List<DrawingSubmissionView> drawingSubmissions(LiveSession session, String slideId,
-            List<Participant> roster) {
+            List<Participant> players) {
         // Tolerant lookup: the gallery is a bonus payload on an already-scored
         // reveal — a missing slide must not fail the whole reveal.
         Slide slide = session.getDeck() == null ? null
@@ -1176,7 +1211,7 @@ public class LiveSessionOrchestrator {
             return null;
         }
         Map<String, String> names = new HashMap<>();
-        for (Participant participant : roster) {
+        for (Participant participant : players) {
             names.put(participant.getParticipantId(), participant.getDisplayName());
         }
         List<DrawingSubmissionView> drawings = new ArrayList<>();
@@ -1699,6 +1734,7 @@ public class LiveSessionOrchestrator {
         deadlines.cancel(SessionDeadline.graceCancel(sessionId));
         roundStateStore.clear(sessionId);
         presenceStore.clear(sessionId);
+        roster.clear(sessionId);
         for (Slide slide : session.getDeck().getSlides()) {
             clearRoundRedis(sessionId, slide.getId());
         }

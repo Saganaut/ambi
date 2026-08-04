@@ -52,7 +52,7 @@ import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.LiveSessionLifecycle;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
-import com.cephadex.ambi.session.participant.ParticipantRepository;
+import com.cephadex.ambi.session.participant.SessionRoster;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
@@ -72,7 +72,7 @@ class LiveSessionSnapshotServiceTest {
     private static final String SID = "sess-1";
 
     private LiveSessionRepository sessions;
-    private ParticipantRepository participants;
+    private SessionRoster sessionRoster;
     private ParticipantResolver participantResolver;
     private LiveRoundStateStore roundStateStore;
     private TallyStore tallyStore;
@@ -92,7 +92,7 @@ class LiveSessionSnapshotServiceTest {
     @BeforeEach
     void setUp() {
         sessions = mock(LiveSessionRepository.class);
-        participants = mock(ParticipantRepository.class);
+        sessionRoster = mock(SessionRoster.class);
         participantResolver = mock(ParticipantResolver.class);
         roundStateStore = mock(LiveRoundStateStore.class);
         tallyStore = mock(TallyStore.class);
@@ -102,7 +102,7 @@ class LiveSessionSnapshotServiceTest {
         qandaHostAnswers = mock(QAndAHostAnswerStore.class);
         followUpOptions = mock(FollowUpOptionStore.class);
         eventSequences = mock(EventSequenceStore.class);
-        service = new LiveSessionSnapshotService(sessions, participants, participantResolver,
+        service = new LiveSessionSnapshotService(sessions, sessionRoster, participantResolver,
                 roundStateStore, tallyStore, presenceStore, answerStore, voteStore, qandaHostAnswers,
                 followUpOptions, eventSequences, mock(ImageUrlResolver.class));
 
@@ -118,11 +118,10 @@ class LiveSessionSnapshotServiceTest {
         when(session.getRoomCode()).thenReturn("ROOMCODE");
         when(session.getStatus()).thenReturn(LiveSessionLifecycle.IN_PROGRESS);
         when(session.getPhase()).thenReturn(RoundPhase.SUBMIT);
-        when(session.getRoster()).thenReturn(List.of("host-1", "player-2"));
         when(session.isHost("host-1")).thenReturn(true);
 
         when(sessions.findById(SID)).thenReturn(Optional.of(session));
-        when(participants.findAllById(List.of("host-1", "player-2"))).thenReturn(List.of(host, player));
+        when(sessionRoster.participants(SID)).thenReturn(List.of(host, player));
         when(participantResolver.resolve(session, caller)).thenReturn(host);
         when(presenceStore.all(SID)).thenReturn(Map.of());
         // Deck present with no settings by default; tests that care about invite

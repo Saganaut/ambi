@@ -20,7 +20,7 @@ flowchart TB
     CTRL --> SVC["Lobby · Host · Presence<br/>Snapshot · Answer services<br/>(auth + validation)"]
     SVC --> ORCH["LiveSessionOrchestrator<br/>withLock → Redis → Mongo → publish"]
 
-    ORCH --> REDIS[("Redis stores<br/>lock · roundState · tally · answers<br/>votes · followup · qa · presence")]
+    ORCH --> REDIS[("Redis stores<br/>lock · roundState · tally · answers<br/>votes · followup · qa · presence · roster")]
     ORCH --> MONGO[("MongoDB<br/>LiveSessions · participants<br/>answers · round_results")]
     ORCH --> PUB["RedisEventPublisher<br/>mint envelope · Lua INCR + PUBLISH"]
 
@@ -51,6 +51,7 @@ Mongo read.
 | `FollowUpOptionStore` | `…:followup:{sid}:{slideId}` | ordered JSON, 6h |
 | `QAndAHostAnswerStore` | `…:qa-host-answers:{sid}:{slideId}` | hash, 6h, never flushed to Mongo |
 | `PresenceStore` | `…:presence:{sid}` | hash, 6h |
+| `SessionRoster` | `…:roster:{sid}` | SET of participantIds, 6h, rehydrates from Mongo |
 | `EventSequenceStore` | `…:eventseq:{publicId}` | `INCR`, 6h |
 | `DeadlineStore` | `ambi:session:deadlines` | global ZSET, no TTL; members `close:{sid}:{slideId}`, `hostAway:{sid}`, `graceCancel:{sid}` |
 | leader lease | `…:deadline-leader` | `SET NX PX`, 15s |
@@ -69,8 +70,31 @@ stateDiagram-v2
     CANCELLED --> [*]
 ```
 
-Participants join by `roomCode` (`POST /liveSessions/join`); each join publishes
-`ParticipantJoined`.
+Participants join by `roomCode` (`POST /liveSessions/join`).
+
+## Membership
+
+Membership is a `Participant` document carrying a `sessionId` (the run's internal
+Mongo id) and a `leftAt` — there is no roster array on `LiveSession`. `SessionRoster`
+fronts that with a Redis SET, deliberately a different key from `presence:{sid}`:
+presence is "who is connected right now", the roster is "who is in this run", and
+a disconnect never takes anyone off it. Only an explicit leave does, stamping the
+durable `leftAt` so a rehydrate can't resurrect them.
+
+`join` therefore takes **no session lock** and writes nothing on `LiveSession`. Its
+one atomicity requirement — the `SESSION_FULL` cap (deck `AudienceSettings.maxParticipants`,
+default 200) — is a `SCARD` inside the same Lua script that does the `SADD`, the
+event-sequence `INCR` and the `PUBLISH`, so concurrent joins all succeed instead of
+losing the fail-fast lock and 409-ing `SESSION_LOCKED`. `leave` is lock-free for the
+same reason. Both events are **deltas** (`{participant}` / `{participantId}`), not
+roster snapshots: a snapshot per join made filling a session O(roster²) to serialize,
+and the sequence-gap-and-refetch contract already covers a missed event.
+
+Reads go to the durable side. Snapshot roster order comes from a `joinedAt`-ordered
+query, `ParticipantResolver` authorizes on an indexed `(sessionId, userId)` lookup,
+and `SessionRoster.contains` is a `SISMEMBER` that falls back to Mongo and heals the
+set on a miss — an evicted key costs one slower read, never a lockout. Backfilling
+pre-existing data is [`scripts/migrate-participant-session-id.sh`](../runbooks/running-the-project.md#7-one-off-data-migrations).
 
 ## Round phase state machine
 
@@ -161,13 +185,18 @@ countdown) and `graceCancel:{sid}` fires `hostGraceExpired` (cancel the session)
 ## Event catalog
 
 Twenty permitted `SessionEvent` types. "Locked?" is whether the publishing
-transition holds the session lock.
+transition holds the session lock. Six sites publish lock-free through
+`RedisEventPublisher` — leave, reconnect, answer submission, vote submission, and
+the two callers of the shared Q&A-update path — and join is a seventh, publishing
+from `SessionRoster`'s admit script. That is why allocate-and-publish is one Lua
+step: with no lock to borrow ordering from, the `INCR` and the `PUBLISH` have to
+be one server-side operation or a client sees a spurious sequence gap.
 
 | Event | Trigger | Locked? |
 |---|---|---|
 | `LiveSessionStarted` | host starts | yes |
-| `ParticipantJoined` | joins by roomCode | yes — `join` holds the lock for the `SESSION_FULL` roster cap |
-| `ParticipantLeft` | leaves roster | yes |
+| `ParticipantJoined` | joins by roomCode; carries the new participant only | **no** — the `SESSION_FULL` cap is a `SCARD` in the admit script |
+| `ParticipantLeft` | leaves roster; carries the departed id only | **no** |
 | `ParticipantReconnected` | rejoins | **no** |
 | `ParticipantRemoved` | defined, **never published** (dead) | — |
 | `PresenceChanged` | host presence lost (ADR 002) | yes |

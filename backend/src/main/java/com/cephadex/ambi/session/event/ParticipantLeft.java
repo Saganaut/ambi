@@ -1,8 +1,8 @@
 package com.cephadex.ambi.session.event;
 
-import java.util.List;
-
-
-/** A participant left the session. Carries the departed id and the updated roster. */
-public record ParticipantLeft(String participantId, List<String> roster) implements SessionEvent {
+/**
+ * A participant left the session — a <strong>delta</strong> carrying only the
+ * departed id, for the same reasons as {@link ParticipantJoined}.
+ */
+public record ParticipantLeft(String participantId) implements SessionEvent {
 }

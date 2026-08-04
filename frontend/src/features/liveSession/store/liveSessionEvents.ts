@@ -57,17 +57,20 @@ export interface LiveSessionStarted {
   phase: RoundPhase;
 }
 
+/**
+ * A delta, not a snapshot: only the one new player rides the event, and the
+ * client appends them to its roster. A missed join is recovered by the
+ * sequence-gap refetch like any other event.
+ */
 export interface ParticipantJoined {
   type: "ParticipantJoined";
   participant: ParticipantView;
-  /** The full roster (participant ids) after the join. */
-  roster: string[];
 }
 
+/** The departure delta — only the id that left. */
 export interface ParticipantLeft {
   type: "ParticipantLeft";
   participantId: string;
-  roster: string[];
 }
 
 export interface ParticipantReconnected {
@@ -75,6 +78,7 @@ export interface ParticipantReconnected {
   participant: ParticipantView;
 }
 
+/** Unlike the join/leave deltas, a host removal still carries the full roster. */
 export interface ParticipantRemoved {
   type: "ParticipantRemoved";
   participantId: string;

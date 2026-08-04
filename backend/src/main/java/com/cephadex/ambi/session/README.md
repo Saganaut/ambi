@@ -22,7 +22,14 @@
 - Only writes to mongodb, but we do so continuously - can be used for recovery in case of redis failure
 - Writes to mongo db take place at the end of each round, when a player joins, and at the end of the game
 
-## Locks, all changes must be done with a lock on that redis session
+## Locks
+
+- Every transition that read-modify-writes the `LiveRoundState` snapshot runs
+  under that session's Redis lock.
+- The hot paths deliberately do not: answer and vote submission (each a single
+  participant-keyed write), and join/leave (membership is a `Participant`
+  document plus one atomic op on the Redis roster SET — nothing shared is
+  rewritten, and the `SESSION_FULL` cap is enforced inside the admit script).
 
 ## Projectors
 
@@ -38,6 +45,7 @@
 - VoteStore
 - SessionLocks
 - PresenceStore
+- SessionRoster
 - TallyStore
 - LiveSessionRepository
 - ParticipantRepository

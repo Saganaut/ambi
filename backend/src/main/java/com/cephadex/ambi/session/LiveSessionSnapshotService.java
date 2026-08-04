@@ -2,8 +2,6 @@ package com.cephadex.ambi.session;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -32,8 +30,8 @@ import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
-import com.cephadex.ambi.session.participant.ParticipantRepository;
 import com.cephadex.ambi.session.participant.ParticipantResolver;
+import com.cephadex.ambi.session.participant.SessionRoster;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.EventSequenceStore;
 import com.cephadex.ambi.session.redis.FollowUpOptionStore;
@@ -62,7 +60,7 @@ import com.cephadex.ambi.session.redis.VoteStore;
 public class LiveSessionSnapshotService {
 
     private final LiveSessionRepository sessions;
-    private final ParticipantRepository participants;
+    private final SessionRoster sessionRoster;
     private final ParticipantResolver participantResolver;
     private final LiveRoundStateStore roundStateStore;
     private final TallyStore tallyStore;
@@ -74,13 +72,13 @@ public class LiveSessionSnapshotService {
     private final EventSequenceStore eventSequences;
     private final ImageUrlResolver imageUrls;
 
-    public LiveSessionSnapshotService(LiveSessionRepository sessions, ParticipantRepository participants,
+    public LiveSessionSnapshotService(LiveSessionRepository sessions, SessionRoster sessionRoster,
             ParticipantResolver participantResolver, LiveRoundStateStore roundStateStore, TallyStore tallyStore,
             PresenceStore presenceStore, AnswerStore answerStore, VoteStore voteStore,
             QAndAHostAnswerStore qandaHostAnswers, FollowUpOptionStore followUpOptions,
             EventSequenceStore eventSequences, ImageUrlResolver imageUrls) {
         this.sessions = sessions;
-        this.participants = participants;
+        this.sessionRoster = sessionRoster;
         this.participantResolver = participantResolver;
         this.roundStateStore = roundStateStore;
         this.tallyStore = tallyStore;
@@ -122,14 +120,9 @@ public class LiveSessionSnapshotService {
         LiveRoundState roundState = roundStateStore.load(sessionId).orElseGet(LiveRoundState::idle);
         Map<String, Presence> presence = presenceStore.all(sessionId);
 
-        // Load the roster once, then re-order it back into join order (findAllById
-        // does not preserve it) and build participant-safe views with live presence.
-        Map<String, Participant> byId = participants.findAllById(session.getRoster()).stream()
-                .collect(Collectors.toMap(p -> p.getParticipantId(), Function.identity()));
-        List<Participant> roster = session.getRoster().stream()
-                .map(byId::get)
-                .filter(p -> p != null)
-                .toList();
+        // The roster in join order — the order clients render as-is, so it is sorted
+        // by joinedAt in the query rather than reconstructed here.
+        List<Participant> roster = sessionRoster.participants(sessionId);
         List<ParticipantView> rosterViews = roster.stream()
                 .map(p -> toView(p, presence))
                 .toList();

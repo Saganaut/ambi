@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -28,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
@@ -95,6 +97,7 @@ import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.liveSession.enums.RoundPhase;
 import com.cephadex.ambi.session.participant.Participant;
 import com.cephadex.ambi.session.participant.ParticipantRepository;
+import com.cephadex.ambi.session.participant.SessionRoster;
 import com.cephadex.ambi.session.participant.enums.ConnectionStatus;
 import com.cephadex.ambi.session.redis.AnswerStore;
 import com.cephadex.ambi.session.redis.DeadlineStore;
@@ -133,6 +136,8 @@ class LiveSessionOrchestratorTest {
 
     private LiveSessionRepository repo;
     private ParticipantRepository participants;
+    private SessionRoster roster;
+    private SessionLocks locks;
     private PresenceStore presenceStore;
     private LiveRoundStateStore roundStateStore;
     private TallyStore tallyStore;
@@ -153,7 +158,8 @@ class LiveSessionOrchestratorTest {
     void setUp() {
         repo = mock(LiveSessionRepository.class);
         participants = mock(ParticipantRepository.class);
-        SessionLocks locks = mock(SessionLocks.class);
+        roster = mock(SessionRoster.class);
+        locks = mock(SessionLocks.class);
         roundStateStore = mock(LiveRoundStateStore.class);
         answerStore = mock(AnswerStore.class);
         tallyStore = mock(TallyStore.class);
@@ -185,7 +191,7 @@ class LiveSessionOrchestratorTest {
         when(locks.withLock(anyString(), ArgumentMatchers.<Supplier<Object>>any()))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
-        orchestrator = new LiveSessionOrchestrator(repo, participants, locks, roundStateStore, answerStore,
+        orchestrator = new LiveSessionOrchestrator(repo, participants, roster, locks, roundStateStore, answerStore,
                 tallyStore, voteStore, presenceStore, qandaHostAnswers, followUpOptions, publisher, roundResults,
                 imageUrls, opaqueImageUrls, storage, codec, deadlines, new SessionRedisProperties());
     }
@@ -784,14 +790,19 @@ class LiveSessionOrchestratorTest {
     // ── Session lifecycle ────────────────────────────────────────────────────
 
     @Test
-    void createSessionPersistsHostAndSeedsIdleState() {
+    void createSessionBindsTheHostToTheSessionAndSeedsIdleState() {
         Deck deck = mock(Deck.class);
-        when(repo.save(any(LiveSession.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repo.save(any(LiveSession.class))).thenAnswer(assignsMongoId());
 
         LiveSession session = orchestrator.createSession("user-1", "Host", null, deck);
 
-        verify(participants).save(any(Participant.class));
-        verify(repo).save(any(LiveSession.class));
+        // The host carries the session link and is seeded onto the roster set — the
+        // session document holds no membership of its own any more.
+        ArgumentCaptor<Participant> host = ArgumentCaptor.forClass(Participant.class);
+        verify(participants).save(host.capture());
+        assertThat(host.getValue().getSessionId()).isEqualTo(SID);
+        assertThat(session.getHostParticipantId()).isEqualTo(host.getValue().getParticipantId());
+        verify(roster).add(SID, host.getValue().getParticipantId());
         ArgumentCaptor<LiveRoundState> captor = ArgumentCaptor.forClass(LiveRoundState.class);
         verify(roundStateStore).save(any(), captor.capture());
         assertThat(captor.getValue().publicId()).isEqualTo(session.getPublicId());
@@ -800,7 +811,7 @@ class LiveSessionOrchestratorTest {
     @Test
     void createSessionSurvivesSnapshotSizingFailure() {
         Deck deck = mock(Deck.class);
-        when(repo.save(any(LiveSession.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repo.save(any(LiveSession.class))).thenAnswer(assignsMongoId());
         when(codec.serialize(deck)).thenThrow(new RuntimeException("unserializable"));
 
         LiveSession session = orchestrator.createSession("user-1", "Host", null, deck);
@@ -814,11 +825,20 @@ class LiveSessionOrchestratorTest {
         Deck deck = mock(Deck.class);
         when(repo.save(any(LiveSession.class)))
                 .thenThrow(new DuplicateKeyException("dup"))
-                .thenAnswer(inv -> inv.getArgument(0));
+                .thenAnswer(assignsMongoId());
 
         orchestrator.createSession("user-1", "Host", null, deck);
 
         verify(repo, times(2)).save(any(LiveSession.class));
+    }
+
+    /** The save that stamps the document id, as the real Mongo repository does. */
+    private static org.mockito.stubbing.Answer<LiveSession> assignsMongoId() {
+        return inv -> {
+            LiveSession saved = inv.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", SID);
+            return saved;
+        };
     }
 
     @Test
@@ -846,55 +866,81 @@ class LiveSessionOrchestratorTest {
     }
 
     @Test
-    void joinAddsParticipantSeedsPresenceAndPublishes() {
-        LiveSession session = mock(LiveSession.class);
-        when(session.isTerminal()).thenReturn(false);
-        when(session.getId()).thenReturn(SID);
-        when(session.getPublicId()).thenReturn(PUB);
-        when(session.getRoster()).thenReturn(List.of("host", "p-new"));
-        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
-        when(repo.findById(SID)).thenReturn(Optional.of(session));
+    void joinInsertsParticipantSeedsPresenceAndPublishesTheDelta() {
+        joinableSession();
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(true);
 
         LiveSessionOrchestrator.JoinResult result = orchestrator.join("ROOM", "user-9", "Niner", null, null);
 
-        verify(participants).save(any(Participant.class));
-        verify(session).addParticipant(result.participant().getParticipantId());
+        // The participant carries the session link, so the join is a plain insert.
+        ArgumentCaptor<Participant> saved = ArgumentCaptor.forClass(Participant.class);
+        verify(participants).save(saved.capture());
+        assertThat(saved.getValue().getSessionId()).isEqualTo(SID);
         verify(presenceStore).save(eq(SID), eq(result.participant().getParticipantId()), any());
-        assertThat(publishedEvent()).isInstanceOf(ParticipantJoined.class);
+
+        // The delta carries only the new player — never a roster snapshot.
+        ArgumentCaptor<SessionEvent> event = ArgumentCaptor.forClass(SessionEvent.class);
+        verify(roster).admit(eq(SID), eq(PUB), eq(result.participant().getParticipantId()),
+                anyInt(), event.capture());
+        assertThat(event.getValue()).isInstanceOfSatisfying(ParticipantJoined.class,
+                joined -> assertThat(joined.participant().participantId())
+                        .isEqualTo(result.participant().getParticipantId()));
+    }
+
+    /**
+     * The join path takes no session lock and writes nothing on the session
+     * document — that is what lets concurrent joins all succeed instead of racing
+     * for the fail-fast lock and 409-ing with SESSION_LOCKED.
+     */
+    @Test
+    void joinTakesNoSessionLockAndWritesNoSession() {
+        joinableSession();
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(true);
+
+        orchestrator.join("ROOM", "user-9", "Niner", null, null);
+
+        verify(locks, never()).withLock(anyString(), any(Runnable.class));
+        verify(locks, never()).withLock(anyString(), ArgumentMatchers.<Supplier<Object>>any());
+        verify(repo, never()).save(any());
     }
 
     @Test
-    void joinRejectsWhenRosterAtDeckCap() {
+    void joinRejectsWhenRosterAtCapAndUndoesTheInsert() {
         Deck deck = mock(Deck.class);
         when(deck.getSettings()).thenReturn(new Settings.DeckSettings(null, null,
                 new Settings.AudienceSettings(2, false, false, false, false, false, true), null));
-        LiveSession session = mock(LiveSession.class);
-        when(session.isTerminal()).thenReturn(false);
-        when(session.getId()).thenReturn(SID);
-        when(session.getDeck()).thenReturn(deck);
-        when(session.participantCount()).thenReturn(2);
-        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
-        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        when(joinableSession().getDeck()).thenReturn(deck);
+        // The cap is enforced inside the roster's atomic admit script, which reports
+        // a full session by refusing to add.
+        when(roster.admit(eq(SID), eq(PUB), anyString(), eq(2), any())).thenReturn(false);
 
         assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("participant limit");
-        verify(participants, never()).save(any(Participant.class));
-        verify(session, never()).addParticipant(anyString());
+        // The speculative insert is rolled back rather than left orphaned.
+        verify(participants).delete(any(Participant.class));
+        verify(presenceStore, never()).save(anyString(), anyString(), any());
     }
 
     @Test
     void joinAppliesDefaultCapWhenDeckHasNoAudienceSettings() {
-        LiveSession session = mock(LiveSession.class);
-        when(session.isTerminal()).thenReturn(false);
-        when(session.getId()).thenReturn(SID);
-        when(session.participantCount()).thenReturn(200);
-        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
-        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        joinableSession();
+        when(roster.admit(eq(SID), eq(PUB), anyString(), eq(200), any())).thenReturn(false);
 
         assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
                 .isInstanceOf(ConflictException.class);
-        verify(session, never()).addParticipant(anyString());
+        verify(participants).delete(any(Participant.class));
+    }
+
+    /** A live session reachable by room code, with nothing roster-related stubbed. */
+    private LiveSession joinableSession() {
+        LiveSession session = mock(LiveSession.class);
+        when(session.isTerminal()).thenReturn(false);
+        when(session.getId()).thenReturn(SID);
+        when(session.getPublicId()).thenReturn(PUB);
+        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
+        when(repo.findById(SID)).thenReturn(Optional.of(session));
+        return session;
     }
 
     @Test
@@ -916,18 +962,24 @@ class LiveSessionOrchestratorTest {
     }
 
     @Test
-    void leaveRemovesParticipantAndPublishes() {
+    void leaveRemovesParticipantStampsDepartureAndPublishesTheDelta() {
+        Participant leaver = Participant.join("user-2", "Two", null, null);
+        leaver.joinSession(SID);
+        when(participants.findById(leaver.getParticipantId())).thenReturn(Optional.of(leaver));
         LiveSession session = mock(LiveSession.class);
-        when(session.isHost("p-2")).thenReturn(false);
+        when(session.isHost(leaver.getParticipantId())).thenReturn(false);
         when(session.getPublicId()).thenReturn(PUB);
-        when(session.getRoster()).thenReturn(List.of("host"));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
-        orchestrator.leave(SID, "p-2");
+        orchestrator.leave(SID, leaver.getParticipantId());
 
-        verify(session).removeParticipant("p-2");
-        verify(presenceStore).remove(SID, "p-2");
-        assertThat(publishedEvent()).isInstanceOf(ParticipantLeft.class);
+        verify(roster).remove(SID, leaver.getParticipantId());
+        verify(presenceStore).remove(SID, leaver.getParticipantId());
+        // Durable too: the Redis set is a cache, so a rehydrate must not resurrect them.
+        assertThat(leaver.isOnRoster()).isFalse();
+        verify(participants).save(leaver);
+        ParticipantLeft event = (ParticipantLeft) publishedEvent();
+        assertThat(event.participantId()).isEqualTo(leaver.getParticipantId());
     }
 
     @Test
@@ -937,7 +989,7 @@ class LiveSessionOrchestratorTest {
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         assertThatThrownBy(() -> orchestrator.leave(SID, "host")).isInstanceOf(ConflictException.class);
-        verify(session, never()).removeParticipant(any());
+        verify(roster, never()).remove(anyString(), anyString());
     }
 
     @Test
@@ -951,15 +1003,14 @@ class LiveSessionOrchestratorTest {
         when(session.getId()).thenReturn(SID);
         when(session.getPublicId()).thenReturn(PUB);
         when(session.getDeck()).thenReturn(deck);
-        when(session.getRoster()).thenReturn(List.of("host"));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
-        when(participants.findAllById(any())).thenReturn(List.of());
 
         orchestrator.endLiveSession(SID);
 
         verify(session).endLiveSession();
         verify(roundStateStore).clear(SID);
         verify(presenceStore).clear(SID);
+        verify(roster).clear(SID);
         verify(answerStore).clear(SID, SLIDE);
         verify(tallyStore).clear(SID, SLIDE);
         assertThat(publishedEvent()).isInstanceOf(LiveSessionEnded.class);
@@ -1006,7 +1057,6 @@ class LiveSessionOrchestratorTest {
         when(deck.getSlides()).thenReturn(List.of(slide)); // only slide → last → terminal
         LiveSession session = mock(LiveSession.class);
         when(session.getDeck()).thenReturn(deck);
-        when(session.getRoster()).thenReturn(List.of());
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         orchestrator.revealResults(SID, SLIDE);
@@ -1038,9 +1088,8 @@ class LiveSessionOrchestratorTest {
         LiveSession session = mock(LiveSession.class);
         when(session.getId()).thenReturn(SID);
         when(session.getDeck()).thenReturn(deck);
-        when(session.getRoster()).thenReturn(List.of(artist.getParticipantId()));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
-        when(participants.findAllById(List.of(artist.getParticipantId()))).thenReturn(List.of(artist));
+        when(roster.participants(SID)).thenReturn(List.of(artist));
 
         AppImage stored = new AppImage();
         stored.setExternal(false);
@@ -1079,7 +1128,6 @@ class LiveSessionOrchestratorTest {
         LiveSession session = mock(LiveSession.class);
         when(session.getId()).thenReturn(SID);
         when(session.getDeck()).thenReturn(deck);
-        when(session.getRoster()).thenReturn(List.of());
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         orchestrator.revealResults(SID, SLIDE);
@@ -1136,7 +1184,6 @@ class LiveSessionOrchestratorTest {
         LiveSession session = mock(LiveSession.class);
         when(session.getId()).thenReturn(SID);
         when(session.getDeck()).thenReturn(deck);
-        when(session.getRoster()).thenReturn(List.of());
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         orchestrator.revealResults(SID, SLIDE);
@@ -1198,9 +1245,8 @@ class LiveSessionOrchestratorTest {
         when(deck.getSlides()).thenReturn(List.of(slide)); // only slide → last → terminal
         LiveSession session = mock(LiveSession.class);
         when(session.getDeck()).thenReturn(deck);
-        when(session.getRoster()).thenReturn(List.of(player.getParticipantId()));
         when(repo.findById(SID)).thenReturn(Optional.of(session));
-        when(participants.findAllById(List.of(player.getParticipantId()))).thenReturn(List.of(player));
+        when(roster.participants(SID)).thenReturn(List.of(player));
 
         orchestrator.revealResults(SID, SLIDE);
 
@@ -1797,8 +1843,6 @@ class LiveSessionOrchestratorTest {
     void endingTheSessionClearsFollowUpCandidatesForEverySlide() {
         LiveSession session = followUpSession();
         when(session.isTerminal()).thenReturn(false);
-        when(session.getRoster()).thenReturn(List.of());
-        when(participants.findAllById(any())).thenReturn(List.of());
 
         orchestrator.endLiveSession(SID);
 
@@ -1842,7 +1886,7 @@ class LiveSessionOrchestratorTest {
         participant.markDisconnected();
         when(participants.findById(participant.getParticipantId())).thenReturn(Optional.of(participant));
         LiveSession session = mock(LiveSession.class);
-        when(session.hasParticipant(participant.getParticipantId())).thenReturn(true);
+        when(roster.contains(SID, participant.getParticipantId())).thenReturn(true);
         when(session.getPublicId()).thenReturn(PUB);
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
@@ -1859,7 +1903,7 @@ class LiveSessionOrchestratorTest {
         Participant participant = Participant.join("user-7", "Seven", null, null);
         when(participants.findById(participant.getParticipantId())).thenReturn(Optional.of(participant));
         LiveSession session = mock(LiveSession.class);
-        when(session.hasParticipant(any())).thenReturn(false);
+        when(roster.contains(anyString(), anyString())).thenReturn(false);
         when(repo.findById(SID)).thenReturn(Optional.of(session));
 
         assertThatThrownBy(() -> orchestrator.reconnect(SID, participant.getParticipantId()))

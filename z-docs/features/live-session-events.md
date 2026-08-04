@@ -8,20 +8,25 @@ when that sequence breaks.
 
 Twenty `SessionEvent` record types sit behind a sealed interface
 (`session/event/SessionEvent.java`), built only through the `SessionEvents`
-static factory. The publish path is a single choke point:
+static factory. The publish path is:
 
 `LiveSessionOrchestrator` → `EventPublisher.publish(publicId, event)` →
-`RedisEventPublisher` mints a `SessionEventEnvelope(eventId, sequence,
-occurredAt, event)` — allocating the per-session sequence and publishing in one
-atomic Lua step — wraps it in `EventEnvelope(publicId, envelope)` → Redis
+`RedisEventPublisher` → `SessionEventPayload` mints a `SessionEventEnvelope(eventId,
+sequence, occurredAt, event)` — allocating the per-session sequence and publishing
+in one atomic Lua step — wraps it in `EventEnvelope(publicId, envelope)` → Redis
 channel `ambi:session:events` → `LiveSessionStompRelay` forwards **the
 envelope, routing `publicId` stripped** to `/topic/liveSession/{publicId}`.
 
+The single choke point is `SessionEventPayload`, not the publisher class:
+`SessionRoster.admit` publishes `ParticipantJoined` from its own Lua script,
+because the `SESSION_FULL` cap check and the membership write have to be atomic
+with the publish — but it mints its envelope through the same factory. **No call
+site may assemble an envelope itself** — that is what makes every event, present
+and future, enveloped identically.
+
 Allocation and publish are one Lua step rather than lock-ordered because
 several orchestrator publish sites are deliberately lock-free; out-of-order
-allocation would show up as spurious client gap detection. **No call site may
-bypass the publisher** — that is what makes every event, present and future,
-enveloped identically.
+allocation would show up as spurious client gap detection.
 
 `SessionSnapshotResponse` carries `lastSequence` (0 when the counter key is
 absent). Neither the envelope nor the event union is in the OpenAPI schema, so

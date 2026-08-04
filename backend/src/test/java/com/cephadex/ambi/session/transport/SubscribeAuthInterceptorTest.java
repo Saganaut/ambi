@@ -41,6 +41,7 @@ import com.cephadex.ambi.user.enums.UserLevel;
  */
 class SubscribeAuthInterceptorTest {
 
+    private static final String SESSION_ID = "sess-1";
     private static final String PUBLIC_ID = "pub-1";
     private static final String DESTINATION = "/topic/liveSession/" + PUBLIC_ID;
 
@@ -56,7 +57,7 @@ class SubscribeAuthInterceptorTest {
         // Real resolver over a mocked repository: exercises the actual roster logic.
         interceptor = new SubscribeAuthInterceptor(sessions, new ParticipantResolver(participants));
         session = mock(LiveSession.class);
-        when(session.getRoster()).thenReturn(List.of("p-1"));
+        when(session.getId()).thenReturn(SESSION_ID);
     }
 
     // ── admitted ──────────────────────────────────────────────────────────────
@@ -155,7 +156,8 @@ class SubscribeAuthInterceptorTest {
 
     private void onRoster(Participant participant) {
         when(sessions.findByPublicId(PUBLIC_ID)).thenReturn(Optional.of(session));
-        when(participants.findAllById(any())).thenReturn(List.of(participant));
+        when(participants.findFirstBySessionIdAndUserIdAndLeftAtIsNull(SESSION_ID, participant.getUserId()))
+                .thenReturn(Optional.of(participant));
     }
 
     private static Authentication auth(AmbiPrincipal principal) {

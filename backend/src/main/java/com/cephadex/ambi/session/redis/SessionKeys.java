@@ -93,6 +93,15 @@ public class SessionKeys {
     }
 
     /**
+     * Key for a session's live membership SET (one member per participant id).
+     * Distinct from {@link #presenceKey}: membership survives a disconnect,
+     * presence does not.
+     */
+    public String rosterKey(String sessionId) {
+        return props.getRoster().getNamespace() + ":" + sessionId;
+    }
+
+    /**
      * Key for a session's monotonic event counter. Unlike the other keys here it is
      * addressed by the session's <strong>publicId</strong>, not its internal id:
      * that is the id events are published and routed under

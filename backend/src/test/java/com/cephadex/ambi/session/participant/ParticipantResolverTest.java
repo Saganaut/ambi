@@ -2,11 +2,10 @@ package com.cephadex.ambi.session.participant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +25,8 @@ import com.cephadex.ambi.user.enums.UserLevel;
  */
 class ParticipantResolverTest {
 
+    private static final String SID = "sess-1";
+
     private ParticipantRepository participants;
     private ParticipantResolver resolver;
     private LiveSession session;
@@ -35,13 +36,12 @@ class ParticipantResolverTest {
         participants = mock(ParticipantRepository.class);
         resolver = new ParticipantResolver(participants);
         session = mock(LiveSession.class);
-        when(session.getRoster()).thenReturn(List.of("p-1"));
+        when(session.getId()).thenReturn(SID);
     }
 
     @Test
     void resolvesCallerToTheirRosterParticipant() {
-        Participant p = Participant.join("user-1", "Name", null, null);
-        when(participants.findAllById(any())).thenReturn(List.of(p));
+        Participant p = onRoster("user-1");
 
         assertThat(resolver.resolve(session, principal("user-1"))).isSameAs(p);
     }
@@ -56,8 +56,7 @@ class ParticipantResolverTest {
 
     @Test
     void rejectsWhenCallerNotOnRoster() {
-        Participant p = Participant.join("user-1", "Name", null, null);
-        when(participants.findAllById(any())).thenReturn(List.of(p));
+        onRoster("user-1");
 
         assertThatThrownBy(() -> resolver.resolve(session, principal("user-2")))
                 .isInstanceOf(ForbiddenException.class);
@@ -65,9 +64,7 @@ class ParticipantResolverTest {
 
     @Test
     void rejectsBannedParticipant() {
-        Participant p = Participant.join("user-1", "Name", null, null);
-        p.ban();
-        when(participants.findAllById(any())).thenReturn(List.of(p));
+        onRoster("user-1").ban();
 
         assertThatThrownBy(() -> resolver.resolve(session, principal("user-1")))
                 .isInstanceOf(ForbiddenException.class);
@@ -77,16 +74,14 @@ class ParticipantResolverTest {
 
     @Test
     void findReturnsRosterParticipant() {
-        Participant p = Participant.join("user-1", "Name", null, null);
-        when(participants.findAllById(any())).thenReturn(List.of(p));
+        Participant p = onRoster("user-1");
 
         assertThat(resolver.find(session, principal("user-1"))).containsSame(p);
     }
 
     @Test
     void findIsEmptyWhenCallerNotOnRoster() {
-        Participant p = Participant.join("user-1", "Name", null, null);
-        when(participants.findAllById(any())).thenReturn(List.of(p));
+        onRoster("user-1");
 
         assertThat(resolver.find(session, principal("user-2"))).isEmpty();
     }
@@ -97,6 +92,14 @@ class ParticipantResolverTest {
                 AuthProvider.INTERNAL, null, null, "sid-x");
 
         assertThat(resolver.find(session, visitor)).isEmpty();
+    }
+
+    /** Puts a live participant for {@code userId} on the session's roster. */
+    private Participant onRoster(String userId) {
+        Participant p = Participant.join(userId, "Name", null, null);
+        p.joinSession(SID);
+        when(participants.findFirstBySessionIdAndUserIdAndLeftAtIsNull(SID, userId)).thenReturn(Optional.of(p));
+        return p;
     }
 
     private static AmbiPrincipal principal(String userId) {
