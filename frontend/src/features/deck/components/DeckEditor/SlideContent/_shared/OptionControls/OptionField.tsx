@@ -101,12 +101,10 @@ const OptionField = ({
       },
       {
         title: "Upload an image",
-        initialUrl: option.image?.externalSrc,
-        cropWidth: 1,
-        cropHeight: 1,
-        // Option thumbnails are square: a gallery pick has to be re-cropped to
-        // that frame too, not just an upload.
-        cropGalleryPicks: true,
+        current: option.image,
+        // Option thumbnails are square: a gallery pick has to be cropped to that
+        // frame too, not just an upload.
+        crop: { mode: "required", aspect: 1 },
       },
     );
   };

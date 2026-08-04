@@ -5,9 +5,10 @@
 // inline and removes the image without leaving the modal. Also covers the
 // awkward edges: a failed delete rolling back, a selection made while a delete
 // is in flight surviving it, and clicks on the confirmation's own prompt text
-// being inert. Also covers `cropGalleryPicks`, where a gallery pick is re-cropped
-// to the caller's aspect and stored as a new image instead of being inserted as
-// it stands. The gallery reads/writes run for real against MSW on a fresh RTK
+// being inert. Also covers the crop config: a required crop routes every pick
+// through the editor, a deck target sends the result to the deck's own namespace
+// with no gallery write at all, and an optional crop leaves Insert meaning "as
+// it stands". The gallery reads/writes run for real against MSW on a fresh RTK
 // Query store per test, with the gallery cache-sync rules registered so a
 // delete splices the tile out of the cached page.
 import {
@@ -35,12 +36,16 @@ import "@features/gallery/store/enhancements/gallery";
 const fetchGalleryImageFile = vi.fn();
 const fetchRemoteImage = vi.fn();
 const getCroppedBlob = vi.fn();
-vi.mock("@utils/imageEditing", () => ({
-  fetchGalleryImageFile: (galleryId: string, imageId: string) =>
-    fetchGalleryImageFile(galleryId, imageId) as Promise<Blob>,
-  fetchRemoteImage: (url: string) => fetchRemoteImage(url) as Promise<Blob>,
-  getCroppedBlob: (...args: unknown[]) => getCroppedBlob(...args) as Promise<Blob>,
-}));
+vi.mock("@utils/imageEditing", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@utils/imageEditing")>();
+  return {
+    ...actual,
+    fetchGalleryImageFile: (galleryId: string, imageId: string) =>
+      fetchGalleryImageFile(galleryId, imageId) as Promise<Blob>,
+    fetchRemoteImage: (url: string) => fetchRemoteImage(url) as Promise<Blob>,
+    getCroppedBlob: (...args: unknown[]) => getCroppedBlob(...args) as Promise<Blob>,
+  };
+});
 
 // Stub the crop editor (reached through CropAndSaveStep): surface its prefills
 // and expose its two actions, so a test can walk pick → crop → upload without
@@ -49,12 +54,15 @@ vi.mock("./ImageCropEditor", () => ({
   ImageCropEditor: (props: {
     initialName?: string;
     initialAltText?: string;
+    initialArea?: { x: number; y: number };
     onConfirm: (r: { area: unknown; name: string; altText: string }) => void;
     onCancel: () => void;
+    onUseOriginal?: (r: { name: string; altText: string }) => void;
   }) => (
     <div data-testid='crop-editor'>
       <span data-testid='crop-name'>{props.initialName}</span>
       <span data-testid='crop-alt'>{props.initialAltText}</span>
+      <span data-testid='crop-area'>{JSON.stringify(props.initialArea)}</span>
       <button
         onClick={() =>
           props.onConfirm({
@@ -65,12 +73,21 @@ vi.mock("./ImageCropEditor", () => ({
         }>
         confirm-crop
       </button>
+      {props.onUseOriginal && (
+        <button
+          onClick={() => {
+            props.onUseOriginal?.({ name: "Original", altText: "alt" });
+          }}>
+          use-original
+        </button>
+      )}
       <button onClick={props.onCancel}>cancel-crop</button>
     </div>
   ),
 }));
 
 import { GalleryPicker } from "./GalleryPicker";
+import type { CropConfig } from "./cropConfig";
 
 const image = (
   overrides: Partial<GalleryImageResponse> = {},
@@ -108,8 +125,16 @@ const harbour = image({
   },
 });
 
+/** What the deck route returns for a placement-only crop. */
+const deckImage = {
+  external: false,
+  srcKey: "deck/d1/abc/original",
+  variants: {},
+};
+
 let deleted: string[] = [];
 let uploadRequests = 0;
+let deckUploads = 0;
 /**
  * The gallery as the server holds it. Browsing is server-driven now, so every
  * write re-reads the list: a handler that answered from a frozen array would
@@ -136,6 +161,10 @@ const server = setupServer(
     uploadRequests += 1;
     library = [...library, cropped];
     return HttpResponse.json(cropped, { status: 201 });
+  }),
+  http.post(`${apiBaseUrl}/api/decks/d1/images/upload`, () => {
+    deckUploads += 1;
+    return HttpResponse.json(deckImage, { status: 201 });
   }),
   http.delete(`${apiBaseUrl}/api/galleries/g1/images/:imageId`, ({ params }) => {
     const imageId = String(params.imageId);
@@ -165,9 +194,18 @@ afterEach(() => {
   vi.clearAllMocks();
   deleted = [];
   uploadRequests = 0;
+  deckUploads = 0;
 });
 
-const renderPicker = ({ cropGalleryPicks = false } = {}) => {
+const renderPicker = ({
+  crop = { mode: "off", aspect: 1 } as CropConfig,
+  deckId,
+  current,
+}: {
+  crop?: CropConfig;
+  deckId?: string;
+  current?: GalleryImageResponse["image"];
+} = {}) => {
   const store = configureStore({
     reducer: { [emptySplitApi.reducerPath]: emptySplitApi.reducer },
     middleware: (getDefaultMiddleware) =>
@@ -180,14 +218,16 @@ const renderPicker = ({ cropGalleryPicks = false } = {}) => {
       <GalleryPicker
         onPick={onPick}
         onClose={onClose}
-        cropWidth={1}
-        cropHeight={1}
-        cropGalleryPicks={cropGalleryPicks}
+        crop={crop}
+        deckId={deckId}
+        current={current}
       />
     </Provider>,
   );
   return { onPick, onClose };
 };
+
+const REQUIRED: CropConfig = { mode: "required", aspect: 1 };
 
 /** The tile's accessible name repeats the image name (thumb alt + caption). */
 const tile = async (name: string) =>
@@ -223,7 +263,7 @@ describe("GalleryPicker", () => {
 
     expect(onPick).toHaveBeenCalledTimes(1);
     expect(onPick).toHaveBeenCalledWith(harbour.image);
-    // Without cropGalleryPicks the stored image goes straight through — no
+    // Unless the crop is required the stored image goes straight through — no
     // re-fetch, no crop step, no second copy in the gallery.
     expect(fetchGalleryImageFile).not.toHaveBeenCalled();
     expect(screen.queryByTestId("crop-editor")).not.toBeInTheDocument();
@@ -402,10 +442,10 @@ describe("GalleryPicker", () => {
   });
 });
 
-describe("GalleryPicker with cropGalleryPicks", () => {
+describe("GalleryPicker with a required crop", () => {
   it("opens the crop editor on the picked image's bytes, prefilled from it", async () => {
     const user = userEvent.setup();
-    const { onPick } = renderPicker({ cropGalleryPicks: true });
+    const { onPick } = renderPicker({ crop: REQUIRED });
 
     await user.click(await tile("Sunset"));
     await user.click(insertBtn());
@@ -427,13 +467,15 @@ describe("GalleryPicker with cropGalleryPicks", () => {
 
   it("uploads the crop and hands back the newly created image, not the source", async () => {
     const user = userEvent.setup();
-    const { onPick } = renderPicker({ cropGalleryPicks: true });
+    const { onPick } = renderPicker({ crop: REQUIRED });
 
     await user.dblClick(await tile("Sunset"));
     await user.click(await screen.findByRole("button", { name: "confirm-crop" }));
 
     await waitFor(() => {
-      expect(onPick).toHaveBeenCalledWith(cropped.image);
+      expect(onPick).toHaveBeenCalledWith(
+        expect.objectContaining({ srcKey: cropped.image.srcKey }),
+      );
     });
     expect(uploadRequests).toBe(1);
     expect(getCroppedBlob).toHaveBeenCalledWith("blob:mock", {
@@ -461,7 +503,7 @@ describe("GalleryPicker with cropGalleryPicks", () => {
         }),
       ),
     );
-    renderPicker({ cropGalleryPicks: true });
+    renderPicker({ crop: REQUIRED });
 
     await user.dblClick(await tile("Logo"));
 
@@ -472,7 +514,7 @@ describe("GalleryPicker with cropGalleryPicks", () => {
 
   it("returns to the grid with the selection intact when the crop is cancelled", async () => {
     const user = userEvent.setup();
-    const { onPick } = renderPicker({ cropGalleryPicks: true });
+    const { onPick } = renderPicker({ crop: REQUIRED });
 
     await user.click(await tile("Sunset"));
     await user.click(insertBtn());
@@ -488,7 +530,7 @@ describe("GalleryPicker with cropGalleryPicks", () => {
   it("reports a failed byte fetch in the footer and stays on the grid", async () => {
     const user = userEvent.setup();
     fetchGalleryImageFile.mockRejectedValueOnce(new Error("Image file not found"));
-    const { onPick } = renderPicker({ cropGalleryPicks: true });
+    const { onPick } = renderPicker({ crop: REQUIRED });
 
     await user.click(await tile("Sunset"));
     await user.click(insertBtn());
@@ -497,5 +539,142 @@ describe("GalleryPicker with cropGalleryPicks", () => {
     expect(screen.queryByTestId("crop-editor")).not.toBeInTheDocument();
     expect(await tile("Sunset")).toHaveAttribute("aria-pressed", "true");
     expect(onPick).not.toHaveBeenCalled();
+  });
+});
+
+describe("GalleryPicker with a deck target", () => {
+  const withDeck = { crop: REQUIRED, deckId: "d1" };
+
+  it("stores the crop in the deck's namespace, leaving the gallery alone", async () => {
+    const user = userEvent.setup();
+    const { onPick } = renderPicker(withDeck);
+
+    await user.dblClick(await tile("Sunset"));
+    await user.click(await screen.findByRole("button", { name: "confirm-crop" }));
+
+    await waitFor(() => {
+      expect(onPick).toHaveBeenCalledTimes(1);
+    });
+    // The whole point: ten options cropped from one gallery image leave one
+    // gallery entry, not eleven.
+    expect(deckUploads).toBe(1);
+    expect(uploadRequests).toBe(0);
+    const picked = onPick.mock.calls[0][0] as { srcKey?: string };
+    expect(picked.srcKey).toBe("deck/d1/abc/original");
+  });
+
+  it("stamps the crop with the gallery image and rect it came from", async () => {
+    const user = userEvent.setup();
+    const { onPick } = renderPicker(withDeck);
+
+    await user.dblClick(await tile("Sunset"));
+    await user.click(await screen.findByRole("button", { name: "confirm-crop" }));
+
+    await waitFor(() => {
+      expect(onPick).toHaveBeenCalledTimes(1);
+    });
+    const picked = onPick.mock.calls[0][0] as {
+      metadata?: Record<string, unknown>;
+    };
+    expect(picked.metadata?.crop).toEqual({
+      sourceGalleryId: "g1",
+      sourceImageId: "gi-1",
+      x: 0,
+      y: 0,
+      width: 10,
+      height: 10,
+    });
+  });
+});
+
+describe("GalleryPicker with an optional crop", () => {
+  const optional: CropConfig = { mode: "optional", aspect: 1 };
+
+  it("keeps Insert meaning 'as it stands' and offers cropping beside it", async () => {
+    const user = userEvent.setup();
+    const { onPick } = renderPicker({ crop: optional, deckId: "d1" });
+
+    await user.click(await tile("Sunset"));
+    await user.click(insertBtn());
+
+    expect(onPick).toHaveBeenCalledWith(sunset.image);
+    expect(fetchGalleryImageFile).not.toHaveBeenCalled();
+    expect(deckUploads).toBe(0);
+  });
+
+  it("routes the pick through the editor when cropping is chosen", async () => {
+    const user = userEvent.setup();
+    const { onPick } = renderPicker({ crop: optional, deckId: "d1" });
+
+    await user.click(await tile("Sunset"));
+    await user.click(screen.getByRole("button", { name: "Crop & insert" }));
+
+    expect(await screen.findByTestId("crop-editor")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "confirm-crop" }));
+
+    await waitFor(() => {
+      expect(deckUploads).toBe(1);
+    });
+    expect(onPick).toHaveBeenCalledTimes(1);
+  });
+
+  it("embeds the untouched original when the crop step is skipped", async () => {
+    const user = userEvent.setup();
+    const { onPick } = renderPicker({ crop: optional, deckId: "d1" });
+
+    await user.click(await tile("Sunset"));
+    await user.click(screen.getByRole("button", { name: "Crop & insert" }));
+    await user.click(await screen.findByRole("button", { name: "use-original" }));
+
+    await waitFor(() => {
+      expect(onPick).toHaveBeenCalledWith(sunset.image);
+    });
+    expect(deckUploads).toBe(0);
+    expect(uploadRequests).toBe(0);
+  });
+});
+
+describe("GalleryPicker re-cropping a placement", () => {
+  /** A placed crop that still names the gallery image it was cut from. */
+  const placed = {
+    external: false,
+    srcKey: "deck/d1/abc/original",
+    variants: {},
+    metadata: {
+      crop: {
+        sourceGalleryId: "g1",
+        sourceImageId: "gi-1",
+        x: 12,
+        y: 34,
+        width: 200,
+        height: 200,
+      },
+    },
+  };
+
+  it("reopens the editor on the original at the rect the crop used", async () => {
+    const user = userEvent.setup();
+    renderPicker({ crop: REQUIRED, deckId: "d1", current: placed });
+
+    await user.click(screen.getByRole("button", { name: "Adjust crop" }));
+
+    // The source, not the already-cropped bytes — widening the frame has to be
+    // possible, so a crop of a crop is exactly what must not happen.
+    expect(fetchGalleryImageFile).toHaveBeenCalledWith("g1", "gi-1");
+    expect(await screen.findByTestId("crop-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("crop-area")).toHaveTextContent(
+      '{"galleryId":"g1","imageId":"gi-1","x":12,"y":34,"width":200,"height":200}',
+    );
+  });
+
+  it("hides the affordance for a placement with no reachable source", async () => {
+    renderPicker({
+      crop: REQUIRED,
+      deckId: "d1",
+      current: { external: false, srcKey: "deck/d1/xyz/original", variants: {} },
+    });
+
+    await screen.findByRole("button", { name: "Insert" });
+    expect(screen.queryByRole("button", { name: "Adjust crop" })).not.toBeInTheDocument();
   });
 });

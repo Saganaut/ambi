@@ -21,7 +21,7 @@ export interface McqSlideProviderProps {
 }
 const McqSlideProvider = ({ deckId, slideId, children }: McqSlideProviderProps) => {
   const editor = useMcqEditor(deckId, slideId);
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   const [activeOption, setActiveOption] = useState<McqOption | null>(null);
   const { answerSettings } = useSlideSettings(deckId, slideId);
 

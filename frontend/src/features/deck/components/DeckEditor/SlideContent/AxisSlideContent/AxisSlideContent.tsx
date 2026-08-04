@@ -33,7 +33,7 @@ import { AxisPlaneEditor } from "./AxisPlaneEditor";
 const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useAxisEditor(deckId, slideId);
   const { question } = editor;
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   const composer = useSlideComposerState(question);
 
   if (!question) return <EmptySelect title="Axis" />;

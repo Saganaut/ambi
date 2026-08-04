@@ -26,7 +26,7 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     slideId,
     "MEDIA",
   );
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
 
   const [title, setTitle] = useState(slide?.title ?? "");
   const [url, setUrl] = useState(slide?.content.url ?? "");
@@ -57,7 +57,7 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         updateSlideContent({ mediaType: "IMAGE", image: picked });
         flush();
       },
-      { title: "Slide media image", cropWidth: 16, cropHeight: 9 },
+      { title: "Slide media image", current: image, crop: { aspect: 16 / 9 } },
     );
   };
 

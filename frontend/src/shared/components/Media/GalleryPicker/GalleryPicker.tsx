@@ -1,11 +1,11 @@
 // Modal body for choosing an image, with two tabs:
 //   • Gallery — pick one of the user's stored images (GalleryTab).
-//   • Upload  — bring in a new one by file or web URL, crop it, name it, and add
-//               alt text before it's stored (UploadTab + ImageCropEditor).
+//   • Upload  — bring in a new one by file or web URL, optionally crop it, name
+//               it, and add alt text before it's stored (UploadTab).
 // Either way the chosen image is handed to the caller via onPick(AppImage); the
-// caller closes the modal. Every image the picker yields is now a stored,
-// S3-backed AppImage — pasted URLs are fetched + stored too, not kept as bare
-// external references.
+// caller closes the modal. Every image the picker yields is a stored, S3-backed
+// AppImage — pasted URLs are fetched + stored too, not kept as bare external
+// references.
 //
 // The Gallery tab is a *two-step* surface: a single click selects a tile (which
 // enables the footer's Insert and Delete actions) rather than inserting, so a
@@ -18,18 +18,11 @@
 // evict it (see useGalleryPickerSelection).
 //
 // The gallery is the per-user singleton (`GET /api/galleries/mine`); its images
-// are the paginated sub-resource (`GET /api/galleries/{id}/images`). Callers that
-// target a fixed-shape slot (deck/slide background, avatar, …) pass cropWidth +
-// cropHeight to constrain the Upload tab's crop box; it defaults to 16:9. A
-// caller with no fixed frame to fill passes cropAspect="source" instead, so
-// each upload keeps its own aspect ratio rather than being clipped to one.
-//
-// Those aspects only ever constrained the Upload tab, so a Gallery-tab pick
-// could still drop an arbitrarily shaped image into a fixed-shape slot. Callers
-// for whom that shape is load-bearing (the square slide-option thumbnails) pass
-// cropGalleryPicks: every gallery pick then routes through the same crop editor
-// first and is stored as a NEW gallery image, so the original is left intact and
-// the slot gets bytes cut to its own frame.
+// are the paginated sub-resource (`GET /api/galleries/{id}/images`). One `crop`
+// config (see cropConfig) says whether picks are cropped and at what shape, and
+// `deckId` says where a crop lands: with a deck the cropped bytes are placement
+// data in that deck's own namespace and mint no gallery entry, without one they
+// become a gallery image as they always did.
 import { useEffect, useRef, useState } from "react";
 import { Btn } from "@ui/Buttons/Btn";
 import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
@@ -40,74 +33,73 @@ import {
   type AppImage,
   type GalleryImageResponse,
 } from "@features/gallery/store/galleryApi.gen";
+import { useAsyncAction } from "@hooks/useAsyncAction";
 import {
   fetchGalleryImageFile,
   fetchRemoteImage,
+  readCropProvenance,
+  type CropSourceRef,
+  type PixelArea,
 } from "@utils/imageEditing";
+import { isImageEmpty } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
 import { CropAndSaveStep } from "./CropAndSaveStep";
+import { resolveCropConfig, type CropConfig } from "./cropConfig";
 import { GalleryTab } from "./GalleryTab";
 import { UploadTab } from "./UploadTab";
 import { useGalleryPickerSelection } from "./useGalleryPickerSelection";
 import styles from "./GalleryPicker.module.css";
 
-// Used when a caller doesn't constrain the crop to a specific slot shape.
-const DEFAULT_CROP_ASPECT = 16 / 9;
-
 interface GalleryPickerProps {
   onPick: (image: AppImage) => void;
   onClose: () => void;
-  /** Prefills the Upload tab's "paste URL" field (and opens that tab first). */
-  initialUrl?: string;
-  /** Target slot dimensions; together they set the crop box aspect ratio. */
-  cropWidth?: number;
-  cropHeight?: number;
-  /** "source": the crop box takes each uploaded image's own aspect ratio
-   *  (wins over cropWidth/cropHeight). */
-  cropAspect?: "source";
   /**
-   * Route Gallery-tab picks through the crop editor at the caller's aspect
-   * before insertion, storing the result as a new gallery image. For slots whose
-   * shape is load-bearing (slide-option thumbnails are square); leave it off
-   * where an existing image can be inserted as it stands.
+   * The image the slot already holds. Prefills the Upload tab's paste-URL field
+   * (and opens that tab first) for an external reference, and — when it records
+   * where it was cropped from — unlocks re-cropping on the original.
    */
-  cropGalleryPicks?: boolean;
+  current?: AppImage;
+  /** Deck that owns crops made here; without it a crop lands in the gallery. */
+  deckId?: string;
+  /** Whether (and how) picks are cropped; defaults to an optional 16:9 crop. */
+  crop?: CropConfig;
 }
 
 type PickerTab = "gallery" | "upload";
 
-/** A gallery pick being re-cropped: its source bytes plus the prefills it carries. */
+/** An image on its way through the crop editor, with the prefills it carries. */
 interface CropStep {
   /** Object URL of the fetched source bytes; revoked when the step is left. */
   objectUrl: string;
   name: string;
   altText: string;
+  /** The gallery image the bytes came from, stamped as the crop's provenance. */
+  source?: CropSourceRef;
+  /** Handed back untouched when the author keeps the original. */
+  original?: AppImage;
+  /** The rect a previous crop used, when that crop is being adjusted. */
+  initialArea?: PixelArea;
 }
 
 const GalleryPicker = ({
   onPick,
   onClose,
-  initialUrl,
-  cropWidth,
-  cropHeight,
-  cropAspect,
-  cropGalleryPicks,
+  current,
+  deckId,
+  crop,
 }: GalleryPickerProps) => {
   const { data: gallery, isError: galleryError } = useGetMyGalleryQuery();
   const galleryId = gallery?.id;
-  const aspect: number | "source" =
-    cropAspect ??
-    (cropWidth && cropHeight ? cropWidth / cropHeight : DEFAULT_CROP_ASPECT);
+  const cropConfig = resolveCropConfig(crop);
+  const initialUrl = current?.external ? current.externalSrc : undefined;
   const [tab, setTab] = useState<PickerTab>(initialUrl ? "upload" : "gallery");
   const selection = useGalleryPickerSelection(galleryId);
   const { selected } = selection;
   const selectedName = selected?.name ?? "this image";
 
-  // The crop-on-pick step (cropGalleryPicks only). Its source bytes are fetched
-  // on demand, so a pick is asynchronous here in a way it never is otherwise.
+  // The crop step. Its source bytes are fetched on demand, so entering it is
+  // asynchronous in a way inserting an image never is.
   const [cropStep, setCropStep] = useState<CropStep | null>(null);
-  const [isPreparingCrop, setIsPreparingCrop] = useState(false);
-  const [cropError, setCropError] = useState<string | null>(null);
 
   // Free the blob URL when we leave the crop step or unmount (as UploadTab does
   // for its own source).
@@ -120,35 +112,75 @@ const GalleryPicker = ({
 
   // Load an already-owned image's bytes from our own origin so the canvas that
   // crops them stays untainted: internal images come from the gallery's /file
-  // route, the rare external reference from the remote-image proxy.
-  const beginCrop = async (item: GalleryImageResponse) => {
+  // route, the rare external reference from the remote-image proxy. Guarded
+  // against re-entry — Insert and the tile's double-click both land here, and a
+  // second fetch mid-flight would leak the object URL the first one made.
+  const [
+    beginCrop,
+    { isRunning: isPreparingCrop, error: cropError, reset: clearCropError },
+  ] = useAsyncAction(async (item: GalleryImageResponse) => {
     if (!galleryId) return;
-    setCropError(null);
-    setIsPreparingCrop(true);
-    try {
-      const { external, externalSrc } = item.image;
-      const blob =
-        external && externalSrc
-          ? await fetchRemoteImage(externalSrc)
-          : await fetchGalleryImageFile(galleryId, item.id);
-      setCropStep({
-        objectUrl: URL.createObjectURL(blob),
-        name: item.name ?? "",
-        altText: item.image.altText ?? "",
-      });
-    } catch (err: unknown) {
-      setCropError(
-        extractErrorMessage(err, "Could not load that image for cropping."),
-      );
-    } finally {
-      setIsPreparingCrop(false);
-    }
-  };
+    const { external, externalSrc } = item.image;
+    const blob =
+      external && externalSrc
+        ? await fetchRemoteImage(externalSrc)
+        : await fetchGalleryImageFile(galleryId, item.id);
+    setCropStep({
+      objectUrl: URL.createObjectURL(blob),
+      name: item.name ?? "",
+      altText: item.image.altText ?? "",
+      source: { galleryId, imageId: item.id },
+      original: item.image,
+    });
+  });
 
-  // Every gallery-tab pick funnels through here — footer Insert, tile
-  // double-click, and keyboard activation alike.
+  // Re-crop: a placement records the gallery image it was cut from, so widening
+  // the frame reopens the *original* rather than compounding a crop of a crop.
+  // Only offered when those bytes are still reachable — a deck-scoped object has
+  // no same-origin read of its own, so a lost source hides the affordance rather
+  // than cropping already-cropped pixels.
+  const provenance = readCropProvenance(current);
+  const currentExternalSrc =
+    current && !isImageEmpty(current) && current.external
+      ? current.externalSrc
+      : undefined;
+  const canAdjustCrop =
+    cropConfig.mode !== "off" && Boolean(provenance ?? currentExternalSrc);
+
+  const [
+    beginAdjustCrop,
+    { isRunning: isPreparingAdjust, error: adjustError },
+  ] = useAsyncAction(async () => {
+    if (!current) return;
+    let blob: Blob;
+    if (provenance) {
+      blob = await fetchGalleryImageFile(provenance.galleryId, provenance.imageId);
+    } else if (currentExternalSrc) {
+      blob = await fetchRemoteImage(currentExternalSrc);
+    } else {
+      return;
+    }
+    setCropStep({
+      objectUrl: URL.createObjectURL(blob),
+      name: "",
+      altText: current.altText ?? "",
+      source: provenance ?? undefined,
+      original: current,
+      initialArea: provenance ?? undefined,
+    });
+  });
+
+  const failure = cropError ?? adjustError;
+  const cropErrorMessage = failure
+    ? extractErrorMessage(failure, "Could not load that image for cropping.")
+    : null;
+
+  // Every gallery-tab insertion funnels through here — footer Insert, tile
+  // double-click, and keyboard activation alike. Only a required crop
+  // intercepts it; where cropping is merely offered, Insert still means "this
+  // image, as it is" and the framing lives on its own button.
   const handleGalleryPick = (item: GalleryImageResponse) => {
-    if (!cropGalleryPicks) {
+    if (cropConfig.mode !== "required") {
       onPick(item.image);
       return;
     }
@@ -157,6 +189,10 @@ const GalleryPicker = ({
 
   const insertSelected = () => {
     if (selected) handleGalleryPick(selected);
+  };
+
+  const cropSelected = () => {
+    if (selected) void beginCrop(selected);
   };
 
   // Deselect-on-outside-click. A click that lands on a control (a tile, a tab,
@@ -174,6 +210,11 @@ const GalleryPicker = ({
     }
     selection.clear();
   };
+
+  // Hoisted so the crop step's callbacks close over narrowed consts rather than
+  // re-reading a nullable field.
+  const cropSource = cropStep?.source;
+  const cropOriginal = cropStep?.original;
 
   const items: TabsItem[] = [
     {
@@ -195,7 +236,8 @@ const GalleryPicker = ({
       panel: (
         <UploadTab
           galleryId={galleryId}
-          aspect={aspect}
+          deckId={deckId}
+          crop={cropConfig}
           initialUrl={initialUrl}
           onPicked={onPick}
         />
@@ -218,10 +260,18 @@ const GalleryPicker = ({
           <div className={styles.cropStepFill}>
             <CropAndSaveStep
               objectUrl={cropStep.objectUrl}
-              aspect={aspect}
+              aspect={cropConfig.aspect}
               initialName={cropStep.name}
               initialAltText={cropStep.altText}
+              initialArea={cropStep.initialArea}
               galleryId={galleryId}
+              deckId={deckId}
+              prepareSource={cropSource ? async () => cropSource : undefined}
+              resolveOriginal={
+                cropConfig.mode === "optional" && cropOriginal
+                  ? async () => cropOriginal
+                  : undefined
+              }
               onSaved={(image) => {
                 setCropStep(null);
                 onPick(image);
@@ -242,7 +292,7 @@ const GalleryPicker = ({
               // the Upload tab is showing; don't leave them armed against it,
               // nor a failure report about an image that's no longer on screen.
               selection.clear();
-              setCropError(null);
+              clearCropError();
             }}
             ariaLabel='Image source'
           />
@@ -274,10 +324,29 @@ const GalleryPicker = ({
                 <Btn
                   variant='brand'
                   disabled={!selected}
-                  isLoading={isPreparingCrop}
+                  isLoading={cropConfig.mode === "required" && isPreparingCrop}
                   onClick={insertSelected}>
                   Insert
                 </Btn>
+                {cropConfig.mode === "optional" && (
+                  <Btn
+                    variant='secondary'
+                    disabled={!selected}
+                    isLoading={isPreparingCrop}
+                    onClick={cropSelected}>
+                    Crop &amp; insert
+                  </Btn>
+                )}
+                {canAdjustCrop && (
+                  <Btn
+                    variant='secondary'
+                    isLoading={isPreparingAdjust}
+                    onClick={() => {
+                      void beginAdjustCrop();
+                    }}>
+                    Adjust crop
+                  </Btn>
+                )}
                 <Btn
                   variant='error'
                   disabled={!selected}
@@ -292,7 +361,9 @@ const GalleryPicker = ({
           {selection.deleteError && (
             <p className={styles.error}>{selection.deleteError}</p>
           )}
-          {cropError && <p className={styles.error}>{cropError}</p>}
+          {cropErrorMessage && (
+            <p className={styles.error}>{cropErrorMessage}</p>
+          )}
         </>
       )}
     </div>

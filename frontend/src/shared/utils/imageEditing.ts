@@ -10,6 +10,7 @@
  * pixels first) — we just draw that sub-rectangle onto a canvas sized to the
  * crop and read it back out.
  */
+import type { AppImage } from "@features/gallery/store/galleryApi.gen";
 import { apiBaseUrl } from "@store/emptyApi";
 
 /** A crop rectangle in the source image's natural-pixel coordinates. */
@@ -19,6 +20,71 @@ export interface PixelArea {
   width: number;
   height: number;
 }
+
+/** Addresses the gallery image a crop was cut from. */
+export interface CropSourceRef {
+  galleryId: string;
+  imageId: string;
+}
+
+/**
+ * Where a placement crop came from, stamped on the crop's
+ * `AppImage.metadata.crop` so re-cropping can reopen the editor on the original
+ * instead of on already-cropped pixels. Advisory and best-effort: it is absent
+ * on older placements, stale if the source was replaced, and client-supplied on
+ * echo-back, so a mismatch means "no provenance", never an error. Every key is a
+ * literal dot-free identifier — Mongo rejects dots in persisted map keys.
+ */
+export interface CropProvenance extends CropSourceRef {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** The one metadata key provenance lives under. */
+const CROP_METADATA_KEY = "crop";
+
+/** Copy of `image` carrying the crop provenance the backend echoes back. */
+export const withCropProvenance = (
+  image: AppImage,
+  source: CropSourceRef,
+  area: PixelArea,
+): AppImage => ({
+  ...image,
+  metadata: {
+    ...image.metadata,
+    [CROP_METADATA_KEY]: {
+      sourceGalleryId: source.galleryId,
+      sourceImageId: source.imageId,
+      x: Math.round(area.x),
+      y: Math.round(area.y),
+      width: Math.round(area.width),
+      height: Math.round(area.height),
+    },
+  },
+});
+
+const finitePositive = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+const finite = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+/** Read back {@link withCropProvenance}, or null when it is absent or malformed. */
+export const readCropProvenance = (
+  image: AppImage | undefined,
+): CropProvenance | null => {
+  const raw: unknown = image?.metadata?.[CROP_METADATA_KEY];
+  if (typeof raw !== "object" || raw === null) return null;
+  const { sourceGalleryId, sourceImageId, x, y, width, height } =
+    raw as Record<string, unknown>;
+  if (typeof sourceGalleryId !== "string" || sourceGalleryId === "") return null;
+  if (typeof sourceImageId !== "string" || sourceImageId === "") return null;
+  if (!finite(x) || !finite(y)) return null;
+  if (!finitePositive(width) || !finitePositive(height)) return null;
+  return { galleryId: sourceGalleryId, imageId: sourceImageId, x, y, width, height };
+};
 
 /**
  * GET an image-bytes endpoint of our own backend and return the payload as a

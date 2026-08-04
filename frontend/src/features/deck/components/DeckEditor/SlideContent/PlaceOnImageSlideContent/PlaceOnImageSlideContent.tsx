@@ -67,7 +67,7 @@ import { PlaceOnImageSurface } from "./PlaceOnImageSurface";
 const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = usePlaceOnImageEditor(deckId, slideId);
   const { question } = editor;
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   const composer = useSlideComposerState(question);
 
   if (!question) return <EmptySelect title="Place on image" />;
@@ -94,9 +94,8 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     // and gallery picks alike crop to that frame.
     openPicker(editor.setImage, {
       title: "Backing image",
-      cropWidth: 1,
-      cropHeight: 1,
-      cropGalleryPicks: true,
+      current: question.image,
+      crop: { mode: "required", aspect: 1 },
     });
   };
 

@@ -28,6 +28,8 @@ interface ImageCropEditorProps {
   initialName?: string;
   /** Prefill for the alt-text field (e.g. the source image's own alt text). */
   initialAltText?: string;
+  /** Rect to reopen on, in source pixels — a previous crop being adjusted. */
+  initialArea?: PixelArea;
   /** True while the parent is cropping + uploading. */
   isSaving: boolean;
   /** Surfaced upload/crop error, if any. */
@@ -38,6 +40,8 @@ interface ImageCropEditorProps {
     name: string;
     altText: string;
   }) => void;
+  /** Supplied when the crop is optional: take the uncropped image instead. */
+  onUseOriginal?: (result: { name: string; altText: string }) => void;
 }
 
 const ImageCropEditor = ({
@@ -45,10 +49,12 @@ const ImageCropEditor = ({
   aspect,
   initialName,
   initialAltText,
+  initialArea,
   isSaving,
   error,
   onCancel,
   onConfirm,
+  onUseOriginal,
 }: ImageCropEditorProps) => {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -65,6 +71,10 @@ const ImageCropEditor = ({
     onConfirm({ area, name: name.trim(), altText: altText.trim() });
   };
 
+  const handleUseOriginal = () => {
+    onUseOriginal?.({ name: name.trim(), altText: altText.trim() });
+  };
+
   return (
     <div className={styles.editor}>
       <div className={styles.cropArea}>
@@ -73,6 +83,7 @@ const ImageCropEditor = ({
           crop={crop}
           zoom={zoom}
           aspect={resolvedAspect}
+          initialCroppedAreaPixels={initialArea}
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onMediaLoaded={(mediaSize: MediaSize) => {
@@ -127,8 +138,13 @@ const ImageCropEditor = ({
         <Btn fill='ghost' onClick={onCancel} disabled={isSaving}>
           Back
         </Btn>
+        {onUseOriginal && (
+          <Btn variant='secondary' onClick={handleUseOriginal} disabled={isSaving}>
+            Use original
+          </Btn>
+        )}
         <Btn onClick={handleConfirm} disabled={!area || isSaving}>
-          {isSaving ? "Saving…" : "Use image"}
+          {isSaving ? "Saving…" : "Use cropped image"}
         </Btn>
       </div>
     </div>

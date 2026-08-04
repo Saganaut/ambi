@@ -107,7 +107,7 @@ const DeckTheme = ({ deckId }: { deckId: string }) => {
 const DeckImages = ({ deckId }: { deckId: string }) => {
   const { deck } = useDeckQuery(deckId);
   const { setDeckImage, clearDeckImage } = useDeckImageMutate(deckId);
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
 
   return (
     <section className={styles.section}>
@@ -119,8 +119,8 @@ const DeckImages = ({ deckId }: { deckId: string }) => {
         onPick={() => {
           openPicker((img) => setDeckImage("cover", img), {
             title: "Deck cover image",
-            cropWidth: 16,
-            cropHeight: 9,
+            current: deck?.coverImage,
+            crop: { aspect: 16 / 9 },
           });
         }}
         onClear={() => clearDeckImage("cover")}

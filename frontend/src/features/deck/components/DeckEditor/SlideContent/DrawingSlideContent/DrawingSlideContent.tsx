@@ -56,7 +56,7 @@ const TOOL_TOGGLES: { tool: Tool; label: string }[] = [
 const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useDrawingEditor(deckId, slideId);
   const { question } = editor;
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   const { openModal, closeModal } = useModal();
   // Needed only to check whether an attached keyed follow-up would be orphaned
   // by clearing the correct-answer image (see `answerImageLocked` below).
@@ -105,9 +105,8 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     // drawn-here path. Uploads and gallery picks alike crop to that frame.
     openPicker(editor.setImagePrompt, {
       title: "Prompt image",
-      cropWidth: 1,
-      cropHeight: 1,
-      cropGalleryPicks: true,
+      current: question.imagePrompt,
+      crop: { mode: "required", aspect: 1 },
     });
   };
 
@@ -136,9 +135,8 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     // with a different aspect ratio — a tell as good as a label.
     openPicker(editor.setCorrectImage, {
       title: "Correct answer image",
-      cropWidth: 1,
-      cropHeight: 1,
-      cropGalleryPicks: true,
+      current: question.correctImage,
+      crop: { mode: "required", aspect: 1 },
     });
   };
 

@@ -56,7 +56,9 @@ const GallerySection = () => {
       () => {
         console.log("not impelmented?");
       },
-      { title: "Add image" },
+      // Nothing here is a placement, so there is no frame to crop to: the
+      // library stores the original exactly as it arrived.
+      { title: "Add image", crop: { mode: "off" } },
     );
   };
 

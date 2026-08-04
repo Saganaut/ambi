@@ -28,20 +28,25 @@ import type { GalleryImageResponse } from "@features/gallery/store/galleryApi.ge
 // Fetch the remote URL and crop with jsdom-safe stubs we drive by hand.
 const fetchRemoteImage = vi.fn();
 const getCroppedBlob = vi.fn();
-vi.mock("@utils/imageEditing", () => ({
-  fetchRemoteImage: (url: string) => fetchRemoteImage(url) as Promise<Blob>,
-  getCroppedBlob: (...args: unknown[]) => getCroppedBlob(...args) as Promise<Blob>,
-}));
+vi.mock("@utils/imageEditing", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@utils/imageEditing")>();
+  return {
+    ...actual,
+    fetchRemoteImage: (url: string) => fetchRemoteImage(url) as Promise<Blob>,
+    getCroppedBlob: (...args: unknown[]) => getCroppedBlob(...args) as Promise<Blob>,
+  };
+});
 
 // Stub the crop editor (one level down, inside CropAndSaveStep): expose its name
-// prop and a button that fires onConfirm, so a test can walk source → confirm →
-// upload without react-easy-crop/canvas.
+// prop and buttons that fire onConfirm / onUseOriginal, so a test can walk
+// source → confirm → upload without react-easy-crop/canvas.
 vi.mock("./ImageCropEditor", () => ({
   ImageCropEditor: (props: {
     initialName?: string;
     error?: string | null;
     onConfirm: (r: { area: unknown; name: string; altText: string }) => void;
     onCancel: () => void;
+    onUseOriginal?: (r: { name: string; altText: string }) => void;
   }) => (
     <div data-testid='crop-editor'>
       <span>{props.initialName}</span>
@@ -49,19 +54,28 @@ vi.mock("./ImageCropEditor", () => ({
       <button
         onClick={() =>
           props.onConfirm({
-            area: { x: 0, y: 0, width: 10, height: 10 },
+            area: { x: 5, y: 6, width: 10, height: 10 },
             name: "Cropped",
             altText: "alt",
           })
         }>
         confirm-crop
       </button>
+      {props.onUseOriginal && (
+        <button
+          onClick={() => {
+            props.onUseOriginal?.({ name: "Original", altText: "alt" });
+          }}>
+          use-original
+        </button>
+      )}
       <button onClick={props.onCancel}>cancel-crop</button>
     </div>
   ),
 }));
 
 import { UploadTab } from "./UploadTab";
+import type { ResolvedCropConfig } from "./cropConfig";
 
 const uploaded: GalleryImageResponse = {
   id: "gi-new",
@@ -73,11 +87,23 @@ const uploaded: GalleryImageResponse = {
   updatedAt: "2026-01-01T00:00:00Z",
 };
 
+/** What the deck route returns for a placement-only crop. */
+const deckImage = {
+  external: false,
+  srcKey: "deck/d1/abc/original",
+  variants: {},
+};
+
 let uploadRequests = 0;
+let deckUploads = 0;
 const server = setupServer(
   http.post(`${apiBaseUrl}/api/galleries/g1/images/upload`, () => {
     uploadRequests += 1;
     return HttpResponse.json(uploaded, { status: 201 });
+  }),
+  http.post(`${apiBaseUrl}/api/decks/d1/images/upload`, () => {
+    deckUploads += 1;
+    return HttpResponse.json(deckImage, { status: 201 });
   }),
 );
 
@@ -98,9 +124,18 @@ afterEach(() => {
   server.resetHandlers();
   vi.clearAllMocks();
   uploadRequests = 0;
+  deckUploads = 0;
 });
 
-const renderTab = (galleryId: string | undefined) => {
+const REQUIRED_CROP: ResolvedCropConfig = { mode: "required", aspect: 16 / 9 };
+
+const renderTab = (
+  galleryId: string | undefined,
+  {
+    crop = REQUIRED_CROP,
+    deckId,
+  }: { crop?: ResolvedCropConfig; deckId?: string } = {},
+) => {
   const store = configureStore({
     reducer: { [emptySplitApi.reducerPath]: emptySplitApi.reducer },
     middleware: (getDefaultMiddleware) =>
@@ -109,10 +144,21 @@ const renderTab = (galleryId: string | undefined) => {
   const onPicked = vi.fn();
   render(
     <Provider store={store}>
-      <UploadTab galleryId={galleryId} aspect={16 / 9} onPicked={onPicked} />
+      <UploadTab
+        galleryId={galleryId}
+        deckId={deckId}
+        crop={crop}
+        onPicked={onPicked}
+      />
     </Provider>,
   );
   return { onPicked };
+};
+
+/** Walk the paste-URL path up to the crop editor. */
+const loadUrl = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.type(screen.getByLabelText("Image URL"), "https://example.com/cat.png");
+  await user.click(screen.getByRole("button", { name: "Load" }));
 };
 
 describe("UploadTab", () => {
@@ -156,13 +202,104 @@ describe("UploadTab", () => {
     const user = userEvent.setup();
     const { onPicked } = renderTab("g1");
 
-    await user.type(screen.getByLabelText("Image URL"), "https://example.com/cat.png");
-    await user.click(screen.getByRole("button", { name: "Load" }));
+    await loadUrl(user);
     await user.click(await screen.findByRole("button", { name: "confirm-crop" }));
 
     await vi.waitFor(() => {
       expect(onPicked).toHaveBeenCalledWith(uploaded.image);
     });
+    // With no deck to scope the crop to it *is* the gallery entry — one write.
     expect(uploadRequests).toBe(1);
+    expect(deckUploads).toBe(0);
+  });
+
+  it("offers no skip when the crop is required", async () => {
+    const user = userEvent.setup();
+    renderTab("g1");
+
+    await loadUrl(user);
+
+    expect(await screen.findByTestId("crop-editor")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "use-original" })).not.toBeInTheDocument();
+  });
+});
+
+describe("UploadTab with a deck target", () => {
+  const withDeck = { deckId: "d1" };
+
+  it("stores the original in the gallery and the crop in the deck", async () => {
+    const user = userEvent.setup();
+    const { onPicked } = renderTab("g1", withDeck);
+
+    await loadUrl(user);
+    await user.click(await screen.findByRole("button", { name: "confirm-crop" }));
+
+    await vi.waitFor(() => {
+      expect(onPicked).toHaveBeenCalledTimes(1);
+    });
+    // One gallery entry — the uncropped original — and the crop under the deck.
+    expect(uploadRequests).toBe(1);
+    expect(deckUploads).toBe(1);
+    const picked = onPicked.mock.calls[0][0] as { srcKey?: string };
+    expect(picked.srcKey).toBe("deck/d1/abc/original");
+  });
+
+  it("stamps the crop with the gallery image it was cut from", async () => {
+    const user = userEvent.setup();
+    const { onPicked } = renderTab("g1", withDeck);
+
+    await loadUrl(user);
+    await user.click(await screen.findByRole("button", { name: "confirm-crop" }));
+
+    await vi.waitFor(() => {
+      expect(onPicked).toHaveBeenCalledTimes(1);
+    });
+    const picked = onPicked.mock.calls[0][0] as {
+      metadata?: Record<string, unknown>;
+    };
+    expect(picked.metadata?.crop).toEqual({
+      sourceGalleryId: "g1",
+      sourceImageId: "gi-new",
+      x: 5,
+      y: 6,
+      width: 10,
+      height: 10,
+    });
+  });
+
+  it("embeds the gallery original when an optional crop is skipped", async () => {
+    const user = userEvent.setup();
+    const { onPicked } = renderTab("g1", {
+      ...withDeck,
+      crop: { mode: "optional", aspect: 16 / 9 },
+    });
+
+    await loadUrl(user);
+    await user.click(await screen.findByRole("button", { name: "use-original" }));
+
+    await vi.waitFor(() => {
+      expect(onPicked).toHaveBeenCalledWith(uploaded.image);
+    });
+    expect(uploadRequests).toBe(1);
+    expect(deckUploads).toBe(0);
+  });
+
+});
+
+describe("UploadTab with cropping off", () => {
+  it("stores the source as it stands, never showing the crop editor", async () => {
+    const user = userEvent.setup();
+    const { onPicked } = renderTab("g1", {
+      crop: { mode: "off", aspect: 16 / 9 },
+    });
+
+    await loadUrl(user);
+
+    await vi.waitFor(() => {
+      expect(onPicked).toHaveBeenCalledWith(uploaded.image);
+    });
+    expect(screen.queryByTestId("crop-editor")).not.toBeInTheDocument();
+    expect(uploadRequests).toBe(1);
+    expect(getCroppedBlob).not.toHaveBeenCalled();
   });
 });

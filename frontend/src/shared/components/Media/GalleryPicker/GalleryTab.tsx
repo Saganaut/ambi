@@ -3,8 +3,8 @@
 // query params on `listImages`, so the grid shows one true page of the gallery
 // rather than a client filter over whatever happened to be fetched. Picking
 // reports the whole gallery item and this tab takes it no further — whether the
-// pick is inserted as-is or re-cropped first is the parent's decision (see
-// GalleryPicker's `cropGalleryPicks`).
+// pick is inserted as-is or cropped first is the parent's decision (see
+// GalleryPicker's crop config).
 //
 // Two interaction modes, chosen by the parent:
 //   • click-to-pick (default) — a single click fires onPick straight away. Used

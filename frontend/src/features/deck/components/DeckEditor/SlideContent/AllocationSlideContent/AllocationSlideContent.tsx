@@ -31,7 +31,7 @@ import styles from "./AllocationSlideContent.module.css";
 const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useAllocationEditor(deckId, slideId);
   const { question } = editor;
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
 
   // Local mirrors keep the debounced inputs responsive: `updateSlideContent`
   // buffers to a draft and only commits on flush, so binding straight to the

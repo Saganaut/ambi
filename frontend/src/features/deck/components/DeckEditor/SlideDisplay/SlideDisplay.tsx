@@ -124,7 +124,7 @@ const SlideDisplay = () => {
   // chrome keeps the user's global theme.
   const { deck } = useDeckQuery(deckId);
   const { style: themeStyle, appearance } = useDeckTheme(deck?.themeId);
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
 
   const slide = slideId ? getSlide(slideId) : slides[0];
   const navigate = routeApi.useNavigate();
@@ -245,10 +245,12 @@ const SlideDisplay = () => {
               (image) => {
                 setSlideImage(slide.id, "cover", image, defaultPlacement);
               },
+              // The cover slot has no fixed shape to fill — keep the upload's
+              // own aspect ratio rather than clipping it to 16:9.
               {
-                title: "Slide background image",
-                cropWidth: 16,
-                cropHeight: 9,
+                title: "Slide cover image",
+                current: slide.coverImage,
+                crop: { aspect: "source" },
               },
             );
           }}

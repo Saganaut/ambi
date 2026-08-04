@@ -32,7 +32,7 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const slide = slideId ? getSlide(slideId) : undefined;
 
   const { deck } = useDeckQuery(deckId);
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   const [promoteBackgroundImage] = usePromoteBackgroundImageToDeckMutation();
   const [promoteClearedBackgroundImage] = usePromoteClearedBackgroundImageToDeckMutation();
 
@@ -83,8 +83,8 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
             },
             {
               title: "Slide background image",
-              cropWidth: 16,
-              cropHeight: 9,
+              current: slide.backgroundImage,
+              crop: { aspect: 16 / 9 },
             },
           );
         }}
@@ -279,7 +279,7 @@ const FeatureImageSelector = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const { getSlide, setSlideImage, clearSlideImage } = useSlide(deckId);
 
   const slide = getSlide(slideId);
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   const defaultPlacement = slotMappingOptions[0];
 
   // const updateSlidePlacement = (slidePlacement: SlotMapping) => {
@@ -300,10 +300,12 @@ const FeatureImageSelector = ({ deckId, slideId }: deckAndSlideIdProps) => {
             (image) => {
               setSlideImage(slideId, "cover", image, defaultPlacement);
             },
+            // Same cover slot as the canvas CoverImagePicker — keep the
+            // upload's own aspect ratio.
             {
-              title: "Slide background image",
-              cropWidth: 16,
-              cropHeight: 9,
+              title: "Slide cover image",
+              current: slide?.coverImage,
+              crop: { aspect: "source" },
             },
           );
         }}

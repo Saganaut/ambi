@@ -35,7 +35,7 @@ import styles from "./MatchingSlideContent.module.css";
 const MatchingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useMatchingEditor(deckId, slideId);
   const { question } = editor;
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
 
   const [prompt, setPrompt] = useState(question?.prompt ?? "");
   // Which card's menu is open — at most one per slide. Focusing a card's

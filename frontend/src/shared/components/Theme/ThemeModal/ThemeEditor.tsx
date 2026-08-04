@@ -220,9 +220,9 @@ const ThemeEditor = ({
   if (picking) {
     return (
       <GalleryPicker
-        initialUrl={
-          (picking === "background" ? backgroundImage : logoImage)?.externalSrc
-        }
+        // No deck to scope a crop to: theme images sit outside the deck
+        // adoption model, so a crop here still becomes a gallery entry (v1).
+        current={picking === "background" ? backgroundImage : logoImage}
         onPick={(img) => {
           if (picking === "background") setBackgroundImage(img);
           else setLogoImage(img);

@@ -30,7 +30,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
     setItemImage,
     removeItem,
   } = useRankingEditor(deckId, slideId);
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   // The prompt mirror and which row's menu is open — at most one per slide.
   // Focusing a row's label opens its menu (and thereby closes any other); the
   // menu owns dismissal. Ranking arms no row, so `selectedItemId` goes unused.

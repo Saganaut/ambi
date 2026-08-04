@@ -76,7 +76,7 @@ const itemNameOf = (item: GridItem, index: number): string =>
 const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useGridEditor(deckId, slideId);
   const { question } = editor;
-  const openPicker = useGalleryPicker();
+  const openPicker = useGalleryPicker(deckId);
   const composer = useSlideComposerState(question);
 
   /** Move an item to a cell — or out of the matrix (null) — writing only a change. */

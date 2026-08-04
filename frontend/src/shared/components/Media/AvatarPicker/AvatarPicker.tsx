@@ -105,7 +105,9 @@ const AvatarPicker = ({ builtinValue, onPick, onClose }: AvatarPickerProps) => {
       panel: (
         <UploadTab
           galleryId={galleryId}
-          aspect={1}
+          // Avatars render in a square frame, and there is no deck to scope a
+          // crop to here, so it lands in the gallery as before (v1).
+          crop={{ mode: "required", aspect: 1 }}
           onPicked={(image) => {
             onPick({ kind: "image", image });
           }}
