@@ -2,16 +2,22 @@ package com.cephadex.ambi.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +29,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.config.AmbiApplication;
@@ -51,7 +58,11 @@ class LiveSessionRosterIT {
     @Autowired
     private LiveSessionOrchestrator orchestrator;
 
-    @Autowired
+    /**
+     * Spied only so {@link #aColdKeyJoinBurstNeverExceedsTheCap} can hold the burst
+     * at a barrier; every other test here runs the real roster untouched.
+     */
+    @MockitoSpyBean
     private SessionRoster roster;
 
     @Autowired
@@ -247,13 +258,26 @@ class LiveSessionRosterIT {
     @Test
     void aColdKeyJoinBurstNeverExceedsTheCap() throws Exception {
         int cap = 5;
+        int joiners = 12;
         LiveSession session = openSession(cap);
         // With the set evicted, every joiner in the burst rehydrates — and each
         // rehydrate seeds the speculative documents its peers have already written.
         redis.delete(keys.rosterKey(session.getId()));
 
+        // Hold every join between its insert and its admit so the burst is certainly
+        // in the state that cross-seeds: all twelve speculative documents durable, the
+        // set still cold, nobody admitted. Left to chance a warm JVM lets the first
+        // admit land before its peers save, and there is nothing for it to seed.
+        AtomicLong durableWhenTheBurstAdmits = new AtomicLong();
+        CyclicBarrier inserted = new CyclicBarrier(joiners, () -> durableWhenTheBurstAdmits
+                .set(mongoTemplate.count(new Query(Criteria.where("session_id").is(session.getId())),
+                        Participant.class)));
+        doAnswer(admit -> {
+            inserted.await(30, TimeUnit.SECONDS);
+            return admit.callRealMethod();
+        }).when(roster).admit(anyString(), anyString(), anyString(), anyInt(), any());
+
         AtomicInteger full = new AtomicInteger();
-        int joiners = 12;
         List<Future<Participant>> joins = runConcurrently(joiners, index -> {
             try {
                 return orchestrator.join(session.getRoomCode(), "user-" + index, "Player " + index, null, null)
@@ -271,10 +295,14 @@ class LiveSessionRosterIT {
                 admitted++;
             }
         }
+        // The barrier really did establish the cross-seeding shape: host + every
+        // joiner's insert was durable before the first rehydrate read Mongo.
+        assertThat(durableWhenTheBurstAdmits.get()).isEqualTo(joiners + 1L);
         // Cross-seeding rehydrates can refuse a joiner that would have fit, so the cap
         // is a ceiling here rather than an exact count — the safe direction, and a
-        // recorded follow-up. What must never happen is the reverse: the host holds a
-        // seat, so no burst may land more than cap-1 joiners on top of it.
+        // recorded follow-up. What must never happen is the reverse: being seeded into
+        // the set is not a seat, so no burst may land more than cap-1 joiners on top
+        // of the host's.
         assertThat(admitted + full.get()).isEqualTo(joiners);
         assertThat(admitted).isLessThanOrEqualTo(cap - 1);
         assertThat(roster.participants(session.getId())).hasSizeLessThanOrEqualTo(cap);

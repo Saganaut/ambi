@@ -114,9 +114,11 @@ public class SessionRoster {
      * this only records the membership.
      *
      * <p>The joiner's own document is already durable when this runs, so the
-     * rehydrate that precedes the cap check excludes {@code participantId} —
-     * counting it would seed the set with the very member the script is about to
-     * add and reject the last free seat.
+     * rehydrate that precedes the cap check excludes {@code participantId}: a heal
+     * seeds the members that hold seats, and this one has not been admitted yet, so
+     * writing it in would claim a membership the script may be about to refuse. The
+     * cap check itself does not depend on the exclusion — the script discounts a
+     * joiner the set already carries either way.
      *
      * @return {@code true} when admitted; {@code false} when the session is full
      *         (nothing added, nothing published)

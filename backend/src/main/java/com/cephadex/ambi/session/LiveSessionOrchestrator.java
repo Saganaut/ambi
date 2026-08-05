@@ -449,7 +449,8 @@ public class LiveSessionOrchestrator {
             participants.delete(participant);
         } catch (RuntimeException e) {
             log.warn("Could not delete participant {} while rolling back a refused join to session {} — "
-                    + "the document is orphaned", participant.getParticipantId(), session.getId(), e);
+                    + "the document is orphaned, so the roster still reports it and the next heal re-seeds it "
+                    + "past the SREM below", participant.getParticipantId(), session.getId(), e);
             failure.addSuppressed(e);
         }
         try {

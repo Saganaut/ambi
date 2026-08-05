@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -976,6 +977,43 @@ class LiveSessionOrchestratorTest {
                 .satisfies(thrown -> assertThat(thrown.getSuppressed())
                         .singleElement().isInstanceOf(RedisConnectionFailureException.class));
         verify(participants).delete(any(Participant.class));
+        verify(presenceStore, never()).save(anyString(), anyString(), any());
+    }
+
+    @Test
+    void aDocumentRollbackThatFailsDoesNotMaskWhyTheJoinFailed() {
+        joinableSession();
+        IllegalStateException admitFailure = new IllegalStateException("no reply");
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenThrow(admitFailure);
+        // A Mongo failure undoing the speculative insert must not become the exception
+        // the caller sees either — it would replace the reason the join was refused.
+        doThrow(new DataAccessResourceFailureException("mongo is down"))
+                .when(participants).delete(any(Participant.class));
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isSameAs(admitFailure)
+                .satisfies(thrown -> assertThat(thrown.getSuppressed())
+                        .singleElement().isInstanceOf(DataAccessResourceFailureException.class));
+        // The SREM still runs. It cannot hold — the orphaned document is re-seeded by
+        // the next heal — but dropping the member is the best the rollback can do, and
+        // skipping it would strand a phantom that no heal would ever have to re-add.
+        verify(roster).remove(eq(SID), anyString());
+        verify(presenceStore, never()).save(anyString(), anyString(), any());
+    }
+
+    @Test
+    void aDocumentRollbackThatFailsStillReportsTheFullSession() {
+        joinableSession();
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(false);
+        doThrow(new DataAccessResourceFailureException("mongo is down"))
+                .when(participants).delete(any(Participant.class));
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isInstanceOfSatisfying(ConflictException.class,
+                        full -> assertThat(full.getCode()).isEqualTo("SESSION_FULL"))
+                .satisfies(thrown -> assertThat(thrown.getSuppressed())
+                        .singleElement().isInstanceOf(DataAccessResourceFailureException.class));
+        verify(roster).remove(eq(SID), anyString());
         verify(presenceStore, never()).save(anyString(), anyString(), any());
     }
 
