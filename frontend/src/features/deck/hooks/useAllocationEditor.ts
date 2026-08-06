@@ -1,92 +1,39 @@
 // Allocation-specific editing layer for the deck editor's Allocation slide.
-//
-// Sits on the generic `useSlideEditor<"ALLOCATION">` and exposes the
-// intent-level surface the Allocation author UI consumes: a synthesized
-// `question` view, a prompt edit, the pool-level fields (total points /
-// per-option tolerance), and per-option ops keyed by option id. There is
-// exactly ONE `useSlideEditor` instance per Allocation slide (this hook is
-// instantiated once, in `AllocationSlideContent`), so every write funnels
-// through a single draft + debounce buffer.
-//
-// An ALLOCATION slide hands players a fixed pool of points to split across
-// the options (the same `McqOption` records MCQ uses, so color/image ops are
-// MCQ's). Scoring is opt-in per option, Scales-style: `correctAllocations`
-// maps option id → its share of the pool, graded within `tolerancePerOption`
-// points, and the backend treats an empty map as unscored (collect-only).
-// Structural edits keep that map consistent: removing an option drops its
-// answer. Pool edits never rewrite keyed answers — a mid-typing total would
-// destructively clamp them — so a sum that drifts from the pool is surfaced
-// by the editor's footer instead.
 import type { DragEndEvent } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 
 import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
 
+import {
+  AllocationQuestionActions,
+  NonSortableEditableItem,
+  QuestionBaseActions,
+  QuestionBaseState,
+} from "../components/DeckEditor/SlideContent/_shared/Item.types";
 import { buildDefaultAllocationOption } from "../utils/slideContent";
 import { useSlideEditor } from "./useSlideEditor";
 
-/** Author can't drop below 2 options (a split needs a real choice) … */
 const MIN_ALLOCATION_OPTIONS = 2;
-/** … nor add past 6 (matches MCQ's cap and the 6-color option palette). */
 const MAX_ALLOCATION_OPTIONS = 6;
-/** A pool needs at least one point to hand out. */
 const ALLOCATION_TOTAL_MIN = 1;
-/** `maxLength` for option label inputs (item-row parity across kinds). */
+//TODO: Move this somwhere else
 const ALLOCATION_OPTION_LABEL_MAX = 80;
 
 /** Flattened, UI-facing view of the active Allocation slide. */
 interface AllocationQuestionView {
   id: string;
-  /** The prompt text — stored in `slide.title`, not in the content. */
   prompt: string;
   options: McqOption[];
-  /** optionId → correct share of the pool; empty means the slide is unscored. */
   correctAllocations: Record<string, number>;
-  /** The pool every player splits across the options. */
   totalPointsToAllocate: number;
-  /** ± points around each option's answer that still count as correct. */
-  tolerancePerOption: number;
+  tolerancePerItem: number;
 }
 
 interface UseAllocationEditorResult {
-  /** The active Allocation slide as a flat view, or undefined until one is selected. */
   question: AllocationQuestionView | undefined;
-
-  /** ── Question-level ──────────────────────────────────────────────────── */
-  /** Debounced prompt edit → persisted to `slide.title`. */
-  schedulePrompt: (html: string) => void;
-  /** Flush any pending debounced edit immediately (bind to blur). */
-  flush: () => void;
-  /** Debounced pool-size edit (clamped to ≥ {@link ALLOCATION_TOTAL_MIN}). */
-  scheduleTotalPoints: (value: number) => void;
-  /** Debounced tolerance edit (clamped to [0, pool]). */
-  scheduleTolerance: (value: number) => void;
-
-  /** ── Options (keyed by `option.id`) ──────────────────────────────────── */
-  /** True while under {@link MAX_ALLOCATION_OPTIONS}. */
-  canAddOption: boolean;
-  /** True while above {@link MIN_ALLOCATION_OPTIONS} — same for every option. */
-  canRemoveOption: boolean;
-  /** Append a blank option (no-op at the max). Immediate. */
-  addOption: () => void;
-  /** Remove the option and drop its answer from `correctAllocations`. */
-  removeOption: (optionId: string | undefined) => void;
-  /** @dnd-kit drop handler — reorders options without changing their id-keyed answers. */
-  handleOptionDragEnd: (event: DragEndEvent) => void;
-  /** Debounced label edit. */
-  scheduleOptionText: (optionId: string | undefined, text: string) => void;
-  /** Override the option's palette color (menu swatch / custom picker). Immediate. */
-  setOptionColor: (optionId: string | undefined, color: string) => void;
-  /** Set or clear (empty AppImage) the option's image. Immediate. */
-  setOptionImage: (optionId: string | undefined, image: AppImage) => void;
-
-  /** ── Scoring ─────────────────────────────────────────────────────────── */
-  /** Debounced per-option answer edit → `correctAllocations[id]` (clamped to [0, pool]). */
-  scheduleCorrectAllocation: (optionId: string | undefined, points: number) => void;
-  /** Immediate per-option answer set (the row's "Set answer" seed). */
-  commitCorrectAllocation: (optionId: string | undefined, points: number) => void;
-  /** Drop one option's answer, leaving that option unscored. */
-  clearCorrectAllocation: (optionId: string | undefined) => void;
+  baseState: QuestionBaseState;
+  baseActions: QuestionBaseActions;
+  extendedActions: AllocationQuestionActions;
 }
 
 /** Answers are whole points inside the pool. */
@@ -94,7 +41,7 @@ const clampPoints = (value: number, total: number): number =>
   Math.min(total, Math.max(0, Math.round(value)));
 
 /** Move one option while preserving each option's identity and id-keyed answer. */
-const reorderAllocationOptions = (
+const reorderAllocationItems = (
   options: readonly McqOption[],
   initialIndex: number,
   index: number,
@@ -112,8 +59,8 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
   const content = slide?.content;
   const options = content?.options ?? [];
 
-  const canAddOption = options.length < MAX_ALLOCATION_OPTIONS;
-  const canRemoveOption = options.length > MIN_ALLOCATION_OPTIONS;
+  const canAddItem = options.length < MAX_ALLOCATION_OPTIONS;
+  const canRemoveItem = options.length > MIN_ALLOCATION_OPTIONS;
 
   const question: AllocationQuestionView | undefined =
     slide && content
@@ -123,11 +70,11 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
           options,
           correctAllocations: content.correctAllocations ?? {},
           totalPointsToAllocate: content.totalPointsToAllocate,
-          tolerancePerOption: content.tolerancePerOption,
+          tolerancePerItem: content.tolerancePerOption,
         }
       : undefined;
 
-  const schedulePrompt = (html: string) => editor.updateMetadata({ title: html });
+  const scheduleQuestionPrompt = (html: string) => editor.updateMetadata({ title: html });
 
   const scheduleTotalPoints = (value: number) => {
     editor.updateSlideContent({
@@ -141,16 +88,16 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     }));
   };
 
-  const addOption = () => {
-    if (!canAddOption) return;
+  const addItem = () => {
+    if (!canAddItem) return;
     editor.updateSlideContent((prev) => ({
       options: [...prev.options, buildDefaultAllocationOption()],
     }));
     editor.flush();
   };
 
-  const removeOption = (id: string | undefined) => {
-    if (!id || !canRemoveOption) return;
+  const removeItem = (id: string | undefined) => {
+    if (!id || !canRemoveItem) return;
     editor.updateSlideContent((prev) => {
       // Drop the option's answer too, so a stale key can't keep the slide
       // "scored" against an option the author deleted.
@@ -163,39 +110,39 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     editor.flush();
   };
 
-  const handleOptionDragEnd = (event: DragEndEvent) => {
+  const handleItemDragEnd = (event: DragEndEvent) => {
     if (event.canceled) return;
     const { source } = event.operation;
     if (!isSortable(source)) return;
     const { initialIndex, index } = source;
     if (initialIndex === index) return;
     editor.updateSlideContent((prev) => ({
-      options: reorderAllocationOptions(prev.options, initialIndex, index),
+      options: reorderAllocationItems(prev.options, initialIndex, index),
     }));
     editor.flush();
   };
 
   // Merge a patch into one option, deriving from the freshest pending draft so
   // sibling edits in the same debounce window aren't clobbered (MCQ's pattern).
-  const patchOption = (id: string, patch: Partial<McqOption>) =>
+  const patchItem = (id: string, patch: Partial<McqOption>) =>
     editor.updateSlideContent((prev) => ({
       options: prev.options.map((option) => (option.id === id ? { ...option, ...patch } : option)),
     }));
 
-  const scheduleOptionText = (id: string | undefined, text: string) => {
+  const scheduleItemText = (id: string | undefined, text: string) => {
     if (!id) return;
-    patchOption(id, { text });
+    patchItem(id, { text });
   };
 
-  const setOptionColor = (id: string | undefined, color: string) => {
+  const setItemColor = (id: string | undefined, color: string) => {
     if (!id) return;
-    patchOption(id, { color });
+    patchItem(id, { color });
     editor.flush();
   };
 
-  const setOptionImage = (id: string | undefined, image: AppImage) => {
+  const setItemImage = (id: string | undefined, image: AppImage) => {
     if (!id) return;
-    patchOption(id, { image });
+    patchItem(id, { image });
     editor.flush();
   };
 
@@ -224,23 +171,58 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     editor.flush();
   };
 
-  return {
-    question,
-    schedulePrompt,
+  const itemPreparer = (option: McqOption, sourceIndex: number): NonSortableEditableItem => {
+    const item = { label: option.text ?? "", color: option.color ?? "", ...option };
+    const detail = {
+      type: "allocation",
+      correctValue: correctAllocations[option.id],
+      value: correctAllocations[option.id],
+      totalPool: totalPoints,
+      onCommit: (points: number) => {
+        editor.extendedActions.commitCorrectAllocation(option.id, points);
+      },
+      onScheduleAnswer: (points: number) => {
+        editor.scheduleCorrectAllocation(option.id, points);
+      },
+      onClear: () => {
+        editor.clearCorrectAllocation(option.id);
+      },
+    };
+    const actions = {};
+    const ui = {};
+
+    return { sourceIndex, item, actions, detail, ui };
+  };
+
+  const baseActions = {
     flush: editor.flush,
+    setItemColor,
+    setItemImage,
+    removeItem,
+    addItem,
+    handleItemDragEnd,
+    scheduleQuestionPrompt,
+    scheduleItemText,
+  };
+
+  const baseState = {
+    canAddItem,
+    canRemoveItem,
+  };
+
+  const extendedActions = {
     scheduleTotalPoints,
     scheduleTolerance,
-    canAddOption,
-    canRemoveOption,
-    addOption,
-    removeOption,
-    handleOptionDragEnd,
-    scheduleOptionText,
-    setOptionColor,
-    setOptionImage,
     scheduleCorrectAllocation,
     commitCorrectAllocation,
     clearCorrectAllocation,
+  };
+
+  return {
+    baseState,
+    question,
+    baseActions,
+    extendedActions,
   };
 };
 
@@ -249,7 +231,7 @@ export {
   ALLOCATION_TOTAL_MIN,
   MAX_ALLOCATION_OPTIONS,
   MIN_ALLOCATION_OPTIONS,
-  reorderAllocationOptions,
+  reorderAllocationItems,
   useAllocationEditor,
 };
 export type { AllocationQuestionView, UseAllocationEditorResult };

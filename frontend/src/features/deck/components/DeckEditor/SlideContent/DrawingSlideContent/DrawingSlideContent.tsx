@@ -4,33 +4,20 @@
  * a rendered PNG. There is no static answer key (typically paired with a
  * best-answer-vote follow-up), so this surface has no scoring knobs.
  *
- * Layout:
- *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
- *   - "Prompt image" card: optional image players see with the canvas —
- *     choose from the gallery, or draw one right here (DrawingCanvas in the
- *     global modal → PNG → gallery ingest). A placement radio decides
- *     whether players see it beside the canvas or under their strokes as a
- *     traceable layer.
- *   - "Correct answer image" card: the author's own picture of the right
- *     answer (`correctImage`). It changes nothing about the Drawing round —
- *     players never see it here — but it is what a `SPOT_THE_ANSWER`
- *     follow-up seeds onto its board among the players' drawings, so setting
- *     one is what unlocks that mode on this slide.
- *   - "Canvas tools" card: which tools players get (pen is always on) and
- *     the stroke-color palette (shown while COLOR_PALETTE is enabled).
  *
- * Removing the correct-answer image is blocked (no remove control, no PUT
+ * Removing the correct-answer image is blocked (no clear control, no PUT
  * fired) while a keyed follow-up is attached — the backend 400s that content
  * transition, and `updateSlide`'s fire-and-forget PUT can't surface a
  * rejection, so `wouldOrphanKeyedFollowUp` catches it client-side first.
  * Replacing it stays allowed: the follow-up keeps an answer to hide either way.
  */
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { RadioGroup } from "@components/Forms/Input/RadioGroup/RadioGroup";
-import { AppImg } from "@components/Images/AppImg";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import { AppImg } from "@components/Images/AppImg";
 import { useDrawingEditor } from "@deck/hooks/useDrawingEditor";
 import { useSlide } from "@deck/hooks/useSlide";
 import type { PromptPlacement, Tool } from "@deck/store/deckEnums.gen";
@@ -38,6 +25,7 @@ import { wouldOrphanKeyedFollowUp } from "@deck/utils/followUp";
 import { DEFAULT_DRAWING_PALETTE } from "@deck/utils/slideContent";
 import { useModal } from "@hooks/useModal";
 import { Btn } from "@ui/Buttons/Btn";
+import { IconBtn } from "@ui/Buttons/IconBtn";
 import { isImageEmpty, largestUrl } from "@utils/image";
 import { EmptySelect } from "../_shared";
 import type { SlideContentProps } from "../slideContentProps";
@@ -183,7 +171,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       <SlideContent>
         <SlideContentSection>
           <SlideContentSection.Header>
-            <span>Prompt image</span>
+            <span>Prompt</span>
             <span className={styles.imageActions}>
               <Btn variant="secondary" size="sm" onClick={pickImage}>
                 {hasImage ? "Replace image" : "Choose image"}
@@ -191,23 +179,27 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               <Btn variant="secondary" size="sm" onClick={drawImage}>
                 Draw one
               </Btn>
-              {hasImage && (
-                <Btn variant="error" fill="ghost" size="sm" onClick={editor.clearImagePrompt}>
-                  Remove
-                </Btn>
-              )}
             </span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
             {hasImage ? (
               <div className={styles.imageSection}>
-                {" "}
-                <AppImg
-                  className={styles.imagePreview}
-                  src={imageUrl}
-                  alt={question.imagePrompt?.altText ?? "Prompt image"}
-                  fallbackSeed={question.id}
-                />
+                <div className={styles.imageFrame}>
+                  <AppImg
+                    className={styles.imagePreview}
+                    src={imageUrl}
+                    alt={question.imagePrompt?.altText ?? "Prompt image"}
+                    fallbackSeed={question.id}
+                  />
+                  <IconBtn
+                    fill="ghost"
+                    size="xs"
+                    className={styles.imageClear}
+                    icon={<XMarkIcon />}
+                    aria-label="Remove prompt image"
+                    onClick={editor.clearImagePrompt}
+                  />
+                </div>
                 <RadioGroup
                   name={`draw-placement-${question.id}`}
                   legend="Players see it"
@@ -220,7 +212,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   onChange={(value) => {
                     editor.setPromptPlacement(value as PromptPlacement);
                   }}
-                />{" "}
+                />
               </div>
             ) : (
               <p className={styles.imageHint}>
@@ -232,7 +224,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         </SlideContentSection>
         <SlideContentSection>
           <SlideContentSection.Header>
-            <span>Correct answer image</span>
+            <span>Answer</span>
             <span className={styles.imageActions}>
               <Btn variant="secondary" size="sm" onClick={pickCorrectImage}>
                 {hasCorrectImage ? "Replace image" : "Choose image"}
@@ -240,11 +232,6 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               <Btn variant="secondary" size="sm" onClick={drawCorrectImage}>
                 Draw one
               </Btn>
-              {hasCorrectImage && !answerImageLocked && (
-                <Btn variant="error" fill="ghost" size="sm" onClick={editor.clearCorrectImage}>
-                  Remove
-                </Btn>
-              )}
             </span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
@@ -254,12 +241,24 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             {hasCorrectImage ? (
               <>
                 <div className={styles.imageSection}>
-                  <AppImg
-                    className={styles.imagePreview}
-                    src={correctImageUrl}
-                    alt={question.correctImage?.altText ?? "Correct answer image"}
-                    fallbackSeed={`${question.id}-answer`}
-                  />
+                  <div className={styles.imageFrame}>
+                    <AppImg
+                      className={styles.imagePreview}
+                      src={correctImageUrl}
+                      alt={question.correctImage?.altText ?? "Correct answer image"}
+                      fallbackSeed={`${question.id}-answer`}
+                    />
+                    {!answerImageLocked && (
+                      <IconBtn
+                        fill="ghost"
+                        size="xs"
+                        className={styles.imageClear}
+                        icon={<XMarkIcon />}
+                        aria-label="Remove correct answer image"
+                        onClick={editor.clearCorrectImage}
+                      />
+                    )}
+                  </div>
                 </div>
                 <p className={styles.imageHint}>Players try to spot this among the drawings.</p>
               </>
@@ -281,7 +280,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         <SlideContentSection>
           <SlideContentSection.Header>
             {" "}
-            <span>Canvas Tools</span>{" "}
+            <span>Tools</span>{" "}
           </SlideContentSection.Header>
           <SlideContentSection.Body>
             <div>

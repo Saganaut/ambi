@@ -64,6 +64,19 @@ public class Participant {
     @Field("left_at")
     private Instant leftAt;
 
+    /**
+     * When the participant was admitted to the run's roster, else {@code null}.
+     * Membership is durable only from this instant: the document is written
+     * <em>before</em> the admit so an announced join is always loadable, and a
+     * document without the marker is either mid-flight or rolled back — no
+     * rehydrate seeds it into the Redis roster set and no membership check honours
+     * it. Also the admission-time discriminator the session-analytics proposal
+     * assumes (a late joiner's first round is derived from it, not from
+     * {@link #joinedAt}).
+     */
+    @Field("admitted_at")
+    private Instant admittedAt;
+
     @Field("user_id")
     private String userId;
 
@@ -162,6 +175,21 @@ public class Participant {
     /** Whether the participant is still on the run's roster (they never left). */
     public boolean isOnRoster() {
         return leftAt == null;
+    }
+
+    /**
+     * Stamps the durable admission marker — the point from which this document
+     * counts as a member. Called exactly once per document: the host at creation
+     * (they are admitted by construction), a joiner only once their admit has
+     * landed.
+     */
+    public void markAdmitted() {
+        this.admittedAt = Instant.now();
+    }
+
+    /** Whether the participant's admission to the roster is durably recorded. */
+    public boolean isAdmitted() {
+        return admittedAt != null;
     }
 
     /**

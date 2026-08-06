@@ -33,9 +33,10 @@ implemented and verified against the code:
   `LiveRoundState` from the last Mongo snapshot and the open round restarts; its in-flight
   answers are gone. Continuous answer flushing is explicitly not built.
 - **The roster sits outside that window.** Membership is durable on the `Participant` documents
-  (`sessionId` + a `leftAt` that only an explicit leave sets), so the Redis roster SET is a pure
-  cache and never the source of truth. `SessionRoster` rehydrates it from
-  `findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc` when the key is missing, and a `SISMEMBER`
+  (`sessionId`, an `admittedAt` that only a landed admit stamps, and a `leftAt` that only an
+  explicit leave sets), so the Redis roster SET is a pure cache and never the source of truth.
+  `SessionRoster` rehydrates it from
+  `findBySessionIdAndLeftAtIsNullAndAdmittedAtNotNullOrderByJoinedAtAsc` when the key is missing, and a `SISMEMBER`
   miss re-checks Mongo and heals the set rather than locking a participant out of their own
   session — so a lost roster costs one slower read, not a rebuild from the last snapshot.
 

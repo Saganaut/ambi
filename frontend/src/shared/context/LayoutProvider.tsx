@@ -11,7 +11,7 @@
 import { close } from "@deck/store/panelSlice";
 import { ArrowsPointingInIcon } from "@heroicons/react/24/outline";
 import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
-import { useAppDispatch } from "../hooks/storeHooks";
+import { useAppDispatch } from "../store/hooks";
 import styles from "./LayoutProvider.module.css";
 interface LayoutContextValue {
   isFullScreen: boolean;

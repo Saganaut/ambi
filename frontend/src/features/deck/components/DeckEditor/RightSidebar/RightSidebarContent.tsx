@@ -1,5 +1,4 @@
 import { PanelKey } from "@/features/deck/store/panelSlice.ts";
-import { useAppDispatch } from "@/shared/hooks/storeHooks.ts";
 import { RootState } from "@/shared/store/store.ts";
 import { close, open } from "@deck/store/panelSlice.ts";
 import {
@@ -17,8 +16,9 @@ import { type ReactNode } from "react";
 import { useSelector } from "react-redux";
 
 import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
-import styles from "./RightSidebarContent.module.css";
+import { useAppDispatch } from "@/shared/store/hooks";
 import { PANEL_TITLES } from "./data";
+import styles from "./RightSidebarContent.module.css";
 import { SideMenuButton } from "./SideMenuButton/SideMenuButton";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");

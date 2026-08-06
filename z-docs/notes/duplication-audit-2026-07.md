@@ -36,10 +36,6 @@ you pick up.
    `Loader`/`ErrorDisplay`/`EmptyState`.
 6. **`<section><h4>` options shell hand-copied 9x** — `DeckEditor/RightSidebar/EditSlideSections/*`
    — extract `<OptionsSection title>`.
-7. **`imageValidation.ts` is dead and the live path disagrees with it — a bug, not a refactor** —
-   `shared/utils/imageValidation.ts` (`IMAGE_TIERS`, `validateImageFile`) has zero importers while
-   `Media/GalleryPicker/UploadTab.tsx:22` hardcodes `10 * 1024 * 1024` against `IMAGE_TIERS.gallery`'s
-   5 MB — wire the upload path to `IMAGE_TIERS` or delete the module.
 8. **Pill/badge CSS reimplemented 3x** — `{Allocation,Number,Scales}SlideContent.module.css` —
    reuse `_shared/IndexPill` (or `Badge`).
 9. **Two bespoke drawers bypass `Modal`/`useModal`** — `SidePanelDrawer.tsx`,

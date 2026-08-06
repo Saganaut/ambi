@@ -1,9 +1,4 @@
-// Pareto chart: bars sorted by descending value with a cumulative-percentage
-// line overlaid (the classic "80/20" view). Bars are scaled to the largest
-// value; the cumulative line runs 0→100% on the same canvas. Useful for MCQ
-// option counts when the author wants to see how few options capture most of
-// the responses. SVG bars + line (stretched to fill) with HTML dot markers and
-// the category labels listed below in the sorted order.
+//TODO: This is just a variant on the vertical bar chart, we just add the pareto line
 import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
 import type { ChartProps } from "../Chart.types";
 import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
@@ -108,7 +103,11 @@ const ParetoChartInner = ({
               className={`${styles.label} ${it.datum.highlight ? styles.highlight : ""}`}
             >
               <div className={styles.optionControls}>
-                <OptionImage src={it.datum.imageUrl} alt={it.datum.imageAlt} fallbackSeed={it.datum.id} />
+                <OptionImage
+                  src={it.datum.imageUrl}
+                  alt={it.datum.imageAlt}
+                  fallbackSeed={it.datum.id}
+                />
                 {renderLabelWithMenu ? (
                   renderLabelWithMenu(it.datum)
                 ) : (

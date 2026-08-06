@@ -19,7 +19,7 @@ import jakarta.validation.constraints.Size;
  * @param internalAvatarId id of a built-in avatar.
  * @param image            gallery-backed custom avatar image.
  */
-public record AvatarSelection(
+public record AvatarSelectionRequest(
         @Size(max = ValidationConstants.AVATAR_ID_MAX) String internalAvatarId,
         @Valid AppImage image) {
 

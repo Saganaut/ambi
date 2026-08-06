@@ -18,7 +18,7 @@ Narrowing lives in `shared/types/typeguards.ts` (`isFetchBaseQueryError`, `isPro
 
 ## Shared idioms
 
-- **Typed Redux hooks.** Import `useAppDispatch` / `useAppSelector` from `shared/store/hooks.ts` (alias `@store/hooks`) — never the raw react-redux `useDispatch` / `useSelector`. A second, equivalent module `shared/hooks/storeHooks.ts` also exists and has a few importers; it is **not** the sanctioned home — don't add importers, and migrate one when you touch it.
+- **Typed Redux hooks.** Import `useAppDispatch` / `useAppSelector` from `shared/store/hooks.ts` (alias `@store/hooks`) — never the raw react-redux `useDispatch` / `useSelector`.
 - **className merging is `[...classes].filter(Boolean).join(" ")`** — there is **no `clsx`/`classnames` dependency**. Conditional classes go in the array (`shape !== "default" && styles[shape]`). See `Btn.tsx`, `DropdownMenu.tsx`.
 - **Polymorphic structural components take an `as` prop.** Layout wrappers (`Container`, `Card`) accept `as?: ElementType` (default `"div"`) and spread `HTMLAttributes`. Leaf controls (Btn, Icon) don't.
 - **Imperative confirmation is a promise-based hook.** `useConfirm` resolves a promise rather than taking a callback: `const ok = await confirm({...}); if (!ok) return;`. `useRequireLogin` is callback-based instead — `openLoginModal()` pops the modal, `requireLogin(action)` wraps an action; never `await` it. Hence the ban on `window.confirm`/`alert`/`prompt` (see [styling-rules.md](../styling-rules.md) rule 10).

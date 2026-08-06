@@ -119,9 +119,10 @@ class SessionRosterTest {
     @Test
     void admitRehydratesAnEvictedSetSoTheCapCountsTheRealMembership() {
         when(redis.hasKey(ROSTER_KEY)).thenReturn(false);
-        Participant host = participant();
-        Participant early = participant();
-        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID)).thenReturn(List.of(host, early));
+        Participant host = admittedMember();
+        Participant early = admittedMember();
+        when(participants.findBySessionIdAndLeftAtIsNullAndAdmittedAtNotNullOrderByJoinedAtAsc(SID))
+                .thenReturn(List.of(host, early));
         when(redis.execute(ArgumentMatchers.<RedisScript<Long>>any(), anyList(),
                 any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(3L);
@@ -135,11 +136,12 @@ class SessionRosterTest {
     @Test
     void admitLeavesTheJoinerOutOfTheRehydrateSoTheLastSeatIsStillFree() {
         when(redis.hasKey(ROSTER_KEY)).thenReturn(false);
-        Participant host = participant();
+        Participant host = admittedMember();
         Participant joining = participant();
-        // The joiner's document is saved before the admit, so the durable roster
-        // already lists them.
-        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID))
+        // Belt-and-braces: the durable seed is admitted-only, so a joiner mid-flight
+        // is normally invisible to it — this pins the exclusion for the case where a
+        // stale read hands one back anyway.
+        when(participants.findBySessionIdAndLeftAtIsNullAndAdmittedAtNotNullOrderByJoinedAtAsc(SID))
                 .thenReturn(List.of(host, joining));
         when(redis.execute(ArgumentMatchers.<RedisScript<Long>>any(), anyList(),
                 any(), any(), any(), any(), any(), any(), any()))
@@ -173,18 +175,20 @@ class SessionRosterTest {
         when(sets.isMember(ROSTER_KEY, P1)).thenReturn(true);
 
         assertThat(roster.contains(SID, P1)).isTrue();
-        verify(participants, never()).existsByParticipantIdAndSessionIdAndLeftAtIsNull(anyString(), anyString());
+        verify(participants, never())
+                .existsByParticipantIdAndSessionIdAndLeftAtIsNullAndAdmittedAtNotNull(anyString(), anyString());
     }
 
     @Test
     void containsFallsBackToMongoAndRehydratesTheWholeSetOnAMiss() {
-        Participant host = participant();
-        Participant asking = participant();
+        Participant host = admittedMember();
+        Participant asking = admittedMember();
         when(sets.isMember(ROSTER_KEY, asking.getParticipantId())).thenReturn(false);
-        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(asking.getParticipantId(), SID))
-                .thenReturn(true);
+        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNullAndAdmittedAtNotNull(
+                asking.getParticipantId(), SID)).thenReturn(true);
         when(redis.hasKey(ROSTER_KEY)).thenReturn(false);
-        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID)).thenReturn(List.of(host, asking));
+        when(participants.findBySessionIdAndLeftAtIsNullAndAdmittedAtNotNullOrderByJoinedAtAsc(SID))
+                .thenReturn(List.of(host, asking));
 
         assertThat(roster.contains(SID, asking.getParticipantId())).isTrue();
 
@@ -200,11 +204,13 @@ class SessionRosterTest {
     @Test
     void containsLeavesTheKeyAbsentWhenTheRehydrateFoundNobody() {
         when(sets.isMember(ROSTER_KEY, P1)).thenReturn(false);
-        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(P1, SID)).thenReturn(true);
+        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNullAndAdmittedAtNotNull(P1, SID))
+                .thenReturn(true);
         when(redis.hasKey(ROSTER_KEY)).thenReturn(false);
         // The durable roster came back empty — the member was removed between the two
         // reads (a join rollback racing this heal).
-        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID)).thenReturn(List.of());
+        when(participants.findBySessionIdAndLeftAtIsNullAndAdmittedAtNotNullOrderByJoinedAtAsc(SID))
+                .thenReturn(List.of());
 
         assertThat(roster.contains(SID, P1)).isTrue();
 
@@ -218,20 +224,25 @@ class SessionRosterTest {
     @Test
     void containsHealsTheAskingMemberWhenTheKeyIsStillThere() {
         when(sets.isMember(ROSTER_KEY, P1)).thenReturn(false);
-        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(P1, SID)).thenReturn(true);
+        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNullAndAdmittedAtNotNull(P1, SID))
+                .thenReturn(true);
         when(redis.hasKey(ROSTER_KEY)).thenReturn(true);
 
         assertThat(roster.contains(SID, P1)).isTrue();
         // A live key can't be rebuilt wholesale (Redis can't say what it is missing),
         // so the member that was asked for is put back on its own.
         verify(sets).add(ROSTER_KEY, P1);
-        verify(participants, never()).findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(anyString());
+        verify(participants, never())
+                .findBySessionIdAndLeftAtIsNullAndAdmittedAtNotNullOrderByJoinedAtAsc(anyString());
     }
 
     @Test
-    void containsIsFalseForSomeoneWhoLeft() {
+    void containsIsFalseForSomeoneWhoLeftOrWasNeverAdmitted() {
         when(sets.isMember(ROSTER_KEY, P1)).thenReturn(false);
-        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNull(P1, SID)).thenReturn(false);
+        // The one query answers both: a departure stamps left_at, and a join still in
+        // flight has yet to stamp admitted_at.
+        when(participants.existsByParticipantIdAndSessionIdAndLeftAtIsNullAndAdmittedAtNotNull(P1, SID))
+                .thenReturn(false);
 
         assertThat(roster.contains(SID, P1)).isFalse();
         verify(sets, never()).add(eq(ROSTER_KEY), any(String[].class));
@@ -241,9 +252,10 @@ class SessionRosterTest {
 
     @Test
     void participantsComeBackInJoinOrderFromTheDurableRecord() {
-        Participant first = participant();
-        Participant second = participant();
-        when(participants.findBySessionIdAndLeftAtIsNullOrderByJoinedAtAsc(SID)).thenReturn(List.of(first, second));
+        Participant first = admittedMember();
+        Participant second = admittedMember();
+        when(participants.findBySessionIdAndLeftAtIsNullAndAdmittedAtNotNullOrderByJoinedAtAsc(SID))
+                .thenReturn(List.of(first, second));
 
         assertThat(roster.participants(SID)).containsExactly(first, second);
     }
@@ -252,6 +264,16 @@ class SessionRosterTest {
     private static Participant participant() {
         Participant p = Participant.join("user-1", "Player One", null, null);
         p.joinSession(SID);
+        return p;
+    }
+
+    /**
+     * A participant the roster has already admitted — what the durable membership
+     * queries hand back, as opposed to a joiner still mid-flight.
+     */
+    private static Participant admittedMember() {
+        Participant p = participant();
+        p.markAdmitted();
         return p;
     }
 }

@@ -14,6 +14,7 @@ import { useState } from "react";
 
 import { DragDropWrapper } from "@/shared/components/Wrappers/DragDropWrapper";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { McqOption } from "@/shared/types/Elements.types";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import {
   ALLOCATION_TOTAL_MIN,
@@ -21,6 +22,7 @@ import {
   useAllocationEditor,
 } from "@deck/hooks/useAllocationEditor";
 import { AddItemCard, EmptySelect, ScoringFooter } from "../_shared";
+import { NonSortableEditableItem } from "../_shared/Item.types";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
 import type { SlideContentProps } from "../slideContentProps";
@@ -86,6 +88,63 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     />
   );
 
+  // type="allocation"
+  // key={option.id}
+  // color={resolveOptionColor(option.color, index)}
+  // menuOpen={openMenuId == option.id}
+  // canRemove={editor.canRemoveOption}
+  // totalPool={totalPoints}
+  // correctValue={correctAllocations[option.id]}
+  // poolShareSeed={answerSeed}
+  // onMenuOpenChange={(open) => {
+  //   setOpenMenuId(open ? option.id : null);
+  // }}
+  // onScheduleLabel={(text) => {
+  //   editor.scheduleOptionText(option.id, text);
+  // }}
+  // onFlush={editor.flush}
+  // onSetColor={(color) => {
+  //   editor.setOptionColor(option.id, color);
+  // }}
+  // onSetImage={(image) => {
+  //   editor.setOptionImage(option.id, image);
+  // }}
+  // onScheduleAnswer={(points) => {
+  //   editor.scheduleCorrectAllocation(option.id, points);
+  // }}
+  // onCommit={(points) => {
+  //   editor.commitCorrectAllocation(option.id, points);
+  // }}
+  // onClear={() => {
+  //   editor.clearCorrectAllocation(option.id);
+  // }}
+  // onRemove={() => {
+  //   editor.removeOption(option.id);
+  // }}
+  // openPicker={openPicker}
+  const returnOption = (option: McqOption, sourceIndex: number): NonSortableEditableItem => {
+    const item = { label: option.text ?? "", color: option.color ?? "", ...option };
+    const detail = {
+      type: "allocation",
+      correctValue: correctAllocations[option.id],
+      value: correctAllocations[option.id],
+      totalPool: totalPoints,
+      onCommit: (points) => {
+        editor.commitCorrectAllocation(option.id, points);
+      },
+      onScheduleAnswer: (points) => {
+        editor.scheduleCorrectAllocation(option.id, points);
+      },
+      onClear: () => {
+        editor.clearCorrectAllocation(option.id);
+      },
+    };
+    const actions = {};
+    const ui = {};
+
+    return { sourceIndex, item, actions, detail, ui };
+  };
+
   return (
     <SlideWrapper
       prompt={{
@@ -147,7 +206,7 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 <SortableItemBankRow
                   type="allocation"
                   key={option.id}
-                  item={option}
+                  item={{ label: option.text ?? "", color: option.color ?? "", ...option }}
                   label={option.text ?? "Error: label not found"}
                   index={index}
                   color={resolveOptionColor(option.color, index)}

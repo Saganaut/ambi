@@ -2,25 +2,37 @@
 
 An interactive presentation platform: presenters author decks of interactive slides and run them live while the audience participates from their own devices. Full-stack web app — React 19/TypeScript frontend, Java 26 + Spring Boot backend, MongoDB/Redis/S3 — built to an enterprise quality bar.
 
-> **DO NOT TAKE SHORTCUTS.** Always follow the established rules and conventions. Do not bypass testing, documentation, or code review processes for expediency. Quality and maintainability are paramount.
+> **DO NOT TAKE SHORTCUTS.**
 >
-> **Never change a test to make it pass without addressing the underlying issue.** Always fix the code or the test to ensure correctness.
+> **ONLY CHANGE TESTS TO REFLECT CHANGES IN CODE/SPEC-NEVER TO IGNORE BUGS**.
 >
-> **MINIMIZE IN CODE COMMENTS**Only use when absolutely essential.When used keep them short and succinct
-
+> **NEVER WRITE COMMENTS IN CODE** (exept for Javadocs)
+>
+> **ORCHESTRATE AND USE SUB AGENTS TO CARRY OUT TASKS**use Opus,Sonnet or Haiku sub agents.NEVER USE FABLE AS A SUB AGENT.
 ---
 
 ## Feature workflow
 
-Every completed feature change follows the same three steps — do not skip the last two:
+Every completed feature change goes through four steps. **Never advance on your own** —
+finish the current step, report what happened, and wait for me to explicitly ask for the
+next one. Don't start step 2 because step 1 went well, and don't chain steps in a single
+response.
 
-1. **Implement** the change, following the rules in [`z-docs/rules/`](z-docs/rules/README.md), then run [`scripts/check-feature.sh`](scripts/check-feature.sh) (typecheck, full lint, backend compile, null-analysis, docs) until it's clean — the pre-commit hook only runs the fast tier.
-2. **Commit it** — invoke the `git-commit-author` agent to stage only the relevant files and write a convention-following message. Do not bypass the pre-commit hooks.
-3. **Review it** — invoke the `code-reviewer` agent to review the resulting commit (`HEAD`) against the task's intent, the project rules/style, and functional correctness. It issues a read-only findings report; act on any blocking findings (which restarts this loop) before moving on.
+1. **Implement** the change, following the rules in [`z-docs/rules/`](z-docs/rules/README.md).
+   Stop when the code is written.
+2. **Check** — run [`scripts/check-feature.sh`](scripts/check-feature.sh) (typecheck, full
+   lint, backend compile, null-analysis, docs) until it's clean. The pre-commit hook only
+   runs the fast tier, so this step isn't optional. Stop when it's green.
+3. **Commit it** — invoke the `git-commit-author` agent to stage only the relevant files and
+   write a convention-following message. Do not bypass the pre-commit hooks.
+4. **Review it** — invoke the `code-reviewer` agent to review the resulting commit (`HEAD`)
+   against the task's intent, the project rules/style, and functional correctness. It issues
+   a read-only findings report; act on any blocking findings (which restarts this loop at
+   step 1) before moving on.
 
-A "feature change" is any self-contained major unit of functional work. Trivial, non-functional edits (a typo fix, a comment) don't require the full loop — use judgement.
-
-Work is tracked on the **Ambi Dev** Trello board: <https://trello.com/b/nH50o6jt/ambi-dev>. **Every task needs a card** — if the user didn't hand you one, create it yourself before starting work. The full card lifecycle (list/label conventions, credential setup, API commands for creating/moving/commenting on cards) lives in the [Using the Trello board](z-docs/runbooks/using-the-trello-board.md) runbook.
+A "feature change" is any self-contained major unit of functional work. Trivial,
+non-functional edits (a typo fix, a comment) don't require the full loop — use judgement.
+Work is tracked on the **Ambi Dev** Trello board: <https://trello.com/b/nH50o6jt/ambi-dev>. **Every major task needs a card** — if the user didn't hand you one, create it yourself before starting work. The full card lifecycle (list/label conventions, credential setup, API commands for creating/moving/commenting on cards) lives in the [Using the Trello board](z-docs/runbooks/using-the-trello-board.md) runbook.
 
 ---
 

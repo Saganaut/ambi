@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -803,6 +804,10 @@ class LiveSessionOrchestratorTest {
         ArgumentCaptor<Participant> host = ArgumentCaptor.forClass(Participant.class);
         verify(participants).save(host.capture());
         assertThat(host.getValue().getSessionId()).isEqualTo(SID);
+        // Admitted by construction — roster.add bypasses the admit script, so without
+        // the marker stamped into that single save the host would be durable but
+        // absent from every roster read.
+        assertThat(host.getValue().isAdmitted()).isTrue();
         assertThat(session.getHostParticipantId()).isEqualTo(host.getValue().getParticipantId());
         verify(roster).add(SID, host.getValue().getParticipantId());
         ArgumentCaptor<LiveRoundState> captor = ArgumentCaptor.forClass(LiveRoundState.class);
@@ -874,10 +879,17 @@ class LiveSessionOrchestratorTest {
 
         LiveSessionOrchestrator.JoinResult result = orchestrator.join("ROOM", "user-9", "Niner", null, null);
 
-        // The participant carries the session link, so the join is a plain insert.
+        // The participant carries the session link, so the join is a plain insert —
+        // written twice, bracketing the admit: the document first so the announced
+        // join is loadable, then the admission marker that puts it on the roster.
         ArgumentCaptor<Participant> saved = ArgumentCaptor.forClass(Participant.class);
-        verify(participants).save(saved.capture());
+        verify(participants, times(2)).save(saved.capture());
         assertThat(saved.getValue().getSessionId()).isEqualTo(SID);
+        assertThat(saved.getValue().isAdmitted()).isTrue();
+        InOrder writes = inOrder(participants, roster);
+        writes.verify(participants).save(any(Participant.class));
+        writes.verify(roster).admit(eq(SID), eq(PUB), anyString(), anyInt(), any());
+        writes.verify(participants).save(any(Participant.class));
         verify(presenceStore).save(eq(SID), eq(result.participant().getParticipantId()), any());
 
         // The delta carries only the new player — never a roster snapshot.
@@ -887,6 +899,50 @@ class LiveSessionOrchestratorTest {
         assertThat(event.getValue()).isInstanceOfSatisfying(ParticipantJoined.class,
                 joined -> assertThat(joined.participant().participantId())
                         .isEqualTo(result.participant().getParticipantId()));
+    }
+
+    @Test
+    void joinStampsTheAdmittedMarkerOnlyAfterTheRosterAdmits() {
+        joinableSession();
+        AtomicReference<Participant> inserted = new AtomicReference<>();
+        when(participants.save(any(Participant.class))).thenAnswer(save -> {
+            inserted.compareAndSet(null, save.getArgument(0));
+            return save.getArgument(0);
+        });
+        // The two saves capture the same mutated instance, so a captor cannot show
+        // when the marker landed — the admit itself has to assert it.
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenAnswer(admit -> {
+            assertThat(inserted.get()).isNotNull();
+            // Until the admit returns, the document is durable but not a member: no
+            // rehydrate may seed a joiner this call is still free to refuse.
+            assertThat(inserted.get().isAdmitted()).isFalse();
+            return true;
+        });
+
+        orchestrator.join("ROOM", "user-9", "Niner", null, null);
+
+        assertThat(inserted.get().isAdmitted()).isTrue();
+    }
+
+    @Test
+    void joinRollsBackWhenTheAdmittedStampFails() {
+        joinableSession();
+        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(true);
+        // The insert lands, the admit lands — and the write that would make the
+        // membership durable does not.
+        DataAccessResourceFailureException stampFailure = new DataAccessResourceFailureException("mongo is down");
+        when(participants.save(any(Participant.class)))
+                .thenAnswer(save -> save.getArgument(0))
+                .thenThrow(stampFailure);
+
+        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
+                .isSameAs(stampFailure);
+        // Here the member really is in the set and the join really was published, so
+        // both halves of the rollback are load-bearing.
+        InOrder rollback = inOrder(participants, roster);
+        rollback.verify(participants).delete(any(Participant.class));
+        rollback.verify(roster).remove(eq(SID), anyString());
+        verify(presenceStore, never()).save(anyString(), anyString(), any());
     }
 
     /**
@@ -994,9 +1050,9 @@ class LiveSessionOrchestratorTest {
                 .isSameAs(admitFailure)
                 .satisfies(thrown -> assertThat(thrown.getSuppressed())
                         .singleElement().isInstanceOf(DataAccessResourceFailureException.class));
-        // The SREM still runs. It cannot hold — the orphaned document is re-seeded by
-        // the next heal — but dropping the member is the best the rollback can do, and
-        // skipping it would strand a phantom that no heal would ever have to re-add.
+        // The SREM still runs. The orphaned document inflates nothing on its own (it
+        // never gained an admission marker, so no roster read sees it), but a member
+        // left in the set would inflate the cap for the set's whole TTL.
         verify(roster).remove(eq(SID), anyString());
         verify(presenceStore, never()).save(anyString(), anyString(), any());
     }

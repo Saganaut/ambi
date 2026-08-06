@@ -24,6 +24,10 @@ doc itself, where they can be kept current.
 - [Missing Features](missing-features.md) — running backlog of cross-cutting gaps and TODOs.
 - [Live-Session Events](live-session-events.md) — the event envelope, sequencing, and snapshot/socket reconciliation contract.
 
+## Proposed
+
+- [Session Analytics & Data](session-analytics/README.md) — **proposed, not built**: PRDs for turning live-session data into analysable output — the response-fact projection, exports, the insights dashboard, and what is deferred.
+
 ## Adding a new feature
 
 1. Create `z-docs/features/<feature-name>/` with a `README.md` describing scope, models, endpoints, and the seams a newcomer needs.

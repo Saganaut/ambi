@@ -41,7 +41,11 @@ public class ParticipantIndexInitializer {
 
         // The roster listing, in the join order the snapshot renders — and, on its
         // (session_id, left_at) prefix, the membership existence check that backs
-        // an evicted Redis roster set.
+        // an evicted Redis roster set. Both also filter admitted_at, left out of the
+        // keys deliberately: $ne is a range predicate (it would not narrow the scan),
+        // per-session documents are bounded by the cap, so it evaluates as a residual
+        // predicate on the fetched docs — and re-issuing this index name with new
+        // keys would throw IndexKeySpecsConflict against existing deployments.
         ops.createIndex(new Index().named("roster_by_session")
                 .on("session_id", Sort.Direction.ASC)
                 .on("left_at", Sort.Direction.ASC)

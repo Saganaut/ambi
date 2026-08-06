@@ -1,10 +1,8 @@
-import { AppImage } from "@/features/liveSession/store/liveSessionApi.gen";
 import DragIcon from "@assets/icons/action/drag.svg?react";
 
 import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
 import { AppImg } from "@/shared/components/Images/AppImg";
 import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
-import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
 import { numberToLetter } from "@/shared/utils/utils";
 import { useSortable } from "@dnd-kit/react/sortable";
@@ -15,180 +13,110 @@ import {
   ViewfinderCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Ref, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DistributiveOmit } from "react-redux";
 import { IndexPill } from "../IndexPill/IndexPill";
+import { EditableItem, EditableItemDetail } from "../Item.types";
 import { ItemField } from "../ItemField/ItemField";
 import { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
-import { Identified, PlaceableItem } from "../placement/placement.types";
 import styles from "./ItemBankRow.module.css";
 import { ScaleTracker } from "./ScaleTracker";
 
-interface ItemBankRowBase {
-  type: "allocation" | "placement" | "ranking" | "scales";
-  item: Identified<PlaceableItem>;
-  index: number;
-  color: string;
-  menuOpen: boolean;
-  canRemove: boolean;
-  /** Whether this row is armed — a press on the surface places its target. */
-  selected?: boolean;
-  /** Arm this row (row-wide click; the keyboard path is the label's focus). */
-  onSelect?: () => void;
-  onMenuOpenChange: (open: boolean) => void;
-  onScheduleLabel: (label: string) => void; // ALso known as onScheudleText in AllocationOptioneditable?
-  onFlush: () => void;
-  onSetColor: (color: string) => void;
-  onSetImage: (image: AppImage) => void;
-  onRemove: () => void;
-  openPicker: OpenGalleryPicker;
-  handleRef: (element: Element | null) => void;
-  rootRef: Ref<HTMLDivElement>;
-  isDragging: boolean;
-  primaryAction?: OptionMenuPrimaryAction;
-}
-//TODO: label only exists here because PlacebleItem calls the value text but allocation uses
-//mcqoption type - should be resolved for consistency
-interface AllocationRowProps extends ItemBankRowBase {
-  type: "allocation";
-  label: string;
-  onCommit: (value: number) => void;
-  onScheduleAnswer: (value: number) => void;
-  onClear: () => void;
-  poolShareSeed: number;
-  totalPool: number;
-  correctValue?: number;
-}
-interface RankingRowProps extends ItemBankRowBase {
-  type: "ranking";
-}
-interface PlacementItemRowProps extends ItemBankRowBase {
-  type: "placement";
-  /** Whether the item carries an answer-key target. Drives the trailing
-   * check / question-mark toggle and the menu's Set/Clear target entry:
-   * an unplaced target exists but keys no right answer, so it is not graded. */
-  hasTarget: boolean;
-  /** Start targeting the item. The surface decides what that means — Axis and
-   * Place-on-Image seed a centre point the author then drags, Grid has no such
-   * default cell so it arms the row for the matrix instead. */
-  onSetTarget: () => void;
-  /** Drop the item's target, leaving it unkeyed. */
-  onClearTarget: () => void;
-}
-interface ScalesRowProps extends ItemBankRowBase {
-  type: "scales";
-  onCommit: (value: number) => void;
-  onScheduleAnswer: (value: number) => void;
-  onClear: () => void;
-  correctValue: number;
-  minScale: number;
-  maxScale: number;
-  toleranceScale: number;
-  leftLabel: string;
-  rightLabel: string;
-}
-
-/**Extra action to pass to the menu **/
-//   primaryAction?: OptionMenuPrimaryAction;
-
-type ItemBankRowProps =
-  | ScalesRowProps
-  | RankingRowProps
-  | AllocationRowProps
-  | PlacementItemRowProps;
-/**
- * Question mark vs check mark needs to indicate scoring status
+/** * Question mark vs check mark needs to indicate scoring status
  * Should be common to all slides but need to figure out how to handle for ranking
  * For ranking a click on that button should change overall scorability of slide, so all items.
  * Pass the onclick for htis
  *
  *  **/
-const ItemBankRow = (props: ItemBankRowProps) => {
-  const {
-    type,
-    item,
-    index,
-    color,
-    menuOpen,
-    canRemove,
-    selected,
-    onSelect,
-    onMenuOpenChange,
-    onScheduleLabel,
-    onFlush,
-    onSetColor,
-    onSetImage,
-    onRemove,
-    openPicker,
-    primaryAction,
-    handleRef,
-    rootRef,
-    isDragging,
-  } = props;
+const ItemBankRow = (props: EditableItem) => {
+  const { detail, item, sourceIndex, actions, ui, sortable } = props;
 
   // Placement and grid rows are numbered, not lettered: the bank's pill must
   // read as the same marker the author sees on the surface.
-  const displayIndex = type === "placement" ? (index + 1).toString() : numberToLetter(index + 1);
+  const displayIndex =
+    detail.kind === "placement" ? (sourceIndex + 1).toString() : numberToLetter(sourceIndex + 1);
   const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id ?? "", 200, 200, false);
+
   // Ranking never needs to use this since the order displayed is the correct answer.
   // For other questions individual values need to be set and is this relevant
-  const scored =
-    type === "ranking" ? false : type === "placement" ? props.hasTarget : props.correctValue;
+
+  function getIsScored(detail: EditableItemDetail): boolean {
+    switch (detail.kind) {
+      case "placement":
+        return Boolean(detail.target);
+
+      case "mcq":
+        return Boolean(detail.isCorrect);
+
+      case "scale":
+      case "allocation":
+        return detail.correctValue != null;
+
+      case "matching":
+        return detail.matchId !== null;
+
+      //Not applicable to ranking
+      case "ranking":
+      default:
+        return false;
+    }
+  }
+  const scored = getIsScored(detail);
   const [points, setPoints] = useState(
-    type === "allocation" ? (props.correctValue ?? props.poolShareSeed) : 0,
+    detail.kind === "allocation" ? (detail.correctValue ?? detail.totalPool) : 0,
   );
   const [syncedFromId, setSyncedFromId] = useState(item.id);
   const [syncedFromAnswer, setSyncedFromAnswer] = useState(
-    type === "allocation" ? props.correctValue : 0,
+    detail.kind === "allocation" ? detail.correctValue : 0,
   );
 
-  if (type === "allocation") {
+  if (detail.kind === "allocation") {
     if (syncedFromId !== item.id) {
       setSyncedFromId(item.id);
-      setPoints(props.correctValue ?? props.poolShareSeed);
-      setSyncedFromAnswer(props.correctValue);
-    } else if (syncedFromAnswer !== props.correctValue) {
-      setSyncedFromAnswer(props.correctValue);
-      setPoints(props.correctValue ?? props.poolShareSeed);
+      setPoints(detail.correctValue ?? detail.totalPool);
+      setSyncedFromAnswer(detail.correctValue);
+    } else if (syncedFromAnswer !== detail.correctValue) {
+      setSyncedFromAnswer(detail.correctValue);
+      setPoints(detail.correctValue ?? detail.totalPool);
     }
   }
 
   const toggleScorability = () => {
-    switch (type) {
+    switch (detail.kind) {
       case "allocation": {
         if (scored) {
-          props.onClear();
+          detail.onClear();
           return;
         }
-        const seed = props.poolShareSeed ?? 0;
+        const seed = detail.totalPool ?? 0;
         setPoints(seed);
-        props.onCommit(seed);
+        detail.onCommit(seed);
         return;
       }
-      case "scales": {
+      case "scale": {
         if (scored) {
-          props.onClear();
+          detail.onClear();
           return;
         }
-        props.onCommit((props.minScale + props.maxScale) / 2);
+        detail.onCommit((detail.minValue + detail.maxValue) / 2);
         return;
       }
       case "placement": {
-        if (props.hasTarget) props.onClearTarget();
-        else props.onSetTarget();
+        if (detail.target != null) detail.onClearTarget();
+        else detail.onSetTarget();
         return;
       }
     }
   };
 
   const placementAction: OptionMenuPrimaryAction | undefined =
-    type === "placement"
+    detail.kind === "placement"
       ? {
-          label: props.hasTarget ? "Clear target" : "Set target",
-          icon: props.hasTarget ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
-          pressed: props.hasTarget,
+          label: detail.target != null ? "Clear target" : "Set target",
+          icon: detail.target != null ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
+          pressed: detail.target != null,
           onSelect: () => {
-            onMenuOpenChange(false);
+            actions.onMenuOpenChange(false);
             toggleScorability();
           },
         }
@@ -198,17 +126,22 @@ const ItemBankRow = (props: ItemBankRowProps) => {
   // a click the browser fires over the row — which would arm it. The guard
   // latches while dragging and is cleared by the next pointerdown, so exactly
   // one post-drop click is swallowed and the keyboard path is untouched.
+  //TODO: why no dependency here
   const draggedRef = useRef(false);
   useEffect(() => {
-    if (isDragging) draggedRef.current = true;
-  }, [isDragging]);
+    if (sortable.isDragging) draggedRef.current = true;
+  }, []);
 
   return (
     // Row-wide selection target; the keyboard path is the label field's focus.
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
-      ref={rootRef}
-      className={[styles.row, isDragging ? styles.isDragging : "", selected ? styles.selected : ""]
+      ref={sortable.rootRef}
+      className={[
+        styles.row,
+        sortable.isDragging ? styles.isDragging : "",
+        ui.isSelected ? styles.selected : "",
+      ]
         .filter(Boolean)
         .join(" ")}
       onPointerDown={() => {
@@ -219,10 +152,10 @@ const ItemBankRow = (props: ItemBankRowProps) => {
           draggedRef.current = false;
           return;
         }
-        onSelect?.();
+        actions.onSelect?.();
       }}
     >
-      <IndexPill value={displayIndex} color={color} />
+      <IndexPill value={displayIndex} color={item.color} />
       <div className={`${styles.collapsable} ${thumbnailSrc !== null ? styles.expanded : ""}`}>
         <span className={styles.thumbnailWrap}>
           {thumbnailSrc && (
@@ -241,7 +174,7 @@ const ItemBankRow = (props: ItemBankRowProps) => {
             aria-label={`Remove ${displayIndex.toString()} image`}
             onClick={(e) => {
               e.stopPropagation();
-              onSetImage(emptyImage());
+              actions.onSetImage(emptyImage());
             }}
           />
         </span>
@@ -249,43 +182,43 @@ const ItemBankRow = (props: ItemBankRowProps) => {
 
       <ItemField
         itemId={item.id}
-        label={type === "allocation" ? props.label : props.item.label}
+        label={detail.kind === "allocation" ? item.label : props.item.label}
         image={item.image}
-        displayIndex={index + 1}
-        placeholder={`${(index + 1).toString()}`}
+        displayIndex={sourceIndex + 1}
+        placeholder={`${(sourceIndex + 1).toString()}`}
         maxLength={100}
-        color={color}
-        open={menuOpen}
-        onOpenChange={onMenuOpenChange}
-        canRemove={canRemove}
-        primaryAction={placementAction ?? primaryAction}
-        onScheduleLabel={onScheduleLabel}
-        onFlush={onFlush}
-        onSetColor={onSetColor}
-        onSetImage={onSetImage}
-        onRemove={onRemove}
-        openPicker={openPicker}
+        color={item.color}
+        open={actions.menuOpen}
+        onOpenChange={actions.onMenuOpenChange}
+        canRemove={actions.canRemove}
+        primaryAction={placementAction ?? actions.primaryAction}
+        onScheduleLabel={actions.onScheduleLabel}
+        onFlush={actions.onFlush}
+        onSetColor={actions.onSetColor}
+        onSetImage={actions.onSetImage}
+        onRemove={actions.onRemove}
+        openPicker={actions.openPicker}
       />
 
       {/* Tracker for scales question */}
-      {type === "scales" && (
+      {detail.kind === "scale" && (
         <ScaleTracker
-          min={props.minScale}
-          max={props.maxScale}
-          tolerance={props.toleranceScale}
-          leftLabel={props.leftLabel}
-          rightLabel={props.rightLabel}
+          min={detail.minValue}
+          max={detail.maxValue}
+          tolerance={detail.tolerance}
+          leftLabel={detail.leftLabel}
+          rightLabel={detail.rightLabel}
           displayIndex={displayIndex}
-          onCommit={props.onCommit}
-          onScheduleAnswer={props.onScheduleAnswer}
-          correctValue={props.correctValue}
-          color={color}
+          onCommit={detail.onCommit}
+          onScheduleAnswer={detail.onScheduleAnswer}
+          correctValue={detail.correctValue}
+          color={item.color}
         />
       )}
       {/* Number input for allocation question */}
-      {type === "allocation" && (
+      {detail.kind === "allocation" && (
         <div
-          className={`${styles.collapsable} ${props.correctValue !== undefined ? styles.expanded : ""}`}
+          className={`${styles.collapsable} ${detail.correctValue !== undefined ? styles.expanded : ""}`}
         >
           <div className={styles.answerField}>
             <NumberInput
@@ -294,18 +227,18 @@ const ItemBankRow = (props: ItemBankRowProps) => {
               labelPosition="labelInFront"
               value={points ?? 0}
               min={0}
-              max={props.totalPool}
+              max={detail.totalPool}
               onChange={(next) => {
                 setPoints(next);
-                props.onScheduleAnswer(next);
+                detail.onScheduleAnswer(next);
               }}
-              onBlur={onFlush}
+              onBlur={actions.onFlush}
             />
           </div>
         </div>
       )}
 
-      {type !== "ranking" && (
+      {detail.kind !== "ranking" && (
         <>
           {scored ? (
             <IconBtn
@@ -313,7 +246,7 @@ const ItemBankRow = (props: ItemBankRowProps) => {
               size="xs"
               icon={<CheckIcon />}
               aria-label={
-                type === "placement"
+                detail.kind === "placement"
                   ? `Clear the target position for target ${displayIndex}`
                   : `Clear correct points for option ${displayIndex.toString()}`
               }
@@ -329,7 +262,7 @@ const ItemBankRow = (props: ItemBankRowProps) => {
               size="xs"
               icon={<QuestionMarkCircleIcon />}
               aria-label={
-                type === "placement"
+                detail.kind === "placement"
                   ? `Set a target position for target ${displayIndex}`
                   : `Set option ${displayIndex.toString()} as scorable`
               }
@@ -343,13 +276,13 @@ const ItemBankRow = (props: ItemBankRowProps) => {
       )}
       {/* // Drag icon, always at the end */}
       <span
-        ref={handleRef}
+        ref={sortable.handleRef}
         className={styles.grip}
         role="button"
         aria-label={
-          type === "placement"
-            ? `Reorder target ${(index + 1).toString()}`
-            : `Reorder option ${(index + 1).toString()}`
+          detail.kind === "placement"
+            ? `Reorder target ${(sourceIndex + 1).toString()}`
+            : `Reorder option ${(sourceIndex + 1).toString()}`
         }
       >
         <DragIcon className={styles.gripIcon} aria-hidden="true" />
@@ -357,16 +290,14 @@ const ItemBankRow = (props: ItemBankRowProps) => {
     </div>
   );
 };
-type SortableItemBankRowProps = DistributiveOmit<
-  ItemBankRowProps,
-  "handleRef" | "rootRef" | "isDragging"
->;
+type SortableItemBankRowProps = DistributiveOmit<EditableItem, "sortable">;
 const SortableItemBankRow = (rowProps: SortableItemBankRowProps) => {
   const { ref, handleRef, isDragging } = useSortable({
     id: rowProps.item.id,
-    index: rowProps.index,
+    index: rowProps.sourceIndex,
   });
-  return <ItemBankRow {...rowProps} handleRef={handleRef} rootRef={ref} isDragging={isDragging} />;
-};
 
+  const sortable = { rootRef: ref, handleRef: handleRef, isDragging: isDragging };
+  return <ItemBankRow {...{ ...rowProps, sortable }} />;
+};
 export { ItemBankRow, SortableItemBankRow };

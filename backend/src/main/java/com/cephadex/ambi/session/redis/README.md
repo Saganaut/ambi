@@ -79,6 +79,8 @@ session").
 The roster key is namespaced here but the set is owned by
 [`SessionRoster`](../participant/SessionRoster.java): it is a cache in front of the
 durable `Participant` documents, so it lives beside them rather than in this package.
+An evicted key is seeded only from documents carrying `admitted_at` — a join whose
+admit has not landed yet is not membership and must not be handed a seat.
 
 Inspect live keys with `docker compose exec redis redis-cli -a password KEYS 'ambi:session:*'`.
 

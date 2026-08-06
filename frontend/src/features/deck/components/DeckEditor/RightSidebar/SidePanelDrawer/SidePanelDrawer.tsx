@@ -1,12 +1,11 @@
 import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
-import { useAppDispatch } from "@/shared/hooks/storeHooks";
 import { RootState } from "@/shared/store/store";
 import { close } from "@deck/store/panelSlice.ts";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { getRouteApi } from "@tanstack/react-router";
-import { useSelector } from "react-redux";
 import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
 import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
+import { useSelector } from "react-redux";
 import { AnswerPanel } from "../AnswerPanel/AnswerPanel";
 import { PANEL_TITLES } from "../data";
 import { DeckPanel } from "../DeckPanel/DeckPanel";
@@ -16,6 +15,7 @@ import { InviteSettingsPanel } from "../InvitePanel/InviteSettingsPanel";
 import { ParticipantsPanel } from "../ParticipantPanel/ParticipantsPanel";
 import { QuizPanel } from "../QuizPanel/QuizPanel";
 
+import { useAppDispatch } from "@/shared/store/hooks";
 import styles from "../RightSidebarContent.module.css";
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 

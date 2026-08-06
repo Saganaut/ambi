@@ -30,6 +30,9 @@
   participant-keyed write), and join/leave (membership is a `Participant`
   document plus one atomic op on the Redis roster SET — nothing shared is
   rewritten, and the `SESSION_FULL` cap is enforced inside the admit script).
+- A join makes two writes to the participant document, bracketing that one atomic
+  op: the insert first, so an announced join is always loadable, and then the
+  durable admission marker (`admitted_at`) that puts the document on the roster.
 
 ## Projectors
 

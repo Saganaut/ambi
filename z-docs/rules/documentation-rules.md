@@ -4,7 +4,7 @@ Two subjects, one goal — orientation with minimal noise: **the code explains i
 
 ## In-code comments
 
-**Names first, comments last.** Favour descriptive names for files, classes, functions, and variables so the code reads without narration (see [naming-rules.md](naming-rules.md)). A comment earns its place only when it says something the code *cannot* — a non-obvious *why*, a constraint, an invariant, a gotcha, or a deliberate trade-off — and then in the fewest words that carry it. A comment restating the code is noise: delete it and sharpen the name.
+**Names first, comments last.** Favour descriptive names for files, classes, functions, and variables so the code reads without narration (see [naming-rules.md](naming-rules.md)). A comment earns its place only when it says something the code *cannot* — a non-obvious *why*, a constraint, an invariant, a gotcha, or a deliberate trade-off — and then in the fewest words that carry it. A comment restating the code is noise: delete it and sharpen the name. You absolutely must keep comments succinct!  Less is more.
 
 ## File headers
 

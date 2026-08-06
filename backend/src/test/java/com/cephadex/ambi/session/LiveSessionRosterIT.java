@@ -46,10 +46,10 @@ import com.cephadex.ambi.session.redis.SessionKeys;
  * points at — the properties this change exists for can only be shown with both:
  * concurrent joins all succeed (they used to lose the fail-fast session lock and
  * 409 with {@code SESSION_LOCKED}), the participant cap still holds exactly under
- * that concurrency <em>and</em> across a rehydrate from either entry point (and is
- * never exceeded even when a cold key makes every joiner in a burst rehydrate), an
- * evicted Redis set rehydrates instead of failing the request, a refused join
- * strands nothing in the set, and join order survives into the roster listing.
+ * that concurrency <em>and</em> across a rehydrate from either entry point —
+ * including when a cold key makes every joiner in a burst rehydrate — an evicted
+ * Redis set rehydrates instead of failing the request, a refused join strands
+ * nothing in the set, and join order survives into the roster listing.
  */
 @SpringBootTest(classes = AmbiApplication.class)
 @ActiveProfiles("test")
@@ -59,7 +59,7 @@ class LiveSessionRosterIT {
     private LiveSessionOrchestrator orchestrator;
 
     /**
-     * Spied only so {@link #aColdKeyJoinBurstNeverExceedsTheCap} can hold the burst
+     * Spied only so {@link #aColdKeyJoinBurstFillsTheCapExactly} can hold the burst
      * at a barrier; every other test here runs the real roster untouched.
      */
     @MockitoSpyBean
@@ -197,6 +197,34 @@ class LiveSessionRosterIT {
         assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
         assertThat(mongoTemplate.count(new Query(Criteria.where("session_id").is(session.getId())),
                 Participant.class)).isEqualTo(cap);
+        // Every surviving document is an admitted one: the refusal took its
+        // marker-less document with it rather than leaving one behind.
+        assertThat(roster.participants(session.getId())).hasSize(cap);
+    }
+
+    @Test
+    void aMidFlightJoinerIsNotSeededByARehydrate() {
+        LiveSession session = openSession(50);
+
+        // A joiner whose document is durable but whose admit has not landed —
+        // exactly what the orchestrator's join leaves between its two writes.
+        Participant pending = Participant.join("user-pending", "Pending", null, null);
+        pending.joinSession(session.getId());
+        mongoTemplate.save(pending);
+
+        redis.delete(keys.rosterKey(session.getId()));
+
+        // Being durably saved is not being admitted: the document carries no
+        // admission marker, so nothing on the membership side can see it.
+        assertThat(roster.contains(session.getId(), pending.getParticipantId())).isFalse();
+
+        // A heal triggered by a real member rebuilds the set whole — from the
+        // admitted documents only, so the mid-flight joiner is not seeded a seat the
+        // cap would then count.
+        assertThat(roster.contains(session.getId(), session.getHostParticipantId())).isTrue();
+        assertThat(redis.opsForSet().members(keys.rosterKey(session.getId())))
+                .containsExactly(session.getHostParticipantId());
+        assertThat(participantIds(session)).containsExactly(session.getHostParticipantId());
     }
 
     @Test
@@ -205,23 +233,24 @@ class LiveSessionRosterIT {
         LiveSession session = openSession(cap);
         orchestrator.join(session.getRoomCode(), "user-early", "Early", null, null);
 
-        // A joiner whose document is saved but who has not been admitted yet, exactly
-        // as the orchestrator's join leaves them mid-flight.
-        Participant pending = Participant.join("user-pending", "Pending", null, null);
-        pending.joinSession(session.getId());
-        mongoTemplate.save(pending);
+        // An admitted member whose seat the set is about to lose — the accepted race:
+        // the key goes after their admit landed, so a heal puts them back.
+        Participant member = Participant.join("user-member", "Member", null, null);
+        member.joinSession(session.getId());
+        member.markAdmitted();
+        mongoTemplate.save(member);
 
-        // A heal on another request rehydrates the whole durable roster — it knows
-        // nothing about the in-flight joiner, so it seeds them too and the set is at
-        // the cap before their own admit runs.
+        // A heal on another request rehydrates the whole durable roster, this member
+        // included, so the set is at the cap before an admit for them runs (a retry
+        // whose first reply was lost, say).
         redis.delete(keys.rosterKey(session.getId()));
-        assertThat(roster.contains(session.getId(), pending.getParticipantId())).isTrue();
+        assertThat(roster.contains(session.getId(), member.getParticipantId())).isTrue();
         assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
 
         // Counting that pre-seeded id against the cap would refuse the seat it is
-        // already occupying: only two real members hold seats.
-        assertThat(roster.admit(session.getId(), session.getPublicId(), pending.getParticipantId(), cap,
-                SessionEvents.participantJoined(pending))).isTrue();
+        // already occupying: only two other members hold seats.
+        assertThat(roster.admit(session.getId(), session.getPublicId(), member.getParticipantId(), cap,
+                SessionEvents.participantJoined(member))).isTrue();
         assertThat(roster.participants(session.getId())).hasSize(cap);
         assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
     }
@@ -233,22 +262,24 @@ class LiveSessionRosterIT {
         // Host + early fill the session exactly: there is no seat left to give.
         orchestrator.join(session.getRoomCode(), "user-early", "Early", null, null);
 
-        Participant pending = Participant.join("user-pending", "Pending", null, null);
-        pending.joinSession(session.getId());
-        mongoTemplate.save(pending);
+        // A third admitted document on a two-seat session — the shape the accepted
+        // cap+1 race leaves behind, and the worst case the discount has to survive.
+        Participant extra = Participant.join("user-extra", "Extra", null, null);
+        extra.joinSession(session.getId());
+        extra.markAdmitted();
+        mongoTemplate.save(extra);
 
-        // The heal knows nothing about the in-flight joiner, so it seeds them into a
-        // set that is already at the cap.
+        // The heal seeds every admitted document, so the set comes back over the cap.
         redis.delete(keys.rosterKey(session.getId()));
-        assertThat(roster.contains(session.getId(), pending.getParticipantId())).isTrue();
+        assertThat(roster.contains(session.getId(), extra.getParticipantId())).isTrue();
         assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo(cap + 1L);
 
-        // Being pre-seeded is not the same as holding a seat. Waving the cap check for
-        // any id the set happens to carry would put a third member in a two-seat
-        // session; discounting the joiner from the cardinality instead still counts
-        // the two real members and refuses.
-        assertThat(roster.admit(session.getId(), session.getPublicId(), pending.getParticipantId(), cap,
-                SessionEvents.participantJoined(pending))).isFalse();
+        // Being carried by the set is not the same as holding a seat the cap agrees
+        // to. Waving the check for any id the set happens to carry would let the
+        // over-capacity state grow; discounting the id from the cardinality instead
+        // still counts the two other members and refuses.
+        assertThat(roster.admit(session.getId(), session.getPublicId(), extra.getParticipantId(), cap,
+                SessionEvents.participantJoined(extra))).isFalse();
         // A joiner the set never held is refused for the same reason.
         assertThatThrownBy(() -> orchestrator.join(session.getRoomCode(), "user-over", "Over", null, null))
                 .isInstanceOfSatisfying(ConflictException.class,
@@ -256,18 +287,18 @@ class LiveSessionRosterIT {
     }
 
     @Test
-    void aColdKeyJoinBurstNeverExceedsTheCap() throws Exception {
+    void aColdKeyJoinBurstFillsTheCapExactly() throws Exception {
         int cap = 5;
         int joiners = 12;
         LiveSession session = openSession(cap);
         // With the set evicted, every joiner in the burst rehydrates — and each
-        // rehydrate seeds the speculative documents its peers have already written.
+        // rehydrate reads a Mongo full of its peers' speculative documents.
         redis.delete(keys.rosterKey(session.getId()));
 
         // Hold every join between its insert and its admit so the burst is certainly
-        // in the state that cross-seeds: all twelve speculative documents durable, the
-        // set still cold, nobody admitted. Left to chance a warm JVM lets the first
-        // admit land before its peers save, and there is nothing for it to seed.
+        // in the state that used to cross-seed: all twelve speculative documents
+        // durable, the set still cold, nobody admitted. Left to chance a warm JVM lets
+        // the first admit land before its peers save, and there is nothing to seed.
         AtomicLong durableWhenTheBurstAdmits = new AtomicLong();
         CyclicBarrier inserted = new CyclicBarrier(joiners, () -> durableWhenTheBurstAdmits
                 .set(mongoTemplate.count(new Query(Criteria.where("session_id").is(session.getId())),
@@ -295,19 +326,22 @@ class LiveSessionRosterIT {
                 admitted++;
             }
         }
-        // The barrier really did establish the cross-seeding shape: host + every
-        // joiner's insert was durable before the first rehydrate read Mongo.
+        // The barrier really did establish the shape: host + every joiner's insert was
+        // durable before the first rehydrate read Mongo.
         assertThat(durableWhenTheBurstAdmits.get()).isEqualTo(joiners + 1L);
-        // Cross-seeding rehydrates can refuse a joiner that would have fit, so the cap
-        // is a ceiling here rather than an exact count — the safe direction, and a
-        // recorded follow-up. What must never happen is the reverse: being seeded into
-        // the set is not a seat, so no burst may land more than cap-1 joiners on top
-        // of the host's.
+        // Being durably saved is not admission. A cold-key rehydrate seeds only the
+        // documents carrying the admission marker — here, the host alone — so every
+        // seat is contested exactly once and the cap fills exactly rather than
+        // refusing joiners that would have fit. Exactness is deterministic, not
+        // lucky: the admits serialize inside Redis, whatever order the burst reaches
+        // it in.
         assertThat(admitted + full.get()).isEqualTo(joiners);
-        assertThat(admitted).isLessThanOrEqualTo(cap - 1);
-        assertThat(roster.participants(session.getId())).hasSizeLessThanOrEqualTo(cap);
+        assertThat(admitted).isEqualTo(cap - 1);
+        assertThat(full.get()).isEqualTo(joiners - (cap - 1));
+        assertThat(roster.participants(session.getId())).hasSize(cap);
+        assertThat(redis.opsForSet().size(keys.rosterKey(session.getId()))).isEqualTo((long) cap);
         assertThat(mongoTemplate.count(new Query(Criteria.where("session_id").is(session.getId())),
-                Participant.class)).isLessThanOrEqualTo(cap);
+                Participant.class)).isEqualTo(cap);
     }
 
     @Test

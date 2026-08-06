@@ -20,5 +20,5 @@ import jakarta.validation.constraints.Size;
 public record UpdateProfileRequest(
         @Size(min = ValidationConstants.DISPLAY_NAME_MIN, max = ValidationConstants.DISPLAY_NAME_MAX) String displayName,
         @Size(max = ValidationConstants.TIMEZONE_MAX) String timezone,
-        @Valid AvatarSelection avatar) {
+        @Valid AvatarSelectionRequest avatar) {
 }

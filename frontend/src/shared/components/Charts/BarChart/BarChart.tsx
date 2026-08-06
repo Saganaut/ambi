@@ -80,12 +80,6 @@ const SortableListItem = ({
           <span className={styles.share}> ({sharePct}%)</span>
         )}
       </span>
-      {/* {renderMenu && (
-        <span className={styles.rowActions}>
-          <CorrectBadge isCorrect={datum.isCorrect} />
-          {renderMenu(datum, menuAlign)}
-        </span>
-      )} */}
     </li>
   );
 
@@ -134,7 +128,6 @@ const BarChartInner = ({
               displayAsPercentage={displayAsPercentage}
               sortIndex={index}
               renderLabelWithMenu={renderLabelWithMenu}
-              // renderMenu={renderMenu}
               menuAlign={menuAlignFor(index)}
               orientation={orientation}
               addOption={addOption}

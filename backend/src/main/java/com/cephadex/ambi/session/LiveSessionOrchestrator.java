@@ -251,6 +251,11 @@ public class LiveSessionOrchestrator {
      * <p>Distinct from {@link #beginPlay}: creating a session only opens the
      * lobby; play starts on a separate host action.
      *
+     * <p>The host is admitted by construction — {@link SessionRoster#add} bypasses
+     * the cap check and there is no refusal path — so their admission marker is
+     * stamped before the single save that persists them. Without it they would be
+     * durable but absent from every roster read.
+     *
      * @param hostUserId  the host's user id (becomes the host participant)
      * @param displayName the host's display name (resolved from their profile)
      * @param avatar      the host's avatar, may be {@code null}
@@ -265,6 +270,7 @@ public class LiveSessionOrchestrator {
         // save the session first, then attach and persist the host.
         LiveSession session = saveWithUniqueRoomCode(LiveSession.create(host.getParticipantId(), deck));
         host.joinSession(session.getId());
+        host.markAdmitted();
         participants.save(host);
         roster.add(session.getId(), host.getParticipantId());
 
@@ -376,9 +382,13 @@ public class LiveSessionOrchestrator {
      * all succeed instead of losing the fail-fast lock and 409-ing.
      *
      * <p>The participant document is written before the roster admits it, so a
-     * client can never see a join announced for a player it can't load; a rejected
-     * join rolls back both the document it speculatively wrote and any roster
-     * membership the script managed to record ({@link #rollbackJoin}).
+     * client can never see a join announced for a player it can't load; the durable
+     * admission marker ({@link Participant#markAdmitted}) is stamped after. Until
+     * the admit lands the document is therefore durable but <em>not on the
+     * roster</em> — no rehydrate seeds it, no membership check honours it — so a
+     * refused or failed join rolls back a document nothing else could have observed
+     * as a member, along with any roster membership the script managed to record
+     * ({@link #rollbackJoin}).
      *
      * <p>Terminality is decided on the room-code read. A session that ends in the
      * microseconds between that read and the admit can therefore still take one
@@ -418,16 +428,29 @@ public class LiveSessionOrchestrator {
             throw full;
         }
 
+        try {
+            participant.markAdmitted();
+            participants.save(participant);
+        } catch (RuntimeException e) {
+            rollbackJoin(session, participant, e);
+            throw e;
+        }
+
         presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
         return new JoinResult(session, participant);
     }
 
     /**
-     * Undoes a join that was not admitted — the cap refused it, or the admit blew
-     * up after the script may already have run. The Redis member is dropped as
-     * well as the document, because a failure between the {@code SADD} and the
-     * reply would otherwise leave a phantom inflating the cap for the set's whole
-     * TTL.
+     * Undoes a join that was not admitted — the cap refused it, the admit blew up
+     * after the script may already have run, or the admission marker failed to
+     * persist once it had. The Redis member is dropped as well as the document,
+     * because a failure between the {@code SADD} and the reply would otherwise
+     * leave a phantom inflating the cap for the set's whole TTL.
+     *
+     * <p>The third caller is the one where both halves matter most: the admit
+     * succeeded, so the member <em>is</em> in the set and the join <em>was</em>
+     * published — the {@code SREM} is load-bearing rather than speculative, and the
+     * delete undoes a document that never gained its marker.
      *
      * <p>Order matters: the document goes first so a rehydrate racing this
      * rollback reads Mongo <em>after</em> the delete and therefore never re-seeds
@@ -449,8 +472,9 @@ public class LiveSessionOrchestrator {
             participants.delete(participant);
         } catch (RuntimeException e) {
             log.warn("Could not delete participant {} while rolling back a refused join to session {} — "
-                    + "the document is orphaned, so the roster still reports it and the next heal re-seeds it "
-                    + "past the SREM below", participant.getParticipantId(), session.getId(), e);
+                    + "the document is orphaned, but it carries no admission marker, so no roster read reports "
+                    + "it and it inflates nothing; logged so the leak stays traceable",
+                    participant.getParticipantId(), session.getId(), e);
             failure.addSuppressed(e);
         }
         try {

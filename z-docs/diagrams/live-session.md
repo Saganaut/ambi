@@ -51,7 +51,7 @@ Mongo read.
 | `FollowUpOptionStore` | `…:followup:{sid}:{slideId}` | ordered JSON, 6h |
 | `QAndAHostAnswerStore` | `…:qa-host-answers:{sid}:{slideId}` | hash, 6h, never flushed to Mongo |
 | `PresenceStore` | `…:presence:{sid}` | hash, 6h |
-| `SessionRoster` | `…:roster:{sid}` | SET of participantIds, 6h, rehydrates from Mongo |
+| `SessionRoster` | `…:roster:{sid}` | SET of participantIds, 6h, rehydrates from the admitted Mongo documents |
 | `EventSequenceStore` | `…:eventseq:{publicId}` | `INCR`, 6h |
 | `DeadlineStore` | `ambi:session:deadlines` | global ZSET, no TTL; members `close:{sid}:{slideId}`, `hostAway:{sid}`, `graceCancel:{sid}` |
 | leader lease | `…:deadline-leader` | `SET NX PX`, 15s |
@@ -75,11 +75,24 @@ Participants join by `roomCode` (`POST /liveSessions/join`).
 ## Membership
 
 Membership is a `Participant` document carrying a `sessionId` (the run's internal
-Mongo id) and a `leftAt` — there is no roster array on `LiveSession`. `SessionRoster`
-fronts that with a Redis SET, deliberately a different key from `presence:{sid}`:
-presence is "who is connected right now", the roster is "who is in this run", and
-a disconnect never takes anyone off it. Only an explicit leave does, stamping the
-durable `leftAt` so a rehydrate can't resurrect them.
+Mongo id), an `admitted_at` and a `leftAt` — there is no roster array on
+`LiveSession`. `SessionRoster` fronts that with a Redis SET, deliberately a
+different key from `presence:{sid}`: presence is "who is connected right now", the
+roster is "who is in this run", and a disconnect never takes anyone off it. Only an
+explicit leave does, stamping the durable `leftAt` so a rehydrate can't resurrect
+them.
+
+A join is three steps: **save the document → admit on the roster → stamp
+`admitted_at`**. The document goes first so a client can never see a join announced
+for a player it can't load; the marker goes last, so until the admit lands the
+document is durable but *not a member*. Every membership read filters on it — the
+listing, the existence check, and therefore the rehydrate seed — which is what makes
+a cold-key join burst fill the cap **exactly**: rehydrating joiners no longer seed
+each other's speculative documents and refuse peers that would have fit. One race is
+accepted: a key lost between an admit and its stamp rehydrates without that member,
+and the later cap-unchecked single-member heal can put them back, so a session can
+sit transiently at cap+1 — bounded, and in the direction of keeping a genuine member
+rather than locking one out.
 
 `join` therefore takes **no session lock** and writes nothing on `LiveSession`. Its
 one atomicity requirement — the `SESSION_FULL` cap (deck `AudienceSettings.maxParticipants`,
@@ -94,7 +107,10 @@ Reads go to the durable side. Snapshot roster order comes from a `joinedAt`-orde
 query, `ParticipantResolver` authorizes on an indexed `(sessionId, userId)` lookup,
 and `SessionRoster.contains` is a `SISMEMBER` that falls back to Mongo and heals the
 set on a miss — an evicted key costs one slower read, never a lockout. Backfilling
-pre-existing data is [`scripts/migrate-participant-session-id.sh`](../runbooks/running-the-project.md#7-one-off-data-migrations).
+pre-existing data is [`scripts/migrate-participant-session-id.sh`](../runbooks/running-the-project.md#7-one-off-data-migrations)
+for the `sessionId` link and
+[`scripts/migrate-participant-admitted-at.sh`](../runbooks/running-the-project.md#7-one-off-data-migrations)
+for the admission marker.
 
 ## Round phase state machine
 

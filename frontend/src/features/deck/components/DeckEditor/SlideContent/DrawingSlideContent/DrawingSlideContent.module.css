@@ -20,14 +20,36 @@
     display: flex;
     flex-direction: row;
 
+    /* Shrink-wraps the preview so the clear button pins to the picture's own
+       top-left corner rather than the row's. */
+    .imageFrame {
+      position: relative;
+      max-width: 50%;
+      align-self: flex-start;
+    }
+
     .imagePreview {
       display: block;
-      max-width: 50%;
+      max-width: 100%;
       max-height: 16rem;
-      align-self: flex-start;
       border-radius: var(--radius-md);
       box-shadow: var(--shadow-xs);
     }
+  }
+
+  button.imageClear {
+    position: absolute;
+    top: var(--space-1);
+    left: var(--space-1);
+    background: var(--bg-surface-raised);
+    border-radius: var(--radius-full);
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .imageFrame:hover button.imageClear,
+  .imageFrame:focus-within button.imageClear {
+    opacity: 1;
   }
 
   .paletteRow {
@@ -127,7 +149,7 @@
     font-size: var(--font-size-sm);
   }
 
-  /* Why the correct-answer image's Remove control is gone: an attached
+  /* Why the correct-answer image's clear button is gone: an attached
      "Spot the answer" follow-up needs that image to grade. */
   .lockedHint {
     margin: 0;

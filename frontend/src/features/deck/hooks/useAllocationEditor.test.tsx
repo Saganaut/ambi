@@ -4,16 +4,18 @@
 // inside [0, pool]. Also pins the ALLOCATION default-content shape
 // `buildDefaultContent` mints for a brand-new slide (two seeded options,
 // collect-only).
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
+
+//TODO: THIS WILL NEED TO BE UPDATE TO MATCH THE REFACTOR ON USE ALLOCATION EDITOR
 import { configureStore } from "@reduxjs/toolkit";
-import { Provider } from "react-redux";
 import { renderHook } from "@testing-library/react";
-import { act } from "react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
+import { act } from "react";
+import { Provider } from "react-redux";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { emptySplitApi, apiBaseUrl } from "@/shared/store/emptyApi";
+import { apiBaseUrl, emptySplitApi } from "@/shared/store/emptyApi";
 import {
   deckApi,
   type AllocationContent,
@@ -21,7 +23,7 @@ import {
   type SlideResponse,
 } from "../store/deckApi.gen";
 import { buildDefaultContent } from "../utils/slideContent";
-import { reorderAllocationOptions, useAllocationEditor } from "./useAllocationEditor";
+import { useAllocationEditor } from "./useAllocationEditor";
 
 const DECK_ID = "deck-1";
 const SLIDE_ID = "slide-allocation";

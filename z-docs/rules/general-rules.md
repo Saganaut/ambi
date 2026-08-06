@@ -7,4 +7,5 @@ Cross-cutting rules that apply across the whole project, regardless of layer.
 3. **Environment variables** — Manage all secrets (API keys, connection strings) via the root env file; never commit them.
 4. **Docker Compose** — Start infrastructure with `docker compose up -d` (or `./scripts/ambi.sh`, which starts everything).
 5. **Git** — Use clear, concise commit messages focused on the *why*. See [commit-rules.md](commit-rules.md).
-6. **No shortcuts** — Never bypass testing, documentation, or review for expediency. Quality and maintainability are paramount.
+6. **No shortcuts** — Quality and maintainability are paramount.
+7. **Decouple and re-use** — Avoid duplication and tightly coupled code. Use shared libraries and modules where appropriate.
