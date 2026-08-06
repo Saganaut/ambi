@@ -36,6 +36,7 @@ you pick up.
    `Loader`/`ErrorDisplay`/`EmptyState`.
 6. **`<section><h4>` options shell hand-copied 9x** — `DeckEditor/RightSidebar/EditSlideSections/*`
    — extract `<OptionsSection title>`.
+7. **done**
 8. **Pill/badge CSS reimplemented 3x** — `{Allocation,Number,Scales}SlideContent.module.css` —
    reuse `_shared/IndexPill` (or `Badge`).
 9. **Two bespoke drawers bypass `Modal`/`useModal`** — `SidePanelDrawer.tsx`,

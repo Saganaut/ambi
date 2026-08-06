@@ -298,7 +298,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   const cell = correctCells[item.id];
                   return (
                     <SortableItemBankRow
-                      type="placement"
+                      type="PLACEMENT"
                       key={item.id}
                       item={item}
                       index={index}

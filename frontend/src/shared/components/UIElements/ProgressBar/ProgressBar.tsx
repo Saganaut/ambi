@@ -16,7 +16,7 @@ interface ProgressBarProps {
   indeterminate?: boolean;
   className?: string;
 }
-
+// Leave logic here unless it gets used by other components
 const ProgressBar = ({
   value,
   max = 100,
@@ -38,10 +38,7 @@ const ProgressBar = ({
   const hasFillStyle = !indeterminate || Boolean(color);
 
   return (
-    <div
-      className={[styles.wrapper, styles[size], className]
-        .filter(Boolean)
-        .join(" ")}>
+    <div className={[styles.wrapper, styles[size], className].filter(Boolean).join(" ")}>
       {showLabel && (
         <div className={styles.labelRow}>
           <span className={styles.label}>{label ?? "Progress"}</span>
@@ -52,12 +49,13 @@ const ProgressBar = ({
       )}
       <div
         className={styles.track}
-        role='progressbar'
+        role="progressbar"
         aria-valuenow={indeterminate ? undefined : clamped}
         aria-valuemin={0}
         aria-valuemax={safeMax}
         aria-busy={indeterminate ? true : undefined}
-        aria-label={label ?? "Progress"}>
+        aria-label={label ?? "Progress"}
+      >
         <div
           className={[
             styles.fill,

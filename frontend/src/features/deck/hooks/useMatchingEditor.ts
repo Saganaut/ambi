@@ -35,7 +35,8 @@ interface MatchingPairView {
   left: MatchItem;
   right: MatchItem;
 }
-
+// TODO: this needs to be re-worked as here we always set pairs
+// but it could be there is no set right answer
 /** Flattened, UI-facing view of the active Matching slide. */
 interface MatchingQuestionView {
   id: string;
@@ -198,3 +199,4 @@ const useMatchingEditor = (deckId: string, slideId: string): UseMatchingEditorRe
 
 export { MATCHING_LABEL_MAX, MAX_MATCHING_PAIRS, MIN_MATCHING_PAIRS, useMatchingEditor };
 export type { MatchingPairView, MatchingQuestionView, MatchSide, UseMatchingEditorResult };
+

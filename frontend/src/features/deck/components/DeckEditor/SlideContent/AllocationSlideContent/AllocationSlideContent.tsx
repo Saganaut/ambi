@@ -1,17 +1,4 @@
-/**
- * Author surface for an Allocation slide (AllocationContent) — players split
- * a fixed pool of points (of whatever unit the prompt implies) across up to
- * six labelled options.
- *
- * Scoring is opt-in per option, Scales-style: "Set answer" seeds an even
- * share of the pool, the numeric field refines it, and the X clears it —
- * `correctAllocations` maps option id → points, graded within
- * `tolerancePerOption`. An empty key is a legitimate collect-only survey, so
- * the footer only nudges: toward a full key when partially scored, and
- * toward a pool-matching sum once every option is keyed.
- */
-import { useState } from "react";
-
+import { useAllocationDraft } from "@/features/deck/hooks/useAllocationDraft";
 import { DragDropWrapper } from "@/shared/components/Wrappers/DragDropWrapper";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
@@ -21,40 +8,33 @@ import {
   MAX_ALLOCATION_OPTIONS,
   useAllocationEditor,
 } from "@deck/hooks/useAllocationEditor";
-import { AddItemCard, EmptySelect, ScoringFooter } from "../_shared";
-import { NonSortableEditableItem } from "../_shared/Item.types";
+import { AddItemCard, EmptySelect } from "../_shared";
+import { EditableItem, EditableItemContent } from "../_shared/Item.types";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
-import { resolveOptionColor } from "../_shared/McqOptionEditable/optionColor";
 import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./AllocationSlideContent.module.css";
 
 const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
+  //TODO: fix these
+  const CONTINUOUS_ANIMATION = false;
+  const ANIMATE_ON_MOUNT = false;
+  const IS_HIGHLIGHTED = false;
+  const IS_SELECTED = false;
   const editor = useAllocationEditor(deckId, slideId);
   const { question } = editor;
   const openPicker = useGalleryPicker(deckId);
-
-  // Local mirrors keep the debounced inputs responsive: `updateSlideContent`
-  // buffers to a draft and only commits on flush, so binding straight to the
-  // store value would make these fields feel frozen mid-edit.
-  const [prompt, setPrompt] = useState(question?.prompt ?? "");
-  const [totalPoints, setTotalPoints] = useState(question?.totalPointsToAllocate ?? 100);
-  const [tolerance, setTolerance] = useState(question?.tolerancePerOption ?? 0);
-  // Which option's menu is open — at most one per slide. Focusing an option's
-  // label opens its menu (and thereby closes any other); the menu owns
-  // dismissal.
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [syncedFromId, setSyncedFromId] = useState(question?.id);
-  // Resync every mirror when the active slide changes ("derive state during
-  // render" — safe when the new value differs).
-  if (question && syncedFromId !== question.id) {
-    setSyncedFromId(question.id);
-    setPrompt(question.prompt);
-    setTotalPoints(question.totalPointsToAllocate);
-    setTolerance(question.tolerancePerOption);
-    setOpenMenuId(null);
-  }
+  const {
+    prompt,
+    totalPoints,
+    tolerance,
+    openMenuId,
+    setPrompt,
+    setTotalPoints,
+    setTolerance,
+    setOpenMenuId,
+  } = useAllocationDraft({ question: question });
 
   if (!question) return <EmptySelect title="Allocation" />;
 
@@ -65,85 +45,97 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   ).length;
   const fullyKeyed = options.length > 0 && keyedCount === options.length;
   const answerSum = Object.values(correctAllocations).reduce((sum, points) => sum + points, 0);
-  // What "Set answer" seeds — an even share, so keying every option in turn
-  // lands near a pool-matching sum.
   const answerSeed = Math.round(totalPoints / Math.max(1, options.length));
 
-  const footer = fullyKeyed ? (
-    answerSum === totalPoints ? (
-      <p>
-        Scored when a player&apos;s split lands within ±{question.tolerancePerOption.toString()} of
-        every option&apos;s answer.
-      </p>
-    ) : (
-      <ScoringFooter
-        visible
-        message={`The answers sum to ${answerSum.toString()}, not the ${totalPoints.toString()}-point pool — adjust them to match.`}
-      />
-    )
-  ) : (
-    <ScoringFooter
-      visible
-      message="Set the correct points for every option to make this slide scoreable."
-    />
-  );
+  console.log("unused, add when adding footer", fullyKeyed, answerSum, answerSeed);
 
-  // type="allocation"
-  // key={option.id}
-  // color={resolveOptionColor(option.color, index)}
-  // menuOpen={openMenuId == option.id}
-  // canRemove={editor.canRemoveOption}
-  // totalPool={totalPoints}
-  // correctValue={correctAllocations[option.id]}
-  // poolShareSeed={answerSeed}
-  // onMenuOpenChange={(open) => {
-  //   setOpenMenuId(open ? option.id : null);
-  // }}
+  const mcqOptionToItem = (option: McqOption): EditableItemContent => {
+    return {
+      id: option.id,
+      label: option.text ?? "",
+      color: option.color ?? "#fff",
+      image: option.image,
+    };
+  };
+
+  const OptionToEditableItem = (option: McqOption, idx: number): EditableItem<"ALLOCATION"> => {
+    return {
+      sourceIndex: idx,
+      kind: "ALLOCATION",
+      state: {
+        canRemove: editor.state.canRemoveItem,
+        menuIsOpen: openMenuId == option.id,
+        isHighlighted: IS_HIGHLIGHTED,
+        isSelected: IS_SELECTED,
+        displayAsPercentage: editor.state.displayResultsAsPercentage,
+        continuousAnimation: CONTINUOUS_ANIMATION,
+        animateOnMount: ANIMATE_ON_MOUNT,
+        isScorable: editor.actions.getIsScorable(option.id),
+      },
+      item: mcqOptionToItem(option),
+      detail: {
+        correctValue: correctAllocations[option.id],
+        value: correctAllocations[option.id],
+        totalPool: totalPoints,
+      },
+      actions: {
+        onFlush: editor.actions.flush,
+        onCommit: (points) => {
+          editor.actions.commitCorrect(option.id, points);
+        },
+        onScheduleAnswer: (points) => {
+          editor.actions.scheduleCorrect(option.id, points);
+        },
+        setMenuIsOpen: (open) => {
+          setOpenMenuId(open ? option.id : null);
+        },
+        onClear: () => {
+          editor.actions.clearCorrect(option.id);
+        },
+        onSelect: () => {
+          console.log("allocation slide content on select not implemented");
+        },
+        onSetColor: (color) => {
+          editor.actions.setItemColor(option.id, color);
+        },
+        onSetImage: (image) => {
+          editor.actions.setItemImage(option.id, image);
+        },
+        onRemove: () => {
+          editor.actions.removeItem(option.id);
+        },
+        openPicker,
+      },
+    };
+  };
+
+  // const footer = fullyKeyed ? (
+  //   answerSum === totalPoints ? (
+  //     <p>
+  //       Scored when a player&apos;s split lands within ±{question.tolerancePerOption.toString()} of
+  //       every option&apos;s answer.
+  //     </p>
+  //   ) : (
+  //     <ScoringFooter
+  //       visible
+  //       message={`The answers sum to ${answerSum.toString()}, not the ${totalPoints.toString()}-point pool — adjust them to match.`}
+  //     />
+  //   )
+  // ) : (
+  //   <ScoringFooter
+  //     visible
+  //     message="Set the correct points for every option to make this slide scoreable."
+  //   />
+  // );
+
+  // Where does this go?  poolShareSeed={answerSeed}
+
   // onScheduleLabel={(text) => {
   //   editor.scheduleOptionText(option.id, text);
   // }}
   // onFlush={editor.flush}
-  // onSetColor={(color) => {
-  //   editor.setOptionColor(option.id, color);
-  // }}
-  // onSetImage={(image) => {
-  //   editor.setOptionImage(option.id, image);
-  // }}
-  // onScheduleAnswer={(points) => {
-  //   editor.scheduleCorrectAllocation(option.id, points);
-  // }}
-  // onCommit={(points) => {
-  //   editor.commitCorrectAllocation(option.id, points);
-  // }}
-  // onClear={() => {
-  //   editor.clearCorrectAllocation(option.id);
-  // }}
-  // onRemove={() => {
-  //   editor.removeOption(option.id);
-  // }}
-  // openPicker={openPicker}
-  const returnOption = (option: McqOption, sourceIndex: number): NonSortableEditableItem => {
-    const item = { label: option.text ?? "", color: option.color ?? "", ...option };
-    const detail = {
-      type: "allocation",
-      correctValue: correctAllocations[option.id],
-      value: correctAllocations[option.id],
-      totalPool: totalPoints,
-      onCommit: (points) => {
-        editor.commitCorrectAllocation(option.id, points);
-      },
-      onScheduleAnswer: (points) => {
-        editor.scheduleCorrectAllocation(option.id, points);
-      },
-      onClear: () => {
-        editor.clearCorrectAllocation(option.id);
-      },
-    };
-    const actions = {};
-    const ui = {};
 
-    return { sourceIndex, item, actions, detail, ui };
-  };
+  // openPicker={openPicker}
 
   return (
     <SlideWrapper
@@ -153,11 +145,11 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         placeholder: "Ask players to split the pool…",
         onChange: (html) => {
           setPrompt(html);
-          editor.schedulePrompt(html);
+          editor.actions.scheduleQuestionPrompt(html);
         },
-        onBlur: editor.flush,
+        onBlur: editor.actions.flush,
       }}
-      footer={footer}
+      // footer={footer}
     >
       <SlideContent>
         <SlideContentSection>
@@ -177,9 +169,9 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               value={totalPoints}
               onChange={(next) => {
                 setTotalPoints(next);
-                editor.scheduleTotalPoints(next);
+                editor.actions.scheduleTotalPoints(next);
               }}
-              onBlur={editor.flush}
+              onBlur={editor.actions.flush}
             />
             <NumberInput
               label="Tolerance ±"
@@ -189,9 +181,9 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               value={tolerance}
               onChange={(next) => {
                 setTolerance(next);
-                editor.scheduleTolerance(next);
+                editor.actions.scheduleTolerance(next);
               }}
-              onBlur={editor.flush}
+              onBlur={editor.actions.flush}
             />
           </SlideContentSection.Body>
         </SlideContentSection>
@@ -200,57 +192,18 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             <span>Options</span> <span>players split the pool across these options</span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
-            <DragDropWrapper onReorder={editor.handleOptionDragEnd}>
+            <DragDropWrapper onReorder={editor.actions.handleItemDragEnd}>
               {options.map((option, index) => (
-                //TODO: should be resolving color based on index.
-                <SortableItemBankRow
-                  type="allocation"
-                  key={option.id}
-                  item={{ label: option.text ?? "", color: option.color ?? "", ...option }}
-                  label={option.text ?? "Error: label not found"}
-                  index={index}
-                  color={resolveOptionColor(option.color, index)}
-                  menuOpen={openMenuId == option.id}
-                  canRemove={editor.canRemoveOption}
-                  totalPool={totalPoints}
-                  correctValue={correctAllocations[option.id]}
-                  poolShareSeed={answerSeed}
-                  onMenuOpenChange={(open) => {
-                    setOpenMenuId(open ? option.id : null);
-                  }}
-                  onScheduleLabel={(text) => {
-                    editor.scheduleOptionText(option.id, text);
-                  }}
-                  onFlush={editor.flush}
-                  onSetColor={(color) => {
-                    editor.setOptionColor(option.id, color);
-                  }}
-                  onSetImage={(image) => {
-                    editor.setOptionImage(option.id, image);
-                  }}
-                  onScheduleAnswer={(points) => {
-                    editor.scheduleCorrectAllocation(option.id, points);
-                  }}
-                  onCommit={(points) => {
-                    editor.commitCorrectAllocation(option.id, points);
-                  }}
-                  onClear={() => {
-                    editor.clearCorrectAllocation(option.id);
-                  }}
-                  onRemove={() => {
-                    editor.removeOption(option.id);
-                  }}
-                  openPicker={openPicker}
-                />
+                <SortableItemBankRow key={option.id} {...OptionToEditableItem(option, index)} />
               ))}
               <AddItemCard
                 label={
-                  editor.canAddOption
+                  editor.state.canAddItem
                     ? "Add option"
                     : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
                 }
-                disabled={!editor.canAddOption}
-                onAdd={editor.addOption}
+                disabled={!editor.state.canAddItem}
+                onAdd={editor.actions.addItem}
               />{" "}
             </DragDropWrapper>
           </SlideContentSection.Body>

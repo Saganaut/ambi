@@ -1,40 +1,7 @@
 // PlaceOnImage-specific editing layer for the deck editor's Place-on-Image
 // slide.
 //
-// Sits on the generic `useSlideEditor<"PLACE_ON_IMAGE">` and exposes the
-// intent-level surface the Place-on-Image author UI consumes: a synthesized
-// `question` view, a prompt edit, the backing-image swap, and per-item ops.
-// There is exactly ONE `useSlideEditor` instance per Place-on-Image slide
-// (this hook is instantiated once, in `PlaceOnImageSlideContent`), so every
-// write funnels through a single draft + debounce buffer.
-//
-// A PLACE_ON_IMAGE slide is Axis's sibling with the picture standing in for
-// the labeled plane, and the content shape is Axis's too: a bank of `items`,
-// an id-keyed `correctPositions` answer key, and ONE slide-level `tolerance`.
-// The only difference is the coordinate space — normalized [0, 1] screen-space
-// over the image box, (0, 0) at the image's top-left, y NOT inverted — which
-// the player runtime measures in as well. Grading is INSIDE_RADIUS (every
-// keyed item's pin within `tolerance` of its target) and the grader implements
-// nothing else, so `scoreMode` has no authoring knob: `buildDefaultContent`
-// fixes it and the editor never writes it.
-//
-// Where the two editors differ is the authoring gesture, not the model: a press
-// on the open image mints a target AND its answer-key entry in one gesture
-// (`addTarget(point)`), while the bank's "Add target" card mints an UNPLACED
-// one (`addTarget()`) — an item that exists, carries a number, a color and a
-// label, but keys no right answer. The view therefore leaves `x`/`y` optional,
-// and the grader passes over an unkeyed item exactly as it does an unkeyed Axis
-// one (an entirely unkeyed slide is collect-only). `setTargetPosition` is the
-// one op that gives an item a point or takes it away again.
-//
-// Items are addressed by id (Axis's item ops), never by array position: the
-// UI holds an id across renders, an index goes stale the moment a row is
-// removed. Structural edits keep the key consistent — removing an item drops
-// its target. Item identity — id AND color — is likewise a stored fact, minted
-// at creation and repaired on load for legacy content
-// (`useItemIdentityBackfill`). Nothing here derives either from an item's
-// position, so reordering the rows renumbers the markers without moving or
-// repainting them.
+
 import type { DragEndEvent } from "@dnd-kit/react";
 
 import type { AppImage, PlacePoint } from "@deck/store/deckApi.gen";

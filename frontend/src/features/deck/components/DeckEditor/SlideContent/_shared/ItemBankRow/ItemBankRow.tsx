@@ -14,9 +14,8 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
-import { DistributiveOmit } from "react-redux";
 import { IndexPill } from "../IndexPill/IndexPill";
-import { EditableItem, EditableItemDetail } from "../Item.types";
+import { EditableItem, SortableEditableItem } from "../Item.types";
 import { ItemField } from "../ItemField/ItemField";
 import { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
 import styles from "./ItemBankRow.module.css";
@@ -28,49 +27,28 @@ import { ScaleTracker } from "./ScaleTracker";
  * Pass the onclick for htis
  *
  *  **/
-const ItemBankRow = (props: EditableItem) => {
-  const { detail, item, sourceIndex, actions, ui, sortable } = props;
+const ItemBankRow = (props: SortableEditableItem) => {
+  const { detail, item, sourceIndex, actions, kind, state, sortable } = props;
 
   // Placement and grid rows are numbered, not lettered: the bank's pill must
   // read as the same marker the author sees on the surface.
   const displayIndex =
-    detail.kind === "placement" ? (sourceIndex + 1).toString() : numberToLetter(sourceIndex + 1);
+    kind === "PLACE_ON_IMAGE" ? (sourceIndex + 1).toString() : numberToLetter(sourceIndex + 1);
   const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id ?? "", 200, 200, false);
 
   // Ranking never needs to use this since the order displayed is the correct answer.
   // For other questions individual values need to be set and is this relevant
 
-  function getIsScored(detail: EditableItemDetail): boolean {
-    switch (detail.kind) {
-      case "placement":
-        return Boolean(detail.target);
-
-      case "mcq":
-        return Boolean(detail.isCorrect);
-
-      case "scale":
-      case "allocation":
-        return detail.correctValue != null;
-
-      case "matching":
-        return detail.matchId !== null;
-
-      //Not applicable to ranking
-      case "ranking":
-      default:
-        return false;
-    }
-  }
-  const scored = getIsScored(detail);
+  const scored = actions.getIsScorable(item.id);
   const [points, setPoints] = useState(
-    detail.kind === "allocation" ? (detail.correctValue ?? detail.totalPool) : 0,
+    kind === "ALLOCATION" ? (detail.correctValue ?? detail.totalPool) : 0,
   );
   const [syncedFromId, setSyncedFromId] = useState(item.id);
   const [syncedFromAnswer, setSyncedFromAnswer] = useState(
-    detail.kind === "allocation" ? detail.correctValue : 0,
+    kind === "ALLOCATION" ? detail.correctValue : 0,
   );
 
-  if (detail.kind === "allocation") {
+  if (kind === "ALLOCATION") {
     if (syncedFromId !== item.id) {
       setSyncedFromId(item.id);
       setPoints(detail.correctValue ?? detail.totalPool);
@@ -82,8 +60,8 @@ const ItemBankRow = (props: EditableItem) => {
   }
 
   const toggleScorability = () => {
-    switch (detail.kind) {
-      case "allocation": {
+    switch (kind) {
+      case "ALLOCATION": {
         if (scored) {
           detail.onClear();
           return;
@@ -93,7 +71,7 @@ const ItemBankRow = (props: EditableItem) => {
         detail.onCommit(seed);
         return;
       }
-      case "scale": {
+      case "SCALES": {
         if (scored) {
           detail.onClear();
           return;
@@ -101,7 +79,7 @@ const ItemBankRow = (props: EditableItem) => {
         detail.onCommit((detail.minValue + detail.maxValue) / 2);
         return;
       }
-      case "placement": {
+      case "PLACEMENT": {
         if (detail.target != null) detail.onClearTarget();
         else detail.onSetTarget();
         return;
@@ -110,7 +88,7 @@ const ItemBankRow = (props: EditableItem) => {
   };
 
   const placementAction: OptionMenuPrimaryAction | undefined =
-    detail.kind === "placement"
+    kind === "PLACEMENT"
       ? {
           label: detail.target != null ? "Clear target" : "Set target",
           icon: detail.target != null ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
@@ -140,7 +118,7 @@ const ItemBankRow = (props: EditableItem) => {
       className={[
         styles.row,
         sortable.isDragging ? styles.isDragging : "",
-        ui.isSelected ? styles.selected : "",
+        state.isSelected ? styles.selected : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -182,7 +160,7 @@ const ItemBankRow = (props: EditableItem) => {
 
       <ItemField
         itemId={item.id}
-        label={detail.kind === "allocation" ? item.label : props.item.label}
+        label={kind === "ALLOCATION" ? item.label : props.item.label}
         image={item.image}
         displayIndex={sourceIndex + 1}
         placeholder={`${(sourceIndex + 1).toString()}`}
@@ -201,7 +179,7 @@ const ItemBankRow = (props: EditableItem) => {
       />
 
       {/* Tracker for scales question */}
-      {detail.kind === "scale" && (
+      {kind === "scale" && (
         <ScaleTracker
           min={detail.minValue}
           max={detail.maxValue}
@@ -216,7 +194,7 @@ const ItemBankRow = (props: EditableItem) => {
         />
       )}
       {/* Number input for allocation question */}
-      {detail.kind === "allocation" && (
+      {kind === "ALLOCATION" && (
         <div
           className={`${styles.collapsable} ${detail.correctValue !== undefined ? styles.expanded : ""}`}
         >
@@ -238,7 +216,7 @@ const ItemBankRow = (props: EditableItem) => {
         </div>
       )}
 
-      {detail.kind !== "ranking" && (
+      {kind !== "ranking" && (
         <>
           {scored ? (
             <IconBtn
@@ -246,7 +224,7 @@ const ItemBankRow = (props: EditableItem) => {
               size="xs"
               icon={<CheckIcon />}
               aria-label={
-                detail.kind === "placement"
+                kind === "PLACEMENT"
                   ? `Clear the target position for target ${displayIndex}`
                   : `Clear correct points for option ${displayIndex.toString()}`
               }
@@ -262,7 +240,7 @@ const ItemBankRow = (props: EditableItem) => {
               size="xs"
               icon={<QuestionMarkCircleIcon />}
               aria-label={
-                detail.kind === "placement"
+                kind === "PLACEMENT"
                   ? `Set a target position for target ${displayIndex}`
                   : `Set option ${displayIndex.toString()} as scorable`
               }
@@ -280,7 +258,7 @@ const ItemBankRow = (props: EditableItem) => {
         className={styles.grip}
         role="button"
         aria-label={
-          detail.kind === "placement"
+          kind === "PLACEMENT"
             ? `Reorder target ${(sourceIndex + 1).toString()}`
             : `Reorder option ${(sourceIndex + 1).toString()}`
         }
@@ -290,8 +268,7 @@ const ItemBankRow = (props: EditableItem) => {
     </div>
   );
 };
-type SortableItemBankRowProps = DistributiveOmit<EditableItem, "sortable">;
-const SortableItemBankRow = (rowProps: SortableItemBankRowProps) => {
+const SortableItemBankRow = (rowProps: EditableItem) => {
   const { ref, handleRef, isDragging } = useSortable({
     id: rowProps.item.id,
     index: rowProps.sourceIndex,

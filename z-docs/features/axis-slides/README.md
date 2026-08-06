@@ -114,7 +114,7 @@ reachable by keyboard because focusing a row's label opens its menu.
 Everything else — rows, markers, pointer bookkeeping, tolerance field, popover
 machinery, composer state — is the
 [shared placement kit](../deck-editor/README.md#shared-placement-kit). Axis
-renders `SortableItemBankRow` with `type="placement"` and `hasTarget`; the
+renders `SortableItemBankRow` with `type="PLACEMENT"` and `hasTarget`; the
 row's placement arm builds its own "Set target" / "Clear target" menu action,
 so there is no Axis-specific row component.
 

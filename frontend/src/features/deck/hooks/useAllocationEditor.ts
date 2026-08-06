@@ -5,10 +5,10 @@ import { isSortable } from "@dnd-kit/react/sortable";
 import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
 
 import {
-  AllocationQuestionActions,
-  NonSortableEditableItem,
-  QuestionBaseActions,
+  ItemId,
+  QuestionActions,
   QuestionBaseState,
+  QuestionViewBase,
 } from "../components/DeckEditor/SlideContent/_shared/Item.types";
 import { buildDefaultAllocationOption } from "../utils/slideContent";
 import { useSlideEditor } from "./useSlideEditor";
@@ -20,9 +20,7 @@ const ALLOCATION_TOTAL_MIN = 1;
 const ALLOCATION_OPTION_LABEL_MAX = 80;
 
 /** Flattened, UI-facing view of the active Allocation slide. */
-interface AllocationQuestionView {
-  id: string;
-  prompt: string;
+interface AllocationQuestionView extends QuestionViewBase {
   options: McqOption[];
   correctAllocations: Record<string, number>;
   totalPointsToAllocate: number;
@@ -31,9 +29,8 @@ interface AllocationQuestionView {
 
 interface UseAllocationEditorResult {
   question: AllocationQuestionView | undefined;
-  baseState: QuestionBaseState;
-  baseActions: QuestionBaseActions;
-  extendedActions: AllocationQuestionActions;
+  state: QuestionBaseState;
+  actions: QuestionActions<"ALLOCATION">;
 }
 
 /** Answers are whole points inside the pool. */
@@ -146,7 +143,7 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     editor.flush();
   };
 
-  const scheduleCorrectAllocation = (id: string | undefined, points: number) => {
+  const scheduleCorrect = (id: string | undefined, points: number) => {
     if (!id) return;
     editor.updateSlideContent((prev) => ({
       correctAllocations: {
@@ -156,13 +153,13 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     }));
   };
 
-  const commitCorrectAllocation = (id: string | undefined, points: number) => {
+  const commitCorrect = (id: string | undefined, points: number) => {
     if (!id) return;
-    scheduleCorrectAllocation(id, points);
+    scheduleCorrect(id, points);
     editor.flush();
   };
 
-  const clearCorrectAllocation = (id: string | undefined) => {
+  const clearCorrect = (id: string | undefined) => {
     if (!id) return;
     editor.updateSlideContent((prev) => {
       const { [id]: _removed, ...rest } = prev.correctAllocations ?? {};
@@ -171,30 +168,12 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     editor.flush();
   };
 
-  const itemPreparer = (option: McqOption, sourceIndex: number): NonSortableEditableItem => {
-    const item = { label: option.text ?? "", color: option.color ?? "", ...option };
-    const detail = {
-      type: "allocation",
-      correctValue: correctAllocations[option.id],
-      value: correctAllocations[option.id],
-      totalPool: totalPoints,
-      onCommit: (points: number) => {
-        editor.extendedActions.commitCorrectAllocation(option.id, points);
-      },
-      onScheduleAnswer: (points: number) => {
-        editor.scheduleCorrectAllocation(option.id, points);
-      },
-      onClear: () => {
-        editor.clearCorrectAllocation(option.id);
-      },
-    };
-    const actions = {};
-    const ui = {};
-
-    return { sourceIndex, item, actions, detail, ui };
+  //TODO: if there is a value associated with it then it is scorable
+  const getIsScorable = (itemId: ItemId) => {
+    return slide?.content.correctAllocations?.[itemId] != null;
   };
 
-  const baseActions = {
+  const actions = {
     flush: editor.flush,
     setItemColor,
     setItemImage,
@@ -203,26 +182,25 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     handleItemDragEnd,
     scheduleQuestionPrompt,
     scheduleItemText,
-  };
-
-  const baseState = {
-    canAddItem,
-    canRemoveItem,
-  };
-
-  const extendedActions = {
     scheduleTotalPoints,
     scheduleTolerance,
-    scheduleCorrectAllocation,
-    commitCorrectAllocation,
-    clearCorrectAllocation,
+    scheduleCorrect,
+    commitCorrect,
+    clearCorrect,
+    getIsScorable,
+  };
+
+  const state = {
+    canAddItem,
+    canRemoveItem,
+    displayResultsAsPercentage:
+      editor.slide?.settings?.answerSettings?.displayResultsAsPercentage ?? false,
   };
 
   return {
-    baseState,
+    state,
     question,
-    baseActions,
-    extendedActions,
+    actions,
   };
 };
 

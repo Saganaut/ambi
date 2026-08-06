@@ -1,31 +1,3 @@
-// Scales-specific editing layer for the deck editor's Scales (Likert) slide.
-//
-// Sits on the generic `useSlideEditor<"SCALES">` and the shared
-// `useItemBankEditor`, exposing the intent-level surface the Scales author UI
-// consumes: a synthesized `question` view, a prompt edit, the scale-level
-// fields (min / max / anchor labels / tolerance), and per-statement ops keyed
-// by statement id. There is exactly ONE `useSlideEditor` instance per Scales
-// slide (this hook is instantiated once, in `ScalesSlideContent`) and the bank
-// is handed that instance rather than mounting its own, so every write — the
-// prompt, the scale settings, each statement's label and target — funnels
-// through a single draft + debounce buffer.
-//
-// The scale is continuous: players drag a marker anywhere along the track, so
-// grading needs a positive tolerance (an exact match on a continuum is
-// measure-zero). The editor is where that bound lives — `setTolerance` clamps
-// to the fraction bounds below, and every `min`/`max` edit re-clamps the
-// stored tolerance against the new span in the same commit.
-//
-// Scoring is opt-in per statement and needs no extra field: SCALES content
-// stores `correctValues` (statementId → target value, in scale units), and the
-// backend grades a slide as unscored the moment that map is empty (mirroring
-// how empty `acceptedAnswers` marks a TEXT slide as a word cloud). So "score
-// this statement" is just "set its target", and "make it unscored" is "drop
-// its key from the map".
-//
-// Statement order is cosmetic for grading — rating and target stay keyed by id,
-// never by position — but the row list is drag-reorderable like every other
-// item bank's, via `handleStatementDragEnd`.
 import type { DragEndEvent } from "@dnd-kit/react";
 
 import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";

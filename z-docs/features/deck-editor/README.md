@@ -83,7 +83,7 @@ Kind-specific detail lives with each kind: [Axis](../axis-slides/README.md),
 `SlideContent/GridSlideContent/` mirrors Axis's two-column layout: a "Grid"
 card (editable axis labels, "+" affordances to grow either axis, one cell per
 row × column, an "N of M placed" header counter) beside an "Items" card of
-`SortableItemBankRow`s — which pass `type="placement"`, the same arm Axis and
+`SortableItemBankRow`s — which pass `type="PLACEMENT"`, the same arm Axis and
 Place-on-Image use.
 
 - **The Items column IS the bank.** An item lives there whether or not it is placed; `correctCells` (item id → `"rowIndex,colIndex"`) carries an entry only for the placed ones. There is no separate unplaced tray, and `addItem(cell?)` no longer requires a cell.

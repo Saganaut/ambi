@@ -40,7 +40,7 @@ const renderPlacementRow = (hasTarget: boolean, overrides: { menuOpen?: boolean 
     onClearTarget: vi.fn(),
     menuOpen: overrides.menuOpen ?? false,
   };
-  const { container } = render(<ItemBankRow type="placement" hasTarget={hasTarget} {...props} />);
+  const { container } = render(<ItemBankRow type="PLACEMENT" hasTarget={hasTarget} {...props} />);
   return { ...props, row: container.firstElementChild };
 };
 

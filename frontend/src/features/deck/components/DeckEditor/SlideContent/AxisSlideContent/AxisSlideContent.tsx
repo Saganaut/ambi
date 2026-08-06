@@ -112,7 +112,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             <DragDropWrapper onReorder={editor.handleItemDragEnd}>
               {items.map((item, index) => (
                 <SortableItemBankRow
-                  type="placement"
+                  type="PLACEMENT"
                   key={item.id}
                   item={item}
                   index={index}

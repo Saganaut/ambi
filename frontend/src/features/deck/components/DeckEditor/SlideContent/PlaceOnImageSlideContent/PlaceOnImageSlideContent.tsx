@@ -170,7 +170,7 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             <DragDropWrapper onReorder={editor.handleItemDragEnd}>
               {targets.map((item, idx) => (
                 <SortableItemBankRow
-                  type="placement"
+                  type="PLACEMENT"
                   key={item.id}
                   item={item}
                   index={idx}
