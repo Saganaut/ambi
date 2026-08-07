@@ -6,18 +6,11 @@ import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
 import { numberToLetter } from "@/shared/utils/utils";
 import { useSortable } from "@dnd-kit/react/sortable";
-import {
-  ArrowUturnLeftIcon,
-  CheckIcon,
-  QuestionMarkCircleIcon,
-  ViewfinderCircleIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { CheckIcon, QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { EditableItem, SortableEditableItem } from "../Item.types";
 import { ItemField } from "../ItemField/ItemField";
-import { OptionMenuPrimaryAction } from "../OptionMenu/OptionMenu.types";
 import styles from "./ItemBankRow.module.css";
 import { ScaleTracker } from "./ScaleTracker";
 
@@ -32,14 +25,12 @@ const ItemBankRow = (props: SortableEditableItem) => {
 
   // Placement and grid rows are numbered, not lettered: the bank's pill must
   // read as the same marker the author sees on the surface.
-  const displayIndex =
-    kind === "PLACE_ON_IMAGE" ? (sourceIndex + 1).toString() : numberToLetter(sourceIndex + 1);
+  const displayIndex = numberToLetter(sourceIndex + 1);
   const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id ?? "", 200, 200, false);
 
   // Ranking never needs to use this since the order displayed is the correct answer.
   // For other questions individual values need to be set and is this relevant
 
-  const scored = actions.getIsScorable(item.id);
   const [points, setPoints] = useState(
     kind === "ALLOCATION" ? (detail.correctValue ?? detail.totalPool) : 0,
   );
@@ -59,46 +50,46 @@ const ItemBankRow = (props: SortableEditableItem) => {
     }
   }
 
-  const toggleScorability = () => {
-    switch (kind) {
-      case "ALLOCATION": {
-        if (scored) {
-          detail.onClear();
-          return;
-        }
-        const seed = detail.totalPool ?? 0;
-        setPoints(seed);
-        detail.onCommit(seed);
-        return;
-      }
-      case "SCALES": {
-        if (scored) {
-          detail.onClear();
-          return;
-        }
-        detail.onCommit((detail.minValue + detail.maxValue) / 2);
-        return;
-      }
-      case "PLACEMENT": {
-        if (detail.target != null) detail.onClearTarget();
-        else detail.onSetTarget();
-        return;
-      }
-    }
-  };
+  // const toggleScorability = () => {
+  //   switch (kind) {
+  //     case "ALLOCATION": {
+  //       if (scored) {
+  //         detail.onClear();
+  //         return;
+  //       }
+  //       const seed = detail.totalPool ?? 0;
+  //       setPoints(seed);
+  //       detail.onCommit(seed);
+  //       return;
+  //     }
+  //     case "SCALES": {
+  //       if (scored) {
+  //         detail.onClear();
+  //         return;
+  //       }
+  //       detail.onCommit((detail.minValue + detail.maxValue) / 2);
+  //       return;
+  //     }
+  //     case "PLACEMENT": {
+  //       if (detail.target != null) detail.onClearTarget();
+  //       else detail.onSetTarget();
+  //       return;
+  //     }
+  //   }
+  // };
 
-  const placementAction: OptionMenuPrimaryAction | undefined =
-    kind === "PLACEMENT"
-      ? {
-          label: detail.target != null ? "Clear target" : "Set target",
-          icon: detail.target != null ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
-          pressed: detail.target != null,
-          onSelect: () => {
-            actions.onMenuOpenChange(false);
-            toggleScorability();
-          },
-        }
-      : undefined;
+  // const placementAction: OptionMenuPrimaryAction | undefined =
+  //   kind === "PLACEMENT"
+  //     ? {
+  //         label: detail.target != null ? "Clear target" : "Set target",
+  //         icon: detail.target != null ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
+  //         pressed: detail.target != null,
+  //         onSelect: () => {
+  //           actions.setMenuIsOpenForItem(false);
+  //           toggleScorability();
+  //         },
+  //       }
+  //     : undefined;
 
   // The grip sits inside the row's click target, and a finished drag ends with
   // a click the browser fires over the row — which would arm it. The guard
@@ -130,7 +121,7 @@ const ItemBankRow = (props: SortableEditableItem) => {
           draggedRef.current = false;
           return;
         }
-        actions.onSelect?.();
+        actions.selectItem?.();
       }}
     >
       <IndexPill value={displayIndex} color={item.color} />
@@ -152,7 +143,7 @@ const ItemBankRow = (props: SortableEditableItem) => {
             aria-label={`Remove ${displayIndex.toString()} image`}
             onClick={(e) => {
               e.stopPropagation();
-              actions.onSetImage(emptyImage());
+              actions.setImageForItem(emptyImage());
             }}
           />
         </span>
@@ -166,29 +157,30 @@ const ItemBankRow = (props: SortableEditableItem) => {
         placeholder={`${(sourceIndex + 1).toString()}`}
         maxLength={100}
         color={item.color}
-        open={actions.menuOpen}
-        onOpenChange={actions.onMenuOpenChange}
-        canRemove={actions.canRemove}
-        primaryAction={placementAction ?? actions.primaryAction}
-        onScheduleLabel={actions.onScheduleLabel}
-        onFlush={actions.onFlush}
-        onSetColor={actions.onSetColor}
-        onSetImage={actions.onSetImage}
-        onRemove={actions.onRemove}
-        openPicker={actions.openPicker}
+        open={state.menuIsOpen}
+        onOpenChange={actions.setMenuIsOpenForItem}
+        canRemove={state.canRemove}
+        //TODO: Need to figure out what we do with this. Is it still relevant if so how do we pass it
+        // primaryAction={placementAction ?? actions.primaryAction}
+        onScheduleLabel={actions.scheduleLabel}
+        onFlush={actions.flush}
+        onSetColor={actions.setColorForItem}
+        onSetImage={actions.setImageForItem}
+        onRemove={actions.removeItem}
+        openPicker={actions.openImagePicker}
       />
 
       {/* Tracker for scales question */}
-      {kind === "scale" && (
+      {kind === "SCALES" && (
         <ScaleTracker
-          min={detail.minValue}
-          max={detail.maxValue}
+          min={detail.min}
+          max={detail.max}
           tolerance={detail.tolerance}
-          leftLabel={detail.leftLabel}
-          rightLabel={detail.rightLabel}
+          leftLabel={detail.lowLabel}
+          rightLabel={detail.highLabel}
           displayIndex={displayIndex}
-          onCommit={detail.onCommit}
-          onScheduleAnswer={detail.onScheduleAnswer}
+          onCommit={actions.commitCorrectAnswer}
+          onScheduleAnswer={actions.scheduleCorrectAnswer}
           correctValue={detail.correctValue}
           color={item.color}
         />
@@ -208,30 +200,26 @@ const ItemBankRow = (props: SortableEditableItem) => {
               max={detail.totalPool}
               onChange={(next) => {
                 setPoints(next);
-                detail.onScheduleAnswer(next);
+                actions.scheduleCorrectAnswer(next);
               }}
-              onBlur={actions.onFlush}
+              onBlur={actions.flush}
             />
           </div>
         </div>
       )}
 
-      {kind !== "ranking" && (
+      {kind !== "RANKING" && (
         <>
-          {scored ? (
+          {state.isScorable ? (
             <IconBtn
               fill="ghost"
               size="xs"
               icon={<CheckIcon />}
-              aria-label={
-                kind === "PLACEMENT"
-                  ? `Clear the target position for target ${displayIndex}`
-                  : `Clear correct points for option ${displayIndex.toString()}`
-              }
+              aria-label={"Toggle scorability"}
               onClick={(e) => {
                 // Clicking anywhere on the row arms it — this toggle must not.
                 e.stopPropagation();
-                toggleScorability();
+                actions.toggleScorabilityForItem();
               }}
             />
           ) : (
@@ -239,14 +227,10 @@ const ItemBankRow = (props: SortableEditableItem) => {
               fill="ghost"
               size="xs"
               icon={<QuestionMarkCircleIcon />}
-              aria-label={
-                kind === "PLACEMENT"
-                  ? `Set a target position for target ${displayIndex}`
-                  : `Set option ${displayIndex.toString()} as scorable`
-              }
+              aria-label={"Toggle scorability"}
               onClick={(e) => {
                 e.stopPropagation();
-                toggleScorability();
+                actions.toggleScorabilityForItem();
               }}
             />
           )}
@@ -257,11 +241,7 @@ const ItemBankRow = (props: SortableEditableItem) => {
         ref={sortable.handleRef}
         className={styles.grip}
         role="button"
-        aria-label={
-          kind === "PLACEMENT"
-            ? `Reorder target ${(sourceIndex + 1).toString()}`
-            : `Reorder option ${(sourceIndex + 1).toString()}`
-        }
+        aria-label={`Reorder item ${(sourceIndex + 1).toString()}`}
       >
         <DragIcon className={styles.gripIcon} aria-hidden="true" />
       </span>

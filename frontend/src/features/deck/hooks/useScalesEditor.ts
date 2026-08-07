@@ -82,11 +82,11 @@ interface UseScalesEditorResult {
 
   /** ── Scoring ─────────────────────────────────────────────────────────── */
   /** Debounced per-statement target edit → `correctValues[id]`. */
-  scheduleCorrectValue: (statementId: string | undefined, value: number) => void;
+  scheduleCorrectAnswerValue: (statementId: string | undefined, value: number) => void;
   /** Immediate per-statement target set (a drag release on the statement's track). */
-  commitCorrectValue: (statementId: string | undefined, value: number) => void;
+  commitCorrectAnswerValue: (statementId: string | undefined, value: number) => void;
   /** Drop one statement's target, leaving that statement unscored. */
-  clearCorrectValue: (statementId: string | undefined) => void;
+  clearCorrectAnswerValue: (statementId: string | undefined) => void;
   /** Set the per-slide tolerance in scale units (clamped to the fraction bounds). Immediate. */
   setTolerance: (value: number) => void;
 }
@@ -154,20 +154,20 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     bank.addItem();
   };
 
-  const scheduleCorrectValue = (id: string | undefined, value: number) => {
+  const scheduleCorrectAnswerValue = (id: string | undefined, value: number) => {
     if (!id) return;
     editor.updateSlideContent((prev) => ({
       correctValues: { ...prev.correctValues, [id]: value },
     }));
   };
 
-  const commitCorrectValue = (id: string | undefined, value: number) => {
+  const commitCorrectAnswerValue = (id: string | undefined, value: number) => {
     if (!id) return;
-    scheduleCorrectValue(id, value);
+    scheduleCorrectAnswerValue(id, value);
     editor.flush();
   };
 
-  const clearCorrectValue = (id: string | undefined) => {
+  const clearCorrectAnswerValue = (id: string | undefined) => {
     if (!id) return;
     editor.updateSlideContent((prev) => {
       const { [id]: _removed, ...rest } = prev.correctValues;
@@ -199,9 +199,9 @@ const useScalesEditor = (deckId: string, slideId: string): UseScalesEditorResult
     setStatementImage: bank.setItemImage,
     removeStatement: bank.removeItem,
     handleStatementDragEnd: bank.handleItemDragEnd,
-    scheduleCorrectValue,
-    commitCorrectValue,
-    clearCorrectValue,
+    scheduleCorrectAnswerValue,
+    commitCorrectAnswerValue,
+    clearCorrectAnswerValue,
     setTolerance,
   };
 };

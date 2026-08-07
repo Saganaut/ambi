@@ -21,12 +21,12 @@
 // through the same gallery upload as a picked file — `saveDrawnPrompt` /
 // `saveDrawnCorrectImage` turn the canvas blob into a stored AppImage and
 // slot it as `imagePrompt` / `correctImage` respectively.
+import type { AppImage } from "@deck/store/deckApi.gen";
+import type { PromptPlacement, Tool } from "@deck/store/deckEnums.gen";
 import {
   useGetMyGalleryQuery,
   useUploadImageMutation,
 } from "@features/gallery/store/galleryApi.gen";
-import type { AppImage } from "@deck/store/deckApi.gen";
-import type { PromptPlacement, Tool } from "@deck/store/deckEnums.gen";
 
 import { useSlideEditor } from "./useSlideEditor";
 
@@ -77,7 +77,7 @@ interface UseDrawingEditorResult {
   /** Drop the correct-answer image. Immediate — callers must first check it
    *  wouldn't orphan an attached keyed follow-up (the PUT can't surface the
    *  backend's 400). */
-  clearCorrectImage: () => void;
+  clearCorrectAnswerImage: () => void;
   /** Ingest an author-drawn canvas PNG into the gallery, then set it as the
    *  correct-answer image. Rejects when the personal gallery isn't loaded yet. */
   saveDrawnCorrectImage: (blob: Blob) => Promise<void>;
@@ -147,7 +147,7 @@ const useDrawingEditor = (deckId: string, slideId: string): UseDrawingEditorResu
     editor.flush();
   };
 
-  const clearCorrectImage = () => {
+  const clearCorrectAnswerImage = () => {
     editor.updateSlideContent({ correctImage: undefined });
     editor.flush();
   };
@@ -192,7 +192,7 @@ const useDrawingEditor = (deckId: string, slideId: string): UseDrawingEditorResu
     saveDrawnPrompt,
     setPromptPlacement,
     setCorrectImage,
-    clearCorrectImage,
+    clearCorrectAnswerImage,
     saveDrawnCorrectImage,
     canAddPaletteColor,
     commitPalette,

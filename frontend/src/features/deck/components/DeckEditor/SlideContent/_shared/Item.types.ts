@@ -12,25 +12,6 @@ import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { DragEndEvent } from "@dnd-kit/dom";
 import { Ref } from "react";
-// interface EditableItemActions {
-//   menuOpen: boolean;
-//   canRemove: boolean;
-//   onSelect: () => void;
-//   //toggle target effectively is toggleCorrect for mcqOption or set/clear target for placement
-//   toggleTarget: () => void;
-//   onMenuOpenChange: (open: boolean) => void;
-//   onScheduleLabel: (label: string) => void;
-//   onFlush: () => void;
-//   onSetColor: (color: string) => void;
-//   onSetImage: (image: AppImage) => void;
-//   onRemove: () => void;
-//   openPicker: OpenGalleryPicker;
-//   primaryAction?: OptionMenuPrimaryAction;
-// }
-
-type Point = { x: number; y: number };
-type Cell = { row: number; column: number };
-export type ItemId = string;
 
 interface ItemContent<TImage> {
   id: string;
@@ -43,7 +24,26 @@ interface ResolvedImage {
   src: string;
   alt: string;
 }
+type Point = { x: number; y: number };
+type Cell = { row: number; column: number };
+export type ItemId = string;
+type ContinuousAxis = { kind: "continuous"; min: number; max: number; labels: [string, string] };
+type DiscreteAxis = { kind: "discrete"; labels: string[] };
+type Axis = ContinuousAxis | DiscreteAxis;
+// GRID: rows = y, cols = x
+type AxisKey = "x" | "y";
+type Axes = Partial<Record<AxisKey, Axis>>;
 
+interface AxisActions {
+  scheduleAxisLabel: (axis: AxisKey, index: number, text: string) => void;
+  scheduleAxisRange?: (axis: AxisKey, bound: "min" | "max", value: number) => void; // continuous
+  addAxisLabel?: (axis: AxisKey) => void; // discrete only
+  removeAxisLabel?: (axis: AxisKey, index: number) => void;
+}
+
+interface WithTolerance {
+  tolerance: number;
+}
 export type EditableItemContent = ItemContent<AppImage>;
 export type ChartItemContent = ItemContent<ResolvedImage>;
 
@@ -54,35 +54,14 @@ export const toEditableItemContent = (option: McqOption): EditableItemContent =>
   image: option.image,
 });
 
-interface BaseItemActions {
-  onSelect: () => void;
-  onSetColor: (color: string) => void;
-  onSetImage: (image: AppImage) => void;
-  onRemove: () => void;
-  onFlush: () => void;
-  openPicker: OpenGalleryPicker;
-  setMenuIsOpen: (open: boolean) => void;
-  // Checks if an item is scorable, each question will implement this differently
-  toggleScorability: (itemId: ItemId) => boolean;
-}
+/** --------------- ITEM DETAIL-------------------**/
 //TODO: need to consolidate the actions/move them to actions but it has to be typed
 interface ScalesItemDetail {
   correctValue?: number;
   min: number;
   max: number;
-  tolerance: number;
   lowLabel: string;
   highLabel: string;
-}
-interface CorrectAnswerActions<V> {
-  scheduleCorrect: (id: ItemId, value: V) => void;
-  commitCorrect: (id: ItemId, value: V) => void;
-  clearCorrect: (id: ItemId) => void;
-}
-interface ScalesItemActions extends BaseItemActions {
-  onCommit: (value: number) => void;
-  onScheduleAnswer: (value: number) => void;
-  onClear: () => void;
 }
 
 // works for grid, place on image, axis.
@@ -91,34 +70,13 @@ interface PlacementItemDetail {
     x: number;
     y: number;
   };
-  tolerance: number;
-}
-
-interface PlacementItemActions extends BaseItemActions {
-  select: () => void;
-  onSetTarget: () => void;
-  onClearTarget: () => void;
-}
-
-interface McqItemDetail {
-  isCorrect: boolean;
-}
-interface McqItemActions extends BaseItemActions {
-  toggleCorrect: () => void;
 }
 
 // oxlint-disable-next-line typescript/no-empty-object-type
 interface RankingItemDetail {
   doesImageSlotConfigMatchSlotId: string;
 }
-// oxlint-disable-next-line typescript/no-empty-object-type
-interface RankingItemActions extends BaseItemActions {
-  matchId: string;
-}
-// oxlint-disable-next-line typescript/no-empty-object-type
-interface MatchingItemActions extends BaseItemActions {
-  matchId: string;
-}
+
 interface MatchingItemDetail {
   matchId?: string;
 }
@@ -129,18 +87,36 @@ interface AllocationItemDetail {
   totalPool: number;
 }
 
-interface AllocationItemActions extends BaseItemActions {
-  onCommit: (value: number) => void;
-  onScheduleAnswer: (value: number) => void;
-  onClear: () => void;
+/** --------------- ITEM ACTIONS -------------------**/
+/** Item type is what is passed to the ItemRow or ItemCard in the editor **/
+interface BaseItemActions {
+  //Should not carry any ItemId as these are already passed in
+  selectItem: () => void;
+  setColorForItem: (color: string) => void;
+  setImageForItem: (image: AppImage) => void;
+  removeItem: () => void;
+  flush: () => void;
+  openImagePicker: OpenGalleryPicker;
+  setMenuIsOpenForItem: (open: boolean) => void;
+  scheduleLabel: (label: string) => void;
+  // Checks if an item is scorable, each question will implement this differently
+  // For placement this should setTarget or clearTarget
+  toggleScorabilityForItem: () => boolean;
 }
-interface SortableItemState {
+
+interface WithCorrectItemActions<V extends Point | string | number> {
+  scheduleCorrectAnswer: (value: V) => void;
+  commitCorrectAnswer: (value: V) => void;
+  clearCorrectAnswer: () => void;
+}
+
+interface WithSortableItemState {
   rootRef: Ref<HTMLDivElement>;
   handleRef?: (element: HTMLDivElement | null) => void;
   isDragging: boolean;
 }
 
-interface UIState {
+interface EditableItemState {
   isScorable: boolean;
   canRemove: boolean;
   isHighlighted?: boolean;
@@ -155,20 +131,32 @@ interface EditableItemByKind extends Record<
   SlideType,
   { detail: object; actions: BaseItemActions }
 > {
-  MCQ: { detail: McqItemDetail; actions: McqItemActions };
-  SCALES: { detail: ScalesItemDetail; actions: ScalesItemActions };
-  PLACE_ON_IMAGE: { detail: PlacementItemDetail; actions: PlacementItemActions };
-  AXIS: { detail: PlacementItemDetail; actions: PlacementItemActions };
-  GRID: { detail: PlacementItemDetail; actions: PlacementItemActions };
-  RANKING: { detail: RankingItemDetail; actions: RankingItemActions };
-  MATCHING: { detail: MatchingItemDetail; actions: MatchingItemActions };
-  ALLOCATION: { detail: AllocationItemDetail; actions: AllocationItemActions };
+  MCQ: { detail: never; actions: BaseItemActions };
+  SCALES: {
+    detail: ScalesItemDetail & WithTolerance;
+    actions: BaseItemActions & WithCorrectItemActions<number>;
+  };
+  PLACE_ON_IMAGE: {
+    detail: PlacementItemDetail;
+    actions: BaseItemActions & WithCorrectItemActions<Point>;
+  };
+  AXIS: {
+    detail: PlacementItemDetail & WithTolerance;
+    actions: BaseItemActions & WithCorrectItemActions<Point>;
+  };
+  GRID: { detail: PlacementItemDetail; actions: BaseItemActions & WithCorrectItemActions<Point> };
+  RANKING: { detail: RankingItemDetail; actions: BaseItemActions };
+  MATCHING: { detail: MatchingItemDetail; actions: BaseItemActions };
+  ALLOCATION: {
+    detail: AllocationItemDetail & WithTolerance;
+    actions: BaseItemActions & WithCorrectItemActions<number>;
+  };
 }
 
 interface EditableItemBase {
   sourceIndex: number;
   item: EditableItemContent;
-  state: UIState;
+  state: EditableItemState;
 }
 
 export type EditableItem<TKind extends SlideType = SlideType> = TKind extends SlideType
@@ -182,7 +170,7 @@ export type EditableItem<TKind extends SlideType = SlideType> = TKind extends Sl
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 export type SortableEditableItem<TKind extends SlideType = SlideType> = TKind extends SlideType
-  ? EditableItem<TKind> & { sortable: SortableItemState }
+  ? EditableItem<TKind> & { sortable: WithSortableItemState }
   : never;
 
 export interface QuestionBaseState {
@@ -250,9 +238,9 @@ interface ScaleSpecificActions {
   scheduleRightLabel: (value: string) => void;
 }
 interface CorrectAnswerActions<V> {
-  scheduleCorrect: (id: ItemId, value: V) => void;
-  commitCorrect: (id: ItemId, value: V) => void;
-  clearCorrect: (id: ItemId) => void;
+  scheduleCorrectAnswer: (id: ItemId, value: V) => void;
+  commitCorrectAnswer: (id: ItemId, value: V) => void;
+  clearCorrectAnswer: (id: ItemId) => void;
 }
 interface WithSetVisualization {
   setDataVisualization: (viz: McqDataVisualization) => void;

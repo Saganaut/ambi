@@ -255,7 +255,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                         className={styles.imageClear}
                         icon={<XMarkIcon />}
                         aria-label="Remove correct answer image"
-                        onClick={editor.clearCorrectImage}
+                        onClick={editor.clearCorrectAnswerImage}
                       />
                     )}
                   </div>

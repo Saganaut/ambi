@@ -60,9 +60,9 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     setStatementImage,
     removeStatement,
     handleStatementDragEnd,
-    scheduleCorrectValue,
-    commitCorrectValue,
-    clearCorrectValue,
+    scheduleCorrectAnswerValue,
+    commitCorrectAnswerValue,
+    clearCorrectAnswerValue,
   } = useScalesEditor(deckId, slideId);
   const openPicker = useGalleryPicker(deckId);
   // The prompt mirror and which row's menu is open — at most one per slide.
@@ -146,13 +146,13 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                     scheduleStatementLabel(statement.id, label);
                   }}
                   onCommit={(value) => {
-                    commitCorrectValue(statement.id, value);
+                    commitCorrectAnswerValue(statement.id, value);
                   }}
                   onScheduleAnswer={(value) => {
-                    scheduleCorrectValue(statement.id, value);
+                    scheduleCorrectAnswerValue(statement.id, value);
                   }}
                   onClear={() => {
-                    clearCorrectValue(statement.id);
+                    clearCorrectAnswerValue(statement.id);
                   }}
                   onFlush={flush}
                   onSetColor={(color) => {

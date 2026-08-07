@@ -146,24 +146,24 @@ describe("useAllocationEditor structural ops", () => {
     expect(content?.correctAllocations).toEqual({ opt_b: 30 });
   });
 
-  it("commitCorrectAllocation writes a clamped whole-point answer and clear drops it", async () => {
+  it("commitCorrectAnswerAllocation writes a clamped whole-point answer and clear drops it", async () => {
     const result = await renderUseAllocationEditor();
 
     act(() => {
-      result.current.commitCorrectAllocation("opt_c", 140.4);
+      result.current.commitCorrectAnswerAllocation("opt_c", 140.4);
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     expect(allocationContentOf(lastPutBody)?.correctAllocations?.["opt_c"]).toBe(100);
 
     act(() => {
-      result.current.commitCorrectAllocation("opt_c", -3);
+      result.current.commitCorrectAnswerAllocation("opt_c", -3);
     });
     await vi.waitFor(() =>
       expect(allocationContentOf(lastPutBody)?.correctAllocations?.["opt_c"]).toBe(0),
     );
 
     act(() => {
-      result.current.clearCorrectAllocation("opt_b");
+      result.current.clearCorrectAnswerAllocation("opt_b");
     });
     await vi.waitFor(() =>
       expect(allocationContentOf(lastPutBody)?.correctAllocations?.["opt_b"]).toBeUndefined(),

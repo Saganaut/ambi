@@ -81,16 +81,16 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       actions: {
         onFlush: editor.actions.flush,
         onCommit: (points) => {
-          editor.actions.commitCorrect(option.id, points);
+          editor.actions.commitCorrectAnswer(option.id, points);
         },
         onScheduleAnswer: (points) => {
-          editor.actions.scheduleCorrect(option.id, points);
+          editor.actions.scheduleCorrectAnswer(option.id, points);
         },
         setMenuIsOpen: (open) => {
           setOpenMenuId(open ? option.id : null);
         },
         onClear: () => {
-          editor.actions.clearCorrect(option.id);
+          editor.actions.clearCorrectAnswer(option.id);
         },
         onSelect: () => {
           console.log("allocation slide content on select not implemented");
@@ -105,6 +105,8 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           editor.actions.removeItem(option.id);
         },
         openPicker,
+
+        //TODO: toggleScorability
       },
     };
   };

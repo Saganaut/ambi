@@ -143,7 +143,7 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     editor.flush();
   };
 
-  const scheduleCorrect = (id: string | undefined, points: number) => {
+  const scheduleCorrectAnswer = (id: string | undefined, points: number) => {
     if (!id) return;
     editor.updateSlideContent((prev) => ({
       correctAllocations: {
@@ -153,13 +153,13 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     }));
   };
 
-  const commitCorrect = (id: string | undefined, points: number) => {
+  const commitCorrectAnswer = (id: string | undefined, points: number) => {
     if (!id) return;
-    scheduleCorrect(id, points);
+    scheduleCorrectAnswer(id, points);
     editor.flush();
   };
 
-  const clearCorrect = (id: string | undefined) => {
+  const clearCorrectAnswer = (id: string | undefined) => {
     if (!id) return;
     editor.updateSlideContent((prev) => {
       const { [id]: _removed, ...rest } = prev.correctAllocations ?? {};
@@ -184,9 +184,9 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     scheduleItemText,
     scheduleTotalPoints,
     scheduleTolerance,
-    scheduleCorrect,
-    commitCorrect,
-    clearCorrect,
+    scheduleCorrectAnswer,
+    commitCorrectAnswer,
+    clearCorrectAnswer,
     getIsScorable,
   };
 
