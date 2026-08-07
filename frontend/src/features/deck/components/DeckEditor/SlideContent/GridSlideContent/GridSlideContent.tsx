@@ -46,13 +46,7 @@ import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import { MAX_GRID_ITEMS, cellId, parseCell, useGridEditor } from "@deck/hooks/useGridEditor";
 import type { GridItem } from "@deck/store/deckApi.gen";
-import {
-  AddItemCard,
-  EmptySelect,
-  ScoringFooter,
-  SettingsCard,
-  useSlideComposerState,
-} from "../_shared";
+import { AddItemCard, EmptySelect, ScoringFooter, SettingsCard, useSlideDraft } from "../_shared";
 import shared from "../_shared/_shared.module.css";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import placement from "../_shared/placement/placement.module.css";
@@ -77,7 +71,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useGridEditor(deckId, slideId);
   const { question } = editor;
   const openPicker = useGalleryPicker(deckId);
-  const composer = useSlideComposerState(question);
+  const composer = useSlideDraft(question);
 
   /** Move an item to a cell — or out of the matrix (null) — writing only a change. */
   const assignCell = (itemId: string, cell: string | null) => {

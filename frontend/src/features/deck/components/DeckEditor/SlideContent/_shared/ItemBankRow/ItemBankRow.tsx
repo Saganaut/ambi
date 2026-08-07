@@ -22,18 +22,13 @@ import { ScaleTracker } from "./ScaleTracker";
  *  **/
 const ItemBankRow = (props: SortableEditableItem) => {
   const { detail, item, sourceIndex, actions, kind, state, sortable } = props;
-
-  // Placement and grid rows are numbered, not lettered: the bank's pill must
-  // read as the same marker the author sees on the surface.
   const displayIndex = numberToLetter(sourceIndex + 1);
   const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id ?? "", 200, 200, false);
 
   // Ranking never needs to use this since the order displayed is the correct answer.
   // For other questions individual values need to be set and is this relevant
 
-  const [points, setPoints] = useState(
-    kind === "ALLOCATION" ? (detail.correctValue ?? detail.totalPool) : 0,
-  );
+  const [points, setPoints] = useState(kind === "ALLOCATION" ? detail.correctValue : 1);
   const [syncedFromId, setSyncedFromId] = useState(item.id);
   const [syncedFromAnswer, setSyncedFromAnswer] = useState(
     kind === "ALLOCATION" ? detail.correctValue : 0,
@@ -42,11 +37,11 @@ const ItemBankRow = (props: SortableEditableItem) => {
   if (kind === "ALLOCATION") {
     if (syncedFromId !== item.id) {
       setSyncedFromId(item.id);
-      setPoints(detail.correctValue ?? detail.totalPool);
+      setPoints(detail.correctValue);
       setSyncedFromAnswer(detail.correctValue);
     } else if (syncedFromAnswer !== detail.correctValue) {
       setSyncedFromAnswer(detail.correctValue);
-      setPoints(detail.correctValue ?? detail.totalPool);
+      setPoints(detail.correctValue);
     }
   }
 
@@ -162,7 +157,7 @@ const ItemBankRow = (props: SortableEditableItem) => {
         canRemove={state.canRemove}
         //TODO: Need to figure out what we do with this. Is it still relevant if so how do we pass it
         // primaryAction={placementAction ?? actions.primaryAction}
-        onScheduleLabel={actions.scheduleLabel}
+        onScheduleLabel={actions.scheduleItemLabel}
         onFlush={actions.flush}
         onSetColor={actions.setColorForItem}
         onSetImage={actions.setImageForItem}
@@ -190,21 +185,19 @@ const ItemBankRow = (props: SortableEditableItem) => {
         <div
           className={`${styles.collapsable} ${detail.correctValue !== undefined ? styles.expanded : ""}`}
         >
-          <div className={styles.answerField}>
-            <NumberInput
-              label=""
-              id={`alloc-answer-${item.id}`}
-              labelPosition="labelInFront"
-              value={points ?? 0}
-              min={0}
-              max={detail.totalPool}
-              onChange={(next) => {
-                setPoints(next);
-                actions.scheduleCorrectAnswer(next);
-              }}
-              onBlur={actions.flush}
-            />
-          </div>
+          <NumberInput
+            label=""
+            id={`alloc-answer-${item.id}`}
+            labelPosition="labelInFront"
+            value={points ?? detail.totalPool}
+            min={0}
+            max={detail.totalPool}
+            onChange={(next) => {
+              setPoints(next);
+              actions.scheduleCorrectAnswer(next);
+            }}
+            onBlur={actions.flush}
+          />
         </div>
       )}
 

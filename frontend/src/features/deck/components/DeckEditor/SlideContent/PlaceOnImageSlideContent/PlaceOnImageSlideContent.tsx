@@ -50,13 +50,7 @@ import {
 } from "@deck/hooks/usePlaceOnImageEditor";
 import { Btn } from "@ui/Buttons/Btn";
 import { largestUrl } from "@utils/image";
-import {
-  AddItemCard,
-  EmptySelect,
-  ScoringFooter,
-  ToleranceField,
-  useSlideComposerState,
-} from "../_shared";
+import { AddItemCard, EmptySelect, ScoringFooter, ToleranceField, useSlideDraft } from "../_shared";
 import shared from "../_shared/_shared.module.css";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import type { SlideContentProps } from "../slideContentProps";
@@ -68,7 +62,7 @@ const PlaceOnImageSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = usePlaceOnImageEditor(deckId, slideId);
   const { question } = editor;
   const openPicker = useGalleryPicker(deckId);
-  const composer = useSlideComposerState(question);
+  const composer = useSlideDraft(question);
 
   if (!question) return <EmptySelect title="Place on image" />;
 

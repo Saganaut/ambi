@@ -11,7 +11,7 @@ import { AppImage } from "@/features/liveSession/store/liveSessionApi.gen";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { DragEndEvent } from "@dnd-kit/dom";
-import { Ref } from "react";
+import { Dispatch, Ref, SetStateAction } from "react";
 
 interface ItemContent<TImage> {
   id: string;
@@ -83,7 +83,6 @@ interface MatchingItemDetail {
 
 interface AllocationItemDetail {
   correctValue?: number;
-  value: number;
   totalPool: number;
 }
 
@@ -98,10 +97,10 @@ interface BaseItemActions {
   flush: () => void;
   openImagePicker: OpenGalleryPicker;
   setMenuIsOpenForItem: (open: boolean) => void;
-  scheduleLabel: (label: string) => void;
+  scheduleItemLabel: (label: string) => void;
   // Checks if an item is scorable, each question will implement this differently
   // For placement this should setTarget or clearTarget
-  toggleScorabilityForItem: () => boolean;
+  toggleScorabilityForItem: () => void;
 }
 
 interface WithCorrectItemActions<V extends Point | string | number> {
@@ -110,9 +109,9 @@ interface WithCorrectItemActions<V extends Point | string | number> {
   clearCorrectAnswer: () => void;
 }
 
-interface WithSortableItemState {
-  rootRef: Ref<HTMLDivElement>;
-  handleRef?: (element: HTMLDivElement | null) => void;
+interface WithSortableItemState<E extends HTMLElement> {
+  rootRef: Ref<E>;
+  handleRef?: (element: E | null) => void;
   isDragging: boolean;
 }
 
@@ -170,7 +169,7 @@ export type EditableItem<TKind extends SlideType = SlideType> = TKind extends Sl
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 export type SortableEditableItem<TKind extends SlideType = SlideType> = TKind extends SlideType
-  ? EditableItem<TKind> & { sortable: WithSortableItemState }
+  ? EditableItem<TKind> & { sortable: WithSortableItemState<HTMLDivElement> }
   : never;
 
 export interface QuestionBaseState {
@@ -202,6 +201,7 @@ export interface QuestionActionsBase {
   scheduleQuestionPrompt: (html: string) => void;
   flush: () => void;
   getIsScorable: (itemId: ItemId) => boolean;
+  toggleScorability: (itemId: ItemId) => void;
 }
 export interface AllocationSpecificActions {
   scheduleTotalPoints: (value: number) => void;
@@ -211,7 +211,7 @@ interface AxisSpecificActions {
   scheduleAxisLabel: (axis: AxisAxis, end: AxisEnd, text: string) => void;
 }
 
-interface WithSetTolerance {
+interface WithScheduleTolerance {
   scheduleTolerance: (value: number) => void;
 }
 
@@ -220,7 +220,7 @@ interface WithHandleItem {
   handleItemDragEnd: (event: DragEndEvent) => void;
   removeItem: (optionId: string) => void;
   addItem: () => void;
-  scheduleItemText: (optionId: string, text: string) => void;
+  scheduleItemLabel: (optionId: string, text: string) => void;
   setItemColor: (optionId: string, color: string) => void;
   setItemImage: (optionId: string, image: AppImage) => void;
 }
@@ -256,7 +256,7 @@ interface QuestionSpec extends Record<
     config: WithItems & Tolerant & { pool: number };
     correct: Record<ItemId, number>;
     actions: WithHandleItem &
-      WithSetTolerance &
+      WithScheduleTolerance &
       AllocationSpecificActions &
       CorrectAnswerActions<number>;
   };
@@ -316,4 +316,42 @@ export type QuestionActionsByKind = {
 };
 export type QuestionActions<QKind extends SlideType = SlideType> = QKind extends SlideType
   ? QuestionActionsBase & QuestionActionsByKind[QKind]
+  : never;
+
+/** -----------------  Slide Draft ------------ **/
+export interface SlideDraftBase {
+  prompt: string;
+  setPrompt: Dispatch<SetStateAction<string>>;
+  openMenuId: string | null;
+  setOpenMenuId: Dispatch<SetStateAction<string | null>>;
+  syncedFromId: string | null;
+  setSyncedFromId: Dispatch<SetStateAction<string | null>>;
+}
+
+interface WithSetSelectedItem<V> {
+  selectedItemId: V | null;
+  setSelectedItemId: Dispatch<SetStateAction<V | null>>;
+}
+
+interface WithSetTotalPoints {
+  setTotalPoints: Dispatch<SetStateAction<number>>;
+  totalPoints: number;
+}
+
+interface WithSetTolerance {
+  setTolerance: Dispatch<SetStateAction<number>>;
+  tolerance: number;
+}
+
+interface SlideDraftByKind extends Record<SlideType, object> {
+  MCQ: never;
+  ALLOCATION: WithSetTolerance & WithSetTotalPoints;
+}
+
+export type DraftByKind = {
+  [K in SlideType]: SlideDraftBase & SlideDraftByKind[K];
+};
+
+export type SlideDraft<QKind extends SlideType = SlideType> = QKind extends SlideType
+  ? SlideDraftBase & SlideDraftByKind[QKind]
   : never;

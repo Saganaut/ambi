@@ -58,7 +58,7 @@ inventory; the per-kind docs point here**:
 | `usePlacementSurface` + `PlacementMarker` + `placementGeometry.ts` | That gesture resolved to normalized `[0, 1]` coordinates over a surface box, parameterized by `invertY`. Grid resolves to a discrete cell instead (`useGridCellPlacement`). |
 | `ToleranceField` | The ×100 / ÷100 percent wrapper around the shared `NumberInput`. |
 | `_shared/ItemField/` | The label-input-as-popover-trigger, `FloatingPopover` positioning, and `OptionMenuContent` body every bank row's menu runs on. |
-| `_shared/useSlideComposerState.ts` | Prompt mirror, `selectedItemId` (the armed row), `openMenuId` — resynced during render when the bound slide changes. |
+| `_shared/useSlideDraft.ts` | Prompt mirror, `selectedItemId` (the armed row), `openMenuId` — resynced during render when the bound slide changes. |
 | `_shared/AddItemCard/` | The dashed "Add …" row closing an item list; swaps to "Maximum N …" + `disabled` at the cap. |
 | `_shared/_shared.module.css` | The two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, `.itemList`, `ItemCard` chrome. |
 

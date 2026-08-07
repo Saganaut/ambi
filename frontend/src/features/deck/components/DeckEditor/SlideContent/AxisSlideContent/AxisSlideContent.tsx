@@ -21,7 +21,7 @@ import {
   MAX_AXIS_ITEMS,
   useAxisEditor,
 } from "@deck/hooks/useAxisEditor";
-import { EmptySelect, ScoringFooter, ToleranceField, useSlideComposerState } from "../_shared";
+import { EmptySelect, ScoringFooter, ToleranceField, useSlideDraft } from "../_shared";
 import shared from "../_shared/_shared.module.css";
 import { AddItemCard } from "../_shared/AddItemCard/AddItemCard";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
@@ -34,7 +34,7 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useAxisEditor(deckId, slideId);
   const { question } = editor;
   const openPicker = useGalleryPicker(deckId);
-  const composer = useSlideComposerState(question);
+  const composer = useSlideDraft(question);
 
   if (!question) return <EmptySelect title="Axis" />;
 

@@ -16,7 +16,7 @@
  * mirrored locally so the debounced inputs stay responsive, and each row
  * receives its slice of the editor surface as props, so all writes funnel
  * through a single draft + debounce buffer. The prompt mirror and which row's
- * menu is open live in the shared `useSlideComposerState`.
+ * menu is open live in the shared `useSlideDraft`.
  */
 import { useState } from "react";
 
@@ -31,7 +31,7 @@ import {
 } from "@deck/hooks/useScalesEditor";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { AddItemCard, EmptySelect, useSlideComposerState } from "../_shared";
+import { AddItemCard, EmptySelect, useSlideDraft } from "../_shared";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
@@ -68,7 +68,7 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
   // The prompt mirror and which row's menu is open — at most one per slide.
   // Focusing a row's label opens its menu (and thereby closes any other); the
   // menu owns dismissal. Scales arms no row, so `selectedItemId` goes unused.
-  const composer = useSlideComposerState(question);
+  const composer = useSlideDraft(question);
 
   // Local mirrors keep the debounced inputs responsive: `updateSlideContent`
   // buffers to a draft and only commits on flush, so binding straight to the

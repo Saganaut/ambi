@@ -87,9 +87,17 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
 
   const addItem = () => {
     if (!canAddItem) return;
+    const option = buildDefaultAllocationOption();
     editor.updateSlideContent((prev) => ({
-      options: [...prev.options, buildDefaultAllocationOption()],
+      options: [...prev.options, option],
     }));
+    console.log(question?.totalPointsToAllocate, question?.options.length);
+    const answerSeed = Math.round(
+      (question?.totalPointsToAllocate ?? 1) / Math.max(1, question?.options.length ?? 0),
+    );
+    console.log("answer seed", answerSeed);
+    scheduleCorrectAnswer(option.id, answerSeed);
+
     editor.flush();
   };
 
@@ -116,6 +124,7 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     editor.updateSlideContent((prev) => ({
       options: reorderAllocationItems(prev.options, initialIndex, index),
     }));
+
     editor.flush();
   };
 
@@ -126,7 +135,7 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
       options: prev.options.map((option) => (option.id === id ? { ...option, ...patch } : option)),
     }));
 
-  const scheduleItemText = (id: string | undefined, text: string) => {
+  const scheduleItemLabel = (id: string | undefined, text: string) => {
     if (!id) return;
     patchItem(id, { text });
   };
@@ -173,6 +182,25 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     return slide?.content.correctAllocations?.[itemId] != null;
   };
 
+  const getTotalPointsLeft = () => {
+    const total = Object.values(slide?.content?.correctAllocations ?? {}).reduce(
+      (sum, val) => sum + Number(val || 0),
+      0,
+    );
+    const totalPointsToAllocate = question?.totalPointsToAllocate ?? total;
+    return totalPointsToAllocate - total;
+  };
+
+  const toggleScorability = (itemId: ItemId) => {
+    if (getIsScorable(itemId)) {
+      //if it is scored then set it to null
+      clearCorrectAnswer(itemId);
+      return;
+    } else {
+      commitCorrectAnswer(itemId, getTotalPointsLeft());
+    }
+  };
+
   const actions = {
     flush: editor.flush,
     setItemColor,
@@ -181,13 +209,14 @@ const useAllocationEditor = (deckId: string, slideId: string): UseAllocationEdit
     addItem,
     handleItemDragEnd,
     scheduleQuestionPrompt,
-    scheduleItemText,
+    scheduleItemLabel,
     scheduleTotalPoints,
     scheduleTolerance,
     scheduleCorrectAnswer,
     commitCorrectAnswer,
     clearCorrectAnswer,
     getIsScorable,
+    toggleScorability,
   };
 
   const state = {

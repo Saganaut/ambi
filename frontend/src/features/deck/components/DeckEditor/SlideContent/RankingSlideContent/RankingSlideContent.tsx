@@ -8,7 +8,7 @@ import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import { MAX_RANKING_ITEMS, useRankingEditor } from "@deck/hooks/useRankingEditor";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { AddItemCard, EmptySelect, useSlideComposerState } from "../_shared";
+import { AddItemCard, EmptySelect, useSlideDraft } from "../_shared";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 
 interface RankingSlideContentProps {
@@ -34,7 +34,7 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
   // The prompt mirror and which row's menu is open — at most one per slide.
   // Focusing a row's label opens its menu (and thereby closes any other); the
   // menu owns dismissal. Ranking arms no row, so `selectedItemId` goes unused.
-  const composer = useSlideComposerState(question);
+  const composer = useSlideDraft(question);
 
   if (!question) return <EmptySelect title="Ranking" />;
 
