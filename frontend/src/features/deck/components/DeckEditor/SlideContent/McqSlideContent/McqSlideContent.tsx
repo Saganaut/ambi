@@ -1,16 +1,19 @@
 import { useResultsPreview } from "@/features/deck/contexts/useResultsPreview";
+import { useMcqEditor } from "@/features/deck/hooks/useMcqEditor";
+import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
+import { SlideContentProps } from "../slideContentProps";
 import { McqSlideContentView } from "./McqSlideContentView";
-import { useMcqSlideContext } from "./useMcqSlideContext";
 
-const McqSlideContent = () => {
+const McqSlideContent = ({ deckId, slideId }: SlideContentProps) => {
+  const editor = useMcqEditor(deckId, slideId);
+  const openPicker = useGalleryPicker(deckId);
+
   const { previewVisualization } = useResultsPreview();
-  const { editor, openPicker, answerSettings } = useMcqSlideContext();
 
   return (
     <McqSlideContentView
       previewVisualization={previewVisualization}
       openPicker={openPicker}
-      answerSettings={answerSettings}
       editor={editor}
     />
   );

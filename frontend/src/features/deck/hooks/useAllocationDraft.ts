@@ -6,7 +6,6 @@ export function useAllocationDraft({
   question,
 }: {
   question?: AllocationQuestionView;
-  deckId: string;
 }): SlideDraft<"ALLOCATION"> {
   const { prompt, setPrompt, openMenuId, setOpenMenuId, syncedFromId, setSyncedFromId } =
     useSlideDraft(question?.id, question?.prompt ?? "");

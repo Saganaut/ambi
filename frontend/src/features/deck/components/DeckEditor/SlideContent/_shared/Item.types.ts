@@ -12,6 +12,7 @@ import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { DragEndEvent } from "@dnd-kit/dom";
 import { Dispatch, Ref, SetStateAction } from "react";
+//TODO: Need to change this type name.
 
 interface ItemContent<TImage> {
   id: string;
@@ -128,9 +129,9 @@ interface EditableItemState {
 
 interface EditableItemByKind extends Record<
   SlideType,
-  { detail: object; actions: BaseItemActions }
+  { detail?: object; actions: BaseItemActions }
 > {
-  MCQ: { detail: never; actions: BaseItemActions };
+  MCQ: { detail?: undefined; actions: BaseItemActions };
   SCALES: {
     detail: ScalesItemDetail & WithTolerance;
     actions: BaseItemActions & WithCorrectItemActions<number>;
@@ -287,10 +288,10 @@ interface QuestionSpec extends Record<
   MCQ: {
     config: WithItems & { dataVisualization: McqDataVisualization };
     correct: ItemId[];
-    actions: WithHandleItem &
-      WithSetVisualization & {
-        toggleCorrect: (itemId: ItemId | undefined) => void;
-      };
+    actions: WithHandleItem & WithSetVisualization;
+    // & {
+    //   toggleCorrect: (itemId: ItemId | undefined) => void;
+    // };
   };
   RANKING: { config: WithItems; correct: ItemId[]; actions: WithHandleItem };
   DRAWING: {

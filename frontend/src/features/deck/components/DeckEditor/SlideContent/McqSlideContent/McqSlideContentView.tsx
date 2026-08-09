@@ -1,58 +1,37 @@
-/**
- * Loads the MCQ Content Slide and relevant hooks, then hands off to the ResultsDisplaySwitch for
- * Actual visualization.
- * Also passes in question prompt editing calls to the wrapper component
- */
-import { AnswerSettings, AppImage } from "@/features/deck/store/deckApi.gen";
-import { ChartDatum, ChartType } from "@/shared/components/Charts/Chart.types";
+import { ChartType } from "@/shared/components/Charts/Chart.types";
+import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
-import { useState } from "react";
-import { OptionField } from "../_shared/OptionControls/OptionField";
-import { ResultsDisplaySwitch } from "../ResultsDisplaySwitch/ResultsDisplaySwitch";
+import { useMcqDraft } from "../AllocationSlideContent/UseMcqDraft";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./McqSlideContent.module.css";
+import { renderMcqResultsDisplay } from "./renderMcqResultsDisplay";
 
-interface McqSlideContentViewProps {
+export interface McqSlideContentViewProps {
   previewVisualization: ChartType | null;
   openPicker: OpenGalleryPicker;
-  answerSettings?: AnswerSettings;
   editor: UseMcqEditorResult;
 }
-
+//We are only seperating content from view for MCQ slides - a bit awkward and perhaps uncessary.
 const McqSlideContentView = ({
   editor,
   openPicker,
-  answerSettings,
   previewVisualization,
 }: McqSlideContentViewProps) => {
-  const {
-    question,
-    schedulePrompt,
-    flush,
-    scheduleOptionText,
-    isCorrect,
-    toggleCorrect,
-    canRemove,
-    setOptionColor,
-    setOptionImage,
-    removeOption,
-  } = editor;
-
+  const { question, actions, state } = editor;
+  const CONTINUOUS_ANIMATION = false;
   const noCorrectAnswerWarning = "Not setting a correct answer means this slide is not scoreable.";
-  const [prompt, setPrompt] = useState(question?.prompt ?? "");
-  const [syncedFromId, setSyncedFromId] = useState(question?.id);
-  // Which option's menu is open — at most one per slide. Focusing an option's
-  // label opens its menu (and thereby closes any other); Menu owns dismissal.
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const effective = previewVisualization ?? question?.dataVisualization;
+  const { data } = useAnimatedChartData(question, CONTINUOUS_ANIMATION);
+  const { setPrompt, prompt, setOpenMenuId, openMenuId } = useMcqDraft({ question });
 
-  // Resync the local mirror when the active question changes. "Derive state
-  // during render" pattern — safe when the new value differs.
-  if (question && syncedFromId !== question.id) {
-    setSyncedFromId(question.id);
-    setPrompt(question.prompt);
-  }
+  const sharedProps = {
+    editor,
+    openPicker,
+    data,
+    setOpenMenuId,
+    openMenuId,
+  };
 
   if (!question) {
     return (
@@ -64,35 +43,50 @@ const McqSlideContentView = ({
 
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
-  const renderLabelWithMenu = (datum: ChartDatum) => (
-    <OptionField
-      option={datum}
-      paletteIndex={question.options.findIndex((option) => option.id === datum.id)}
-      canRemove={canRemove}
-      isCorrect={isCorrect(datum.id)}
-      open={openMenuId === datum.id}
-      onOpenChange={(open) => {
-        setOpenMenuId(open ? datum.id : null);
-      }}
-      onToggleCorrect={() => {
-        toggleCorrect(datum.id);
-      }}
-      onScheduleText={(text: string) => {
-        scheduleOptionText(datum.id, text);
-      }}
-      onSetColor={(color: string) => {
-        setOptionColor(datum.id, color);
-      }}
-      onSetImage={(image: AppImage) => {
-        setOptionImage(datum.id, image);
-      }}
-      onRemove={() => {
-        removeOption(datum.id);
-      }}
-      flush={flush}
-      openPicker={openPicker}
-    />
-  );
+  // const renderLabelWithMenu = (datum: ChartDatum) => (
+  //   <OptionField
+  //     option={datum}
+  //     paletteIndex={question.options.findIndex((option) => option.id === datum.id)}
+  //     canRemove={state.canRemoveItem}
+  //     isCorrect={actions.getIsScorable(datum.id)}
+  //     open={openMenuId === datum.id}
+  //     onOpenChange={(open) => {
+  //       setOpenMenuId(open ? datum.id : null);
+  //     }}
+  //     onToggleCorrect={() => {
+  //       actions.toggleScorability(datum.id);
+  //     }}
+  //     onScheduleText={(text: string) => {
+  //       actions.scheduleItemLabel(datum.id, text);
+  //     }}
+  //     onSetColor={(color: string) => {
+  //       actions.setItemColor(datum.id, color);
+  //     }}
+  //     onSetImage={(image: AppImage) => {
+  //       actions.setItemImage(datum.id, image);
+  //     }}
+  //     onRemove={() => {
+  //       actions.removeItem(datum.id);
+  //     }}
+  //     flush={actions.flush}
+  //     openPicker={openPicker}
+  //   />
+  // );
+
+  if (question == null) return <p> no question</p>;
+  const _DISPLAY_AS_PERCANTAGE = false;
+  // const sharedProps = {
+  //   caption,
+  //   animateOnMount,
+  //   continuousAnimation,
+  //   data,
+  //   displayAsPercentage: _DISPLAY_AS_PERCANTAGE,
+  //   renderLabelWithMenu,
+  //   // renderMenu,
+  //   onReorder: editor.handleOptionDragEnd,
+  //   addOption: editor.addOption,
+  //   canAddOption: editor.actionscanAddOption,
+  // };
 
   return (
     <SlideWrapper
@@ -102,9 +96,9 @@ const McqSlideContentView = ({
         placeholder: "Type your question…",
         onChange: (html: string) => {
           setPrompt(html);
-          schedulePrompt(html);
+          actions.scheduleQuestionPrompt(html);
         },
-        onBlur: flush,
+        onBlur: actions.flush,
       }}
       footer={
         <p className={hasCorrectAnswer ? styles.footerPlaceholder : undefined}>
@@ -114,14 +108,9 @@ const McqSlideContentView = ({
     >
       {effective ? (
         <div className={styles.chartEditor}>
-          <ResultsDisplaySwitch
-            viz={effective}
-            caption="Sample data"
-            // renderMenu={renderMenu}
-            renderLabelWithMenu={renderLabelWithMenu}
-            editor={editor}
-            answerSettings={answerSettings}
-          />
+          {renderMcqResultsDisplay({
+            sharedProps,
+          })}
         </div>
       ) : (
         <div>Incorrect results type</div>

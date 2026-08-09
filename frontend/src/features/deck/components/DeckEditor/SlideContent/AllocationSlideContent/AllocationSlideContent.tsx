@@ -27,7 +27,7 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setTolerance,
     openMenuId,
     setOpenMenuId,
-  } = useAllocationDraft({ question, deckId });
+  } = useAllocationDraft({ question });
   const openPicker = useGalleryPicker(deckId);
 
   if (!question) return <EmptySelect title="Allocation" />;

@@ -18,7 +18,6 @@ import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
 import React, { lazy } from "react";
 import { slotMappingOptions, type SlotMapping } from "../../../contexts/ImageSlot.types";
 import { useSlide } from "../../../hooks/useSlide";
-import { McqSlideProvider } from "../SlideContent/McqSlideContent/McqSlideProvider";
 import { ChartTypePicker } from "./ChartTypePicker/ChartTypePicker";
 import { CoverImagePicker } from "./CoverImagePicker/CoverImagePicker";
 import { SlideCanvasSkeleton } from "./SlideCanvasSkeleton";
@@ -176,9 +175,9 @@ const SlideDisplay = () => {
     switch (slide.content.contentType) {
       case "MCQ":
         return (
-          <McqSlideProvider deckId={deckId} slideId={slideId}>
-            <McqSlideContent />
-          </McqSlideProvider>
+          // <McqSlideProvider deckId={deckId} slideId={slideId}>
+          <McqSlideContent deckId={deckId} slideId={slideId} />
+          // </McqSlideProvider>
         );
       case "TEXT":
         return <TextSlideContent deckId={deckId} slideId={slideId} />;
