@@ -360,7 +360,7 @@ interface WithSetTolerance {
 interface SlideDraftByKind extends Record<SlideType, object> {
   MCQ: {};
   ALLOCATION: WithSetTolerance & WithSetTotalPoints;
-  AXIS: WithSetTolerance;
+  AXIS: WithSetTolerance & WithSetSelectedItem<ItemId>;
 }
 
 export type DraftByKind = {

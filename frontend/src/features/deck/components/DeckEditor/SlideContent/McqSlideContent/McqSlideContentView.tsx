@@ -2,10 +2,10 @@ import { mcqSampleDistribution } from "@/shared/components/Charts/adapters/mcq";
 import { ChartType } from "@/shared/components/Charts/Chart.types";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
-import { useMcqDraft } from "../AllocationSlideContent/UseMcqDraft";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./McqSlideContent.module.css";
 import { renderMcqResultsDisplay } from "./renderMcqResultsDisplay";
+import { useMcqDraft } from "./UseMcqDraft";
 
 export interface McqSlideContentViewProps {
   previewVisualization: ChartType | null;

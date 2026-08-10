@@ -5,7 +5,7 @@ import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { ALLOCATION_TOTAL_MIN, useAllocationEditor } from "@deck/hooks/useAllocationEditor";
 import { AddItemCard, EmptySelect, ScoringFooter } from "../_shared";
 import { SlideContentProps } from "../_shared/Item.types";
-import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
+import { SortableItemBankRow } from "../_shared/BankItems/ItemBankRow";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./AllocationSlideContent.module.css";

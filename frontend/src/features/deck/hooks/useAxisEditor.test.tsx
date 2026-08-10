@@ -124,7 +124,7 @@ describe("useAxisEditor structural ops", () => {
     const result = await renderUseAxisEditor();
 
     act(() => {
-      result.current.removeItem("item_a");
+      result.current.actions.removeItem("item_a");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -133,17 +133,17 @@ describe("useAxisEditor structural ops", () => {
     expect(content?.correctPositions).toEqual({ item_b: { x: 0.85, y: 0.3 } });
   });
 
-  it("setTargetPosition writes a clamped normalized point and null clears it", async () => {
+  it("commitCorrectAnswer writes a clamped normalized point and clearCorrectAnswer drops it", async () => {
     const result = await renderUseAxisEditor();
 
     act(() => {
-      result.current.setTargetPosition("item_a", { x: 1.4, y: -0.2 });
+      result.current.actions.commitCorrectAnswer("item_a", { x: 1.4, y: -0.2 });
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     expect(axisContentOf(lastPutBody)?.correctPositions["item_a"]).toEqual({ x: 1, y: 0 });
 
     act(() => {
-      result.current.setTargetPosition("item_b", null);
+      result.current.actions.clearCorrectAnswer("item_b");
     });
     await vi.waitFor(() =>
       expect(axisContentOf(lastPutBody)?.correctPositions["item_b"]).toBeUndefined(),
@@ -154,7 +154,7 @@ describe("useAxisEditor structural ops", () => {
     const result = await renderUseAxisEditor();
 
     act(() => {
-      result.current.addItem();
+      result.current.actions.addItem();
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -171,7 +171,7 @@ describe("useAxisEditor structural ops", () => {
     const result = await renderUseAxisEditor();
 
     act(() => {
-      result.current.setItemColor("item_a", "#ff8800");
+      result.current.actions.setItemColor("item_a", "#ff8800");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     let content = axisContentOf(lastPutBody);
@@ -181,7 +181,7 @@ describe("useAxisEditor structural ops", () => {
 
     const image = { external: true, externalSrc: "https://example.test/pippin.png" };
     act(() => {
-      result.current.setItemImage("item_b", image);
+      result.current.actions.setItemImage("item_b", image);
     });
     await vi.waitFor(() =>
       expect(axisContentOf(lastPutBody)?.items.find((item) => item.id === "item_b")?.image).toEqual(
@@ -198,12 +198,12 @@ describe("useAxisEditor structural ops", () => {
     const result = await renderUseAxisEditor();
 
     act(() => {
-      result.current.setTolerance(0.9);
+      result.current.actions.setTolerance(0.9);
     });
     await vi.waitFor(() => expect(axisContentOf(lastPutBody)?.tolerance).toBe(0.5));
 
     act(() => {
-      result.current.setTolerance(0.001);
+      result.current.actions.setTolerance(0.001);
     });
     await vi.waitFor(() => expect(axisContentOf(lastPutBody)?.tolerance).toBe(0.02));
   });

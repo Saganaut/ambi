@@ -1,10 +1,12 @@
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
+import type { AxisPoint } from "@deck/store/deckApi.gen";
 import { Dispatch, SetStateAction } from "react";
 import {
   EditableItem,
   EditableItemContent,
+  ItemId,
   QuestionActions,
   QuestionBaseState,
 } from "../_shared/Item.types";
@@ -17,6 +19,18 @@ export const mcqOptionToItem = (option: McqOption, idx: number): EditableItemCon
     image: option.image,
   };
 };
+
+// export const bankItemToItem = (
+//   item: Identified<PlaceableItem>,
+//   idx: number,
+// ): EditableItemContent => {
+//   return {
+//     id: item.id,
+//     label: item.label ?? "",
+//     color: resolveDatumColor(item.color, idx),
+//     image: item.image,
+//   };
+// };
 const CONTINUOUS_ANIMATION = false;
 const ANIMATE_ON_MOUNT = false;
 const IS_HIGHLIGHTED = false;
@@ -77,6 +91,74 @@ export const OptionToEditableMcqItem = (
       scheduleItemLabel: (label) => actions.scheduleItemLabel(option.id, label),
       toggleScorabilityForItem: () => {
         actions.toggleScorability(option.id);
+      },
+    },
+  };
+};
+
+export const ItemToEditableAxisItem = (
+  item: McqOption,
+  idx: number,
+  actions: QuestionActions<"AXIS">,
+  state: QuestionBaseState,
+  tolerance: number,
+  openPicker: OpenGalleryPicker,
+  setOpenMenuId: Dispatch<SetStateAction<string | null>>,
+  openMenuId: string | null,
+  selectedItemId: ItemId | null,
+  setSelectedItemId: Dispatch<SetStateAction<ItemId | null>>,
+  correctPositions?: Record<string, AxisPoint>,
+): EditableItem<"AXIS"> => {
+  return {
+    sourceIndex: idx,
+    kind: "AXIS",
+    state: {
+      canRemove: state.canRemoveItem,
+      menuIsOpen: openMenuId == item.id,
+      isHighlighted: IS_HIGHLIGHTED,
+      isSelected: selectedItemId === item.id,
+      displayAsPercentage: state.displayResultsAsPercentage,
+      continuousAnimation: CONTINUOUS_ANIMATION,
+      animateOnMount: ANIMATE_ON_MOUNT,
+      isScorable: actions.getIsScorable(item.id),
+    },
+    item: mcqOptionToItem(item, idx),
+    detail: {
+      target: correctPositions ? correctPositions[item.id] : undefined,
+      tolerance,
+    },
+    actions: {
+      flush: actions.flush,
+      commitCorrectAnswer: (point) => {
+        actions.commitCorrectAnswer(item.id, point);
+      },
+      scheduleCorrectAnswer: (point) => {
+        actions.scheduleCorrectAnswer(item.id, point);
+      },
+      clearCorrectAnswer: () => {
+        actions.clearCorrectAnswer(item.id);
+      },
+      setMenuIsOpenForItem: (open) => {
+        setOpenMenuId(open ? item.id : null);
+        if (open) setSelectedItemId(item.id);
+      },
+      selectItem: () => {
+        setSelectedItemId(item.id);
+      },
+      setColorForItem: (color) => {
+        actions.setItemColor(item.id, color);
+      },
+      setImageForItem: (image) => {
+        actions.setItemImage(item.id, image);
+      },
+      removeItem: () => {
+        actions.removeItem(item.id);
+        setSelectedItemId((held) => (held === item.id ? null : held));
+      },
+      openImagePicker: openPicker,
+      scheduleItemLabel: (label) => actions.scheduleItemLabel(item.id, label),
+      toggleScorabilityForItem: () => {
+        actions.toggleScorability(item.id);
       },
     },
   };

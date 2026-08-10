@@ -13,7 +13,7 @@ export type { SortableItemCardProps } from "./SortableItemCard/SortableItemCard"
 export { EmptySelect } from "./EmptySelect";
 export { ScoringFooter } from "./ScoringFooter";
 
-export { ItemBankRow, SortableItemBankRow } from "./ItemBankRow/ItemBankRow";
+export { ItemBankRow, SortableItemBankRow } from "./BankItems/ItemBankRow";
 
 export { ItemChartLegend, SortableItemChartLegend } from "./BankItems/ItemChartLegend";
 export type {
@@ -22,7 +22,6 @@ export type {
   SortableItemChartLegendProps,
 } from "./BankItems/ItemChartLegend";
 
-export type { Identified, NormalizedPoint, PlaceableItem } from "./placement/placement.types";
 export {
   clamp01,
   DRAG_THRESHOLD_PX,
