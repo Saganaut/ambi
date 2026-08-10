@@ -13,7 +13,7 @@ import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./AllocationSlideContent.module.css";
-import { OptionToEditableItem } from "./ItemFormatters";
+import { OptionToEditableAllocationItem } from "./ItemFormatters";
 
 const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useAllocationEditor(deckId, slideId);
@@ -115,7 +115,7 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
               {options.map((option, index) => (
                 <SortableItemBankRow
                   key={option.id}
-                  {...OptionToEditableItem(
+                  {...OptionToEditableAllocationItem(
                     option,
                     index,
                     editor.actions,

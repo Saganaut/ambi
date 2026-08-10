@@ -27,7 +27,6 @@ const ItemBankRow = (props: SortableEditableItem) => {
 
   // Ranking never needs to use this since the order displayed is the correct answer.
   // For other questions individual values need to be set and is this relevant
-
   const [points, setPoints] = useState(kind === "ALLOCATION" ? detail.correctValue : 1);
   const [syncedFromId, setSyncedFromId] = useState(item.id);
   const [syncedFromAnswer, setSyncedFromAnswer] = useState(
@@ -45,52 +44,6 @@ const ItemBankRow = (props: SortableEditableItem) => {
     }
   }
 
-  // const toggleScorability = () => {
-  //   switch (kind) {
-  //     case "ALLOCATION": {
-  //       if (scored) {
-  //         detail.onClear();
-  //         return;
-  //       }
-  //       const seed = detail.totalPool ?? 0;
-  //       setPoints(seed);
-  //       detail.onCommit(seed);
-  //       return;
-  //     }
-  //     case "SCALES": {
-  //       if (scored) {
-  //         detail.onClear();
-  //         return;
-  //       }
-  //       detail.onCommit((detail.minValue + detail.maxValue) / 2);
-  //       return;
-  //     }
-  //     case "PLACEMENT": {
-  //       if (detail.target != null) detail.onClearTarget();
-  //       else detail.onSetTarget();
-  //       return;
-  //     }
-  //   }
-  // };
-
-  // const placementAction: OptionMenuPrimaryAction | undefined =
-  //   kind === "PLACEMENT"
-  //     ? {
-  //         label: detail.target != null ? "Clear target" : "Set target",
-  //         icon: detail.target != null ? ArrowUturnLeftIcon : ViewfinderCircleIcon,
-  //         pressed: detail.target != null,
-  //         onSelect: () => {
-  //           actions.setMenuIsOpenForItem(false);
-  //           toggleScorability();
-  //         },
-  //       }
-  //     : undefined;
-
-  // The grip sits inside the row's click target, and a finished drag ends with
-  // a click the browser fires over the row — which would arm it. The guard
-  // latches while dragging and is cleared by the next pointerdown, so exactly
-  // one post-drop click is swallowed and the keyboard path is untouched.
-  //TODO: why no dependency here
   const draggedRef = useRef(false);
   useEffect(() => {
     if (sortable.isDragging) draggedRef.current = true;

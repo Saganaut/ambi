@@ -1,8 +1,6 @@
-import { AppImage } from "@/features/liveSession/store/liveSessionApi.gen";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
-import { PrettifyDeep } from "@/shared/utils/utils.types";
 import { Dispatch, SetStateAction } from "react";
 import {
   EditableItem,
@@ -24,19 +22,6 @@ const ANIMATE_ON_MOUNT = false;
 const IS_HIGHLIGHTED = false;
 const IS_SELECTED = false;
 
-type ExpandedItem = PrettifyDeep<EditableItem<"MCQ">>["detail"];
-
-interface ExpandedItemACtions {
-  selectItem: () => void;
-  setColorForItem: (color: string) => void;
-  setImageForItem: (image: AppImage) => void;
-  removeItem: () => void;
-  flush: () => void;
-  openImagePicker: OpenGalleryPicker;
-  setMenuIsOpenForItem: (open: boolean) => void;
-  scheduleItemLabel: (label: string) => void;
-  toggleScorabilityForItem: () => void;
-}
 export const OptionToEditableMcqItem = (
   option: McqOption,
   idx: number,
@@ -45,6 +30,10 @@ export const OptionToEditableMcqItem = (
   openPicker: OpenGalleryPicker,
   setOpenMenuId: Dispatch<SetStateAction<string | null>>,
   openMenuId: string | null,
+  mockDistributionValue: number,
+  mockDistributionHighestValue: number,
+  mockDistributionDenominator: number,
+  itemCount: number,
 ): EditableItem<"MCQ"> => {
   return {
     sourceIndex: idx,
@@ -59,7 +48,12 @@ export const OptionToEditableMcqItem = (
       animateOnMount: ANIMATE_ON_MOUNT,
       isScorable: actions.getIsScorable(option.id),
     },
-    detail: undefined,
+    detail: {
+      mockDistributionHighestValue: mockDistributionHighestValue,
+      mockDistributionDenominator: mockDistributionDenominator,
+      mockDistributionValue: mockDistributionValue,
+      itemCount: itemCount,
+    },
     item: mcqOptionToItem(option, idx),
     actions: {
       flush: actions.flush,

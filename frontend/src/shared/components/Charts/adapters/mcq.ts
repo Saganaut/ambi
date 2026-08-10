@@ -43,7 +43,7 @@ export const mcqToChartData = (
  * so folding it into the value too would make toggling an option correct resize
  * its bar/segment, which is confusing while authoring.
  */
-export const mcqSampleDistribution = (options: McqOptionLike[]): Record<string, number> => {
+export const mcqSampleDistribution = (options: McqOption[]): Record<string, number> => {
   const out: Record<string, number> = {};
   options.forEach((option, index) => {
     out[option.id] = Math.max(1, 12 - index * 3);

@@ -1,7 +1,7 @@
 /* McqSlideContent — author UI for MCQ slides. Renders the prompt + a grid
-   of option cards. Each card is an <McqOptionEditable />, which owns its
+   of option cards. Each card is an <ItemCard />, which owns its
    own per-option chrome (index, remove, correct toggle, fields). Styles
-   that belong to a single option card live in McqOptionEditable.module.css. */
+   that belong to a single option card live in ItemCard.module.css. */
 
 /* Keeps the footer slot's vertical space reserved when there is no warning
    to show, so toggling correct/wrong doesn't reflow the options grid above. */

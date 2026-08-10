@@ -1,5 +1,5 @@
+import { mcqSampleDistribution } from "@/shared/components/Charts/adapters/mcq";
 import { ChartType } from "@/shared/components/Charts/Chart.types";
-import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
 import { useMcqDraft } from "../AllocationSlideContent/UseMcqDraft";
@@ -18,20 +18,11 @@ const McqSlideContentView = ({
   openPicker,
   previewVisualization,
 }: McqSlideContentViewProps) => {
-  const { question, actions, state } = editor;
-  const CONTINUOUS_ANIMATION = false;
+  const { question, actions } = editor;
   const noCorrectAnswerWarning = "Not setting a correct answer means this slide is not scoreable.";
   const effective = previewVisualization ?? question?.dataVisualization;
-  const { data } = useAnimatedChartData(question, CONTINUOUS_ANIMATION);
+  // const { data } = useAnimatedChartData(question, CONTINUOUS_ANIMATION);
   const { setPrompt, prompt, setOpenMenuId, openMenuId } = useMcqDraft({ question });
-
-  const sharedProps = {
-    editor,
-    openPicker,
-    data,
-    setOpenMenuId,
-    openMenuId,
-  };
 
   if (!question) {
     return (
@@ -40,6 +31,16 @@ const McqSlideContentView = ({
       </SlideWrapper>
     );
   }
+  const mockPreviewDistribution = mcqSampleDistribution(question.options);
+
+  const sharedProps = {
+    visualization: effective ?? null,
+    editor,
+    openPicker,
+    setOpenMenuId,
+    openMenuId,
+    mockPreviewDistribution,
+  };
 
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
@@ -87,7 +88,6 @@ const McqSlideContentView = ({
   //   addOption: editor.addOption,
   //   canAddOption: editor.actionscanAddOption,
   // };
-
   return (
     <SlideWrapper
       prompt={{
@@ -109,7 +109,7 @@ const McqSlideContentView = ({
       {effective ? (
         <div className={styles.chartEditor}>
           {renderMcqResultsDisplay({
-            sharedProps,
+            ...sharedProps,
           })}
         </div>
       ) : (

@@ -1,11 +1,13 @@
-import { useSortable } from "@dnd-kit/react/sortable";
-import { useEffect, useRef, useState } from "react";
+import { SortableItemBankRow } from "@/features/deck/components/DeckEditor/SlideContent/_shared";
+import { OptionToEditableMcqItem } from "@/features/deck/components/DeckEditor/SlideContent/AllocationSlideContent/ItemFormatters";
+import { RenderMcqResultsDisplayOptions } from "@/features/deck/components/DeckEditor/SlideContent/McqSlideContent/renderMcqResultsDisplay";
+import {
+  SlideContent,
+  SlideContentSection,
+} from "@/features/deck/components/DeckEditor/SlideContent/SlideContentSection";
+import { useEffect, useState } from "react";
 import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
-import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
-import type { ChartDatum, ChartProps, ChartSegmentRenderProps } from "../Chart.types";
-import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
-import { OptionImage } from "../OptionImage/OptionImage";
-import { resolveDatumColor } from "../optionPalette";
+import { useAnimatedChartData } from "../useAnimatedChartData";
 import { withChartErrorBoundary } from "../withChartErrorBoundary";
 import styles from "./PieChart.module.css";
 
@@ -13,85 +15,11 @@ import styles from "./PieChart.module.css";
 const RADII = { pie: 25, donut: 38 } as const;
 const STROKE = { pie: 50, donut: 16 } as const;
 
-type PieChartSegmentRenderProps = ChartSegmentRenderProps & {
-  /** Whether this final legend item owns the chart's add-option affordance. */
-  isAddAnchor?: boolean;
-};
-
-const PieChartSegment = ({
-  sortIndex,
-  datum,
-  denominator,
-  displayAsPercentage,
-  renderLabelWithMenu,
-  renderMenu,
-  addOption,
-  canAddOption,
-  isAddAnchor = false,
-}: PieChartSegmentRenderProps) => {
-  const pct = denominator > 0 ? (datum.value / denominator) * 100 : 0;
-
-  const { ref: sortableRef } = useSortable({
-    id: datum.id,
-    index: sortIndex,
-  });
-
-  const cardRef = useRef<HTMLLIElement>(null);
-
-  const setCardRef = (node: HTMLLIElement | null) => {
-    cardRef.current = node;
-    if (typeof sortableRef === "function") sortableRef(node);
-  };
-
-  const legendItem = (
-    <li
-      ref={setCardRef}
-      className={`${styles.legendItem} ${datum.highlight ? styles.highlight : ""}`}
-    >
-      <span
-        className={styles.swatch}
-        style={{ background: resolveDatumColor(datum.color, sortIndex) }}
-        aria-hidden="true"
-      />
-      <OptionImage src={datum.imageUrl} alt={datum.imageAlt} fallbackSeed={datum.id} />
-      <div className={styles.optionControls}>
-        {renderLabelWithMenu ? (
-          renderLabelWithMenu(datum)
-        ) : (
-          <span className={styles.legendLabel}>{datum.text ?? ""}</span>
-        )}
-      </div>
-      <span className={styles.legendValue}>
-        {datum.value}
-        {displayAsPercentage && ` (${Math.round(pct).toString()}%)`}
-      </span>
-      {renderMenu && (
-        <span className={styles.legendActions}>
-          <CorrectBadge isCorrect={datum.isCorrect} />
-          {renderMenu(datum)}
-        </span>
-      )}
-    </li>
-  );
-
-  return isAddAnchor && canAddOption && addOption ? (
-    <AddOptionPopover anchor={legendItem} onAdd={addOption} focusableAnchor />
-  ) : (
-    legendItem
-  );
-};
-
 const PieChartInner = ({
-  variant = "pie",
-  renderLabelWithMenu,
-  renderMenu,
-  onReorder,
-  data,
-  displayAsPercentage,
-  animateOnMount = false,
-  addOption,
-  canAddOption,
-}: ChartProps) => {
+  variant,
+  ...props
+}: RenderMcqResultsDisplayOptions & { variant: "pie" | "donut" }) => {
+  const animateOnMount = true;
   useEffect(() => {
     if (!animateOnMount) return;
     const id = requestAnimationFrame(() => {
@@ -103,109 +31,106 @@ const PieChartInner = ({
   }, [animateOnMount]);
   const [revealed, setRevealed] = useState(!animateOnMount);
 
-  const total = data.reduce((sum, datum) => sum + datum.value, 0);
+  const data = useAnimatedChartData(props.editor.question);
 
-  if (total === 0) {
-    return (
-      <div className={styles.chart}>
-        <p className={styles.empty}>No responses yet.</p>
-      </div>
-    );
-  }
-  const slices = data.reduce<
-    {
-      datum: ChartDatum;
-      pct: number;
-      start: number;
-      color: string;
-      index: number;
-    }[]
-  >((acc, datum, index) => {
-    const pct = (datum.value / total) * 100;
-    const start = acc.length === 0 ? 0 : acc[acc.length - 1].start + acc[acc.length - 1].pct;
-    acc.push({
-      datum,
-      pct,
-      start,
-      color: resolveDatumColor(datum.color, index),
+  if (props.editor.question == null || data == null) return <div>no question</div>;
+  const { distribution, highestValue, denominator, optionCount } = data;
+
+  const EditableItems = props.editor.question.options.map((option, index) => {
+    return OptionToEditableMcqItem(
+      option,
       index,
-    });
-    return acc;
-  }, []);
+      props.editor.actions,
+      props.editor.state,
+      props.openPicker,
+      props.setOpenMenuId,
+      props.openMenuId,
+      distribution[option.id],
+      highestValue,
+      denominator,
+      optionCount,
+    );
+  });
+  let start = 0;
 
-  // pathLength's scaling shortfall accumulates at the circle's closure, so the
-  // slices leave a background-colored sliver at the 12 o'clock seam. The guard
-  // is a copy of the last slice extended 1 unit past the path end — dashes
-  // wrap on closed paths, so it fills the seam from beneath (it is painted
-  // first; the real slices cover everything else).
+  const slices = EditableItems.map((item) => {
+    const pct = (item.detail.mockDistributionValue / denominator) * 100;
+    const slice = { item, pct, start };
+    start += pct;
+    return slice;
+  });
+
   const lastSlice = slices[slices.length - 1];
 
   return (
-    <div className={styles.chart}>
-      <div className={styles.body}>
-        <div className={styles.plot}>
-          <svg
-            className={styles.svg}
-            viewBox="0 0 100 100"
-            role="img"
-            aria-label={variant === "donut" ? "Donut chart" : "Pie chart"}
-          >
-            <circle className={styles.backdrop} cx="50" cy="50" r="49" />
-            <g transform="rotate(-90 50 50)">
-              <circle
-                className={styles.slice}
-                cx="50"
-                cy="50"
-                r={RADII[variant]}
-                pathLength={100}
-                strokeWidth={STROKE[variant]}
-                stroke={lastSlice.color}
-                strokeDasharray={`${(revealed ? lastSlice.pct + 1 : 0).toFixed(3)} 100`}
-                strokeDashoffset={(-lastSlice.start).toFixed(3)}
-                style={{
-                  transitionDelay: !revealed ? `${(lastSlice.index * 90).toString()}ms` : undefined,
-                }}
-              />
-              {slices.map((slice) => (
+    <SlideContent>
+      <SlideContentSection>
+        <SlideContentSection.Header></SlideContentSection.Header>
+        <SlideContentSection.Body>
+          {/* <div className={styles.chart}>
+      <div className={styles.body}> */}
+          <div className={styles.plot}>
+            <svg
+              className={styles.svg}
+              viewBox="0 0 100 100"
+              role="img"
+              aria-label={variant === "donut" ? "Donut chart" : "Pie chart"}
+            >
+              <circle className={styles.backdrop} cx="50" cy="50" r="49" />
+              <g transform="rotate(-90 50 50)">
                 <circle
-                  key={slice.index}
                   className={styles.slice}
                   cx="50"
                   cy="50"
                   r={RADII[variant]}
                   pathLength={100}
                   strokeWidth={STROKE[variant]}
-                  stroke={slice.color}
-                  strokeDasharray={`${(revealed ? slice.pct : 0).toFixed(3)} 100`}
-                  strokeDashoffset={(-slice.start).toFixed(3)}
+                  stroke={lastSlice.item.item.color}
+                  strokeDasharray={`${(revealed ? lastSlice.pct + 1 : 0).toFixed(3)} 100`}
+                  strokeDashoffset={(-lastSlice.start).toFixed(3)}
                   style={{
-                    transitionDelay: !revealed ? `${(slice.index * 90).toString()}ms` : undefined,
+                    transitionDelay: !revealed
+                      ? `${(lastSlice.item.sourceIndex * 90).toString()}ms`
+                      : undefined,
                   }}
                 />
+                {slices.map((slice) => (
+                  <circle
+                    key={slice.item.sourceIndex}
+                    className={styles.slice}
+                    cx="50"
+                    cy="50"
+                    r={RADII[variant]}
+                    pathLength={100}
+                    strokeWidth={STROKE[variant]}
+                    stroke={slice.item.item.color}
+                    strokeDasharray={`${(revealed ? slice.pct : 0).toFixed(3)} 100`}
+                    strokeDashoffset={(-slice.start).toFixed(3)}
+                    style={{
+                      transitionDelay: !revealed
+                        ? `${(slice.item.sourceIndex * 90).toString()}ms`
+                        : undefined,
+                    }}
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>{" "}
+        </SlideContentSection.Body>
+      </SlideContentSection>{" "}
+      <SlideContentSection>
+        <SlideContentSection.Header></SlideContentSection.Header>
+        <SlideContentSection.Body>
+          <ul className={styles.legend}>
+            <DragDropWrapper onReorder={props.editor.actions.handleItemDragEnd}>
+              {EditableItems.map((option) => (
+                <SortableItemBankRow key={option.item.id} {...option} />
               ))}
-            </g>
-          </svg>
-        </div>
-        <ul className={styles.legend}>
-          <DragDropWrapper onReorder={onReorder}>
-            {slices.map((slice, index) => (
-              <PieChartSegment
-                key={slice.datum.id}
-                datum={slice.datum}
-                denominator={total}
-                displayAsPercentage={displayAsPercentage}
-                sortIndex={index}
-                renderLabelWithMenu={renderLabelWithMenu}
-                renderMenu={renderMenu}
-                addOption={addOption}
-                canAddOption={canAddOption}
-                isAddAnchor={index === slices.length - 1}
-              />
-            ))}
-          </DragDropWrapper>
-        </ul>
-      </div>
-    </div>
+            </DragDropWrapper>
+          </ul>{" "}
+        </SlideContentSection.Body>
+      </SlideContentSection>
+    </SlideContent>
   );
 };
 

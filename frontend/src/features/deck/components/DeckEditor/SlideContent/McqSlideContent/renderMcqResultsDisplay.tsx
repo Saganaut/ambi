@@ -1,5 +1,6 @@
+import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
 import { BarChart } from "@/shared/components/Charts/BarChart/BarChart";
-import { ChartDatum } from "@/shared/components/Charts/Chart.types";
+import { ChartType } from "@/shared/components/Charts/Chart.types";
 import { DivergingBar } from "@/shared/components/Charts/DivergingBar/DivergingBar";
 import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
 import { Heatmap } from "@/shared/components/Charts/Heatmap/Heatmap";
@@ -9,20 +10,25 @@ import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
 import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
+import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { Dispatch, ReactNode, SetStateAction } from "react";
 import { DefaultResultsDisplay } from "./DefaultResultsDisplay";
 import { McqSlideContentViewProps } from "./McqSlideContentView";
 
-interface RenderMcqResultsDisplayOptions extends McqSlideContentViewProps {
+export interface RenderMcqResultsDisplayOptions
+  extends Omit<McqSlideContentViewProps, "previewVisualization"> {
   setOpenMenuId: Dispatch<SetStateAction<string | null>>;
   openMenuId: string | null;
-  data: ChartDatum[];
+  openPicker: OpenGalleryPicker;
+  visualization: ChartType | null;
+  editor: UseMcqEditorResult;
+  mockPreviewDistribution: Record<string, number>;
 }
 
-export const renderMcqResultsDisplay = ({
-  chartProps,
-}: RenderMcqResultsDisplayOptions): ReactNode => {
-  switch (chartProps.question.visualization) {
+export const renderMcqResultsDisplay = (chartProps: RenderMcqResultsDisplayOptions): ReactNode => {
+  switch (chartProps.visualization) {
+    case null:
+      return <DefaultResultsDisplay {...chartProps} />;
     case "NONE":
       return <DefaultResultsDisplay {...chartProps} />;
 

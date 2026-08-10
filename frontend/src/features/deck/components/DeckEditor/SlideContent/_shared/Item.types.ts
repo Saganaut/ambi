@@ -127,11 +127,19 @@ interface EditableItemState {
   animateOnMount?: boolean;
 }
 
+interface McqItemDetail {
+  //These are necessary for mocking the chart distrubitons in preview
+  mockDistributionHighestValue: number;
+  mockDistributionDenominator: number;
+  mockDistributionValue: number;
+  itemCount: number;
+}
+
 interface EditableItemByKind extends Record<
   SlideType,
   { detail?: object; actions: BaseItemActions }
 > {
-  MCQ: { detail?: undefined; actions: BaseItemActions };
+  MCQ: { detail: McqItemDetail; actions: BaseItemActions };
   SCALES: {
     detail: ScalesItemDetail & WithTolerance;
     actions: BaseItemActions & WithCorrectItemActions<number>;

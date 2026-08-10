@@ -2,11 +2,11 @@
 // entity (statement, ranking item, allocation option, etc.). The card draws
 // the index pill, slots its body, and renders optional action buttons (most
 // commonly a "remove" trash icon). Mirrors the visual weight of the
-// McqOptionEditable card but in a single horizontal row, since these
+// ItemCard card but in a single horizontal row, since these
 // editors deal in many simple items rather than 4-6 visual options.
-import type { ReactNode } from "react";
 import { MinusIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
+import type { ReactNode } from "react";
 import { IndexPill } from "./IndexPill/IndexPill";
 import styles from "./_shared.module.css";
 
@@ -46,15 +46,16 @@ const ItemCard = ({
         active ? styles.itemCardActive : "",
       ]
         .filter(Boolean)
-        .join(" ")}>
+        .join(" ")}
+    >
       <IndexPill value={index + 1} color={indexColor} />
       <div className={styles.itemBody}>{children}</div>
       <div className={styles.itemActions}>
         {actions}
         {onRemove && removeLabel && (
           <IconBtn
-            fill='ghost'
-            size='xs'
+            fill="ghost"
+            size="xs"
             icon={<MinusIcon />}
             aria-label={removeLabel}
             disabled={removeDisabled}
