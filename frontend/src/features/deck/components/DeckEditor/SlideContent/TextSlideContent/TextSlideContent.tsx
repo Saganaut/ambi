@@ -4,8 +4,10 @@ import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { TextContent } from "@deck/store/deckApi.gen";
 import { wouldOrphanKeyedFollowUp } from "@deck/utils/followUp";
+import { SAMPLE_ANSWER_TEXTS, wordFrequencies } from "@/shared/components/Charts/adapters/words";
+import { WordCloudChart } from "@/shared/components/Charts/WordCloud/WordCloudChart";
 import { Tag } from "@ui/Tag/Tag";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { ScoringFooter } from "../_shared";
@@ -16,7 +18,11 @@ type MatchMode = TextContent["matchMode"];
 const MATCH_MODE_OPTIONS: { value: MatchMode; label: string }[] = [
   { value: "EXACT", label: "Exact match" },
   { value: "CONTAINS", label: "Answer is contained" },
+  { value: "WORDCLOUD", label: "Word cloud" },
 ];
+
+const PREVIEW_CAPTION =
+  "Preview with sample answers — the live cloud builds from what players send in.";
 
 const splitAnswers = (raw: string) =>
   raw
@@ -63,6 +69,8 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setMatchMode(slide.content.matchMode);
   }
 
+  const previewCloud = useMemo(() => wordFrequencies(SAMPLE_ANSWER_TEXTS), []);
+
   if (!slide) {
     return (
       <SlideWrapper title="Text answer">
@@ -73,6 +81,10 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
 
   const idBase = slide.id;
   const hasAnswers = answers.length > 0;
+  // A word-cloud round is unscored by design, so it shows neither an answer key
+  // nor the "not scoreable" nag; the stored answers are left untouched so
+  // switching back to a matched mode restores them.
+  const isWordCloud = matchMode === "WORDCLOUD";
 
   const commitAnswers = (next: string[]) => {
     setAnswers(next);
@@ -128,54 +140,62 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         },
         onBlur: flush,
       }}
-      footer={<ScoringFooter visible={!hasAnswers} />}
+      footer={<ScoringFooter visible={!hasAnswers && !isWordCloud} />}
     >
       {" "}
       <SlideContent>
-        <SlideContentSection>
-          <SlideContentSection.Header>
-            <span>Correct answer(s)</span>
-            <span>Leave empty to just collect responses</span>{" "}
-          </SlideContentSection.Header>
-          <SlideContentSection.Body>
-            <div className={styles.answersField}>
-              {/* <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
+        {isWordCloud ? (
+          <WordCloudChart
+            data={previewCloud}
+            displayAsPercentage={false}
+            caption={PREVIEW_CAPTION}
+          />
+        ) : (
+          <SlideContentSection>
+            <SlideContentSection.Header>
+              <span>Correct answer(s)</span>
+              <span>Leave empty to just collect responses</span>{" "}
+            </SlideContentSection.Header>
+            <SlideContentSection.Body>
+              <div className={styles.answersField}>
+                {/* <label className={styles.answersLabel} htmlFor={`text-answers-${idBase}`}>
                 Accepted answers
               </label> */}{" "}
-              <Input
-                id={`text-answers-${idBase}`}
-                type="text"
-                fullWidth
-                value={draft}
-                placeholder="Type an answer and press Enter"
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={handleKeyDown}
-                onBlur={commitDraft}
-              />
-              {hasAnswers && (
-                <ul className={styles.tagList}>
-                  {answerRows.map(({ answer, index, removalBlocked }) => (
-                    <li key={answer}>
-                      <Tag
-                        size="md"
-                        onRemove={removalBlocked ? undefined : () => removeAnswer(index)}
-                        removeLabel={`Remove ${answer}`}
-                      >
-                        {answer}
-                      </Tag>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {answerKeyLocked && (
-                <p className={styles.answerKeyLockedHint}>
-                  Can&apos;t remove your last accepted answer — the attached &quot;Spot the
-                  answer&quot; follow-up needs it to grade.
-                </p>
-              )}
-            </div>
-          </SlideContentSection.Body>{" "}
-        </SlideContentSection>{" "}
+                <Input
+                  id={`text-answers-${idBase}`}
+                  type="text"
+                  fullWidth
+                  value={draft}
+                  placeholder="Type an answer and press Enter"
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={commitDraft}
+                />
+                {hasAnswers && (
+                  <ul className={styles.tagList}>
+                    {answerRows.map(({ answer, index, removalBlocked }) => (
+                      <li key={answer}>
+                        <Tag
+                          size="md"
+                          onRemove={removalBlocked ? undefined : () => removeAnswer(index)}
+                          removeLabel={`Remove ${answer}`}
+                        >
+                          {answer}
+                        </Tag>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {answerKeyLocked && (
+                  <p className={styles.answerKeyLockedHint}>
+                    Can&apos;t remove your last accepted answer — the attached &quot;Spot the
+                    answer&quot; follow-up needs it to grade.
+                  </p>
+                )}
+              </div>
+            </SlideContentSection.Body>{" "}
+          </SlideContentSection>
+        )}{" "}
         <SlideContentSection>
           <SlideContentSection.Header>How should we match the answer?</SlideContentSection.Header>
           <SlideContentSection.Body>

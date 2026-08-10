@@ -12,11 +12,13 @@
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { SAMPLE_QUESTION_TEXTS, wordFrequencies } from "@/shared/components/Charts/adapters/words";
+import { WordCloudChart } from "@/shared/components/Charts/WordCloud/WordCloudChart";
+import { useMemo, useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { EmptySelect, SettingsCard } from "../_shared";
-import type { SlideContentProps } from "../slideContentProps";
+import type { SlideContentProps } from "../_shared/Item.types";
 import styles from "./QAndASlideContent.module.css";
 
 /** One-line summary of the round's collection rules for the footer. */
@@ -36,6 +38,9 @@ const summarize = (
   return [moderation, cap, anonymity].filter(Boolean).join(" ");
 };
 
+const PREVIEW_CAPTION =
+  "Preview with sample questions — the live cloud builds from what players send in.";
+
 const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { slide, updateMetadata, flush } = useSlideEditor(deckId, slideId, "Q_AND_A");
   const { answerSettings } = useSlideSettings(deckId, slideId);
@@ -48,6 +53,8 @@ const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
     setSyncedFromId(slide.id);
     setTitle(slide.title);
   }
+
+  const previewCloud = useMemo(() => wordFrequencies(SAMPLE_QUESTION_TEXTS), []);
 
   if (!slide) return <EmptySelect title="Q & A" />;
 
@@ -73,6 +80,7 @@ const QAndASlideContent = ({ deckId, slideId }: SlideContentProps) => {
       footer={<p>{footerText}</p>}
     >
       <SlideContent>
+        <WordCloudChart data={previewCloud} displayAsPercentage={false} caption={PREVIEW_CAPTION} />
         <SlideContentSection>
           <SlideContentSection.Header>
             <ChatBubbleLeftEllipsisIcon className={styles.pulseBannerIcon} aria-hidden="true" />

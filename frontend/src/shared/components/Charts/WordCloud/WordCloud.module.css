@@ -23,7 +23,32 @@
     .word {
       /* 0..1 magnitude from the renderer; drives size and ink strength. */
       --word-scale: 0.5;
-      --word-font-size: calc(var(--font-size-sm) + var(--word-scale) * 2.25rem);
+
+      /* Type ramp added at full magnitude — board-scale by default, dialled
+         down by consumers whose canvas is a panel rather than a projector. */
+      --word-font-size: calc(
+        var(--font-size-sm) + var(--word-scale) * var(--word-font-ramp, 2.25rem)
+      );
+
+      /* Mount-reveal offset, set per word by the renderer. */
+      --reveal-delay: 0ms;
+
+      /* Staggered on the item, never the button — the button's own opacity
+         carries magnitude and the two must not fight. */
+      opacity: 0;
+      transform: translateY(var(--space-2)) scale(0.94);
+      transition:
+        opacity var(--duration-base) var(--ease-out) var(--reveal-delay),
+        transform var(--duration-base) var(--ease-out) var(--reveal-delay);
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
+
+      &.revealed {
+        opacity: 1;
+        transform: none;
+      }
 
       .wordButton {
         position: relative;
@@ -73,4 +98,14 @@
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
   }
+}
+
+/* The editor wrapper nests a SlideContent inside the surface's own, which would
+   otherwise size to its text instead of claiming a column. The editor canvas is
+   a fraction of a projector's, so the type ramp shrinks with it. */
+.chartContent {
+  --word-font-ramp: 1rem;
+
+  flex: 1 1 260px;
+  min-width: 0;
 }

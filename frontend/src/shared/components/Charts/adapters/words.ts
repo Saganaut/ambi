@@ -51,4 +51,49 @@ const wordFrequencies = (texts: string[], cap = DEFAULT_WORD_CAP): ChartDatum[] 
     }));
 };
 
-export { wordFrequencies };
+/**
+ * Fixed preview questions for the Q&A author surface. Real submissions only
+ * exist during a live session, so the editor seeds its cloud from these;
+ * keywords repeat so {@link wordFrequencies} yields a spread of sizes.
+ */
+const SAMPLE_QUESTION_TEXTS = [
+  "What is on the roadmap next?",
+  "How does pricing work for a small team?",
+  "Will the roadmap include mobile?",
+  "Can you share the launch timeline?",
+  "Is there team pricing for education?",
+  "How do we migrate our data?",
+  "What is the hiring plan for the team?",
+  "Does support cover weekends?",
+  "When is the launch date?",
+  "How big is the team now?",
+  "Any plans for offline support?",
+  "Will the data migration be automatic?",
+  "What happens to the roadmap after launch?",
+  "Who owns the mobile roadmap?",
+];
+
+/**
+ * Fixed preview answers for a word-cloud TEXT round, same role as
+ * {@link SAMPLE_QUESTION_TEXTS} — short free-text replies with repeated terms.
+ */
+const SAMPLE_ANSWER_TEXTS = [
+  "collaboration",
+  "collaboration and trust",
+  "trust",
+  "clear communication",
+  "communication",
+  "communication",
+  "focus",
+  "focus and momentum",
+  "momentum",
+  "curiosity",
+  "curiosity",
+  "ownership",
+  "ownership and trust",
+  "clarity",
+  "clarity and focus",
+  "resilience",
+];
+
+export { SAMPLE_ANSWER_TEXTS, SAMPLE_QUESTION_TEXTS, wordFrequencies };
