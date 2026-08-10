@@ -30,7 +30,7 @@ interface ResolvedImage {
   src: string;
   alt: string;
 }
-type Point = { x: number; y: number };
+export type Point = { x: number; y: number };
 export type ItemId = string;
 type ContinuousAxis = { kind: "continuous"; min: number; max: number; labels: [string, string] };
 type DiscreteAxis = { kind: "discrete"; labels: string[] };
@@ -186,7 +186,7 @@ export type EditableItem<TKind extends SlideType = SlideType> = TKind extends Sl
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 export type SortableEditableItem<TKind extends SlideType = SlideType> = TKind extends SlideType
-  ? EditableItem<TKind> & { sortable: WithSortableItemState<HTMLDivElement> }
+  ? EditableItem<TKind> & { sortable: WithSortableItemState<HTMLElement> }
   : never;
 
 export interface QuestionBaseState {

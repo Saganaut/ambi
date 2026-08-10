@@ -6,15 +6,15 @@
  * through the shared prompt slot.
  */
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { AppImg } from "@components/Images/AppImg";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import { AppImg } from "@components/Images/AppImg";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { Btn } from "@ui/Buttons/Btn";
 import { useState } from "react";
+import { SlideContentProps } from "../_shared/Item.types";
 import { SlideWrapper } from "../SlideWrapper";
-import type { SlideContentProps } from "../slideContentProps";
 import styles from "./MediaSlideContent.module.css";
 import { youTubeEmbedUrl } from "./youTube";
 

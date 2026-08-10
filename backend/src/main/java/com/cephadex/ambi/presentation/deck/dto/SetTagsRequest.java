@@ -34,6 +34,6 @@ public record SetTagsRequest(
 
     /** A defensive, order-preserving copy of the submitted tags. */
     public Set<String> tags() {
-        return tags == null ? new LinkedHashSet<>() : new LinkedHashSet<>(tags);
+        return tags == null ? new LinkedHashSet<String>() : new LinkedHashSet<>(tags);
     }
 }

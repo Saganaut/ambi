@@ -11,16 +11,16 @@
  * for a board whose cards are pictures. The mode itself is edited in the right
  * sidebar's follow-up section.
  */
+import { AppImg } from "@components/Images/AppImg";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { FollowUpMode } from "@deck/store/deckEnums.gen";
 import { FOLLOW_UP_MODE_LABELS, linkedParentOf } from "@deck/utils/followUp";
-import { AppImg } from "@components/Images/AppImg";
 import { isImageEmpty, largestUrl } from "@utils/image";
 import React, { useState } from "react";
+import { SlideContentProps } from "../_shared/Item.types";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import type { SlideContentProps } from "../slideContentProps";
 import styles from "./FollowUpSlideContent.module.css";
 
 /** Strip the title down for display; falls back when the parent is untitled. */

@@ -1,28 +1,3 @@
-/**
- * Author surface for a numeric-answer slide (NumberContent). The sibling of
- * {@link TextSlideContent}: a player types a number instead of free text, and
- * the only real divergence is how correctness is expressed.
- *
- * Layout:
- *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
- *   - "Correct answer" card fronted by a live preview chip ("42 km", "10–20 km")
- *     so the author sees the whole scoring rule at a glance. Grading is one of
- *     three shapes, chosen from a dropdown:
- *       · Not scored  — no target; the slide only collects players' numbers.
- *                       Persisted as a null `answer`, the parallel of TEXT's
- *                       empty accepted-answers list.
- *       · Exact value — the answer must equal a single number (scoreMode EXACT).
- *       · Range        — the answer is correct anywhere in [from, to]. Persisted
- *                        as the backend's centre ± tolerance model
- *                        (scoreMode RANGE): answer = midpoint, tolerance =
- *                        half-width, which grades to exactly "value inside the
- *                        range". The two bounds are reconstructed on load as
- *                        answer ∓ tolerance.
- *
- * Scorability is therefore derived, not a separate toggle: a null `answer` is an
- * unscored collection (the footer says so); any target makes the slide
- * scoreable.
- */
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
@@ -32,7 +7,7 @@ import { useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { EmptySelect, SettingsRow } from "../_shared";
-import type { SlideContentProps } from "../slideContentProps";
+import { SlideContentProps } from "../_shared/Item.types";
 import styles from "./NumberSlideContent.module.css";
 
 /** The grading shapes this editor surfaces. `UNSCORED` is a null `answer`;

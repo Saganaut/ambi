@@ -4,13 +4,10 @@ import { isSortable } from "@dnd-kit/react/sortable";
 import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
 import type { AppImage } from "@deck/store/deckApi.gen";
 
-import type {
-  Identified,
-  PlaceableItem,
-} from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
+import { EditableItem } from "../components/DeckEditor/SlideContent/_shared/Item.types";
 import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
 
-interface ItemBankContent<I extends PlaceableItem = PlaceableItem> {
+interface ItemBankContent<I extends EditableItem = EditableItem> {
   items: I[];
 }
 
@@ -22,11 +19,10 @@ interface ItemBankSlideEditor<C extends ItemBankContent> {
   flush: () => void;
 }
 
-type BankFields = Pick<PlaceableItem, "label" | "color" | "image">;
-
+type BankFields = Partial<Pick<EditableItem, "label" | "color" | "image">>;
 interface UseItemBankEditorOptions<
   C extends ItemBankContent<I>,
-  I extends PlaceableItem = ItemOf<C>,
+  I extends EditableItem = ItemOf<C>,
 > {
   slideId: string;
   toPatch: (items: I[]) => Partial<C>;
@@ -38,7 +34,7 @@ interface UseItemBankEditorOptions<
 
 interface UseItemBankEditorResult<
   C extends ItemBankContent<I>,
-  I extends PlaceableItem = ItemOf<C>,
+  I extends EditableItem = ItemOf<C>,
 > {
   items: Identified<I>[];
   canAdd: boolean;
@@ -51,7 +47,7 @@ interface UseItemBankEditorResult<
   handleItemDragEnd: (event: DragEndEvent) => void;
 }
 
-const useItemBankEditor = <C extends ItemBankContent<I>, I extends PlaceableItem = ItemOf<C>>(
+const useItemBankEditor = <C extends ItemBankContent<I>, I extends EditableItem = ItemOf<C>>(
   editor: ItemBankSlideEditor<C>,
   options: UseItemBankEditorOptions<C, I>,
 ): UseItemBankEditorResult<C, I> => {

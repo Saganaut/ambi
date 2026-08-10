@@ -5,7 +5,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import type { NormalizedPoint } from "./placement.types";
+import { Point } from "react-easy-crop";
 import { usePlacementSurface } from "./usePlacementSurface";
 
 /** A 100 × 100 surface at the viewport origin, so coordinates read as fractions. */
@@ -38,8 +38,8 @@ beforeAll(() => {
 interface HarnessProps {
   invertY?: boolean;
   armedKey: string | null;
-  onSurfaceCommit: (key: string, point: NormalizedPoint) => void;
-  onMarkerCommit: (key: string, point: NormalizedPoint | null) => void;
+  onSurfaceCommit: (key: string, point: Point) => void;
+  onMarkerCommit: (key: string, point: Point | null) => void;
   onMarkerTap: (key: string) => void;
 }
 

@@ -6,7 +6,7 @@
 //
 // Keyed by content-type *string* (not the `SlideType` enum) on purpose: this
 // module lives in `shared/` and must not import from `features/deck`.
-import { mcqSampleDistribution, mcqToChartData, type McqOptionLike } from "./adapters/mcq";
+import { mcqSampleDistribution, mcqToChartData } from "./adapters/mcq";
 import type { ChartType } from "./Chart.types";
 
 export interface ResultsConfig {
@@ -61,5 +61,3 @@ export const resultsRegistry: Record<string, ResultsConfig> = {
  */
 export const getSupportedViz = (contentType: string): ChartType[] =>
   resultsRegistry[contentType]?.supportedViz ?? [];
-
-export type { McqOptionLike };

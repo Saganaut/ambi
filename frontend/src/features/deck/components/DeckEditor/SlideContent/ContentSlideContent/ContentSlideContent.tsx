@@ -18,7 +18,7 @@ import type {
 } from "@deck/store/deckEnums.gen";
 import { useState } from "react";
 import { SlideWrapper } from "../SlideWrapper";
-import type { SlideContentProps } from "../slideContentProps";
+import { SlideContentProps } from "../_shared/Item.types";
 
 // The stored alignment is the backend enum (LEFT/CENTER/RIGHT, TOP/MIDDLE/…);
 // RichTextInput speaks the semantic lowercase form. Map between the two, with

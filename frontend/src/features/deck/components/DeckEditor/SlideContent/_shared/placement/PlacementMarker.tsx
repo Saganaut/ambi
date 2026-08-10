@@ -14,13 +14,13 @@ import type { CSSProperties, PointerEventHandler } from "react";
 
 import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
-import { toRenderStyle } from "./placementGeometry";
-import type { NormalizedPoint } from "./placement.types";
+import { Point } from "react-easy-crop";
 import styles from "./placement.module.css";
+import { toRenderStyle } from "./placementGeometry";
 
 interface PlacementMarkerProps {
   /** The placement point in the surface's normalized space. */
-  point: NormalizedPoint;
+  point: Point;
   /** True when the surface's (0, 0) is its bottom-left (Axis's plane). */
   invertY?: boolean;
   /** Resolved item color — override or palette default. */

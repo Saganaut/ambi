@@ -8,8 +8,8 @@
 import { Input } from "@components/Forms/Input/Input/Input";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useState } from "react";
+import { SlideContentProps } from "../_shared/Item.types";
 import { SlideWrapper } from "../SlideWrapper";
-import type { SlideContentProps } from "../slideContentProps";
 import styles from "./InstructionSlideContent.module.css";
 
 const DEFAULT_HEADING = "Join the game!";

@@ -1,31 +1,7 @@
-/**
- * A placement surface measured in normalized [0, 1] coordinates: the shared
- * pointer gestures of `usePointerPlacement`, resolved against the box of the
- * element `surfaceRef` is attached to.
- *
- * A hook rather than a component because the surrounding markup diverges (Axis
- * overlays endpoint pills on a square plane, Place-on-Image sizes itself from
- * the backing image) while only the pointer bookkeeping is common. The caller
- * supplies the surface's orientation and, per press, which key a fresh
- * placement belongs to (`pendingKey`) — Axis returns the armed row's item id,
- * Place-on-Image the `PENDING_PLACEMENT_KEY` sentinel because its new target
- * has no id until it is committed.
- *
- * A drag is tracked past the surface's edges — the live point clamps to the
- * border, and `drag.inside` says whether the pointer is actually over the box —
- * so a release outside is a real answer, decided per gesture exactly as Grid
- * decides a release over no cell: a fresh surface placement is abandoned
- * (nothing written, arming untouched), a dragged marker is unplaced
- * (`onMarkerCommit` with null).
- *
- * Grid does not compose this hook: its matrix is not a continuous space, so it
- * resolves a press to a cell instead (`useGridCellPlacement`, over the same
- * `usePointerPlacement`).
- */
 import { useRef, type RefObject } from "react";
 
+import { Point } from "react-easy-crop";
 import { normalizeToBox } from "./placementGeometry";
-import type { NormalizedPoint } from "./placement.types";
 import { usePointerPlacement, type SurfacePointerHandlers } from "./usePointerPlacement";
 
 /** Stands in for a not-yet-created entity while its first placement is dragged. */
@@ -34,7 +10,7 @@ const PENDING_PLACEMENT_KEY = "__pending__";
 /** What a pointer position resolves to: the clamped point, and whether the
  * pointer is actually over the surface's box. */
 interface SurfacePlacement {
-  point: NormalizedPoint;
+  point: Point;
   inside: boolean;
 }
 
@@ -42,7 +18,7 @@ interface SurfacePlacement {
  * whether releasing here lands it (`inside`) or discards it. */
 interface PlacementDrag {
   key: string;
-  point: NormalizedPoint;
+  point: Point;
   inside: boolean;
 }
 
@@ -52,9 +28,9 @@ interface UsePlacementSurfaceOptions {
   /** Key a fresh surface placement belongs to, or null when the surface is inert. */
   pendingKey: () => string | null;
   /** A press on open surface released over it; a release outside never lands here. */
-  onSurfaceCommit: (key: string, point: NormalizedPoint) => void;
+  onSurfaceCommit: (key: string, point: Point) => void;
   /** A dragged marker released: a point moves it, null (released outside) unplaces it. */
-  onMarkerCommit: (key: string, point: NormalizedPoint | null) => void;
+  onMarkerCommit: (key: string, point: Point | null) => void;
   /** A marker pressed without dragging; omit for surfaces with no tap meaning. */
   onMarkerTap?: (key: string) => void;
 }
@@ -67,7 +43,7 @@ interface UsePlacementSurfaceResult {
   /** The placement in flight, or null when the pointer is idle. */
   drag: PlacementDrag | null;
   /** The point to render for a key: the live drag point, else what's stored. */
-  pointFor: (key: string, stored: NormalizedPoint | undefined) => NormalizedPoint | undefined;
+  pointFor: (key: string, stored: Point | undefined) => Point | undefined;
 }
 
 /** Half-open on the far edges, mirroring Grid's cell hit-test. */
@@ -112,8 +88,7 @@ const usePlacementSurface = ({
       point: placement.drag.value.point,
       inside: placement.drag.value.inside,
     },
-    pointFor: (key, stored) =>
-      placement.drag?.key === key ? placement.drag.value.point : stored,
+    pointFor: (key, stored) => (placement.drag?.key === key ? placement.drag.value.point : stored),
   };
 };
 

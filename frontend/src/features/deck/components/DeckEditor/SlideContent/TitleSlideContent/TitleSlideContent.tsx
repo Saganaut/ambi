@@ -8,7 +8,7 @@ import { Input } from "@components/Forms/Input/Input/Input";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useState } from "react";
 import { SlideWrapper } from "../SlideWrapper";
-import type { SlideContentProps } from "../slideContentProps";
+import { SlideContentProps } from "../_shared/Item.types";
 
 const TitleSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { slide, updateMetadata, updateSlideContent, flush } = useSlideEditor(

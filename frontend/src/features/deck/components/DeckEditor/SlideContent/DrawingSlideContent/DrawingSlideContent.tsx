@@ -28,7 +28,7 @@ import { Btn } from "@ui/Buttons/Btn";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { isImageEmpty, largestUrl } from "@utils/image";
 import { EmptySelect } from "../_shared";
-import type { SlideContentProps } from "../slideContentProps";
+import { SlideContentProps } from "../_shared/Item.types";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./DrawingSlideContent.module.css";
