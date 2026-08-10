@@ -310,7 +310,7 @@ interface QuestionSpec extends Record<
       tools: Tool[];
     };
     correct: unknown;
-    actions: {};
+    actions: object;
   };
 }
 
