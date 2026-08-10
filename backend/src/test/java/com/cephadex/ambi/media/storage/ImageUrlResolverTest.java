@@ -13,7 +13,10 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +25,9 @@ import org.junit.jupiter.api.Test;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.Placement;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
+import com.cephadex.ambi.media.variants.ImageVariantReadiness;
+import com.cephadex.ambi.media.variants.PendingImageVariants;
+import com.cephadex.ambi.media.variants.PendingImageVariantsRepository;
 
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -30,12 +36,16 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 /**
  * Hydration rules for {@link ImageUrlResolver}: internal variant keys become
  * presigned URLs, external images pass through, and the stored entity is never
- * mutated. The presigner is stubbed to echo the key into the URL so we can assert
- * which key each variant signed.
+ * mutated. Every tier is optional — a partial or empty {@code variants} map
+ * hydrates what it has and falls back to the original — and a tier the worker
+ * has not rendered yet is dropped on every read path, hydration and the
+ * {@code displayKey} tier-walk alike. The presigner is stubbed to echo the key
+ * into the URL so we can assert which key each variant signed.
  */
 class ImageUrlResolverTest {
 
     private ImageUrlResolver resolver;
+    private PendingImageVariantsRepository pendingVariants;
 
     private static final String BUCKET = "ambi-images";
 
@@ -55,7 +65,18 @@ class ImageUrlResolverTest {
         s3.setBucket(BUCKET);
         MediaProperties media = new MediaProperties();
         media.setPresignTtl(Duration.ofMinutes(30));
-        resolver = new ImageUrlResolver(presigner, s3, media);
+        pendingVariants = mock(PendingImageVariantsRepository.class);
+        // No row is the common case: every canonical key is real.
+        when(pendingVariants.findById(any())).thenReturn(Optional.empty());
+        resolver = new ImageUrlResolver(presigner, s3, media, new ImageVariantReadiness(pendingVariants, media));
+    }
+
+    /** Leave {@code unready} tiers outstanding under {@code keyRoot}. */
+    private void pending(String keyRoot, ImageSizeOptions... unready) {
+        PendingImageVariants row = new PendingImageVariants();
+        row.setId(keyRoot);
+        row.setRequestedTiers(EnumSet.copyOf(List.of(unready)));
+        when(pendingVariants.findById(keyRoot)).thenReturn(Optional.of(row));
     }
 
     @Test
@@ -114,9 +135,115 @@ class ImageUrlResolverTest {
     void hydrateToleratesNullAndEmpty() {
         assertThat(resolver.hydrate(null)).isNull();
 
-        AppImage noVariants = new AppImage();
-        noVariants.setExternal(false);
-        assertThat(resolver.hydrate(noVariants)).isSameAs(noVariants);
+        // Nothing stored at all: no key to sign, so the copy carries nothing —
+        // but hydration still has to complete rather than blow up.
+        AppImage nothingStored = new AppImage();
+        nothingStored.setExternal(false);
+        AppImage hydrated = resolver.hydrate(nothingStored);
+        assertThat(hydrated.getSrcKey()).isNull();
+        assertThat(hydrated.getVariants()).isNull();
+    }
+
+    @Test
+    void hydratePresignsTheOriginalOfAnImageWithNoVariantsYet() {
+        // Renditions are derived after the original lands (and AVIF gets none at
+        // all), so an image legitimately arrives here with an empty map. Its
+        // original must still be signed — it is the only thing a client can show.
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("gallery/x/original");
+        stored.setVariants(new EnumMap<>(ImageSizeOptions.class));
+
+        AppImage hydrated = resolver.hydrate(stored);
+
+        assertThat(hydrated.getSrcKey())
+                .isEqualTo("https://signed/ambi-images/gallery/x/original?sig=abc");
+        assertThat(hydrated.getVariants()).isEmpty();
+    }
+
+    @Test
+    void hydrateSignsOnlyTheTiersActuallyStored() {
+        // A half-derived map: a blank tier is not an object, so signing it would
+        // hand the client a URL to something that isn't in the bucket.
+        Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
+        variants.put(ImageSizeOptions.SM, "gallery/x/sm.webp");
+        variants.put(ImageSizeOptions.LG, " ");
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("gallery/x/original");
+        stored.setVariants(variants);
+
+        AppImage hydrated = resolver.hydrate(stored);
+
+        assertThat(hydrated.getVariants()).containsOnlyKeys(ImageSizeOptions.SM);
+        assertThat(hydrated.getSrcKey())
+                .isEqualTo("https://signed/ambi-images/gallery/x/original?sig=abc");
+    }
+
+    // ── Readiness filtering ─────────────────────────────────────────────────────
+
+    @Test
+    void hydrateDropsTiersThatAreNotRenderedYet() {
+        // The canonical five are always on the image; only the pending row knows
+        // which of them are objects, and signing an absent one hands the client
+        // a URL that 404s.
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("gallery/x/original");
+        stored.setVariants(ImageKeys.variantsFor("gallery/x/original"));
+        pending("gallery/x", ImageSizeOptions.MD, ImageSizeOptions.LG, ImageSizeOptions.XL);
+
+        AppImage hydrated = resolver.hydrate(stored);
+
+        assertThat(hydrated.getVariants())
+                .containsOnlyKeys(ImageSizeOptions.XS, ImageSizeOptions.SM);
+        // The original is always there, so it is always signed.
+        assertThat(hydrated.getSrcKey())
+                .isEqualTo("https://signed/ambi-images/gallery/x/original?sig=abc");
+        // The stored entity keeps its full canonical map.
+        assertThat(stored.getVariants()).containsOnlyKeys(ImageSizeOptions.values());
+    }
+
+    @Test
+    void displayKeyDropsUnreadyTiersAndFallsBackToTheOriginal() {
+        // Regression guard for the opaque-proxy / live-session board path, which
+        // never runs the serializer and so gets its filtering only here.
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("gallery/x/original");
+        stored.setVariants(ImageKeys.variantsFor("gallery/x/original"));
+        pending("gallery/x", ImageSizeOptions.MD, ImageSizeOptions.LG, ImageSizeOptions.XL);
+
+        // MD/LG/XL are outstanding, so the walk settles for the largest ready
+        // tier below the preferred one rather than naming an absent object.
+        assertThat(resolver.displayKey(stored, ImageSizeOptions.MD)).isEqualTo("gallery/x/sm.webp");
+    }
+
+    @Test
+    void displayKeyFallsBackToTheOriginalWhileNothingIsRenderedYet() {
+        // The state every fresh upload is in for a second or two.
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("gallery/fresh/original");
+        stored.setVariants(ImageKeys.variantsFor("gallery/fresh/original"));
+        pending("gallery/fresh", ImageSizeOptions.values());
+
+        assertThat(resolver.displayKey(stored, ImageSizeOptions.MD)).isEqualTo("gallery/fresh/original");
+        assertThat(resolver.hydrate(stored).getVariants()).isEmpty();
+    }
+
+    @Test
+    void anImageWithNoPendingRowKeepsEveryTier() {
+        // A legacy (or completed) image: absence of a row means every canonical
+        // key is real, and the filter must not touch it.
+        AppImage stored = new AppImage();
+        stored.setExternal(false);
+        stored.setSrcKey("gallery/legacy/original");
+        stored.setVariants(ImageKeys.variantsFor("gallery/legacy/original"));
+
+        assertThat(resolver.hydrate(stored).getVariants())
+                .containsOnlyKeys(ImageSizeOptions.values());
+        assertThat(resolver.displayKey(stored, ImageSizeOptions.MD)).isEqualTo("gallery/legacy/md.webp");
     }
 
     @Test
@@ -136,6 +263,24 @@ class ImageUrlResolverTest {
         variants.remove(ImageSizeOptions.XL);
         assertThat(resolver.displayUrl(internal, ImageSizeOptions.MD))
                 .isEqualTo("https://signed/ambi-images/gallery/x/sm.webp?sig=abc");
+    }
+
+    @Test
+    void displayUrlFallsBackToTheOriginalWhenNoTierIsStored() {
+        AppImage internal = new AppImage();
+        internal.setExternal(false);
+        internal.setSrcKey("gallery/x/original");
+        internal.setVariants(new EnumMap<>(ImageSizeOptions.class));
+
+        // No rendition yet — the original is oversized but renderable, which
+        // beats handing the board nothing at all.
+        assertThat(resolver.displayKey(internal, ImageSizeOptions.MD)).isEqualTo("gallery/x/original");
+        assertThat(resolver.displayUrl(internal, ImageSizeOptions.MD))
+                .isEqualTo("https://signed/ambi-images/gallery/x/original?sig=abc");
+
+        // A stored tier still wins over the original, at any distance.
+        internal.getVariants().put(ImageSizeOptions.XS, "gallery/x/xs.webp");
+        assertThat(resolver.displayKey(internal, ImageSizeOptions.MD)).isEqualTo("gallery/x/xs.webp");
     }
 
     @Test
@@ -230,7 +375,7 @@ class ImageUrlResolverTest {
         // A margin past the TTL is a config error; it must fail at startup, not
         // silently degrade into re-signing on every read.
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ImageUrlResolver(mock(S3Presigner.class), s3, media))
+                .isThrownBy(() -> new ImageUrlResolver(mock(S3Presigner.class), s3, media, readyReadiness(media)))
                 .withMessageContaining("presign-refresh-margin");
     }
 
@@ -239,7 +384,14 @@ class ImageUrlResolverTest {
         s3.setBucket(BUCKET);
         MediaProperties media = new MediaProperties();
         media.setPresignTtl(Duration.ofMinutes(30));
-        return new ImageUrlResolver(presigner, s3, media, clock);
+        return new ImageUrlResolver(presigner, s3, media, readyReadiness(media), clock);
+    }
+
+    /** Readiness backed by an empty collection — nothing is ever outstanding. */
+    private static ImageVariantReadiness readyReadiness(MediaProperties media) {
+        PendingImageVariantsRepository repository = mock(PendingImageVariantsRepository.class);
+        when(repository.findById(any())).thenReturn(Optional.empty());
+        return new ImageVariantReadiness(repository, media);
     }
 
     /** Virtual wall clock, so URL-expiry tests don't sleep. */

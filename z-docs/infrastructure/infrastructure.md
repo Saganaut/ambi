@@ -1,8 +1,9 @@
 # Infrastructure
 
 The local development stack: what runs where, and on which ports. Production
-deployment is not designed yet — there is no AWS, queue, or worker
-infrastructure in this repo.
+deployment is not designed yet; the queue and the image-variant worker below are
+the only pieces with a production shape (SQS + a container/Lambda), and they run
+against local stand-ins here.
 
 ## Local stack
 
@@ -18,6 +19,8 @@ flowchart TB
         Garage["Garage S3-compat :3900"]
         Mx["mongo-express :8081"]
         Ls["LocalStack :4566"]
+        Emq["ElasticMQ :9324 / :9325"]
+        Worker["image-variant-worker<br/>Python 3.13 · Pillow"]
     end
 
     IdP(["Google / Discord / Microsoft OAuth"])
@@ -28,6 +31,10 @@ flowchart TB
     SpringBoot --> Redis
     SpringBoot --> Garage
     SpringBoot --> IdP
+    SpringBoot -- "render job" --> Emq
+    Emq --> Worker
+    Worker -- "WebP tiers" --> Garage
+    Worker -- "POST /api/internal/image-variants" --> SpringBoot
     Mx -.-> MongoDB
 ```
 
@@ -36,6 +43,11 @@ plus auth sessions in Redis, and image objects in Garage. Media ingest and
 storage are `media/storage/ImageIngestService` and
 `media/storage/S3StorageService`; live play is the `session/` package. See
 [Backend Service Map](../diagrams/backend-services.md).
+
+Image renditions are the one asynchronous path: ingest stores the original and
+enqueues a job, and the out-of-process worker renders the WebP tiers and reports
+back. Contracts and failure modes are owned by
+[Image variants](../features/image-variants/README.md).
 
 ## Docker Compose services
 
@@ -47,6 +59,8 @@ storage are `media/storage/ImageIngestService` and
 | `garage` | `dxflrs/garage:v1.0.1` | 3900 / 3903 | Local S3-compatible object storage |
 | `mongo-express` | `mongo-express:latest` | 8081 | MongoDB admin UI — [runbook](../runbooks/using-mongo-express.md) |
 | `localstack` | `localstack/localstack:4` | 4566 | Local AWS emulation, scoped to `cloudwatch,logs` |
+| `elasticmq` | `softwaremill/elasticmq-native:1.6.11` | 9324 / 9325 | SQS stand-in for image-variant render jobs; queues + DLQ declared in `elasticmq.conf`, stats UI on 9325 |
+| `image-variant-worker` | built from `worker/` (target `poller`) | — | Long-polls the queue, renders WebP tiers into Garage, reports readiness back — [README](../../worker/README.md) |
 
 Spring does **not** auto-start these (`spring.docker.compose.enabled=false`) —
 bring them up yourself. Startup, seeding and the rest of the everyday loop live

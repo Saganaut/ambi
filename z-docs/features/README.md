@@ -19,6 +19,7 @@ doc itself, where they can be kept current.
 - [Exception Handling](exceptions.md) — the RFC 9457 ProblemDetail error contract, the `ApiException` hierarchy, 5xx disclosure, and the tiered 404-vs-403 policy.
 - [Results Visualization](results-visualization.md) — which chart suits which slide type, and the `ChartDatum`/registry/adapter pipeline that renders it.
 - [Image Cropping](image-cropping.md) — placement-only crops: the gallery keeps originals, cropped bytes land in the deck's own S3 namespace.
+- [Image Variants](image-variants/README.md) — renditions are rendered out of process; the pending-set model that keeps reads honest until they land, plus the job and callback contracts.
 - [Invite Settings](invite-settings.md) — the deck-level sharing-preferences model and where each flag is consumed during a live session.
 - [Code Connect](code-connect.md) — Figma Code Connect mappings for `Btn`/`IconBtn`.
 - [Missing Features](missing-features.md) — running backlog of cross-cutting gaps and TODOs.

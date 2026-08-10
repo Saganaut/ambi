@@ -23,6 +23,11 @@ backend ones whose behaviour is not obvious from the file.
 | `S3_KEY_NAME` | **Not a Spring property.** Consumed only by `scripts/init-garage.sh` as the name of the Garage API key it mints (`ambi-key`). |
 | `LOGGING_LEVEL_ROOT` | Bound by Spring's relaxed binding to `logging.level.root`. No properties entry exists — env only. |
 | `AWS_ENDPOINT_URL`, `AWS_REGION` | Read by the AWS SDK's own env chain; point CloudWatch-bound clients at LocalStack in dev. Leave unset in production. |
+| `SQS_ENDPOINT` / `SQS_REGION` / `SQS_ACCESS_KEY` / `SQS_SECRET_KEY` | `ambi.sqs.*`. Defaults target local ElasticMQ (`http://localhost:9324`, region `elasticmq`). In production leave the endpoint unset so the SDK resolves the real AWS endpoint, and the keys blank so `SqsConfig` falls back to the instance's IAM role. |
+| `SQS_IMAGE_VARIANT_QUEUE_URL` | The render queue, spelled out rather than looked up — nobody calls `GetQueueUrl`. Dev default `http://localhost:9324/000000000000/ambi-image-variants` (`000000000000` is the account id ElasticMQ synthesizes). |
+| `AMBI_IMAGE_VARIANT_CALLBACK_SECRET` | Shared secret the worker presents on `POST /api/internal/image-variants` as `X-Ambi-Worker-Secret` — the entire authorization on that endpoint. Insecure dev default; **≥ 32 characters or the app refuses to start**. |
+| `AMBI_WORKER_CALLBACK_SECRET` | **Not a Spring property.** The worker container's copy of the same secret, delivered by compose `env_file`. Must equal `AMBI_IMAGE_VARIANT_CALLBACK_SECRET`. |
+| `AMBI_WORKER_S3_ACCESS_KEY_ID`, `AMBI_WORKER_S3_SECRET_ACCESS_KEY` | **Not Spring properties.** The Garage key pair again, under the names the worker reads. Repeated rather than reused because compose `env_file` injects names verbatim, and the worker only looks at `AMBI_WORKER_*`. Every other worker knob is set in `compose.yaml` — see [worker README](../../worker/README.md). |
 
 Frontend: `VITE_API_BASE_URL` (defaults to `http://localhost:8080`) is the only
 one, read in `shared/store/emptyApi.ts`. Only `VITE_`-prefixed vars reach the

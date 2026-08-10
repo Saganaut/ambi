@@ -1,8 +1,9 @@
 # Media & Gallery
 
-Image ingest, storage, and delivery. Originals plus five WebP renditions are
-stored in Garage/S3 under a content-addressed prefix; MongoDB holds only S3
-keys, and reads are hydrated into short-lived presigned URLs.
+Image ingest, storage, and delivery. Originals are stored in Garage/S3 under a
+content-addressed prefix and five WebP renditions are rendered out of process;
+MongoDB holds only S3 keys, and reads are hydrated into short-lived presigned
+URLs.
 
 Entry points: `GalleryController`, `ImageIngestService`, `S3StorageService`,
 `ImageUrlResolver`. Data shapes: [Domain Model — Media](domain-model.md#media).
@@ -15,28 +16,35 @@ sequenceDiagram
     participant U as Author
     participant GC as GalleryController
     participant IS as ImageIngestService
-    participant S3 as S3StorageService → Garage/S3
-    participant GS as GalleryService
     participant M as MongoDB
+    participant S3 as S3StorageService → Garage/S3
+    participant Q as Queue → rendition worker
+    participant GS as GalleryService
 
     U->>GC: POST /api/galleries/{id}/images/upload (multipart, EDIT)
     GC->>IS: ingest(bytes, contentType, filename)
     IS->>IS: validate content-type + size cap
+    IS->>IS: decode for width/height (AVIF skips — Scrimage can't)
     IS->>IS: mint prefix gallery/{uuid}
+    IS->>M: openPending(gallery/{uuid}, all tiers)
     IS->>S3: put gallery/{uuid}/original
-    loop tiers xs·sm·md·lg·xl (bounding-box, no upscale)
-        IS->>IS: Scrimage resize → WebP
-        IS->>S3: put gallery/{uuid}/{tier}.webp
-    end
-    Note over IS: AVIF stored as-is (no variants)
-    IS-->>GC: AppImage (srcKey + variants map + metadata)
+    IS->>Q: enqueue render job (failure → WARN, row stays pending)
+    IS-->>GC: AppImage (srcKey + canonical variants map + metadata)
     GC->>GS: addImage (EDIT permission)
     GS->>M: save GalleryImage (embeds AppImage)
-    GS-->>U: GalleryImage (keys hydrated → presigned URLs)
+    GS-->>U: GalleryImage (ready keys hydrated → presigned URLs)
 ```
 
-Validation and the Scrimage decode both run before the original is stored, so a
-rejected upload leaves no objects behind.
+Validation and the decode both run before anything is stored or enqueued, so a
+rejected upload leaves no objects behind and never becomes a job the worker can
+only fail.
+
+The pending row is opened **before** the PUT and the job published **after** it:
+no reader can observe the key root without a row saying which tiers are missing,
+and the worker cannot dequeue before there is a source to render. The returned
+`variants` map is the canonical key layout, not a claim that any rendition
+exists — [Image Variants](../features/image-variants/README.md) owns that model,
+the job/callback contracts, and the failure modes.
 
 `ingest` has a prefix-parameterized overload for flows needing their own key
 namespace and ownership scoping: live-session
@@ -47,14 +55,16 @@ shown above is this one with the prefix defaulted to `gallery/{uuid}`.
 
 ## Read hydration — keys to presigned URLs
 
-The S3 key is the source of truth; URLs are never persisted. On read, keys are
-rewritten to presigned GET URLs (cached in Caffeine until near expiry). When the
-client echoes a URL back on write, the deserializer inverts it to the key.
+The S3 key is the source of truth; URLs are never persisted. On read, tiers that
+are not rendered yet are filtered out, then the remaining keys are rewritten to
+presigned GET URLs (cached in Caffeine until near expiry). When the client echoes
+a URL back on write, the deserializer inverts it to the key.
 
 ```mermaid
 flowchart LR
     subgraph read["Read path"]
-        M1[("Mongo: AppImage.srcKey + variants")] --> UR["ImageUrlResolver.hydrate"]
+        M1[("Mongo: AppImage.srcKey + variants")] --> RF["ImageVariantReadiness<br/>drop unready tiers"]
+        RF --> UR["ImageUrlResolver.hydrate"]
         UR -->|"presign SigV4 (Caffeine cache)"| OUT["AppImage with presigned URLs"]
         OUT --> FE1["Browser renders"]
     end
@@ -63,6 +73,12 @@ flowchart LR
         DES -->|"endpoint/bucket/key → key"| M2[("Mongo stores S3 key")]
     end
 ```
+
+The same filter runs on `displayKey` (and so `displayUrl`), which the opaque
+proxy and the live-session board views use — they never run the `AppImage`
+serializer, so hydration alone would leave them handing out URLs to objects that
+aren't there. When nothing survives the filter, the untouched original is the
+rendition. See [Image Variants](../features/image-variants/README.md).
 
 ## Byte-serving routes
 
@@ -176,6 +192,11 @@ External images are never adopted, and an image already under this deck's prefix
 is left alone. `DeckImages` walks every image-bearing slot in a `Deck` and is
 what the lifecycle service diffs before/after a save.
 
+Adoption is the second place a key root is minted, so it carries the same
+readiness obligation as ingest: a source tier that wasn't there to copy is
+missing under the new prefix too, and only the copies that landed are recorded.
+See [Image Variants](../features/image-variants/README.md).
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -189,7 +210,8 @@ sequenceDiagram
     DS->>DIL: adoptImages(deck)
     loop every image not already under deck/{deckId}/
         DIL->>S3: copyIfExists(original + each variant)
-        DIL->>DIL: rewrite AppImage.srcKey/variants
+        DIL->>DIL: rewrite srcKey + only the variants that copied
+        DIL->>DIL: any that didn't → pending row + job for the new prefix
     end
     DS->>M: persist deck (save — @Version-guarded;<br/>promote paths use a targeted update instead)
     DS->>DIL: cleanupRemoved(deckId, beforeKeys, afterKeys)
@@ -210,7 +232,7 @@ orphan sweeper.
 `POST /api/decks/{id}/images/upload` (multipart `file`, optional `altText`, deck
 EDIT, `DeckController.uploadDeckImage`) ingests straight into the deck's
 namespace and returns a bare `AppImage` (`201`) — **no `GalleryImage` is
-created**. Same validation and tiers; only the owner differs. It exists for
+created**. Same validation and renditions; only the owner differs. It exists for
 bytes that are one slot's *content* rather than a library image: the
 `GalleryPicker` crop step uploads through it whenever it was opened with a deck
 id, so cropping the same source for ten slots leaves one gallery entry, not

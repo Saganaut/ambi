@@ -10,6 +10,8 @@
     "archive",
     "memory",
     "backend/target",
+    "worker/.venv",
+    "worker/.pytest_cache",
     ".claude",
     "frontend/.claude",
     "backend/.claude",

@@ -36,6 +36,9 @@ echo "▶ Backend null-analysis (Eclipse JDT)..."
 
 echo "OK - Backend null-analysis passed."
 
+echo "▶ Image-variant worker (ruff + pytest)..."
+"$REPO_ROOT/scripts/check-worker.sh"
+
 echo "▶ Documentation checks (reachability + markdownlint)..."
 "$REPO_ROOT/scripts/check-docs.sh"
 

@@ -28,7 +28,10 @@ flowchart TB
         MONGO[("MongoDB<br/>durable aggregates")]
         REDIS[("Redis<br/>sessions · live state · pub/sub")]
         S3[("Garage / S3<br/>image objects")]
+        QUEUE[["ElasticMQ / SQS<br/>image-variant jobs"]]
     end
+
+    WORKER["Image-variant worker<br/>Python 3.13 · boto3 · Pillow"]
 
     VIS -->|browse public decks, sign in| AMBI
     GUEST -->|play, join sessions| AMBI
@@ -39,6 +42,10 @@ flowchart TB
     AMBI --> MONGO
     AMBI --> REDIS
     AMBI --> S3
+    AMBI -->|enqueue render job| QUEUE
+    QUEUE --> WORKER
+    WORKER -->|WebP tiers| S3
+    WORKER -->|readiness callback| AMBI
 ```
 
 ## Containers — what talks to what
@@ -66,6 +73,10 @@ flowchart LR
     SVC -->|"sessions, cache, locks, pub/sub"| REDIS[("Redis :6379")]
     WS -.->|"cross-instance fan-out"| REDIS
     MEDIA -->|"put/get, presign"| S3[("Garage S3 :3900")]
+    MEDIA -->|"render job"| QUEUE[["ElasticMQ :9324"]]
+    QUEUE --> WORKER["image-variant-worker<br/>Python 3.13 · Pillow"]
+    WORKER -->|"WebP tiers"| S3
+    WORKER -->|"POST /api/internal/image-variants"| REST
     REST -->|"OAuth code exchange"| IDP2["Google / Discord / Microsoft OAuth"]
 ```
 
@@ -74,7 +85,8 @@ flowchart LR
 | Layer | Tools |
 | --- | --- |
 | Frontend | React 19 (React Compiler) · TypeScript strict · Vite · TanStack Router (file-based) · Redux Toolkit + RTK Query · CSS Modules + `tokens.css` · TipTap · `vite-plugin-svgr` |
-| Backend | Java 26 · Spring Boot 4 · Maven (`./mvnw`) · Spring Data MongoDB · Redis · Spring Security + OAuth2 · SpringDoc OpenAPI · Lombok |
+| Backend | Java 26 · Spring Boot 4 · Maven (`./mvnw`) · Spring Data MongoDB · Redis · Spring Security + OAuth2 · SpringDoc OpenAPI · Lombok · AWS SDK v2 (S3 + SQS) |
+| Image-variant worker | Python 3.13 · boto3 · Pillow — out of process, deployable as a poller container or a Lambda ([README](../../worker/README.md), [feature doc](../features/image-variants/README.md)) |
 
 The API client, validation bounds, and enums are **generated** from the backend
 OpenAPI schema — never hand-edited. Backend package `com.cephadex.ambi` is

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.ArgumentCaptor;
@@ -45,6 +45,8 @@ import com.cephadex.ambi.media.enums.ImageSizeOptions;
 import com.cephadex.ambi.media.storage.ImageIngestService;
 import com.cephadex.ambi.media.storage.MediaProperties;
 import com.cephadex.ambi.media.storage.S3StorageService;
+import com.cephadex.ambi.media.variants.ImageVariantCleanup;
+import com.cephadex.ambi.media.variants.ImageVariantRequests;
 import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.presentation.deck.config.DeckDefaultsProperties;
 import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
@@ -82,6 +84,8 @@ class DeckServiceTest {
     private DeckRepository deckRepository;
     private UserService userService;
     private S3StorageService storage;
+    private ImageVariantRequests variantRequests;
+    private ImageVariantCleanup variantCleanup;
     private DeckService deckService;
     private AmbiPrincipal owner;
 
@@ -90,10 +94,12 @@ class DeckServiceTest {
         deckRepository = mock(DeckRepository.class);
         userService = mock(UserService.class);
         storage = mock(S3StorageService.class);
+        variantRequests = mock(ImageVariantRequests.class);
+        variantCleanup = mock(ImageVariantCleanup.class);
         deckService = new DeckService(deckRepository, new OrgRoleResolver(userService),
                 new SlideRankService(), new DeckDefaultsProperties(), new RichTextSanitizer(),
-                new DeckImageLifecycleService(storage),
-                new ImageIngestService(storage, new MediaProperties()));
+                new DeckImageLifecycleService(storage, variantRequests, variantCleanup),
+                new ImageIngestService(storage, new MediaProperties(), variantRequests));
         owner = principal("owner-1");
         // Echo back whatever the service saves — tests inspect the in-flight deck.
         when(deckRepository.save(any(Deck.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -127,8 +133,8 @@ class DeckServiceTest {
         props.getPoints().setPoints(500);
         DeckService service = new DeckService(deckRepository, new OrgRoleResolver(userService),
                 new SlideRankService(), props, new RichTextSanitizer(),
-                new DeckImageLifecycleService(storage),
-                new ImageIngestService(storage, new MediaProperties()));
+                new DeckImageLifecycleService(storage, variantRequests, variantCleanup),
+                new ImageIngestService(storage, new MediaProperties(), variantRequests));
 
         Deck created = service.create("deck-1", owner);
 
@@ -534,6 +540,27 @@ class DeckServiceTest {
     }
 
     @Test
+    void addFollowUpSlideAcceptsSpotTheAnswerOnADrawingParentWhoseAnswerImageHasNoVariantsYet() {
+        // Renditions are derived after the original lands, so an answer image
+        // uploaded moments ago carries an empty variants map. The original is
+        // still a stored object the board can serve — withholding the mode would
+        // make availability depend on a race with rendition derivation.
+        AppImage answer = new AppImage();
+        answer.setExternal(false);
+        answer.setSrcKey("gallery/answer/original");
+        answer.setVariants(new EnumMap<>(ImageSizeOptions.class));
+        Deck deck = keyedDeck("owner-1", "s1");
+        deck.findSlide("s1").orElseThrow().setContent(drawingContent(answer));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        deckService.addFollowUpSlide("deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner);
+
+        assertThat(deck.findSlide("f1").orElseThrow().getContent())
+                .isEqualTo(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+        verify(deckRepository).save(deck);
+    }
+
+    @Test
     void addFollowUpSlideRejectsSpotTheAnswerOnADrawingParentWithNoAnswerImage() {
         // A Drawing slide with no authored correct image is a legitimate
         // collect-only prompt — the image half of the keyless TEXT case.
@@ -876,10 +903,10 @@ class DeckServiceTest {
                 key -> assertThat(key).startsWith("deck/deck-1/"));
         assertThat(uploaded.getAltText()).isEqualTo("crop.png");
 
-        // Every object written lives in the deck's namespace — nothing under gallery/.
+        // The one object written — the original — lives in the deck's namespace;
+        // its renditions are rendered out of process under the same prefix.
         ArgumentCaptor<String> keys = ArgumentCaptor.forClass(String.class);
-        verify(storage, times(ImageSizeOptions.values().length + 1))
-                .put(keys.capture(), any(), anyString());
+        verify(storage).put(keys.capture(), any(), anyString());
         assertThat(keys.getAllValues()).allSatisfy(
                 key -> assertThat(key).startsWith("deck/deck-1/"));
         // A placement is not a library item, so the deck is not re-saved either.

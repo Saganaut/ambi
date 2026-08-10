@@ -10,6 +10,7 @@ import { SlideCanvas } from "./SlideCanvas";
 import { Loader } from "@/shared/components/UIElements/Loader/Loader";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { resolveSlideBackground, resolveSlideBackgroundColor } from "@/shared/utils/deckImages";
+import { resolveImageUrl } from "@/shared/utils/image";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
@@ -163,7 +164,8 @@ const SlideDisplay = () => {
   if (slideId == null) return <SlideCanvasSkeleton />;
 
   if (slide == null) return <p> Error </p>;
-  const slideContentImgUrl = slide.coverImage?.variants?.XL;
+  const slideContentImgUrl =
+    resolveImageUrl(slide.coverImage, "XL", slide.id, undefined, undefined, false) ?? undefined;
   const defaultPlacement = slotMappingOptions[0];
 
   const updateSlidePlacement = (placement: SlotMapping) => {

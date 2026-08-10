@@ -77,7 +77,9 @@ const FOLLOW_UP_MODE_LABELS = {
  *   mode in the UI and then be rejected with a 400.
  * - `DRAWING` — a `correctImage` that is stored (not an external URL, which
  *   owns no object the board could serve opaquely beside the submitted
- *   drawings) and holds a renderable variant — exactly `!isImageEmpty`.
+ *   drawings) and holds an object the board can serve — a variant, or the
+ *   original alone while its renditions are still being derived — exactly
+ *   `!isImageEmpty`.
  * - every other kind — nothing a board could show, so never.
  *
  * The single definition of the rule; both {@link followUpModesFor} and

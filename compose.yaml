@@ -44,11 +44,62 @@ services:
       - garage-meta:/var/lib/garage/meta
       - garage-data:/var/lib/garage/data
       - ./garage.toml:/etc/garage.toml:ro
+  elasticmq:
+    # The dev stand-in for SQS behind the async image-variant pipeline (see
+    # z-docs/decisions/004-async-image-variants.md). Queues — including the DLQ
+    # and its redrive policy — are declared in elasticmq.conf, so neither the
+    # backend producer nor the worker has to create them.
+    image: softwaremill/elasticmq-native:1.6.11
+    container_name: ambi-elasticmq
+    ports:
+      - "9324:9324" # SQS wire protocol
+      - "9325:9325" # stats UI
+    volumes:
+      # `z` relabels the mounted config for container access — ElasticMQ runs as
+      # a non-root user and reads it at startup, which an SELinux host (Fedora)
+      # otherwise denies. Ignored where SELinux isn't enforcing.
+      - ./elasticmq.conf:/opt/elasticmq.conf:ro,z
+  image-variant-worker:
+    # Renders the WebP tiers ingest no longer produces inline, then reports back
+    # to POST /api/internal/image-variants. The backend runs on the HOST (see
+    # scripts/ambi.sh), hence host.docker.internal for the callback; inside this
+    # network Garage and ElasticMQ answer to their service names.
+    build:
+      context: ./worker
+      target: poller
+    container_name: ambi-image-variant-worker
+    depends_on:
+      - elasticmq
+      - garage
+    # The secrets — AMBI_WORKER_S3_ACCESS_KEY_ID, AMBI_WORKER_S3_SECRET_ACCESS_KEY
+    # and AMBI_WORKER_CALLBACK_SECRET — come from dev.env (absent on a fresh
+    # clone, hence required: false); everything below is fixed for compose and
+    # wins over the file. env_file injects names verbatim, which is why dev.env
+    # repeats the Garage key pair under the AMBI_WORKER_* names.
+    env_file:
+      - path: dev.env
+        required: false
+    environment:
+      - AMBI_WORKER_SQS_ENDPOINT=http://elasticmq:9324
+      - AMBI_WORKER_QUEUE_URL=http://elasticmq:9324/000000000000/ambi-image-variants
+      - AMBI_WORKER_AWS_REGION=elasticmq
+      - AWS_ACCESS_KEY_ID=x
+      - AWS_SECRET_ACCESS_KEY=x
+      - AMBI_WORKER_S3_ENDPOINT=http://garage:3900
+      - AMBI_WORKER_S3_REGION=garage
+      - AMBI_WORKER_S3_BUCKET=ambi-images
+      - AMBI_WORKER_S3_PATH_STYLE=true
+      - AMBI_WORKER_CALLBACK_URL=http://host.docker.internal:8080/api/internal/image-variants
+      - AMBI_WORKER_LOG_LEVEL=INFO
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
   # LocalStack emulates AWS service APIs locally so the CloudWatch path can be
   # exercised in dev instead of only at deploy time (see
-  # z-docs/decisions/001-observability-stack.md). Scoped to cloudwatch + logs
-  # for now; add sqs,sns,lambda when the async pipeline work begins. Garage stays
-  # the S3 implementation — LocalStack does NOT replace it. Point the AWS SDK at
+  # z-docs/decisions/001-observability-stack.md). Scoped to cloudwatch + logs —
+  # the queue the async image pipeline uses is ElasticMQ above, which ships real
+  # DLQ/redrive semantics and needs no Pro license. Garage stays the S3
+  # implementation — LocalStack does NOT replace it. Point the AWS SDK at
   # http://localhost:4566 via AWS_ENDPOINT_URL in dev.env (omit in production).
   mongo-express:
     image: mongo-express:latest

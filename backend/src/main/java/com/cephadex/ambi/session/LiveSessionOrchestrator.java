@@ -25,6 +25,7 @@ import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.ImageUrlResolver;
 import com.cephadex.ambi.media.storage.OpaqueImageUrls;
 import com.cephadex.ambi.media.storage.S3StorageService;
+import com.cephadex.ambi.media.variants.ImageVariantCleanup;
 import com.cephadex.ambi.presentation.deck.Deck;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
@@ -145,6 +146,7 @@ public class LiveSessionOrchestrator {
     private final ImageUrlResolver imageUrls;
     private final OpaqueImageUrls opaqueImageUrls;
     private final S3StorageService storage;
+    private final ImageVariantCleanup variantCleanup;
     private final RedisJsonCodec codec;
     private final DeadlineStore deadlines;
     private final SessionRedisProperties redisProps;
@@ -181,7 +183,8 @@ public class LiveSessionOrchestrator {
             QAndAHostAnswerStore qandaHostAnswers,
             FollowUpOptionStore followUpOptions, EventPublisher publisher, RoundResultProjector roundResults,
             ImageUrlResolver imageUrls, OpaqueImageUrls opaqueImageUrls, S3StorageService storage,
-            RedisJsonCodec codec, DeadlineStore deadlines, SessionRedisProperties redisProps) {
+            ImageVariantCleanup variantCleanup, RedisJsonCodec codec, DeadlineStore deadlines,
+            SessionRedisProperties redisProps) {
         this.repo = repo;
         this.participants = participants;
         this.roster = roster;
@@ -198,6 +201,7 @@ public class LiveSessionOrchestrator {
         this.imageUrls = imageUrls;
         this.opaqueImageUrls = opaqueImageUrls;
         this.storage = storage;
+        this.variantCleanup = variantCleanup;
         this.codec = codec;
         this.deadlines = deadlines;
         this.redisProps = redisProps;
@@ -1253,12 +1257,14 @@ public class LiveSessionOrchestrator {
                 && previous.image() != null && previous.image().getSrcKey() != null
                 && next.image() != null
                 && !previous.image().getSrcKey().equals(next.image().getSrcKey())) {
+            List<String> keys = ImageKeys.allKeys(previous.image());
             try {
-                storage.delete(ImageKeys.allKeys(previous.image()));
+                storage.delete(keys);
             } catch (RuntimeException e) {
                 log.warn("Could not delete replaced drawing objects under {} — leaving them orphaned",
                         previous.image().getSrcKey(), e);
             }
+            variantCleanup.forgetAll(keys);
         }
     }
 

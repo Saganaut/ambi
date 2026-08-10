@@ -7,6 +7,7 @@ Short Architecture Decision Records (ADRs): "we chose X over Y because Z". One f
 - [001 — Observability & logging stack](001-observability-stack.md) — hybrid CloudWatch (logs/metrics) + Sentry (errors/RUM, deferred), structured JSON, `X-Request-Id`→`traceId` correlation, LocalStack for local parity.
 - [002 — Auto-close round timers for live sessions](002-live-session-round-timers.md) — timed rounds auto-close via a Redis ZSET deadline poll (`DeadlineScheduler`); `LiveRoundState` gains `durationMs`/`pausedAt`/`accumulatedPauseMs`; host-disconnect grace rides the same scheduler.
 - [003 — Votes are answers](003-votes-are-answers.md) — voting goes through the answer store; the separate `VoteStore` behind the `VOTE` phase stays shipped but is deprecated in direction.
+- [004 — Async image-variant generation](004-async-image-variants.md) — renditions move to a queue and an out-of-process Python worker; readiness is answered at read time from a `pending_image_variants` row whose absence is permanent, not from a persisted variants map.
 
 ## Decisions taken
 

@@ -47,6 +47,15 @@ backend/.settings
 backend/.springBeans
 backend/.sts4-cache
 
+### PYTHON WORKER ###
+worker/.venv
+worker/.pytest_cache
+worker/.ruff_cache
+worker/**/__pycache__
+worker/*.egg-info
+worker/src/*.egg-info
+
+
 *storybook.log
 storybook-static
 ds-bundle/

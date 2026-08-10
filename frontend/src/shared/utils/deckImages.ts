@@ -27,6 +27,13 @@ export const resolveDeckCover = (
   return url ?? placeholderImageUrl(seed, COVER_WIDTH, COVER_HEIGHT);
 };
 
+/** A background layer's URL at the requested tier, or "" when the image carries
+ *  nothing — never a placeholder, since an absent background is a valid state. */
+const backgroundUrl = (
+  image: AppImage | null | undefined,
+  size: ImageSizeOptions,
+): string => resolveImageUrl(image, size, "", undefined, undefined, false) ?? "";
+
 /**
  * Resolves the background URL for a slide through its three-state cascade:
  *   1. the slide's own `slideBackground` image wins outright;
@@ -46,12 +53,12 @@ export const resolveSlideBackground = (
 ): string => {
   const imageSize = size ?? "LG";
   if (slideBackground != null) {
-    return slideBackground.variants?.[imageSize] ?? "";
+    return backgroundUrl(slideBackground, imageSize);
   }
   if (hideBackground) {
     return "";
   }
-  return deckBackground?.variants?.[imageSize] ?? "";
+  return backgroundUrl(deckBackground, imageSize);
 };
 
 /**

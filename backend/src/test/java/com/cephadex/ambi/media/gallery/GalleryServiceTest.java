@@ -32,6 +32,7 @@ import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.S3StorageService;
+import com.cephadex.ambi.media.variants.ImageVariantCleanup;
 import com.cephadex.ambi.media.storage.S3StorageService.StoredObject;
 import com.cephadex.ambi.org.OrgMembership;
 import com.cephadex.ambi.org.OrgRoleResolver;
@@ -67,7 +68,7 @@ class GalleryServiceTest {
         userService = mock(UserService.class);
         storage = mock(S3StorageService.class);
         galleryService = new GalleryService(galleryRepository, imageRepository,
-                new OrgRoleResolver(userService), storage);
+                new OrgRoleResolver(userService), storage, mock(ImageVariantCleanup.class));
         when(galleryRepository.save(any(Gallery.class))).thenAnswer(inv -> inv.getArgument(0));
         when(imageRepository.save(any(GalleryImage.class))).thenAnswer(inv -> inv.getArgument(0));
     }

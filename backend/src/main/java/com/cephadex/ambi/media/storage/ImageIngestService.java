@@ -1,9 +1,10 @@
 package com.cephadex.ambi.media.storage;
 
 import java.io.IOException;
-import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -12,17 +13,34 @@ import org.springframework.util.StringUtils;
 import com.cephadex.ambi.common.exception.ValidationException;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.enums.ImageSizeOptions;
+import com.cephadex.ambi.media.variants.ImageVariantRequests;
 import com.sksamuel.scrimage.ImmutableImage;
-import com.sksamuel.scrimage.webp.WebpWriter;
 
 /**
- * Turns an uploaded image's raw bytes into a stored, multi-tier
- * {@link AppImage}: it validates the payload, persists the untouched original,
- * then derives one WebP rendition per {@link ImageSizeOptions} tier (downscaled
- * to fit a bounding box, never upscaled) and stores each. The returned
- * {@code AppImage} carries the original's {@code srcKey} and a {@code variants}
- * map of tier → S3 key — the same embeddable value a client later copies into a
- * deck/slide/theme.
+ * Turns an uploaded image's raw bytes into a stored {@link AppImage}: it
+ * validates the payload, decodes it for its dimensions, persists the untouched
+ * original, and enqueues the WebP renditions for an out-of-process worker to
+ * render. The returned {@code AppImage} carries the original's {@code srcKey}
+ * and the <em>canonical</em> tier → key map — the same embeddable value a client
+ * later copies into a deck/slide/theme.
+ *
+ * <p><strong>The variants map is a layout, not a promise.</strong> Nothing is
+ * rendered by the time this returns; the keys are simply where each rendition
+ * will live. What makes the map truthful is the pending row
+ * ({@link ImageVariantRequests}) — opened <em>before</em> the original is
+ * stored, so no reader can ever observe the key root without it — which
+ * {@link ImageUrlResolver} consults to drop the tiers that aren't there yet.
+ * That ordering is why opening the row is fatal to an upload while failing to
+ * enqueue the job is not: a lost job leaves the image serving its original until
+ * a repair sweep re-publishes, whereas a lost row would advertise five
+ * renditions that do not exist.
+ *
+ * <p>Decoding stays here even though nothing is resized: it is what proves the
+ * bytes are an image (a corrupt upload must 400, not become a permanently
+ * failed job) and what produces {@code metadata.width}/{@code height}. AVIF is
+ * the one exception — Scrimage cannot decode it, so it skips straight to
+ * storage and is enqueued like everything else, the worker's decoder being the
+ * one that has to cope.
  *
  * <p>This is the ingest the {@code GalleryController} multipart route calls
  * before {@code GalleryService.addImage} persists the gallery item. The keys it
@@ -31,28 +49,21 @@ import com.sksamuel.scrimage.webp.WebpWriter;
 @Service
 public class ImageIngestService {
 
-    /**
-     * Bounding-box edge (px) each tier is fit within, preserving aspect ratio.
-     * A source smaller than a tier is stored at its own size (no upscaling), so
-     * small originals simply share renditions across the larger tiers.
-     */
-    private static final Map<ImageSizeOptions, Integer> TIER_BOUNDS = Map.of(
-            ImageSizeOptions.XS, 64,
-            ImageSizeOptions.SM, 200,
-            ImageSizeOptions.MD, 480,
-            ImageSizeOptions.LG, 960,
-            ImageSizeOptions.XL, 1600);
+    private static final String AVIF_CONTENT_TYPE = "image/avif";
 
     private final S3StorageService storage;
     private final MediaProperties props;
+    private final ImageVariantRequests variantRequests;
 
-    public ImageIngestService(S3StorageService storage, MediaProperties props) {
+    public ImageIngestService(S3StorageService storage, MediaProperties props,
+            ImageVariantRequests variantRequests) {
         this.storage = storage;
         this.props = props;
+        this.variantRequests = variantRequests;
     }
 
     /**
-     * Validate, store, and tier an uploaded gallery image (keys minted under
+     * Validate, store, and enqueue an uploaded gallery image (keys minted under
      * the {@code gallery/} namespace).
      *
      * @param bytes            the raw upload
@@ -65,7 +76,7 @@ public class ImageIngestService {
     }
 
     /**
-     * Validate, store, and tier an uploaded image under an explicit key
+     * Validate, store, and enqueue an uploaded image under an explicit key
      * {@code prefix}. Lets non-gallery flows (e.g. live-session drawing
      * answers) keep their objects in their own namespace so ownership checks
      * and cleanup can key off the prefix.
@@ -73,55 +84,30 @@ public class ImageIngestService {
     public AppImage ingest(byte[] bytes, String contentType, String originalFilename, String prefix) {
         validate(bytes, contentType);
 
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("originalContentType", contentType);
+        if (!AVIF_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
+            ImmutableImage source = decode(bytes);
+            metadata.put("width", source.width);
+            metadata.put("height", source.height);
+        }
+
         String originalKey = ImageKeys.originalKey(prefix);
-
-        // AVIF cannot be decoded by Scrimage; store the original as-is with no variants.
-        if ("image/avif".equalsIgnoreCase(contentType)) {
-            storage.put(originalKey, bytes, contentType);
-            AppImage image = new AppImage();
-            image.setExternal(false);
-            image.setSrcKey(originalKey);
-            image.setVariants(new EnumMap<>(ImageSizeOptions.class));
-            if (StringUtils.hasText(originalFilename)) {
-                image.setAltText(originalFilename);
-            }
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("originalContentType", contentType);
-            image.setMetadata(metadata);
-            return image;
-        }
-
-        ImmutableImage source;
-        try {
-            source = ImmutableImage.loader().fromBytes(bytes);
-        } catch (IOException e) {
-            throw new ValidationException("Uploaded file is not a readable image.");
-        }
-
-        // Stored only once the payload is known decodable, so a corrupt upload
-        // leaves nothing behind.
+        Set<ImageSizeOptions> tiers = EnumSet.allOf(ImageSizeOptions.class);
+        // Ordered around the PUT: the moment the original lands, another request
+        // can be handed this key root, and it must never find "no row" while the
+        // renditions are still missing.
+        variantRequests.open(prefix, tiers, contentType);
         storage.put(originalKey, bytes, contentType);
-
-        Map<ImageSizeOptions, String> variants = new EnumMap<>(ImageSizeOptions.class);
-        for (Map.Entry<ImageSizeOptions, Integer> tier : TIER_BOUNDS.entrySet()) {
-            int bound = tier.getValue();
-            byte[] webp = toWebp(source.bound(bound, bound));
-            String key = ImageKeys.variantKey(prefix, tier.getKey());
-            storage.put(key, webp, "image/webp");
-            variants.put(tier.getKey(), key);
-        }
+        variantRequests.publish(prefix, originalKey, tiers, contentType);
 
         AppImage image = new AppImage();
         image.setExternal(false);
         image.setSrcKey(originalKey);
-        image.setVariants(variants);
+        image.setVariants(ImageKeys.variantsFor(originalKey));
         if (StringUtils.hasText(originalFilename)) {
             image.setAltText(originalFilename);
         }
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("width", source.width);
-        metadata.put("height", source.height);
-        metadata.put("originalContentType", contentType);
         image.setMetadata(metadata);
         return image;
     }
@@ -140,11 +126,12 @@ public class ImageIngestService {
         }
     }
 
-    private byte[] toWebp(ImmutableImage image) {
+    /** Decode for validation + dimensions, before anything is written or enqueued. */
+    private ImmutableImage decode(byte[] bytes) {
         try {
-            return image.bytes(WebpWriter.DEFAULT);
+            return ImmutableImage.loader().fromBytes(bytes);
         } catch (IOException e) {
-            throw new MediaStorageException("Failed to encode image variant", e);
+            throw new ValidationException("Uploaded file is not a readable image.");
         }
     }
 }

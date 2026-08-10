@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ambi-image-worker"
+version = "0.1.0"
+description = "Out-of-process image-variant renderer for Ambi: consumes SQS jobs, writes WebP tiers to S3, reports readiness back to the backend."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    # Pillow >= 11.3 decodes AVIF natively (no pillow-avif-plugin needed).
+    "pillow>=11.3",
+    "boto3>=1.35",
+    "requests>=2.32",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "ruff>=0.14"]
+
+[project.scripts]
+ambi-image-worker = "ambi_image_worker.poller:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q --strict-markers --strict-config"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # import sorting
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "RET",  # return hygiene
+    "PTH",  # pathlib over os.path
+    "TID",  # tidy imports
+    "RUF",  # ruff-specific
+    "ANN",  # missing annotations
+    "S",    # bandit
+    "T20",  # no print()
+]
+ignore = [
+    "ANN401", # Any is the honest type for the boto3 clients this wraps.
+    "N818",   # Exception names are fixed by the cross-chunk plan (UnsupportedMessage, ...).
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"

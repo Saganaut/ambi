@@ -1,10 +1,14 @@
 package com.cephadex.ambi.media.storage;
 
 import java.time.Duration;
+import java.util.EnumMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import com.cephadex.ambi.media.enums.ImageSizeOptions;
 
 import lombok.Data;
 
@@ -101,4 +105,68 @@ public class MediaProperties {
      * 0 disables redirects entirely.
      */
     private int remoteFetchMaxRedirects = 3;
+
+    /** Async variant generation (see {@code media/variants}). */
+    private Variants variants = new Variants();
+
+    /**
+     * Tunables for the out-of-process variant pipeline: ingest opens a pending
+     * row and enqueues a job, a worker renders the tiers and reports back, and
+     * reads filter out whatever is still missing.
+     */
+    @Data
+    public static class Variants {
+
+        /**
+         * Whether ingest enqueues variant jobs. Off, uploads still succeed and
+         * still open their pending row — they simply serve the original until a
+         * repair sweep publishes the job. The row is never gated, so turning
+         * this off can never make an absent variant look present.
+         */
+        private boolean enabled = true;
+
+        /**
+         * Bounding-box edge (px) each tier is fit within, preserving aspect
+         * ratio; a source smaller than a tier is stored at its own size. Travels
+         * to the worker inside the job message, so this is the only place the
+         * numbers exist — the worker holds no copy.
+         */
+        private Map<ImageSizeOptions, Integer> tierBounds = new EnumMap<>(Map.of(
+                ImageSizeOptions.XS, 64,
+                ImageSizeOptions.SM, 200,
+                ImageSizeOptions.MD, 480,
+                ImageSizeOptions.LG, 960,
+                ImageSizeOptions.XL, 1600));
+
+        /**
+         * How long a <em>pending</em> readiness answer is cached before the row
+         * is re-read. Bounds how long a finished tier stays invisible when the
+         * completion callback lands on another instance (the one that handled it
+         * invalidates its own entry immediately). "No row" is cached forever
+         * instead — see {@code ImageVariantReadiness}.
+         */
+        private Duration pendingCacheTtl = Duration.ofSeconds(10);
+
+        /**
+         * Upper bound on key roots held in the readiness cache. Most entries are
+         * the permanent "everything is ready" answer, one per image ever read.
+         */
+        private long statusCacheMaxSize = 20_000;
+
+        /**
+         * Shared secret the worker presents on its completion callback. MUST be
+         * overridden in production — it is the only thing standing between the
+         * internal endpoint and anyone who can reach it, so
+         * {@code WorkerCallbackAuthenticator} refuses to start on an unset or
+         * shorter-than-32-character value.
+         */
+        private String callbackSecret;
+
+        /**
+         * How stale a pending row must be before a repair sweep re-publishes its
+         * job. Longer than a healthy render plus the SQS redelivery window, so a
+         * job that is merely in flight is never duplicated.
+         */
+        private Duration repairAfter = Duration.ofMinutes(15);
+    }
 }

@@ -16,6 +16,12 @@
  * load), so callers here treat `variants` values as ready-to-render URLs
  * regardless of source.
  *
+ * Every tier is optional. Renditions are derived after the original lands (and
+ * an AVIF upload never gets any), so an internal image can arrive with a partial
+ * or empty `variants` map — a tier is a *preference*, never a guarantee. The
+ * walk below therefore ends at the hydrated original (`srcKey`), which the
+ * backend presigns for exactly this reason: oversized beats absent.
+ *
  * The constructors below produce the standard "blank / external / internal"
  * shapes so callers don't reach into the object literal. `resolveImageUrl`
  * is the single place renderers go to turn an `AppImage | undefined` into an
@@ -58,48 +64,64 @@ export const emptyImage = (): AppImage => ({
 const hasUrl = (v: string | undefined): v is string =>
   typeof v === "string" && v.trim() !== "";
 
+/** Whether the image holds no picture at all — as opposed to holding one whose
+ *  renditions aren't derived yet, which is a stored image like any other. */
 export const isImageEmpty = (img: AppImage | null | undefined): boolean => {
   if (!img) return true;
   if (img.external) return !hasUrl(img.externalSrc);
+  if (hasUrl(img.srcKey)) return false;
   if (!img.variants) return true;
   return !Object.values(img.variants).some(hasUrl);
 };
 
-/** Largest variant URL we have, or `undefined` if the image carries none.
+/** The hydrated original — the rendition of last resort when the requested tier
+ *  (or any tier) is missing. The backend presigns `srcKey` on read, but an image
+ *  minted client-side still holds a raw S3 key, and rendering that would fire a
+ *  bogus same-origin request — so only an actual URL qualifies. */
+const originalUrl = (img: AppImage | null | undefined): string | undefined => {
+  const src = img?.srcKey;
+  if (!hasUrl(src)) return undefined;
+  return /^(?:https?:|data:|blob:|\/)/.test(src) ? src : undefined;
+};
+
+/** Largest stored rendition, else the original, else `undefined`.
  *  External images don't carry tiered variants — callers should check
  *  `external`/`externalSrc` directly when they need the raw URL. */
 export const largestVariant = (
   img: AppImage | null | undefined,
 ): string | undefined => {
   const variants = img?.variants;
-  if (!variants) return undefined;
-  for (let i = SIZE_ORDER.length - 1; i >= 0; i--) {
-    const hit = variants[SIZE_ORDER[i]];
-    if (hasUrl(hit)) return hit;
+  if (variants) {
+    for (let i = SIZE_ORDER.length - 1; i >= 0; i--) {
+      const hit = variants[SIZE_ORDER[i]];
+      if (hasUrl(hit)) return hit;
+    }
   }
-  return undefined;
+  return originalUrl(img);
 };
 
 /** Pick the variant URL for the requested size, or the next-largest available
- *  (then smaller sizes as last resort). Returns undefined for external
- *  images and for empty internal images. */
+ *  (then smaller sizes, then the untouched original) — so a partially or not yet
+ *  tiered image still renders. Returns undefined for external images and for
+ *  images carrying nothing at all. */
 export const variantFor = (
   img: AppImage | null | undefined,
   preferred: ImageSize,
 ): string | undefined => {
   const variants = img?.variants;
-  if (!variants) return undefined;
   const startIdx = SIZE_ORDER.indexOf(preferred);
   if (startIdx < 0) return largestVariant(img);
-  for (let i = startIdx; i < SIZE_ORDER.length; i++) {
-    const hit = variants[SIZE_ORDER[i]];
-    if (hasUrl(hit)) return hit;
+  if (variants) {
+    for (let i = startIdx; i < SIZE_ORDER.length; i++) {
+      const hit = variants[SIZE_ORDER[i]];
+      if (hasUrl(hit)) return hit;
+    }
+    for (let i = startIdx - 1; i >= 0; i--) {
+      const hit = variants[SIZE_ORDER[i]];
+      if (hasUrl(hit)) return hit;
+    }
   }
-  for (let i = startIdx - 1; i >= 0; i--) {
-    const hit = variants[SIZE_ORDER[i]];
-    if (hasUrl(hit)) return hit;
-  }
-  return undefined;
+  return originalUrl(img);
 };
 
 /** Stable hue (0–359) derived from a seed, so a given slot always lands on the
@@ -165,9 +187,11 @@ export const placeholderImageUrl = (
 };
 
 /**
- * Resolve an `AppImage | undefined` to a renderable URL at the requested size.
- * Falls back to a first-party placeholder seeded on `seed` (typically the
- * parent element/option id) when `includePlaceholder` is true.
+ * Resolve an `AppImage | undefined` to a renderable URL at the requested size —
+ * the nearest stored tier, else the original (see {@link variantFor}), so a
+ * missing rendition never costs the image. Falls back to a first-party
+ * placeholder seeded on `seed` (typically the parent element/option id) when
+ * `includePlaceholder` is true, which now means only a truly empty image.
  */
 export const resolveImageUrl = (
   img: AppImage | null | undefined,

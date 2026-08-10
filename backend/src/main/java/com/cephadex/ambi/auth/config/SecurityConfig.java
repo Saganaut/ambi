@@ -81,8 +81,11 @@ public class SecurityConfig {
                         // Double-submit cookie (Inv 3): the SPA echoes XSRF-TOKEN in X-XSRF-TOKEN.
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                        // Only the framework OAuth endpoints are exempt.
-                        .ignoringRequestMatchers("/oauth2/**", "/login/oauth2/**"))
+                        // The framework OAuth endpoints, plus the machine-to-machine
+                        // routes under /api/internal/** — a background worker has no
+                        // browser, so it has no XSRF-TOKEN cookie to echo. Each one
+                        // authenticates on its own shared secret instead.
+                        .ignoringRequestMatchers("/oauth2/**", "/login/oauth2/**", "/api/internal/**"))
                 // We own session state in Redis; there is no servlet session to back.
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -127,6 +130,11 @@ public class SecurityConfig {
                         // one object behind it (OpaqueImageUrls); this floor only
                         // keeps anonymous visitors out.
                         .requestMatchers(HttpMethod.GET, "/api/media/opaque-image").hasRole("GUEST")
+                        // Image-rendition worker callback. Permitted because the caller
+                        // is a background process with no session; WorkerCallbackAuthenticator
+                        // gates it on a shared secret, which is the whole of its
+                        // authorization (see InternalImageVariantController).
+                        .requestMatchers(HttpMethod.POST, "/api/internal/image-variants").permitAll()
                         // Everything else requires a registered USER. Visitors (anonymous) →
                         // 401 via the entry point; authenticated-but-insufficient (guest /
                         // preRegistration) → 403 via the access-denied handler (Inv 8).

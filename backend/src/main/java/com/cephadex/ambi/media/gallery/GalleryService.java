@@ -28,6 +28,7 @@ import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageKeys;
 import com.cephadex.ambi.media.storage.S3StorageService;
 import com.cephadex.ambi.media.storage.S3StorageService.StoredObject;
+import com.cephadex.ambi.media.variants.ImageVariantCleanup;
 import com.cephadex.ambi.org.OrgRoleResolver;
 import com.cephadex.ambi.org.enums.OrgRole;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -57,14 +58,16 @@ public class GalleryService {
     private final GalleryImageRepository imageRepository;
     private final OrgRoleResolver orgRoles;
     private final S3StorageService storage;
+    private final ImageVariantCleanup variantCleanup;
 
     public GalleryService(GalleryRepository galleryRepository,
             GalleryImageRepository imageRepository, OrgRoleResolver orgRoles,
-            S3StorageService storage) {
+            S3StorageService storage, ImageVariantCleanup variantCleanup) {
         this.galleryRepository = galleryRepository;
         this.imageRepository = imageRepository;
         this.orgRoles = orgRoles;
         this.storage = storage;
+        this.variantCleanup = variantCleanup;
     }
 
     // ── Get-or-create ─────────────────────────────────────────────────────────
@@ -144,6 +147,7 @@ public class GalleryService {
                 .flatMap(image -> ImageKeys.allKeys(image.getImage()).stream())
                 .toList();
         storage.delete(keys);
+        variantCleanup.forgetAll(keys);
         imageRepository.deleteByGalleryId(gallery.getId());
         galleryRepository.delete(gallery);
     }
@@ -265,7 +269,9 @@ public class GalleryService {
         requireEdit(gallery, principal);
         GalleryImage image = imageRepository.findByIdAndGalleryId(imageId, gallery.getId())
                 .orElseThrow(() -> new NotFoundException("GALLERY_IMAGE_NOT_FOUND", "Image not found"));
-        storage.delete(ImageKeys.allKeys(image.getImage()));
+        List<String> keys = ImageKeys.allKeys(image.getImage());
+        storage.delete(keys);
+        variantCleanup.forgetAll(keys);
         imageRepository.delete(image);
     }
 

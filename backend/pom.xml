@@ -85,6 +85,11 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
 		</dependency>
+		<!-- SQS: the image-variant render queue (ElasticMQ in dev, SQS in prod) -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>sqs</artifactId>
+		</dependency>
 		<!-- Caffeine: in-memory cache for short-lived presigned image URLs
 		     (see ImageUrlResolver). Version managed by the Spring Boot BOM. -->
 		<dependency>

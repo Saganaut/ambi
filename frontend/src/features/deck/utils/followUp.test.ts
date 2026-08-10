@@ -115,9 +115,18 @@ describe("followUpModesFor", () => {
     ).toEqual(["BEST_ANSWER_VOTE"]);
   });
 
-  it("withholds SPOT_THE_ANSWER when the answer image carries no variant", () => {
+  it("offers SPOT_THE_ANSWER when the answer image has only its original stored", () => {
+    // Renditions are derived after the original lands, so an image uploaded
+    // moments ago carries an empty variants map — the board can still serve the
+    // original, so the mode must not hinge on a race with tier derivation.
     expect(
       followUpModesFor(drawingContent({ external: false, srcKey: "gallery/a.png", variants: {} })),
+    ).toEqual(["BEST_ANSWER_VOTE", "SPOT_THE_ANSWER"]);
+  });
+
+  it("withholds SPOT_THE_ANSWER when the answer image carries nothing at all", () => {
+    expect(
+      followUpModesFor(drawingContent({ external: false, variants: {} })),
     ).toEqual(["BEST_ANSWER_VOTE"]);
   });
 

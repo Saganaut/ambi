@@ -1,7 +1,7 @@
 {
   "__comment": "doc-lint configuration — all fields are optional, shown here with their defaults",
   "rootDoc": "README.md",
-  "excludeFolders": ["frontend/node_modules", ".git", "dist", "archive", "memory", "backend/target", ".claude", "frontend/.claude", "backend/.claude", ".design-sync", "ds-bundle"],
+  "excludeFolders": ["frontend/node_modules", ".git", "dist", "archive", "memory", "backend/target", "worker/.venv", "worker/.pytest_cache", ".claude", "frontend/.claude", "backend/.claude", ".design-sync", "ds-bundle"],
   "excludeFiles": ["CHANGELOG.md", "LICENSE.md", "CLAUDE.md"],
   "ignoreComment": "doc-lint-ignore"
 }

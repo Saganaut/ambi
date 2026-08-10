@@ -24,4 +24,6 @@ Enums live in a **`<feature>/enums/`** sub-package (`presentation/deck/enums/`, 
 
 ## Dependency injection
 
-Services and controllers use **plain constructor injection** — an explicit constructor with manual `this.field = field` assignment. No `@Autowired` on services or controllers (two deliberate uses exist elsewhere, on the `media/storage/` `@Component`s `ImageUrlResolver` and `OpaqueImageUrls`, which use it to disambiguate constructors) and **no Lombok `@RequiredArgsConstructor`** on services/controllers; Lombok is for models only (see [backend-rules.md](../backend-rules.md) §2). Spring wires the single constructor automatically.
+Services and controllers use **plain constructor injection** — an explicit constructor with manual `this.field = field` assignment. No `@Autowired` on services or controllers, and **no Lombok `@RequiredArgsConstructor`**; Lombok is for models only (see [backend-rules.md](../backend-rules.md) §2). Spring wires the single constructor automatically.
+
+The one sanctioned exception is a class under `media/` that exposes a second, package-private constructor taking a `Clock` so a test can drive expiry without sleeping. Two constructors are ambiguous, so the injectable one carries `@Autowired` to disambiguate.

@@ -19,6 +19,7 @@ The stack tables and package layout live in
 - [Frontend STYLES.md](../../frontend/STYLES.md) — the styling source of truth that [styling-rules](../rules/styling-rules.md) summarizes.
 - [Frontend SOCKJS global fix](../../frontend/SOCKJS_GLOBAL_FIX.md) — why `vite.config.ts` defines `global: "globalThis"`.
 - [Tools README](../../tools/README.md) — repo tooling, including `doc-lint.js`.
+- [Image-variant worker README](../../worker/README.md) — the Python worker: env vars, tests, image builds.
 
 ## Backend package design docs (next to their code)
 

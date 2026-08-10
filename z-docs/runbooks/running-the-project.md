@@ -21,9 +21,21 @@ docker compose up -d
 ```
 
 Starts MongoDB (`:27017`), Redis (`:6379`), RedisInsight (`:8001`), Garage S3 (`:3900`),
-Mongo Express (`:8081`), and LocalStack (`:4566`). See
+Mongo Express (`:8081`), LocalStack (`:4566`), ElasticMQ (`:9324` / `:9325`), and the
+image-variant worker. See
 [Environment Variables](../infrastructure/environment-variables.md) and
 [Gotchas](../infrastructure/gotchas.md).
+
+The worker is the only service built from source, so it needs an explicit build after any
+change under `worker/`:
+
+```bash
+docker compose up -d --build image-variant-worker
+docker compose logs -f image-variant-worker
+```
+
+It calls the backend back on `host.docker.internal:8080`, so it only completes jobs while a
+backend is running on the host. Details: [worker README](../../worker/README.md).
 
 ## 3. Backend
 
@@ -100,6 +112,42 @@ KEYS spring:session:*                 # Spring Session keys
 TTL spring:session:sessions:<id>      # confirm guest TTLs count down
 FLUSHALL                              # dev only — invalidates every session
 ```
+
+### The render queue (ElasticMQ)
+
+Queue depths at a glance: <http://localhost:9325/statistics/queues> (the stats UI). Anything
+deeper goes through the SQS API — the AWS CLI is not part of this stack, so run it from a
+throwaway container:
+
+```bash
+alias sqs='docker run --rm --network host \
+  -e AWS_ACCESS_KEY_ID=x -e AWS_SECRET_ACCESS_KEY=x -e AWS_DEFAULT_REGION=elasticmq \
+  amazon/aws-cli --endpoint-url http://localhost:9324 sqs'
+
+Q=http://localhost:9324/000000000000/ambi-image-variants
+
+sqs get-queue-url --queue-name ambi-image-variants
+sqs get-queue-attributes --queue-url $Q --attribute-names All   # depth + RedrivePolicy
+sqs receive-message --queue-url $Q --visibility-timeout 0        # peek without consuming
+sqs purge-queue --queue-url $Q
+```
+
+`get-queue-url` reports `http://localhost:9324/...` regardless of who asks, because that is
+`node-address` in `elasticmq.conf` — which is exactly why both the backend and the worker are
+configured with an explicit queue URL and never call it. Stop the worker first
+(`docker compose stop image-variant-worker`) if you want messages to sit still while you look.
+
+**DLQ redrive.** A job that fails five receives lands in `ambi-image-variants-dlq`. Fix the
+cause, then move them back:
+
+```bash
+sqs start-message-move-task \
+  --source-arn arn:aws:sqs:elasticmq:000000000000:ambi-image-variants-dlq \
+  --destination-arn arn:aws:sqs:elasticmq:000000000000:ambi-image-variants
+```
+
+A message the worker cannot parse is *left on the queue*, not deleted, so it redrives itself into
+the DLQ after five attempts rather than being lost. Purge it once you have the body.
 
 ## 9. Screenshot verification
 

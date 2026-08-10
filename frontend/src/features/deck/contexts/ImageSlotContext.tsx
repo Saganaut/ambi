@@ -3,6 +3,7 @@ import { createContext, Dispatch, SetStateAction, useState, type ReactNode } fro
 import { useSlide } from "@deck/hooks/useSlide";
 import type { Placement } from "@deck/store/deckApi.gen";
 import { getRouteApi } from "@tanstack/react-router";
+import { resolveImageUrl } from "@utils/image";
 import { resolveSlot } from "../utils/imageSlotUtil";
 import { ImageSlotConfig } from "./ImageSlot.types";
 
@@ -66,7 +67,7 @@ const ImageSlotProvider = ({ children }: { children: ReactNode }) => {
   const [previewPlacement, setPreviewPlacement] = useState<Placement | null>(null);
 
   const cover = slideId ? getSlide(slideId)?.coverImage : undefined;
-  const imgUrl = cover?.variants?.XL;
+  const imgUrl = resolveImageUrl(cover, "XL", slideId ?? "", undefined, undefined, false);
   const placement = previewPlacement ?? cover?.placement;
   const slot = placement ? resolveSlot(placement) : undefined;
 

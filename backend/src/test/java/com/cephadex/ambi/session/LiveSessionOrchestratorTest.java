@@ -40,6 +40,7 @@ import com.cephadex.ambi.media.storage.MediaProperties;
 import com.cephadex.ambi.media.storage.MediaStorageException;
 import com.cephadex.ambi.media.storage.OpaqueImageUrls;
 import com.cephadex.ambi.media.storage.S3StorageService;
+import com.cephadex.ambi.media.variants.ImageVariantCleanup;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
 import com.cephadex.ambi.presentation.deck.Deck;
@@ -196,7 +197,8 @@ class LiveSessionOrchestratorTest {
 
         orchestrator = new LiveSessionOrchestrator(repo, participants, roster, locks, roundStateStore, answerStore,
                 tallyStore, voteStore, presenceStore, qandaHostAnswers, followUpOptions, publisher, roundResults,
-                imageUrls, opaqueImageUrls, storage, codec, deadlines, new SessionRedisProperties());
+                imageUrls, opaqueImageUrls, storage, mock(ImageVariantCleanup.class), codec, deadlines,
+                new SessionRedisProperties());
     }
 
     private void stubPhase(RoundPhase phase) {

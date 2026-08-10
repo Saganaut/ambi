@@ -12,14 +12,15 @@ import { AppImg } from "@components/Images/AppImg";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { Btn } from "@ui/Buttons/Btn";
+import { resolveImageUrl } from "@utils/image";
 import { useState } from "react";
 import { SlideContentProps } from "../_shared/Item.types";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./MediaSlideContent.module.css";
 import { youTubeEmbedUrl } from "./youTube";
 
-const imagePreviewSrc = (image: AppImage): string | undefined =>
-  image.variants?.XL ?? image.variants?.LG ?? image.externalSrc;
+const imagePreviewSrc = (image: AppImage, seed: string): string | undefined =>
+  resolveImageUrl(image, "XL", seed, undefined, undefined, false) ?? undefined;
 
 const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const { slide, updateMetadata, updateSlideContent, flush } = useSlideEditor(
@@ -124,7 +125,7 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
             <>
               <AppImg
                 className={styles.imagePreview}
-                src={imagePreviewSrc(image)}
+                src={imagePreviewSrc(image, slide.id)}
                 alt={image.altText ?? "Slide media"}
                 fallbackSeed={slide.id}
               />

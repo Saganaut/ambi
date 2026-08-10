@@ -33,6 +33,7 @@ A masked 404 still uses a `*_NOT_FOUND` code — see [exception-rules.md](except
 | `REFRESH_TOKEN_MISSING` | No refresh-token cookie on the request | `AuthController` |
 | `REFRESH_FAILED` | Refresh token present but invalid or expired | `AuthService` |
 | `REFRESH_USER_GONE` | Refresh token valid, but its backing user no longer exists | `AuthService` |
+| `WORKER_AUTH_FAILED` | Internal worker callback presented a missing or wrong shared secret | `WorkerCallbackAuthenticator` |
 
 ### 403 — `ForbiddenException`
 

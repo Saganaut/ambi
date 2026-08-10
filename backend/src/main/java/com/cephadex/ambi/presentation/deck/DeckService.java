@@ -380,11 +380,18 @@ public class DeckService {
         };
     }
 
-    /** Whether an image is stored and carries a variant a board could render. */
+    /**
+     * Whether an image is stored and carries an object a board could render — a
+     * variant or, while renditions are still being derived, the original alone.
+     */
     private static boolean isSeedableImage(AppImage image) {
-        return image != null
-                && !image.isExternal()
-                && image.getVariants() != null
+        if (image == null || image.isExternal()) {
+            return false;
+        }
+        if (image.getSrcKey() != null && !image.getSrcKey().isBlank()) {
+            return true;
+        }
+        return image.getVariants() != null
                 && image.getVariants().values().stream().anyMatch(url -> url != null && !url.isBlank());
     }
 
