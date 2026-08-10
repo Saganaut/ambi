@@ -21,6 +21,14 @@ export type { ComposerQuestion, SlideDraft } from "./useSlideDraft";
 // ── Item-bank row (Axis, Grid, Ranking, Scales, Allocation, Place-on-Image) ──
 export { ItemBankRow, SortableItemBankRow } from "./ItemBankRow/ItemBankRow";
 
+// ── Item chart legend (the editable results charts' per-option row) ─────────
+export { ItemChartLegend, SortableItemChartLegend } from "./ItemChartLegend/ItemChartLegend";
+export type {
+  ItemChartLegendPlacement,
+  ItemChartLegendProps,
+  SortableItemChartLegendProps,
+} from "./ItemChartLegend/ItemChartLegend";
+
 // ── Placement kit (Axis, Place-on-Image, Grid) ──────────────────────────
 export type { Identified, NormalizedPoint, PlaceableItem } from "./placement/placement.types";
 export {

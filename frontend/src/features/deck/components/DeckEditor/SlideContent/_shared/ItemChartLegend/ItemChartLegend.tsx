@@ -1,0 +1,164 @@
+import DragIcon from "@assets/icons/action/drag.svg?react";
+
+import { AppImg } from "@/shared/components/Images/AppImg";
+import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
+import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
+import { numberToLetter } from "@/shared/utils/utils";
+import { useSortable } from "@dnd-kit/react/sortable";
+import { CheckIcon, QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useEffect, useRef } from "react";
+import { IndexPill } from "../IndexPill/IndexPill";
+import { EditableItem, SortableEditableItem } from "../Item.types";
+import { ItemField } from "../ItemField/ItemField";
+import styles from "./ItemChartLegend.module.css";
+
+/**
+ * Where the legend sits relative to the datum it annotates. `below` stacks the
+ * label field under a compact control line so the legend fits the width of a
+ * vertical bar / line marker / pareto column; `side` keeps every part on one
+ * line, for the label column of a horizontal bar.
+ */
+type ItemChartLegendPlacement = "below" | "side";
+
+type ItemChartLegendProps = SortableEditableItem<"MCQ"> & {
+  placement: ItemChartLegendPlacement;
+};
+
+type SortableItemChartLegendProps = EditableItem<"MCQ"> & {
+  placement: ItemChartLegendPlacement;
+};
+
+/**
+ * The per-option legend of an editable results chart — the chart-side
+ * counterpart of `ItemBankRow`, carrying the same MCQ editing affordances
+ * (index pill, optional thumbnail with its clear action, the label field and
+ * its popover menu, the scorability toggle and the drag grip) in a footprint
+ * compact enough to sit under or beside a single plotted datum.
+ */
+const ItemChartLegend = ({ placement, ...props }: ItemChartLegendProps) => {
+  const { item, sourceIndex, actions, state, sortable } = props;
+  const displayIndex = numberToLetter(sourceIndex + 1);
+  const thumbnailSrc = resolveImageUrl(item.image, "SM", item.id, 200, 200, false);
+
+  const draggedRef = useRef(false);
+  useEffect(() => {
+    if (sortable.isDragging) draggedRef.current = true;
+  }, [sortable.isDragging]);
+
+  return (
+    <div
+      ref={sortable.rootRef}
+      className={[
+        styles.legend,
+        styles[placement],
+        sortable.isDragging ? styles.isDragging : "",
+        state.isSelected ? styles.selected : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onPointerDown={() => {
+        draggedRef.current = false;
+      }}
+      onClick={() => {
+        if (draggedRef.current) {
+          draggedRef.current = false;
+          return;
+        }
+        actions.selectItem();
+      }}
+    >
+      <IndexPill value={displayIndex} color={item.color} />
+
+      <div className={`${styles.collapsable} ${thumbnailSrc !== null ? styles.expanded : ""}`}>
+        <span className={styles.thumbnailWrap}>
+          {thumbnailSrc && (
+            <AppImg
+              className={styles.thumbnail}
+              src={thumbnailSrc}
+              alt={`Img Option ${displayIndex}`}
+              fallbackSeed={item.id}
+            />
+          )}
+          <IconBtn
+            fill="ghost"
+            size="xs"
+            className={styles.thumbnailClear}
+            icon={<XMarkIcon />}
+            aria-label={`Remove ${displayIndex} image`}
+            onClick={(event) => {
+              event.stopPropagation();
+              actions.setImageForItem(emptyImage());
+            }}
+          />
+        </span>
+      </div>
+
+      <div className={styles.field}>
+        <ItemField
+          itemId={item.id}
+          label={item.label}
+          image={item.image}
+          displayIndex={sourceIndex + 1}
+          placeholder={`${(sourceIndex + 1).toString()}`}
+          maxLength={100}
+          color={item.color}
+          open={state.menuIsOpen}
+          onOpenChange={actions.setMenuIsOpenForItem}
+          canRemove={state.canRemove}
+          onScheduleLabel={actions.scheduleItemLabel}
+          onFlush={actions.flush}
+          onSetColor={actions.setColorForItem}
+          onSetImage={actions.setImageForItem}
+          onRemove={actions.removeItem}
+          openPicker={actions.openImagePicker}
+        />
+      </div>
+
+      {state.isScorable ? (
+        <IconBtn
+          fill="ghost"
+          size="xs"
+          icon={<CheckIcon />}
+          aria-label="Toggle scorability"
+          onClick={(event) => {
+            event.stopPropagation();
+            actions.toggleScorabilityForItem();
+          }}
+        />
+      ) : (
+        <IconBtn
+          fill="ghost"
+          size="xs"
+          icon={<QuestionMarkCircleIcon />}
+          aria-label="Toggle scorability"
+          onClick={(event) => {
+            event.stopPropagation();
+            actions.toggleScorabilityForItem();
+          }}
+        />
+      )}
+
+      <span
+        ref={sortable.handleRef}
+        className={styles.grip}
+        role="button"
+        aria-label={`Reorder item ${(sourceIndex + 1).toString()}`}
+      >
+        <DragIcon className={styles.gripIcon} aria-hidden="true" />
+      </span>
+    </div>
+  );
+};
+
+const SortableItemChartLegend = (props: SortableItemChartLegendProps) => {
+  const { ref, handleRef, isDragging } = useSortable({
+    id: props.item.id,
+    index: props.sourceIndex,
+  });
+
+  const sortable = { rootRef: ref, handleRef: handleRef, isDragging: isDragging };
+  return <ItemChartLegend {...props} sortable={sortable} />;
+};
+
+export { ItemChartLegend, SortableItemChartLegend };
+export type { ItemChartLegendPlacement, ItemChartLegendProps, SortableItemChartLegendProps };

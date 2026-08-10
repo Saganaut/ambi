@@ -8,13 +8,6 @@
   min-height: 0;
 }
 
-.caption {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-/* Fills the space between the value row and the labels row; the SVG stretches
-   to it and the markers are positioned over it by percentage. */
 .plot {
   position: relative;
   flex: 1;
@@ -43,7 +36,6 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* HTML dot markers — immune to the SVG's non-uniform stretch. */
 .marker {
   position: absolute;
   width: var(--space-3);
@@ -56,12 +48,6 @@
     background-color var(--duration-base) var(--ease-out);
 }
 
-.marker.highlight {
-  transform: translate(-50%, -50%) scale(1.35);
-  box-shadow: 0 0 0 2px var(--bg-surface-raised);
-}
-
-/* Value badges (counts / percentages) pinned above each SVG point */
 .valueRow {
   position: relative;
   height: 2rem;
@@ -90,10 +76,9 @@
   color: var(--text-secondary);
 }
 
-/* Option labels / editable controls pinned below each SVG point */
 .controlsRow {
   position: relative;
-  min-height: 3rem;
+  min-height: 4rem;
   overflow: visible;
 }
 
@@ -103,43 +88,5 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  /* Give each label its fair share of the row, capped so two-option charts
-     don't sprawl. */
-  width: min(10rem, calc(90% / var(--n, 4)));
-}
-
-/* Wraps the editable controls (Label + CorrectBadge + Menu) and anchors the
-   Menu's popover (position: relative), letting buttons overflow rather than clip. */
-.optionControls {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--gap-xs);
-  min-width: 0;
-  max-width: 100%;
-  overflow: visible;
-}
-
-/* Chart labels are single-line and compact: stop the editable textarea from
-   wrapping into a half-clipped second row inside the narrow label slot.
-   Scoped under `.chart` so the override outranks TextArea's own base rules
-   by specificity instead of relying on bundle order. */
-.chart .optionControls textarea {
-  font-size: var(--font-size-xs);
-  text-align: center;
-  min-height: 0;
-  padding-block: var(--gap-xs);
-  white-space: pre;
-  overflow-x: hidden;
-}
-
-.labelText {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+  width: min(12rem, calc(90% / var(--n, 4)));
 }

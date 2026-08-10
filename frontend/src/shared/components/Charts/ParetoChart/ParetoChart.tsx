@@ -1,146 +1,128 @@
-//TODO: This is just a variant on the vertical bar chart, we just add the pareto line
-import { AddOptionPopover } from "../AddOptionButton/AddOptionPopover";
-import type { ChartProps } from "../Chart.types";
-import { CorrectBadge } from "../CorrectBadge/CorrectBadge";
-import { OptionImage } from "../OptionImage/OptionImage";
-import { resolveDatumColor } from "../optionPalette";
+import { SortableItemChartLegend } from "@/features/deck/components/DeckEditor/SlideContent/_shared";
+import { OptionToEditableMcqItem } from "@/features/deck/components/DeckEditor/SlideContent/AllocationSlideContent/ItemFormatters";
+import { RenderMcqResultsDisplayOptions } from "@/features/deck/components/DeckEditor/SlideContent/McqSlideContent/renderMcqResultsDisplay";
+import {
+  SlideContent,
+  SlideContentSection,
+} from "@/features/deck/components/DeckEditor/SlideContent/SlideContentSection";
+import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
+import { useAnimatedChartData } from "../useAnimatedChartData";
 import { withChartErrorBoundary } from "../withChartErrorBoundary";
 import styles from "./ParetoChart.module.css";
-
-export type ParetoChartProps = ChartProps;
 
 const W = 100;
 const H = 60;
 const PAD = 6;
 
-const ParetoChartInner = ({
-  renderLabelWithMenu,
-  renderMenu,
-  data,
-  addOption,
-  canAddOption,
-}: ParetoChartProps) => {
-  const max = Math.max(1, ...data.map((datum) => datum.value));
+const ParetoChartInner = (props: RenderMcqResultsDisplayOptions) => {
+  const data = useAnimatedChartData(props.editor.question);
 
-  // Keep the author-order index so each option keeps its colour when sorting.
-  const sorted = data
-    .map((datum, authorIndex) => ({ datum, authorIndex }))
-    .sort((first, second) => second.datum.value - first.datum.value);
-  const total = sorted.reduce((sum, entry) => sum + entry.datum.value, 0);
+  if (props.editor.question == null || data == null) return <div>no question</div>;
+  const { distribution, highestValue, denominator, optionCount } = data;
+
+  const editableItems = props.editor.question.options.map((option, index) => {
+    return OptionToEditableMcqItem(
+      option,
+      index,
+      props.editor.actions,
+      props.editor.state,
+      props.openPicker,
+      props.setOpenMenuId,
+      props.openMenuId,
+      distribution[option.id],
+      highestValue,
+      denominator,
+      optionCount,
+    );
+  });
+
+  const max = Math.max(1, highestValue);
+  const sorted = editableItems
+    .slice()
+    .sort(
+      (first, second) => second.detail.mockDistributionValue - first.detail.mockDistributionValue,
+    );
+
   const plotW = W - PAD * 2;
   const plotH = H - PAD * 2;
   const slot = plotW / Math.max(1, sorted.length);
   const barW = slot * 0.6;
 
   let running = 0;
-  const items = sorted.map(({ datum, authorIndex }, sortedIndex) => {
-    running += datum.value;
-    const cumPct = total > 0 ? running / total : 0;
-    const cx = PAD + slot * sortedIndex + slot / 2;
+  const bars = sorted.map((editableItem, sortedIndex) => {
+    const value = editableItem.detail.mockDistributionValue;
+    running += value;
+    const cumPct = denominator > 0 ? running / denominator : 0;
+    const centerX = PAD + slot * sortedIndex + slot / 2;
     return {
-      datum,
-      index: sortedIndex,
-      color: resolveDatumColor(datum.color, authorIndex),
-      barX: cx - barW / 2,
-      barH: (datum.value / max) * plotH,
-      cumX: cx,
-      cumY: H - PAD - cumPct * plotH,
+      editableItem,
+      value,
       cumPct,
+      barX: centerX - barW / 2,
+      barH: (value / max) * plotH,
+      cumX: centerX,
+      cumY: H - PAD - cumPct * plotH,
     };
   });
 
-  // Anchors in the right half open their menu popover leftward so it stays
-  // inside the canvas.
-  const menuAlignFor = (sortedIndex: number) =>
-    sortedIndex > (items.length - 1) / 2 ? "end" : "start";
-
-  const linePath = items.map((it) => `${it.cumX.toFixed(2)},${it.cumY.toFixed(2)}`).join(" ");
+  const linePath = bars.map((bar) => `${bar.cumX.toFixed(2)},${bar.cumY.toFixed(2)}`).join(" ");
 
   return (
-    <div className={styles.chart}>
-      {/* The SVG stretches to fill (preserveAspectRatio="none"); strokes stay
-          uniform via non-scaling-stroke and the cumulative markers are HTML
-          dots overlaid by percentage so they can't be distorted. */}
-      <div className={styles.plot}>
-        <svg
-          className={styles.svg}
-          viewBox={`0 0 ${W.toString()} ${H.toString()}`}
-          preserveAspectRatio="none"
-          role="img"
-          aria-label="Pareto chart"
-        >
-          <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
-          {items.map((it) => (
-            <rect
-              key={it.index}
-              className={styles.bar}
-              x={it.barX}
-              y={H - PAD - it.barH}
-              width={barW}
-              height={it.barH}
-              style={{ fill: it.color }}
-            />
-          ))}
-          {items.length > 1 && <polyline className={styles.cumLine} points={linePath} />}
-        </svg>
-        {items.map((it) => (
-          <span
-            key={it.index}
-            className={styles.cumMarker}
-            style={{
-              left: `${it.cumX.toFixed(2)}%`,
-              top: `${((it.cumY / H) * 100).toFixed(2)}%`,
-            }}
-            aria-hidden="true"
-          />
-        ))}
-      </div>
-      <ul className={styles.labels}>
-        {items.map((it) => {
-          const label = (
-            <li
-              key={it.index}
-              className={`${styles.label} ${it.datum.highlight ? styles.highlight : ""}`}
-            >
-              <div className={styles.optionControls}>
-                <OptionImage
-                  src={it.datum.imageUrl}
-                  alt={it.datum.imageAlt}
-                  fallbackSeed={it.datum.id}
+    <SlideContent>
+      <SlideContentSection>
+        <SlideContentSection.Body>
+          <div className={styles.chart}>
+            <div className={styles.plot}>
+              <svg
+                className={styles.svg}
+                viewBox={`0 0 ${W.toString()} ${H.toString()}`}
+                preserveAspectRatio="none"
+                role="img"
+                aria-label="Pareto chart"
+              >
+                <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
+                {bars.map((bar) => (
+                  <rect
+                    key={bar.editableItem.item.id}
+                    className={styles.bar}
+                    x={bar.barX}
+                    y={H - PAD - bar.barH}
+                    width={barW}
+                    height={bar.barH}
+                    style={{ fill: bar.editableItem.item.color }}
+                  />
+                ))}
+                {bars.length > 1 && <polyline className={styles.cumLine} points={linePath} />}
+              </svg>
+              {bars.map((bar) => (
+                <span
+                  key={bar.editableItem.item.id}
+                  className={styles.cumMarker}
+                  style={{
+                    left: `${bar.cumX.toFixed(2)}%`,
+                    top: `${((bar.cumY / H) * 100).toFixed(2)}%`,
+                  }}
+                  aria-hidden="true"
                 />
-                {renderLabelWithMenu ? (
-                  renderLabelWithMenu(it.datum)
-                ) : (
-                  <span className={styles.labelText}>{it.datum.text ?? ""}</span>
-                )}
-              </div>
-              <span className={styles.labelStats}>
-                <span className={styles.labelValue}>{it.datum.value}</span>
-                <span className={styles.labelShare}> · {Math.round(it.cumPct * 100)}%</span>
-              </span>
-              {renderMenu && (
-                <span className={styles.labelActions}>
-                  <CorrectBadge isCorrect={it.datum.isCorrect} />
-                  {renderMenu(it.datum, menuAlignFor(it.index))}
-                </span>
-              )}
-            </li>
-          );
-
-          return it.index === items.length - 1 && addOption && canAddOption ? (
-            <AddOptionPopover
-              key={it.datum.id}
-              anchor={label}
-              onAdd={addOption}
-              placement="top"
-              focusableAnchor
-            />
-          ) : (
-            label
-          );
-        })}
-      </ul>
-    </div>
+              ))}
+            </div>
+            <ul className={styles.labels}>
+              <DragDropWrapper onReorder={props.editor.actions.handleItemDragEnd}>
+                {bars.map((bar) => (
+                  <li key={bar.editableItem.item.id} className={styles.label}>
+                    <span className={styles.labelStats}>
+                      <span className={styles.labelValue}>{bar.value}</span>
+                      <span className={styles.labelShare}> · {Math.round(bar.cumPct * 100)}%</span>
+                    </span>
+                    <SortableItemChartLegend {...bar.editableItem} placement="below" />
+                  </li>
+                ))}
+              </DragDropWrapper>
+            </ul>
+          </div>
+        </SlideContentSection.Body>
+      </SlideContentSection>
+    </SlideContent>
   );
 };
 

@@ -1,0 +1,136 @@
+.legend {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  padding: var(--p-xxs);
+  min-width: 0;
+  background-color: var(--bg-surface);
+  border: var(--border-size-sm) solid transparent;
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast) ease-out,
+    border-color var(--duration-base) ease-in-out;
+
+  &.isDragging {
+    opacity: 0.6;
+  }
+
+  &.selected {
+    box-shadow: var(--shadow-sm);
+  }
+
+  &:hover {
+    background-color: var(--bg-surface-raised);
+  }
+
+  .thumbnailWrap {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+  }
+
+  .thumbnail {
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+  }
+
+  button.thumbnailClear {
+    position: absolute;
+    top: calc(var(--space-1) * -1);
+    right: calc(var(--space-1) * -1);
+    width: var(--space-4);
+    height: var(--space-4);
+    padding: var(--p-square-xxs);
+    background: var(--bg-surface-raised);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-xs);
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .thumbnailWrap:hover button.thumbnailClear,
+  .thumbnailWrap:focus-within button.thumbnailClear {
+    opacity: 1;
+  }
+
+  .collapsable {
+    display: flex;
+    align-items: center;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+      max-width var(--duration-base) ease-in-out,
+      opacity var(--duration-base) ease-in-out;
+
+    &.expanded {
+      max-width: 500px;
+      opacity: 1;
+    }
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .grip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    padding: var(--p-square-xxs);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    cursor: grab;
+    touch-action: none;
+    transition:
+      color var(--duration-fast) ease-out,
+      background-color var(--duration-fast) ease-out;
+
+    &:hover {
+      color: var(--text-primary);
+      background-color: var(--bg-surface-raised);
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .gripIcon {
+    width: 0.875rem;
+    height: auto;
+  }
+}
+
+.legend.side {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.legend.below {
+  width: 100%;
+  max-width: 12rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: var(--gap-xxs);
+  text-align: center;
+
+  .field {
+    order: 1;
+    flex-basis: 100%;
+  }
+
+  input {
+    font-size: var(--font-size-xs);
+    text-align: center;
+  }
+}

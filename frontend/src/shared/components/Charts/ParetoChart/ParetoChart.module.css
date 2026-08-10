@@ -8,13 +8,6 @@
   min-height: 0;
 }
 
-.caption {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-/* Fills the space above the labels row; the SVG stretches to it and the
-   cumulative markers are positioned over it by percentage. */
 .plot {
   position: relative;
   flex: 1;
@@ -47,7 +40,6 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* HTML dot markers — immune to the SVG's non-uniform stretch. */
 .cumMarker {
   position: absolute;
   width: var(--space-2);
@@ -63,6 +55,7 @@
   margin: 0;
   padding: 0 var(--gap-sm);
   justify-content: space-between;
+  align-items: flex-start;
   gap: var(--gap-sm);
 }
 
@@ -71,61 +64,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  /* Hairline tick-to-label stack under dense chart columns; --gap-xs (4px)
-     detaches the label from its column */
   gap: var(--gap-xxs);
   min-width: 0;
   flex: 1;
-}
-
-/* Wraps the editable controls (Label + CorrectBadge + Menu) and anchors the
-   Menu's popover (position: relative), letting buttons overflow rather than clip. */
-.optionControls {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  min-width: 0;
-  max-width: 100%;
-  overflow: visible;
-}
-
-/* Chart labels are single-line and compact: stop the editable textarea from
-   wrapping into a half-clipped second row inside the narrow label slot.
-   Scoped under `.chart` so the override outranks TextArea's own base rules
-   by specificity instead of relying on bundle order. */
-.chart .optionControls textarea {
-  font-size: var(--font-size-xs);
-  text-align: center;
-  min-height: 0;
-  padding-block: var(--gap-xs);
-  white-space: pre;
-  overflow-x: hidden;
-}
-
-/* Correct-toggle + menu cluster. Deliberately NOT positioned: the Menu's
-   popover anchors to the positioned `.label` column instead of the narrow
-   button cluster. */
-.labelActions {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  flex-shrink: 0;
-}
-
-.labelText {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.label.highlight .labelText {
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 .labelStats {

@@ -17,64 +17,17 @@
     min-height: 0;
   }
 
-  .caption {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-  }
-
   .row {
     position: relative;
     min-width: 0;
   }
 
-  .label {
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .row.highlight .label {
-    font-weight: 600;
-  }
-
-  /* Wraps the editable controls (Label + CorrectBadge + Menu) and anchors the
-     Menu's popover (position: relative). Lets the buttons overflow the narrow
-     label cell rather than clipping. */
-  .optionControls {
-    position: relative;
+  .legendSlot {
     display: flex;
     align-items: center;
-    gap: var(--gap-xs);
     min-width: 0;
-    overflow: visible;
-
-    /* Chart labels are single-line and compact: match the static label's font
-       size, trim the field's padding, and stop the textarea from wrapping into
-       a half-clipped second row inside the narrow label cell. */
-    textarea {
-      min-height: 0;
-      font-size: var(--font-size-sm);
-      padding-block: var(--gap-xs);
-      white-space: pre;
-      overflow-x: hidden;
-    }
   }
 
-  /* Correct-toggle + menu cluster. Deliberately NOT positioned: the Menu's
-     popover anchors to the positioned `.row`, giving it the row's full width
-     instead of clipping past the canvas edge. */
-  .rowActions {
-    display: flex;
-    align-items: center;
-    gap: var(--gap-xs);
-    flex-shrink: 0;
-  }
-
-  /* position: relative anchors the in-bar OptionImage, which sits at the
-     track's axis end (left / bottom) so it stays visible even when a low
-     value makes the fill shorter than the image. */
   .track {
     position: relative;
     border-radius: var(--radius-sm);
@@ -110,7 +63,7 @@
 
     .row {
       display: grid;
-      grid-template-columns: minmax(5rem, 10rem) minmax(0, 1fr) max-content max-content;
+      grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr) max-content;
       align-items: center;
       gap: var(--gap-sm);
     }
@@ -149,12 +102,12 @@
       text-align: center;
     }
 
-    /* Visual order top→bottom: value, bar, label, actions. */
     .value {
       order: -1;
     }
 
     .track {
+      order: 0;
       width: 100%;
       max-width: 10rem;
       flex: 1;
@@ -168,24 +121,10 @@
       height: var(--size, 0);
     }
 
-    .optionControls {
+    .legendSlot {
       order: 1;
-      max-width: 100%;
+      width: 100%;
       justify-content: center;
-
-      textarea {
-        text-align: center;
-      }
     }
-
-    .rowActions {
-      order: 2;
-    }
-  }
-
-  /* Room for a legible in-bar thumbnail (see hasImages in BarChart.tsx).
-     Horizontal only — vertical columns already give the image their width. */
-  &.horizontal.withImages .track {
-    height: var(--space-10);
   }
 }
