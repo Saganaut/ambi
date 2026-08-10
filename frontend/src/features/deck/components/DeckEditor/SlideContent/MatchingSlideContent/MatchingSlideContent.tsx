@@ -27,8 +27,8 @@ import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { MAX_MATCHING_PAIRS, useMatchingEditor } from "@deck/hooks/useMatchingEditor";
 import { SlideWrapper } from "../SlideWrapper";
 import { AddItemCard, EmptySelect, ScoringFooter, SectionHeader } from "../_shared";
+import { SlideContentProps } from "../_shared/Item.types";
 import shared from "../_shared/_shared.module.css";
-import type { SlideContentProps } from "../slideContentProps";
 import { MatchingPairEditable } from "./MatchingPairEditable";
 import styles from "./MatchingSlideContent.module.css";
 

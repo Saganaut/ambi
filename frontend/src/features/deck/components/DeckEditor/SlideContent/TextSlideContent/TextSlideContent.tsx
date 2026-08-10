@@ -1,18 +1,3 @@
-/**
- * Author surface for a free-text answer slide (TextContent). Players type a free
- * response; follow-up slides can then be seeded from those submissions.
- *
- * Scorability is derived, not toggled: any accepted answer makes the slide
- * scoreable; an empty list is an unscored collection (the ScoringFooter warns).
- * Accepted answers are entered as tags: type one and press Enter (or comma) to
- * commit it as a pill; the content only ever carries trimmed, de-duplicated,
- * non-empty strings.
- *
- * Removing the last answer is blocked (no remove control, no PUT fired) while
- * a SPOT_THE_ANSWER follow-up is attached — the backend 400s that content
- * transition, and `updateSlide`'s fire-and-forget PUT can't surface a
- * rejection, so `wouldOrphanKeyedFollowUp` catches it client-side first.
- */
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { useSlide } from "@deck/hooks/useSlide";
@@ -24,22 +9,15 @@ import { useState } from "react";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { ScoringFooter } from "../_shared";
-import type { SlideContentProps } from "../slideContentProps";
+import { SlideContentProps } from "../_shared/Item.types";
 import styles from "./TextSlideContent.module.css";
 
-/** How a player's submission is compared to the accepted answers. Only the
- *  scored modes are surfaced; the backend `WORDCLOUD` (unscored) state is
- *  expressed by leaving the answers empty, not by picking it here. Future modes
- *  (manual review, vector similarity) slot in as extra entries. */
 type MatchMode = TextContent["matchMode"];
 const MATCH_MODE_OPTIONS: { value: MatchMode; label: string }[] = [
   { value: "EXACT", label: "Exact match" },
   { value: "CONTAINS", label: "Answer is contained" },
 ];
 
-/** Split raw entry text into candidate answers. Commas still separate (so a
- *  pasted "Frodo, Frodo Baggins" fans out into two pills), and each candidate
- *  is trimmed to non-empty. */
 const splitAnswers = (raw: string) =>
   raw
     .split(",")
@@ -96,26 +74,18 @@ const TextSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const idBase = slide.id;
   const hasAnswers = answers.length > 0;
 
-  // Persist a new answer list to the store. Each tag add/remove is a discrete,
-  // durable edit, so we flush immediately rather than waiting for a blur.
   const commitAnswers = (next: string[]) => {
     setAnswers(next);
     updateSlideContent({ acceptedAnswers: next });
     flush();
   };
 
-  // Turn whatever is in the entry box into pills, then clear it.
   const commitDraft = () => {
     const additions = splitAnswers(draft);
     if (additions.length > 0) commitAnswers(mergeAnswers(answers, additions));
     setDraft("");
   };
 
-  // Per-tag: would removing this one strip the last non-blank answer while a
-  // SPOT_THE_ANSWER follow-up is attached? The backend rejects that content
-  // transition with 400 (it'd leave the follow-up's answer key dangling), and
-  // the slide-update path that would carry it fires fire-and-forget with no
-  // rollback — so this is a client-side guard, not just a UX nicety.
   const answerRows = answers.map((answer, index) => ({
     answer,
     index,

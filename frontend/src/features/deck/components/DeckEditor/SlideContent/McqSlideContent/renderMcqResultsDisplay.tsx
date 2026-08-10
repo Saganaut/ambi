@@ -1,22 +1,19 @@
 import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
 import { BarChart } from "@/shared/components/Charts/BarChart/BarChart";
 import { ChartType } from "@/shared/components/Charts/Chart.types";
-import { DivergingBar } from "@/shared/components/Charts/DivergingBar/DivergingBar";
 import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
-import { Heatmap } from "@/shared/components/Charts/Heatmap/Heatmap";
-import { Histogram } from "@/shared/components/Charts/Histogram/Histogram";
-import { ImageOverlay } from "@/shared/components/Charts/ImageOverlay/ImageOverlay";
 import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
-import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { Dispatch, ReactNode, SetStateAction } from "react";
 import { DefaultResultsDisplay } from "./DefaultResultsDisplay";
 import { McqSlideContentViewProps } from "./McqSlideContentView";
 
-export interface RenderMcqResultsDisplayOptions
-  extends Omit<McqSlideContentViewProps, "previewVisualization"> {
+export interface RenderMcqResultsDisplayOptions extends Omit<
+  McqSlideContentViewProps,
+  "previewVisualization"
+> {
   setOpenMenuId: Dispatch<SetStateAction<string | null>>;
   openMenuId: string | null;
   openPicker: OpenGalleryPicker;
@@ -54,18 +51,31 @@ export const renderMcqResultsDisplay = (chartProps: RenderMcqResultsDisplayOptio
       return <DotPlot {...chartProps} />;
 
     case "HISTOGRAM":
-      return <Histogram {...chartProps} />;
+      return <div>Not implemented</div>;
+    // return <Histogram {...chartProps} />;
 
     case "WORD_CLOUD":
-      return <WordCloud {...chartProps} />;
+      return <div>Not implemented</div>;
+
+    // return <WordCloud {...chartProps} />;
 
     case "HEATMAP":
-      return <Heatmap {...chartProps} />;
+      return <div>Not implemented</div>;
+
+    // return <Heatmap {...chartProps} />;
 
     case "DIVERGING_BAR":
-      return <DivergingBar {...chartProps} />;
+      return <div>Not implemented</div>;
+
+    // return <DivergingBar {...chartProps} />;
 
     case "IMAGE_OVERLAY":
-      return <ImageOverlay {...chartProps} />;
+      return <div>Not implemented</div>;
+
+    // return <ImageOverlay {...chartProps} />;
+    default: {
+      const _exhaustiveCheck: never = chartProps.visualization;
+      throw new Error(`Unhandled visualization type: ${_exhaustiveCheck}`);
+    }
   }
 };

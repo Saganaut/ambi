@@ -1,25 +1,3 @@
-/**
- * Author surface for a Scales / Likert slide.
- *
- * Prompt on top, then the "Scale" settings card — two endpoint cards (anchor
- * label + boundary value stepper) joined by a live track preview, with the
- * tolerance input on its own always-visible row — then the statements the
- * player rates on that scale.
- *
- * Scoring is per statement: each row repeats the scale as a continuous drag
- * track and the author drags a marker to set that statement's correct answer
- * (the X next to the numeric field clears it). There is no global "scored"
- * switch — the slide is graded the moment any statement has a target, and
- * unscored when none do.
- *
- * There is exactly one `useScalesEditor` here; the scale-level fields are
- * mirrored locally so the debounced inputs stay responsive, and each row
- * receives its slice of the editor surface as props, so all writes funnel
- * through a single draft + debounce buffer. The prompt mirror and which row's
- * menu is open live in the shared `useSlideDraft`.
- */
-import { useState } from "react";
-
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
@@ -29,66 +7,34 @@ import {
   SCALES_TOLERANCE_MIN_FRACTION,
   useScalesEditor,
 } from "@deck/hooks/useScalesEditor";
+import { AddItemCard, EmptySelect, SortableItemBankRow } from "../_shared";
+import { SlideContentProps } from "../_shared/Item.types";
+import { ItemToEditableScalesItem } from "../AllocationSlideContent/ItemFormatters";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { AddItemCard, EmptySelect, useSlideDraft } from "../_shared";
-import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import { ScaleEndpointCard } from "./ScaleEndpointCard";
 import { ScalePreview } from "./ScalePreview";
 import styles from "./ScalesSlideContent.module.css";
+import { useScalesDraft } from "./useScalesDraft";
 
-interface ScalesSlideContentProps {
-  deckId: string;
-  slideId: string;
-}
-
-const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
-  const {
-    question,
-    schedulePrompt,
-    flush,
-    scheduleMin,
-    scheduleMax,
-    scheduleLeftLabel,
-    scheduleRightLabel,
-    setTolerance,
-    canAddStatement,
-    addStatement,
-    canRemove,
-    scheduleStatementLabel,
-    setStatementColor,
-    setStatementImage,
-    removeStatement,
-    handleStatementDragEnd,
-    scheduleCorrectAnswerValue,
-    commitCorrectAnswerValue,
-    clearCorrectAnswerValue,
-  } = useScalesEditor(deckId, slideId);
+const ScalesSlideContent = ({ deckId, slideId }: SlideContentProps) => {
+  const editor = useScalesEditor(deckId, slideId);
+  const { question } = editor;
   const openPicker = useGalleryPicker(deckId);
-  // The prompt mirror and which row's menu is open — at most one per slide.
-  // Focusing a row's label opens its menu (and thereby closes any other); the
-  // menu owns dismissal. Scales arms no row, so `selectedItemId` goes unused.
-  const composer = useSlideDraft(question);
-
-  // Local mirrors keep the debounced inputs responsive: `updateSlideContent`
-  // buffers to a draft and only commits on flush, so binding straight to the
-  // store value would make these fields feel frozen mid-edit. Tolerance needs
-  // no mirror — `setTolerance` commits immediately (clamped + flushed).
-  const [min, setMin] = useState(question?.min ?? 1);
-  const [max, setMax] = useState(question?.max ?? 5);
-  const [leftLabel, setLeftLabel] = useState(question?.leftLabel ?? "");
-  const [rightLabel, setRightLabel] = useState(question?.rightLabel ?? "");
-  const [syncedFromId, setSyncedFromId] = useState(question?.id);
-
-  // Resync every mirror when the active slide changes ("derive state during
-  // render" — safe when the new value differs).
-  if (question && syncedFromId !== question.id) {
-    setSyncedFromId(question.id);
-    setMin(question.min);
-    setMax(question.max);
-    setLeftLabel(question.leftLabel);
-    setRightLabel(question.rightLabel);
-  }
+  const {
+    prompt,
+    setPrompt,
+    min,
+    setMin,
+    max,
+    setMax,
+    leftLabel,
+    setLeftLabel,
+    rightLabel,
+    setRightLabel,
+    openMenuId,
+    setOpenMenuId,
+  } = useScalesDraft({ question });
 
   if (!question) return <EmptySelect title="Scales" />;
 
@@ -100,13 +46,13 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
     <SlideWrapper
       prompt={{
         idBase: `scales-${idBase}`,
-        value: composer.prompt,
+        value: prompt,
         placeholder: "What are players rating?",
         onChange: (html: string) => {
-          composer.setPrompt(html);
-          schedulePrompt(html);
+          setPrompt(html);
+          editor.actions.scheduleQuestionPrompt(html);
         },
-        onBlur: flush,
+        onBlur: editor.actions.flush,
       }}
       footer={
         <p>
@@ -120,61 +66,34 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
         <SlideContentSection>
           <SlideContentSection.Header>
             <span>Statements</span>
-            <span>Drag along a statement's scale</span>
+            <span>Drag along a statement&apos;s scale</span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
-            <DragDropWrapper onReorder={handleStatementDragEnd}>
-              {question.items.map((statement, idx) => (
+            <DragDropWrapper onReorder={editor.actions.handleItemDragEnd}>
+              {question.items.map((statement, index) => (
                 <SortableItemBankRow
-                  type={"scales"}
                   key={statement.id}
-                  item={statement}
-                  index={idx}
-                  color={statement.color ?? "#FFFFFF"}
-                  menuOpen={composer.openMenuId === statement.id}
-                  canRemove={canRemove}
-                  correctValue={question.correctValues[statement.id]}
-                  minScale={min}
-                  maxScale={max}
-                  toleranceScale={question.tolerance}
-                  leftLabel={leftLabel}
-                  rightLabel={rightLabel}
-                  onMenuOpenChange={(open) => {
-                    composer.setOpenMenuId(open ? statement.id : null);
-                  }}
-                  onScheduleLabel={(label) => {
-                    scheduleStatementLabel(statement.id, label);
-                  }}
-                  onCommit={(value) => {
-                    commitCorrectAnswerValue(statement.id, value);
-                  }}
-                  onScheduleAnswer={(value) => {
-                    scheduleCorrectAnswerValue(statement.id, value);
-                  }}
-                  onClear={() => {
-                    clearCorrectAnswerValue(statement.id);
-                  }}
-                  onFlush={flush}
-                  onSetColor={(color) => {
-                    setStatementColor(statement.id, color);
-                  }}
-                  onSetImage={(image) => {
-                    setStatementImage(statement.id, image);
-                  }}
-                  onRemove={() => {
-                    removeStatement(statement.id);
-                  }}
-                  openPicker={openPicker}
+                  {...ItemToEditableScalesItem(
+                    statement,
+                    index,
+                    editor.actions,
+                    editor.state,
+                    { min, max, leftLabel, rightLabel, tolerance: question.tolerance },
+                    openPicker,
+                    setOpenMenuId,
+                    openMenuId,
+                    question.correctValues,
+                  )}
                 />
               ))}
               <AddItemCard
                 label={
-                  canAddStatement
+                  editor.state.canAddItem
                     ? "Add statement"
                     : `Maximum ${MAX_SCALE_STATEMENTS.toString()} statements`
                 }
-                disabled={!canAddStatement}
-                onAdd={addStatement}
+                disabled={!editor.state.canAddItem}
+                onAdd={editor.actions.addItem}
               />
             </DragDropWrapper>
           </SlideContentSection.Body>
@@ -190,16 +109,16 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                 incrementDisabled={min + 1 >= max}
                 onCommitValue={(next) => {
                   setMin(next);
-                  scheduleMin(next);
-                  flush();
+                  editor.actions.scheduleMin(next);
+                  editor.actions.flush();
                 }}
                 label={leftLabel}
                 labelPlaceholder="e.g. Strongly disagree"
                 onScheduleLabel={(next) => {
                   setLeftLabel(next);
-                  scheduleLeftLabel(next);
+                  editor.actions.scheduleLeftLabel(next);
                 }}
-                onFlush={flush}
+                onFlush={editor.actions.flush}
               />
               <ScalePreview min={min} max={max} />
               <ScaleEndpointCard
@@ -209,16 +128,16 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                 decrementDisabled={max - 1 <= min}
                 onCommitValue={(next) => {
                   setMax(next);
-                  scheduleMax(next);
-                  flush();
+                  editor.actions.scheduleMax(next);
+                  editor.actions.flush();
                 }}
                 label={rightLabel}
                 labelPlaceholder="e.g. Strongly agree"
                 onScheduleLabel={(next) => {
                   setRightLabel(next);
-                  scheduleRightLabel(next);
+                  editor.actions.scheduleRightLabel(next);
                 }}
-                onFlush={flush}
+                onFlush={editor.actions.flush}
               />
             </div>
             <div className={styles.toleranceRow}>
@@ -231,10 +150,9 @@ const ScalesSlideContent = ({ deckId, slideId }: ScalesSlideContentProps) => {
                 max={Math.round(SCALES_TOLERANCE_MAX_FRACTION * 100)}
                 value={tolerancePercent}
                 onChange={(next) => {
-                  setTolerance((next / 100) * span);
+                  editor.actions.setTolerance((next / 100) * span);
                 }}
               />
-              {/* <span className={styles.toleranceValue}>±{formatScaleValue(question.tolerance)}</span> */}
             </div>
           </SlideContentSection.Body>
         </SlideContentSection>

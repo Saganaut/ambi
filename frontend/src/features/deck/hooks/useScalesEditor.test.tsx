@@ -78,11 +78,14 @@ const makeStore = () =>
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(emptySplitApi.middleware),
   });
 
-const renderUseScalesEditor = async () => {
+const unscoredSlide: SlideResponse = {
+  ...scalesSlide,
+  content: { ...scalesContent, correctValues: {} },
+};
+
+const renderUseScalesEditor = async (slide: SlideResponse = scalesSlide) => {
   const store = makeStore();
-  await store.dispatch(
-    deckApi.util.upsertQueryData("listDeckSlides", { id: DECK_ID }, [scalesSlide]),
-  );
+  await store.dispatch(deckApi.util.upsertQueryData("listDeckSlides", { id: DECK_ID }, [slide]));
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>{children}</Provider>
   );
@@ -98,7 +101,7 @@ describe("useScalesEditor structural ops", () => {
     const image = externalImage("https://example.test/breakfast.png");
 
     act(() => {
-      result.current.setStatementImage("st_a", image);
+      result.current.actions.setItemImage("st_a", image);
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -111,7 +114,7 @@ describe("useScalesEditor structural ops", () => {
     const result = await renderUseScalesEditor();
 
     act(() => {
-      result.current.removeStatement("st_a");
+      result.current.actions.removeItem("st_a");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -121,19 +124,44 @@ describe("useScalesEditor structural ops", () => {
   });
 });
 
+describe("useScalesEditor scoring", () => {
+  it("toggleScorability drops a scored statement's target", async () => {
+    const result = await renderUseScalesEditor();
+
+    act(() => {
+      result.current.actions.toggleScorability("st_a");
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    expect(scalesContentOf(lastPutBody)?.correctValues).toEqual({ st_b: 2 });
+  });
+
+  it("toggleScorability arms an unscored statement on the scale's midpoint", async () => {
+    const result = await renderUseScalesEditor(unscoredSlide);
+
+    act(() => {
+      result.current.actions.toggleScorability("st_a");
+    });
+    await vi.waitFor(() => expect(lastPutBody).toBeDefined());
+
+    // The midpoint of the 1…5 scale, so a freshly-armed statement starts in range.
+    expect(scalesContentOf(lastPutBody)?.correctValues).toEqual({ st_a: 3 });
+  });
+});
+
 describe("useScalesEditor tolerance clamping", () => {
   it("setTolerance clamps to the fraction bounds of the span", async () => {
     const result = await renderUseScalesEditor();
 
     // 50 % of the 4-wide span is the max (2.0); 5.0 overshoots.
     act(() => {
-      result.current.setTolerance(5);
+      result.current.actions.setTolerance(5);
     });
     await vi.waitFor(() => expect(scalesContentOf(lastPutBody)?.tolerance).toBe(2));
 
     // 2 % of the span is the floor (0.08); 0.01 undershoots.
     act(() => {
-      result.current.setTolerance(0.01);
+      result.current.actions.setTolerance(0.01);
     });
     await vi.waitFor(() => expect(scalesContentOf(lastPutBody)?.tolerance).toBeCloseTo(0.08));
   });
@@ -144,7 +172,7 @@ describe("useScalesEditor tolerance clamping", () => {
     // Shrink the span to max−min = 5−4 = 1; the stored tolerance 1 now exceeds
     // 50 % of the span (0.5), so it must be re-clamped down in the same commit.
     act(() => {
-      result.current.scheduleMin(4);
+      result.current.actions.scheduleMin(4);
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 

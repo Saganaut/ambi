@@ -303,16 +303,3 @@
   opacity: 0.8;
   pointer-events: none;
 }
-
-/* ── Item rows ──────────────────────────────────────────────────────────── */
-
-/* Which cell a row's item sits in (or "Unplaced"), trailing inside the row. */
-.rowMeta {
-  flex: none;
-  max-width: 8rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-}

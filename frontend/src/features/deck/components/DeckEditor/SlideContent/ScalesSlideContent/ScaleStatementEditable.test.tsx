@@ -6,12 +6,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import type { ScaleBankItem } from "@deck/hooks/useScalesEditor";
 import type { ScaleItem } from "@deck/store/deckApi.gen";
 import { emptyImage, externalImage } from "@utils/image";
-import type { Identified } from "../_shared";
 import { ScaleStatementEditable } from "./ScaleStatementEditable";
 
-const statement = (overrides: Partial<ScaleItem> = {}): Identified<ScaleItem> => ({
+const statement = (overrides: Partial<ScaleItem> = {}): ScaleBankItem => ({
   id: "stmt_a",
   label: "Team spirit",
   color: "oklch(0.65 0.4 290)",
@@ -22,7 +22,7 @@ const renderStatement = ({
   item = statement(),
   menuOpen = false,
   correctValue,
-}: { item?: Identified<ScaleItem>; menuOpen?: boolean; correctValue?: number } = {}) => {
+}: { item?: ScaleBankItem; menuOpen?: boolean; correctValue?: number } = {}) => {
   const props = {
     statement: item,
     sortIndex: 1,

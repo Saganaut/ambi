@@ -1,11 +1,12 @@
-// PlaceOnImage-specific editing layer for the deck editor's Place-on-Image
-// slide.
-//
-
-import type { DragEndEvent } from "@dnd-kit/react";
+import type { Dispatch, SetStateAction } from "react";
 
 import type { AppImage, PlacePoint } from "@deck/store/deckApi.gen";
 
+import type {
+  ItemId,
+  QuestionActions,
+  QuestionState,
+} from "../components/DeckEditor/SlideContent/_shared/Item.types";
 import { clamp01 } from "../utils/placement";
 import { buildDefaultPlaceItem } from "../utils/slideContent";
 import { useItemBankEditor } from "./useItemBankEditor";
@@ -52,8 +53,12 @@ interface PlaceOnImageQuestionView {
   prompt: string;
   /** The backing image players pin on (blank external placeholder until set). */
   image: AppImage;
-  /** The items to place, in authored order (marker index = row index). */
+  /** The items to place, in authored order (marker index = row index), each
+   * with its answer-key point folded in when it has one. */
   targets: PlaceItemView[];
+  /** The answer key itself, keyed by item id — the placement surface reads the
+   * fold above, the bank rows read this. */
+  correctPositions: Record<ItemId, PlacePoint>;
   /** Normalized radius around each target that counts as correct. */
   tolerance: number;
 }
@@ -61,40 +66,8 @@ interface PlaceOnImageQuestionView {
 interface UsePlaceOnImageEditorResult {
   /** The active slide as a flat view, or undefined until one is selected. */
   question: PlaceOnImageQuestionView | undefined;
-
-  /** ── Question-level ──────────────────────────────────────────────────── */
-  /** Debounced prompt edit → persisted to `slide.title`. */
-  schedulePrompt: (html: string) => void;
-  /** Flush any pending debounced edit immediately (bind to blur). */
-  flush: () => void;
-  /** Swap the backing image (gallery pick / URL). Immediate. */
-  setImage: (image: AppImage) => void;
-
-  /** ── Targets (keyed by `PlaceItemView.id`) ───────────────────────────── */
-  canAddTarget: boolean;
-  canRemove: boolean;
-
-  /** Append an item. With `point`, it is born placed there (a press on open
-   * image); with none, it is born UNPLACED — a target that exists but keys
-   * no right answer, and so is not graded. Immediate. */
-  addTarget: (point?: PlacePoint) => void;
-  /** Commit a row drop — reorders `items`. Immediate. */
-  handleItemDragEnd: (event: DragEndEvent) => void;
-  /** Assign (clamped normalized point) or clear (null) the item's target.
-   * A stale id is inert — no entry is ever minted for a phantom item. */
-  setTargetPosition: (targetId: string, point: PlacePoint | null) => void;
-  /** Remove the item and its target-position assignment. */
-  removeTarget: (targetId: string) => void;
-  /** Debounced item label edit. */
-  scheduleTargetLabel: (targetId: string, label: string) => void;
-  /** Override the item's palette color (menu swatch / custom picker). Immediate. */
-  setTargetColor: (targetId: string, color: string) => void;
-  /** Set or clear (empty AppImage) the item's image. Immediate. */
-  setTargetImage: (targetId: string, image: AppImage) => void;
-
-  /** ── Scoring ─────────────────────────────────────────────────────────── */
-  /** Set the per-slide tolerance radius (clamped to the 2–50 % bounds). Immediate. */
-  setTolerance: (value: number) => void;
+  state: QuestionState<"PLACE_ON_IMAGE">;
+  actions: QuestionActions<"PLACE_ON_IMAGE">;
 }
 
 const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImageEditorResult => {
@@ -103,17 +76,14 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
   const slide = editor.slide;
   const content = slide?.content;
 
-  // The bank of items — bounded add/remove, drag-reorder, the per-row label,
-  // color and image edits, and the load-time identity backfill — over this
-  // slide's one editor. Removing an item drops its target in the same write.
   const bank = useItemBankEditor(editor, {
     slideId,
     toPatch: (items) => ({ items }),
     buildItem: buildDefaultPlaceItem,
     minItems: MIN_PLACE_TARGETS,
     maxItems: MAX_PLACE_TARGETS,
-    onRemoveItem: (prev, targetId) => {
-      const { [targetId]: _dropped, ...rest } = prev.correctPositions;
+    onRemoveItem: (prev, itemId) => {
+      const { [itemId]: _dropped, ...rest } = prev.correctPositions;
       return { correctPositions: rest };
     },
   });
@@ -126,78 +96,111 @@ const usePlaceOnImageEditor = (deckId: string, slideId: string): UsePlaceOnImage
         // The spread folds in the item's answer-key point when it has one, and
         // leaves x/y absent when it does not.
         targets: bank.items.map((item) => ({ ...item, ...content?.correctPositions[item.id] })),
+        correctPositions: content?.correctPositions ?? {},
         tolerance: content?.tolerance ?? PLACE_TOLERANCE_DEFAULT,
       }
     : undefined;
 
-  const schedulePrompt = (html: string) => editor.updateMetadata({ title: html });
+  const scheduleQuestionPrompt = (html: string) => editor.updateMetadata({ title: html });
 
   const setImage = (image: AppImage) => {
     editor.updateSlideContent({ image });
     editor.flush();
   };
 
-  /** Mint an item, and its answer-key entry with it when the gesture carried a
-   *  point (a press on the open image places what it creates). No point = no
-   *  right answer: the item joins the bank unkeyed and the grader passes over
-   *  it (an entirely unkeyed slide is collect-only). */
-  const addTarget = (point?: PlacePoint) => {
-    bank.addItem(
-      point == null
-        ? undefined
-        : (item, prev) => ({
-            correctPositions: {
-              ...prev.correctPositions,
-              [item.id]: { x: clamp01(point.x), y: clamp01(point.y) },
-            },
-          }),
-    );
+  /** Mint an item and its answer-key entry together — a press on the open image
+   *  places what it creates, so the two can never disagree. */
+  const addItemAtPoint = (point: PlacePoint) => {
+    bank.addItem((item, prev) => ({
+      correctPositions: {
+        ...prev.correctPositions,
+        [item.id]: { x: clamp01(point.x), y: clamp01(point.y) },
+      },
+    }));
   };
 
-  /** Give the item a target point, or take it away again (null) — the row's
-   *  "Set target"/"Clear target" affordance and every marker drag land here.
-   *  A marker id is the only thing a drag carries, so the item is resolved
+  /** A marker drag carries an id and nothing else, so the item is resolved
    *  against the freshest draft first: a stale id must be inert rather than
-   *  mint an answer-key entry for nothing. */
-  const setTargetPosition = (targetId: string, point: PlacePoint | null) => {
+   *  mint an answer-key entry for an item that no longer exists. */
+  const scheduleCorrectAnswer = (itemId: ItemId | undefined, point: PlacePoint) => {
+    if (!itemId) return;
     editor.updateSlideContent((prev) => {
-      if (!prev.items.some((item) => item.id === targetId)) return {};
-      if (point == null) {
-        const { [targetId]: _dropped, ...rest } = prev.correctPositions;
-        return { correctPositions: rest };
-      }
+      if (!prev.items.some((item) => item.id === itemId)) return {};
       return {
         correctPositions: {
           ...prev.correctPositions,
-          [targetId]: { x: clamp01(point.x), y: clamp01(point.y) },
+          [itemId]: { x: clamp01(point.x), y: clamp01(point.y) },
         },
       };
+    });
+  };
+
+  const commitCorrectAnswer = (itemId: ItemId | undefined, point: PlacePoint) => {
+    if (!itemId) return;
+    scheduleCorrectAnswer(itemId, point);
+    editor.flush();
+  };
+
+  const clearCorrectAnswer = (itemId: ItemId | undefined) => {
+    if (!itemId) return;
+    editor.updateSlideContent((prev) => {
+      const { [itemId]: _dropped, ...rest } = prev.correctPositions;
+      return { correctPositions: rest };
     });
     editor.flush();
   };
 
-  const setTolerance = (value: number) => {
-    const clamped = Math.min(PLACE_TOLERANCE_MAX, Math.max(PLACE_TOLERANCE_MIN, value));
+  const getIsScorable = (itemId: ItemId) => content?.correctPositions[itemId] != null;
+
+  /**
+   * Only a placed target can be toggled off here: an unplaced one has no point
+   * to seed that the author did not choose, so the author surface arms it and
+   * the press on the image names the point (mirrors Grid).
+   */
+  const toggleScorability = (itemId: ItemId) => {
+    if (!getIsScorable(itemId)) return;
+    clearCorrectAnswer(itemId);
+  };
+
+  const tolerance = content?.tolerance ?? PLACE_TOLERANCE_DEFAULT;
+
+  const setTolerance: Dispatch<SetStateAction<number>> = (value) => {
+    const next = typeof value === "function" ? value(tolerance) : value;
+    const clamped = Math.min(PLACE_TOLERANCE_MAX, Math.max(PLACE_TOLERANCE_MIN, next));
     editor.updateSlideContent({ tolerance: clamped });
     editor.flush();
   };
 
-  return {
-    canRemove: bank.canRemove,
-    question,
-    schedulePrompt,
+  const state: QuestionState<"PLACE_ON_IMAGE"> = {
+    canAddItem: bank.canAdd,
+    canRemoveItem: bank.canRemove,
+    displayResultsAsPercentage:
+      slide?.settings?.answerSettings?.displayResultsAsPercentage ?? false,
+  };
+
+  const actions: QuestionActions<"PLACE_ON_IMAGE"> = {
     flush: editor.flush,
+    scheduleQuestionPrompt,
     setImage,
-    canAddTarget: bank.canAdd,
-    addTarget,
+    addItem: () => {
+      bank.addItem();
+    },
+    addItemAtPoint,
+    removeItem: bank.removeItem,
+    scheduleItemLabel: bank.scheduleItemLabel,
+    setItemColor: bank.setItemColor,
+    setItemImage: bank.setItemImage,
     handleItemDragEnd: bank.handleItemDragEnd,
-    setTargetPosition,
-    removeTarget: bank.removeItem,
-    scheduleTargetLabel: bank.scheduleItemLabel,
-    setTargetColor: bank.setItemColor,
-    setTargetImage: bank.setItemImage,
+    scheduleCorrectAnswer,
+    commitCorrectAnswer,
+    clearCorrectAnswer,
+    getIsScorable,
+    toggleScorability,
+    tolerance,
     setTolerance,
   };
+
+  return { question, state, actions };
 };
 
 export {

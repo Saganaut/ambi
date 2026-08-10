@@ -134,11 +134,11 @@ describe("buildDefaultContent(PLACE_ON_IMAGE)", () => {
 });
 
 describe("usePlaceOnImageEditor target ops", () => {
-  it("addTarget(point) mints an item already placed at the clamped point", async () => {
+  it("addItemAtPoint mints an item already placed at the clamped point", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.addTarget({ x: 1.4, y: -0.2 });
+      result.current.actions.addItemAtPoint({ x: 1.4, y: -0.2 });
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -158,11 +158,11 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(content?.tolerance).toBe(0.08);
   });
 
-  it("addTarget() with no point appends an UNPLACED item — no answer-key entry", async () => {
+  it("addItem appends an UNPLACED item — no answer-key entry", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.addTarget();
+      result.current.actions.addItem();
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -177,11 +177,11 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(content?.correctPositions[added?.id ?? ""]).toBeUndefined();
   });
 
-  it("setTargetPosition writes a clamped normalized point to only the addressed key", async () => {
+  it("commitCorrectAnswer writes a clamped normalized point to only the addressed key", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.setTargetPosition("target_a", { x: -0.4, y: 1.2 });
+      result.current.actions.commitCorrectAnswer("target_a", { x: -0.4, y: 1.2 });
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -194,11 +194,11 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(content?.items).toEqual(placeContent.items);
   });
 
-  it("setTargetPosition(id, null) drops only that item's entry and leaves the item in the bank", async () => {
+  it("clearCorrectAnswer drops only that item's entry and leaves the item in the bank", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.setTargetPosition("target_a", null);
+      result.current.actions.clearCorrectAnswer("target_a");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -208,13 +208,13 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(content?.correctPositions).toEqual({ target_b: { x: 0.85, y: 0.3 } });
   });
 
-  it("setTargetPosition(staleId, null) mints nothing and drops nothing", async () => {
+  it("clearCorrectAnswer with a stale id mints nothing and drops nothing", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.setTargetPosition("target_gone", null);
+      result.current.actions.clearCorrectAnswer("target_gone");
       // A write that does land, so the assertions read a real request body.
-      result.current.setTargetColor("target_a", "#ff8800");
+      result.current.actions.setItemColor("target_a", "#ff8800");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -224,22 +224,22 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(content?.items.map((item) => item.id)).toEqual(["target_a", "target_b"]);
   });
 
-  it("removeTarget drops only the addressed item", async () => {
+  it("removeItem drops only the addressed item", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.removeTarget("target_a");
+      result.current.actions.removeItem("target_a");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
     expect(placeContentOf(lastPutBody)?.items).toEqual([placeContent.items[1]]);
   });
 
-  it("removeTarget takes the item's answer-key entry with it", async () => {
+  it("removeItem takes the item's answer-key entry with it", async () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.removeTarget("target_a");
+      result.current.actions.removeItem("target_a");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -253,8 +253,8 @@ describe("usePlaceOnImageEditor target ops", () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.scheduleTargetLabel("target_a", "Rivendell");
-      result.current.flush();
+      result.current.actions.scheduleItemLabel("target_a", "Rivendell");
+      result.current.actions.flush();
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     let items = placeContentOf(lastPutBody)?.items;
@@ -262,13 +262,13 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(items?.[1].label).toBeUndefined();
 
     act(() => {
-      result.current.setTargetColor("target_b", "#ff8800");
+      result.current.actions.setItemColor("target_b", "#ff8800");
     });
     await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.items[1].color).toBe("#ff8800"));
 
     const image = { external: true, externalSrc: "https://example.test/rivendell.png" };
     act(() => {
-      result.current.setTargetImage("target_a", image);
+      result.current.actions.setItemImage("target_a", image);
     });
     await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.items[0].image).toEqual(image));
 
@@ -321,7 +321,7 @@ describe("usePlaceOnImageEditor target ops", () => {
     expect(targets?.[1]).toMatchObject({ x: 0.85, y: 0.3 });
 
     act(() => {
-      result.current.setTargetPosition(mintedId, { x: 0.4, y: 0.6 });
+      result.current.actions.commitCorrectAnswer(mintedId, { x: 0.4, y: 0.6 });
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -339,9 +339,9 @@ describe("usePlaceOnImageEditor target ops", () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.setTargetPosition("target_gone", { x: 0.4, y: 0.6 });
-      result.current.setTargetColor("target_gone", "#ff8800");
-      result.current.removeTarget("target_gone");
+      result.current.actions.commitCorrectAnswer("target_gone", { x: 0.4, y: 0.6 });
+      result.current.actions.setItemColor("target_gone", "#ff8800");
+      result.current.actions.removeItem("target_gone");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -356,12 +356,12 @@ describe("usePlaceOnImageEditor target ops", () => {
     const result = await renderUsePlaceOnImageEditor();
 
     act(() => {
-      result.current.setTolerance(0.9);
+      result.current.actions.setTolerance(0.9);
     });
     await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.tolerance).toBe(0.5));
 
     act(() => {
-      result.current.setTolerance(0.001);
+      result.current.actions.setTolerance(0.001);
     });
     await vi.waitFor(() => expect(placeContentOf(lastPutBody)?.tolerance).toBe(0.02));
 

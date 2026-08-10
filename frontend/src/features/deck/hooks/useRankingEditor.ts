@@ -14,9 +14,12 @@
 // items are shuffled and the player drags them back into order. Rebuilding it
 // is folded into the bank's `toPatch`, the single funnel for every write the
 // bank makes, so the order mirror can never fall out of lockstep with `items`.
-import type { AppImage, RankItem } from "@deck/store/deckApi.gen";
-import type { DragEndEvent } from "@dnd-kit/react";
+import type { RankItem } from "@deck/store/deckApi.gen";
 
+import type {
+  QuestionActions,
+  QuestionState,
+} from "../components/DeckEditor/SlideContent/_shared/Item.types";
 import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import { buildDefaultRankItem } from "../utils/slideContent";
 import { useItemBankEditor } from "./useItemBankEditor";
@@ -41,29 +44,10 @@ interface RankingQuestionView {
 interface UseRankingEditorResult {
   /** The active Ranking slide as a flat view, or undefined until one is selected. */
   question: RankingQuestionView | undefined;
-
-  /** ── Question-level ──────────────────────────────────────────────────── */
-  /** Debounced prompt edit → persisted to `slide.title`. */
-  schedulePrompt: (html: string) => void;
-  /** Flush any pending debounced edit immediately (bind to blur). */
-  flush: () => void;
-  /** True while under {@link MAX_RANKING_ITEMS}. */
-  canAddItem: boolean;
-  /** Append a blank item (no-op at the max). */
-  addItem: () => void;
-  /** @dnd-kit drop handler for the item list — reorders and rewrites `correctOrder`. */
-  handleItemDragEnd: (event: DragEndEvent) => void;
-
-  /** ── Per-item (keyed by `item.id`) ───────────────────────────────────── */
-  /** True while above {@link MIN_RANKING_ITEMS} — same for every item. */
-  canRemove: boolean;
-  /** Debounced label edit. */
-  scheduleItemLabel: (itemId: string | undefined, label: string) => void;
-  /** Override the item's palette color (menu swatch / custom picker). Immediate. */
-  setItemColor: (itemId: string | undefined, color: string) => void;
-  /** Set or clear (empty AppImage) the item's image. Immediate. */
-  setItemImage: (itemId: string | undefined, image: AppImage) => void;
-  removeItem: (itemId: string | undefined) => void;
+  /** Capability flags: {@link MIN_RANKING_ITEMS} / {@link MAX_RANKING_ITEMS} bounds. */
+  state: QuestionState<"RANKING">;
+  /** `schedule*` debounces, `set*` is immediate. */
+  actions: QuestionActions<"RANKING">;
 }
 
 /** Item ids in list order, dropping any without an id (defensive: the load-time
@@ -98,27 +82,38 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
       }
     : undefined;
 
-  const schedulePrompt = (html: string) => editor.updateMetadata({ title: html });
+  const scheduleQuestionPrompt = (html: string) => editor.updateMetadata({ title: html });
 
-  // The public op takes no argument: the bank's born-placed hook is for kinds
-  // whose new row carries an answer-key entry, and Ranking's order covers it.
-  const addItem = () => {
-    bank.addItem();
+  /**
+   * The authored order is the whole answer key, so every item is always part
+   * of it: scorability is a constant, and toggling it per item is meaningless.
+   */
+  const getIsScorable = () => true;
+  const toggleScorability = () => undefined;
+
+  const state: QuestionState<"RANKING"> = {
+    canAddItem: bank.canAdd,
+    canRemoveItem: bank.canRemove,
+    displayResultsAsPercentage:
+      slide?.settings?.answerSettings?.displayResultsAsPercentage ?? false,
   };
 
-  return {
-    question,
-    schedulePrompt,
+  const actions: QuestionActions<"RANKING"> = {
     flush: editor.flush,
-    canAddItem: bank.canAdd,
-    addItem,
-    handleItemDragEnd: bank.handleItemDragEnd,
-    canRemove: bank.canRemove,
+    scheduleQuestionPrompt,
+    addItem: () => {
+      bank.addItem();
+    },
+    removeItem: bank.removeItem,
     scheduleItemLabel: bank.scheduleItemLabel,
     setItemColor: bank.setItemColor,
     setItemImage: bank.setItemImage,
-    removeItem: bank.removeItem,
+    handleItemDragEnd: bank.handleItemDragEnd,
+    getIsScorable,
+    toggleScorability,
   };
+
+  return { question, state, actions };
 };
 
 export { MAX_RANKING_ITEMS, MIN_RANKING_ITEMS, useRankingEditor };

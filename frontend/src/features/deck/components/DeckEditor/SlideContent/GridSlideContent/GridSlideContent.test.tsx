@@ -1,8 +1,8 @@
-// Covers the Grid bank row's target affordances, the one place Grid diverges
-// from the other placement banks: a grid has no centre cell to seed, so "Set
-// target" only ARMS the item (the cells' "Place here" buttons then name it) and
-// writes nothing, while "Clear target" on a placed item drops its answer-key
-// entry through the editor.
+// Covers the Grid bank row's scorability toggle, the one place Grid diverges
+// from the other placement banks: a grid has no centre cell to seed, so the
+// toggle on an unplaced item only ARMS it (the cells' "Place here" buttons then
+// name the cell) and writes nothing, while on a placed item it drops that
+// item's answer-key entry through the editor.
 import { configureStore } from "@reduxjs/toolkit";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -96,18 +96,23 @@ const renderGrid = async () => {
 const gridContentOf = (body: SlideRequest | undefined) =>
   body?.content?.contentType === "GRID" ? body.content : undefined;
 
+/** The bank rows are in item order, so the toggles are too. */
+const scorabilityToggles = () => screen.getAllByRole("button", { name: "Toggle scorability" });
+
 describe("GridSlideContent target affordances", () => {
-  it("shows the question mark on an unplaced item and the check on a placed one", async () => {
+  it("chips only the placed item into the matrix and counts it in the header", async () => {
     await renderGrid();
 
+    expect(screen.getByText("1 of 2 placed")).toBeInTheDocument();
+    // Fox is placed, so it has a chip in the matrix; Crab is bank-only.
     expect(
-      screen.getByRole("button", { name: "Clear the target position for target 1" }),
+      screen.getByRole("button", { name: "Item 1 (Fox) — drag to a cell" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Set a target position for target 2" }),
-    ).toBeInTheDocument();
-    // The placed row carries its cell name as trailing meta.
-    expect(screen.getByText("Forest × Small")).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Item 2 (Crab) — drag to a cell" }),
+    ).not.toBeInTheDocument();
+    // One bank row per item, placed or not.
+    expect(scorabilityToggles()).toHaveLength(2);
   });
 
   it("arms the item instead of seeding a target when setting one, writing nothing", async () => {
@@ -117,7 +122,7 @@ describe("GridSlideContent target affordances", () => {
     // Nothing is armed yet, so no cell offers to place anything.
     expect(screen.getAllByRole("button", { name: /^Place an item in/ })).not.toHaveLength(0);
 
-    await user.click(screen.getByRole("button", { name: "Set a target position for target 2" }));
+    await user.click(scorabilityToggles()[1]);
 
     // Every cell now offers to place Crab — the author names the cell, the row
     // never guesses one.
@@ -129,9 +134,7 @@ describe("GridSlideContent target affordances", () => {
     const user = userEvent.setup();
     await renderGrid();
 
-    await user.click(
-      screen.getByRole("button", { name: "Clear the target position for target 1" }),
-    );
+    await user.click(scorabilityToggles()[0]);
 
     await vi.waitFor(() => {
       expect(gridContentOf(lastPutBody)?.correctCells).toEqual({});

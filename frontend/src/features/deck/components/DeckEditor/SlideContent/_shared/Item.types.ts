@@ -1,6 +1,6 @@
 // oxlint-disable typescript/consistent-type-definitions
 import { AxisAxis, AxisEnd } from "@/features/deck/hooks/useAxisEditor";
-import { GridAxis } from "@/features/deck/hooks/useGridEditor";
+import { CellId, GridAxis } from "@/features/deck/hooks/useGridEditor";
 import {
   McqDataVisualization,
   PromptPlacement,
@@ -31,7 +31,6 @@ interface ResolvedImage {
   alt: string;
 }
 type Point = { x: number; y: number };
-type Cell = { row: number; column: number };
 export type ItemId = string;
 type ContinuousAxis = { kind: "continuous"; min: number; max: number; labels: [string, string] };
 type DiscreteAxis = { kind: "discrete"; labels: string[] };
@@ -70,7 +69,7 @@ interface ScalesItemDetail {
   highLabel: string;
 }
 
-// works for grid, place on image, axis.
+// works for place on image, axis.
 interface PlacementItemDetail {
   target?: {
     x: number;
@@ -78,10 +77,14 @@ interface PlacementItemDetail {
   };
 }
 
-// oxlint-disable-next-line typescript/no-empty-object-type
-interface RankingItemDetail {
-  doesImageSlotConfigMatchSlotId: string;
+/** Grid targets a matrix cell rather than a free point, so its target is a cell id. */
+interface GridItemDetail {
+  target?: CellId;
 }
+
+/** Order is the whole answer key, so a ranking row carries no per-item detail. */
+// oxlint-disable-next-line typescript/no-empty-object-type
+interface RankingItemDetail {}
 
 interface MatchingItemDetail {
   matchId?: string;
@@ -150,14 +153,14 @@ interface EditableItemByKind extends Record<
     actions: BaseItemActions & WithCorrectItemActions<number>;
   };
   PLACE_ON_IMAGE: {
-    detail: PlacementItemDetail;
+    detail: PlacementItemDetail & WithTolerance;
     actions: BaseItemActions & WithCorrectItemActions<Point>;
   };
   AXIS: {
     detail: PlacementItemDetail & WithTolerance;
     actions: BaseItemActions & WithCorrectItemActions<Point>;
   };
-  GRID: { detail: PlacementItemDetail; actions: BaseItemActions & WithCorrectItemActions<Point> };
+  GRID: { detail: GridItemDetail; actions: BaseItemActions & WithCorrectItemActions<CellId> };
   RANKING: { detail: RankingItemDetail; actions: BaseItemActions };
   MATCHING: { detail: MatchingItemDetail; actions: BaseItemActions };
   ALLOCATION: {
@@ -191,6 +194,14 @@ export interface QuestionBaseState {
   canRemoveItem: boolean;
   displayResultsAsPercentage: boolean;
 }
+
+interface QuestionStateByKind extends Record<SlideType, object> {
+  GRID: GridLabelCapability;
+}
+
+export type QuestionState<QKind extends SlideType = SlideType> = QKind extends SlideType
+  ? QuestionBaseState & QuestionStateByKind[QKind]
+  : never;
 
 interface WithItems {
   items: EditableItemContent[];
@@ -239,10 +250,25 @@ interface WithHandleItem {
   setItemImage: (optionId: string, image: AppImage) => void;
 }
 
+interface PlaceOnImageSpecificActions {
+  /** Swap the backing image players pin on. */
+  setImage: (image: AppImage) => void;
+  /** Append an item already targeted at `point`, in the write that appends it. */
+  addItemAtPoint: (point: Point) => void;
+}
+
 interface GridSpecificActions {
   addGridLabel: (axis: GridAxis) => void;
   removeGridLabel: (axis: GridAxis, index: number) => void;
   scheduleGridLabel: (axis: GridAxis, index: number, label: string) => void;
+  /** Append an item already targeted at `cell`, in the write that appends it. */
+  addItemAtCell: (cell: CellId) => void;
+}
+
+/** Whether the matrix can still grow or shrink along an axis. */
+export interface GridLabelCapability {
+  canAddGridLabel: (axis: GridAxis) => boolean;
+  canRemoveGridLabel: (axis: GridAxis) => boolean;
 }
 
 interface ScaleSpecificActions {
@@ -289,13 +315,16 @@ interface QuestionSpec extends Record<
   };
   PLACE_ON_IMAGE: {
     config: WithItems & Tolerant & { image: AppImage };
-    correct: Record<ItemId, Cell>;
-    actions: WithHandleItem & WithSetTolerance & CorrectAnswerActions<Point>;
+    correct: Record<ItemId, Point>;
+    actions: WithHandleItem &
+      WithSetTolerance &
+      PlaceOnImageSpecificActions &
+      CorrectAnswerActions<Point>;
   };
   GRID: {
     config: WithItems & { rows: RowLabel[]; cols: ColLabel[] };
-    correct: Record<ItemId, Cell>;
-    actions: WithHandleItem & GridSpecificActions;
+    correct: Record<ItemId, CellId>;
+    actions: WithHandleItem & GridSpecificActions & CorrectAnswerActions<CellId>;
   };
   MATCHING: { config: WithItems; correct: Record<ItemId, ItemId>; actions: WithHandleItem };
   MCQ: {
@@ -357,10 +386,25 @@ interface WithSetTolerance {
   tolerance: number;
 }
 
+/** Local mirrors of the scale's endpoints and their captions. */
+interface WithSetLabeledRange {
+  min: number;
+  setMin: Dispatch<SetStateAction<number>>;
+  max: number;
+  setMax: Dispatch<SetStateAction<number>>;
+  leftLabel: string;
+  setLeftLabel: Dispatch<SetStateAction<string>>;
+  rightLabel: string;
+  setRightLabel: Dispatch<SetStateAction<string>>;
+}
+
 interface SlideDraftByKind extends Record<SlideType, object> {
   MCQ: {};
   ALLOCATION: WithSetTolerance & WithSetTotalPoints;
   AXIS: WithSetTolerance & WithSetSelectedItem<ItemId>;
+  GRID: WithSetSelectedItem<ItemId>;
+  PLACE_ON_IMAGE: WithSetTolerance & WithSetSelectedItem<ItemId>;
+  SCALES: WithSetLabeledRange;
 }
 
 export type DraftByKind = {

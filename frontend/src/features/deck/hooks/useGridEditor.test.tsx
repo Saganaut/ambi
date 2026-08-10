@@ -2,11 +2,11 @@
 // useAxisEditor.test): the `correctCells` answer key is keyed only by ids of
 // live items and only by cells that exist — removing an item drops its entry,
 // removing a row/column drops entries in that lane and REINDEXES the lanes
-// behind it — and `addItem` seeds the new item's target in the same write when
-// given a cell, leaving it unplaced when not, with the lowest palette color
-// its siblings have not claimed (a stored fact, so reordering the bank can
-// never repaint it). Also pins the GRID default-content shape
-// `buildDefaultContent` mints.
+// behind it — and `addItemAtCell` seeds the new item's target in the same write
+// that appends it while `addItem` leaves it unplaced, both minted with the
+// lowest palette color its siblings have not claimed (a stored fact, so
+// reordering the bank can never repaint it). Also pins the GRID default-content
+// shape `buildDefaultContent` mints.
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
@@ -114,11 +114,11 @@ describe("buildDefaultContent(GRID)", () => {
 });
 
 describe("useGridEditor structural ops", () => {
-  it("addItem with a cell appends a fresh item already targeted at it", async () => {
+  it("addItemAtCell appends a fresh item already targeted at that cell", async () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.addItem("1,0");
+      result.current.actions.addItemAtCell("1,0");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -136,7 +136,7 @@ describe("useGridEditor structural ops", () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.addItem();
+      result.current.actions.addItem();
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -153,7 +153,7 @@ describe("useGridEditor structural ops", () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.removeItem("it_a");
+      result.current.actions.removeItem("it_a");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -166,7 +166,7 @@ describe("useGridEditor structural ops", () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.removeLabel("col", 1);
+      result.current.actions.removeGridLabel("col", 1);
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -180,7 +180,7 @@ describe("useGridEditor structural ops", () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.removeLabel("row", 0);
+      result.current.actions.removeGridLabel("row", 0);
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
 
@@ -190,18 +190,18 @@ describe("useGridEditor structural ops", () => {
     expect(content?.correctCells).toEqual({ it_c: "0,2" });
   });
 
-  it("setTargetCell assigns a cell and null clears it", async () => {
+  it("commitCorrectAnswer assigns a cell and clearCorrectAnswer drops it", async () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.setTargetCell("it_d", "1,1");
+      result.current.actions.commitCorrectAnswer("it_d", "1,1");
     });
     await vi.waitFor(() =>
       expect(gridContentOf(lastPutBody)?.correctCells["it_d"]).toBe("1,1"),
     );
 
     act(() => {
-      result.current.setTargetCell("it_b", null);
+      result.current.actions.clearCorrectAnswer("it_b");
     });
     await vi.waitFor(() =>
       expect(gridContentOf(lastPutBody)?.correctCells["it_b"]).toBeUndefined(),
@@ -212,7 +212,7 @@ describe("useGridEditor structural ops", () => {
     const result = await renderUseGridEditor();
 
     act(() => {
-      result.current.setItemColor("it_a", "#ff8800");
+      result.current.actions.setItemColor("it_a", "#ff8800");
     });
     await vi.waitFor(() => expect(lastPutBody).toBeDefined());
     let content = gridContentOf(lastPutBody);
@@ -222,7 +222,7 @@ describe("useGridEditor structural ops", () => {
 
     const image = { external: true, externalSrc: "https://example.test/whale.png" };
     act(() => {
-      result.current.setItemImage("it_c", image);
+      result.current.actions.setItemImage("it_c", image);
     });
     await vi.waitFor(() =>
       expect(gridContentOf(lastPutBody)?.items.find((item) => item.id === "it_c")?.image).toEqual(

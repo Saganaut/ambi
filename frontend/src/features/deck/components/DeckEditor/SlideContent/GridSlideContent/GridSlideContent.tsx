@@ -3,23 +3,18 @@
  * players drag items from a shuffled bank into cells of a labeled rows ×
  * columns grid.
  *
- * Layout (mirrors Axis and Place-on-Image):
- *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
- *   - "Grid" and "Items" cards sit side by side (wrapping on narrow
- *     containers) so the matrix and its bank read as one workspace.
- *   - "Grid" card: the matrix itself — column headers and row labels edited in
- *     place (hover one for its delete ×), "+" affordances to append a column
- *     or a row, and each cell holding the chips of the items targeted at it;
- *     the header holds the "N of M placed" counter.
- *   - "Items" card: one row per item in its resolved color (override or
- *     palette default, mirrored by the item's chip in the matrix), a placed
- *     one carrying its cell name as trailing meta plus the row's "answer set"
- *     check — an unplaced item shows the question mark the same row offers on
- *     Axis. The list IS the bank: an item lives here whether or not it is
- *     placed, and `correctCells` maps item id → "rowIndex,colIndex" for the
- *     placed ones. The row's toggle (and its menu's Set/Clear target entry)
- *     clears a placed item; on an unplaced one it only ARMS the item, because
- *     a grid has no centre cell to seed — the author then names the cell.
+ * Layout (mirrors Axis): the prompt at the top (stored on the slide title, like
+ * TEXT/MCQ), then two `SlideContentSection`s inside the shared `SlideContent`:
+ *   - The matrix section — column headers and row labels edited in place (hover
+ *     one for its delete ×), "+" affordances to append a column or a row, and
+ *     each cell holding the chips of the items targeted at it; its header
+ *     carries the "N of M placed" counter.
+ *   - The item-bank section — one shared `SortableItemBankRow` per item, fed by
+ *     `ItemToEditableGridItem`. The list IS the bank: an item lives here whether
+ *     or not it is placed, and `correctCells` maps item id → "rowIndex,colIndex"
+ *     for the placed ones. The row's scorability toggle clears a placed item; on
+ *     an unplaced one it only ARMS the item, because a grid has no centre cell
+ *     to seed — the author then names the cell.
  *
  * Placement has two inputs, both resolved here. Arm-then-click: selecting a
  * row arms that item, and a cell's "Place here" button places it — the
@@ -44,13 +39,21 @@ import { Fragment, type CSSProperties } from "react";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
-import { MAX_GRID_ITEMS, cellId, parseCell, useGridEditor } from "@deck/hooks/useGridEditor";
-import type { GridItem } from "@deck/store/deckApi.gen";
-import { AddItemCard, EmptySelect, ScoringFooter, SettingsCard, useSlideDraft } from "../_shared";
+import {
+  MAX_GRID_ITEMS,
+  cellId,
+  parseCell,
+  useGridEditor,
+  type CellId,
+  type GridBankItem,
+} from "@deck/hooks/useGridEditor";
+import { ItemToEditableGridItem } from "../AllocationSlideContent/ItemFormatters";
+import { AddItemCard, EmptySelect, ScoringFooter } from "../_shared";
+import { SortableItemBankRow } from "../_shared/BankItems/ItemBankRow";
+import type { SlideContentProps } from "../_shared/Item.types";
 import shared from "../_shared/_shared.module.css";
-import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
 import placement from "../_shared/placement/placement.module.css";
-import type { SlideContentProps } from "../slideContentProps";
+import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { GridAxisLabel } from "./GridAxisLabel";
 import { GridCellChip } from "./GridCellChip";
@@ -58,34 +61,40 @@ import { GridCellEditable } from "./GridCellEditable";
 import { GridPlacementGhost } from "./GridPlacementGhost";
 import styles from "./GridSlideContent.module.css";
 import { useGridCellPlacement } from "./useGridCellPlacement";
+import { useGridDraft } from "./useGridDraft";
 
 /** Display name for an axis label, falling back to its 1-based position. */
 const labelOr = (labels: string[], index: number, axisName: string): string =>
   labels[index]?.trim() || `${axisName} ${(index + 1).toString()}`;
 
 /** Display name for an item, falling back to its 1-based position. */
-const itemNameOf = (item: GridItem, index: number): string =>
+const itemNameOf = (item: GridBankItem, index: number): string =>
   item.label?.trim() || `Item ${(index + 1).toString()}`;
 
 const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useGridEditor(deckId, slideId);
   const { question } = editor;
   const openPicker = useGalleryPicker(deckId);
-  const composer = useSlideDraft(question);
+  const { prompt, setPrompt, openMenuId, setOpenMenuId, selectedItemId, setSelectedItemId } =
+    useGridDraft({ question });
 
   /** Move an item to a cell — or out of the matrix (null) — writing only a change. */
-  const assignCell = (itemId: string, cell: string | null) => {
+  const assignCell = (itemId: string, cell: CellId | null) => {
     const current = editor.question?.correctCells[itemId] ?? null;
     if (current === cell) return;
-    editor.setTargetCell(itemId, cell);
+    if (cell == null) {
+      editor.actions.clearCorrectAnswer(itemId);
+      return;
+    }
+    editor.actions.commitCorrectAnswer(itemId, cell);
   };
 
   const gesture = useGridCellPlacement({
-    armedItemId: composer.selectedItemId,
+    armedItemId: selectedItemId,
     onPlace: assignCell,
     onMoveChip: assignCell,
     onTapChip: (itemId) => {
-      composer.setSelectedItemId((held) => (held === itemId ? null : itemId));
+      setSelectedItemId((held) => (held === itemId ? null : itemId));
     },
   });
 
@@ -97,20 +106,15 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const fullyPlaced = items.length > 0 && placedCount === items.length;
 
   /** Human name of a cell id, e.g. "Forest × Small". */
-  const cellNameOf = (cell: string): string => {
+  const cellNameOf = (cell: CellId): string => {
     const { row, col } = parseCell(cell);
     return `${labelOr(rowLabels, row, "Row")} × ${labelOr(colLabels, col, "Column")}`;
   };
 
   // The armed item — the one a cell's "Place here" button would place.
-  const armedIndex = items.findIndex((item) => item.id === composer.selectedItemId);
+  const armedIndex = items.findIndex((item) => item.id === selectedItemId);
   const armedItem = armedIndex >= 0 ? items[armedIndex] : undefined;
   const armedItemName = armedItem ? itemNameOf(armedItem, armedIndex) : null;
-
-  const removeItem = (itemId: string | undefined) => {
-    editor.removeItem(itemId);
-    if (itemId && composer.selectedItemId === itemId) composer.setSelectedItemId(null);
-  };
 
   // The item whose ghost is in flight, if any — drawn under the pointer until
   // the gesture commits.
@@ -121,13 +125,13 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     <SlideWrapper
       prompt={{
         idBase: `grid-${question.id}`,
-        value: composer.prompt,
+        value: prompt,
         placeholder: "Ask players to sort the items into the grid…",
         onChange: (html) => {
-          composer.setPrompt(html);
-          editor.schedulePrompt(html);
+          setPrompt(html);
+          editor.actions.scheduleQuestionPrompt(html);
         },
-        onBlur: editor.flush,
+        onBlur: editor.actions.flush,
       }}
       footer={
         fullyPlaced ? (
@@ -140,16 +144,15 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
         )
       }
     >
-      <div className={shared.editorRow}>
-        <div className={shared.editorColumnWide}>
-          <SettingsCard
-            title="Grid"
-            action={
-              <span className={shared.placedCount}>
-                {placedCount} of {items.length} placed
-              </span>
-            }
-          >
+      <SlideContent>
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Grid</span>
+            <span className={shared.placedCount}>
+              {placedCount} of {items.length} placed
+            </span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
             {/* The placement surface; the pointer-free path is each cell's
                 "Place here" button. */}
             {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
@@ -167,25 +170,25 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   axis="col"
                   index={col}
                   value={label}
-                  canRemove={editor.canRemoveLabel("col")}
+                  canRemove={editor.state.canRemoveGridLabel("col")}
                   onScheduleLabel={(next) => {
-                    editor.scheduleLabel("col", col, next);
+                    editor.actions.scheduleGridLabel("col", col, next);
                   }}
-                  onFlush={editor.flush}
+                  onFlush={editor.actions.flush}
                   onRemove={() => {
-                    editor.removeLabel("col", col);
+                    editor.actions.removeGridLabel("col", col);
                   }}
                 />
               ))}
               <span className={styles.headerTrailer}>
-                {editor.canAddLabel("col") && (
+                {editor.state.canAddGridLabel("col") && (
                   <button
                     type="button"
                     className={styles.axisAdd}
                     aria-label="Add column"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => {
-                      editor.addLabel("col");
+                      editor.actions.addGridLabel("col");
                     }}
                   >
                     <PlusIcon className={styles.axisAddIcon} aria-hidden="true" />
@@ -200,13 +203,13 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                     axis="row"
                     index={row}
                     value={rowLabel}
-                    canRemove={editor.canRemoveLabel("row")}
+                    canRemove={editor.state.canRemoveGridLabel("row")}
                     onScheduleLabel={(next) => {
-                      editor.scheduleLabel("row", row, next);
+                      editor.actions.scheduleGridLabel("row", row, next);
                     }}
-                    onFlush={editor.flush}
+                    onFlush={editor.actions.flush}
                     onRemove={() => {
-                      editor.removeLabel("row", row);
+                      editor.actions.removeGridLabel("row", row);
                     }}
                   />
                   {colLabels.map((_, col) => {
@@ -221,7 +224,7 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                         hovered={gesture.drag?.value.cell === cell}
                         cellRef={gesture.registerCell(cell)}
                         onPlaceArmed={() => {
-                          if (composer.selectedItemId) assignCell(composer.selectedItemId, cell);
+                          if (selectedItemId) assignCell(selectedItemId, cell);
                         }}
                       >
                         {placed.map((item) => {
@@ -233,12 +236,10 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                               item={item}
                               index={index}
                               color={resolveDatumColor(item.color, index)}
-                              selected={itemId === composer.selectedItemId}
+                              selected={itemId === selectedItemId}
                               dragging={gesture.drag?.key === itemId}
                               onSelect={() => {
-                                composer.setSelectedItemId((held) =>
-                                  held === itemId ? null : itemId,
-                                );
+                                setSelectedItemId((held) => (held === itemId ? null : itemId));
                               }}
                               {...gesture.chipProps(itemId)}
                             />
@@ -250,14 +251,14 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   <span />
                 </Fragment>
               ))}
-              {editor.canAddLabel("row") && (
+              {editor.state.canAddGridLabel("row") && (
                 <button
                   type="button"
                   className={styles.rowAdd}
                   aria-label="Add row"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => {
-                    editor.addLabel("row");
+                    editor.actions.addGridLabel("row");
                   }}
                 >
                   <PlusIcon className={styles.axisAddIcon} aria-hidden="true" />
@@ -274,77 +275,46 @@ const GridSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                 clientY={gesture.drag.value.clientY}
               />
             )}
-          </SettingsCard>
-        </div>
+          </SlideContentSection.Body>
+        </SlideContentSection>
 
-        <div className={shared.editorColumnNarrow}>
-          <SettingsCard
-            title="Items"
-            action={
-              <span className={shared.cardHeaderHint}>
-                Select a row, then drag on the matrix to drop it in a cell.
-              </span>
-            }
-          >
-            <div className={shared.itemList}>
-              <DragDropWrapper onReorder={editor.handleItemDragEnd}>
-                {items.map((item, index) => {
-                  const cell = correctCells[item.id];
-                  return (
-                    <SortableItemBankRow
-                      type="PLACEMENT"
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      color={resolveDatumColor(item.color, index)}
-                      hasTarget={cell != null}
-                      selected={composer.selectedItemId === item.id}
-                      menuOpen={composer.openMenuId === item.id}
-                      canRemove={editor.canRemoveItem}
-                      onSelect={() => {
-                        composer.setSelectedItemId(item.id);
-                      }}
-                      onMenuOpenChange={(open) => {
-                        composer.setOpenMenuId(open ? item.id : null);
-                        if (open) composer.setSelectedItemId(item.id);
-                      }}
-                      onScheduleLabel={(label) => {
-                        editor.scheduleItemLabel(item.id, label);
-                      }}
-                      onFlush={editor.flush}
-                      onSetColor={(color) => {
-                        editor.setItemColor(item.id, color);
-                      }}
-                      onSetImage={(image) => {
-                        editor.setItemImage(item.id, image);
-                      }}
-                      onSetTarget={() => {
-                        composer.setSelectedItemId(item.id);
-                      }}
-                      onClearTarget={() => {
-                        editor.setTargetCell(item.id, null);
-                      }}
-                      onRemove={() => {
-                        removeItem(item.id);
-                      }}
-                      openPicker={openPicker}
-                    />
-                  );
-                })}
-                <AddItemCard
-                  label={
-                    editor.canAddItem ? "Add item" : `Maximum ${MAX_GRID_ITEMS.toString()} items`
-                  }
-                  disabled={!editor.canAddItem}
-                  onAdd={() => {
-                    editor.addItem();
-                  }}
+        <SlideContentSection>
+          <SlideContentSection.Header>
+            <span>Items</span>
+            <span className={shared.cardHeaderHint}>
+              Select a row, then drag on the matrix to drop it in a cell.
+            </span>
+          </SlideContentSection.Header>
+          <SlideContentSection.Body>
+            <DragDropWrapper onReorder={editor.actions.handleItemDragEnd}>
+              {items.map((item, index) => (
+                <SortableItemBankRow
+                  key={item.id}
+                  {...ItemToEditableGridItem(
+                    item,
+                    index,
+                    editor.actions,
+                    editor.state,
+                    openPicker,
+                    setOpenMenuId,
+                    openMenuId,
+                    selectedItemId,
+                    setSelectedItemId,
+                    correctCells,
+                  )}
                 />
-              </DragDropWrapper>
-            </div>
-          </SettingsCard>
-        </div>
-      </div>
+              ))}
+              <AddItemCard
+                label={
+                  editor.state.canAddItem ? "Add item" : `Maximum ${MAX_GRID_ITEMS.toString()} items`
+                }
+                disabled={!editor.state.canAddItem}
+                onAdd={editor.actions.addItem}
+              />
+            </DragDropWrapper>
+          </SlideContentSection.Body>
+        </SlideContentSection>
+      </SlideContent>
     </SlideWrapper>
   );
 };

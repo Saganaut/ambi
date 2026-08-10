@@ -2,39 +2,21 @@
  * Author surface for a Ranking slide.
  * Order IS the answer key, so there is nothing to set per row.
  */
-import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
 import { MAX_RANKING_ITEMS, useRankingEditor } from "@deck/hooks/useRankingEditor";
+import { AddItemCard, EmptySelect, SortableItemBankRow } from "../_shared";
+import { SlideContentProps } from "../_shared/Item.types";
+import { ItemToEditableRankingItem } from "../AllocationSlideContent/ItemFormatters";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
-import { AddItemCard, EmptySelect, useSlideDraft } from "../_shared";
-import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
+import { useRankingDraft } from "./useRankingDraft";
 
-interface RankingSlideContentProps {
-  deckId: string;
-  slideId: string;
-}
-
-const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
-  const {
-    question,
-    schedulePrompt,
-    flush,
-    canAddItem,
-    addItem,
-    handleItemDragEnd,
-    canRemove,
-    scheduleItemLabel,
-    setItemColor,
-    setItemImage,
-    removeItem,
-  } = useRankingEditor(deckId, slideId);
+const RankingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
+  const editor = useRankingEditor(deckId, slideId);
+  const { question } = editor;
+  const { prompt, setPrompt, openMenuId, setOpenMenuId } = useRankingDraft({ question });
   const openPicker = useGalleryPicker(deckId);
-  // The prompt mirror and which row's menu is open — at most one per slide.
-  // Focusing a row's label opens its menu (and thereby closes any other); the
-  // menu owns dismissal. Ranking arms no row, so `selectedItemId` goes unused.
-  const composer = useSlideDraft(question);
 
   if (!question) return <EmptySelect title="Ranking" />;
 
@@ -42,17 +24,16 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
     <SlideWrapper
       prompt={{
         idBase: `rank-${question.id}`,
-        value: composer.prompt,
+        value: prompt,
         placeholder: "How should players rank these?",
         onChange: (html: string) => {
-          composer.setPrompt(html);
-          schedulePrompt(html);
+          setPrompt(html);
+          editor.actions.scheduleQuestionPrompt(html);
         },
-        onBlur: flush,
+        onBlur: editor.actions.flush,
       }}
       footer={<p>Drag the grip to set the correct order — top is first.</p>}
     >
-      {" "}
       <SlideContent>
         <SlideContentSection>
           <SlideContentSection.Header>
@@ -60,42 +41,30 @@ const RankingSlideContent = ({ deckId, slideId }: RankingSlideContentProps) => {
             <span>top → bottom is the correct order</span>
           </SlideContentSection.Header>
           <SlideContentSection.Body>
-            <DragDropWrapper onReorder={handleItemDragEnd}>
-              {question.items.map((item, idx) => (
+            <DragDropWrapper onReorder={editor.actions.handleItemDragEnd}>
+              {question.items.map((item, index) => (
                 <SortableItemBankRow
-                  type="ranking"
                   key={item.id}
-                  item={item}
-                  index={idx}
-                  color={resolveDatumColor(item.color, idx)}
-                  menuOpen={composer.openMenuId === item.id}
-                  canRemove={canRemove}
-                  onMenuOpenChange={(open) => {
-                    composer.setOpenMenuId(open ? item.id : null);
-                  }}
-                  onScheduleLabel={(label) => {
-                    scheduleItemLabel(item.id, label);
-                  }}
-                  onFlush={flush}
-                  onSetColor={(next) => {
-                    setItemColor(item.id, next);
-                  }}
-                  onSetImage={(image) => {
-                    setItemImage(item.id, image);
-                  }}
-                  onRemove={() => {
-                    removeItem(item.id);
-                  }}
-                  openPicker={openPicker}
+                  {...ItemToEditableRankingItem(
+                    item,
+                    index,
+                    editor.actions,
+                    editor.state,
+                    openPicker,
+                    setOpenMenuId,
+                    openMenuId,
+                  )}
                 />
               ))}
-              {canAddItem && (
-                <AddItemCard
-                  label={canAddItem ? "Add item" : `Maximum ${MAX_RANKING_ITEMS.toString()} items`}
-                  disabled={!canAddItem}
-                  onAdd={addItem}
-                />
-              )}
+              <AddItemCard
+                label={
+                  editor.state.canAddItem
+                    ? "Add item"
+                    : `Maximum ${MAX_RANKING_ITEMS.toString()} items`
+                }
+                disabled={!editor.state.canAddItem}
+                onAdd={editor.actions.addItem}
+              />
             </DragDropWrapper>
           </SlideContentSection.Body>
         </SlideContentSection>

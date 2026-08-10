@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import type { AxisPoint, McqOption } from "@deck/store/deckApi.gen";
+import type { AxisItem, AxisPoint } from "@deck/store/deckApi.gen";
 
 import type {
   ItemId,
@@ -24,6 +24,9 @@ const AXIS_LABEL_MAX = 80;
 type AxisAxis = "x" | "y";
 type AxisEnd = "low" | "high";
 
+/** A bank item carrying the id its target point is keyed by. */
+type AxisBankItem = AxisItem & { id: string };
+
 /** Flattened, UI-facing view of the active Axis slide. */
 interface AxisQuestionView {
   id: string;
@@ -32,7 +35,7 @@ interface AxisQuestionView {
   xHighLabel: string;
   yLowLabel: string;
   yHighLabel: string;
-  items: McqOption[];
+  items: AxisBankItem[];
   correctPositions: Record<string, AxisPoint>;
   tolerance: number;
 }
@@ -174,4 +177,4 @@ export {
   MIN_AXIS_ITEMS,
   useAxisEditor,
 };
-export type { AxisAxis, AxisEnd, AxisQuestionView, UseAxisEditorResult };
+export type { AxisAxis, AxisBankItem, AxisEnd, AxisQuestionView, UseAxisEditorResult };

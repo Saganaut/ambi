@@ -6,20 +6,20 @@ import { useRef, useState } from "react";
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { formatScaleValue, positionToValue, valueToPosition } from "@/shared/utils/scaleValue";
-import { SCALES_STATEMENT_LABEL_MAX } from "@deck/hooks/useScalesEditor";
-import type { AppImage, ScaleItem } from "@deck/store/deckApi.gen";
+import { SCALES_STATEMENT_LABEL_MAX, type ScaleBankItem } from "@deck/hooks/useScalesEditor";
+import type { AppImage } from "@deck/store/deckApi.gen";
 import { AppImg } from "@components/Images/AppImg";
 import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@utils/image";
-import { ItemField, SortableItemCard, type Identified } from "../_shared";
+import { ItemField, SortableItemCard } from "../_shared";
 import styles from "./ScalesSlideContent.module.css";
 
 /** Arrow-key nudge, as a fraction of the span (the axis-board precedent). */
 const KEYBOARD_NUDGE_STEP = 0.02;
 
 interface ScaleStatementEditableProps {
-  statement: Identified<ScaleItem>;
+  statement: ScaleBankItem;
   sortIndex: number;
   menuOpen: boolean;
   canRemove: boolean;
