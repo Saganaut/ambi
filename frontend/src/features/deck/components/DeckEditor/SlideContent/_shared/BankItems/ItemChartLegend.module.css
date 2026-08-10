@@ -118,7 +118,7 @@
 
 .legend.below {
   width: 100%;
-  max-width: 12rem;
+  max-width: 16rem;
   flex-wrap: wrap;
   justify-content: center;
   row-gap: var(--gap-xxs);

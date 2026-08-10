@@ -3,29 +3,16 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
 import { numberToLetter } from "@/shared/utils/utils";
 import { AppImg } from "@components/Images/AppImg";
-import {
-  CheckIcon,
-  PlusCircleIcon,
-  QuestionMarkCircleIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { PlusCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { IconBtn } from "@ui/Buttons/IconBtn";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { EditableItem, SortableEditableItem } from "../Item.types";
 import { ItemField } from "../ItemField/ItemField";
+import { ScorableToggle } from "../ScorableToggle";
 import styles from "./ItemBankCard.module.css";
 
-/**
- * The editable card carries one handler the read-only chart segments don't:
- * clearing the option's image from the thumbnail itself. It stays optional (and
- * off `ChartSegmentRenderProps`) so the display-only chart renderers keep their
- * shared shape.
- */
-
 const ItemBankCard = (props: SortableEditableItem<"MCQ">) => {
-  //TODO: find ways to add this in here.
-
   const { item, actions, state, sortable, sourceIndex, detail } = props;
   const _sizePct = (detail.mockDistributionValue / detail.mockDistributionHighestValue) * 100;
   const sharePct =
@@ -99,31 +86,14 @@ const ItemBankCard = (props: SortableEditableItem<"MCQ">) => {
       <div className={styles.bottomRow}>
         <ProgressBar value={sharePct} color={item.color} />
         {displayAsPercentage && <span className={styles.percentage}>{sharePct}%</span>}
-        <>
-          {state.isScorable ? (
-            <IconBtn
-              fill="ghost"
-              size="xs"
-              icon={<CheckIcon />}
-              aria-label={"Toggle scorability"}
-              onClick={(e) => {
-                e.stopPropagation();
-                actions.toggleScorabilityForItem();
-              }}
-            />
-          ) : (
-            <IconBtn
-              fill="ghost"
-              size="xs"
-              icon={<QuestionMarkCircleIcon />}
-              aria-label={"Toggle scorability"}
-              onClick={(e) => {
-                e.stopPropagation();
-                actions.toggleScorabilityForItem();
-              }}
-            />
-          )}
-        </>
+
+        <ScorableToggle
+          isScorable={state.isScorable}
+          toggle={(e) => {
+            e.stopPropagation();
+            actions.toggleScorabilityForItem();
+          }}
+        />
       </div>
     </div>
   );

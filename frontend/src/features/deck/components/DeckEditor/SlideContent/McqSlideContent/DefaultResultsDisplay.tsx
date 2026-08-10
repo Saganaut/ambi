@@ -1,7 +1,7 @@
 import { useAnimatedChartData } from "@/shared/components/Charts/useAnimatedChartData";
 import { DragDropWrapper } from "@/shared/components/Wrappers/DragDropWrapper";
 import React from "react";
-import { CanAddOptionCard, SortableItemBankCard } from "../_shared/ItemBankCard/ItemBankCard";
+import { CanAddOptionCard, SortableItemBankCard } from "../_shared/BankItems/ItemBankCard";
 import { OptionToEditableMcqItem } from "../AllocationSlideContent/ItemFormatters";
 import styles from "./McqSlideContent.module.css";
 import { RenderMcqResultsDisplayOptions } from "./renderMcqResultsDisplay";

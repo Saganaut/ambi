@@ -1,4 +1,5 @@
-import { SortableItemChartLegend } from "@/features/deck/components/DeckEditor/SlideContent/_shared";
+import { AddItemCard } from "@/features/deck/components/DeckEditor/SlideContent/_shared";
+import { Orientation } from "@/features/deck/components/DeckEditor/SlideContent/_shared/Item.types";
 import { OptionToEditableMcqItem } from "@/features/deck/components/DeckEditor/SlideContent/AllocationSlideContent/ItemFormatters";
 import { RenderMcqResultsDisplayOptions } from "@/features/deck/components/DeckEditor/SlideContent/McqSlideContent/renderMcqResultsDisplay";
 import {
@@ -9,11 +10,12 @@ import { DragDropWrapper } from "../../Wrappers/DragDropWrapper";
 import { useAnimatedChartData } from "../useAnimatedChartData";
 import { withChartErrorBoundary } from "../withChartErrorBoundary";
 import styles from "./BarChart.module.css";
+import { BarChartItem } from "./BarChartItem";
 
 const BarChartInner = ({
   orientation,
   ...props
-}: RenderMcqResultsDisplayOptions & { orientation: "horizontal" | "vertical" }) => {
+}: RenderMcqResultsDisplayOptions & { orientation: Orientation }) => {
   const data = useAnimatedChartData(props.editor.question);
 
   if (props.editor.question == null || data == null) return <div>no question</div>;
@@ -45,39 +47,24 @@ const BarChartInner = ({
             <ul className={styles.bars}>
               <DragDropWrapper onReorder={props.editor.actions.handleItemDragEnd}>
                 {editableItems.map((editableItem) => {
-                  const value = editableItem.detail.mockDistributionValue;
-                  const sizePct = (value / max) * 100;
-                  const sharePct = denominator > 0 ? Math.round((value / denominator) * 100) : 0;
-
                   return (
-                    <li key={editableItem.item.id} className={styles.row}>
-                      <div className={styles.legendSlot}>
-                        <SortableItemChartLegend
-                          {...editableItem}
-                          placement={orientation === "vertical" ? "below" : "side"}
-                        />
-                      </div>
-                      <div className={styles.track}>
-                        <div
-                          className={styles.fill}
-                          style={
-                            {
-                              "--size": `${sizePct.toFixed(1)}%`,
-                              "--bar-color": editableItem.item.color,
-                            } as React.CSSProperties
-                          }
-                        />
-                      </div>
-                      <span className={styles.value}>
-                        {value}
-                        {editableItem.state.displayAsPercentage && denominator > 0 && (
-                          <span className={styles.share}> ({sharePct}%)</span>
-                        )}
-                      </span>
-                    </li>
+                    <BarChartItem
+                      key={editableItem.item.id}
+                      editableItem={editableItem}
+                      max={max}
+                      denominator={denominator}
+                      orientation={orientation}
+                    />
                   );
                 })}
-              </DragDropWrapper>
+              </DragDropWrapper>{" "}
+              {props.editor.state.canAddItem && (
+                <AddItemCard
+                  label={"Add option"}
+                  disabled={!props.editor.state.canAddItem}
+                  onAdd={props.editor.actions.addItem}
+                />
+              )}
             </ul>
           </div>
         </SlideContentSection.Body>

@@ -1,17 +1,3 @@
-/**
- * Author surface for an Axis slide (AxisContent) — a free-form 2D placement
- * round: players drag items anywhere on an X × Y plane whose axes carry
- * low/high endpoint labels.
- *
- * Grading is INSIDE_RADIUS (every keyed item must land within tolerance), so
- * the footer nudges until every item has a target — but only nudges: an empty
- * answer key is a legitimate collect-only opinion plane, so nothing blocks.
- * `scoreMode` has no authoring knob.
- *
- * Each item is one `SortableItemBankRow`, whose "Set target" entry seeds the
- * plane's centre — the pointer-free placement path — and "Clear target" drops
- * the point again.
- */
 import { resolveDatumColor } from "@/shared/components/Charts/optionPalette";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { DragDropWrapper } from "@components/Wrappers/DragDropWrapper";
@@ -21,24 +7,27 @@ import {
   MAX_AXIS_ITEMS,
   useAxisEditor,
 } from "@deck/hooks/useAxisEditor";
-import { EmptySelect, ScoringFooter, ToleranceField, useSlideDraft } from "../_shared";
+import { EmptySelect, ScoringFooter, ToleranceField } from "../_shared";
 import shared from "../_shared/_shared.module.css";
 import { AddItemCard } from "../_shared/AddItemCard/AddItemCard";
+import { SlideContentProps } from "../_shared/Item.types";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
-import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import { AxisPlaneEditor } from "./AxisPlaneEditor";
+import { useAxisDraft } from "./useAxisDraft";
 
 const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
   const editor = useAxisEditor(deckId, slideId);
   const { question } = editor;
   const openPicker = useGalleryPicker(deckId);
-  const composer = useSlideDraft(question);
+  const { prompt, tolerance, setPrompt, setTolerance, openMenuId, setOpenMenuId } = useAxisDraft({
+    question,
+  });
 
   if (!question) return <EmptySelect title="Axis" />;
 
-  const { items, correctPositions, tolerance } = question;
+  const { items, correctPositions } = question;
   const placedCount = items.filter((item) => correctPositions[item.id]).length;
   const fullyAssigned = items.length > 0 && placedCount === items.length;
 
@@ -55,10 +44,10 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
     <SlideWrapper
       prompt={{
         idBase: `axis-${question.id}`,
-        value: composer.prompt,
+        value: prompt,
         placeholder: "Ask players to place the items on the plane…",
         onChange: (html) => {
-          composer.setPrompt(html);
+          setPrompt(html);
           editor.schedulePrompt(html);
         },
         onBlur: editor.flush,
@@ -93,9 +82,9 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           <SlideContentSection.Body>
             <AxisPlaneEditor
               question={question}
-              selectedItemId={composer.selectedItemId}
+              selectedItemId={selectedItemId}
               onToggleSelect={(itemId) => {
-                composer.setSelectedItemId((held) => (held === itemId ? null : itemId));
+                setSelectedItemId((held) => (held === itemId ? null : itemId));
               }}
               onScheduleAxisLabel={editor.scheduleAxisLabel}
               onSetTargetPosition={editor.setTargetPosition}
@@ -118,14 +107,14 @@ const AxisSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   index={index}
                   color={resolveDatumColor(item.color, index)}
                   hasTarget={correctPositions[item.id] != null}
-                  selected={composer.selectedItemId === item.id}
-                  menuOpen={composer.openMenuId === item.id}
+                  selected={selectedItemId === item.id}
+                  menuOpen={openMenuId === item.id}
                   canRemove={editor.canRemoveItem}
                   onSelect={() => {
                     selectItem(item.id);
                   }}
                   onMenuOpenChange={(open) => {
-                    composer.setOpenMenuId(open ? item.id : null);
+                    setOpenMenuId(open ? item.id : null);
                     if (open) selectItem(item.id);
                   }}
                   onScheduleLabel={(label) => {

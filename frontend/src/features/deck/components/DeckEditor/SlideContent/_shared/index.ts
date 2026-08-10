@@ -1,6 +1,3 @@
-// Public surface for the reusable slide-editor primitives. Each per-kind
-// editor pulls everything it needs from this barrel so the import lines
-// stay short.
 export { AddItemCard } from "./AddItemCard/AddItemCard";
 export { ItemCard } from "./ItemCard";
 export { ItemField } from "./ItemField/ItemField";
@@ -15,21 +12,16 @@ export type { SortableItemCardProps } from "./SortableItemCard/SortableItemCard"
 // export { ImageBackingEditor } from "./ImageBackingEditor";
 export { EmptySelect } from "./EmptySelect";
 export { ScoringFooter } from "./ScoringFooter";
-export { useSlideDraft } from "./useSlideDraft";
-export type { ComposerQuestion, SlideDraft } from "./useSlideDraft";
 
-// ── Item-bank row (Axis, Grid, Ranking, Scales, Allocation, Place-on-Image) ──
 export { ItemBankRow, SortableItemBankRow } from "./ItemBankRow/ItemBankRow";
 
-// ── Item chart legend (the editable results charts' per-option row) ─────────
-export { ItemChartLegend, SortableItemChartLegend } from "./ItemChartLegend/ItemChartLegend";
+export { ItemChartLegend, SortableItemChartLegend } from "./BankItems/ItemChartLegend";
 export type {
   ItemChartLegendPlacement,
   ItemChartLegendProps,
   SortableItemChartLegendProps,
-} from "./ItemChartLegend/ItemChartLegend";
+} from "./BankItems/ItemChartLegend";
 
-// ── Placement kit (Axis, Place-on-Image, Grid) ──────────────────────────
 export type { Identified, NormalizedPoint, PlaceableItem } from "./placement/placement.types";
 export {
   clamp01,

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { SlideDraft, useSlideDraft } from "../components/DeckEditor/SlideContent/_shared";
-import { AllocationQuestionView } from "./useAllocationEditor";
+import { AllocationQuestionView } from "../../../../hooks/useAllocationEditor";
+import { SlideDraft } from "../_shared/Item.types";
+import { useSlideDraft } from "../_shared/useSlideDraft";
 
 export function useAllocationDraft({
   question,
@@ -8,7 +9,7 @@ export function useAllocationDraft({
   question?: AllocationQuestionView;
 }): SlideDraft<"ALLOCATION"> {
   const { prompt, setPrompt, openMenuId, setOpenMenuId, syncedFromId, setSyncedFromId } =
-    useSlideDraft(question?.id, question?.prompt ?? "");
+    useSlideDraft(question);
   const [totalPoints, setTotalPoints] = useState(question?.totalPointsToAllocate ?? 100);
   const [tolerance, setTolerance] = useState(question?.tolerancePerItem ?? 0);
 
@@ -29,5 +30,7 @@ export function useAllocationDraft({
     tolerance,
     setOpenMenuId,
     openMenuId,
+    syncedFromId,
+    setSyncedFromId,
   };
 }

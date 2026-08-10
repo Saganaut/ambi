@@ -1,4 +1,7 @@
-import { SortableItemChartLegend } from "@/features/deck/components/DeckEditor/SlideContent/_shared";
+import {
+  AddItemCard,
+  SortableItemChartLegend,
+} from "@/features/deck/components/DeckEditor/SlideContent/_shared";
 import { OptionToEditableMcqItem } from "@/features/deck/components/DeckEditor/SlideContent/AllocationSlideContent/ItemFormatters";
 import { RenderMcqResultsDisplayOptions } from "@/features/deck/components/DeckEditor/SlideContent/McqSlideContent/renderMcqResultsDisplay";
 import {
@@ -12,7 +15,8 @@ import styles from "./ParetoChart.module.css";
 
 const W = 100;
 const H = 60;
-const PAD = 6;
+const PAD_X = 0;
+const PAD_Y = 6;
 
 const ParetoChartInner = (props: RenderMcqResultsDisplayOptions) => {
   const data = useAnimatedChartData(props.editor.question);
@@ -43,9 +47,10 @@ const ParetoChartInner = (props: RenderMcqResultsDisplayOptions) => {
       (first, second) => second.detail.mockDistributionValue - first.detail.mockDistributionValue,
     );
 
-  const plotW = W - PAD * 2;
-  const plotH = H - PAD * 2;
-  const slot = plotW / Math.max(1, sorted.length);
+  const plotW = W - PAD_X * 2;
+  const plotH = H - PAD_Y * 2;
+  const slotCount = sorted.length + (props.editor.state.canAddItem ? 1 : 0);
+  const slot = plotW / Math.max(1, slotCount);
   const barW = slot * 0.6;
 
   let running = 0;
@@ -53,7 +58,7 @@ const ParetoChartInner = (props: RenderMcqResultsDisplayOptions) => {
     const value = editableItem.detail.mockDistributionValue;
     running += value;
     const cumPct = denominator > 0 ? running / denominator : 0;
-    const centerX = PAD + slot * sortedIndex + slot / 2;
+    const centerX = PAD_X + slot * sortedIndex + slot / 2;
     return {
       editableItem,
       value,
@@ -61,7 +66,7 @@ const ParetoChartInner = (props: RenderMcqResultsDisplayOptions) => {
       barX: centerX - barW / 2,
       barH: (value / max) * plotH,
       cumX: centerX,
-      cumY: H - PAD - cumPct * plotH,
+      cumY: H - PAD_Y - cumPct * plotH,
     };
   });
 
@@ -80,13 +85,19 @@ const ParetoChartInner = (props: RenderMcqResultsDisplayOptions) => {
                 role="img"
                 aria-label="Pareto chart"
               >
-                <line className={styles.axis} x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} />
+                <line
+                  className={styles.axis}
+                  x1={PAD_X}
+                  y1={H - PAD_Y}
+                  x2={W - PAD_X}
+                  y2={H - PAD_Y}
+                />
                 {bars.map((bar) => (
                   <rect
                     key={bar.editableItem.item.id}
                     className={styles.bar}
                     x={bar.barX}
-                    y={H - PAD - bar.barH}
+                    y={H - PAD_Y - bar.barH}
                     width={barW}
                     height={bar.barH}
                     style={{ fill: bar.editableItem.item.color }}
@@ -117,6 +128,16 @@ const ParetoChartInner = (props: RenderMcqResultsDisplayOptions) => {
                     <SortableItemChartLegend {...bar.editableItem} placement="below" />
                   </li>
                 ))}
+
+                {props.editor.state.canAddItem && (
+                  <li className={styles.label}>
+                    <AddItemCard
+                      label={"Add option"}
+                      disabled={!props.editor.state.canAddItem}
+                      onAdd={props.editor.actions.addItem}
+                    />
+                  </li>
+                )}
               </DragDropWrapper>
             </ul>
           </div>

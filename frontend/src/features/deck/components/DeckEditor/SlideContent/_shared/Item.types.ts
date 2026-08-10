@@ -12,7 +12,12 @@ import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { DragEndEvent } from "@dnd-kit/dom";
 import { Dispatch, Ref, SetStateAction } from "react";
-//TODO: Need to change this type name.
+
+export type Orientation = "horizontal" | "vertical";
+export interface SlideContentProps {
+  deckId: string;
+  slideId: string;
+}
 
 interface ItemContent<TImage> {
   id: string;
@@ -353,8 +358,9 @@ interface WithSetTolerance {
 }
 
 interface SlideDraftByKind extends Record<SlideType, object> {
-  MCQ: never;
+  MCQ: {};
   ALLOCATION: WithSetTolerance & WithSetTotalPoints;
+  AXIS: WithSetTolerance;
 }
 
 export type DraftByKind = {

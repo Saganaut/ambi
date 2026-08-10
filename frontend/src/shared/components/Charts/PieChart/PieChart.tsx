@@ -1,4 +1,7 @@
-import { SortableItemBankRow } from "@/features/deck/components/DeckEditor/SlideContent/_shared";
+import {
+  AddItemCard,
+  SortableItemBankRow,
+} from "@/features/deck/components/DeckEditor/SlideContent/_shared";
 import { OptionToEditableMcqItem } from "@/features/deck/components/DeckEditor/SlideContent/AllocationSlideContent/ItemFormatters";
 import { RenderMcqResultsDisplayOptions } from "@/features/deck/components/DeckEditor/SlideContent/McqSlideContent/renderMcqResultsDisplay";
 import {
@@ -65,10 +68,7 @@ const PieChartInner = ({
   return (
     <SlideContent>
       <SlideContentSection>
-        <SlideContentSection.Header></SlideContentSection.Header>
         <SlideContentSection.Body>
-          {/* <div className={styles.chart}>
-      <div className={styles.body}> */}
           <div className={styles.plot}>
             <svg
               className={styles.svg}
@@ -119,7 +119,6 @@ const PieChartInner = ({
         </SlideContentSection.Body>
       </SlideContentSection>{" "}
       <SlideContentSection>
-        <SlideContentSection.Header></SlideContentSection.Header>
         <SlideContentSection.Body>
           <ul className={styles.legend}>
             <DragDropWrapper onReorder={props.editor.actions.handleItemDragEnd}>
@@ -127,6 +126,13 @@ const PieChartInner = ({
                 <SortableItemBankRow key={option.item.id} {...option} />
               ))}
             </DragDropWrapper>
+            {props.editor.state.canAddItem && (
+              <AddItemCard
+                label={"Add option"}
+                disabled={!props.editor.state.canAddItem}
+                onAdd={props.editor.actions.addItem}
+              />
+            )}
           </ul>{" "}
         </SlideContentSection.Body>
       </SlideContentSection>

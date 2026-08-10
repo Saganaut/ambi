@@ -1,4 +1,7 @@
-import { SortableItemChartLegend } from "@/features/deck/components/DeckEditor/SlideContent/_shared";
+import {
+  AddItemCard,
+  SortableItemChartLegend,
+} from "@/features/deck/components/DeckEditor/SlideContent/_shared";
 import { OptionToEditableMcqItem } from "@/features/deck/components/DeckEditor/SlideContent/AllocationSlideContent/ItemFormatters";
 import { RenderMcqResultsDisplayOptions } from "@/features/deck/components/DeckEditor/SlideContent/McqSlideContent/renderMcqResultsDisplay";
 import {
@@ -37,7 +40,9 @@ const LineChartInner = (props: RenderMcqResultsDisplayOptions) => {
   });
 
   const max = Math.max(1, highestValue);
-  const span = Math.max(1, editableItems.length - 1);
+  const pointCount = editableItems.length + (props.editor.state.canAddItem ? 1 : 0);
+  const span = Math.max(1, pointCount - 1);
+  const addX = PAD + (editableItems.length / span) * (W - PAD * 2);
 
   const points = editableItems.map((editableItem, index) => {
     const value = editableItem.detail.mockDistributionValue;
@@ -54,7 +59,7 @@ const LineChartInner = (props: RenderMcqResultsDisplayOptions) => {
         <SlideContentSection.Body>
           <div
             className={styles.chart}
-            style={{ "--n": editableItems.length } as React.CSSProperties}
+            style={{ "--n": pointCount } as React.CSSProperties}
           >
             <div className={styles.valueRow}>
               {points.map((point) => (
@@ -111,6 +116,15 @@ const LineChartInner = (props: RenderMcqResultsDisplayOptions) => {
                   </div>
                 ))}
               </DragDropWrapper>
+              {props.editor.state.canAddItem && (
+                <div className={styles.controlsItem} style={{ left: `${addX.toFixed(2)}%` }}>
+                  <AddItemCard
+                    label={"Add option"}
+                    disabled={!props.editor.state.canAddItem}
+                    onAdd={props.editor.actions.addItem}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </SlideContentSection.Body>

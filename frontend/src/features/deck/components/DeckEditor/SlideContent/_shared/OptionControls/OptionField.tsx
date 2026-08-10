@@ -24,7 +24,7 @@ import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { useState, type HTMLProps } from "react";
-import { resolveOptionColor } from "../ItemBankCard/optionColor";
+import { resolveOptionColor } from "../BankItems/optionColor";
 import { CustomColorPanel } from "../OptionMenu/CustomColorPanel";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
 import { Label } from "./Label";

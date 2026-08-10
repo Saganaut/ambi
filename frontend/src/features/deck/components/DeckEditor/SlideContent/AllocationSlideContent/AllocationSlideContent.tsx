@@ -1,15 +1,11 @@
-import { useAllocationDraft } from "@/features/deck/hooks/useAllocationDraft";
+import { useAllocationDraft } from "@/features/deck/components/DeckEditor/SlideContent/AllocationSlideContent/useAllocationDraft";
 import { DragDropWrapper } from "@/shared/components/Wrappers/DragDropWrapper";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import {
-  ALLOCATION_TOTAL_MIN,
-  MAX_ALLOCATION_OPTIONS,
-  useAllocationEditor,
-} from "@deck/hooks/useAllocationEditor";
+import { ALLOCATION_TOTAL_MIN, useAllocationEditor } from "@deck/hooks/useAllocationEditor";
 import { AddItemCard, EmptySelect, ScoringFooter } from "../_shared";
+import { SlideContentProps } from "../_shared/Item.types";
 import { SortableItemBankRow } from "../_shared/ItemBankRow/ItemBankRow";
-import type { SlideContentProps } from "../slideContentProps";
 import { SlideContent, SlideContentSection } from "../SlideContentSection";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./AllocationSlideContent.module.css";
@@ -129,15 +125,13 @@ const AllocationSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   )}
                 />
               ))}
-              <AddItemCard
-                label={
-                  editor.state.canAddItem
-                    ? "Add option"
-                    : `Maximum ${MAX_ALLOCATION_OPTIONS.toString()} options`
-                }
-                disabled={!editor.state.canAddItem}
-                onAdd={editor.actions.addItem}
-              />
+              {editor.state.canAddItem && (
+                <AddItemCard
+                  label={"Add option"}
+                  disabled={!editor.state.canAddItem}
+                  onAdd={editor.actions.addItem}
+                />
+              )}
             </DragDropWrapper>
           </SlideContentSection.Body>
         </SlideContentSection>

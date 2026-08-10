@@ -1,23 +1,9 @@
-// MCQ → ChartDatum adapter. The single normalisation step between an MCQ's
-// options + per-option response counts and the shape every renderer consumes.
-// Used by the deck editor (with a synthetic sample distribution) and, later, by
-// the live session board (with the real round-result tally) — same function,
-// same output, so the preview an author sees matches the live render.
 import type { McqOption } from "@/shared/types/Elements.types";
 import { resolveImageUrl } from "@utils/image";
 import type { ChartDatum } from "../Chart.types";
 
-/** The option fields the MCQ adapter needs from the domain model. */
-export type McqOptionLike = McqOption;
-
-/**
- * Normalise an MCQ's options + a response tally into chart data, in author
- * order. Correct options are flagged for emphasis; each option's colour carries
- * through so charts can match the editor's option cards. `AppImage` is resolved
- * to a plain URL here so chart renderers never see domain-specific image types.
- */
 export const mcqToChartData = (
-  options: McqOptionLike[],
+  options: McqOption[],
   correctOptionIds: string[],
   distribution: Record<string, number>,
 ): ChartDatum[] => {
@@ -35,32 +21,28 @@ export const mcqToChartData = (
   }));
 };
 
-/**
- * A deterministic, believable response distribution for editor previews (there
- * are no real responses at authoring time). Deterministic so the preview is
- * stable across renders; weighted to descend by position only. Correctness is
- * deliberately NOT a factor here — it drives `highlight` in {@link mcqToChartData},
- * so folding it into the value too would make toggling an option correct resize
- * its bar/segment, which is confusing while authoring.
- */
 export const mcqSampleDistribution = (options: McqOption[]): Record<string, number> => {
   const out: Record<string, number> = {};
-  options.forEach((option, index) => {
-    out[option.id] = Math.max(1, 12 - index * 3);
-  });
+
+  for (const option of options) {
+    let hash = 0;
+    for (let i = 0; i < option.id.length; i++) {
+      hash = (hash << 5) - hash + option.id.charCodeAt(i);
+      hash |= 0;
+    }
+    const weight = (Math.abs(hash) % 12) + 1;
+    out[option.id] = weight;
+  }
+
   return out;
 };
-
 /**
  * A random preview distribution — each option gets a fresh integer in [0, max].
  * Used by {@link useAnimatedChartData} to drive the continuous-animation preview
  * (new values every few seconds). Same shape as {@link mcqSampleDistribution},
  * so it feeds straight into {@link mcqToChartData}.
  */
-export const mcqRandomDistribution = (
-  options: McqOptionLike[],
-  max = 10,
-): Record<string, number> => {
+export const mcqRandomDistribution = (options: McqOption[], max = 10): Record<string, number> => {
   const out: Record<string, number> = {};
   options.forEach((option) => {
     out[option.id] = Math.floor(Math.random() * (max + 1));

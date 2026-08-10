@@ -12,7 +12,6 @@ export interface McqSlideContentViewProps {
   openPicker: OpenGalleryPicker;
   editor: UseMcqEditorResult;
 }
-//We are only seperating content from view for MCQ slides - a bit awkward and perhaps uncessary.
 const McqSlideContentView = ({
   editor,
   openPicker,
@@ -21,7 +20,6 @@ const McqSlideContentView = ({
   const { question, actions } = editor;
   const noCorrectAnswerWarning = "Not setting a correct answer means this slide is not scoreable.";
   const effective = previewVisualization ?? question?.dataVisualization;
-  // const { data } = useAnimatedChartData(question, CONTINUOUS_ANIMATION);
   const { setPrompt, prompt, setOpenMenuId, openMenuId } = useMcqDraft({ question });
 
   if (!question) {
@@ -44,50 +42,8 @@ const McqSlideContentView = ({
 
   const hasCorrectAnswer = question.correctOptionIds.length > 0;
 
-  // const renderLabelWithMenu = (datum: ChartDatum) => (
-  //   <OptionField
-  //     option={datum}
-  //     paletteIndex={question.options.findIndex((option) => option.id === datum.id)}
-  //     canRemove={state.canRemoveItem}
-  //     isCorrect={actions.getIsScorable(datum.id)}
-  //     open={openMenuId === datum.id}
-  //     onOpenChange={(open) => {
-  //       setOpenMenuId(open ? datum.id : null);
-  //     }}
-  //     onToggleCorrect={() => {
-  //       actions.toggleScorability(datum.id);
-  //     }}
-  //     onScheduleText={(text: string) => {
-  //       actions.scheduleItemLabel(datum.id, text);
-  //     }}
-  //     onSetColor={(color: string) => {
-  //       actions.setItemColor(datum.id, color);
-  //     }}
-  //     onSetImage={(image: AppImage) => {
-  //       actions.setItemImage(datum.id, image);
-  //     }}
-  //     onRemove={() => {
-  //       actions.removeItem(datum.id);
-  //     }}
-  //     flush={actions.flush}
-  //     openPicker={openPicker}
-  //   />
-  // );
-
   if (question == null) return <p> no question</p>;
-  const _DISPLAY_AS_PERCANTAGE = false;
-  // const sharedProps = {
-  //   caption,
-  //   animateOnMount,
-  //   continuousAnimation,
-  //   data,
-  //   displayAsPercentage: _DISPLAY_AS_PERCANTAGE,
-  //   renderLabelWithMenu,
-  //   // renderMenu,
-  //   onReorder: editor.handleOptionDragEnd,
-  //   addOption: editor.addOption,
-  //   canAddOption: editor.actionscanAddOption,
-  // };
+
   return (
     <SlideWrapper
       prompt={{

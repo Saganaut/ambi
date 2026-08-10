@@ -6,11 +6,12 @@ import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
 import { numberToLetter } from "@/shared/utils/utils";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { CheckIcon, QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { EditableItem, SortableEditableItem } from "../Item.types";
 import { ItemField } from "../ItemField/ItemField";
+import { ScorableToggle } from "../ScorableToggle";
 import styles from "./ItemBankRow.module.css";
 import { ScaleTracker } from "./ScaleTracker";
 
@@ -155,32 +156,13 @@ const ItemBankRow = (props: SortableEditableItem) => {
       )}
 
       {kind !== "RANKING" && (
-        <>
-          {state.isScorable ? (
-            <IconBtn
-              fill="ghost"
-              size="xs"
-              icon={<CheckIcon />}
-              aria-label={"Toggle scorability"}
-              onClick={(e) => {
-                // Clicking anywhere on the row arms it — this toggle must not.
-                e.stopPropagation();
-                actions.toggleScorabilityForItem();
-              }}
-            />
-          ) : (
-            <IconBtn
-              fill="ghost"
-              size="xs"
-              icon={<QuestionMarkCircleIcon />}
-              aria-label={"Toggle scorability"}
-              onClick={(e) => {
-                e.stopPropagation();
-                actions.toggleScorabilityForItem();
-              }}
-            />
-          )}
-        </>
+        <ScorableToggle
+          isScorable={state.isScorable}
+          toggle={(e) => {
+            e.stopPropagation();
+            actions.toggleScorabilityForItem();
+          }}
+        />
       )}
       {/* // Drag icon, always at the end */}
       <span

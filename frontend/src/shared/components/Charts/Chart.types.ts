@@ -1,3 +1,4 @@
+import { Orientation } from "@/features/deck/components/DeckEditor/SlideContent/_shared/Item.types";
 import type { DragEndEvent } from "@dnd-kit/react";
 import type { ReactNode } from "react";
 
@@ -30,7 +31,7 @@ export interface ChartProps {
   /** Pie/Donut only — full-radius pie vs. ring. Defaults to "pie". */
   variant?: "pie" | "donut";
   /** Bar only — bar growth direction. Defaults to "horizontal". */
-  orientation?: "horizontal" | "vertical";
+  orientation?: Orientation;
   /** Append a new option — drives the hover-revealed "+" affordance. */
   addOption?: () => void;
   /** True while another option may be added (under the option cap). */
@@ -67,17 +68,3 @@ export type ChartType =
   | "DIVERGING_BAR"
   | "IMAGE_OVERLAY"
   | "NONE";
-
-export interface ChartSegmentRenderProps {
-  datum: ChartDatum;
-  sortIndex: number;
-  displayAsPercentage: boolean;
-  denominator: number;
-  highestValue?: number;
-  isCorrect?: boolean;
-  canAddOption?: boolean;
-  addOption?: () => void;
-  renderLabelWithMenu?: (datum: ChartDatum) => ReactNode;
-  renderMenu?: (datum: ChartDatum, menuAlign?: MenuAlign) => ReactNode;
-  onReorder?: (event: DragEndEvent) => void;
-}
