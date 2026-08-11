@@ -119,8 +119,10 @@ The chart layer largely exists. `ChartDatum` is already the normalized shape,
 `registry.ts` already maps slide type → supported charts + adapter, and the
 family covers bar, pie, line, Pareto, dot plot, histogram, and word cloud.
 
-The dependency is honest and worth stating plainly: today **only MCQ is wired
-end to end**, and each additional type needs the five-step wiring described in
+The dependency is honest and worth stating plainly: today **MCQ, AXIS and
+PLACE_ON_IMAGE are wired end to end** (in the deck editor's canvas, not yet in
+this dashboard's own read surface), and each remaining type needs the
+five-step wiring described in
 [results-visualization](../results-visualization.md#the-pipeline) — backend
 aggregation, adapter, registry entry, picker metadata, dispatcher case. Step one
 of those five is exactly what [PRD 0](00-data-foundations.md) delivers, and the
@@ -128,11 +130,12 @@ remaining four are needed for the in-session reveal charts regardless of whether
 this dashboard ships. **That work is shared cost, not dashboard cost**, but it
 is on this PRD's critical path and should be scheduled as such.
 
-`HEATMAP`, `DIVERGING_BAR` and `IMAGE_OVERLAY` are still `PlaceholderChart`
-stubs. Grid, axis, and place-on-image cards will render as placeholders until
-those are built; the dashboard should degrade to a summary table rather than
-showing a "coming soon" tile in a results view a user is about to show their
-boss.
+`DIVERGING_BAR` is still a `PlaceholderChart` stub. `HEATMAP` now renders for
+real for AXIS and PLACE_ON_IMAGE, but Grid and Matching's `resultsRegistry`
+entries are still `implemented: false`, so their cards will render as
+placeholders until those are wired; the dashboard should degrade to a summary
+table rather than showing a "coming soon" tile in a results view a user is
+about to show their boss.
 
 ## Acceptance criteria
 

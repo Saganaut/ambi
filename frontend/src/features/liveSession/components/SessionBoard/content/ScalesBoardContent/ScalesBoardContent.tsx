@@ -24,7 +24,7 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import type { BoardQuestionMode } from "../../resolveBoardStage";
 import { formatScaleValue, positionToValue } from "@/shared/utils/scaleValue";
 import { AppImg } from "@components/Images/AppImg";
-import { AXIS_TALLY_BUCKETS, tallyTotalsBySlot } from "../answerTally";
+import { SCALES_TALLY_BUCKETS, tallyTotalsBySlot } from "../answerTally";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { indexedLabel, labelOrFallback } from "../itemLabels";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
@@ -88,8 +88,8 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
 
   const showCounts = mode === "results" || mode === "liveResults";
   // Per-statement bucket arrays, indexed by the quantized position the backend
-  // keyed on: SCALES shares the AXIS bucket resolution (one constant there).
-  const totals = showCounts ? tallyTotalsBySlot(optionCounts, AXIS_TALLY_BUCKETS) : {};
+  // keyed on: a strip has its own, coarser resolution than the placement grid.
+  const totals = showCounts ? tallyTotalsBySlot(optionCounts, SCALES_TALLY_BUCKETS) : {};
 
   // The viewer's own scored outcome, once results are revealed.
   const myOutcome =
@@ -153,7 +153,7 @@ const ScalesBoardContent = ({ slide, mode, interactive }: ScalesBoardContentProp
                   )}
                   {showCounts && (
                     <div className={styles.heatStrip}>
-                      {Array.from({ length: AXIS_TALLY_BUCKETS }, (_, bucket) => {
+                      {Array.from({ length: SCALES_TALLY_BUCKETS }, (_, bucket) => {
                         const total = bucketArr?.[bucket] ?? 0;
                         return (
                           <span

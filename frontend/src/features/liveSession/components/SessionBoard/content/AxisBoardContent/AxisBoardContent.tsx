@@ -4,7 +4,7 @@
 //                   Submit posts the whole placement map (AxisAnswer) and may be
 //                   re-sent until the round locks (the backend forces
 //                   maxSelections=0, last write wins).
-//   - liveResults → a 10×10 translucent heat overlay aggregated from the
+//   - liveResults → a translucent heat overlay aggregated from the
 //                   quantized `itemId@bx,by` tally keys, plus the viewer's own
 //                   placed chips; still answerable pre-lock.
 //   - results     → heat stays visible and the viewer's own outcome (correct /
@@ -39,7 +39,7 @@ import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "@utils/placementGeometry";
 import type { AxisItemView, SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { AXIS_TALLY_BUCKETS, parseBucketKey, tallyTotalsByBucket } from "../answerTally";
+import { PLACEMENT_TALLY_BUCKETS, parseBucketKey, tallyTotalsByBucket } from "../answerTally";
 import { BoardBank } from "../BoardBank/BoardBank";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
@@ -150,10 +150,10 @@ const AxisBoardContent = ({ slide, mode, interactive }: AxisBoardContentProps) =
         className={styles.heatCell}
         style={
           {
-            left: `${((bucketX / AXIS_TALLY_BUCKETS) * 100).toString()}%`,
-            top: `${((1 - (bucketY + 1) / AXIS_TALLY_BUCKETS) * 100).toString()}%`,
-            width: `${(100 / AXIS_TALLY_BUCKETS).toString()}%`,
-            height: `${(100 / AXIS_TALLY_BUCKETS).toString()}%`,
+            left: `${((bucketX / PLACEMENT_TALLY_BUCKETS) * 100).toString()}%`,
+            top: `${((1 - (bucketY + 1) / PLACEMENT_TALLY_BUCKETS) * 100).toString()}%`,
+            width: `${(100 / PLACEMENT_TALLY_BUCKETS).toString()}%`,
+            height: `${(100 / PLACEMENT_TALLY_BUCKETS).toString()}%`,
             "--heat": total / highestTotal,
           } as CSSProperties
         }

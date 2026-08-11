@@ -38,7 +38,7 @@ import { MarkerBadge } from "@ui/MarkerBadge/MarkerBadge";
 import markerStyles from "@ui/MarkerBadge/MarkerBadge.module.css";
 import { toRenderStyle } from "@utils/placementGeometry";
 import type { BucketCoordinates } from "../answerTally";
-import { PLACE_TALLY_BUCKETS, parseBucketKey, tallyTotalsByBucket } from "../answerTally";
+import { PLACEMENT_TALLY_BUCKETS, parseBucketKey, tallyTotalsByBucket } from "../answerTally";
 import { BoardBank } from "../BoardBank/BoardBank";
 import { BoardSubmitBar } from "../BoardSubmitBar/BoardSubmitBar";
 import { DraggableChip } from "../DraggableChip/DraggableChip";
@@ -207,8 +207,8 @@ const PlaceOnImageBoardContent = ({
               className={styles.scatterDot}
               style={
                 {
-                  left: `${(((dot.bucketX + 0.5) / PLACE_TALLY_BUCKETS) * 100).toString()}%`,
-                  top: `${(((dot.bucketY + 0.5) / PLACE_TALLY_BUCKETS) * 100).toString()}%`,
+                  left: `${(((dot.bucketX + 0.5) / PLACEMENT_TALLY_BUCKETS) * 100).toString()}%`,
+                  top: `${(((dot.bucketY + 0.5) / PLACEMENT_TALLY_BUCKETS) * 100).toString()}%`,
                   "--dot-share": dot.count / maxCount,
                 } as CSSProperties
               }

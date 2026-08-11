@@ -1,0 +1,206 @@
+/* The Likert diverging bar: a stack of statement rows sharing one centre
+   baseline, each row's arms fanning out to a shared scale.
+
+   The five bucket fills are a diverging ramp, not a categorical palette: the
+   two theme hues (--role-red / --role-blue, the documented dual-purpose chart
+   accents) name which side of the baseline a rating fell on, chroma grows
+   outward from a neutral middle, and each step is derived relative to its role
+   colour so both appearances keep every fill >= 3:1 on the canvas. */
+
+.plot {
+  /* Row template, declared once so the axis line up under the tracks. */
+  --diverging-row-columns: auto 3rem 1fr 3rem;
+
+  /* Diverging ramp, low -> high. Derived from the role hue rather than fixed
+     steps so a curated theme recolours the arms with it. */
+  --diverging-low-strong: oklch(from var(--role-red) calc(l - 0.06) c h);
+  --diverging-low-soft: oklch(from var(--role-red) calc(l + 0.08) calc(c * 0.58) h);
+  --diverging-mid: oklch(from var(--role-muted-foreground) 52% c h);
+  --diverging-high-soft: oklch(from var(--role-blue) calc(l + 0.08) calc(c * 0.58) h);
+  --diverging-high-strong: oklch(from var(--role-blue) calc(l - 0.06) c h);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  width: 100%;
+  min-width: 0;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/* No row gap: the tracks butt together so the centre baseline reads as one
+   continuous line down the plot, and the bar's own height leaves the air. */
+.row {
+  display: grid;
+  grid-template-columns: var(--diverging-row-columns);
+  align-items: center;
+  gap: var(--gap-sm);
+  min-width: 0;
+}
+
+.armValue {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.armValueLow {
+  text-align: right;
+}
+
+.armValueHigh {
+  text-align: left;
+}
+
+.track {
+  position: relative;
+  height: 1.75rem;
+  min-width: 0;
+}
+
+.baseline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background-color: var(--border-subtle);
+}
+
+/* One side of a row, anchored on the baseline and grown from it on mount. The
+   segments sit innermost-first, so `row-reverse` on the low arm sends the first
+   one to the baseline and the last one to the rounded outer end. */
+.arm {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xxs);
+  transform: scaleX(0);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.armLow {
+  right: 50%;
+  flex-direction: row-reverse;
+  transform-origin: right center;
+}
+
+.armHigh {
+  left: 50%;
+  transform-origin: left center;
+}
+
+.arm.revealed {
+  transform: scaleX(1);
+}
+
+/* Bars are capped well under the 24px mark spec; the 2px gap in the surface
+   colour is what separates touching buckets, never a stroke. */
+.segment {
+  flex-basis: 0;
+  min-width: 0;
+  height: 1rem;
+}
+
+.armLow > .segment:last-child {
+  border-start-start-radius: var(--radius-sm);
+  border-end-start-radius: var(--radius-sm);
+}
+
+.armHigh > .segment:last-child {
+  border-start-end-radius: var(--radius-sm);
+  border-end-end-radius: var(--radius-sm);
+}
+
+.bucketLow {
+  background-color: var(--diverging-low-strong);
+}
+
+.bucketLowSoft {
+  background-color: var(--diverging-low-soft);
+}
+
+.bucketMid {
+  background-color: var(--diverging-mid);
+}
+
+.bucketHighSoft {
+  background-color: var(--diverging-high-soft);
+}
+
+.bucketHigh {
+  background-color: var(--diverging-high-strong);
+}
+
+/* The scale's own endpoints, under the ends of the track column. */
+.axis {
+  display: grid;
+  grid-template-columns: var(--diverging-row-columns);
+  gap: var(--gap-sm);
+}
+
+.axisEnds {
+  display: flex;
+  grid-column: 3;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.axisEnds > span {
+  max-width: 45%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bucketLegend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-xs) var(--gap-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.bucketLegendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+.bucketSwatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.sampleNote {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}

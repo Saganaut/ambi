@@ -6,9 +6,9 @@ coordinates, same tolerance-radius grading, with the image standing in for the
 labeled plane. Axis's doc treats PLACE_ON_IMAGE as its model precedent; this
 one covers what is specific to PLACE_ON_IMAGE.
 
-**Status: implemented (v1)** — model, grader, authoring surface, and the whole
-live pipeline (participant view, validation, board, pin tally, target reveal).
-The only gap is the post-round results chart; see [Gaps](#gaps).
+**Status: implemented (v1)** — model, grader, authoring surface, the whole live
+pipeline (participant view, validation, board, pin tally, target reveal), and
+the deck editor's results chart; see [Editor results chart](#editor-results-chart).
 
 ## Model
 
@@ -37,7 +37,7 @@ over every keyed item, an unkeyed item ignored rather than failed.
 - **Participant-safe view** — `PlaceOnImageConfigView` (`SlideView.placeOnImage`): the backing image's presigned `imageUrl` plus one `PlaceItemView(id, label, imageUrl, color)` per item. Never `correctPositions` or `tolerance`.
 - **Validation** — `LiveSessionAnswerService.validatePlaceOnImage`, mirroring `validateAxis`: at least one placement, every key an item id on the slide, every point finite and in `[0, 1]`. Validation is against *existence*, not against being graded.
 - **Resubmit** — the payload joins the [whole-answer resubmit override](../axis-slides/README.md#whole-answer-resubmit-override), so the backend accepts a resubmitted map. Freezing after the first submit is purely the board's own `lockOnSubmit: true` UI choice.
-- **Live tally** — pins quantize into a **`PLACE_TALLY_BUCKETS = 20`** grid, finer than Axis/Scales' shared 10, since the scatter reads over a backing image. One `itemId@bx,by` key per placement; otherwise the same pipeline Axis's [live tally section](../axis-slides/README.md#live-tally--quantized-buckets) describes.
+- **Live tally** — pins quantize into the same **`PLACEMENT_TALLY_BUCKETS = 20`** grid Axis uses (SCALES has its own, coarser `SCALES_TALLY_BUCKETS = 10` strip resolution). One `itemId@bx,by` key per placement; otherwise the same pipeline Axis's [live tally section](../axis-slides/README.md#live-tally--quantized-buckets) describes.
 - **Reveal** — `ResultsRevealed.placeTargets`: one `PlaceTargetView(itemId, x, y, radius)` per keyed item, walking `items` in authored order so disclosure order matches the bank. Geometry only — label, color and image are already on the config view, so the board resolves them by `itemId`. The snapshot carries the same list for a client joining mid-reveal.
 
 ## Editor UX
@@ -86,6 +86,6 @@ as the exact normalized ellipse the grader accepts with a non-interactive
 `MarkerBadge` at its centre, plus the viewer's own outcome banner. Projector
 mode is image + scatter/reveal only.
 
-## Gaps
+## Editor results chart
 
-- **No results chart.** `Charts/registry.ts` has `PLACE_ON_IMAGE: { supportedViz: ["IMAGE_OVERLAY", "HEATMAP", "NONE"], implemented: false }` — an image-aware renderer is still needed for the post-round view. The live board's scatter and target reveal already cover the in-session view; see [results-visualization](../results-visualization.md).
+`Charts/registry.ts` now has `PLACE_ON_IMAGE: { supportedViz: ["HEATMAP", "NONE"], implemented: true }` (the earlier `IMAGE_OVERLAY` option was dropped in favor of the heatmap). The deck editor's canvas can render a density heatmap over the backing image (`Charts/Heatmap/Heatmap.tsx`), toggled via the overlaid `ChartTypePicker` the same way as Axis. It is fed by a deterministic sample-density adapter (`Charts/adapters/placement.ts`), since authoring time has no real per-round pins; the choice isn't persisted on `PlaceOnImageContent` (it has no `dataVisualization` field) and instead lives transiently in `ResultsPreviewContext`, keyed by slide. The live board's own density scatter and target reveal (above) remain the in-session view and are unaffected by this; see [results-visualization](../results-visualization.md).

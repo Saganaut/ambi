@@ -12,11 +12,11 @@ import styles from "./ItemChartLegend.module.css";
 
 type ItemChartLegendPlacement = "below" | "side";
 
-type ItemChartLegendProps = SortableEditableItem<"MCQ"> & {
+type ItemChartLegendProps = SortableEditableItem & {
   placement: ItemChartLegendPlacement;
 };
 
-type SortableItemChartLegendProps = EditableItem<"MCQ"> & {
+type SortableItemChartLegendProps = EditableItem & {
   placement: ItemChartLegendPlacement;
 };
 

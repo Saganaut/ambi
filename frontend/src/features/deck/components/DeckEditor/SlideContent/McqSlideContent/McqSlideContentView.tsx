@@ -2,6 +2,7 @@ import { mcqSampleDistribution } from "@/shared/components/Charts/adapters/mcq";
 import { ChartType } from "@/shared/components/Charts/Chart.types";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { type UseMcqEditorResult } from "@deck/hooks/useMcqEditor";
+import { isMcqDataVisualization } from "@deck/utils/chartTypes";
 import { SlideWrapper } from "../SlideWrapper";
 import styles from "./McqSlideContent.module.css";
 import { renderMcqResultsDisplay } from "./renderMcqResultsDisplay";
@@ -19,7 +20,13 @@ const McqSlideContentView = ({
 }: McqSlideContentViewProps) => {
   const { question, actions } = editor;
   const noCorrectAnswerWarning = "Not setting a correct answer means this slide is not scoreable.";
-  const effective = previewVisualization ?? question?.dataVisualization;
+  // The preview rides the shared `ChartType` vocabulary, so a hover from another
+  // question type's picker is dropped rather than dispatched as MCQ's.
+  const previewed =
+    previewVisualization != null && isMcqDataVisualization(previewVisualization)
+      ? previewVisualization
+      : null;
+  const effective = previewed ?? question?.dataVisualization;
   const { setPrompt, prompt, setOpenMenuId, openMenuId } = useMcqDraft({ question });
 
   if (!question) {

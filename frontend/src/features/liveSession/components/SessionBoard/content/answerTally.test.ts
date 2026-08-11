@@ -4,8 +4,8 @@
 // out-of-range slots, zero and negative counts — is dropped rather than shaded.
 import { describe, it, expect } from "vitest";
 import {
-  AXIS_TALLY_BUCKETS,
-  PLACE_TALLY_BUCKETS,
+  PLACEMENT_TALLY_BUCKETS,
+  SCALES_TALLY_BUCKETS,
   parseBucketKey,
   tallyTotalsByBucket,
   tallyTotalsBySlot,
@@ -105,8 +105,8 @@ describe("parseBucketKey", () => {
 });
 
 describe("mirrored bucket resolutions", () => {
-  it("keeps the axis/scales and place-on-image grids at the backend's values", () => {
-    expect(AXIS_TALLY_BUCKETS).toBe(10);
-    expect(PLACE_TALLY_BUCKETS).toBe(20);
+  it("keeps the placement grid and the scales strip at the backend's values", () => {
+    expect(PLACEMENT_TALLY_BUCKETS).toBe(20);
+    expect(SCALES_TALLY_BUCKETS).toBe(10);
   });
 });

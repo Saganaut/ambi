@@ -1,7 +1,7 @@
 // Tests for the Axis board: tap-to-select from the bank + tap-at-point-to-place
 // on the plane (normalized, y-inverted coordinates), the numbered MarkerBadge
 // chips, submit gated on all items placed, resubmit-until-lock, pick-back-up,
-// arrow-key nudging, the 10×10 heat aggregation from the quantized itemId@bx,by
+// arrow-key nudging, the heat aggregation from the quantized itemId@bx,by
 // tally keys, the plane's own chrome (crosshair axis lines + the four endpoint
 // label pills overlaid inside its edges), and the read-only projected view. The
 // session connection and the live read model are mocked, with the read model

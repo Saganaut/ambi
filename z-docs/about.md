@@ -43,7 +43,7 @@ scaffold or schema only. Per-feature detail lives in [features](features/README.
 | Backgrounds, media, galleries | *Solid* — layered colour/image with inherit-override, cover images, gallery picker everywhere |
 | Settings hierarchy | *Solid* — points, answers, audience, invite: default → deck → slide, with "apply to deck" |
 | Collaboration & sharing | *Solid* — slide comments, deck reviews, ACLs (visibility, grants, org scoping, tags) |
-| Results charts | *Partial* — chart family and registry exist; only MCQ is wired end to end |
+| Results charts | *Partial* — chart family and registry exist; MCQ, AXIS and PLACE_ON_IMAGE are wired end to end |
 | Deck analytics | *Stub* — rollup records only, no repository, service, or caller |
 | Live session lifecycle | *Solid* — create, join, start, reconnect, heartbeat, end, cancel; Redis runtime, Mongo projection |
 | Rounds & phases | *Solid* — submit → locked → reveal; timers with pause/resume and host-disconnect grace ([ADR 002](decisions/002-live-session-round-timers.md)) |

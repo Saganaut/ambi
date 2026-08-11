@@ -49,8 +49,8 @@ knob it cannot honor.
 ### Live tally — quantized buckets
 
 Exact coordinates cannot be histogram keys, so `AnswerTallyKeys.optionKeys`
-quantizes each placement into a 10 × 10 grid at key-derivation time — one
-`itemId@bx,by` key per placement, with `AXIS_TALLY_BUCKETS = 10`. Bucket
+quantizes each placement into a 20 × 20 grid at key-derivation time — one
+`itemId@bx,by` key per placement, with `PLACEMENT_TALLY_BUCKETS = 20`. Bucket
 indices are small ints, so `"bx,by"` is exactly Grid's cell-id grammar and the
 whole existing pipeline applies unchanged: the `@` separator, `TallyStore`
 HINCRBY, the orchestrator's resubmit reconciliation (deterministic derivation
@@ -58,8 +58,12 @@ makes resubmits correct for free), `TallyUpdated`, and the snapshot's
 `optionTally` for late joiners.
 
 The bucket count is not a request-DTO bound, so it does not flow through
-`generate-validation`: the frontend mirrors it as a constant pointing back at
-`AnswerTallyKeys.AXIS_TALLY_BUCKETS`. SCALES shares the same constant.
+`generate-validation`: the frontend mirrors it as `PLACEMENT_TALLY_BUCKETS` in
+`shared/utils/tallyBuckets.ts`, pointing back at
+`AnswerTallyKeys.PLACEMENT_TALLY_BUCKETS`. PLACE_ON_IMAGE shares the same
+constant; SCALES now has its own, coarser `SCALES_TALLY_BUCKETS = 10` (see
+[scales](../scales-slides/README.md)) — the two resolutions used to be one
+shared constant but move independently now.
 
 Durable `RoundResult.optionCounts` is **empty** for AXIS (`describeChoice`
 returns null for map-shaped answers), so the reveal-time guard in
@@ -118,6 +122,17 @@ renders `SortableItemBankRow` with `type="PLACEMENT"` and `hasTarget`; the
 row's placement arm builds its own "Set target" / "Clear target" menu action,
 so there is no Axis-specific row component.
 
+The canvas's overlaid `ChartTypePicker` offers Axis one real choice, `HEATMAP`
+(`Charts/registry.ts`), plus `NONE`. Neither persists on `AxisContent` — Axis
+has no `dataVisualization` field — so the pick lives transiently in
+`ResultsPreviewContext`, keyed by slide. `NONE` (the default) hands the canvas
+straight back to the target-editing plane above; picking or hovering `HEATMAP`
+swaps in `Charts/Heatmap/Heatmap.tsx`, a density grid over a deterministic
+sample crowd (`Charts/adapters/placement.ts` — authoring time has no real
+placements) shaded at the same `PLACEMENT_TALLY_BUCKETS` grain the live tally
+quantizes at. See [results-visualization](../results-visualization.md) for the
+shared chart pipeline.
+
 ## Board UX
 
 `AxisBoardContent.tsx` (`SessionBoard/content/`) serves participant and
@@ -126,13 +141,13 @@ projector off the same `mode`/`interactive` props.
 - **Drag primary, tap-to-place fallback.** A bank of `DraggableChip`s (seeded shuffle by slide id) drops onto the `PlacementSurface`; dropping a placed chip back on the `BoardBank` un-places it. Tap-hold-tap is the small-screen / keyboard / AT path, and arrow keys nudge a focused chip in 2 % steps.
 - The draft, held/submitted state, and all drag/tap/nudge handling live in the shared `useBoardPlacement` hook (`content/useBoardPlacement.ts`), parameterized by `invertY` and `lockOnSubmit` — the same hook the Place-on-Image board runs on. Axis sets `lockOnSubmit: false`, so the button flips to "Update answer".
 - Each chip renders a `MarkerBadge`, composing the badge's own `.anchored`/`.anchoredLabeled` classes so a labeled chip's **disc**, not its pill, stays on the graded point. Submit bar and unplaced-item row are the shared `BoardSubmitBar`/`BoardBank`.
-- **liveResults / results** — a 10 × 10 translucent heat overlay from the bucket keys via `content/answerTally.ts`, plus the viewer's own placed chips; on `results`, the own-outcome banner via `OutcomeBanner`/`findViewerOutcome`. No correct-target overlay yet.
+- **liveResults / results** — a 20 × 20 translucent heat overlay from the bucket keys via `content/answerTally.ts`, plus the viewer's own placed chips; on `results`, the own-outcome banner via `OutcomeBanner`/`findViewerOutcome`. No correct-target overlay yet.
 - **Projector** — plane + heat only.
 
 ## Open follow-ups
 
 - **F1 — structured answer-key reveal.** A typed per-kind field on `ResultsRevealed` so boards can overlay targets + tolerance circles post-reveal. The blocker is only that `correctOption` is `String`-shaped. **Shared seam with GRID and SCALES** — spec it once for all three.
-- **F2 — raw-placement scatter.** True scatter needs raw payloads on an event or a host-side read of round results; the bucket heat is the fallback (`Charts/registry.ts` has `AXIS: { supportedViz: ["HEATMAP", "NONE"], implemented: false }`).
+- **F2 — raw-placement scatter.** True scatter needs raw payloads on an event or a host-side read of round results; the live board's bucket heat remains the fallback. The deck editor's own results chart (`Charts/registry.ts` now has `AXIS: { supportedViz: ["HEATMAP", "NONE"], implemented: true }`) renders a density heatmap too, but from a deterministic sample distribution (`Charts/adapters/placement.ts`) — authoring time has no real per-round placements, so this doesn't close F2.
 - **Item image/color reaching players.** `AxisItem` carries optional `image`/`color` in the authoring surface, but `AxisConfigView` still sends only `id`/`label`.
 - **Per-item tolerance override** (`Map<String, Double>`, additive).
 - **Partial credit** — needs scoring machinery `RoundEvaluator` doesn't have.

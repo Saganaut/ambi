@@ -122,7 +122,7 @@
     outline: var(--border-size-md) dashed var(--edge-brand);
   }
 
-  /* One translucent cell of the 10×10 live heat overlay (only non-empty
+  /* One translucent cell of the live heat overlay (only non-empty
      buckets render). Sits under the chips so placements stay tappable. */
   .heatCell {
     /* Fallback for the inline 0..1 share of the busiest bucket — shades the
@@ -131,7 +131,7 @@
 
     position: absolute;
     background-color: var(--bg-brand);
-    opacity: calc(var(--heat) * 0.35);
+    opacity: calc(0.14 + var(--heat) * 0.62);
     pointer-events: none;
   }
 

@@ -1,6 +1,6 @@
 import { UseMcqEditorResult } from "@/features/deck/hooks/useMcqEditor";
+import { McqDataVisualization } from "@/features/deck/store/deckEnums.gen";
 import { BarChart } from "@/shared/components/Charts/BarChart/BarChart";
-import { ChartType } from "@/shared/components/Charts/Chart.types";
 import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
 import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
@@ -17,7 +17,9 @@ export interface RenderMcqResultsDisplayOptions extends Omit<
   setOpenMenuId: Dispatch<SetStateAction<string | null>>;
   openMenuId: string | null;
   openPicker: OpenGalleryPicker;
-  visualization: ChartType | null;
+  /** MCQ commits one of its own enum's values, so the dispatcher below handles
+   * exactly that set — a `ChartType` outside it is narrowed away upstream. */
+  visualization: McqDataVisualization | null;
   editor: UseMcqEditorResult;
   mockPreviewDistribution: Record<string, number>;
 }
@@ -50,29 +52,6 @@ export const renderMcqResultsDisplay = (chartProps: RenderMcqResultsDisplayOptio
     case "DOT":
       return <DotPlot {...chartProps} />;
 
-    case "HISTOGRAM":
-      return <div>Not implemented</div>;
-    // return <Histogram {...chartProps} />;
-
-    case "WORD_CLOUD":
-      return <div>Not implemented</div>;
-
-    // return <WordCloud {...chartProps} />;
-
-    case "HEATMAP":
-      return <div>Not implemented</div>;
-
-    // return <Heatmap {...chartProps} />;
-
-    case "DIVERGING_BAR":
-      return <div>Not implemented</div>;
-
-    // return <DivergingBar {...chartProps} />;
-
-    case "IMAGE_OVERLAY":
-      return <div>Not implemented</div>;
-
-    // return <ImageOverlay {...chartProps} />;
     default: {
       const _exhaustiveCheck: never = chartProps.visualization;
       throw new Error(`Unhandled visualization type: ${_exhaustiveCheck}`);

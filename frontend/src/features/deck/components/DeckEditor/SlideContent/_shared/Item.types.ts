@@ -11,7 +11,7 @@ import { AppImage } from "@/features/liveSession/store/liveSessionApi.gen";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import { DragEndEvent } from "@dnd-kit/dom";
-import { Dispatch, Ref, SetStateAction } from "react";
+import { Dispatch, RefCallback, SetStateAction } from "react";
 
 export type Orientation = "horizontal" | "vertical";
 export interface SlideContentProps {
@@ -118,9 +118,9 @@ interface WithCorrectItemActions<V extends Point | string | number> {
   clearCorrectAnswer: () => void;
 }
 
-interface WithSortableItemState<E extends HTMLElement> {
-  rootRef: Ref<E>;
-  handleRef?: (element: E | null) => void;
+interface WithSortableItemState {
+  rootRef: RefCallback<HTMLElement>;
+  handleRef?: (element: HTMLElement | null) => void;
   isDragging: boolean;
 }
 
@@ -186,7 +186,7 @@ export type EditableItem<TKind extends SlideType = SlideType> = TKind extends Sl
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 export type SortableEditableItem<TKind extends SlideType = SlideType> = TKind extends SlideType
-  ? EditableItem<TKind> & { sortable: WithSortableItemState<HTMLElement> }
+  ? EditableItem<TKind> & { sortable: WithSortableItemState }
   : never;
 
 export interface QuestionBaseState {
@@ -399,7 +399,7 @@ interface WithSetLabeledRange {
 }
 
 interface SlideDraftByKind extends Record<SlideType, object> {
-  MCQ: {};
+  MCQ: object;
   ALLOCATION: WithSetTolerance & WithSetTotalPoints;
   AXIS: WithSetTolerance & WithSetSelectedItem<ItemId>;
   GRID: WithSetSelectedItem<ItemId>;

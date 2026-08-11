@@ -27,17 +27,18 @@ class AnswerTallyKeysTest {
 
     @Test
     void axisContributesOneQuantizedBucketKeyPerPlacement() {
+        // 20-bucket grid: floor(0.05 * 20) = 1, floor(0.42 * 20) = 8, floor(0.78 * 20) = 15.
         assertThat(AnswerTallyKeys.optionKeys(new AxisAnswer(Map.of(
                 "it-1", new AxisPoint(0.0, 0.05),
                 "it-2", new AxisPoint(0.42, 0.78)))))
-                .containsExactlyInAnyOrder("it-1@0,0", "it-2@4,7");
+                .containsExactlyInAnyOrder("it-1@0,1", "it-2@8,15");
     }
 
     @Test
     void axisCoordinateOfExactlyOneClampsIntoTheLastBucket() {
         assertThat(AnswerTallyKeys.optionKeys(new AxisAnswer(Map.of(
                 "it-1", new AxisPoint(1.0, 1.0)))))
-                .containsExactly("it-1@9,9");
+                .containsExactly("it-1@19,19");
     }
 
     @Test
@@ -80,7 +81,7 @@ class AnswerTallyKeysTest {
 
     @Test
     void placeOnImageCoordinateOfExactlyOneClampsIntoTheLastBucket() {
-        // Both 1.0 pins clamp into bucket 19 (PLACE_TALLY_BUCKETS - 1).
+        // Both 1.0 pins clamp into bucket 19 (PLACEMENT_TALLY_BUCKETS - 1).
         assertThat(AnswerTallyKeys.optionKeys(new PlaceOnImageAnswer(Map.of(
                 "it-1", new PlacePoint(1.0, 1.0)))))
                 .containsExactly("it-1@19,19");

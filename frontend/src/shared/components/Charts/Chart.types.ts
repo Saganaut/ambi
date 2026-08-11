@@ -62,9 +62,10 @@ export type ChartType =
   | "DOT"
   | "HISTOGRAM"
   | "WORD_CLOUD"
+  // The placement kinds' density view — AXIS and PLACE_ON_IMAGE only.
+  | "HEATMAP"
   // Mapped for other question types but not yet built — rendered by
   // PlaceholderChart until implemented. See registry.ts / ResultsDisplaySwitch.
-  | "HEATMAP"
   | "DIVERGING_BAR"
   | "IMAGE_OVERLAY"
   | "NONE";

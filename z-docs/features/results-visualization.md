@@ -2,8 +2,8 @@
 
 Which chart suits which slide type, how a result becomes one, and what is still
 missing. A per-type map (`resultsRegistry`) records the valid charts for every
-question type and the chart family covers them, but only **MCQ** is wired
-end-to-end into the editor UI.
+question type and the chart family covers them, but only **MCQ, AXIS and
+PLACE_ON_IMAGE** are wired end-to-end into the editor UI.
 
 ## The pipeline
 
@@ -32,7 +32,8 @@ slots into the dispatcher and preview pipeline:
 | `DotPlot` | `DOT` | lollipop/dot per option |
 | `Histogram` | `HISTOGRAM` | gapless bars over binned values (built) |
 | `WordCloud` | `WORD_CLOUD` | terms sized by frequency (built; fed by `adapters/words.ts`) |
-| `PlaceholderChart` | `HEATMAP`, `DIVERGING_BAR`, `IMAGE_OVERLAY` | "coming soon" stub, each with a thin wrapper (`Heatmap`, `DivergingBar`, `ImageOverlay`) to grow into |
+| `Heatmap` | `HEATMAP` | density grid over a plane or backing image, shaded by bucket share (built; fed by `adapters/placement.ts` — AXIS/PLACE_ON_IMAGE only, see below) |
+| `PlaceholderChart` | `DIVERGING_BAR`, `IMAGE_OVERLAY` | "coming soon" stub, each with a thin wrapper (`DivergingBar`, `ImageOverlay`) to grow into — `IMAGE_OVERLAY` is currently unmapped in `resultsRegistry` |
 | — | `NONE` | plain non-chart list |
 
 ### Two tallies, and they do not line up
@@ -69,8 +70,8 @@ present in `resultsRegistry`; no non-MCQ type is wired into an editor section.
 | **RANKING** | `List<String>` order | Average rank per item, or position distribution as a stacked bar | ♻️ reuses `BarChart`; needs a stacked variant for the distribution view |
 | **SCALES** | `Map<id,Double>` normalized positions | Bucketed strip/histogram per statement, or mean ± spread | 🚧 diverging-bar placeholder; live 10-bucket strips on the board — see [scales](scales-slides/README.md) |
 | **GRID** | `Map<itemId,"r,c">` | Placement heatmap (rows × cols), per-item stacked bar as fallback | 🚧 heatmap placeholder; live per-cell shading on the board |
-| **PLACE_ON_IMAGE** | `Map<itemId,{x,y}>` | Scatter/heatmap overlaid on the image with the target circles drawn | 🚧 image-overlay placeholder; live density scatter + revealed targets on the board — see [place-on-image](place-on-image/README.md) |
-| **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item colour (needs raw placements — F2), bucketed heat as fallback | 🚧 heatmap placeholder; live 10 × 10 bucket heat on the board — see [axis](axis-slides/README.md) |
+| **PLACE_ON_IMAGE** | `Map<itemId,{x,y}>` | Scatter/heatmap overlaid on the image with the target circles drawn | ✅ Heatmap built, wired into the editor; live density scatter + revealed targets on the board — see [place-on-image](place-on-image/README.md) |
+| **AXIS** | `Map<itemId,{x,y}>` | Scatter with per-item colour (needs raw placements — F2), bucketed heat as fallback | ✅ Heatmap built, wired into the editor; live 20 × 20 bucket heat on the board — see [axis](axis-slides/README.md) |
 | **MATCHING** | `Map<leftId,rightId>` | Confusion-matrix heatmap, or a Sankey weighted by pair counts | 🚧 heatmap placeholder (Sankey deferred); live per-pair counts on the board |
 | **ALLOCATION** | `Map<optionId,Integer>` | Average points per option, grouped or 100 %-stacked | ♻️ reuses `BarChart`; live per-option bars + revealed key pills on the board — see [allocation-slides](allocation-slides/README.md) |
 | **FOLLOW_UP** | `String` | Frequency / word cloud (mode-dependent) | 🧩 word cloud built, not wired — no backend tally |
@@ -87,10 +88,9 @@ runtime effect** on what is shown live, and upvoting is unimplemented.
 
 Ordered by breadth of slide types unlocked against reuse of what exists.
 
-1. **Heatmap** → GRID, MATCHING, PLACE_ON_IMAGE. One primitive covers three types; the highest-leverage build.
+1. **Heatmap** is built (`Charts/Heatmap/Heatmap.tsx`) and wired for AXIS and PLACE_ON_IMAGE. GRID and MATCHING remain unwired — their `resultsRegistry` entries are still `implemented: false` — and today's `Heatmap` takes the placement editors' own options (`PlacementResultsDisplayOptions`), not a bare `ChartProps`/`ChartDatum[]` shape, so extending it to GRID/MATCHING means generalizing that contract first, not just flipping a flag. Still the highest-leverage next build.
 2. **Stacked / grouped bar** → RANKING, ALLOCATION distribution views. May extend `BarChart` rather than adding a component.
 3. **Diverging stacked bar (Likert)** → SCALES, now as a *bucketed* variant since values no longer snap to discrete steps. Also the base for the position-distribution views above.
-4. **Image-overlay results** → PLACE_ON_IMAGE. Image-aware, so lowest reuse.
 
 Cheapest wins first: average-value bars for RANKING and ALLOCATION can ride the
 existing `BarChart` today with just an adapter plus backend aggregation.

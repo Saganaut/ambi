@@ -12,7 +12,13 @@
  * Both drop malformed and non-positive entries, so a board can render straight
  * from the result. What each board then DOES with the numbers — heat cells,
  * density dots, per-row strips — stays with the board.
+ *
+ * The bucket resolutions themselves live in `@utils/tallyBuckets`: the deck
+ * editor's sample heatmap quantizes at the same grain, so they are not the
+ * boards' to own. Re-exported here so a board reads its whole tally vocabulary
+ * from one import.
  */
+import { PLACEMENT_TALLY_BUCKETS, SCALES_TALLY_BUCKETS } from "@utils/tallyBuckets";
 
 /**
  * Separator between the item id and the cell in a tally key. Manual mirror of
@@ -21,24 +27,6 @@
  * not flow through codegen; keep the two in sync by hand.
  */
 const TALLY_KEY_SEPARATOR = "@";
-
-/**
- * Bucket count per axis of the AXIS plane's and the SCALES strip's quantization
- * grid. Manual mirror of the backend's single `AnswerTallyKeys.AXIS_TALLY_BUCKETS`
- * — one constant there, deliberately shared by both kinds. It is not a
- * request-DTO bound, so it does not flow through codegen; keep the two in sync
- * by hand (the same discipline as `NON_SCORABLE_SLIDE_TYPES` in slideContent.ts).
- */
-const AXIS_TALLY_BUCKETS = 10;
-
-/**
- * Bucket count per axis of the PLACE_ON_IMAGE density scatter's quantization
- * grid. Manual mirror of the backend's separate
- * `AnswerTallyKeys.PLACE_TALLY_BUCKETS` — a finer resolution than the shared
- * axis/scales grid, so the scatter reads crisply over the backing image. Not a
- * request-DTO bound either; keep the two in sync by hand.
- */
-const PLACE_TALLY_BUCKETS = 20;
 
 /** One decoded `"bucketX,bucketY"` tally-key suffix. */
 interface BucketCoordinates {
@@ -98,8 +86,8 @@ const tallyTotalsBySlot = (
 
 export type { BucketCoordinates };
 export {
-  AXIS_TALLY_BUCKETS,
-  PLACE_TALLY_BUCKETS,
+  PLACEMENT_TALLY_BUCKETS,
+  SCALES_TALLY_BUCKETS,
   TALLY_KEY_SEPARATOR,
   parseBucketKey,
   tallyTotalsByBucket,

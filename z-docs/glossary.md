@@ -23,7 +23,7 @@ Domain terms used throughout Ambi. Add an entry when you introduce a concept tha
 | ---- | ------- |
 | **MCQ** | Multiple choice, multi-correct: any non-empty subset of the options can be the key. An empty key is allowed but leaves the slide unscoreable. |
 | **AXIS** | Free-form 2D placement on a labelled X × Y plane, graded all-or-nothing by distance to author-set targets within a per-slide tolerance (`INSIDE_RADIUS`). See [axis slides](features/axis-slides/README.md). |
-| **PLACE_ON_IMAGE** | Axis's sibling over a backing image: one pin per authored item, same `INSIDE_RADIUS` grading. Implemented end to end bar the results chart. See [place-on-image slides](features/place-on-image/README.md). |
+| **PLACE_ON_IMAGE** | Axis's sibling over a backing image: one pin per authored item, same `INSIDE_RADIUS` grading. Implemented end to end. See [place-on-image slides](features/place-on-image/README.md). |
 | **DRAWING** | Freehand drawing on a shared 1:1 canvas, submitted as a PNG in S3. Always grades `correct = false`. See [drawing slides](features/drawing-slide/README.md). |
 | **Follow-up slide** | A slide chained off a parent scorable slide (`parentId`/`childId`, server-owned) that builds its question from the parent round's submissions. Sits immediately after its parent; one per slide, no chains. See [follow-up slides](features/follow-up-slides/README.md). |
 | **FollowUpMode** | What a follow-up asks about its parent: `PREDICT_POPULAR`, `BEST_ANSWER_VOTE`, or `SPOT_THE_ANSWER` (the only scoring mode). Each declares its valid parent types and whether it needs an answer key. See [follow-up slides](features/follow-up-slides/README.md). |

@@ -61,6 +61,7 @@ inventory; the per-kind docs point here**:
 | `_shared/useSlideDraft.ts` | Prompt mirror, `selectedItemId` (the armed row), `openMenuId` — resynced during render when the bound slide changes. |
 | `_shared/AddItemCard/` | The dashed "Add …" row closing an item list; swaps to "Maximum N …" + `disabled` at the cap. |
 | `_shared/_shared.module.css` | The two-column frame (`.editorRow`, `.editorColumnWide`, `.editorColumnNarrow`), card-header accessories, `.itemList`, `ItemCard` chrome. |
+| `_shared/placement/placementResults.types.ts` + `renderPlacementResultsDisplay.tsx` | AXIS/PLACE_ON_IMAGE only (not Grid): the results-display seam — `PlacementResultsDisplayOptions`, the two kinds' shared discriminated union (mirroring MCQ's `RenderMcqResultsDisplayOptions`), and the switch that renders the shared `Heatmap` chart or falls back to the kind's own target-editing surface. See [results-visualization](../results-visualization.md). |
 
 Item colors come from one resolver, `resolveDatumColor(item.color, index)`
 (`shared/components/Charts/optionPalette.ts`) — the stored color, else a

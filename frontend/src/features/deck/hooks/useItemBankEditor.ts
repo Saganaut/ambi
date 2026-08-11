@@ -4,10 +4,12 @@ import { isSortable } from "@dnd-kit/react/sortable";
 import { nextPaletteColor } from "@/shared/components/Charts/optionPalette";
 import type { AppImage } from "@deck/store/deckApi.gen";
 
-import { EditableItem } from "../components/DeckEditor/SlideContent/_shared/Item.types";
+import type { EditableItemContent } from "../components/DeckEditor/SlideContent/_shared/Item.types";
 import { useItemIdentityBackfill } from "./useItemIdentityBackfill";
 
-interface ItemBankContent<I extends EditableItem = EditableItem> {
+type BankItem = Partial<EditableItemContent>;
+
+interface ItemBankContent<I extends BankItem = BankItem> {
   items: I[];
 }
 
@@ -19,14 +21,14 @@ interface ItemBankSlideEditor<C extends ItemBankContent> {
   flush: () => void;
 }
 
-type BankFields = Partial<Pick<EditableItem, "label" | "color" | "image">>;
+type BankFields = Pick<BankItem, "label" | "color" | "image">;
 interface UseItemBankEditorOptions<
   C extends ItemBankContent<I>,
-  I extends EditableItem = ItemOf<C>,
+  I extends BankItem = ItemOf<C>,
 > {
   slideId: string;
   toPatch: (items: I[]) => Partial<C>;
-  buildItem: (color: string) => NoInfer<Identified<I>>;
+  buildItem: (color: string) => NoInfer<I & { id: string }>;
   minItems: number;
   maxItems: number;
   onRemoveItem?: (prev: C, itemId: string) => Partial<C>;
@@ -34,12 +36,12 @@ interface UseItemBankEditorOptions<
 
 interface UseItemBankEditorResult<
   C extends ItemBankContent<I>,
-  I extends EditableItem = ItemOf<C>,
+  I extends BankItem = ItemOf<C>,
 > {
-  items: Identified<I>[];
+  items: (I & { id: string })[];
   canAdd: boolean;
   canRemove: boolean;
-  addItem: (withNewItem?: (item: Identified<I>, prev: C) => Partial<C>) => void;
+  addItem: (withNewItem?: (item: I & { id: string }, prev: C) => Partial<C>) => void;
   removeItem: (itemId: string | undefined) => void;
   scheduleItemLabel: (itemId: string | undefined, label: string) => void;
   setItemColor: (itemId: string | undefined, color: string) => void;
@@ -47,7 +49,7 @@ interface UseItemBankEditorResult<
   handleItemDragEnd: (event: DragEndEvent) => void;
 }
 
-const useItemBankEditor = <C extends ItemBankContent<I>, I extends EditableItem = ItemOf<C>>(
+const useItemBankEditor = <C extends ItemBankContent<I>, I extends BankItem = ItemOf<C>>(
   editor: ItemBankSlideEditor<C>,
   options: UseItemBankEditorOptions<C, I>,
 ): UseItemBankEditorResult<C, I> => {
@@ -64,11 +66,11 @@ const useItemBankEditor = <C extends ItemBankContent<I>, I extends EditableItem 
     editor.flush();
   };
 
-  const items = bankItems.filter((item): item is Identified<I> => item.id != null);
+  const items = bankItems.filter((item): item is I & { id: string } => item.id != null);
   const canAdd = bankItems.length < maxItems;
   const canRemove = bankItems.length > minItems;
 
-  const addItem = (withNewItem?: (item: Identified<I>, prev: C) => Partial<C>) => {
+  const addItem = (withNewItem?: (item: I & { id: string }, prev: C) => Partial<C>) => {
     if (!canAdd) return;
     commit((prev) => {
       const item = buildItem(nextPaletteColor(prev.items.map((each) => each.color)));

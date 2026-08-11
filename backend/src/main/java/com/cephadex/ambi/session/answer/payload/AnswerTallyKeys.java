@@ -29,27 +29,25 @@ public final class AnswerTallyKeys {
     public static final String GRID_KEY_SEPARATOR = "@";
 
     /**
-     * Continuous placements are quantized into this many buckets at
-     * key-derivation time — exact coordinates can't be histogram keys, a bucket
-     * index can. Used for both AXIS placements (per axis, a 10 × 10 bucket grid)
-     * and SCALES positions (one 10-bucket strip per statement). The frontend
-     * mirrors this constant to aggregate the heat overlay (it is not a
-     * request-DTO bound, so it does not flow through {@code generate-validation});
-     * keep the two in sync.
-     */
-    public static final int AXIS_TALLY_BUCKETS = 10;
-
-    /**
-     * PLACE_ON_IMAGE pins are quantized into a {@code PLACE_TALLY_BUCKETS ×
-     * PLACE_TALLY_BUCKETS} bucket grid at key-derivation time — one pin per item
-     * (keyed {@code itemId@bx,by}) means the histogram is a density scatter, so a
-     * finer resolution than the shared Axis grid gives the board a crisper heat
-     * overlay. The frontend
-     * mirrors this constant to lay the scatter out over the backing image (it is
-     * not a request-DTO bound, so it does not flow through
+     * Continuous 2D placements — AXIS points and PLACE_ON_IMAGE pins alike — are
+     * quantized into a {@code PLACEMENT_TALLY_BUCKETS × PLACEMENT_TALLY_BUCKETS}
+     * grid at key-derivation time: exact coordinates can't be histogram keys, a
+     * bucket index can. One resolution for both, so a heat cell means the same
+     * fraction of the surface on either board and in the editor's preview. The
+     * frontend mirrors this constant to lay the overlay out (it is not a
+     * request-DTO bound, so it does not flow through
      * {@code generate-validation}); keep the two in sync.
      */
-    public static final int PLACE_TALLY_BUCKETS = 20;
+    public static final int PLACEMENT_TALLY_BUCKETS = 20;
+
+    /**
+     * SCALES positions are quantized into one {@code SCALES_TALLY_BUCKETS}-bucket
+     * strip per statement. A strip is one-dimensional and reads as a row of
+     * countable segments rather than a heat field, so it stays coarser than the
+     * placement grid and moves independently of it. Mirrored on the frontend on
+     * the same terms as {@link #PLACEMENT_TALLY_BUCKETS}.
+     */
+    public static final int SCALES_TALLY_BUCKETS = 10;
 
     /**
      * The option-tally keys contributed by {@code payload}: one per chosen MCQ
@@ -86,14 +84,16 @@ public final class AnswerTallyKeys {
             // grammar and the whole @-separated pipeline applies unchanged.
             return axis.placements().entrySet().stream()
                     .map(placement -> placement.getKey() + GRID_KEY_SEPARATOR
-                            + bucket(placement.getValue().x()) + "," + bucket(placement.getValue().y()))
+                            + bucket(placement.getValue().x(), PLACEMENT_TALLY_BUCKETS) + ","
+                            + bucket(placement.getValue().y(), PLACEMENT_TALLY_BUCKETS))
                     .toList();
         }
         if (payload instanceof ScalesAnswer scales && scales.positions() != null) {
             // A single bucket int after "@" is a strict subset of grid's "r,c"
             // suffix, so it splits unambiguously under the same grammar.
             return scales.positions().entrySet().stream()
-                    .map(rating -> rating.getKey() + GRID_KEY_SEPARATOR + bucket(rating.getValue()))
+                    .map(rating -> rating.getKey() + GRID_KEY_SEPARATOR
+                            + bucket(rating.getValue(), SCALES_TALLY_BUCKETS))
                     .toList();
         }
         if (payload instanceof MatchingAnswer matching && matching.matches() != null) {
@@ -129,22 +129,16 @@ public final class AnswerTallyKeys {
             return List.of(followUp.optionId());
         }
         if (payload instanceof PlaceOnImageAnswer place && place.placements() != null) {
-            // One "itemId@bucketX,bucketY" key per placed pin — exactly Axis's
-            // per-item bucket grammar, but quantized at the finer
-            // PLACE_TALLY_BUCKETS resolution so the board can render a per-item
-            // density scatter over the backing image.
+            // One "itemId@bucketX,bucketY" key per placed pin — Axis's per-item
+            // bucket grammar at the same placement resolution, so the board can
+            // render a per-item density scatter over the backing image.
             return place.placements().entrySet().stream()
                     .map(placement -> placement.getKey() + GRID_KEY_SEPARATOR
-                            + bucket(placement.getValue().x(), PLACE_TALLY_BUCKETS) + ","
-                            + bucket(placement.getValue().y(), PLACE_TALLY_BUCKETS))
+                            + bucket(placement.getValue().x(), PLACEMENT_TALLY_BUCKETS) + ","
+                            + bucket(placement.getValue().y(), PLACEMENT_TALLY_BUCKETS))
                     .toList();
         }
         return List.of();
-    }
-
-    /** Quantize a normalized [0, 1] coordinate over the shared Axis/Scales grid. */
-    private static int bucket(double coordinate) {
-        return bucket(coordinate, AXIS_TALLY_BUCKETS);
     }
 
     /** Quantize a normalized [0, 1] coordinate into {@code buckets} bins; 1.0 clamps into the last bin. */

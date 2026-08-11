@@ -18,3 +18,5 @@ const isMcqDataVisualization = (viz: ChartType): viz is McqDataVisualization =>
 /** MCQ's supported visualisations, narrowed to the committable enum set. */
 export const mcqSupportedViz: McqDataVisualization[] =
   mcqResults.supportedViz.filter(isMcqDataVisualization);
+
+export { isMcqDataVisualization };

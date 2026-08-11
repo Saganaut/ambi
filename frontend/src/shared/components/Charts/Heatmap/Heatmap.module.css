@@ -1,0 +1,143 @@
+/* The heatmap's two surfaces — the Axis plane and the Place-on-Image backdrop —
+   plus the heat overlay they share. The plane's chrome is restated here rather
+   than borrowed from the editor's module: a results view owns no editing
+   affordances, so only the look is common, exactly as the live board restates
+   it. */
+
+.plane {
+  position: relative;
+  width: 100%;
+  max-width: 16rem;
+  margin-inline: auto;
+  aspect-ratio: 1;
+  border: var(--border-size-sm) solid var(--edge-primary);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-raised);
+  overflow: hidden;
+}
+
+.imagePlane {
+  position: relative;
+  width: 100%;
+  max-width: 16rem;
+  margin-inline: auto;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--p-square-md);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.sampleNote {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Faint centre lines quarter the plane, first in the DOM so the pills and the
+   heat cells paint over them. */
+.planeAxisLineX,
+.planeAxisLineY {
+  position: absolute;
+  background-color: var(--border-subtle);
+  pointer-events: none;
+}
+
+.planeAxisLineX {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--space-px);
+}
+
+.planeAxisLineY {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--space-px);
+}
+
+.endpointOverlay {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.endpointTop {
+  top: var(--space-2);
+  left: 50%;
+  width: 55%;
+  transform: translateX(-50%);
+}
+
+.endpointBottom {
+  bottom: var(--space-2);
+  left: 50%;
+  width: 55%;
+  transform: translateX(-50%);
+}
+
+.endpointLeft {
+  top: 50%;
+  left: var(--space-2);
+  width: 34%;
+  transform: translateY(-50%);
+}
+
+.endpointRight {
+  top: 50%;
+  right: var(--space-2);
+  width: 34%;
+  transform: translateY(-50%);
+}
+
+.endpointPill {
+  max-width: 100%;
+  padding: var(--gap-xs) var(--gap-sm);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* One bucket of the density grid. `--heat` is its 0..1 share of the busiest
+   bucket, set inline (the fallback below is the required in-file declaration);
+   the cell mounts transparent and fades to its shade on the reveal sweep. */
+.heatCell {
+  --heat: 0;
+
+  position: absolute;
+  background-color: var(--bg-brand);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.heatCell.revealed {
+  opacity: calc(0.14 + var(--heat) * 0.62);
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+  width: 100%;
+  min-width: 0;
+}
