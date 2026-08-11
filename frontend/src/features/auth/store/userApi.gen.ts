@@ -85,14 +85,14 @@ export type UserProfileResponse = {
   avatar?: Avatar;
   preferences?: UserPreferences;
 };
-export type AvatarSelection = {
+export type AvatarSelectionRequest = {
   internalAvatarId?: string;
   image?: AppImage;
 };
 export type UpdateProfileRequest = {
   displayName?: string;
   timezone?: string;
-  avatar?: AvatarSelection;
+  avatar?: AvatarSelectionRequest;
 };
 export const { useGetMeQuery, useLazyGetMeQuery, useUpdateMeMutation } =
   injectedRtkApi;

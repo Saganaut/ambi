@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
+import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
+import org.springframework.data.mongodb.core.convert.NoOpDbRefResolver;
+import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -54,16 +57,17 @@ import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.SlideCopier;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
 import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
 import com.cephadex.ambi.presentation.slide.content.RichTextContent;
 import com.cephadex.ambi.presentation.slide.content.RichTextSanitizer;
-import com.cephadex.ambi.presentation.slide.content.TextContent;
-import com.cephadex.ambi.presentation.slide.content.TitleContent;
 import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
+import com.cephadex.ambi.presentation.slide.enums.Difficulty;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
+import com.cephadex.ambi.presentation.slide.enums.McqOptionType;
 import com.cephadex.ambi.presentation.slide.enums.PromptPlacement;
 import com.cephadex.ambi.user.UserService;
 import com.cephadex.ambi.user.enums.UserLevel;
@@ -99,7 +103,8 @@ class DeckServiceTest {
         deckService = new DeckService(deckRepository, new OrgRoleResolver(userService),
                 new SlideRankService(), new DeckDefaultsProperties(), new RichTextSanitizer(),
                 new DeckImageLifecycleService(storage, variantRequests, variantCleanup),
-                new ImageIngestService(storage, new MediaProperties(), variantRequests));
+                new ImageIngestService(storage, new MediaProperties(), variantRequests),
+                slideCopier());
         owner = principal("owner-1");
         // Echo back whatever the service saves — tests inspect the in-flight deck.
         when(deckRepository.save(any(Deck.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -134,7 +139,8 @@ class DeckServiceTest {
         DeckService service = new DeckService(deckRepository, new OrgRoleResolver(userService),
                 new SlideRankService(), props, new RichTextSanitizer(),
                 new DeckImageLifecycleService(storage, variantRequests, variantCleanup),
-                new ImageIngestService(storage, new MediaProperties(), variantRequests));
+                new ImageIngestService(storage, new MediaProperties(), variantRequests),
+                slideCopier());
 
         Deck created = service.create("deck-1", owner);
 
@@ -266,34 +272,6 @@ class DeckServiceTest {
     }
 
     @Test
-    void addFollowUpSlideRejectsNonScorableParent() {
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(new TitleContent(null));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-
-        assertThatThrownBy(() -> deckService.addFollowUpSlide(
-                "deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, null, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("scorable");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void addFollowUpSlideRejectsModeInvalidForParentType() {
-        // PREDICT_POPULAR needs a parent with predefined options; a TEXT parent
-        // has none, so the mode is invalid for it.
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(textContent());
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-
-        assertThatThrownBy(() -> deckService.addFollowUpSlide(
-                "deck-1", "s1", "f1", FollowUpMode.PREDICT_POPULAR, null, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("not valid");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
     void addFollowUpSlideRejectsSecondFollowUpWithConflict() {
         Deck deck = deckWithAttachedPair("owner-1", "p", "f");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
@@ -302,18 +280,6 @@ class DeckServiceTest {
                 "deck-1", "p", "f2", FollowUpMode.PREDICT_POPULAR, null, owner))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("already has a follow-up");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void addFollowUpSlideRejectsFollowUpAsParent() {
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-
-        assertThatThrownBy(() -> deckService.addFollowUpSlide(
-                "deck-1", "f", "f2", FollowUpMode.PREDICT_POPULAR, null, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("cannot have its own follow-up");
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
@@ -372,50 +338,6 @@ class DeckServiceTest {
     }
 
     @Test
-    void updateSlideRejectsTurningRegularSlideIntoFollowUp() {
-        Deck deck = deckWithMcq("owner-1", "s1");
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("s1");
-        changes.setContent(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "s1", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("follow-up endpoint");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void updateSlideRejectsFollowUpChangingKind() {
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("f");
-        changes.setContent(new TitleContent(null));
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("cannot change");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void updateSlideRejectsFollowUpModeInvalidForParent() {
-        // A BEST_ANSWER_VOTE follow-up on a TEXT parent can't switch to
-        // PREDICT_POPULAR — that mode needs a parent with predefined options.
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        deck.findSlide("p").orElseThrow().setContent(textContent());
-        deck.findSlide("f").orElseThrow()
-                .setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("f");
-        changes.setContent(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("not valid");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
     void updateSlideAllowsFollowUpModeChangeWithinValidModes() {
         // MCQ parents support both modes, so a follow-up can switch between them.
         Deck deck = deckWithAttachedPair("owner-1", "p", "f");
@@ -434,191 +356,157 @@ class DeckServiceTest {
         verify(deckRepository).save(deck);
     }
 
-    @Test
-    void updateSlideRejectsParentTypeChangeThatInvalidatesChildMode() {
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("p");
-        changes.setContent(new TitleContent(null));
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("invalidate its follow-up");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    // ── SPOT_THE_ANSWER's answer-key requirement ─────────────────────────────────
+    // ── Duplicate slides ─────────────────────────────────────────────────────────
 
     @Test
-    void addFollowUpSlideAcceptsSpotTheAnswerOnAKeyedTextParent() {
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(keyedTextContent("Paris"));
+    void duplicateSlidePlacesTheCopyImmediatelyAfterTheSource() {
+        Deck deck = deckWithMcq("owner-1", "s1", "s2", "s3");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
 
-        deckService.addFollowUpSlide("deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner);
+        List<Slide> result = deckService.duplicateSlide("deck-1", "s2", owner);
 
-        assertThat(deck.findSlide("f1").orElseThrow().getContent())
-                .isEqualTo(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
+        List<String> ids = result.stream().map(s -> s.getId()).toList();
+        assertThat(ids).hasSize(4);
+        assertThat(ids.get(0)).isEqualTo("s1");
+        assertThat(ids.get(1)).isEqualTo("s2");
+        assertThat(ids.get(2)).isNotIn("s1", "s2", "s3");
+        assertThat(ids.get(3)).isEqualTo("s3");
+        // The response is the deck's canonical order, matching what was persisted.
+        assertThat(ids).isEqualTo(orderedIds(deck));
         verify(deckRepository).save(deck);
     }
 
     @Test
-    void addFollowUpSlideRejectsSpotTheAnswerOnAKeylessTextParent() {
-        // supportsParent settles the type only: an unkeyed TEXT slide is a
-        // legitimate collect-only prompt with no authored answer to hide.
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(textContent());
+    void duplicateSlideCopiesContentTitleAndSettingsWithAFreshIdAndAuthor() {
+        Deck deck = deckWithMcq("someone-else", "s1");
+        deck.getAcl().add(new DeckAccessGrant("editor-1", DeckAclRole.EDITOR));
+        Slide source = deck.findSlide("s1").orElseThrow();
+        source.setTitle("Capital of France?");
+        source.setSection("Geography");
+        source.setDifficulty(Difficulty.HARD);
+        source.setExplanation("Since 508.");
+        source.setSpeakerNotes("Ask the room.");
+        source.setParticipantInstructions("Pick one.");
+        source.setBackgroundColor("#112233");
+        source.setHideBackground(true);
+        source.setSettings(new Settings.SlideSettings(pointSettings(500), answerSettings(45)));
+        source.setContent(new McqContent(
+                List.of(new SlideContentTypes.McqOption("opt-1",
+                        McqOptionType.TEXT,
+                        "Paris", null, "#00ff00")),
+                Set.of("opt-1"), SlideContentTypes.McqDataVisualization.PIE));
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
 
-        assertThatThrownBy(() -> deckService.addFollowUpSlide(
-                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
+        List<Slide> result = deckService.duplicateSlide("deck-1", "s1", principal("editor-1"));
+
+        Slide copy = result.get(1);
+        assertThat(copy.getId()).isNotNull().isNotEqualTo("s1");
+        assertThat(copy.getTitle()).isEqualTo("Capital of France?");
+        assertThat(copy.getSection()).isEqualTo("Geography");
+        assertThat(copy.getDifficulty())
+                .isEqualTo(Difficulty.HARD);
+        assertThat(copy.getExplanation()).isEqualTo("Since 508.");
+        assertThat(copy.getSpeakerNotes()).isEqualTo("Ask the room.");
+        assertThat(copy.getParticipantInstructions()).isEqualTo("Pick one.");
+        assertThat(copy.getBackgroundColor()).isEqualTo("#112233");
+        assertThat(copy.isHideBackground()).isTrue();
+        assertThat(copy.getSettings()).isEqualTo(source.getSettings());
+        assertThat(copy.getContent()).isEqualTo(source.getContent());
+        // A brand-new slide: this principal authored it and it carries no version.
+        assertThat(copy.getCreatedByUserId()).isEqualTo("editor-1");
+        assertThat(copy.getLastEditedByUserId()).isEqualTo("editor-1");
+        assertThat(copy.getVersion()).isNull();
+        // Content-internal ids are slide-local and stay put, so the answer key resolves.
+        assertThat(copy.getContent()).isInstanceOfSatisfying(McqContent.class, mcq -> {
+            assertThat(mcq.options().stream().map(option -> option.id()).toList())
+                    .containsExactly("opt-1");
+            assertThat(mcq.correctOptionIds()).containsExactly("opt-1");
+        });
+    }
+
+    @Test
+    void duplicateSlideGivesTheCopyItsOwnImageInstancesSharingTheSourceKeys() {
+        Deck deck = deckWithMcq("owner-1", "s1");
+        Slide source = deck.findSlide("s1").orElseThrow();
+        source.setCoverImage(internalImage("deck/deck-1/cover"));
+        source.setContent(new McqContent(
+                List.of(new SlideContentTypes.McqOption("opt-1",
+                        McqOptionType.IMAGE,
+                        null, internalImage("deck/deck-1/opt"), null)),
+                Set.of("opt-1"), SlideContentTypes.McqDataVisualization.NONE));
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        List<Slide> result = deckService.duplicateSlide("deck-1", "s1", owner);
+
+        Slide copy = result.get(1);
+        assertThat(copy.getCoverImage())
+                .isNotSameAs(source.getCoverImage())
+                .isEqualTo(source.getCoverImage());
+        AppImage sourceOption = ((McqContent) source.getContent()).options().get(0).image();
+        AppImage copiedOption = ((McqContent) copy.getContent()).options().get(0).image();
+        assertThat(copiedOption).isNotSameAs(sourceOption).isEqualTo(sourceOption);
+        // The keys are already this deck's, so no bytes were copied in S3.
+        verify(storage, never()).copyIfExists(anyString(), anyString());
+        verify(storage, never()).delete(anyCollection());
+    }
+
+    @Test
+    void duplicateSlideClonesTheWholeUnitWhenTheSourceHasAFollowUp() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f", "s3");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        List<Slide> result = deckService.duplicateSlide("deck-1", "p", owner);
+
+        List<String> ids = result.stream().map(s -> s.getId()).toList();
+        assertThat(ids).hasSize(5);
+        assertThat(ids.subList(0, 2)).containsExactly("p", "f");
+        assertThat(ids.get(4)).isEqualTo("s3");
+        Slide copy = result.get(2);
+        Slide followUpCopy = result.get(3);
+        // The copies are linked to each other, never back at the originals.
+        assertThat(copy.getParentId()).isNull();
+        assertThat(copy.getChildId()).isEqualTo(followUpCopy.getId());
+        assertThat(followUpCopy.getParentId()).isEqualTo(copy.getId());
+        assertThat(followUpCopy.getChildId()).isNull();
+        assertThat(copy.getId()).isNotIn("p", "f", "s3");
+        assertThat(followUpCopy.getId()).isNotIn("p", "f", "s3");
+        assertThat(followUpCopy.getContent())
+                .isEqualTo(new FollowUpContent(FollowUpMode.PREDICT_POPULAR));
+        // The originals' link is untouched.
+        assertThat(deck.findSlide("p").orElseThrow().getChildId()).isEqualTo("f");
+        assertThat(deck.findSlide("f").orElseThrow().getParentId()).isEqualTo("p");
+        assertThat(deck.attachedFollowUp(copy)).containsSame(followUpCopy);
+    }
+
+    @Test
+    void duplicateSlideRejectsAnAttachedFollowUp() {
+        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
+        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
+
+        assertThatThrownBy(() -> deckService.duplicateSlide("deck-1", "f", owner))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("authored answer");
+                .hasMessageContaining("duplicated with its parent");
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
     @Test
-    void addFollowUpSlideRejectsSpotTheAnswerOnANonTextParent() {
-        // The type half of the pairing rule: only a TEXT parent has an authored
-        // answer that can pass as one of the submissions.
+    void duplicateSlideRejectsUnknownSlideWithNotFound() {
         Deck deck = deckWithMcq("owner-1", "s1");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
 
-        assertThatThrownBy(() -> deckService.addFollowUpSlide(
-                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("not valid");
+        assertThatThrownBy(() -> deckService.duplicateSlide("deck-1", "missing", owner))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Slide not found");
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
     @Test
-    void updateSlideRejectsModeChangeToSpotTheAnswerOnAKeylessParent() {
-        // The inspector's everyday path enforces exactly what the add endpoint does.
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        deck.findSlide("p").orElseThrow().setContent(textContent());
-        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("f");
-        changes.setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("authored answer");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void updateSlideRejectsStrippingTheAnswerKeyUnderASpotTheAnswerChild() {
-        // The transition that would leave the child dangling: same type, but the
-        // answer it hides among the submissions is gone.
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        deck.findSlide("p").orElseThrow().setContent(keyedTextContent("Paris"));
-        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("p");
-        changes.setContent(textContent());
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("authored answer");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    // ── the same rule on a DRAWING parent (the authored answer is a picture) ────
-
-    @Test
-    void addFollowUpSlideAcceptsSpotTheAnswerOnADrawingParentWithAnAnswerImage() {
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(drawingContent(storedImage("gallery/answer.png")));
+    void duplicateSlideRequiresEdit() {
+        Deck deck = deckWithMcq("someone-else", "s1");
         when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
 
-        deckService.addFollowUpSlide("deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner);
-
-        assertThat(deck.findSlide("f1").orElseThrow().getContent())
-                .isEqualTo(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
-        verify(deckRepository).save(deck);
-    }
-
-    @Test
-    void addFollowUpSlideAcceptsSpotTheAnswerOnADrawingParentWhoseAnswerImageHasNoVariantsYet() {
-        // Renditions are derived after the original lands, so an answer image
-        // uploaded moments ago carries an empty variants map. The original is
-        // still a stored object the board can serve — withholding the mode would
-        // make availability depend on a race with rendition derivation.
-        AppImage answer = new AppImage();
-        answer.setExternal(false);
-        answer.setSrcKey("gallery/answer/original");
-        answer.setVariants(new EnumMap<>(ImageSizeOptions.class));
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(drawingContent(answer));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-
-        deckService.addFollowUpSlide("deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner);
-
-        assertThat(deck.findSlide("f1").orElseThrow().getContent())
-                .isEqualTo(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
-        verify(deckRepository).save(deck);
-    }
-
-    @Test
-    void addFollowUpSlideRejectsSpotTheAnswerOnADrawingParentWithNoAnswerImage() {
-        // A Drawing slide with no authored correct image is a legitimate
-        // collect-only prompt — the image half of the keyless TEXT case.
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(drawingContent(null));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-
-        assertThatThrownBy(() -> deckService.addFollowUpSlide(
-                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("authored answer");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void addFollowUpSlideRejectsSpotTheAnswerOnADrawingParentWhoseAnswerImageIsExternal() {
-        // An external image owns no stored object, so it can't be served through
-        // the opaque proxy the board hides the seeded card behind.
-        Deck deck = keyedDeck("owner-1", "s1");
-        deck.findSlide("s1").orElseThrow().setContent(drawingContent(image("https://elsewhere/answer.png")));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-
-        assertThatThrownBy(() -> deckService.addFollowUpSlide(
-                "deck-1", "s1", "f1", FollowUpMode.SPOT_THE_ANSWER, null, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("authored answer");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void updateSlideRejectsModeChangeToSpotTheAnswerOnADrawingParentWithNoAnswerImage() {
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        deck.findSlide("p").orElseThrow().setContent(drawingContent(null));
-        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.BEST_ANSWER_VOTE));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("f");
-        changes.setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "f", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("authored answer");
-        verify(deckRepository, never()).save(any(Deck.class));
-    }
-
-    @Test
-    void updateSlideRejectsClearingTheAnswerImageUnderASpotTheAnswerChild() {
-        // The orphan guard on the image parent: same type, but the picture the
-        // follow-up hides among the drawings is gone.
-        Deck deck = deckWithAttachedPair("owner-1", "p", "f");
-        deck.findSlide("p").orElseThrow().setContent(drawingContent(storedImage("gallery/answer.png")));
-        deck.findSlide("f").orElseThrow().setContent(new FollowUpContent(FollowUpMode.SPOT_THE_ANSWER));
-        when(deckRepository.findById("deck-1")).thenReturn(Optional.of(deck));
-        Slide changes = slide("p");
-        changes.setContent(drawingContent(null));
-
-        assertThatThrownBy(() -> deckService.updateSlide("deck-1", "p", changes, owner))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("authored answer");
+        assertThatThrownBy(() -> deckService.duplicateSlide("deck-1", "s1", principal("intruder")))
+                .isInstanceOf(ForbiddenException.class);
         verify(deckRepository, never()).save(any(Deck.class));
     }
 
@@ -1431,6 +1319,23 @@ class DeckServiceTest {
                 UserLevel.USER, AuthProvider.INTERNAL, null, null, "sid-" + userId);
     }
 
+    /**
+     * A real {@link SlideCopier} over a stand-alone mapping converter configured
+     * exactly as Boot auto-configures it (no custom conversions are registered
+     * anywhere in the app), so a duplicate here copies the way it does in prod.
+     */
+    private static SlideCopier slideCopier() {
+        MongoCustomConversions conversions = new MongoCustomConversions(List.of());
+        MongoMappingContext context = new MongoMappingContext();
+        context.setSimpleTypeHolder(conversions.getSimpleTypeHolder());
+        context.afterPropertiesSet();
+        MappingMongoConverter converter =
+                new MappingMongoConverter(NoOpDbRefResolver.INSTANCE, context);
+        converter.setCustomConversions(conversions);
+        converter.afterPropertiesSet();
+        return new SlideCopier(converter);
+    }
+
     private static Deck deck(String ownerId) {
         Deck deck = new Deck();
         deck.setId("deck-1");
@@ -1484,17 +1389,6 @@ class DeckServiceTest {
     private static McqContent mcqContent() {
         return new McqContent(List.of(), Set.of(),
                 SlideContentTypes.McqDataVisualization.NONE);
-    }
-
-    private static TextContent textContent() {
-        return new TextContent(Set.of(), SlideContentTypes.MatchMode.EXACT,
-                false, true, null);
-    }
-
-    /** A TEXT slide carrying an answer key — the parent SPOT_THE_ANSWER needs. */
-    private static TextContent keyedTextContent(String... acceptedAnswers) {
-        return new TextContent(new LinkedHashSet<>(List.of(acceptedAnswers)),
-                SlideContentTypes.MatchMode.EXACT, false, true, null);
     }
 
     /** A real (if tiny) PNG so the ingest can actually decode + re-encode it. */

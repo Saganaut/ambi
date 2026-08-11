@@ -5,6 +5,7 @@ import { DotPlot } from "@/shared/components/Charts/DotPlot/DotPlot";
 import { LineChart } from "@/shared/components/Charts/LineChart/LineChart";
 import { ParetoChart } from "@/shared/components/Charts/ParetoChart/ParetoChart";
 import { PieChart } from "@/shared/components/Charts/PieChart/PieChart";
+import { PoolRibbon } from "@/shared/components/Charts/PoolRibbon/PoolRibbon";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { Dispatch, ReactNode, SetStateAction } from "react";
 import { DefaultResultsDisplay } from "./DefaultResultsDisplay";
@@ -51,6 +52,9 @@ export const renderMcqResultsDisplay = (chartProps: RenderMcqResultsDisplayOptio
 
     case "DOT":
       return <DotPlot {...chartProps} />;
+
+    case "POOL_RIBBON":
+      return <PoolRibbon {...chartProps} />;
 
     default: {
       const _exhaustiveCheck: never = chartProps.visualization;

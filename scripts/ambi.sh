@@ -16,7 +16,26 @@ for arg in "$@"; do
   esac
 done
 
-trap 'echo -e "\nStopping all services..."; kill 0; docker compose stop; exit' SIGINT SIGTERM
+# Resolve repo root so the script works regardless of the caller's CWD.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT" || exit 1
+
+FRONTEND_PID=""
+BACKEND_PID=""
+STOPPING=false
+
+# SIGHUP matters: closing the terminal window would otherwise skip teardown
+# entirely and orphan the Vite server and both JVMs (`spring-boot:run` forks a
+# second JVM for the app, which then keeps holding port 8080).
+shutdown() {
+  [ "$STOPPING" = true ] && return
+  STOPPING=true
+  trap '' SIGINT SIGTERM SIGHUP
+  echo -e "\nStopping all services..."
+  "$ROOT/scripts/ambi-stop.sh" ${FRONTEND_PID:+"$FRONTEND_PID"} ${BACKEND_PID:+"$BACKEND_PID"}
+  exit 0
+}
+trap shutdown SIGINT SIGTERM SIGHUP
 
 echo "🐳 Starting Docker containers..."
 
@@ -34,6 +53,7 @@ echo "   → Mongo Express:  http://localhost:8081
 echo "⚛️ Starting Frontend..."
 
 (cd frontend && npm run dev) &
+FRONTEND_PID=$!
 
 echo "🍃 Starting Backend..."
 if [ "$FILE_LOGS" = true ]; then
@@ -49,7 +69,9 @@ fi
   cd backend
   ./mvnw spring-boot:run
 ) &
+BACKEND_PID=$!
 
 echo "🚀 All services are booting up! Press Ctrl+C to stop everything."
 
 wait
+shutdown

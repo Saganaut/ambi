@@ -60,6 +60,7 @@ export type ChartType =
   | "LINE"
   | "PARETO"
   | "DOT"
+  | "POOL_RIBBON"
   | "HISTOGRAM"
   | "WORD_CLOUD"
   // The placement kinds' density view — AXIS and PLACE_ON_IMAGE only.

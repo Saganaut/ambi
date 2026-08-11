@@ -49,7 +49,22 @@ if command -v chcon >/dev/null 2>&1 && [ -f garage.toml ]; then
   chcon -t container_file_t garage.toml 2>/dev/null || true
 fi
 
-trap 'echo -e "\nStopping all services..."; kill 0; "${COMPOSE[@]}" stop; exit' SIGINT SIGTERM
+export AMBI_COMPOSE="${COMPOSE[*]}"
+
+FRONTEND_PID=""
+BACKEND_PID=""
+STOPPING=false
+
+# See scripts/ambi.sh for why SIGHUP is trapped and why teardown is delegated.
+shutdown() {
+  [ "$STOPPING" = true ] && return
+  STOPPING=true
+  trap '' SIGINT SIGTERM SIGHUP
+  echo -e "\nStopping all services..."
+  "$ROOT/scripts/ambi-stop.sh" ${FRONTEND_PID:+"$FRONTEND_PID"} ${BACKEND_PID:+"$BACKEND_PID"}
+  exit 0
+}
+trap shutdown SIGINT SIGTERM SIGHUP
 
 echo "🦭 Starting Podman containers (${COMPOSE[*]})..."
 
@@ -68,6 +83,7 @@ echo "   → Mongo Express:  http://localhost:8081
 echo "⚛️ Starting Frontend..."
 
 (cd frontend && npm run dev) &
+FRONTEND_PID=$!
 
 echo "🍃 Starting Backend..."
 if [ "$FILE_LOGS" = true ]; then
@@ -91,7 +107,9 @@ fi
   cd backend
   ./mvnw spring-boot:run
 ) &
+BACKEND_PID=$!
 
 echo "🚀 All services are booting up! Press Ctrl+C to stop everything."
 
 wait
+shutdown

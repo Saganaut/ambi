@@ -1,11 +1,6 @@
 package com.cephadex.ambi.session.answer;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -14,44 +9,25 @@ import com.cephadex.ambi.auth.security.AmbiPrincipal;
 import com.cephadex.ambi.common.exception.ConflictException;
 import com.cephadex.ambi.common.exception.ForbiddenException;
 import com.cephadex.ambi.common.exception.NotFoundException;
-import com.cephadex.ambi.common.exception.ValidationException;
-import com.cephadex.ambi.common.validation.ValidationConstants;
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.media.storage.ImageIngestService;
 import com.cephadex.ambi.presentation.deck.Settings;
 import com.cephadex.ambi.presentation.deck.Settings.AnswerSettings;
 import com.cephadex.ambi.presentation.slide.Slide;
-import com.cephadex.ambi.presentation.slide.content.AllocationContent;
-import com.cephadex.ambi.presentation.slide.content.AxisContent;
-import com.cephadex.ambi.presentation.slide.content.DrawingContent;
-import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
-import com.cephadex.ambi.presentation.slide.content.GridContent;
-import com.cephadex.ambi.presentation.slide.content.MatchingContent;
-import com.cephadex.ambi.presentation.slide.content.McqContent;
-import com.cephadex.ambi.presentation.slide.content.PlaceOnImageContent;
 import com.cephadex.ambi.presentation.slide.content.QAndAContent;
-import com.cephadex.ambi.presentation.slide.content.ScalesContent;
-import com.cephadex.ambi.presentation.slide.content.SlideContent;
-import com.cephadex.ambi.presentation.slide.content.TextContent;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.AxisPoint;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.MatchItem;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes.PlacePoint;
 import com.cephadex.ambi.session.LiveSessionOrchestrator;
 import com.cephadex.ambi.session.answer.dto.SubmitAnswerRequest;
 import com.cephadex.ambi.session.answer.dto.SubmitVoteRequest;
 import com.cephadex.ambi.session.answer.payload.AllocationAnswer;
-import com.cephadex.ambi.session.answer.payload.AnswerPayload;
 import com.cephadex.ambi.session.answer.payload.AxisAnswer;
 import com.cephadex.ambi.session.answer.payload.DrawingAnswer;
 import com.cephadex.ambi.session.answer.payload.FollowUpAnswer;
 import com.cephadex.ambi.session.answer.payload.GridAnswer;
 import com.cephadex.ambi.session.answer.payload.MatchingAnswer;
-import com.cephadex.ambi.session.answer.payload.McqAnswer;
 import com.cephadex.ambi.session.answer.payload.PlaceOnImageAnswer;
 import com.cephadex.ambi.session.answer.payload.QAndAAnswer;
 import com.cephadex.ambi.session.answer.payload.ScalesAnswer;
 import com.cephadex.ambi.session.answer.payload.TextAnswer;
-import com.cephadex.ambi.session.followUp.FollowUpOption;
 import com.cephadex.ambi.session.liveSession.LiveSession;
 import com.cephadex.ambi.session.liveSession.LiveSessionRepository;
 import com.cephadex.ambi.session.participant.Participant;
@@ -62,8 +38,8 @@ import com.cephadex.ambi.session.redis.FollowUpOptionStore;
  * Application service behind {@code POST /api/liveSessions/{id}/answers}: turns an
  * authenticated request into a vetted call on {@link LiveSessionOrchestrator}. It
  * owns the Mongo-side work — loading the session, resolving the caller to a roster
- * {@link Participant}, and validating the payload against the slide's content and
- * answer settings — so the orchestrator's submit path stays a lock-free, Redis-only
+ * {@link Participant}, and coordinating payload validation against the slide's content
+ * and answer settings — so the orchestrator's submit path stays a lock-free, Redis-only
  * write that only needs the resolved {@code participantId} and {@code maxSelections}.
  *
  * <p>A follow-up round is the one exception to "validate against the slide": its
@@ -80,16 +56,16 @@ public class LiveSessionAnswerService {
     private final ParticipantResolver participantResolver;
     private final LiveSessionOrchestrator orchestrator;
     private final ImageIngestService imageIngest;
-    private final FollowUpOptionStore followUpOptions;
+    private final AnswerPayloadValidator payloadValidator;
 
     public LiveSessionAnswerService(LiveSessionRepository sessions, ParticipantResolver participantResolver,
             LiveSessionOrchestrator orchestrator, ImageIngestService imageIngest,
-            FollowUpOptionStore followUpOptions) {
+            AnswerPayloadValidator payloadValidator) {
         this.sessions = sessions;
         this.participantResolver = participantResolver;
         this.orchestrator = orchestrator;
         this.imageIngest = imageIngest;
-        this.followUpOptions = followUpOptions;
+        this.payloadValidator = payloadValidator;
     }
 
     /**
@@ -153,7 +129,7 @@ public class LiveSessionAnswerService {
         if (answer != null && !answer.allowAnonymous() && principal.state() == IdentityState.GUEST) {
             throw new ForbiddenException("ANONYMOUS_NOT_ALLOWED", "this slide does not accept guest answers");
         }
-        validatePayload(sessionId, participant.getParticipantId(), slide, request.payload(), maxSelections);
+        payloadValidator.validate(sessionId, participant.getParticipantId(), slide, request.payload(), maxSelections);
 
         // Q&A departs from the single-answer model: questions append server-side
         // (per-participant cap from the content, not maxSelections), so it takes
@@ -209,352 +185,4 @@ public class LiveSessionAnswerService {
         Participant participant = participantResolver.resolve(session, principal);
         orchestrator.submitVote(sessionId, request.slideId(), participant.getParticipantId(),
                 request.optionId());
-    }
-
-    private void validatePayload(String sessionId, String participantId, Slide slide, AnswerPayload payload,
-            int maxSelections) {
-        SlideContent content = slide.getContent();
-        if (content == null || payload.slideType() != content.contentType()) {
-            throw new ValidationException("answer type does not match the slide");
-        }
-        if (content instanceof McqContent mcq && payload instanceof McqAnswer ans) {
-            validateMcq(mcq, ans, maxSelections);
-        }
-        if (content instanceof QAndAContent) {
-            validateQAndA(payload);
-        }
-        if (content instanceof GridContent grid && payload instanceof GridAnswer ans) {
-            validateGrid(grid, ans);
-        }
-        if (content instanceof AxisContent axis && payload instanceof AxisAnswer ans) {
-            validateAxis(axis, ans);
-        }
-        if (content instanceof PlaceOnImageContent place && payload instanceof PlaceOnImageAnswer ans) {
-            validatePlaceOnImage(place, ans);
-        }
-        if (content instanceof ScalesContent scales && payload instanceof ScalesAnswer ans) {
-            validateScales(scales, ans);
-        }
-        if (content instanceof MatchingContent matching && payload instanceof MatchingAnswer ans) {
-            validateMatching(matching, ans);
-        }
-        if (content instanceof AllocationContent allocation && payload instanceof AllocationAnswer ans) {
-            validateAllocation(allocation, ans);
-        }
-        if (content instanceof DrawingContent && payload instanceof DrawingAnswer ans) {
-            validateDrawing(sessionId, participantId, ans);
-        }
-        if (content instanceof TextContent text && payload instanceof TextAnswer ans) {
-            validateText(text, ans);
-        }
-        if (content instanceof FollowUpContent && payload instanceof FollowUpAnswer ans) {
-            validateFollowUp(sessionId, slide.getId(), participantId, ans);
-        }
-        // Other content types are stored as-is; their tally/validation lands with scoring.
-    }
-
-    /**
-     * A drawing submission must reference an image the submitting participant
-     * stored through this session's {@code storeDrawing} upload — internal, and
-     * keyed under {@code drawing/{sessionId}/{participantId}/…}. That rules out
-     * external URLs, gallery keys, other sessions' uploads, and other
-     * participants' drawings (whose keys leak via the presigned gallery URLs at
-     * results time) alike.
-     */
-    private void validateDrawing(String sessionId, String participantId, DrawingAnswer answer) {
-        AppImage image = answer.image();
-        if (image == null || image.isExternal() || image.getSrcKey() == null) {
-            throw new ValidationException("a drawing answer must carry an uploaded drawing image");
-        }
-        if (!image.getSrcKey().startsWith(drawingPrefix(sessionId, participantId))) {
-            throw new ValidationException("drawing image was not uploaded by this participant in this session");
-        }
-    }
-
-    /**
-     * A matching submission must connect at least one real pair: every key a left
-     * card on the slide, every value a right card, and no right card claimed by
-     * two connections (the physical-card model — a card can only sit in one
-     * pairing). Partial maps are accepted (grid/axis precedent — the board gates
-     * full completion client-side).
-     */
-    private void validateMatching(MatchingContent content, MatchingAnswer answer) {
-        Map<String, String> matches = answer.matches();
-        if (matches == null || matches.isEmpty()) {
-            throw new ValidationException("at least one pair must be matched");
-        }
-        Set<String> leftIds = cardIds(content.left());
-        Set<String> rightIds = cardIds(content.right());
-        Set<String> claimed = new HashSet<>();
-        for (Map.Entry<String, String> match : matches.entrySet()) {
-            if (!leftIds.contains(match.getKey()) || !rightIds.contains(match.getValue())) {
-                throw new ValidationException("matched card is not on the slide");
-            }
-            if (!claimed.add(match.getValue())) {
-                throw new ValidationException("a card may only be matched once");
-            }
-        }
-    }
-
-    /**
-     * An allocation submission must spend the whole pool across the slide's own
-     * options: every option on the slide a key of the map (an explicit zero is
-     * how an option is passed over), every value within
-     * {@code [0, totalPointsToAllocate]}, and the values summing to
-     * {@code totalPointsToAllocate} exactly. Unlike the partial-map kinds, both
-     * the full map and the exact sum are required — splits are only comparable
-     * across participants when everyone spent the same pool over the same
-     * options, the live tally reads an option's key counts as its respondent
-     * count, and grading against {@code correctAllocations} assumes it.
-     */
-    private void validateAllocation(AllocationContent content, AllocationAnswer answer) {
-        Map<String, Integer> allocations = answer.allocations();
-        if (allocations == null || allocations.isEmpty()) {
-            throw new ValidationException("points must be allocated");
-        }
-        Set<String> optionIds = content.options() == null ? Set.of()
-                : content.options().stream()
-                        .map(option -> option.id())
-                        .collect(Collectors.toSet());
-        int total = 0;
-        for (Map.Entry<String, Integer> allocation : allocations.entrySet()) {
-            if (!optionIds.contains(allocation.getKey())) {
-                throw new ValidationException("allocated option is not on the slide");
-            }
-            Integer points = allocation.getValue();
-            if (points == null || points < 0 || points > content.totalPointsToAllocate()) {
-                throw new ValidationException("allocation is outside the point pool");
-            }
-            total += points;
-        }
-        if (!allocations.keySet().containsAll(optionIds)) {
-            throw new ValidationException("every option must be allocated (zero is allowed)");
-        }
-        if (total != content.totalPointsToAllocate()) {
-            throw new ValidationException("the whole point pool must be allocated");
-        }
-    }
-
-    private static Set<String> cardIds(List<MatchItem> items) {
-        return items == null ? Set.of()
-                : items.stream()
-                        .map(item -> item.id())
-                        .collect(Collectors.toSet());
-    }
-
-    /**
-     * A grid submission must place at least one real item on a real cell: every
-     * key must be an item on the slide, every value a well-formed
-     * {@code "rowIndex,colIndex"} within the matrix bounds.
-     */
-    private void validateGrid(GridContent content, GridAnswer answer) {
-        Map<String, String> placements = answer.placements();
-        if (placements == null || placements.isEmpty()) {
-            throw new ValidationException("at least one item must be placed");
-        }
-        Set<String> itemIds = content.items() == null ? Set.of()
-                : content.items().stream()
-                        .map(item -> item.id())
-                        .collect(Collectors.toSet());
-        int rows = content.rowLabels() == null ? 0 : content.rowLabels().size();
-        int cols = content.colLabels() == null ? 0 : content.colLabels().size();
-        for (Map.Entry<String, String> placement : placements.entrySet()) {
-            if (!itemIds.contains(placement.getKey())) {
-                throw new ValidationException("placed item is not on the slide");
-            }
-            if (!isCellWithin(placement.getValue(), rows, cols)) {
-                throw new ValidationException("placement cell is not on the grid");
-            }
-        }
-    }
-
-    /**
-     * An axis submission must place at least one real item at a real point: every
-     * key must be an item on the slide, every point finite and within the
-     * normalized {@code [0, 1]} plane on both axes.
-     */
-    private void validateAxis(AxisContent content, AxisAnswer answer) {
-        Map<String, AxisPoint> placements = answer.placements();
-        if (placements == null || placements.isEmpty()) {
-            throw new ValidationException("at least one item must be placed");
-        }
-        Set<String> itemIds = content.items() == null ? Set.of()
-                : content.items().stream()
-                        .map(item -> item.id())
-                        .collect(Collectors.toSet());
-        for (Map.Entry<String, AxisPoint> placement : placements.entrySet()) {
-            if (!itemIds.contains(placement.getKey())) {
-                throw new ValidationException("placed item is not on the slide");
-            }
-            if (!isPointOnPlane(placement.getValue())) {
-                throw new ValidationException("placement is not on the plane");
-            }
-        }
-    }
-
-    /**
-     * A place-on-image submission must pin at least one real item at a real
-     * point: every key must be one of the slide's items, every point finite and
-     * within the normalized {@code [0, 1]} image box. An item with no answer-key
-     * entry is still placeable — validation is against existence, not grading.
-     * Partial maps are accepted (grid/axis precedent — the board gates full
-     * completion client-side).
-     */
-    private void validatePlaceOnImage(PlaceOnImageContent content, PlaceOnImageAnswer answer) {
-        Map<String, PlacePoint> placements = answer.placements();
-        if (placements == null || placements.isEmpty()) {
-            throw new ValidationException("at least one item must be placed");
-        }
-        Set<String> itemIds = content.items() == null ? Set.of()
-                : content.items().stream()
-                        .map(item -> item.id())
-                        .collect(Collectors.toSet());
-        for (Map.Entry<String, PlacePoint> placement : placements.entrySet()) {
-            if (!itemIds.contains(placement.getKey())) {
-                throw new ValidationException("placed item is not on the slide");
-            }
-            PlacePoint point = placement.getValue();
-            if (point == null || !Double.isFinite(point.x()) || !Double.isFinite(point.y())
-                    || point.x() < 0 || point.x() > 1 || point.y() < 0 || point.y() > 1) {
-                throw new ValidationException("placement is not on the image");
-            }
-        }
-    }
-
-    /**
-     * A scales submission must rate at least one real statement: every key must
-     * be an item on the slide, every value a finite normalized position within
-     * {@code [0, 1]}. Partial maps are accepted (grid/axis precedent — the board
-     * gates full completion client-side).
-     */
-    private void validateScales(ScalesContent content, ScalesAnswer answer) {
-        Map<String, Double> positions = answer.positions();
-        if (positions == null || positions.isEmpty()) {
-            throw new ValidationException("at least one statement must be rated");
-        }
-        Set<String> itemIds = content.items() == null ? Set.of()
-                : content.items().stream()
-                        .map(item -> item.id())
-                        .collect(Collectors.toSet());
-        for (Map.Entry<String, Double> rating : positions.entrySet()) {
-            if (!itemIds.contains(rating.getKey())) {
-                throw new ValidationException("rated statement is not on the slide");
-            }
-            Double position = rating.getValue();
-            if (position == null || !Double.isFinite(position)
-                    || position < 0 || position > 1) {
-                throw new ValidationException("rating is not on the scale");
-            }
-        }
-    }
-
-    /** Whether {@code point} is finite and within the normalized [0, 1] plane. */
-    private static boolean isPointOnPlane(AxisPoint point) {
-        return point != null
-                && Double.isFinite(point.x()) && Double.isFinite(point.y())
-                && point.x() >= 0 && point.x() <= 1
-                && point.y() >= 0 && point.y() <= 1;
-    }
-
-    /** Whether {@code cell} is a well-formed {@code "rowIndex,colIndex"} inside the matrix. */
-    private static boolean isCellWithin(String cell, int rows, int cols) {
-        if (cell == null) {
-            return false;
-        }
-        String[] parts = cell.split(",", -1);
-        if (parts.length != 2) {
-            return false;
-        }
-        try {
-            int row = Integer.parseInt(parts[0]);
-            int col = Integer.parseInt(parts[1]);
-            return row >= 0 && row < rows && col >= 0 && col < cols;
-        } catch (NumberFormatException malformed) {
-            return false;
-        }
-    }
-
-    /**
-     * A Q&amp;A submission must be the wire shape ({@link QAndAAnswer} — the stored
-     * {@code QAndAQuestions} aggregate is server-built and never accepted from a
-     * client) with a non-blank question within the length cap.
-     */
-    private void validateQAndA(AnswerPayload payload) {
-        if (!(payload instanceof QAndAAnswer question)) {
-            throw new ValidationException("answer type does not match the slide");
-        }
-        if (question.question() == null || question.question().isBlank()) {
-            throw new ValidationException("a question must not be empty");
-        }
-        if (question.question().length() > ValidationConstants.QANDA_QUESTION_MAX) {
-            throw new ValidationException("question is too long");
-        }
-    }
-
-    /**
-     * A text submission (short-answer or word-cloud) must be non-blank, within
-     * the global {@link ValidationConstants#TEXT_ANSWER_MAX} cap (re-checked
-     * defensively behind the {@code @Size} annotation on {@link TextAnswer}),
-     * and within the slide's own {@code maxLength} when the author set one. The
-     * length is measured on the raw submitted string — the same characters the
-     * client counted against the cap.
-     */
-    private void validateText(TextContent content, TextAnswer answer) {
-        String text = answer.text();
-        if (text == null || text.isBlank()) {
-            throw new ValidationException("a text answer must not be empty");
-        }
-        if (text.length() > ValidationConstants.TEXT_ANSWER_MAX) {
-            throw new ValidationException("text answer is too long");
-        }
-        Integer maxLength = content.maxLength();
-        if (maxLength != null && text.length() > maxLength) {
-            throw new ValidationException("text answer exceeds the slide's character limit");
-        }
-    }
-
-    /**
-     * A follow-up pick must name one of the candidates snapshotted when the round
-     * opened — the board is runtime state, so unlike every other kind it is
-     * validated against the Redis snapshot rather than the slide's content.
-     *
-     * <p>Picking one's <em>own</em> candidate is rejected with the same
-     * {@code CANNOT_VOTE_FOR_OWN_ANSWER} conflict {@code submitVote} raises: the
-     * condition is identical, and on a follow-up round the pick <em>is</em> the
-     * vote. Authorship only exists server-side (never on
-     * {@link com.cephadex.ambi.session.event.dto.FollowUpOptionView}), so this is
-     * the only place the check can happen.
-     */
-    private void validateFollowUp(String sessionId, String slideId, String participantId, FollowUpAnswer answer) {
-        String optionId = answer.optionId();
-        if (optionId == null || optionId.isBlank()) {
-            throw new ValidationException("an option must be selected");
-        }
-        FollowUpOption option = followUpOptions.load(sessionId, slideId).byId(optionId);
-        if (option == null) {
-            throw new ValidationException("selected option is not on this round's board");
-        }
-        if (option.authorParticipantIds() != null && option.authorParticipantIds().contains(participantId)) {
-            throw new ConflictException("CANNOT_VOTE_FOR_OWN_ANSWER", "you cannot vote for your own answer");
-        }
-    }
-
-    private void validateMcq(McqContent content, McqAnswer answer, int maxSelections) {
-        Set<String> optionIds = answer.optionIds();
-        if (optionIds == null || optionIds.isEmpty()) {
-            throw new ValidationException("at least one option must be selected");
-        }
-        Set<String> valid = content.options().stream()
-                .map(o -> o.id())
-                .collect(Collectors.toSet());
-        if (!valid.containsAll(optionIds)) {
-            throw new ValidationException("selected option is not on the slide");
-        }
-        if (maxSelections == 1 && optionIds.size() != 1) {
-            throw new ValidationException("only one option may be selected");
-        }
-        if (maxSelections > 1 && optionIds.size() > maxSelections) {
-            throw new ValidationException("too many options selected");
-        }
-    }
 }

@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
-import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.cephadex.ambi.common.exception.ConflictException;
@@ -77,8 +74,6 @@ import com.cephadex.ambi.session.event.LiveResultsShown;
 import com.cephadex.ambi.session.event.LiveSessionCancelled;
 import com.cephadex.ambi.session.event.LiveSessionEnded;
 import com.cephadex.ambi.session.event.LiveSessionStarted;
-import com.cephadex.ambi.session.event.ParticipantJoined;
-import com.cephadex.ambi.session.event.ParticipantLeft;
 import com.cephadex.ambi.session.event.ParticipantReconnected;
 import com.cephadex.ambi.session.event.PresenceChanged;
 import com.cephadex.ambi.session.event.QAndAUpdated;
@@ -140,6 +135,7 @@ class LiveSessionOrchestratorTest {
 
     private LiveSessionRepository repo;
     private ParticipantRepository participants;
+    private SessionParticipantService participantService;
     private SessionRoster roster;
     private SessionLocks locks;
     private PresenceStore presenceStore;
@@ -162,6 +158,7 @@ class LiveSessionOrchestratorTest {
     void setUp() {
         repo = mock(LiveSessionRepository.class);
         participants = mock(ParticipantRepository.class);
+        participantService = mock(SessionParticipantService.class);
         roster = mock(SessionRoster.class);
         locks = mock(SessionLocks.class);
         roundStateStore = mock(LiveRoundStateStore.class);
@@ -195,7 +192,7 @@ class LiveSessionOrchestratorTest {
         when(locks.withLock(anyString(), ArgumentMatchers.<Supplier<Object>>any()))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
-        orchestrator = new LiveSessionOrchestrator(repo, participants, roster, locks, roundStateStore, answerStore,
+        orchestrator = new LiveSessionOrchestrator(repo, participants, participantService, roster, locks, roundStateStore, answerStore,
                 tallyStore, voteStore, presenceStore, qandaHostAnswers, followUpOptions, publisher, roundResults,
                 imageUrls, opaqueImageUrls, storage, mock(ImageVariantCleanup.class), codec, deadlines,
                 new SessionRedisProperties());
@@ -875,275 +872,24 @@ class LiveSessionOrchestratorTest {
     }
 
     @Test
-    void joinInsertsParticipantSeedsPresenceAndPublishesTheDelta() {
-        joinableSession();
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(true);
-
-        LiveSessionOrchestrator.JoinResult result = orchestrator.join("ROOM", "user-9", "Niner", null, null);
-
-        // The participant carries the session link, so the join is a plain insert —
-        // written twice, bracketing the admit: the document first so the announced
-        // join is loadable, then the admission marker that puts it on the roster.
-        ArgumentCaptor<Participant> saved = ArgumentCaptor.forClass(Participant.class);
-        verify(participants, times(2)).save(saved.capture());
-        assertThat(saved.getValue().getSessionId()).isEqualTo(SID);
-        assertThat(saved.getValue().isAdmitted()).isTrue();
-        InOrder writes = inOrder(participants, roster);
-        writes.verify(participants).save(any(Participant.class));
-        writes.verify(roster).admit(eq(SID), eq(PUB), anyString(), anyInt(), any());
-        writes.verify(participants).save(any(Participant.class));
-        verify(presenceStore).save(eq(SID), eq(result.participant().getParticipantId()), any());
-
-        // The delta carries only the new player — never a roster snapshot.
-        ArgumentCaptor<SessionEvent> event = ArgumentCaptor.forClass(SessionEvent.class);
-        verify(roster).admit(eq(SID), eq(PUB), eq(result.participant().getParticipantId()),
-                anyInt(), event.capture());
-        assertThat(event.getValue()).isInstanceOfSatisfying(ParticipantJoined.class,
-                joined -> assertThat(joined.participant().participantId())
-                        .isEqualTo(result.participant().getParticipantId()));
-    }
-
-    @Test
-    void joinStampsTheAdmittedMarkerOnlyAfterTheRosterAdmits() {
-        joinableSession();
-        AtomicReference<Participant> inserted = new AtomicReference<>();
-        when(participants.save(any(Participant.class))).thenAnswer(save -> {
-            inserted.compareAndSet(null, save.getArgument(0));
-            return save.getArgument(0);
-        });
-        // The two saves capture the same mutated instance, so a captor cannot show
-        // when the marker landed — the admit itself has to assert it.
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenAnswer(admit -> {
-            assertThat(inserted.get()).isNotNull();
-            // Until the admit returns, the document is durable but not a member: no
-            // rehydrate may seed a joiner this call is still free to refuse.
-            assertThat(inserted.get().isAdmitted()).isFalse();
-            return true;
-        });
-
-        orchestrator.join("ROOM", "user-9", "Niner", null, null);
-
-        assertThat(inserted.get().isAdmitted()).isTrue();
-    }
-
-    @Test
-    void joinRollsBackWhenTheAdmittedStampFails() {
-        joinableSession();
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(true);
-        // The insert lands, the admit lands — and the write that would make the
-        // membership durable does not.
-        DataAccessResourceFailureException stampFailure = new DataAccessResourceFailureException("mongo is down");
-        when(participants.save(any(Participant.class)))
-                .thenAnswer(save -> save.getArgument(0))
-                .thenThrow(stampFailure);
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isSameAs(stampFailure);
-        // Here the member really is in the set and the join really was published, so
-        // both halves of the rollback are load-bearing.
-        InOrder rollback = inOrder(participants, roster);
-        rollback.verify(participants).delete(any(Participant.class));
-        rollback.verify(roster).remove(eq(SID), anyString());
-        verify(presenceStore, never()).save(anyString(), anyString(), any());
-    }
-
-    /**
-     * The join path takes no session lock and writes nothing on the session
-     * document — that is what lets concurrent joins all succeed instead of racing
-     * for the fail-fast lock and 409-ing with SESSION_LOCKED.
-     */
-    @Test
-    void joinTakesNoSessionLockAndWritesNoSession() {
-        joinableSession();
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(true);
-
-        orchestrator.join("ROOM", "user-9", "Niner", null, null);
-
-        verify(locks, never()).withLock(anyString(), any(Runnable.class));
-        verify(locks, never()).withLock(anyString(), ArgumentMatchers.<Supplier<Object>>any());
-        verify(repo, never()).save(any());
-    }
-
-    @Test
-    void joinRejectsWhenRosterAtCapAndUndoesTheInsert() {
-        Deck deck = mock(Deck.class);
-        when(deck.getSettings()).thenReturn(new Settings.DeckSettings(null, null,
-                new Settings.AudienceSettings(2, false, false, false, false, false, true), null));
-        when(joinableSession().getDeck()).thenReturn(deck);
-        // The cap is enforced inside the roster's atomic admit script, which reports
-        // a full session by refusing to add.
-        when(roster.admit(eq(SID), eq(PUB), anyString(), eq(2), any())).thenReturn(false);
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("participant limit");
-        // The speculative insert is rolled back rather than left orphaned, and the
-        // roster member goes with it. Document first: a rehydrate racing the rollback
-        // then reads Mongo after the delete and can't re-seed the id the SREM drops.
-        InOrder rollback = inOrder(participants, roster);
-        rollback.verify(participants).delete(any(Participant.class));
-        rollback.verify(roster).remove(eq(SID), anyString());
-        verify(presenceStore, never()).save(anyString(), anyString(), any());
-    }
-
-    @Test
-    void joinRollsTheRosterBackWhenTheAdmitScriptBlowsUp() {
-        joinableSession();
-        // A connection failure reading the reply can leave the member added and the
-        // join published, so the rollback has to drop it from the set too.
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any()))
-                .thenThrow(new IllegalStateException("no reply"));
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isInstanceOf(IllegalStateException.class);
-        InOrder rollback = inOrder(participants, roster);
-        rollback.verify(participants).delete(any(Participant.class));
-        rollback.verify(roster).remove(eq(SID), anyString());
-        verify(presenceStore, never()).save(anyString(), anyString(), any());
-    }
-
-    @Test
-    void aRosterRollbackThatFailsDoesNotMaskWhyTheJoinFailed() {
-        joinableSession();
-        IllegalStateException admitFailure = new IllegalStateException("no reply");
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenThrow(admitFailure);
-        // The compensating SREM is only needed when Redis is misbehaving — which is
-        // exactly when it fails too, so it must not become the exception the caller
-        // sees (and must not skip the rethrow).
-        doThrow(new RedisConnectionFailureException("redis is down"))
-                .when(roster).remove(eq(SID), anyString());
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isSameAs(admitFailure)
-                .satisfies(thrown -> assertThat(thrown.getSuppressed())
-                        .singleElement().isInstanceOf(RedisConnectionFailureException.class));
-        // The document still goes, so nothing is orphaned by the failed SREM.
-        verify(participants).delete(any(Participant.class));
-        verify(presenceStore, never()).save(anyString(), anyString(), any());
-    }
-
-    @Test
-    void aRosterRollbackThatFailsStillReportsTheFullSession() {
-        joinableSession();
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(false);
-        doThrow(new RedisConnectionFailureException("redis is down"))
-                .when(roster).remove(eq(SID), anyString());
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isInstanceOfSatisfying(ConflictException.class,
-                        full -> assertThat(full.getCode()).isEqualTo("SESSION_FULL"))
-                .satisfies(thrown -> assertThat(thrown.getSuppressed())
-                        .singleElement().isInstanceOf(RedisConnectionFailureException.class));
-        verify(participants).delete(any(Participant.class));
-        verify(presenceStore, never()).save(anyString(), anyString(), any());
-    }
-
-    @Test
-    void aDocumentRollbackThatFailsDoesNotMaskWhyTheJoinFailed() {
-        joinableSession();
-        IllegalStateException admitFailure = new IllegalStateException("no reply");
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenThrow(admitFailure);
-        // A Mongo failure undoing the speculative insert must not become the exception
-        // the caller sees either — it would replace the reason the join was refused.
-        doThrow(new DataAccessResourceFailureException("mongo is down"))
-                .when(participants).delete(any(Participant.class));
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isSameAs(admitFailure)
-                .satisfies(thrown -> assertThat(thrown.getSuppressed())
-                        .singleElement().isInstanceOf(DataAccessResourceFailureException.class));
-        // The SREM still runs. The orphaned document inflates nothing on its own (it
-        // never gained an admission marker, so no roster read sees it), but a member
-        // left in the set would inflate the cap for the set's whole TTL.
-        verify(roster).remove(eq(SID), anyString());
-        verify(presenceStore, never()).save(anyString(), anyString(), any());
-    }
-
-    @Test
-    void aDocumentRollbackThatFailsStillReportsTheFullSession() {
-        joinableSession();
-        when(roster.admit(eq(SID), eq(PUB), anyString(), anyInt(), any())).thenReturn(false);
-        doThrow(new DataAccessResourceFailureException("mongo is down"))
-                .when(participants).delete(any(Participant.class));
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isInstanceOfSatisfying(ConflictException.class,
-                        full -> assertThat(full.getCode()).isEqualTo("SESSION_FULL"))
-                .satisfies(thrown -> assertThat(thrown.getSuppressed())
-                        .singleElement().isInstanceOf(DataAccessResourceFailureException.class));
-        verify(roster).remove(eq(SID), anyString());
-        verify(presenceStore, never()).save(anyString(), anyString(), any());
-    }
-
-    @Test
-    void joinAppliesDefaultCapWhenDeckHasNoAudienceSettings() {
-        joinableSession();
-        when(roster.admit(eq(SID), eq(PUB), anyString(), eq(200), any())).thenReturn(false);
-
-        assertThatThrownBy(() -> orchestrator.join("ROOM", "user-9", "Niner", null, null))
-                .isInstanceOf(ConflictException.class);
-        verify(participants).delete(any(Participant.class));
-        verify(roster).remove(eq(SID), anyString());
-    }
-
-    /** A live session reachable by room code, with nothing roster-related stubbed. */
-    private LiveSession joinableSession() {
+    void joinDelegatesParticipantAdmission() {
         LiveSession session = mock(LiveSession.class);
-        when(session.isTerminal()).thenReturn(false);
-        when(session.getId()).thenReturn(SID);
-        when(session.getPublicId()).thenReturn(PUB);
-        when(repo.findByRoomCode("ROOM")).thenReturn(Optional.of(session));
-        when(repo.findById(SID)).thenReturn(Optional.of(session));
-        return session;
+        Participant participant = Participant.join("user-9", "Niner", null, null);
+        when(participantService.join("ROOM", "user-9", "Niner", null, null))
+                .thenReturn(new SessionParticipantService.JoinResult(session, participant));
+
+        LiveSessionOrchestrator.JoinResult result = orchestrator.join(
+                "ROOM", "user-9", "Niner", null, null);
+
+        assertThat(result.session()).isSameAs(session);
+        assertThat(result.participant()).isSameAs(participant);
     }
 
     @Test
-    void joinUnknownRoomCodeIsNotFound() {
-        when(repo.findByRoomCode("NOPE")).thenReturn(Optional.empty());
+    void leaveDelegatesParticipantDeparture() {
+        orchestrator.leave(SID, "participant-1");
 
-        assertThatThrownBy(() -> orchestrator.join("NOPE", "u", "n", null, null))
-                .isInstanceOf(NotFoundException.class);
-    }
-
-    @Test
-    void joinTerminalSessionIsNotFound() {
-        LiveSession session = mock(LiveSession.class);
-        when(session.isTerminal()).thenReturn(true);
-        when(repo.findByRoomCode("DEAD")).thenReturn(Optional.of(session));
-
-        assertThatThrownBy(() -> orchestrator.join("DEAD", "u", "n", null, null))
-                .isInstanceOf(NotFoundException.class);
-    }
-
-    @Test
-    void leaveRemovesParticipantStampsDepartureAndPublishesTheDelta() {
-        Participant leaver = Participant.join("user-2", "Two", null, null);
-        leaver.joinSession(SID);
-        when(participants.findById(leaver.getParticipantId())).thenReturn(Optional.of(leaver));
-        LiveSession session = mock(LiveSession.class);
-        when(session.isHost(leaver.getParticipantId())).thenReturn(false);
-        when(session.getPublicId()).thenReturn(PUB);
-        when(repo.findById(SID)).thenReturn(Optional.of(session));
-
-        orchestrator.leave(SID, leaver.getParticipantId());
-
-        verify(roster).remove(SID, leaver.getParticipantId());
-        verify(presenceStore).remove(SID, leaver.getParticipantId());
-        // Durable too: the Redis set is a cache, so a rehydrate must not resurrect them.
-        assertThat(leaver.isOnRoster()).isFalse();
-        verify(participants).save(leaver);
-        ParticipantLeft event = (ParticipantLeft) publishedEvent();
-        assertThat(event.participantId()).isEqualTo(leaver.getParticipantId());
-    }
-
-    @Test
-    void hostCannotLeave() {
-        LiveSession session = mock(LiveSession.class);
-        when(session.isHost("host")).thenReturn(true);
-        when(repo.findById(SID)).thenReturn(Optional.of(session));
-
-        assertThatThrownBy(() -> orchestrator.leave(SID, "host")).isInstanceOf(ConflictException.class);
-        verify(roster, never()).remove(anyString(), anyString());
+        verify(participantService).leave(SID, "participant-1");
     }
 
     @Test

@@ -132,6 +132,7 @@ public class LiveSessionOrchestrator {
 
     private final LiveSessionRepository repo;
     private final ParticipantRepository participants;
+    private final SessionParticipantService participantService;
     private final SessionRoster roster;
     private final SessionLocks locks;
     private final LiveRoundStateStore roundStateStore;
@@ -168,8 +169,6 @@ public class LiveSessionOrchestrator {
      * is unset (F5). Generous enough for any classroom/party run; a deck that needs
      * more sets its own limit.
      */
-    private static final int DEFAULT_MAX_PARTICIPANTS = 200;
-
     /**
      * Snapshot-size warning threshold (F3): half of Mongo's 16MB document limit.
      * The deck snapshot is the only unbounded part of the session document, so a
@@ -178,6 +177,7 @@ public class LiveSessionOrchestrator {
     private static final int SNAPSHOT_WARN_BYTES = 8 * 1024 * 1024;
 
     public LiveSessionOrchestrator(LiveSessionRepository repo, ParticipantRepository participants,
+            SessionParticipantService participantService,
             SessionRoster roster, SessionLocks locks, LiveRoundStateStore roundStateStore, AnswerStore answerStore,
             TallyStore tallyStore, VoteStore voteStore, PresenceStore presenceStore,
             QAndAHostAnswerStore qandaHostAnswers,
@@ -187,6 +187,7 @@ public class LiveSessionOrchestrator {
             SessionRedisProperties redisProps) {
         this.repo = repo;
         this.participants = participants;
+        this.participantService = participantService;
         this.roster = roster;
         this.locks = locks;
         this.roundStateStore = roundStateStore;
@@ -379,8 +380,7 @@ public class LiveSessionOrchestrator {
      * {@link LiveSession} document — the participant carries the link — so there is
      * no read-modify-write to serialize. The one thing that still has to be atomic
      * is the roster cap (F5): a session at the deck's
-     * {@link Settings.AudienceSettings#maxParticipants()} (or
-     * {@link #DEFAULT_MAX_PARTICIPANTS} when unset) must reject further joins
+     * {@link Settings.AudienceSettings#maxParticipants()} must reject further joins
      * exactly, and {@link SessionRoster#admit} does that check, the membership
      * write, and the publish in a single Redis script. Concurrent joins therefore
      * all succeed instead of losing the fail-fast lock and 409-ing.
@@ -392,7 +392,7 @@ public class LiveSessionOrchestrator {
      * roster</em> — no rehydrate seeds it, no membership check honours it — so a
      * refused or failed join rolls back a document nothing else could have observed
      * as a member, along with any roster membership the script managed to record
-     * ({@link #rollbackJoin}).
+     * through the participant service's compensating rollback.
      *
      * <p>Terminality is decided on the room-code read. A session that ends in the
      * microseconds between that read and the admit can therefore still take one
@@ -409,99 +409,9 @@ public class LiveSessionOrchestrator {
      * @throws ConflictException if the session is already at its participant limit
      */
     public JoinResult join(String roomCode, String userId, String displayName, Avatar avatar, String colorTag) {
-        LiveSession session = repo.findByRoomCode(roomCode)
-                .filter(candidate -> !candidate.isTerminal())
-                .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "session not found"));
-
-        Participant participant = Participant.join(userId, displayName, avatar, colorTag);
-        participant.joinSession(session.getId());
-        participants.save(participant);
-
-        boolean admitted;
-        try {
-            admitted = roster.admit(session.getId(), session.getPublicId(), participant.getParticipantId(),
-                    maxParticipants(session), SessionEvents.participantJoined(participant));
-        } catch (RuntimeException e) {
-            rollbackJoin(session, participant, e);
-            throw e;
-        }
-        if (!admitted) {
-            ConflictException full = new ConflictException("SESSION_FULL",
-                    "this session has reached its participant limit");
-            rollbackJoin(session, participant, full);
-            throw full;
-        }
-
-        try {
-            participant.markAdmitted();
-            participants.save(participant);
-        } catch (RuntimeException e) {
-            rollbackJoin(session, participant, e);
-            throw e;
-        }
-
-        presenceStore.save(session.getId(), participant.getParticipantId(), Presence.online(Instant.now()));
-        return new JoinResult(session, participant);
-    }
-
-    /**
-     * Undoes a join that was not admitted — the cap refused it, the admit blew up
-     * after the script may already have run, or the admission marker failed to
-     * persist once it had. The Redis member is dropped as well as the document,
-     * because a failure between the {@code SADD} and the reply would otherwise
-     * leave a phantom inflating the cap for the set's whole TTL.
-     *
-     * <p>The third caller is the one where both halves matter most: the admit
-     * succeeded, so the member <em>is</em> in the set and the join <em>was</em>
-     * published — the {@code SREM} is load-bearing rather than speculative, and the
-     * delete undoes a document that never gained its marker.
-     *
-     * <p>Order matters: the document goes first so a rehydrate racing this
-     * rollback reads Mongo <em>after</em> the delete and therefore never re-seeds
-     * the id the {@code SREM} is about to drop.
-     *
-     * <p>Neither cleanup may become the exception the caller sees: the {@code SREM}
-     * is only needed when Redis is misbehaving, which is precisely when it fails
-     * too, and a Mongo failure on the delete would mask the reason the join was
-     * refused. Both are attached to {@code failure} as suppressed instead — and
-     * logged, because the {@code SESSION_FULL} branch rides a
-     * {@link ConflictException} the exception handler maps to a 409 without logging,
-     * so a stranded phantom member would otherwise leave no trace at all.
-     *
-     * @param failure the exception the caller is about to throw; a failed cleanup is
-     *                recorded as suppressed on it
-     */
-    private void rollbackJoin(LiveSession session, Participant participant, RuntimeException failure) {
-        try {
-            participants.delete(participant);
-        } catch (RuntimeException e) {
-            log.warn("Could not delete participant {} while rolling back a refused join to session {} — "
-                    + "the document is orphaned, but it carries no admission marker, so no roster read reports "
-                    + "it and it inflates nothing; logged so the leak stays traceable",
-                    participant.getParticipantId(), session.getId(), e);
-            failure.addSuppressed(e);
-        }
-        try {
-            roster.remove(session.getId(), participant.getParticipantId());
-        } catch (RuntimeException e) {
-            log.warn("Could not drop participant {} from the roster of session {} while rolling back a refused "
-                    + "join — the member inflates the cap until the set expires",
-                    participant.getParticipantId(), session.getId(), e);
-            failure.addSuppressed(e);
-        }
-    }
-
-    /**
-     * The roster cap in effect for a session: the deck's
-     * {@code AudienceSettings.maxParticipants} when set (&gt; 0), else
-     * {@link #DEFAULT_MAX_PARTICIPANTS}.
-     */
-    private int maxParticipants(LiveSession session) {
-        Settings.DeckSettings settings = session.getDeck() == null ? null : session.getDeck().getSettings();
-        Settings.AudienceSettings audience = settings == null ? null : settings.audienceSettings();
-        return audience != null && audience.maxParticipants() > 0
-                ? audience.maxParticipants()
-                : DEFAULT_MAX_PARTICIPANTS;
+        SessionParticipantService.JoinResult result = participantService.join(
+                roomCode, userId, displayName, avatar, colorTag);
+        return new JoinResult(result.session(), result.participant());
     }
 
     /**
@@ -516,20 +426,7 @@ public class LiveSessionOrchestrator {
      * rehydrate would put them straight back.
      */
     public void leave(String sessionId, String participantId) {
-        LiveSession session = requireSession(sessionId);
-        if (session.isHost(participantId)) {
-            throw new ConflictException("HOST_CANNOT_LEAVE",
-                    "the host ends or cancels the session instead of leaving");
-        }
-        participants.findById(participantId)
-                .filter(p -> sessionId.equals(p.getSessionId()))
-                .ifPresent(p -> {
-                    p.leaveSession();
-                    participants.save(p);
-                });
-        roster.remove(sessionId, participantId);
-        presenceStore.remove(sessionId, participantId);
-        publisher.publish(session.getPublicId(), SessionEvents.participantLeft(participantId));
+        participantService.leave(sessionId, participantId);
     }
 
     /**

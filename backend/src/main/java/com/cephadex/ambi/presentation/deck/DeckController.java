@@ -446,6 +446,24 @@ public class DeckController {
                 .toList();
     }
 
+    /**
+     * Duplicate a slide, placing the copy directly after it (EDIT). There is no
+     * body: the copy's id is server-minted, as is its placement, and a source
+     * with an attached follow-up has the whole pair cloned. Returns the deck's
+     * slides in canonical order — the insert is mid-list, so the client
+     * reconciles its cache straight from the response, like a move.
+     */
+    @PostMapping("/{id}/slides/{slideId}/duplicate")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<SlideResponse> duplicateSlide(
+            @PathVariable String id,
+            @PathVariable String slideId,
+            @AuthenticationPrincipal AmbiPrincipal principal) {
+        return deckService.duplicateSlide(id, slideId, principal).stream()
+                .map(SlideResponse::from)
+                .toList();
+    }
+
     /** Replace a slide's editable presentation fields (EDIT). */
     @PutMapping("/{id}/slides/{slideId}")
     public SlideResponse updateSlide(

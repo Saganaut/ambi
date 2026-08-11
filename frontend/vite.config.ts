@@ -1,24 +1,15 @@
 /// <reference types="vitest/config" />
 
+import babel from "@rolldown/plugin-babel";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import babel from "@rolldown/plugin-babel";
-import svgr from "vite-plugin-svgr";
 import { analyzer } from "vite-bundle-analyzer";
+import svgr from "vite-plugin-svgr";
 
-// Resolve a path relative to this config file (frontend root).
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
-// Explicit aliases mirroring the `paths` in tsconfig.app.json. These are
-// required (not just `resolve.tsconfigPaths`) because the native tsconfigPaths
-// resolver fails to resolve aliases when the importer is a virtual module with
-// a query string — e.g. TanStack Router's `?tsr-split=...` modules emitted by
-// autoCodeSplitting — since our `paths` live in a referenced tsconfig rather
-// than the root. See https://github.com/vitejs/vite/issues/21889.
-// Keep this list in sync with tsconfig.app.json `compilerOptions.paths`.
-// Order: most-specific first; the bare "@" (root "@/*") stays last.
 const alias = [
   { find: "@sb", replacement: r("./.storybook") },
   { find: "@assets", replacement: r("./src/shared/assets") },
@@ -50,14 +41,12 @@ export default defineConfig({
     devSourcemap: true,
   },
   build: {
-    // "hidden" emits source maps (so Sentry can symbolicate prod stack traces
-    // once wired) without appending the //# sourceMappingURL comment, keeping
-    // them out of the shipped bundle. See z-docs/decisions/001-observability-stack.md.
     sourcemap: "hidden",
   },
   resolve: {
     alias,
     tsconfigPaths: true,
+    dedupe: ["react", "react-dom"],
   },
   plugins: [
     tanstackRouter({
@@ -72,10 +61,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
-    // Persist every run to disk so a failure survives the terminal scrollback —
-    // the backend's Surefire reports are the equivalent. `junit` is the portable
-    // format for viewers; `json` is what scripts/test-report.sh summarises.
-    // See z-docs/runbooks/running-tests.md.
     reporters: ["default", "junit", "json"],
     outputFile: {
       junit: "./test-results/junit.xml",

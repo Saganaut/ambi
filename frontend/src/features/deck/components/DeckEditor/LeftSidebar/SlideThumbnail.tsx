@@ -4,7 +4,9 @@
  * * Features:
  * - Renders the shared SlideCard row & handles click selection (writes slideId
  *   to the route).
- * - Right-click dropdown: delete, "Add follow-up" (if eligible).
+ * - Right-click dropdown on the parent: "Add follow-up" (if eligible),
+ *   duplicate, delete. The follow-up's own dropdown offers delete only —
+ *   duplicating an attached follow-up is rejected by the API.
  * - Delete with follow-up triggers server cascade (requires confirmation dialog).
  * - Self-scrolls into view via HTML id on creation/activation.
  * - @dnd-kit drag handle for parent reordering.
@@ -44,7 +46,10 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
   deckId,
   currentQuestionId,
 }) => {
-  const { removeSlide, addFollowUp } = useDeckEditor(deckId, currentQuestionId);
+  const { removeSlide, addFollowUp, duplicateSlide } = useDeckEditor(
+    deckId,
+    currentQuestionId,
+  );
   const confirm = useConfirm();
 
   const navigate = useNavigate({ from: "/decks/$deckId/edit" });
@@ -125,6 +130,13 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
             Add follow-up slide
           </DropdownMenuItem>
         )}
+        <DropdownMenuItem
+          onClick={() => {
+            duplicateSlide(slide.id);
+          }}
+        >
+          Duplicate slide
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
             void handleDeleteSlide();

@@ -58,7 +58,7 @@
 
   .chartTypePicker:hover & {
     opacity: 1;
-    max-height: 200px;
+    max-height: 300px;
     pointer-events: auto;
   }
 

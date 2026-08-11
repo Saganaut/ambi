@@ -14,6 +14,39 @@ Brings up Docker, the Vite frontend, and the backend (with `dev.env` exported) i
 
 The steps below are the same thing by hand, for when you only want one piece.
 
+## 1b. Stop everything
+
+Ctrl+C in the `ambi.sh` terminal is the normal path — it also handles the terminal window being
+closed (SIGHUP), reaps the app processes before stopping the containers, and escalates to
+SIGKILL for anything that ignores SIGTERM.
+
+For anything `ambi.sh` can't reach, or when you didn't start the stack from a terminal you still
+have:
+
+```bash
+./scripts/ambi-stop.sh                    # reap app processes + stop containers
+./scripts/ambi-stop.sh --keep-containers  # leave Mongo/Redis/Garage up
+```
+
+It matches by **listening port and command line, not by parent process**, so it clears
+backends nobody owns any more. Matching is anchored on this checkout's absolute paths, so a
+second clone and editor-owned processes (`oxlint --lsp`, the `tsgo` watcher) are left alone.
+
+### Symptom: a stale backend still holds `:8080`
+
+A backend started detached — `nohup ./mvnw spring-boot:run &`, a background agent shell, a
+closed terminal — outlives whatever launched it and keeps the port. It looks like a hung app:
+requests time out (the containers are gone, so Mongo calls block until server-selection
+timeout) but the port is bound and the browser keeps idle connections open to it.
+
+Two JVMs are involved: `spring-boot:run` forks the app JVM, so the Maven process is the parent
+and the process holding `:8080` is its child. Killing only the wrapper leaves the port held.
+
+```bash
+ss -tlnp | grep -E '8080|5173'      # who holds the dev ports
+./scripts/ambi-stop.sh              # clears it regardless of parentage
+```
+
 ## 2. Infrastructure
 
 ```bash

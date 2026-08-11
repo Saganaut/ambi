@@ -1,14 +1,5 @@
-// Guards the placement engine both continuous-surface boards run on: the
-// round-local draft's reset, the drag / tap / arrow-key inputs, and the two
-// options that reconcile the boards — `invertY` (Axis measures from the
-// bottom-left, Place-on-Image from the top-left) and `lockOnSubmit` (a
-// Place-on-Image map locks on the first send, an Axis map stays re-sendable).
-//
-// The hook is driven directly rather than through a board so the coordinate math
-// is asserted on its own. jsdom reports zero-size rects, so the surface box is
-// stubbed to a 100×100 box at the origin — client coordinates then read straight
-// as percentages — and the ref is pointed at a detached div, standing in for the
-// `PlacementSurface` element a board would attach it to.
+// Covers the shared continuous-surface placement engine: round reset, drag/tap/keyboard input,
+// coordinate orientation, read-only gating, complete-map submission, resubmission, and locking.
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";

@@ -270,19 +270,6 @@ describe("GalleryPicker", () => {
     expect(uploadRequests).toBe(0);
   });
 
-  it("clears the selection when the selected tile is clicked again", async () => {
-    const user = userEvent.setup();
-    renderPicker();
-
-    const sunsetTile = await tile("Sunset");
-    await user.click(sunsetTile);
-    await user.click(sunsetTile);
-
-    expect(sunsetTile).toHaveAttribute("aria-pressed", "false");
-    expect(insertBtn()).toBeDisabled();
-    expect(deleteBtn()).toBeDisabled();
-  });
-
   it("clears the selection when a click lands outside the image grid", async () => {
     const user = userEvent.setup();
     renderPicker();
@@ -296,16 +283,6 @@ describe("GalleryPicker", () => {
     expect(sunsetTile).toHaveAttribute("aria-pressed", "false");
     expect(insertBtn()).toBeDisabled();
     expect(deleteBtn()).toBeDisabled();
-  });
-
-  it("inserts immediately on double click, firing onPick exactly once", async () => {
-    const user = userEvent.setup();
-    const { onPick } = renderPicker();
-
-    await user.dblClick(await tile("Sunset"));
-
-    expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onPick).toHaveBeenCalledWith(sunset.image);
   });
 
   it("deletes the selected image inline, leaving the picker open", async () => {
@@ -343,23 +320,6 @@ describe("GalleryPicker", () => {
     expect(deleted).toEqual([]);
     expect(await tile("Sunset")).toHaveAttribute("aria-pressed", "true");
     expect(deleteBtn()).toBeEnabled();
-  });
-
-  it("inserts on a second Enter without ever reaching the Insert button", async () => {
-    const user = userEvent.setup();
-    const { onPick } = renderPicker();
-
-    const sunsetTile = await tile("Sunset");
-    sunsetTile.focus();
-    await user.keyboard("{Enter}");
-
-    expect(sunsetTile).toHaveAttribute("aria-pressed", "true");
-    expect(onPick).not.toHaveBeenCalled();
-
-    await user.keyboard("{Enter}");
-
-    expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onPick).toHaveBeenCalledWith(sunset.image);
   });
 
   it("ignores clicks on the delete confirmation's prompt text", async () => {

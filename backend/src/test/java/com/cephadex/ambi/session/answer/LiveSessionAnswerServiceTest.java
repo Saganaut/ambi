@@ -87,9 +87,8 @@ import com.cephadex.ambi.session.redis.FollowUpOptionStore;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
- * Unit tests for the HTTP-facing answer service: session lookup, anonymous-guard,
- * and payload validation against the slide, with participant resolution and the
- * orchestrator mocked so we assert only what is delegated.
+ * Unit tests for answer-request orchestration, participant resolution, anonymous access,
+ * drawing ingestion, and delegation semantics across each payload family.
  */
 class LiveSessionAnswerServiceTest {
 
@@ -114,7 +113,7 @@ class LiveSessionAnswerServiceTest {
         imageIngest = mock(ImageIngestService.class);
         followUpOptions = mock(FollowUpOptionStore.class);
         service = new LiveSessionAnswerService(sessions, participantResolver, orchestrator, imageIngest,
-                followUpOptions);
+                new AnswerPayloadValidator(followUpOptions));
 
         participant = Participant.join("user-1", "Player One", null, null);
         registered = principal(IdentityState.REGISTERED, "user-1", UserLevel.USER);
@@ -161,31 +160,6 @@ class LiveSessionAnswerServiceTest {
     }
 
     @Test
-    void payloadOfWrongTypeForSlideIsRejected() {
-        givenLiveSession(answerSettings(true, 1), mcqContent("opt-a"));
-
-        assertThatThrownBy(() -> service.submit(SID, request(new NumberAnswer(42)), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void moreSelectionsThanAllowedIsRejected() {
-        givenLiveSession(answerSettings(true, 1), mcqContent("opt-a", "opt-b"));
-
-        assertThatThrownBy(
-                () -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-a", "opt-b"))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void unknownOptionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), mcqContent("opt-a"));
-
-        assertThatThrownBy(() -> service.submit(SID, request(new McqAnswer(java.util.Set.of("opt-x"))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
     void guestBlockedWhenSlideForbidsAnonymous() {
         givenLiveSession(answerSettings(false, 1), mcqContent("opt-a"));
         AmbiPrincipal guest = principal(IdentityState.GUEST, "user-1", UserLevel.GUEST);
@@ -208,36 +182,6 @@ class LiveSessionAnswerServiceTest {
                 any(GridAnswer.class), eq(0));
     }
 
-    @Test
-    void gridEmptyPlacementsAreRejected() {
-        givenLiveSession(answerSettings(true, 1), gridContent());
-
-        assertThatThrownBy(() -> service.submit(SID, request(new GridAnswer(java.util.Map.of())), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void gridUnknownItemIsRejected() {
-        givenLiveSession(answerSettings(true, 1), gridContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new GridAnswer(java.util.Map.of("it-nope", "0,0"))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void gridOutOfBoundsOrMalformedCellIsRejected() {
-        givenLiveSession(answerSettings(true, 1), gridContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new GridAnswer(java.util.Map.of("it-1", "2,0"))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new GridAnswer(java.util.Map.of("it-1", "not-a-cell"))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
     // ── Axis ───────────────────────────────────────────────────────────────────
 
     @Test
@@ -250,39 +194,6 @@ class LiveSessionAnswerServiceTest {
         // submit, so the orchestrator is called with 0 (last-write-wins).
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(AxisAnswer.class), eq(0));
-    }
-
-    @Test
-    void axisEmptyPlacementsAreRejected() {
-        givenLiveSession(answerSettings(true, 1), axisContent());
-
-        assertThatThrownBy(() -> service.submit(SID, request(new AxisAnswer(java.util.Map.of())), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void axisUnknownItemIsRejected() {
-        givenLiveSession(answerSettings(true, 1), axisContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AxisAnswer(java.util.Map.of("it-nope", new AxisPoint(0.5, 0.5)))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void axisOutOfBoundsOrNonFinitePointIsRejected() {
-        givenLiveSession(answerSettings(true, 1), axisContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(1.2, 0.5)))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(0.5, -0.01)))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AxisAnswer(java.util.Map.of("it-1", new AxisPoint(Double.NaN, 0.5)))), registered))
-                .isInstanceOf(ValidationException.class);
     }
 
     // ── Place-on-image ──────────────────────────────────────────────────────────
@@ -301,16 +212,6 @@ class LiveSessionAnswerServiceTest {
     }
 
     @Test
-    void placeOnImageEmptyPlacementsAreRejected() {
-        givenLiveSession(answerSettings(true, 1), placeContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new PlaceOnImageAnswer(java.util.Map.of())), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
     void placeOnImageItemOutsideTheAnswerKeyIsStillPlaceable() {
         givenLiveSession(answerSettings(true, 1), placeContent());
 
@@ -321,30 +222,6 @@ class LiveSessionAnswerServiceTest {
 
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(PlaceOnImageAnswer.class), eq(0));
-    }
-
-    @Test
-    void placeOnImageUnknownItemIsRejected() {
-        givenLiveSession(answerSettings(true, 1), placeContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new PlaceOnImageAnswer(java.util.Map.of("t-nope", new PlacePoint(0.5, 0.5)))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void placeOnImageOutOfBoundsOrNonFinitePointIsRejected() {
-        givenLiveSession(answerSettings(true, 1), placeContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new PlaceOnImageAnswer(java.util.Map.of("t-1", new PlacePoint(1.2, 0.5)))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new PlaceOnImageAnswer(java.util.Map.of("t-1", new PlacePoint(0.5, -0.01)))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new PlaceOnImageAnswer(java.util.Map.of("t-1", new PlacePoint(Double.NaN, 0.5)))), registered))
-                .isInstanceOf(ValidationException.class);
     }
 
     // ── Scales ───────────────────────────────────────────────────────────────
@@ -361,39 +238,6 @@ class LiveSessionAnswerServiceTest {
                 any(ScalesAnswer.class), eq(0));
     }
 
-    @Test
-    void scalesEmptyPositionsAreRejected() {
-        givenLiveSession(answerSettings(true, 1), scalesContent());
-
-        assertThatThrownBy(() -> service.submit(SID, request(new ScalesAnswer(java.util.Map.of())), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void scalesUnknownStatementIsRejected() {
-        givenLiveSession(answerSettings(true, 1), scalesContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new ScalesAnswer(java.util.Map.of("it-nope", 0.5))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void scalesOutOfBoundsOrNonFinitePositionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), scalesContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new ScalesAnswer(java.util.Map.of("it-1", 1.2))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new ScalesAnswer(java.util.Map.of("it-1", -0.01))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new ScalesAnswer(java.util.Map.of("it-1", Double.NaN))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
     // ── Matching ─────────────────────────────────────────────────────────────
 
     @Test
@@ -408,42 +252,6 @@ class LiveSessionAnswerServiceTest {
                 any(MatchingAnswer.class), eq(0));
     }
 
-    @Test
-    void matchingEmptyMatchesAreRejected() {
-        givenLiveSession(answerSettings(true, 1), matchingContent());
-
-        assertThatThrownBy(() -> service.submit(SID, request(new MatchingAnswer(java.util.Map.of())), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void matchingUnknownCardOnEitherSideIsRejected() {
-        givenLiveSession(answerSettings(true, 1), matchingContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new MatchingAnswer(java.util.Map.of("left-nope", "right-1"))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new MatchingAnswer(java.util.Map.of("left-1", "right-nope"))), registered))
-                .isInstanceOf(ValidationException.class);
-        // A left id in the value slot is just as much "not a right card".
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new MatchingAnswer(java.util.Map.of("left-1", "left-2"))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void matchingRightCardClaimedTwiceIsRejected() {
-        givenLiveSession(answerSettings(true, 1), matchingContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new MatchingAnswer(java.util.Map.of(
-                        "left-1", "right-1",
-                        "left-2", "right-1"))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
     // ── Allocation ───────────────────────────────────────────────────────────
 
     @Test
@@ -456,61 +264,6 @@ class LiveSessionAnswerServiceTest {
         // than lock on first submit, so the orchestrator is called with 0 (last-write-wins).
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(AllocationAnswer.class), eq(0));
-    }
-
-    @Test
-    void allocationEmptyAllocationsAreRejected() {
-        givenLiveSession(answerSettings(true, 1), allocationContent());
-
-        assertThatThrownBy(() -> service.submit(SID, request(new AllocationAnswer(java.util.Map.of())), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void allocationUnknownOptionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), allocationContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AllocationAnswer(java.util.Map.of("opt-nope", 10))), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void allocationOutsideThePointPoolIsRejected() {
-        givenLiveSession(answerSettings(true, 1), allocationContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AllocationAnswer(java.util.Map.of("opt-a", -4, "opt-b", 14))), registered))
-                .isInstanceOf(ValidationException.class);
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AllocationAnswer(java.util.Map.of("opt-a", 11, "opt-b", -1))), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void allocationThatDoesNotSpendTheWholePoolIsRejected() {
-        givenLiveSession(answerSettings(true, 1), allocationContent());
-
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AllocationAnswer(java.util.Map.of("opt-a", 3, "opt-b", 4))), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void allocationOmittingAnOptionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), allocationContent());
-
-        // The board's share/average maths and the live tally's respondent count both
-        // read every option out of every submission, so a partial map is not a
-        // shorthand for "the rest are zero" — it is rejected.
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new AllocationAnswer(java.util.Map.of("opt-a", 10))), registered))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("every option must be allocated");
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
     }
 
     @Test
@@ -547,35 +300,6 @@ class LiveSessionAnswerServiceTest {
                 any(QAndAAnswer.class), eq((Integer) null), eq(true));
     }
 
-    @Test
-    void qandaBlankQuestionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), new QAndAContent(null, false));
-
-        assertThatThrownBy(() -> service.submit(SID, request(new QAndAAnswer("   ")), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitQuestion(any(), any(), any(), any(), any(), anyBoolean());
-    }
-
-    @Test
-    void qandaOverlongQuestionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), new QAndAContent(null, false));
-        String tooLong = "x".repeat(ValidationConstants.QANDA_QUESTION_MAX + 1);
-
-        assertThatThrownBy(() -> service.submit(SID, request(new QAndAAnswer(tooLong)), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void qandaStoredAggregateShapeIsRejectedFromClients() {
-        givenLiveSession(answerSettings(true, 1), new QAndAContent(null, false));
-        AnswerPayload storedShape = new QAndAQuestions(List.of());
-
-        assertThatThrownBy(() -> service.submit(SID, request(storedShape), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitQuestion(any(), any(), any(), any(), any(), anyBoolean());
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
     // ── Text ─────────────────────────────────────────────────────────────────
 
     @Test
@@ -588,36 +312,6 @@ class LiveSessionAnswerServiceTest {
         // orchestrator is called with 0 (last-write-wins).
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(TextAnswer.class), eq(0));
-    }
-
-    @Test
-    void textBlankAnswerIsRejected() {
-        givenLiveSession(answerSettings(true, 1), textContent(80));
-
-        assertThatThrownBy(() -> service.submit(SID, request(new TextAnswer("   ")), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void textOverGlobalCapIsRejected() {
-        // No per-slide cap, so only the global TEXT_ANSWER_MAX guards the length.
-        givenLiveSession(answerSettings(true, 1), textContent(null));
-        String tooLong = "x".repeat(ValidationConstants.TEXT_ANSWER_MAX + 1);
-
-        assertThatThrownBy(() -> service.submit(SID, request(new TextAnswer(tooLong)), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void textOverSlideMaxLengthIsRejected() {
-        // The slide caps at 5, below the global cap — the tighter bound wins.
-        givenLiveSession(answerSettings(true, 1), textContent(5));
-
-        assertThatThrownBy(() -> service.submit(SID, request(new TextAnswer("too long")), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
     }
 
     // ── Drawing ────────────────────────────────────────────────────────────────
@@ -638,47 +332,6 @@ class LiveSessionAnswerServiceTest {
         // orchestrator is called with 0 (unlimited / last-write-wins).
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(DrawingAnswer.class), eq(0));
-    }
-
-    @Test
-    void drawingAnswerWithoutImageIsRejected() {
-        givenLiveSession(answerSettings(true, 1), drawingContent());
-
-        assertThatThrownBy(() -> service.submit(SID, request(new DrawingAnswer(null)), registered))
-                .isInstanceOf(ValidationException.class);
-        verify(orchestrator, never()).submitAnswer(any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void drawingAnswerWithExternalImageIsRejected() {
-        givenLiveSession(answerSettings(true, 1), drawingContent());
-        AppImage external = new AppImage();
-        external.setExternal(true);
-        external.setExternalSrc("https://example.com/not-a-drawing.png");
-
-        assertThatThrownBy(() -> service.submit(SID, request(new DrawingAnswer(external)), registered))
-                .isInstanceOf(ValidationException.class);
-    }
-
-    @Test
-    void drawingAnswerReferencingForeignKeysIsRejected() {
-        givenLiveSession(answerSettings(true, 1), drawingContent());
-
-        // Another session's upload…
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new DrawingAnswer(drawingImage(
-                        "drawing/other-session/" + participant.getParticipantId() + "/abc/original"))), registered))
-                .isInstanceOf(ValidationException.class);
-        // …another participant's drawing in this session (its key leaks via the
-        // presigned gallery URLs at results time)…
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new DrawingAnswer(drawingImage("drawing/" + SID + "/someone-else/abc/original"))),
-                registered))
-                .isInstanceOf(ValidationException.class);
-        // …and a gallery image are all off-limits.
-        assertThatThrownBy(() -> service.submit(SID,
-                request(new DrawingAnswer(drawingImage("gallery/abc/original"))), registered))
-                .isInstanceOf(ValidationException.class);
     }
 
     @Test
@@ -729,44 +382,6 @@ class LiveSessionAnswerServiceTest {
         // orchestrator is called with 0 (last-write-wins) rather than the deck's 1.
         verify(orchestrator).submitAnswer(eq(SID), eq(SLIDE), eq(participant.getParticipantId()),
                 any(FollowUpAnswer.class), eq(0));
-    }
-
-    @Test
-    void followUpPickOfAnUnknownOptionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), followUpContent());
-        givenFollowUpBoard();
-
-        // The board is runtime state, so the id is checked against the round's
-        // saved snapshot rather than anything authored on the slide.
-        assertThatThrownBy(() -> service.submit(SID, request(new FollowUpAnswer("opt-ghost")), registered))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("not on this round's board");
-        verifyNoInteractions(orchestrator);
-    }
-
-    @Test
-    void followUpPickWithABlankOptionIsRejected() {
-        givenLiveSession(answerSettings(true, 1), followUpContent());
-        givenFollowUpBoard();
-
-        assertThatThrownBy(() -> service.submit(SID, request(new FollowUpAnswer("  ")), registered))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("an option must be selected");
-        verifyNoInteractions(orchestrator);
-    }
-
-    @Test
-    void followUpPickOfOnesOwnCandidateIsRejected() {
-        givenLiveSession(answerSettings(true, 1), followUpContent());
-        givenFollowUpBoard();
-
-        // Same conflict submitVote raises: on a follow-up round the pick is the
-        // vote, and authorship only exists server-side to be checked here.
-        assertThatThrownBy(() -> service.submit(SID, request(new FollowUpAnswer("opt-mine")), registered))
-                .isInstanceOf(ConflictException.class)
-                .satisfies(e -> assertThat(((ConflictException) e).getCode())
-                        .isEqualTo("CANNOT_VOTE_FOR_OWN_ANSWER"));
-        verifyNoInteractions(orchestrator);
     }
 
     // ── fixtures ───────────────────────────────────────────────────────────────

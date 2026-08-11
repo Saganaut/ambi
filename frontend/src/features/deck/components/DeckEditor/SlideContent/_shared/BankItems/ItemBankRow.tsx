@@ -48,7 +48,7 @@ const ItemBankRow = (props: SortableEditableItem) => {
   const draggedRef = useRef(false);
   useEffect(() => {
     if (sortable.isDragging) draggedRef.current = true;
-  }, []);
+  }, [sortable.isDragging]);
 
   return (
     // Row-wide selection target; the keyboard path is the label field's focus.

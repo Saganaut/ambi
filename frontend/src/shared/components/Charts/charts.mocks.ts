@@ -18,6 +18,7 @@ export const ALL_CHART_TYPES: ChartType[] = [
   "LINE",
   "PARETO",
   "DOT",
+  "POOL_RIBBON",
   "HISTOGRAM",
   "WORD_CLOUD",
   "HEATMAP",

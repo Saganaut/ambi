@@ -74,6 +74,14 @@ interface UseDeckEditorResult {
    */
   addFollowUp: (parentSlideId: string, mode?: FollowUpMode) => void;
   /**
+   * Duplicate a slide, then select the copy and scroll it into view. The copy
+   * lands directly after the source unit, taking a clone of the source's
+   * attached follow-up with it. Its id is minted server-side, so the selection
+   * only moves once the response lands. Parent slides only — the API rejects
+   * duplicating an attached follow-up, so the rail never offers it on one.
+   */
+  duplicateSlide: (slideId: string) => void;
+  /**
    * Remove a slide (cascading to its attached follow-up server-side). If that
    * takes the selected slide with it, the selection moves to the previous slide
    * in the rail — or off the URL entirely when there is no previous slide.
@@ -124,6 +132,7 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
     isLoading: slidesLoading,
     addSlide: appendSlide,
     addFollowUp: attachFollowUp,
+    duplicateSlide: copySlide,
     removeSlide: deleteSlide,
     reorder,
   } = useSlide(deckId);
@@ -196,6 +205,28 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
     const newId = attachFollowUp(parentSlideId, resolvedMode);
     selectSlide(newId);
     scrollThumbnailIntoView(newId);
+  };
+
+  // The copies' ids are minted server-side, so — unlike addSlide/addFollowUp —
+  // the slide to select can only be named once the response lands: it's the one
+  // *unit head* the pre-call collection didn't have. Grouping into units is what
+  // separates the copy from the cloned follow-up, which rides inside that unit
+  // and is never a head. There is no optimistic patch behind this mutation, so a
+  // failure leaves the rail and the selection exactly as they were.
+  const duplicateSlide = (slideId: string) => {
+    const knownIds = new Set(slides.map((slide) => slide.id));
+    void copySlide(slideId)
+      .then((nextSlides) => {
+        const copy = groupIntoUnits(nextSlides).find(
+          (unit) => !knownIds.has(unit.head.id),
+        );
+        if (!copy) return;
+        selectSlide(copy.head.id);
+        scrollThumbnailIntoView(copy.head.id);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to duplicate slide", error);
+      });
   };
 
   // Deleting the selected slide would strand the route on a slide that no longer
@@ -278,6 +309,7 @@ const useDeckEditor = (deckId: string, slideId?: string): UseDeckEditorResult =>
     selectSlide,
     addSlide,
     addFollowUp,
+    duplicateSlide,
     removeSlide,
     reorder,
     handleDragEnd,

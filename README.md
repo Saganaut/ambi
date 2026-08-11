@@ -36,7 +36,8 @@ cd backend && set -a && source ../dev.env && set +a && ./mvnw spring-boot:run   
 cd frontend && npm install && npm run dev              # :5173
 ```
 
-`./scripts/ambi.sh` (Or `./scripts/ambi-podman.sh` if using podman) brings the whole stack up in one command. See the
+`./scripts/ambi.sh` (Or `./scripts/ambi-podman.sh` if using podman) brings the whole stack up in one command, and
+`./scripts/ambi-stop.sh` takes it down again — including a stale backend still holding `:8080`. See the
 [Running the project](z-docs/runbooks/running-the-project.md) runbook for details.
 
 ## Documentation

@@ -1,0 +1,209 @@
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--gap-md);
+    min-width: 0;
+  }
+
+  .headTitle {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .headPool {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .ribbon {
+    display: flex;
+    width: 100%;
+    min-height: var(--space-14);
+    border-radius: var(--radius-lg);
+    background-color: var(--bg-secondary);
+    overflow: hidden;
+  }
+
+  .segment {
+    --segment-color: var(--bg-brand);
+    --segment-share: 0%;
+    --reveal-delay: 0ms;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--gap-xxs);
+    width: 0;
+    min-width: 0;
+    padding: var(--p-sm);
+    background-color: var(--segment-color);
+    border-inline-end: var(--border-size-md) solid var(--bg-canvas);
+    overflow: hidden;
+    transition:
+      width var(--duration-base) var(--ease-out) var(--reveal-delay),
+      background-color var(--duration-base) var(--ease-out);
+
+    &:last-child {
+      border-inline-end: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  .segmentValue {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    line-height: 1.05;
+    color: oklch(100% 0 0deg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .segmentUnit {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: oklch(100% 0 0deg / 75%);
+  }
+
+  .ticks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+  }
+
+  .tickRail {
+    position: relative;
+    height: var(--space-2);
+  }
+
+  .tick {
+    --tick-position: 0%;
+
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--tick-position);
+    width: var(--space-half);
+    border-radius: var(--radius-full);
+    background-color: var(--text-muted);
+    transform: translateX(-50%);
+  }
+
+  .ticksCaption {
+    margin: 0;
+    text-align: center;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+  }
+
+  .cards {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: var(--gap-xl);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .card {
+    --option-color: var(--bg-brand);
+    --meter-share: 0%;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    flex: 1 1 12rem;
+    min-width: 0;
+    padding: var(--p-square-md);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .valueRow {
+    display: flex;
+    align-items: baseline;
+    gap: var(--gap-sm);
+    margin: 0;
+    min-width: 0;
+  }
+
+  .value {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .unit {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .meter {
+    height: var(--space-2);
+    border-radius: var(--radius-full);
+    background-color: var(--bg-secondary);
+    overflow: hidden;
+  }
+
+  .meterFill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: var(--radius-full);
+    background-color: var(--option-color);
+    transition:
+      width var(--duration-base) var(--ease-out),
+      background-color var(--duration-base) var(--ease-out);
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  .meterCaption {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+  }
+
+  .footer {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+  }
+
+  &.revealed {
+    .segment {
+      width: var(--segment-share);
+    }
+
+    .meterFill {
+      width: var(--meter-share);
+    }
+  }
+}

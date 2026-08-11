@@ -16,6 +16,7 @@ import LineIcon from "@assets/icons/charts/line.svg?react";
 import NoneIcon from "@assets/icons/charts/none.svg?react";
 import ParetoIcon from "@assets/icons/charts/pareto.svg?react";
 import PieIcon from "@assets/icons/charts/pie.svg?react";
+import PoolRibbonIcon from "@assets/icons/charts/pool-ribbon.svg?react";
 import WordCloudIcon from "@assets/icons/charts/word-cloud.svg?react";
 
 type VizIcon = typeof BarHorizontalIcon;
@@ -28,6 +29,7 @@ const VIZ_META: Record<ChartType, { label: string; Icon: VizIcon }> = {
   LINE: { label: "Line", Icon: LineIcon },
   PARETO: { label: "Pareto", Icon: ParetoIcon },
   DOT: { label: "Dots", Icon: DotIcon },
+  POOL_RIBBON: { label: "Pool ribbon", Icon: PoolRibbonIcon },
   HISTOGRAM: { label: "Histogram", Icon: HistogramIcon },
   WORD_CLOUD: { label: "Word cloud", Icon: WordCloudIcon },
   HEATMAP: { label: "Heatmap", Icon: HeatmapIcon },

@@ -1,15 +1,18 @@
 // Slide-collection layer between the generated slide API and the deck editor.
 // Reads the `listSlides` cache for a single deck and exposes intent-level
 // add / update / remove / reorder handlers, so the editor never imports RTK
-// Query directly. The handlers are thin: they just fire the mutation. Cache
-// behaviour (optimistic patch + tag-driven reconciling refetch) lives in
-// `store/enhancements/slide.ts` so it applies no matter who calls the mutation.
+// Query directly. The handlers are thin: they just fire the mutation — the one
+// exception is `duplicateSlide`, which hands its promise back because the copy's
+// id exists only in the response. Cache behaviour (optimistic patch + tag-driven
+// reconciling refetch) lives in `store/enhancements/slide.ts` so it applies no
+// matter who calls the mutation.
 import {
   useAddFollowUpSlideMutation,
   useAddSlideMutation,
   useClearSlideBackgroundColorMutation,
   useClearSlideBackgroundImageMutation,
   useClearSlideCoverImageMutation,
+  useDuplicateSlideMutation,
   useHideSlideBackgroundMutation,
   useListDeckSlidesQuery,
   useMoveSlideMutation,
@@ -63,6 +66,17 @@ interface UseSlideResult {
    * endpoint is the only way a follow-up comes to exist.
    */
   addFollowUp: (parentSlideId: string, mode: FollowUpMode) => string;
+  /**
+   * Duplicate a slide. The copy lands directly after the source unit; a source
+   * that has an attached follow-up gets that cloned too, linked to the copy —
+   * so the deck reads `[source, sourceFollowUp?, copy, copyFollowUp?, …]`. The
+   * copies' ids are server-minted (nothing to mint client-side, unlike
+   * {@link addSlide}), so this resolves with the deck's slides in their new
+   * canonical order and the caller diffs that list to find the copy. Rejects if
+   * the request fails — the API refuses to duplicate an attached follow-up, so
+   * only offer it on a parent.
+   */
+  duplicateSlide: (slideId: string) => Promise<SlideResponse[]>;
   /** Patch a slide (PUT replaces the whole slide). */
   updateSlide: (slideId: string, patch: Partial<SlideRequest>) => void;
   /** Remove a slide. */
@@ -120,6 +134,7 @@ const useSlide = (deckId: string): UseSlideResult => {
 
   const [addSlideMutation] = useAddSlideMutation();
   const [addFollowUpSlideMutation] = useAddFollowUpSlideMutation();
+  const [duplicateSlideMutation] = useDuplicateSlideMutation();
   const [updateSlideMutation] = useUpdateSlideMutation();
   const [removeSlideMutation] = useRemoveSlideMutation();
   const [moveSlideMutation] = useMoveSlideMutation();
@@ -163,6 +178,9 @@ const useSlide = (deckId: string): UseSlideResult => {
     });
     return id;
   };
+
+  const duplicateSlide = (slideId: string) =>
+    duplicateSlideMutation({ id: deckId, slideId }).unwrap();
 
   const removeSlide = (slideId: string) => {
     void removeSlideMutation({ id: deckId, slideId });
@@ -212,6 +230,7 @@ const useSlide = (deckId: string): UseSlideResult => {
     getSlide,
     addSlide,
     addFollowUp,
+    duplicateSlide,
     updateSlide,
     removeSlide,
     setSlideImage,

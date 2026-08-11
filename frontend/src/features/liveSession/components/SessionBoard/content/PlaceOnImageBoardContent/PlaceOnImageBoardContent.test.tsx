@@ -1,19 +1,7 @@
-// Tests for the Place-on-Image board: placing one pin per authored item onto
-// the image via the tap fallback (tap a bank chip, then tap the image at a
-// point — normalized, top-left-origin coordinates), submit gated on every item
-// placed, locking the whole placement map once, pick-back-up, the read-only
-// projected view, the density scatter aggregated from the quantized
-// `itemId@bx,by` tally keys, and the results view (revealed target circles —
-// numbered, colored and labeled off the authored item their `itemId` names —
-// plus the viewer's own outcome, via both the live event copy and the snapshot
-// seam).
-// The session connection and the live read model are mocked, mutable per test.
-// jsdom reports zero-size rects, so the surface rect is stubbed to a 100×100 box
-// at the origin — tap coordinates then read directly as percentages. (Drag is
-// dnd-kit's primary path but isn't exercised in jsdom; the tap fallback drives
-// the same placement state, mirroring the Grid board's test.)
+// Covers Place-on-Image-specific placement wiring, empty-image rendering, density scatter,
+// revealed target rendering, snapshot fallback, authored marker identity, and scoring.
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import type { SlideView } from "../../../../store/liveSessionApi.gen";
@@ -81,10 +69,12 @@ const renderContent = (
 
 /** Pick `chip` from the bank, then tap the image at (clientX, clientY). */
 const place = async (chip: string, clientX: number, clientY: number) => {
-  await userEvent.click(screen.getByRole("button", { name: chip }));
-  fireEvent.click(screen.getByRole("button", { name: "Place on the image" }), {
-    clientX,
-    clientY,
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: chip }));
+  await user.pointer({
+    target: screen.getByRole("button", { name: "Place on the image" }),
+    coords: { clientX, clientY },
+    keys: "[MouseLeft]",
   });
 };
 
@@ -99,14 +89,8 @@ describe("PlaceOnImageBoardContent placing", () => {
 
   it("places one pin per item at the tap's normalized coords and locks the map", async () => {
     renderContent();
-    // Nothing held yet → no image tap target, and Lock is gated.
-    expect(
-      screen.queryByRole("button", { name: "Place on the image" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Lock in answer" })).toBeDisabled();
-
-    await place("Heart", 30, 40); // 30% across, 40% down → (0.3, 0.4)
-    await place("Lungs", 70, 25); // → (0.7, 0.25)
+    await place("Heart", 30, 40);
+    await place("Lungs", 70, 25);
     await userEvent.click(screen.getByRole("button", { name: "Lock in answer" }));
 
     expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
@@ -114,49 +98,10 @@ describe("PlaceOnImageBoardContent placing", () => {
       placements: { heart: { x: 0.3, y: 0.4 }, lungs: { x: 0.7, y: 0.25 } },
     });
     expect(screen.getByText("Answer locked in ✓")).toBeInTheDocument();
-  });
-
-  it("lock stays gated until every item is placed", async () => {
-    renderContent();
-
-    await place("Heart", 50, 50);
-
-    expect(screen.getByRole("button", { name: "Lock in answer" })).toBeDisabled();
-    expect(h.sendAnswer).not.toHaveBeenCalled();
-  });
-
-  it("a placed pin can be picked back up and re-placed", async () => {
-    renderContent();
-
-    await place("Heart", 20, 20);
-    await userEvent.click(screen.getByRole("button", { name: /Pick Heart back up/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Place on the image" }), {
-      clientX: 60,
-      clientY: 50,
-    });
-    await place("Lungs", 70, 25);
-    await userEvent.click(screen.getByRole("button", { name: "Lock in answer" }));
-
-    expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
-      answerType: "PlaceOnImageAnswer",
-      placements: { heart: { x: 0.6, y: 0.5 }, lungs: { x: 0.7, y: 0.25 } },
-    });
-  });
-
-  it("cannot submit again once locked in", async () => {
-    renderContent();
-
-    await place("Heart", 30, 40);
-    await place("Lungs", 70, 25);
-    await userEvent.click(screen.getByRole("button", { name: "Lock in answer" }));
-    expect(h.sendAnswer).toHaveBeenCalledTimes(1);
-
-    // The bank and lock button are gone; the surface is frozen.
     expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Heart" })).not.toBeInTheDocument();
   });
 
-  it("is read-only when not interactive (projected / host view)", () => {
+  it("renders the projected image without participant controls", () => {
     renderContent("prompt", false);
 
     expect(screen.queryByRole("button", { name: "Lock in answer" })).not.toBeInTheDocument();

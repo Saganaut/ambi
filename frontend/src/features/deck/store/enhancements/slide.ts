@@ -13,7 +13,9 @@
  *
  * The shared {@link reconcilingSlideMutation} factory encapsulates that
  * optimistic→await→reconcile→undo flow so each endpoint stays a couple of
- * declarative lines.
+ * declarative lines. Its sibling {@link reconcileOnlySlideMutation} serves the
+ * one mutation that cannot be previewed at all — `duplicateSlide`, whose slide
+ * ids the server mints.
  *
  * Imported for its side effect via the `../apiEnhancements` barrel.
  */
@@ -29,6 +31,7 @@ import {
   type ClearSlideBackgroundImageApiArg,
   type ClearSlideCoverImageApiArg,
   type ClearSlidePointSettingsApiArg,
+  type DuplicateSlideApiArg,
   type HideSlideBackgroundApiArg,
   type MoveSlideApiArg,
   type PointSettingsResponse,
@@ -42,6 +45,20 @@ import {
   type SlideResponse,
   type UpdateSlideApiArg,
 } from "../deckApi.gen";
+
+/**
+ * Write `mutate` into a deck's cached `listDeckSlides` array and hand back the
+ * patch handle. Both factories below go through it, so the query name and its
+ * cache key are spelled out once.
+ */
+const patchCachedSlides = (
+  dispatch: CacheSyncMutationApi<unknown>["dispatch"],
+  deckId: string,
+  mutate: (draft: SlideResponse[]) => void,
+) =>
+  dispatch(
+    deckApi.util.updateQueryData("listDeckSlides", { id: deckId }, mutate),
+  );
 
 /**
  * Build a slide-mutation endpoint config that reconciles `listDeckSlides` from
@@ -64,30 +81,47 @@ const reconcilingSlideMutation = <Arg extends { id: string }, Data>(
     arg: Arg,
     { dispatch, queryFulfilled }: CacheSyncMutationApi<Data>,
   ) => {
-    const patch = dispatch(
-      deckApi.util.updateQueryData(
-        "listDeckSlides",
-        { id: arg.id },
-        (draft) => {
-          optimistic(draft, arg);
-        },
-      ),
-    );
+    const patch = patchCachedSlides(dispatch, arg.id, (draft) => {
+      optimistic(draft, arg);
+    });
     try {
       const { data } = await queryFulfilled;
       if (reconcile) {
-        dispatch(
-          deckApi.util.updateQueryData(
-            "listDeckSlides",
-            { id: arg.id },
-            (draft) => {
-              reconcile(draft, data, arg);
-            },
-          ),
-        );
+        patchCachedSlides(dispatch, arg.id, (draft) => {
+          reconcile(draft, data, arg);
+        });
       }
     } catch {
       patch.undo();
+    }
+  },
+});
+
+/**
+ * The reconcile-only counterpart of {@link reconcilingSlideMutation}, for a
+ * mutation whose outcome the client cannot preview because the server mints the
+ * identity it returns. There is no optimistic patch, so there is nothing to undo
+ * on reject either — the handler only awaits the response and folds it in.
+ *
+ * @param reconcile fold the authoritative response `data` into the cache
+ */
+const reconcileOnlySlideMutation = <Arg extends { id: string }, Data>(
+  reconcile: (draft: SlideResponse[], data: Data, arg: Arg) => void,
+) => ({
+  onQueryStarted: async (
+    arg: Arg,
+    { dispatch, queryFulfilled }: CacheSyncMutationApi<Data>,
+  ) => {
+    try {
+      const { data } = await queryFulfilled;
+      patchCachedSlides(dispatch, arg.id, (draft) => {
+        reconcile(draft, data, arg);
+      });
+    } catch {
+      // Nothing was patched, so there is nothing to roll back. The catch exists
+      // only so a failed request doesn't escape as an unhandled rejection —
+      // RTK Query never awaits `onQueryStarted`. Callers still see the failure
+      // through the mutation promise.
     }
   },
 });
@@ -170,6 +204,18 @@ deckApi.enhanceEndpoints({
         draft.splice(0, draft.length, ...data);
       },
     ),
+    // duplicateSlide copies the source — plus its attached follow-up, re-linked
+    // to the copy — and inserts the copies straight after the source unit, so
+    // like addFollowUpSlide it answers with the deck's slides in canonical order
+    // and the reconcile replaces the whole list. It gets no optimistic patch:
+    // the copies' ids are minted server-side, so there is no row the rail could
+    // render (or keep selected) ahead of the response.
+    duplicateSlide: reconcileOnlySlideMutation<
+      DuplicateSlideApiArg,
+      SlideResponse[]
+    >((draft, data) => {
+      draft.splice(0, draft.length, ...data);
+    }),
     // 204 — the optimistic splice is the final state, so it mirrors the
     // server's cascade: deleting a parent takes its attached follow-up with it,
     // and deleting a follow-up frees the parent's child slot.

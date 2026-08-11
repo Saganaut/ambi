@@ -1,17 +1,7 @@
-// Tests for the Axis board: tap-to-select from the bank + tap-at-point-to-place
-// on the plane (normalized, y-inverted coordinates), the numbered MarkerBadge
-// chips, submit gated on all items placed, resubmit-until-lock, pick-back-up,
-// arrow-key nudging, the heat aggregation from the quantized itemId@bx,by
-// tally keys, the plane's own chrome (crosshair axis lines + the four endpoint
-// label pills overlaid inside its edges), and the read-only projected view. The
-// session connection and the live read model are mocked, with the read model
-// mutable per test. jsdom
-// reports zero-size rects, so the plane's rect is stubbed to a 100×100 box at
-// the origin — tap coordinates then read directly as percentages. (Drag is
-// dnd-kit's primary path but isn't exercised in jsdom; the tap fallback drives
-// the same placement state, mirroring the Place-on-Image board's test.)
+// Covers Axis-specific placement wiring, authored marker rendering, plane chrome,
+// heat aggregation, and scored outcome integration.
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
@@ -87,10 +77,12 @@ const renderContent = (mode: BoardQuestionMode = "prompt", interactive = true) =
 
 /** Pick `chip` from the bank, then tap the plane at (clientX, clientY). */
 const place = async (chip: string, clientX: number, clientY: number) => {
-  await userEvent.click(screen.getByRole("button", { name: chip }));
-  fireEvent.click(screen.getByRole("button", { name: "Place on the plane" }), {
-    clientX,
-    clientY,
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: chip }));
+  await user.pointer({
+    target: screen.getByRole("button", { name: "Place on the plane" }),
+    coords: { clientX, clientY },
+    keys: "[MouseLeft]",
   });
 };
 
@@ -104,20 +96,15 @@ describe("AxisBoardContent placing", () => {
 
   it("places items at the tap's normalized, y-inverted coordinates and submits the map", async () => {
     renderContent();
-    // Nothing held yet → no plane tap target, and Submit is gated.
-    expect(
-      screen.queryByRole("button", { name: "Place on the plane" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Submit answer" })).toBeDisabled();
-
-    await place("Samwise", 20, 75); // 20% across, 75% down → (0.2, 0.25)
-    await place("Boromir", 70, 25); // → (0.7, 0.75)
+    await place("Samwise", 20, 75);
+    await place("Boromir", 70, 25);
     await userEvent.click(screen.getByRole("button", { name: "Submit answer" }));
 
     expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
       answerType: "AxisAnswer",
       placements: { sam: { x: 0.2, y: 0.25 }, bor: { x: 0.7, y: 0.75 } },
     });
+    expect(screen.getByRole("button", { name: "Update answer" })).toBeEnabled();
   });
 
   it("chips carry the item's AUTHORED number beside its label", async () => {
@@ -134,76 +121,7 @@ describe("AxisBoardContent placing", () => {
     );
   });
 
-  it("submit stays gated until every item is placed", async () => {
-    renderContent();
-
-    await place("Samwise", 50, 50);
-
-    expect(screen.getByRole("button", { name: "Submit answer" })).toBeDisabled();
-    expect(h.sendAnswer).not.toHaveBeenCalled();
-  });
-
-  it("a placed chip can be picked back up and re-placed", async () => {
-    renderContent();
-
-    await place("Samwise", 20, 75);
-    await userEvent.click(screen.getByRole("button", { name: /Pick Samwise back up/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Place on the plane" }), {
-      clientX: 60,
-      clientY: 50,
-    });
-    await place("Boromir", 70, 25);
-    await userEvent.click(screen.getByRole("button", { name: "Submit answer" }));
-
-    expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
-      answerType: "AxisAnswer",
-      placements: { sam: { x: 0.6, y: 0.5 }, bor: { x: 0.7, y: 0.75 } },
-    });
-  });
-
-  it("allows resubmitting an adjusted map until the round locks", async () => {
-    renderContent();
-
-    await place("Samwise", 20, 75);
-    await place("Boromir", 70, 25);
-    await userEvent.click(screen.getByRole("button", { name: "Submit answer" }));
-    expect(screen.getByText("Answer submitted ✓")).toBeInTheDocument();
-
-    // The surface stays live after submitting: adjust one chip and re-send.
-    await userEvent.click(screen.getByRole("button", { name: /Pick Boromir back up/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Place on the plane" }), {
-      clientX: 10,
-      clientY: 25,
-    });
-    await userEvent.click(screen.getByRole("button", { name: "Update answer" }));
-
-    expect(h.sendAnswer).toHaveBeenCalledTimes(2);
-    expect(h.sendAnswer).toHaveBeenLastCalledWith("el-0", {
-      answerType: "AxisAnswer",
-      placements: { sam: { x: 0.2, y: 0.25 }, bor: { x: 0.1, y: 0.75 } },
-    });
-  });
-
-  it("arrow keys nudge a focused placed chip in 2% steps", async () => {
-    renderContent();
-
-    await place("Samwise", 50, 50);
-    const chip = screen.getByRole("button", { name: /Pick Samwise back up/ });
-    fireEvent.keyDown(chip, { key: "ArrowRight" });
-    fireEvent.keyDown(chip, { key: "ArrowUp" });
-    await place("Boromir", 70, 25);
-    await userEvent.click(screen.getByRole("button", { name: "Submit answer" }));
-
-    expect(h.sendAnswer).toHaveBeenCalledWith("el-0", {
-      answerType: "AxisAnswer",
-      placements: {
-        sam: { x: expect.closeTo(0.52, 10) as number, y: expect.closeTo(0.52, 10) as number },
-        bor: { x: 0.7, y: 0.75 },
-      },
-    });
-  });
-
-  it("is read-only when not interactive (projected / host view)", () => {
+  it("renders the projected plane without participant controls", () => {
     renderContent("prompt", false);
 
     expect(screen.queryByRole("button", { name: "Submit answer" })).not.toBeInTheDocument();

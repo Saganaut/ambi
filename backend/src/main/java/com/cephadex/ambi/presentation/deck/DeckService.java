@@ -36,15 +36,12 @@ import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.PublishStatus;
 import com.cephadex.ambi.presentation.slide.Slide;
+import com.cephadex.ambi.presentation.slide.SlideCopier;
 import com.cephadex.ambi.presentation.slide.SlideRankService;
-import com.cephadex.ambi.presentation.slide.content.DrawingContent;
 import com.cephadex.ambi.presentation.slide.content.FollowUpContent;
 import com.cephadex.ambi.presentation.slide.content.RichTextSanitizer;
-import com.cephadex.ambi.presentation.slide.content.ScorableContent;
 import com.cephadex.ambi.presentation.slide.content.SlideContent;
-import com.cephadex.ambi.presentation.slide.content.TextContent;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
-import com.cephadex.ambi.presentation.slide.enums.SlideType;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -64,11 +61,12 @@ public class DeckService {
     private final RichTextSanitizer richTextSanitizer;
     private final DeckImageLifecycleService imageLifecycle;
     private final ImageIngestService imageIngest;
+    private final SlideCopier slideCopier;
 
     public DeckService(DeckRepository deckRepository, OrgRoleResolver orgRoles,
             SlideRankService rankService, DeckDefaultsProperties deckDefaults,
             RichTextSanitizer richTextSanitizer, DeckImageLifecycleService imageLifecycle,
-            ImageIngestService imageIngest) {
+            ImageIngestService imageIngest, SlideCopier slideCopier) {
         this.deckRepository = deckRepository;
         this.orgRoles = orgRoles;
         this.rankService = rankService;
@@ -76,6 +74,7 @@ public class DeckService {
         this.richTextSanitizer = richTextSanitizer;
         this.imageLifecycle = imageLifecycle;
         this.imageIngest = imageIngest;
+        this.slideCopier = slideCopier;
     }
 
     // ── Create ──────────────────────────────────────────────────────────────
@@ -221,19 +220,7 @@ public class DeckService {
         Slide parent = deck.findSlide(parentSlideId)
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
 
-        if (deck.isAttachedFollowUp(parent)) {
-            throw new ValidationException("A follow-up slide cannot have its own follow-up");
-        }
-        SlideContent parentContent = parent.getContent();
-        if (!(parentContent instanceof ScorableContent)
-                || parentContent.contentType() == SlideType.FOLLOW_UP) {
-            throw new ValidationException("Only scorable slides can have a follow-up");
-        }
-        if (!mode.supportsParent(parentContent.contentType())) {
-            throw new ValidationException("Follow-up mode " + mode + " is not valid for a "
-                    + parentContent.contentType() + " slide");
-        }
-        requireAnswerKeyFor(mode, parentContent);
+        DeckFollowUpPolicy.requireCanAttach(deck, parent, mode);
         if (deck.attachedFollowUp(parent).isPresent()) {
             throw new ConflictException("FOLLOW_UP_EXISTS", "Slide already has a follow-up");
         }
@@ -265,13 +252,77 @@ public class DeckService {
                 .toList();
     }
 
+    /**
+     * Duplicate a slide, placing the copy directly after the source (EDIT). When
+     * the source has an attached follow-up the whole unit is duplicated — the
+     * follow-up is cloned too and the two copies are linked to each other — and
+     * the copy lands after the source's follow-up so neither pair is ever split.
+     * A slide that <em>is</em> an attached follow-up cannot be duplicated on its
+     * own: {@link FollowUpContent} is minted only by
+     * {@link #addFollowUpSlide}, and a parent may have at most one.
+     *
+     * <p>The copy is a deep one (see {@link SlideCopier}) with fresh ids for the
+     * slides themselves; content-internal item/option ids are kept, since they
+     * only need slide-local uniqueness and every answer key references them.
+     * Stored images are <em>shared</em> — the copy points at the same S3 objects
+     * rather than duplicating bytes — but through its own {@link AppImage}
+     * instances, so an edit to one slide's image can't be seen through the
+     * other. Adoption skips keys this deck already owns and cleanup is a key-set
+     * diff, so sharing stays safe when either slide is later deleted.
+     *
+     * <p>Returns the deck's slides in canonical order — the insert is mid-list,
+     * so the caller reconciles its cache from the response like a move.
+     */
+    public List<Slide> duplicateSlide(String deckId, String slideId, AmbiPrincipal principal) {
+        Deck deck = getEditable(deckId, principal);
+        Slide source = deck.findSlide(slideId)
+                .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
+
+        if (deck.isAttachedFollowUp(source)) {
+            throw new ValidationException(
+                    "A follow-up slide is duplicated with its parent and cannot be duplicated on its own");
+        }
+
+        Set<String> beforeKeys = DeckImages.keys(deck);
+        String userId = principal.userId();
+        Slide copy = freshCopyOf(source, userId);
+        Slide followUpCopy = deck.attachedFollowUp(source)
+                .map(followUp -> freshCopyOf(followUp, userId))
+                .orElse(null);
+
+        deck.backfillRanks(rankService);
+        deck.addDuplicate(copy, followUpCopy, source, rankService);
+        imageLifecycle.adoptImages(deck);
+        deckRepository.save(deck);
+        imageLifecycle.cleanupRemoved(deckId, beforeKeys, DeckImages.keys(deck));
+        return deck.getSlides().stream()
+                .sorted(SlideRankService.ordering())
+                .toList();
+    }
+
+    /**
+     * A deep copy of {@code source} carrying the identity of a brand-new slide:
+     * a freshly minted id, this principal as both author and last editor, and no
+     * version — exactly what {@link #addSlide} leaves on a slide it appends. The
+     * links and the ordering key are rewritten by the aggregate as it places the
+     * copy.
+     */
+    private Slide freshCopyOf(Slide source, String userId) {
+        Slide copy = slideCopier.deepCopy(source);
+        copy.setId(UUID.randomUUID().toString());
+        copy.setVersion(null);
+        copy.setCreatedByUserId(userId);
+        copy.setLastEditedByUserId(userId);
+        return copy;
+    }
+
     /** Replace a slide's editable presentation fields (EDIT). */
     public Slide updateSlide(String deckId, String slideId, Slide changes, AmbiPrincipal principal) {
         Deck deck = getEditable(deckId, principal);
         Slide slide = deck.findSlide(slideId)
                 .orElseThrow(() -> new NotFoundException("SLIDE_NOT_FOUND", "Slide not found"));
 
-        requireValidContentTransition(deck, slide, changes.getContent());
+        DeckFollowUpPolicy.requireValidContentTransition(deck, slide, changes.getContent());
         Set<String> beforeKeys = DeckImages.keys(deck);
 
         slide.setTitle(changes.getTitle());
@@ -290,109 +341,6 @@ public class DeckService {
         deckRepository.save(deck);
         imageLifecycle.cleanupRemoved(deckId, beforeKeys, DeckImages.keys(deck));
         return slide;
-    }
-
-    /**
-     * The follow-up guards on a content update. A follow-up keeps its kind (and
-     * a mode its parent's type supports, with an answer key when the mode needs
-     * one); a regular slide can't become one (the dedicated endpoint is the only
-     * mint); a parent can't change to a content type — or, for an answer-key
-     * mode, to content — its attached follow-up's mode doesn't support. The mode
-     * change is the inspector's everyday path, so it enforces exactly what
-     * {@link #addFollowUpSlide} does; the type changes have no UI today and are
-     * defenses against API misuse.
-     */
-    private static void requireValidContentTransition(Deck deck, Slide slide, SlideContent next) {
-        boolean isFollowUp = slide.getContent() instanceof FollowUpContent;
-        if (!isFollowUp && next instanceof FollowUpContent) {
-            throw new ValidationException(
-                    "A follow-up slide can only be created through the follow-up endpoint");
-        }
-        if (isFollowUp) {
-            if (!(next instanceof FollowUpContent nextFollowUp)) {
-                throw new ValidationException(
-                        "A follow-up slide cannot change to another slide type; delete it instead");
-            }
-            deck.findSlide(slide.getParentId()).ifPresent(parent -> {
-                if (!nextFollowUp.mode().supportsParent(parent.getContent().contentType())) {
-                    throw new ValidationException("Follow-up mode " + nextFollowUp.mode()
-                            + " is not valid for a " + parent.getContent().contentType() + " slide");
-                }
-                requireAnswerKeyFor(nextFollowUp.mode(), parent.getContent());
-            });
-        }
-        deck.attachedFollowUp(slide).ifPresent(child -> {
-            FollowUpMode childMode = ((FollowUpContent) child.getContent()).mode();
-            if (next != null && !childMode.supportsParent(next.contentType())) {
-                throw new ValidationException(
-                        "Changing this slide's type would invalidate its follow-up; delete the follow-up first");
-            }
-            if (next != null && childMode.requiresAnswerKey() && !hasAnswerKey(next)) {
-                throw new ValidationException(
-                        "Removing this slide's authored answer would invalidate its follow-up, which hides "
-                                + "that answer among the submissions; change the follow-up's mode first");
-            }
-        });
-    }
-
-    /**
-     * Rejects a follow-up mode that hides the parent's authored answer among the
-     * submissions ({@link FollowUpMode#requiresAnswerKey}) when the parent has no
-     * such answer to hide. {@code supportsParent} only settles the parent's
-     * <em>type</em>, and an unkeyed TEXT slide (or a Drawing slide with no
-     * authored correct image) is a legitimate collect-only prompt, so this is
-     * the second half of the pairing rule — enforced wherever the pairing can
-     * change (the add endpoint, and the inspector's mode edit).
-     */
-    private static void requireAnswerKeyFor(FollowUpMode mode, SlideContent parentContent) {
-        if (mode.requiresAnswerKey() && !hasAnswerKey(parentContent)) {
-            throw new ValidationException("Follow-up mode " + mode
-                    + " needs a parent slide with an authored answer; add one first");
-        }
-    }
-
-    /**
-     * Whether {@code content} carries an authored answer a follow-up could hide
-     * among the parent round's submissions — the content-level half of the
-     * pairing rule, resolved per parent kind:
-     *
-     * <ul>
-     * <li><strong>TEXT</strong> — at least one non-blank accepted answer;</li>
-     * <li><strong>DRAWING</strong> — a {@code correctImage} that is stored (not
-     * an external URL, which owns no object the board could serve opaquely
-     * alongside the submitted drawings) and holds at least one renderable
-     * variant.</li>
-     * </ul>
-     *
-     * <p>The DRAWING arm is exactly the negation of the frontend's
-     * {@code isImageEmpty} (plus the external exclusion), so the mode the editor
-     * offers and the mode the API accepts agree by construction rather than by
-     * two independently-maintained rules. Every other kind has no authored
-     * answer a board could show, so it can never take a keyed mode — which
-     * {@code supportsParent} already settles first.
-     */
-    private static boolean hasAnswerKey(SlideContent content) {
-        return switch (content) {
-            case TextContent text -> text.acceptedAnswers() != null
-                    && text.acceptedAnswers().stream().anyMatch(answer -> answer != null && !answer.isBlank());
-            case DrawingContent drawing -> isSeedableImage(drawing.correctImage());
-            case null, default -> false;
-        };
-    }
-
-    /**
-     * Whether an image is stored and carries an object a board could render — a
-     * variant or, while renditions are still being derived, the original alone.
-     */
-    private static boolean isSeedableImage(AppImage image) {
-        if (image == null || image.isExternal()) {
-            return false;
-        }
-        if (image.getSrcKey() != null && !image.getSrcKey().isBlank()) {
-            return true;
-        }
-        return image.getVariants() != null
-                && image.getVariants().values().stream().anyMatch(url -> url != null && !url.isBlank());
     }
 
     /**

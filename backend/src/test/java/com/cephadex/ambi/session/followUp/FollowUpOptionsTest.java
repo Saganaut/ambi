@@ -4,13 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.cephadex.ambi.media.AppImage;
 import com.cephadex.ambi.presentation.slide.Slide;
@@ -55,9 +60,6 @@ class FollowUpOptionsTest {
 
     /** The one mode that seeds the parent's authored answer into the board. */
     private static final FollowUpMode SPOT = FollowUpMode.SPOT_THE_ANSWER;
-
-    /** Repeats behind the shuffle case below — see its false-failure bound. */
-    private static final int MINTS = 100;
 
     @Test
     void mcqParentMintsTheAuthoredChoicesVerbatimAndInOrder() {
@@ -222,21 +224,32 @@ class FollowUpOptionsTest {
                 .containsExactly("first", "null-submitted-at", "null-participant");
     }
 
-    @Test
-    void unsupportedParentKindAndNoParentMintNothing() {
-        assertThat(FollowUpOptions.mint(slideWith(new QAndAContent(null, false)), List.of(), VOTE, URLS).options())
-                .isEmpty();
-        assertThat(FollowUpOptions.mint(null, List.of(), VOTE, URLS).options()).isEmpty();
+    @ParameterizedTest
+    @MethodSource("parentsWithoutFollowUpOptions")
+    void parentWithoutFollowUpOptionsMintsNothing(Slide parent) {
+        assertThat(FollowUpOptions.mint(parent, List.of(), VOTE, URLS).options()).isEmpty();
     }
 
-    @Test
-    void byIdFindsAMintedOptionAndReturnsNullOtherwise() {
+    static Stream<Arguments> parentsWithoutFollowUpOptions() {
+        return Stream.of(
+                Arguments.of(slideWith(new QAndAContent(null, false))),
+                Arguments.of((Slide) null));
+    }
+
+    @ParameterizedTest
+    @MethodSource("optionLookups")
+    void byIdReturnsWhetherTheOptionExists(FollowUpOptionSet set, String optionId, boolean exists) {
+        assertThat(set.byId(optionId) != null).isEqualTo(exists);
+    }
+
+    static Stream<Arguments> optionLookups() {
         FollowUpOptionSet set = FollowUpOptions.mint(
                 slideWith(mcq(option("opt-a", "Alpha", null))), List.of(), VOTE, URLS);
 
-        assertThat(set.byId("opt-a")).isNotNull();
-        assertThat(set.byId("nope")).isNull();
-        assertThat(FollowUpOptionSet.empty().byId("opt-a")).isNull();
+        return Stream.of(
+                Arguments.of(set, "opt-a", true),
+                Arguments.of(set, "nope", false),
+                Arguments.of(FollowUpOptionSet.empty(), "opt-a", false));
     }
 
     // ── SPOT_THE_ANSWER seeding ────────────────────────────────────────────────
@@ -293,50 +306,38 @@ class FollowUpOptionsTest {
                 .satisfies(seed -> assertThat(seed.text()).isEqualTo("Paris"));
     }
 
-    @Test
-    void spotTheAnswerOnAParentWithNoAnswerKeyMintsTheVoteBoardWithNothingFlagged() {
-        // The editor rejects emptying the key under an attached SPOT_THE_ANSWER
-        // child, but a live session's deck snapshot can predate that rule.
+    @ParameterizedTest
+    @MethodSource("textParentsWithoutUsableAnswerKeys")
+    void spotTheAnswerOnAParentWithoutAUsableAnswerKeyMintsTheVoteBoardWithNothingFlagged(Slide parent) {
         List<Answer> answers = List.of(
                 answer("p-1", new TextAnswer("Lyon"), 100),
                 answer("p-2", new TextAnswer("Nice"), 200));
 
-        List<FollowUpOption> degraded = FollowUpOptions.mint(
-                slideWith(keyedText()), answers, SPOT, URLS).options();
-        List<FollowUpOption> blankKey = FollowUpOptions.mint(
-                slideWith(keyedText("   ")), answers, SPOT, URLS).options();
-        List<FollowUpOption> asVote = FollowUpOptions.mint(
-                slideWith(keyedText()), answers, VOTE, URLS).options();
+        List<FollowUpOption> degraded = FollowUpOptions.mint(parent, answers, SPOT, URLS).options();
+        List<FollowUpOption> asVote = FollowUpOptions.mint(parent, answers, VOTE, URLS).options();
 
-        // Same cards, not necessarily the same arrangement: a SPOT_THE_ANSWER
-        // mint shuffles its board whether or not it had a key to seed, so only
-        // the vote board's *set* of candidates is what "mints as VOTE" means.
         assertThat(degraded).containsExactlyInAnyOrderElementsOf(asVote);
-        assertThat(blankKey).containsExactlyInAnyOrderElementsOf(asVote);
         assertThat(degraded).noneMatch(option -> option.authoredAnswer());
     }
 
+    static Stream<Slide> textParentsWithoutUsableAnswerKeys() {
+        return Stream.of(
+                slideWith(keyedText()),
+                slideWith(keyedText("   ")));
+    }
+
     @Test
-    void spotTheAnswerShufflesEvenTheKeylessDegradedBoard() {
-        // The shuffle must be unconditional: a keyless SPOT_THE_ANSWER board that
-        // kept submission order would itself tell the room no card is correct —
-        // "did the board shuffle?" must not leak whether a key exists. Pins the
-        // property against a future "only shuffle when we seeded" optimization.
+    void spotTheAnswerShufflesTheKeylessDegradedBoard() {
         List<Answer> answers = List.of(
                 answer("p-1", new TextAnswer("Lyon"), 100),
                 answer("p-2", new TextAnswer("Nice"), 200),
                 answer("p-3", new TextAnswer("Dijon"), 300));
 
-        Set<List<String>> arrangements = new LinkedHashSet<>();
-        for (int mint = 0; mint < MINTS; mint++) {
-            arrangements.add(submittedTexts(
-                    FollowUpOptions.mint(slideWith(keyedText()), answers, SPOT, URLS)));
-        }
+        FollowUpOptionSet board = FollowUpOptions.mint(
+                slideWith(keyedText()), answers, SPOT, URLS, Collections::reverse);
 
-        // Three cards, uniform over 6 permutations: a constant arrangement —
-        // what an unshuffled degraded mint would give — has probability
-        // 6 · (1/6)^100 = (1/6)^99.
-        assertThat(arrangements).hasSizeGreaterThan(1);
+        assertThat(board.options()).extracting(FollowUpOption::text)
+                .containsExactly("Dijon", "Nice", "Lyon");
     }
 
     @Test
@@ -367,40 +368,21 @@ class FollowUpOptionsTest {
     }
 
     @Test
-    void spotTheAnswerShufflesTheWholeBoardSoTwoMintsShareNoArrangement() {
-        // The regression: hiding the seed in one random slot while the submissions
-        // kept submission order left two mints of an unchanged round differing in
-        // exactly ONE card's index — so a participant diffing the live board
-        // against a refetched snapshot read the seed off as "the card that moved".
-        // The fix shuffles the whole list, so the two arrangements are independent
-        // permutations: the seed moves, and so does everything else.
+    void spotTheAnswerHandsTheWholeBoardToTheShuffler() {
         Slide parent = slideWith(keyedText("Paris"));
         List<Answer> answers = List.of(
                 answer("p-1", new TextAnswer("Lyon"), 100),
                 answer("p-2", new TextAnswer("Nice"), 200),
                 answer("p-3", new TextAnswer("Dijon"), 300));
 
-        Set<Integer> seedSlots = new LinkedHashSet<>();
-        Set<List<String>> submittedOrders = new LinkedHashSet<>();
-        for (int mint = 0; mint < MINTS; mint++) {
-            FollowUpOptionSet board = FollowUpOptions.mint(parent, answers, SPOT, URLS);
-            List<FollowUpOption> options = board.options();
-            seedSlots.add(options.indexOf(options.stream()
-                    .filter(option -> option.authoredAnswer()).findFirst().orElseThrow()));
-            submittedOrders.add(submittedTexts(board));
-        }
+        FollowUpOptionSet board = FollowUpOptions.mint(parent, answers, SPOT, URLS, options -> {
+            Collections.swap(options, 0, 2);
+            Collections.swap(options, 1, 3);
+        });
 
-        // A four-card board (three submissions + the seed), minted MINTS = 100
-        // times. The seed's slot is uniform over 4, so a constant one — which is
-        // what a derived slot would give — has probability 4 · (1/4)^100 =
-        // (1/4)^99.
-        assertThat(seedSlots).hasSizeGreaterThan(1);
-        // …and the submissions' order among themselves is uniform over its 6
-        // permutations, so it staying constant — which is what insert-at-a-slot
-        // gave, and what made the diff work — has probability 6 · (1/6)^100 =
-        // (1/6)^99. Union bound on this test failing against a correct shuffle:
-        // (1/4)^99 + (1/6)^99 < 2 · 10^-59.
-        assertThat(submittedOrders).hasSizeGreaterThan(1);
+        assertThat(board.options()).extracting(FollowUpOption::text)
+                .containsExactly("Dijon", "Paris", "Lyon", "Nice");
+        assertThat(board.options().get(1).authoredAnswer()).isTrue();
     }
 
     @Test
@@ -546,40 +528,19 @@ class FollowUpOptionsTest {
                 answer("p-2", new DrawingAnswer(image("s3/two.png")), 200),
                 answer("p-3", new DrawingAnswer(image("s3/three.png")), 300));
 
-        Set<List<String>> seeded = new LinkedHashSet<>();
-        Set<List<String>> degraded = new LinkedHashSet<>();
-        for (int mint = 0; mint < MINTS; mint++) {
-            seeded.add(submittedImageUrls(FollowUpOptions.mint(
-                    slideWith(keyedDrawing(image("gallery/answer.png"))), answers, SPOT, URLS)));
-            degraded.add(submittedImageUrls(FollowUpOptions.mint(
-                    slideWith(keyedDrawing(null)), answers, SPOT, URLS)));
-        }
+        FollowUpOptionSet seeded = FollowUpOptions.mint(
+                slideWith(keyedDrawing(image("gallery/answer.png"))), answers, SPOT, URLS, Collections::reverse);
+        FollowUpOptionSet degraded = FollowUpOptions.mint(
+                slideWith(keyedDrawing(null)), answers, SPOT, URLS, Collections::reverse);
 
-        // Three submissions, uniform over their 6 permutations on each board: a
-        // constant arrangement has probability 6 · (1/6)^100 = (1/6)^99. The
-        // degraded half pins the shuffle as unconditional — "did the board
-        // shuffle?" must not leak whether an answer was seeded.
-        assertThat(seeded).hasSizeGreaterThan(1);
-        assertThat(degraded).hasSizeGreaterThan(1);
+        assertThat(seeded.options()).extracting(FollowUpOption::imageUrl)
+                .containsExactly("https://cdn/gallery/answer.png", "https://cdn/s3/three.png",
+                        "https://cdn/s3/two.png", "https://cdn/s3/one.png");
+        assertThat(degraded.options()).extracting(FollowUpOption::imageUrl)
+                .containsExactly("https://cdn/s3/three.png", "https://cdn/s3/two.png", "https://cdn/s3/one.png");
     }
 
     // ── fixtures ───────────────────────────────────────────────────────────────
-
-    /** The board's submitted cards in board order — the seed dropped out. */
-    private static List<String> submittedTexts(FollowUpOptionSet set) {
-        return set.options().stream()
-                .filter(option -> !option.authoredAnswer())
-                .map(option -> option.text())
-                .toList();
-    }
-
-    /** The board's submitted image cards in board order — the seed dropped out. */
-    private static List<String> submittedImageUrls(FollowUpOptionSet set) {
-        return set.options().stream()
-                .filter(option -> !option.authoredAnswer())
-                .map(option -> option.imageUrl())
-                .toList();
-    }
 
     /** The id the mint derives for a candidate keyed on {@code key}. */
     private static String derivedId(String key) {

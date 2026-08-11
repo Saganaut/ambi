@@ -22,7 +22,7 @@ public class SlideContentTypes {
      * </ul>
      */
     public enum McqDataVisualization {
-        PIE, BAR_HORIZONTAL, BAR_VERTICAL, LINE, DONUT, PARETO, DOT, NONE
+        PIE, BAR_HORIZONTAL, BAR_VERTICAL, LINE, DONUT, PARETO, DOT, POOL_RIBBON, NONE
     }
 
 

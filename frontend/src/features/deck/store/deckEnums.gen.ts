@@ -74,7 +74,7 @@ export const VerticalAlign = {
   TOP: "TOP",
 } as const satisfies Record<VerticalAlign, VerticalAlign>;
 
-export type McqDataVisualization = "BAR_HORIZONTAL" | "BAR_VERTICAL" | "DONUT" | "DOT" | "LINE" | "NONE" | "PARETO" | "PIE";
+export type McqDataVisualization = "BAR_HORIZONTAL" | "BAR_VERTICAL" | "DONUT" | "DOT" | "LINE" | "NONE" | "PARETO" | "PIE" | "POOL_RIBBON";
 export const McqDataVisualization = {
   BAR_HORIZONTAL: "BAR_HORIZONTAL",
   BAR_VERTICAL: "BAR_VERTICAL",
@@ -84,6 +84,7 @@ export const McqDataVisualization = {
   NONE: "NONE",
   PARETO: "PARETO",
   PIE: "PIE",
+  POOL_RIBBON: "POOL_RIBBON",
 } as const satisfies Record<McqDataVisualization, McqDataVisualization>;
 
 export type ResultsDisplayMode = "AFTER_FOLLOWUP" | "IMMEDIATE" | "MANUAL" | "NEVER" | "PRESENTATION_END" | "ROUND_END";

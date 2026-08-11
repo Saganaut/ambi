@@ -242,6 +242,62 @@ public class Deck extends Auditable implements OwnableResource {
         resort();
     }
 
+    /**
+     * Link and place a duplicated unit — {@code copy} of {@code source} plus,
+     * when the source had an attached follow-up, {@code followUpCopy} — directly
+     * after the <em>source's own unit</em>, so an existing parent/follow-up pair
+     * is never split. The resulting order is
+     * {@code [source, sourceFollowUp?, copy, copyFollowUp?, …]}.
+     *
+     * <p>The copies are linked to each other and to nothing else: a copy whose
+     * source was a parent adopts the follow-up copy as its child, and a copy of
+     * a source with no follow-up carries no link at all — so the pair can never
+     * point back at the originals. Only the inserted slides' keys are minted
+     * (between the source unit's tail and its successor, rebalancing first if
+     * those neighbours have no gap). Callers must have validated eligibility —
+     * the source is not itself an attached follow-up — and run
+     * {@link #backfillRanks(SlideRankService)} so the source is keyed.
+     *
+     * @param copy         the duplicate of {@code source}
+     * @param followUpCopy the duplicate of the source's attached follow-up, or
+     *                     {@code null} when it has none
+     * @param source       the slide being duplicated
+     * @param ranks        the key generator
+     */
+    public void addDuplicate(Slide copy, Slide followUpCopy, Slide source, SlideRankService ranks) {
+        copy.setParentId(null);
+        copy.setChildId(followUpCopy == null ? null : followUpCopy.getId());
+        if (followUpCopy != null) {
+            followUpCopy.setParentId(copy.getId());
+            followUpCopy.setChildId(null);
+        }
+
+        Slide tail = attachedFollowUp(source).orElse(source);
+        List<Slide> ordered = slides.stream().sorted(SlideRankService.ordering()).toList();
+        int tailIdx = ordered.indexOf(tail);
+        Slide successor = tailIdx + 1 < ordered.size() ? ordered.get(tailIdx + 1) : null;
+        if (successor == null) {
+            copy.setSortOrder(ranks.after(tail.getSortOrder()));
+            if (followUpCopy != null) {
+                followUpCopy.setSortOrder(ranks.after(copy.getSortOrder()));
+            }
+        } else {
+            if (!ranks.hasGap(tail.getSortOrder(), successor.getSortOrder())) {
+                rebalance(ordered, ranks);
+            }
+            copy.setSortOrder(ranks.between(tail.getSortOrder(), successor.getSortOrder()));
+            if (followUpCopy != null) {
+                followUpCopy.setSortOrder(
+                        ranks.between(copy.getSortOrder(), successor.getSortOrder()));
+            }
+        }
+        slides.add(copy);
+        if (followUpCopy != null) {
+            slides.add(followUpCopy);
+        }
+        resort();
+    }
+
     // ── Slide ordering (Lexorank) ────────────────────────────────────────────────
     // sortOrder is the authoritative order; the embedded array is kept sorted to
     // match it (the whole deck doc is rewritten on every save anyway, so the

@@ -29,7 +29,17 @@ export interface ResultsConfig {
 // placement kinds and SCALES sample their own shape instead (see
 // `adapters/placement.ts` and `adapters/scales.ts`).
 export const mcqResults: ResultsConfig = {
-  supportedViz: ["BAR_HORIZONTAL", "BAR_VERTICAL", "PIE", "DONUT", "LINE", "PARETO", "DOT", "NONE"],
+  supportedViz: [
+    "BAR_HORIZONTAL",
+    "BAR_VERTICAL",
+    "PIE",
+    "DONUT",
+    "LINE",
+    "PARETO",
+    "DOT",
+    "POOL_RIBBON",
+    "NONE",
+  ],
   implemented: true,
   toChartData: mcqToChartData,
   sampleDistribution: mcqSampleDistribution,

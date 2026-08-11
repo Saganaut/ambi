@@ -134,6 +134,8 @@ public final class FollowUpOptions {
      */
     private static final SecureRandom BOARD_ORDER = new SecureRandom();
 
+    private static final BoardShuffler BOARD_SHUFFLER = options -> Collections.shuffle(options, BOARD_ORDER);
+
     private FollowUpOptions() {
     }
 
@@ -177,15 +179,21 @@ public final class FollowUpOptions {
      */
     public static FollowUpOptionSet mint(Slide parent, List<Answer> parentAnswers, FollowUpMode mode,
             Function<AppImage, String> imageUrl) {
+        return mint(parent, parentAnswers, mode, imageUrl, BOARD_SHUFFLER);
+    }
+
+    static FollowUpOptionSet mint(Slide parent, List<Answer> parentAnswers, FollowUpMode mode,
+            Function<AppImage, String> imageUrl, BoardShuffler boardShuffler) {
         Objects.requireNonNull(parentAnswers, "parentAnswers required");
         Objects.requireNonNull(imageUrl, "imageUrl required");
+        Objects.requireNonNull(boardShuffler, "boardShuffler required");
         if (parent == null) {
             return FollowUpOptionSet.empty();
         }
         return switch (parent.getContent()) {
             case McqContent mcq -> fromMcq(mcq, imageUrl);
-            case TextContent text -> fromText(text, parentAnswers, mode);
-            case DrawingContent drawing -> fromDrawings(drawing, parentAnswers, mode, imageUrl);
+            case TextContent text -> fromText(text, parentAnswers, mode, boardShuffler);
+            case DrawingContent drawing -> fromDrawings(drawing, parentAnswers, mode, imageUrl, boardShuffler);
             case NumberContent number -> fromSummaries(parentAnswers,
                     NumberAnswer.class, answer -> summaryOf(number, answer));
             case RankingContent ranking -> fromSummaries(parentAnswers,
@@ -235,7 +243,8 @@ public final class FollowUpOptions {
      * {@link #finishShuffled}) — the one mint that does not lay its cards out in
      * submission order.
      */
-    private static FollowUpOptionSet fromText(TextContent content, List<Answer> answers, FollowUpMode mode) {
+    private static FollowUpOptionSet fromText(TextContent content, List<Answer> answers, FollowUpMode mode,
+            BoardShuffler boardShuffler) {
         Map<String, Candidate> byNormalized = new LinkedHashMap<>();
         for (Answer answer : inSubmissionOrder(answers)) {
             if (!(answer.getPayload() instanceof TextAnswer text)) {
@@ -251,7 +260,7 @@ public final class FollowUpOptions {
         if (mode != FollowUpMode.SPOT_THE_ANSWER) {
             return finish(byNormalized);
         }
-        return finishShuffled(withAuthoredAnswer(content, byNormalized));
+        return finishShuffled(withAuthoredAnswer(content, byNormalized), boardShuffler);
     }
 
     /**
@@ -354,7 +363,7 @@ public final class FollowUpOptions {
      * {@link #finishShuffled}) — the image twin of {@link #fromText}.
      */
     private static FollowUpOptionSet fromDrawings(DrawingContent content, List<Answer> answers,
-            FollowUpMode mode, Function<AppImage, String> imageUrl) {
+            FollowUpMode mode, Function<AppImage, String> imageUrl, BoardShuffler boardShuffler) {
         Map<String, Candidate> bySrcKey = new LinkedHashMap<>();
         for (Answer answer : inSubmissionOrder(answers)) {
             if (!(answer.getPayload() instanceof DrawingAnswer drawing) || drawing.image() == null) {
@@ -371,7 +380,7 @@ public final class FollowUpOptions {
         if (mode != FollowUpMode.SPOT_THE_ANSWER) {
             return finish(bySrcKey);
         }
-        return finishShuffled(withAuthoredImage(content, bySrcKey, imageUrl));
+        return finishShuffled(withAuthoredImage(content, bySrcKey, imageUrl), boardShuffler);
     }
 
     /**
@@ -514,10 +523,15 @@ public final class FollowUpOptions {
      * the <em>order the parent round's answers arrived in</em>, which every
      * other mode's board does carry.
      */
-    private static FollowUpOptionSet finishShuffled(Map<String, Candidate> byKey) {
+    private static FollowUpOptionSet finishShuffled(Map<String, Candidate> byKey, BoardShuffler boardShuffler) {
         List<FollowUpOption> options = mintedFrom(byKey);
-        Collections.shuffle(options, BOARD_ORDER);
+        boardShuffler.shuffle(options);
         return new FollowUpOptionSet(List.copyOf(options));
+    }
+
+    @FunctionalInterface
+    interface BoardShuffler {
+        void shuffle(List<FollowUpOption> options);
     }
 
     /** The keyed candidates as options, in the map's own order — mutable, for the caller to arrange. */

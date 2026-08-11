@@ -372,6 +372,15 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.addFollowUpRequest,
       }),
     }),
+    duplicateSlide: build.mutation<
+      DuplicateSlideApiResponse,
+      DuplicateSlideApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/api/decks/${queryArg.id}/slides/${queryArg.slideId}/duplicate`,
+        method: "POST",
+      }),
+    }),
     uploadDeckImage: build.mutation<
       UploadDeckImageApiResponse,
       UploadDeckImageApiArg
@@ -660,6 +669,12 @@ export type AddFollowUpSlideApiArg = {
   slideId: string;
   addFollowUpRequest: AddFollowUpRequest;
 };
+export type DuplicateSlideApiResponse =
+  /** status 201 Created */ SlideResponse[];
+export type DuplicateSlideApiArg = {
+  id: string;
+  slideId: string;
+};
 export type UploadDeckImageApiResponse = /** status 201 Created */ AppImage;
 export type UploadDeckImageApiArg = {
   id: string;
@@ -835,6 +850,7 @@ export type McqContent = {
     | "DONUT"
     | "PARETO"
     | "DOT"
+    | "POOL_RIBBON"
     | "NONE";
   contentType: "MCQ";
 };
@@ -1241,6 +1257,7 @@ export const {
   useLazyListDeckSlidesQuery,
   useAddSlideMutation,
   useAddFollowUpSlideMutation,
+  useDuplicateSlideMutation,
   useUploadDeckImageMutation,
   useMoveSlideMutation,
   useListDecksForOrgQuery,

@@ -178,6 +178,97 @@ class DeckReorderTest {
         assertThat(keys).isSorted().doesNotHaveDuplicates();
     }
 
+    // ── Duplicate: placement ────────────────────────────────────────────────────
+
+    @Test
+    void addDuplicatePlacesTheCopyImmediatelyAfterAMidListSource() {
+        Deck deck = keyedDeck("s1", "s2", "s3");
+        Slide source = deck.findSlide("s2").orElseThrow();
+        List<String> beforeKeys = keysExcept(deck, "s2-copy");
+
+        deck.addDuplicate(slide("s2-copy", null), null, source, ranks);
+
+        assertThat(ids(deck)).containsExactly("s1", "s2", "s2-copy", "s3");
+        // Only the inserted slide's key was minted; nothing else moved.
+        assertThat(keysExcept(deck, "s2-copy")).isEqualTo(beforeKeys);
+    }
+
+    @Test
+    void addDuplicateOfTheLastSlideAppends() {
+        Deck deck = keyedDeck("s1", "s2");
+
+        deck.addDuplicate(slide("s2-copy", null), null, deck.findSlide("s2").orElseThrow(), ranks);
+
+        assertThat(ids(deck)).containsExactly("s1", "s2", "s2-copy");
+    }
+
+    @Test
+    void addDuplicateOfAPairLandsAfterTheSourcesFollowUpAndLinksTheCopies() {
+        Deck deck = deckWithAttachedPair("p", "f", "s3");
+        Slide copy = slide("p-copy", null);
+        Slide followUpCopy = followUpSlide("f-copy", null);
+
+        deck.addDuplicate(copy, followUpCopy, deck.findSlide("p").orElseThrow(), ranks);
+
+        assertThat(ids(deck)).containsExactly("p", "f", "p-copy", "f-copy", "s3");
+        assertThat(copy.getParentId()).isNull();
+        assertThat(copy.getChildId()).isEqualTo("f-copy");
+        assertThat(followUpCopy.getParentId()).isEqualTo("p-copy");
+        assertThat(followUpCopy.getChildId()).isNull();
+        // The source pair keeps pointing at itself.
+        assertThat(deck.findSlide("p").orElseThrow().getChildId()).isEqualTo("f");
+        assertThat(deck.findSlide("f").orElseThrow().getParentId()).isEqualTo("p");
+    }
+
+    @Test
+    void addDuplicateClearsALinkTheCopyInheritedFromTheSource() {
+        // The service hands over a verbatim deep copy, so the copy of a parent
+        // arrives still pointing at the SOURCE's follow-up. With no follow-up
+        // copy to adopt, that stale link has to be dropped.
+        Deck deck = deckWithAttachedPair("p", "f", "s3");
+        Slide copy = slide("p-copy", null);
+        copy.setChildId("f");
+        copy.setParentId("ghost");
+
+        deck.addDuplicate(copy, null, deck.findSlide("p").orElseThrow(), ranks);
+
+        assertThat(copy.getChildId()).isNull();
+        assertThat(copy.getParentId()).isNull();
+        assertThat(deck.findSlide("f").orElseThrow().getParentId()).isEqualTo("p");
+    }
+
+    @Test
+    void addDuplicateRebalancesWhenNoGapAfterTheSource() {
+        // The source and its successor share a key — no room for the copy until
+        // the list is rebalanced.
+        Deck deck = new Deck();
+        deck.setSlides(new ArrayList<>(List.of(
+                slide("s1", ranks.initial()),
+                slide("s2", ranks.initial()))));
+
+        deck.addDuplicate(slide("s1-copy", null), null, deck.findSlide("s1").orElseThrow(), ranks);
+
+        assertThat(ids(deck)).containsExactly("s1", "s1-copy", "s2");
+        List<String> keys = deck.getSlides().stream().map(s -> s.getSortOrder()).toList();
+        assertThat(keys).isSorted().doesNotHaveDuplicates();
+    }
+
+    @Test
+    void addDuplicateOfAPairRebalancesWhenNoGapAfterTheFollowUp() {
+        Deck deck = new Deck();
+        Slide parent = slide("p", ranks.before(ranks.initial()));
+        Slide followUp = followUpSlide("f", ranks.initial());
+        parent.setChildId("f");
+        followUp.setParentId("p");
+        deck.setSlides(new ArrayList<>(List.of(parent, followUp, slide("s3", ranks.initial()))));
+
+        deck.addDuplicate(slide("p-copy", null), followUpSlide("f-copy", null), parent, ranks);
+
+        assertThat(ids(deck)).containsExactly("p", "f", "p-copy", "f-copy", "s3");
+        List<String> keys = deck.getSlides().stream().map(s -> s.getSortOrder()).toList();
+        assertThat(keys).isSorted().doesNotHaveDuplicates();
+    }
+
     // ── Follow-up: remove ───────────────────────────────────────────────────────
 
     @Test

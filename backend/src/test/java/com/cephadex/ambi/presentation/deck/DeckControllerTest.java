@@ -43,16 +43,9 @@ import com.cephadex.ambi.presentation.deck.enums.DeckAclRole;
 import com.cephadex.ambi.presentation.deck.enums.DeckVisibility;
 import com.cephadex.ambi.presentation.deck.enums.ResultsDisplayMode;
 import com.cephadex.ambi.presentation.slide.Slide;
-import com.cephadex.ambi.presentation.slide.content.InstructionContent;
 import com.cephadex.ambi.presentation.slide.content.McqContent;
-import com.cephadex.ambi.presentation.slide.content.MediaContent;
-import com.cephadex.ambi.presentation.slide.content.RichTextContent;
-import com.cephadex.ambi.presentation.slide.content.TitleContent;
-import com.cephadex.ambi.presentation.slide.content.parts.SlideContentTypes;
 import com.cephadex.ambi.presentation.slide.enums.FollowUpMode;
-import com.cephadex.ambi.presentation.slide.enums.HorizontalAlign;
 import com.cephadex.ambi.presentation.slide.enums.SlideType;
-import com.cephadex.ambi.presentation.slide.enums.VerticalAlign;
 import com.cephadex.ambi.user.enums.UserLevel;
 
 /**
@@ -225,68 +218,6 @@ class DeckControllerTest {
         verify(deckService).uploadImage(eq("deck-1"), any(), eq("image/png"), eq("crop.png"), any());
     }
 
-    @Test
-    void setDeckCoverImageDelegates() throws Exception {
-        when(deckService.setDeckCoverImage(eq("deck-1"), any(AppImage.class), any()))
-                .thenReturn(deck("deck-1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/cover-image")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/c.jpg\"}}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).setDeckCoverImage(eq("deck-1"), any(AppImage.class), any());
-    }
-
-    @Test
-    void clearDeckCoverImageDelegates() throws Exception {
-        when(deckService.clearDeckCoverImage(eq("deck-1"), any())).thenReturn(deck("deck-1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/cover-image"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).clearDeckCoverImage(eq("deck-1"), any());
-    }
-
-    @Test
-    void setDeckBackgroundImageDelegates() throws Exception {
-        when(deckService.setDeckBackgroundImage(eq("deck-1"), any(AppImage.class), any()))
-                .thenReturn(deck("deck-1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/background-image")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/b.jpg\"}}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).setDeckBackgroundImage(eq("deck-1"), any(AppImage.class), any());
-    }
-
-    @Test
-    void clearDeckBackgroundImageDelegates() throws Exception {
-        when(deckService.clearDeckBackgroundImage(eq("deck-1"), any())).thenReturn(deck("deck-1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/background-image"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).clearDeckBackgroundImage(eq("deck-1"), any());
-    }
-
-    @Test
-    void promoteClearedBackgroundImageToDeckDelegates() throws Exception {
-        when(deckService.promoteClearedBackgroundImageToDeck(eq("deck-1"), any()))
-                .thenReturn(deck("deck-1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/background-image/promote"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).promoteClearedBackgroundImageToDeck(eq("deck-1"), any());
-    }
-
     /** A null image body is rejected — clearing is an explicit DELETE, not a null PUT. */
     @Test
     void setDeckCoverImageRejectsMissingImage() throws Exception {
@@ -294,122 +225,6 @@ class DeckControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
-    }
-
-    // ── Slide images ──────────────────────────────────────────────────────────
-
-    @Test
-    void setSlideCoverImageDelegates() throws Exception {
-        when(deckService.setSlideCoverImage(eq("deck-1"), eq("s1"), any(AppImage.class), any()))
-                .thenReturn(slide("s1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/slides/s1/cover-image")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/c.jpg\"}}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("s1"));
-
-        verify(deckService).setSlideCoverImage(eq("deck-1"), eq("s1"), any(AppImage.class), any());
-    }
-
-    @Test
-    void clearSlideCoverImageDelegates() throws Exception {
-        when(deckService.clearSlideCoverImage(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/cover-image"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("s1"));
-
-        verify(deckService).clearSlideCoverImage(eq("deck-1"), eq("s1"), any());
-    }
-
-    @Test
-    void setSlideBackgroundImageDelegates() throws Exception {
-        when(deckService.setSlideBackgroundImage(eq("deck-1"), eq("s1"), any(AppImage.class), any()))
-                .thenReturn(slide("s1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/slides/s1/background-image")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"image\":{\"external\":true,\"externalSrc\":\"https://img/b.jpg\"}}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("s1"));
-
-        verify(deckService).setSlideBackgroundImage(eq("deck-1"), eq("s1"), any(AppImage.class), any());
-    }
-
-    @Test
-    void clearSlideBackgroundImageDelegates() throws Exception {
-        when(deckService.clearSlideBackgroundImage(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/background-image"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("s1"));
-
-        verify(deckService).clearSlideBackgroundImage(eq("deck-1"), eq("s1"), any());
-    }
-
-    @Test
-    void hideSlideBackgroundDelegates() throws Exception {
-        when(deckService.hideSlideBackground(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/slides/s1/background-image/hide"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("s1"));
-
-        verify(deckService).hideSlideBackground(eq("deck-1"), eq("s1"), any());
-    }
-
-    // ── Background color ───────────────────────────────────────────────────────
-
-    @Test
-    void setDeckBackgroundColorDelegates() throws Exception {
-        when(deckService.setDeckBackgroundColor(eq("deck-1"), eq("#1A2B3C"), any()))
-                .thenReturn(deck("deck-1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/background-color")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"color\":\"#1A2B3C\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).setDeckBackgroundColor(eq("deck-1"), eq("#1A2B3C"), any());
-    }
-
-    @Test
-    void clearDeckBackgroundColorDelegates() throws Exception {
-        when(deckService.clearDeckBackgroundColor(eq("deck-1"), any())).thenReturn(deck("deck-1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/background-color"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).clearDeckBackgroundColor(eq("deck-1"), any());
-    }
-
-    @Test
-    void promoteBackgroundColorToDeckDelegates() throws Exception {
-        when(deckService.promoteBackgroundColorToDeck(eq("deck-1"), eq("#1A2B3C"), any()))
-                .thenReturn(deck("deck-1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/background-color/promote")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"color\":\"#1A2B3C\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).promoteBackgroundColorToDeck(eq("deck-1"), eq("#1A2B3C"), any());
-    }
-
-    @Test
-    void promoteClearedBackgroundColorToDeckDelegates() throws Exception {
-        when(deckService.promoteClearedBackgroundColorToDeck(eq("deck-1"), any()))
-                .thenReturn(deck("deck-1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/background-color/promote"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("deck-1"));
-
-        verify(deckService).promoteClearedBackgroundColorToDeck(eq("deck-1"), any());
     }
 
     /** A malformed (non-hex) color is rejected by the @Pattern bound. */
@@ -421,30 +236,6 @@ class DeckControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void setSlideBackgroundColorDelegates() throws Exception {
-        when(deckService.setSlideBackgroundColor(eq("deck-1"), eq("s1"), eq("#1A2B3C"), any()))
-                .thenReturn(slide("s1"));
-
-        mockMvc.perform(put("/api/decks/deck-1/slides/s1/background-color")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"color\":\"#1A2B3C\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("s1"));
-
-        verify(deckService).setSlideBackgroundColor(eq("deck-1"), eq("s1"), eq("#1A2B3C"), any());
-    }
-
-    @Test
-    void clearSlideBackgroundColorDelegates() throws Exception {
-        when(deckService.clearSlideBackgroundColor(eq("deck-1"), eq("s1"), any())).thenReturn(slide("s1"));
-
-        mockMvc.perform(delete("/api/decks/deck-1/slides/s1/background-color"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("s1"));
-
-        verify(deckService).clearSlideBackgroundColor(eq("deck-1"), eq("s1"), any());
-    }
 
     // ── Slide point settings ──────────────────────────────────────────────────
 
@@ -628,144 +419,6 @@ class DeckControllerTest {
     }
 
     @Test
-    void addSlideRoundTripsTitleContentAsDiscriminatedUnion() throws Exception {
-        // The non-scorable TITLE arm carries only an optional subtitle. Echo the
-        // slide back so one request exercises both halves of the polymorphic
-        // contract: inbound the `contentType` discriminator must resolve to
-        // TitleContent, outbound it must re-serialize carrying `contentType`.
-        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
-                .thenAnswer(invocation -> invocation.getArgument(1));
-
-        String body = """
-                {
-                  "id": "title-1",
-                  "content": {"contentType": "TITLE", "subtitle": "A journey begins"}
-                }
-                """;
-
-        mockMvc.perform(post("/api/decks/deck-1/slides")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.content.contentType").value("TITLE"))
-                .andExpect(jsonPath("$.content.subtitle").value("A journey begins"));
-
-        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
-        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
-        assertThat(sent.getValue().getContent()).isInstanceOf(TitleContent.class);
-        TitleContent title = (TitleContent) sent.getValue().getContent();
-        assertThat(title.contentType()).isEqualTo(SlideType.TITLE);
-        assertThat(title.subtitle()).isEqualTo("A journey begins");
-    }
-
-    @Test
-    void addSlideRoundTripsRichTextContentAsDiscriminatedUnion() throws Exception {
-        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
-                .thenAnswer(invocation -> invocation.getArgument(1));
-
-        String body = """
-                {
-                  "id": "content-1",
-                  "content": {
-                    "contentType": "CONTENT",
-                    "body": "<p>Hello Middle-earth</p>",
-                    "horizontalAlign": "CENTER",
-                    "verticalAlign": "MIDDLE"
-                  }
-                }
-                """;
-
-        mockMvc.perform(post("/api/decks/deck-1/slides")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.content.contentType").value("CONTENT"))
-                .andExpect(jsonPath("$.content.body").value("<p>Hello Middle-earth</p>"))
-                .andExpect(jsonPath("$.content.horizontalAlign").value("CENTER"))
-                .andExpect(jsonPath("$.content.verticalAlign").value("MIDDLE"));
-
-        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
-        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
-        assertThat(sent.getValue().getContent()).isInstanceOf(RichTextContent.class);
-        RichTextContent content = (RichTextContent) sent.getValue().getContent();
-        assertThat(content.contentType()).isEqualTo(SlideType.CONTENT);
-        assertThat(content.body()).isEqualTo("<p>Hello Middle-earth</p>");
-        assertThat(content.horizontalAlign()).isEqualTo(HorizontalAlign.CENTER);
-        assertThat(content.verticalAlign()).isEqualTo(VerticalAlign.MIDDLE);
-    }
-
-    @Test
-    void addSlideRoundTripsMediaContentAsDiscriminatedUnion() throws Exception {
-        // A media slide is either an image or an embedded YouTube video; here the
-        // EMBED (YouTube) arm with an optional caption.
-        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
-                .thenAnswer(invocation -> invocation.getArgument(1));
-
-        String body = """
-                {
-                  "id": "media-1",
-                  "content": {
-                    "contentType": "MEDIA",
-                    "mediaType": "EMBED",
-                    "url": "https://www.youtube.com/watch?v=abc123",
-                    "caption": "The Shire",
-                    "autoplay": false,
-                    "loop": false,
-                    "muted": false
-                  }
-                }
-                """;
-
-        mockMvc.perform(post("/api/decks/deck-1/slides")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.content.contentType").value("MEDIA"))
-                .andExpect(jsonPath("$.content.mediaType").value("EMBED"))
-                .andExpect(jsonPath("$.content.caption").value("The Shire"));
-
-        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
-        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
-        assertThat(sent.getValue().getContent()).isInstanceOf(MediaContent.class);
-        MediaContent media = (MediaContent) sent.getValue().getContent();
-        assertThat(media.contentType()).isEqualTo(SlideType.MEDIA);
-        assertThat(media.mediaType()).isEqualTo(SlideContentTypes.MediaType.EMBED);
-        assertThat(media.url()).isEqualTo("https://www.youtube.com/watch?v=abc123");
-    }
-
-    @Test
-    void addSlideRoundTripsInstructionContentAsDiscriminatedUnion() throws Exception {
-        when(deckService.addSlide(eq("deck-1"), any(Slide.class), any()))
-                .thenAnswer(invocation -> invocation.getArgument(1));
-
-        String body = """
-                {
-                  "id": "instruction-1",
-                  "content": {
-                    "contentType": "INSTRUCTION",
-                    "heading": "Join the game!",
-                    "body": "Grab your phone"
-                  }
-                }
-                """;
-
-        mockMvc.perform(post("/api/decks/deck-1/slides")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.content.contentType").value("INSTRUCTION"))
-                .andExpect(jsonPath("$.content.heading").value("Join the game!"))
-                .andExpect(jsonPath("$.content.body").value("Grab your phone"));
-
-        ArgumentCaptor<Slide> sent = ArgumentCaptor.forClass(Slide.class);
-        verify(deckService).addSlide(eq("deck-1"), sent.capture(), any());
-        assertThat(sent.getValue().getContent()).isInstanceOf(InstructionContent.class);
-        InstructionContent instruction = (InstructionContent) sent.getValue().getContent();
-        assertThat(instruction.contentType()).isEqualTo(SlideType.INSTRUCTION);
-        assertThat(instruction.heading()).isEqualTo("Join the game!");
-    }
-
-    @Test
     void addFollowUpSlideReturns201AndCanonicalSlideList() throws Exception {
         when(deckService.addFollowUpSlide(
                 eq("deck-1"), eq("s1"), eq("f1"), eq(FollowUpMode.PREDICT_POPULAR),
@@ -790,6 +443,19 @@ class DeckControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"id\":\"f1\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void duplicateSlideReturns201AndCanonicalSlideListWithNoBody() throws Exception {
+        when(deckService.duplicateSlide(eq("deck-1"), eq("s1"), any()))
+                .thenReturn(List.of(slide("s1"), slide("s1-copy"), slide("s2")));
+
+        mockMvc.perform(post("/api/decks/deck-1/slides/s1/duplicate"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[1].id").value("s1-copy"));
+
+        verify(deckService).duplicateSlide(eq("deck-1"), eq("s1"), any());
     }
 
     @Test
