@@ -29,7 +29,7 @@ import {
   type GalleryImageResponse,
 } from "@features/gallery/store/galleryApi.gen";
 import { ChevronUpIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { Loader } from "@ui/Loader/Loader";
 import { Pagination } from "@ui/Pagination/Pagination";
@@ -236,7 +236,7 @@ const GalleryTab = ({ galleryId, galleryError, onPick, selectedId, onSelect }: G
               }}
             />
           </div>
-          <IconBtn
+          <Btn
             fill="ghost"
             size="sm"
             icon={<ChevronUpIcon className={styles.sortDirectionIcon} />}

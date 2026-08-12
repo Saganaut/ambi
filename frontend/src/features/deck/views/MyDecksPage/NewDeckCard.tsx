@@ -6,12 +6,14 @@ import styles from "./MyDecksPage.module.css";
 import { useCreateDeck } from "../../hooks/useCreateDeck";
 
 const NewDeckCard = () => {
-  const { createDeckAndGoToEditor } = useCreateDeck();
+  const { createDeckAndGoToEditor, isCreating } = useCreateDeck();
 
   return (
     <button
       type='button'
       className={styles.newDeckCard}
+      disabled={isCreating}
+      aria-busy={isCreating}
       onClick={createDeckAndGoToEditor}>
       <span className={styles.newDeckPlus} aria-hidden='true'>
         <PlusIcon />

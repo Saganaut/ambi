@@ -18,8 +18,7 @@
 import { ChevronLeftIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
-import { Btn } from "@ui/Buttons/Btn";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Input } from "@components/Forms/Input/Input/Input";
 
 import { ColorSlider } from "./ColorSlider";
@@ -212,7 +211,7 @@ const ColorPickerPanel = ({
           <span className={styles.heading}>Custom color</span>
         )}
         {onClose && (
-          <IconBtn
+          <Btn
             fill='ghost'
             size='xs'
             icon={<XMarkIcon />}

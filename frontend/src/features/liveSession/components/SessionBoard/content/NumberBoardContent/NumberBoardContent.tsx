@@ -30,7 +30,7 @@ import type { SlideView } from "../../../../store/liveSessionApi.gen";
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { OutcomeBanner } from "../OutcomeBanner/OutcomeBanner";
 import { findViewerOutcome } from "../viewerOutcome";
 import styles from "./NumberBoardContent.module.css";
@@ -300,7 +300,7 @@ const NumberBoardContent = ({ slide, mode, interactive }: NumberBoardContentProp
           ) : (
             rangeHint && <span className={styles.hint}>{rangeHint}</span>
           )}
-          <Btn type='submit' size='sm' variant='brand' disabled={!validDraft}>
+          <Btn type='submit' size='sm' variant='brand' isDisabled={!validDraft}>
             {submitted ? "Update answer" : "Send answer"}
           </Btn>
         </div>

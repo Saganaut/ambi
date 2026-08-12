@@ -6,7 +6,7 @@
 import { useRef, useState } from "react";
 
 import { DrawingCanvas, type DrawingCanvasHandle } from "@/shared/components/DrawingCanvas/DrawingCanvas";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { extractErrorMessage } from "@utils/utils";
 import styles from "./DrawingSlideContent.module.css";
 
@@ -54,12 +54,12 @@ const DrawPromptModalBody = ({
       />
       {error && <p className={styles.drawModalError}>{error}</p>}
       <div className={styles.drawModalActions}>
-        <Btn variant='secondary' fill='ghost' onClick={onCancel} disabled={isSaving}>
+        <Btn variant='secondary' fill='ghost' onClick={onCancel} isDisabled={isSaving}>
           Cancel
         </Btn>
         <Btn
           variant='primary'
-          disabled={isEmpty || isSaving}
+          isDisabled={isEmpty || isSaving}
           onClick={() => {
             void save();
           }}>

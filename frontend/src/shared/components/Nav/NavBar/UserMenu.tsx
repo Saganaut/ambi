@@ -2,18 +2,16 @@
 // Log in button (opening the shared LoginModal) for everyone else. Guests are
 // treated as unauthenticated here for now and will be re-handled later.
 
-import styles from "./NavBar.module.css";
-import { useUserMenu } from "./useUserMenu";
-import { Btn } from "@ui/Buttons/Btn";
+import { useCurrentUser } from "@auth/hooks/useCurrentUser";
+import { Btn } from "@saganaut/ambi-ui";
+import { Link } from "@tanstack/react-router";
 import {
   DropdownMenu,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuLink,
 } from "../../Menus/DropdownMenu";
-import { Link } from "@tanstack/react-router";
-import { IconBtn } from "@ui/Buttons/IconBtn";
-import { useCurrentUser } from "@auth/hooks/useCurrentUser";
+import { useUserMenu } from "./useUserMenu";
 
 const UserMenu = () => {
   const { handleLogin, handleLogout, avatarContent } = useUserMenu();
@@ -22,7 +20,7 @@ const UserMenu = () => {
 
   if (userState.state !== "registered") {
     return (
-      <Btn variant='primary' onClick={handleLogin}>
+      <Btn variant="primary" onClick={handleLogin}>
         Log in
       </Btn>
     );
@@ -33,24 +31,23 @@ const UserMenu = () => {
   return (
     <DropdownMenu
       trigger={(toggle) => (
-        <IconBtn
-          className={styles.avatarBtn}
-          shape='avatar'
-          variant='primary'
-          size='md'
-          aria-label='User menu'
+        <Btn
+          // className={styles.avatarBtn}
+          shape="avatar"
+          variant="primary"
+          size="md"
+          aria-label="User menu"
           icon={avatarContent()}
           onClick={toggle}
         />
       )}
-      position='top-right'>
+      position="top-right"
+    >
       <DropdownMenuLabel>{user.displayName}</DropdownMenuLabel>
       <DropdownMenuLink>
-        <Link to='/account'>Account</Link>
+        <Link to="/account">Account</Link>
       </DropdownMenuLink>
-      <DropdownMenuItem onClick={() => void handleLogout()}>
-        Logout
-      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => void handleLogout()}>Logout</DropdownMenuItem>
     </DropdownMenu>
   );
 };

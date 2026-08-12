@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 
 import { RegisterSearch, useRegister } from "@auth/hooks/useRegister";
 import { Alert } from "@ui/Alert/Alert";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Checkbox } from "@/shared/components/Forms/Input/Checkbox/Checkbox";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { authValidation } from "@/features/auth/store/authValidationConstants";
@@ -100,7 +100,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({
             <Alert severity='error'>{submitError}</Alert>
           )}
           <div className={styles.finalRow}>
-            <Btn type='submit' disabled={!canSubmit || isLoading}>
+            <Btn type='submit' isDisabled={!canSubmit || isLoading}>
               Submit
             </Btn>
           </div>

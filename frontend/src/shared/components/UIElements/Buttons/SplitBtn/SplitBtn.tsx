@@ -11,8 +11,8 @@
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import type { ReactNode } from "react";
 
-import { Btn } from "../Btn";
-import type { BtnFill, BtnShape, BtnSize, BtnVariant } from "../Btn.types";
+import { Btn } from "@saganaut/ambi-ui";
+import type { BtnFill, BtnShape, BtnSize, BtnVariant } from "@saganaut/ambi-ui";
 import { DropdownMenu } from "@components/Menus/DropdownMenu";
 import styles from "./SplitBtn.module.css";
 
@@ -58,7 +58,7 @@ const SplitBtn = ({
         icon={icon}
         iconPosition={iconPosition}
         isLoading={isLoading}
-        disabled={disabled}
+        isDisabled={disabled}
         className={styles.primary}
         {...rest}>
         {children}
@@ -71,14 +71,14 @@ const SplitBtn = ({
             fill={fill}
             size={size}
             shape={shape}
-            disabled={disabled ?? isLoading}
+            isDisabled={disabled ?? isLoading}
             aria-label={menuAriaLabel}
             className={styles.chevron}
+            icon={<ChevronDownIcon className={styles.chevronIcon} />}
             onClick={() => {
               toggle();
-            }}>
-            <ChevronDownIcon className={styles.chevronIcon} />
-          </Btn>
+            }}
+          />
         )}>
         {menuItems}
       </DropdownMenu>

@@ -3,16 +3,17 @@
 import PlusIcon from "@assets/icons/action/plus.svg?react";
 
 import styles from "./MyDecksPage.module.css";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { useCreateDeck } from "../../hooks/useCreateDeck";
 
 const CreateDeckBtn = () => {
-  const { createDeckAndGoToEditor } = useCreateDeck();
+  const { createDeckAndGoToEditor, isCreating } = useCreateDeck();
 
   return (
     <Btn
       variant='brand'
       icon={<PlusIcon className={styles.btnIcon} aria-hidden='true' />}
+      isLoading={isCreating}
       onClick={createDeckAndGoToEditor}>
       New Deck
     </Btn>

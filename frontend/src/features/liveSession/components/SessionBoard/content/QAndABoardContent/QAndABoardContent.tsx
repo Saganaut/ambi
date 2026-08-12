@@ -21,7 +21,7 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
 import { wordFrequencies } from "@/shared/components/Charts/adapters/words";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./QAndABoardContent.module.css";
 
 /** How the revealed submissions render on the board. */
@@ -184,7 +184,7 @@ const QAndABoardContent = ({ slide, mode, interactive }: QAndABoardContentProps)
                   type='submit'
                   size='sm'
                   variant='brand'
-                  disabled={draft.trim().length === 0}>
+                  isDisabled={draft.trim().length === 0}>
                   Send question
                 </Btn>
               </div>

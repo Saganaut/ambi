@@ -17,7 +17,7 @@
 // keeps that conditional itself. Pure view: no state, no store, no fetching.
 import type { ReactNode } from "react";
 
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 
 import styles from "./BoardSubmitBar.module.css";
 
@@ -61,7 +61,7 @@ const BoardSubmitBar = ({
     return (
       <>
         {children}
-        <Btn size='sm' variant='brand' disabled={disabled} onClick={onSubmit}>
+        <Btn size='sm' variant='brand' isDisabled={disabled} onClick={onSubmit}>
           {idleLabel}
         </Btn>
       </>
@@ -72,7 +72,7 @@ const BoardSubmitBar = ({
     <>
       {submitted && note}
       {children}
-      <Btn size='sm' variant='brand' disabled={disabled} onClick={onSubmit}>
+      <Btn size='sm' variant='brand' isDisabled={disabled} onClick={onSubmit}>
         {submitted ? resubmitLabel : idleLabel}
       </Btn>
     </>

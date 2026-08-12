@@ -5,7 +5,7 @@
 // This component is pure UI: all state, mutations, and side effects live in
 // `useAccount`. It only renders what the hook exposes and forwards events back.
 import { Avatar } from "@ui/Avatar/Avatar";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Checkbox } from "@components/Forms/Input/Checkbox/Checkbox";
 import { Tabs } from "@ui/Tabs/Tabs";
 import { useAvatarPicker } from "@hooks/useAvatarPicker";
@@ -104,7 +104,7 @@ const AccountPage = () => {
         />
         <Btn
           onClick={() => void saveDisplayName()}
-          disabled={!displayNameDirty || isSavingProfile || displayNameError != null}>
+          isDisabled={!displayNameDirty || isSavingProfile || displayNameError != null}>
           {isSavingProfile ? "Saving..." : "Save"}
         </Btn>
         {profileSuccess && (
@@ -161,7 +161,7 @@ const AccountPage = () => {
       <Btn
         className={styles.dangerBtn}
         onClick={() => void closeAccount()}
-        disabled={isClosing}>
+        isDisabled={isClosing}>
         {isClosing ? "Closing..." : "Close my account"}
       </Btn>
       {closeError && <p className={styles.error}>{closeError}</p>}

@@ -9,7 +9,7 @@ import { AppImg } from "@components/Images/AppImg";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
 import { ALLOCATION_OPTION_LABEL_MAX } from "@deck/hooks/useAllocationEditor";
 import type { AppImage, McqOption } from "@deck/store/deckApi.gen";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { emptyImage, resolveImageUrl } from "@utils/image";
 import { ItemField, SortableItemCard } from "../_shared";
 import styles from "./AllocationSlideContent.module.css";
@@ -111,7 +111,7 @@ const AllocationOptionEditable = ({
         {thumbnailSrc && (
           <span className={styles.optionThumbnailWrap}>
             <AppImg className={styles.optionThumbnail} src={thumbnailSrc} alt="" fallbackSeed={option.id} />
-            <IconBtn
+            <Btn
               fill="ghost"
               size="xs"
               className={styles.optionThumbnailClear}
@@ -139,7 +139,7 @@ const AllocationOptionEditable = ({
               }}
               onBlur={onFlush}
             />
-            <IconBtn
+            <Btn
               fill="ghost"
               size="xs"
               icon={<XMarkIcon />}
@@ -148,7 +148,7 @@ const AllocationOptionEditable = ({
             />
           </div>
         ) : (
-          <IconBtn
+          <Btn
             fill="ghost"
             size="xs"
             icon={<QuestionMarkCircleIcon />}

@@ -6,8 +6,7 @@ import TrashIcon from "@assets/icons/action/delete.svg?react";
 
 import styles from "./MyDecksPage.module.css";
 import { DeckResponse } from "@deck/store/deckApi.gen";
-import { Btn } from "@ui/Buttons/Btn";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { DeckCard } from "@deck/components/DeckCard/DeckCard";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 
@@ -42,7 +41,7 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
           actions={
             deck.id ? (
               <>
-                <IconBtn
+                <Btn
                   size='sm'
                   variant='secondary'
                   aria-label='Present deck'
@@ -75,7 +74,7 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
                         Edit
                       </Btn>
                     </Link>
-                    <IconBtn
+                    <Btn
                       size='sm'
                       variant='error'
                       aria-label='Delete deck'

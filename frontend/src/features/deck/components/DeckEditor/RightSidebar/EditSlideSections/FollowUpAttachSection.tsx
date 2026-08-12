@@ -4,7 +4,7 @@
 // it links to it. Slides that can't have a follow-up (non-scorable kinds,
 // follow-ups themselves) render nothing.
 import { getRouteApi } from "@tanstack/react-router";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import type { SlideResponse } from "@deck/store/deckApi.gen";
 import { attachedFollowUpOf, canHaveFollowUp } from "@deck/utils/followUp";

@@ -13,7 +13,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import type { CommentResponse, CommentThreadResponse } from "@deck/store/commentApi.gen";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Avatar } from "@ui/Avatar/Avatar";
 import { resolveProfileAvatarSrc } from "@utils/avatarUrl";
 import styles from "./CommentThread.module.css";
@@ -263,7 +263,7 @@ const CommentEditor = ({
             onSubmit(trimmed);
             setValue("");
           }}
-          disabled={trimmed === ""}>
+          isDisabled={trimmed === ""}>
           {submitLabel}
         </Btn>
       </div>

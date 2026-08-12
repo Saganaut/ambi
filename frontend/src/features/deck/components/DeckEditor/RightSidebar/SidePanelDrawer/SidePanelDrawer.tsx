@@ -1,4 +1,4 @@
-import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { RootState } from "@/shared/store/store";
 import { close } from "@deck/store/panelSlice.ts";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -34,7 +34,7 @@ const SidePanelDrawer = () => {
         <div className={styles.panelContent} key={panelKey}>
           <div className={styles.drawerHeader}>
             <h3 className={styles.drawerTitle}>{PANEL_TITLES[panelKey]}</h3>
-            <IconBtn
+            <Btn
               fill="ghost"
               icon={<XMarkIcon />}
               size="xs"

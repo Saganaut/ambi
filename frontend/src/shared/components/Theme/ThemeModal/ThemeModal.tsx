@@ -10,8 +10,7 @@
 // the list while creating/editing, and the GalleryPicker swaps in within the
 // editor while choosing an image — one dialog throughout.
 import { useState } from "react";
-import { Btn } from "@ui/Buttons/Btn";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Badge } from "@ui/Badge/Badge";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { CheckIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
@@ -88,7 +87,7 @@ const ThemeCard = ({
       </button>
       {canManage && (
         <span className={styles.cardManage}>
-          <IconBtn
+          <Btn
             size='sm'
             variant='secondary'
             fill='ghost'
@@ -96,7 +95,7 @@ const ThemeCard = ({
             aria-label={`Edit ${theme.name ?? "theme"}`}
             onClick={onEdit}
           />
-          <IconBtn
+          <Btn
             size='sm'
             variant='error'
             fill='ghost'

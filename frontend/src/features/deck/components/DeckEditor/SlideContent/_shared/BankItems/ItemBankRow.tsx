@@ -2,11 +2,11 @@ import DragIcon from "@assets/icons/action/drag.svg?react";
 
 import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
 import { AppImg } from "@/shared/components/Images/AppImg";
-import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
 import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
 import { numberToLetter } from "@/shared/utils/utils";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { Btn } from "@saganaut/ambi-ui";
 import { useEffect, useRef, useState } from "react";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { EditableItem, SortableEditableItem } from "../Item.types";
@@ -84,7 +84,7 @@ const ItemBankRow = (props: SortableEditableItem) => {
               fallbackSeed={item.id}
             />
           )}
-          <IconBtn
+          <Btn
             fill="ghost"
             size="xs"
             className={styles.thumbnailClear}

@@ -12,7 +12,7 @@ import { useState, type FormEvent } from "react";
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
 import { useLiveSession } from "@features/liveSession/hooks/useLiveSession";
 import { Input } from "@components/Forms/Input/Input/Input";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./SessionJoinPage.module.css";
 
 interface SessionJoinPageProps {
@@ -86,7 +86,7 @@ const SessionJoinPage = ({ code }: SessionJoinPageProps) => {
 
         {error && <p className={styles.error}>{error}</p>}
 
-        <Btn type="submit" variant="primary" isLoading={submitting} disabled={!canJoin}>
+        <Btn type="submit" variant="primary" isLoading={submitting} isDisabled={!canJoin}>
           Join
         </Btn>
       </form>

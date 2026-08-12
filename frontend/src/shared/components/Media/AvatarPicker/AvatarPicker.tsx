@@ -12,7 +12,7 @@
 // the account page; a future lobby picker would target its own endpoint) and
 // closes the modal.
 import { useState } from "react";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
 import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { Tabs, type TabsItem } from "@ui/Tabs/Tabs";

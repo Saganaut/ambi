@@ -17,7 +17,7 @@ import {
 import { useLiveSessionQuery } from "@/features/liveSession/hooks/useLiveSessionQuery";
 import { useSessionConnection } from "@/features/liveSession/views/SessionPage/SessionConnectionContext";
 import { useConfirm } from "@components/ConfirmDialog/useConfirm";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { resolveHostActions } from "./resolveHostActions";
 import styles from "./SessionControls.module.css";
 
@@ -65,7 +65,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
             shape="pill"
             size="md"
             variant="brand"
-            disabled={roster.length < 1}
+            isDisabled={roster.length < 1}
             onClick={sendStart}
           >
             Start session
@@ -120,7 +120,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         <Btn
           shape="pill"
           size="md"
-          disabled={!actions.canShowResponses}
+          isDisabled={!actions.canShowResponses}
           onClick={() => {
             sendRevealResponses(slideId);
           }}
@@ -131,7 +131,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         <Btn
           shape="pill"
           size="md"
-          disabled={!actions.canClose}
+          isDisabled={!actions.canClose}
           onClick={() => {
             sendCloseRound(slideId);
           }}
@@ -156,7 +156,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
           shape="pill"
           size="md"
           variant="brand"
-          disabled={!actions.canRevealResults}
+          isDisabled={!actions.canRevealResults}
           onClick={() => {
             sendRevealResults(slideId);
           }}
@@ -166,7 +166,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
         <Btn
           size="md"
           shape="pill"
-          disabled={!actions.canAdvance}
+          isDisabled={!actions.canAdvance}
           variant={hasSlide ? undefined : "brand"}
           onClick={sendAdvance}
         >
@@ -204,7 +204,7 @@ const SessionControls = ({ className }: SessionControlsProps) => {
           shape="pill"
           size="md"
           variant="error"
-          disabled={!actions.canRestart}
+          isDisabled={!actions.canRestart}
           onClick={() => {
             void handleRestart();
           }}

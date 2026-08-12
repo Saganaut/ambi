@@ -1,8 +1,8 @@
 // Lists user-owned content decks with search, publish-status tabs, and
 // create/edit/delete actions.
 
-import styles from "./MyDecksPage.module.css";
 import { MyDecks } from "./MyDecks";
+import styles from "./MyDecksPage.module.css";
 
 /**
  * Page level component to present decks accessible to the user

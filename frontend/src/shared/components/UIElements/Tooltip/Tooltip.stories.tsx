@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/rules-of-hooks, no-console */
 /* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Btn } from "../Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Tooltip } from "./Tooltip";
 
 const POSITIONS: NonNullable<React.ComponentProps<typeof Tooltip>["position"]>[] =

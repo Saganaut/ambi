@@ -1,7 +1,7 @@
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import type { ToastItem } from "./Toast.types";
 import styles from "./Toast.module.css";
-import { IconBtn } from "../Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 
 interface ToastProps extends ToastItem {
   onDismiss: (id: string) => void;
@@ -16,7 +16,7 @@ const Toast = ({ id, message, variant, onDismiss }: ToastProps) => {
       aria-atomic='true'>
       <span className={styles.message}>{message}</span>
       <div className={styles.closeBtn}>
-        <IconBtn
+        <Btn
           fill='ghost'
           icon={<XMarkIcon />}
           size='xs'
@@ -24,7 +24,8 @@ const Toast = ({ id, message, variant, onDismiss }: ToastProps) => {
           aria-label='Dismiss notification'
           onClick={() => {
             onDismiss(id);
-          }}></IconBtn>
+          }}
+        />
       </div>
     </div>
   );

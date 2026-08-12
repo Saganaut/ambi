@@ -14,7 +14,7 @@ import { useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area, MediaSize, Point } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Input } from "@components/Forms/Input/Input/Input";
 import type { PixelArea } from "@utils/imageEditing";
 import styles from "./GalleryPicker.module.css";
@@ -135,15 +135,15 @@ const ImageCropEditor = ({
       {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.editorActions}>
-        <Btn fill='ghost' onClick={onCancel} disabled={isSaving}>
+        <Btn fill='ghost' onClick={onCancel} isDisabled={isSaving}>
           Back
         </Btn>
         {onUseOriginal && (
-          <Btn variant='secondary' onClick={handleUseOriginal} disabled={isSaving}>
+          <Btn variant='secondary' onClick={handleUseOriginal} isDisabled={isSaving}>
             Use original
           </Btn>
         )}
-        <Btn onClick={handleConfirm} disabled={!area || isSaving}>
+        <Btn onClick={handleConfirm} isDisabled={!area || isSaving}>
           {isSaving ? "Saving…" : "Use cropped image"}
         </Btn>
       </div>

@@ -10,7 +10,7 @@
 import { Link } from "@tanstack/react-router";
 import LostFish from "@assets/images/mascots/lost-fish.svg?react";
 import { ErrorDisplay } from "@ui/ErrorDisplay/ErrorDisplay";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { useRequireLogin } from "@auth/hooks/useRequireLogin";
 import styles from "./LoginErrorPage.module.css";
 

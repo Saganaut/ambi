@@ -10,7 +10,7 @@ import { SCALES_STATEMENT_LABEL_MAX, type ScaleBankItem } from "@deck/hooks/useS
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { AppImg } from "@components/Images/AppImg";
 import { QuestionMarkCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { emptyImage, resolveImageUrl } from "@utils/image";
 import { ItemField, SortableItemCard } from "../_shared";
 import styles from "./ScalesSlideContent.module.css";
@@ -169,7 +169,7 @@ const ScaleStatementEditable = ({
         {thumbnailSrc && (
           <span className={styles.statementThumbnailWrap}>
             <AppImg className={styles.statementThumbnail} src={thumbnailSrc} alt="" fallbackSeed={statement.id} />
-            <IconBtn
+            <Btn
               fill="ghost"
               size="xs"
               className={styles.statementThumbnailClear}
@@ -254,7 +254,7 @@ const ScaleStatementEditable = ({
         </div>
         {scored ? (
           <div className={styles.targetField}>
-            <IconBtn
+            <Btn
               fill="ghost"
               size="xs"
               icon={<XMarkIcon />}
@@ -263,7 +263,7 @@ const ScaleStatementEditable = ({
             />
           </div>
         ) : (
-          <IconBtn
+          <Btn
             fill="ghost"
             size="xs"
             icon={<QuestionMarkCircleIcon />}

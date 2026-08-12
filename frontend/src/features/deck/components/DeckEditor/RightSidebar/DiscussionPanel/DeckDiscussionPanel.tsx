@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useRegisteredUser } from "@auth/hooks/useCurrentUser";
 import { useAddThreadCommentMutation, useCreateCommentThreadMutation, useDeleteThreadCommentMutation, useListSlideCommentThreadsQuery, useSetThreadStatusMutation, useUpdateThreadCommentMutation, type CommentThreadResponse } from "@deck/store/commentApi.gen";
 import { deckValidation } from "@/features/deck/store/deckValidationConstants";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Pagination } from "@ui/Pagination/Pagination";
 import { CommentThread } from "./CommentThread";
 import styles from "./DeckDiscussionPanel.module.css";
@@ -179,7 +179,7 @@ const Composer = ({ disabled, onSubmit }: ComposerProps) => {
         <Btn
           size='sm'
           shape='pill'
-          disabled={disabled || trimmed === ""}
+          isDisabled={disabled || trimmed === ""}
           onClick={() => {
             if (trimmed === "") return;
             void Promise.resolve(onSubmit(trimmed)).then(() => {

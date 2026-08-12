@@ -10,6 +10,7 @@ import {
   UsersIcon,
 } from "@heroicons/react/24/outline";
 import { useFullScreen } from "@hooks/useFullScreen";
+import { Btn } from "@saganaut/ambi-ui";
 import DeckIcon from "@shared/assets/icons/content/deck-icon.svg?react";
 import { getRouteApi } from "@tanstack/react-router";
 import { type ReactNode } from "react";
@@ -19,11 +20,9 @@ import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
 import { useAppDispatch } from "@/shared/store/hooks";
 import { PANEL_TITLES } from "./data";
 import styles from "./RightSidebarContent.module.css";
-import { SideMenuButton } from "./SideMenuButton/SideMenuButton";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
-// Panels that need a selected slide, in rail order.
 const SLIDE_PANELS: { key: PanelKey; icon: ReactNode }[] = [
   { key: "edit", icon: <PencilSquareIcon /> },
   { key: "answers", icon: <CheckCircleIcon /> },
@@ -53,25 +52,28 @@ const RightSidebarContent = () => {
       className={`${styles.rightSidebarContent} ${isFullScreen ? styles.isCollapsed : ""}`}
     >
       <div className={styles.iconStrip} role="toolbar" aria-label="Deck panels">
-        <SideMenuButton
-          label={PANEL_TITLES.deck}
-          icon={<DeckIcon />}
-          active={panelKey === "deck"}
+        <Btn
+          type="button"
+          aria-label={PANEL_TITLES.deck}
+          aria-active={panelKey === "deck"}
           onClick={() => {
             toggle("deck");
           }}
+          icon={<DeckIcon />}
+          size="sm"
         />
-
         {slideId &&
           SLIDE_PANELS.map(({ key, icon }) => (
-            <SideMenuButton
+            <Btn
               key={key}
-              label={PANEL_TITLES[key]}
-              icon={icon}
-              active={panelKey === key}
+              type="button"
+              aria-label={PANEL_TITLES[key]}
+              aria-active={panelKey === "deck"}
               onClick={() => {
                 toggle(key);
               }}
+              icon={icon}
+              size="md"
             />
           ))}
       </div>

@@ -3,12 +3,12 @@ import { type JSX, useState } from "react";
 
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 
-import styles from "./NavBar.module.css";
+import { resolveProfileAvatarSrc } from "@/shared/utils/avatarUrl";
 import { useAuthActions } from "@auth/hooks/useAuthActions";
 import { useSessionUser } from "@auth/hooks/useCurrentUser";
 import { useGetMeQuery } from "@auth/store/userApi.gen";
 import { Avatar } from "@ui/Avatar/Avatar";
-import { resolveProfileAvatarSrc } from "@/shared/utils/avatarUrl";
+import styles from "./NavBar.module.css";
 
 interface UseUserMenuResult {
   handleLogin: () => void;
@@ -67,12 +67,10 @@ const useUserMenu = (): UseUserMenuResult => {
     const label = me?.displayName ?? me?.username;
     const src = resolveProfileAvatarSrc(profile?.avatar);
     if (src) {
-      return <Avatar src={src} name={label} alt='Your avatar' size='sm' />;
+      return <Avatar src={src} name={label} alt="Your avatar" size="sm" />;
     }
     if (label) {
-      return (
-        <div className={styles.avatarInitial}>{label[0].toUpperCase()}</div>
-      );
+      return <div className={styles.avatarInitial}>{label[0].toUpperCase()}</div>;
     }
     return <UserCircleIcon className={styles.avatarIcon} />;
   };

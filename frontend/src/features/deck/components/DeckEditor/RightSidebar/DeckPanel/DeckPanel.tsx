@@ -13,7 +13,7 @@ import { useSetDeckTagsMutation } from "@deck/store/deckApi.gen";
 import { deckValidation } from "@deck/store/deckValidationConstants";
 import { validateText } from "@utils/fieldValidation";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./DeckPanel.module.css";
 import { ImagePicker } from "../shared/ImagePicker";
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
@@ -22,7 +22,6 @@ import { useDeckQuery } from "@/features/deck/hooks/useDeckQuery";
 import { useDeckImageMutate } from "@/features/deck/hooks/useDeckImageMutate";
 import { useDeckTheme } from "@/features/theme/hooks/useDeckTheme";
 import { ThemeModal } from "@/shared/components/Theme/ThemeModal/ThemeModal";
-import { Btn } from "@/shared/components/UIElements/Buttons/Btn";
 import { ColorOptionBtn } from "@ui/Buttons/ColorOptionBtn";
 import { useModal } from "@/shared/hooks/useModal";
 import { THEME_COLOR_ROLES } from "@utils/roleColors";
@@ -183,12 +182,12 @@ const DeckPanel = ({ deckId }: { deckId: string }) => {
             {tags.map((tag) => (
               <li key={tag} className={styles.tag}>
                 <span className={styles.tagLabel}>{tag}</span>
-                <IconBtn
+                <Btn
                   fill='ghost'
                   size='sm'
                   icon={<XMarkIcon className={styles.tagRemoveIcon} />}
                   aria-label={`Remove tag ${tag}`}
-                  disabled={isSaving}
+                  isDisabled={isSaving}
                   onClick={() => {
                     removeTag(tag);
                   }}

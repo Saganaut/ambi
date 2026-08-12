@@ -3,7 +3,7 @@ import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import shared from "../Input.module.css";
 import styles from "./FileUpload.module.css";
 import { useFileUpload } from "./useFileUpload";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 
 interface FileUploadProps {
   label?: string;
@@ -85,7 +85,7 @@ const FileUpload = ({
               className={styles.fileItem}>
               <span className={styles.fileName}>{file.name}</span>
 
-              <IconBtn
+              <Btn
                 fill='ghost'
                 icon={<XMarkIcon />}
                 size='xs'

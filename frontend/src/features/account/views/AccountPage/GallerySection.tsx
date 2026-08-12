@@ -17,7 +17,7 @@ import {
   useRemoveImageMutation,
 } from "@features/gallery/store/galleryApi.gen";
 import { useGalleryPicker } from "@hooks/useGalleryPicker";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { resolveImageUrl } from "@utils/image";
 import { extractErrorMessage } from "@utils/utils";
@@ -113,7 +113,7 @@ const GallerySection = () => {
     <section className={accountStyles.section}>
       <div className={styles.sectionHeader}>
         <h2 className={accountStyles.sectionTitle}>Image Gallery</h2>
-        <Btn onClick={handleAdd} disabled={!galleryId}>
+        <Btn onClick={handleAdd} isDisabled={!galleryId}>
           + Add image
         </Btn>
       </div>
@@ -125,7 +125,7 @@ const GallerySection = () => {
           title="No images yet"
           message="Add images here, then pick them when authoring slides."
           action={
-            <Btn onClick={handleAdd} disabled={!galleryId}>
+            <Btn onClick={handleAdd} isDisabled={!galleryId}>
               Add your first image
             </Btn>
           }

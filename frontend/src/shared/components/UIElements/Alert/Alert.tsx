@@ -11,7 +11,7 @@ import {
   XCircleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./Alert.module.css";
 
 type AlertSeverity = "info" | "success" | "warning" | "error";
@@ -59,7 +59,7 @@ const Alert = ({
         {children != null && <div className={styles.message}>{children}</div>}
       </div>
       {onDismiss != null && (
-        <IconBtn
+        <Btn
           fill='ghost'
           size='xs'
           icon={<XMarkIcon className={styles.dismissIcon} />}

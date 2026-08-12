@@ -9,7 +9,7 @@
 
 import { DragDropProvider } from "@dnd-kit/react";
 import { PlusIcon } from "@heroicons/react/24/outline";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./LeftSidebarContent.module.css";
 import { SlideThumbnail } from "./SlideThumbnail";
 

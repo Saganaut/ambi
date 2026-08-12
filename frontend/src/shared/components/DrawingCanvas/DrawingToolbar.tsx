@@ -11,7 +11,7 @@ import CircleOutlineIcon from "@assets/icons/content/circle-outline.svg?react";
 import EraserIcon from "@assets/icons/content/eraser.svg?react";
 import LineDiagonalIcon from "@assets/icons/content/line-diagonal.svg?react";
 import SquareOutlineIcon from "@assets/icons/content/square-outline.svg?react";
-import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import type { BrushSize, DrawingToolId } from "./useDrawingCanvas";
 import { BRUSH_SIZES } from "./useDrawingCanvas";
 import styles from "./DrawingCanvas.module.css";
@@ -73,7 +73,7 @@ const DrawingToolbar = ({
     <div className={styles.toolbar} role='toolbar' aria-label='Drawing tools'>
       <div className={styles.toolGroup}>
         {toolOptions.map((option) => (
-          <IconBtn
+          <Btn
             key={option.id}
             fill={tool === option.id ? "default" : "ghost"}
             variant='primary'
@@ -140,27 +140,27 @@ const DrawingToolbar = ({
       </div>
 
       <div className={styles.toolGroup}>
-        <IconBtn
+        <Btn
           fill='ghost'
           variant='primary'
           size='sm'
           icon={<ArrowUturnLeftIcon aria-hidden='true' />}
           aria-label='Undo'
           title='Undo'
-          disabled={!canUndo}
+          isDisabled={!canUndo}
           onClick={onUndo}
         />
-        <IconBtn
+        <Btn
           fill='ghost'
           variant='primary'
           size='sm'
           icon={<ArrowUturnRightIcon aria-hidden='true' />}
           aria-label='Redo'
           title='Redo'
-          disabled={!canRedo}
+          isDisabled={!canRedo}
           onClick={onRedo}
         />
-        <IconBtn
+        <Btn
           fill='ghost'
           variant='error'
           size='sm'

@@ -7,7 +7,7 @@
 // to the parent slide for orientation.
 import { getRouteApi } from "@tanstack/react-router";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { useSlide } from "@deck/hooks/useSlide";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { FollowUpMode } from "@deck/store/deckEnums.gen";

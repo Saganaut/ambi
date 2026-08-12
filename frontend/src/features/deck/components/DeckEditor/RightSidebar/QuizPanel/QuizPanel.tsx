@@ -3,7 +3,7 @@
 // for the full rationale. This panel only differs in the settings shape it
 // wires: point settings instead of answer settings.
 import { useState } from "react";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { PointSettings } from "@deck/store/deckApi.gen";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";

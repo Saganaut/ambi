@@ -10,7 +10,7 @@
 // `onPageChange`.
 import { type KeyboardEvent } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./Pagination.module.css";
 
 interface PaginationBaseProps {
@@ -96,12 +96,12 @@ const Pagination = (props: PaginationProps) => {
       className={[styles.pagination, compact ? styles.compact : null, className]
         .filter(Boolean)
         .join(" ")}>
-      <IconBtn
+      <Btn
         variant='secondary'
         size='sm'
         className={styles.navBtn}
         icon={<ChevronLeftIcon className={styles.chevron} />}
-        disabled={!canGoPrev}
+        isDisabled={!canGoPrev}
         onClick={() => {
           goTo(clampedPage - 1);
         }}
@@ -156,12 +156,12 @@ const Pagination = (props: PaginationProps) => {
         </ol>
       )}
 
-      <IconBtn
+      <Btn
         variant='secondary'
         size='sm'
         className={styles.navBtn}
         icon={<ChevronRightIcon className={styles.chevron} />}
-        disabled={!canGoNext}
+        isDisabled={!canGoNext}
         onClick={() => {
           goTo(clampedPage + 1);
         }}

@@ -6,7 +6,7 @@
 // NOTE: the persisted spec is the source of truth for a registered user's look
 // (see useTheme). Applying here writes it server-side; the live UI reconciles
 // from `preferences.theme` on the next /api/users/me read.
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { useModal } from "@hooks/useModal";
 import { ThemeModal } from "@components/Theme/ThemeModal/ThemeModal";
 import { useGetMeQuery } from "@auth/store/userApi.gen";

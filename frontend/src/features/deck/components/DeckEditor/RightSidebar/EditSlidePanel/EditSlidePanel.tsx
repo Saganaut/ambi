@@ -18,7 +18,7 @@ import { ColorPicker } from "@shared/components/Forms/Input/ColorPicker/ColorPic
 import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { addRecentColor, useRecentColors } from "@shared/hooks/useRecentColors";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { CSSProperties, HTMLProps } from "react";
 import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSection";

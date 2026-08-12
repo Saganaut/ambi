@@ -4,7 +4,7 @@
 // driven entirely by the `size` prop via CSS custom properties.
 import { type ComponentType, type ReactNode, type SVGProps } from "react";
 import { Link } from "@tanstack/react-router";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./ErrorDisplay.module.css";
 
 type MascotComponent = ComponentType<SVGProps<SVGSVGElement>>;

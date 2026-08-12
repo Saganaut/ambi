@@ -1,6 +1,6 @@
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import React from "react";
-import { IconBtn } from "../UIElements/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { AppImg } from "./AppImg";
 import styles from "./ImageTile.module.css";
 
@@ -30,7 +30,7 @@ const ImageTile: React.FC<ImageTileProps> = ({ imgUrl, altText, onPick, onClear,
         )}
       </button>
       {imgUrl && !onlyVisual && (
-        <IconBtn
+        <Btn
           fill="ghost"
           size="xs"
           className={styles.imageClear}

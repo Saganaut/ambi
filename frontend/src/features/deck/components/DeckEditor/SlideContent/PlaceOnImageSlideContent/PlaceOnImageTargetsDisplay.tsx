@@ -12,7 +12,7 @@ import {
   PLACE_TOLERANCE_MIN,
 } from "@deck/hooks/usePlaceOnImageEditor";
 import type { PlacePoint } from "@deck/store/deckApi.gen";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { largestUrl } from "@utils/image";
 import { AddItemCard, SortableItemBankRow, ToleranceField } from "../_shared";
 import shared from "../_shared/_shared.module.css";

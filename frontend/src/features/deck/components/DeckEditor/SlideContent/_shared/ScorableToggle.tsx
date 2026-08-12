@@ -1,5 +1,5 @@
-import { IconBtn } from "@/shared/components/UIElements/Buttons/IconBtn";
 import { CheckIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
+import { Btn } from "@saganaut/ambi-ui";
 
 const ScorableToggle = ({
   isScorable,
@@ -11,7 +11,7 @@ const ScorableToggle = ({
   return (
     <>
       {isScorable ? (
-        <IconBtn
+        <Btn
           fill="ghost"
           size="xs"
           icon={<CheckIcon />}
@@ -19,7 +19,7 @@ const ScorableToggle = ({
           onClick={toggle}
         />
       ) : (
-        <IconBtn
+        <Btn
           fill="ghost"
           size="xs"
           icon={<QuestionMarkCircleIcon />}

@@ -23,8 +23,7 @@ import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
 import { DropdownMenuItem } from "@/shared/components/Menus/DropdownMenu";
 import { useFullScreen } from "@/shared/hooks/useFullScreen";
 
-import { Btn } from "@ui/Buttons/Btn";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
 import { SidePanelDrawer } from "../../components/DeckEditor/RightSidebar/SidePanelDrawer/SidePanelDrawer";
 import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
@@ -71,8 +70,8 @@ const DeckEditor = () => {
             >
               Back
             </Btn>
-            <IconBtn
-              shape={"round"}
+            <Btn
+              shape={"pill"}
               size={"sm"}
               aria-label="Enter fullscreen"
               onClick={toggleFullScreen}
@@ -103,8 +102,12 @@ const DeckEditor = () => {
           <div className={styles.rightControlButtons}>
             <PublishStatusControl />
 
-            <Btn size={"md"} shape={"pill"} onClick={share}>
-              <ShareIcon className={styles.iconMd} />
+            <Btn
+              size={"md"}
+              shape={"pill"}
+              onClick={share}
+              icon={<ShareIcon className={styles.iconMd} />}
+            >
               Share
             </Btn>
             <SplitBtn

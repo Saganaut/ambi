@@ -7,7 +7,7 @@
 //   2. useConfirm() — promise-based imperative API: `await confirm({...})`.
 import type { ReactNode } from "react";
 import styles from "./ConfirmDialog.module.css";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 
 interface ConfirmDialogProps {
   message: ReactNode;

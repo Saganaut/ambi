@@ -16,7 +16,7 @@
  */
 import { apiBaseUrl } from "@store/emptyApi";
 import { toLocalReturnUrl } from "@utils/returnUrl";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./LoginModal.module.css";
 
 interface LoginModalProps {
@@ -126,7 +126,7 @@ const LoginModal = ({ message, returnUrl }: LoginModalProps) => {
             key={id}
             className={styles.providerBtn}
             icon={<Glyph />}
-            disabled={!enabled}
+            isDisabled={!enabled}
             onClick={() => {
               handleLogin(id);
             }}>

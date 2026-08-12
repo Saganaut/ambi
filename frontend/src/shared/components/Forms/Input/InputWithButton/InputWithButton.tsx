@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { InputBaseProps } from "../InputBaseProps";
 import shared from "../Input.module.css";
 import styles from "./InputWithButton.module.css";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 
 interface InputWithButtonProps
   extends InputBaseProps, React.InputHTMLAttributes<HTMLInputElement> {
@@ -39,7 +39,7 @@ const InputWithButton = ({
           placeholder={placeholder}
           disabled={disabled}
         />
-        <Btn type='button' onClick={onButtonClick} disabled={disabled}>
+        <Btn type='button' onClick={onButtonClick} isDisabled={disabled}>
           {buttonLabel}
         </Btn>
         {(errorMessage != null || infoMessage != null) && (

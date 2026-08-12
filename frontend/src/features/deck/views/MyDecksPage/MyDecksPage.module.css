@@ -89,6 +89,12 @@
   &:focus-visible {
     border-color: var(--border-focus);
   }
+
+  &:disabled {
+    border-color: var(--border-default);
+    cursor: progress;
+    opacity: 0.5;
+  }
 }
 
 .newDeckPlus {

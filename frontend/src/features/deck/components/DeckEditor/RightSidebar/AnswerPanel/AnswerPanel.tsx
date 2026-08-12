@@ -21,7 +21,7 @@ import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import type { AnswerSettings } from "@deck/store/deckApi.gen";
 import { usePromoteAnswerSettingsToDeckMutation } from "@deck/store/deckApi.gen";
 import { isScorableSlideType } from "@deck/utils/slideContent";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import { useState } from "react";
 import { useDeckQuery } from "../../../../hooks/useDeckQuery";

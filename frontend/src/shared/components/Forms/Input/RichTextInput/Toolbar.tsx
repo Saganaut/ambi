@@ -16,7 +16,7 @@ import { useEditorState, type Editor } from "@tiptap/react";
 import { useState, type HTMLProps, type MouseEvent, type ReactNode } from "react";
 
 import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { addRecentColor, useRecentColors } from "@hooks/useRecentColors";
 import { THEME_COLOR_ROLES } from "@utils/roleColors";

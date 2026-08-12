@@ -20,7 +20,7 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import shared from "../Input.module.css";
 import styles from "./AvatarSelector.module.css";
 import { AVATAR_OPTIONS, type AvatarOption } from "./avatarOptions";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 
 // Resolves one tile's bundled asset URL lazily (avatarOptions' loaders are
 // non-eager), so only the tiles actually rendered — the collapsed slice of the
@@ -127,7 +127,7 @@ const AvatarSelector = ({
       </div>
       {overflows && (
         <div className={styles.toggleRow}>
-          <IconBtn
+          <Btn
             fill='ghost'
             size='sm'
             icon={<ChevronDownIcon />}
@@ -137,7 +137,7 @@ const AvatarSelector = ({
             aria-label={isExpanded ? "Show fewer avatars" : "Show all avatars"}
             aria-expanded={isExpanded}
             aria-controls={panelId}
-            disabled={disabled}
+            isDisabled={disabled}
             onClick={() => {
               setIsExpanded((v) => !v);
             }}

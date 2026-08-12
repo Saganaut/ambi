@@ -2,9 +2,9 @@
 // `DeckElement["kind"]`. Use these rather than reaching into `slideTypeGraphics`
 // directly so kind-lookup stays in one place.
 //
-// `SlideTypeGraphic` — default. Returns an `IconBtn` carrying the graphic, so
-// the icon is itself the click target (e.g. in toolbars / pickers). Accepts the
-// usual IconBtn modifiers.
+// `SlideTypeGraphic` — default. Returns a childless `Btn` carrying the graphic
+// as its icon, so the icon is itself the click target (e.g. in toolbars /
+// pickers). Accepts the usual `Btn` modifiers.
 //
 // `SlideTypeGraphicSvg` — bare svg inside a sizing wrapper. Use in purely
 // decorative spots, or anywhere the icon already sits inside a clickable
@@ -15,13 +15,7 @@
 // are wired as `--graphic-fill` / `--graphic-outline` CSS custom properties
 // on the SVG element so all descendant paths/strokes pick them up.
 import type { ButtonHTMLAttributes, CSSProperties, SVGProps } from "react";
-import type {
-  BtnFill,
-  BtnShape,
-  BtnSize,
-  BtnVariant,
-} from "@ui/Buttons/Btn.types";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn, type BtnFill, type BtnShape, type BtnSize, type BtnVariant } from "@saganaut/ambi-ui";
 import { slideTypeGraphics } from "./slideTypeGraphics";
 import styles from "./SlideTypeGraphic.module.css";
 import { SlideType } from "@deck/store/deckEnums.gen";
@@ -56,7 +50,7 @@ const SlideTypeGraphic = ({
     ...svgProps?.style,
   };
   return (
-    <IconBtn
+    <Btn
       icon={<Graphic {...svgProps} style={graphicStyle} />}
       size={size}
       fill={fill}

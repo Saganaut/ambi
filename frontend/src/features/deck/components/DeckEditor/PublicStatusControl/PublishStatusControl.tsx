@@ -7,7 +7,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { type PublishStatus } from "@deck/store/deckEnums.gen";
 import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckMutate } from "@deck/hooks/useDeckMutate";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { type BtnVariant } from "@ui/Buttons/Btn.types";
 import { Badge } from "@ui/Badge/Badge";
 import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
@@ -57,7 +57,7 @@ const PublishStatusControl = () => {
             size='md'
             shape='pill'
             variant='primary'
-            disabled={!deck}
+            isDisabled={!deck}
             onClick={() => {
               toggle();
             }}>
@@ -92,7 +92,7 @@ const PublishStatusControl = () => {
         <Btn
           size='md'
           shape='pill'
-          disabled={!deck}
+          isDisabled={!deck}
           onClick={() => {
             setStatus("PUBLISHED");
           }}>

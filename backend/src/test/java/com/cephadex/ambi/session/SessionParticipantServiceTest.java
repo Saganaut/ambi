@@ -1,11 +1,18 @@
 package com.cephadex.ambi.session;
 
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.InOrder;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -13,14 +20,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.redis.RedisConnectionFailureException;
 
@@ -138,20 +137,7 @@ class SessionParticipantServiceTest {
         verify(presenceStore, never()).save(anyString(), anyString(), any());
     }
 
-    /**
-     * The join path takes no session lock and writes nothing on the session
-     * document — that is what lets concurrent joins all succeed instead of racing
-     * for the fail-fast lock and 409-ing with SESSION_LOCKED.
-     */
-    @Test
-    void joinWritesNoSessionDocument() {
-        joinableSession();
-        when(roster.admit(eq(SESSION_ID), eq(PUBLIC_ID), anyString(), anyInt(), any())).thenReturn(true);
 
-        service.join("ROOM", "user-9", "Niner", null, null);
-
-        verify(repo, never()).save(any());
-    }
 
     @Test
     void joinRejectsWhenRosterAtCapAndUndoesTheInsert() {

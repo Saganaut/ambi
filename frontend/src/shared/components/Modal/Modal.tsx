@@ -4,7 +4,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import style from "./Modal.module.css";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 
 type ModalVariant = "error" | "success" | "warning" | "info" | "brand";
 
@@ -95,7 +95,7 @@ const Modal = ({
             {title}
           </h2>
         )}
-        <IconBtn
+        <Btn
           fill='ghost'
           icon={<XMarkIcon />}
           aria-label='Close modal'

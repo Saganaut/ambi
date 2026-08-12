@@ -2,7 +2,7 @@
 /* oxlint-disable react-x/rules-of-hooks, no-console */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { DeckResponse } from "@deck/store/deckApi.gen";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { DeckCard } from "./DeckCard";
 
 // DeckCard is purely presentational — it takes a DeckResponse via props and

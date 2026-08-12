@@ -11,7 +11,7 @@ import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { AppImg } from "@components/Images/AppImg";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { resolveImageUrl } from "@utils/image";
 import { useState } from "react";
 import { SlideContentProps } from "../_shared/Item.types";

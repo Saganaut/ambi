@@ -28,7 +28,7 @@ import { useSessionConnection } from "@/features/liveSession/views/SessionPage/S
 import { WordCloud } from "@/shared/components/Charts/WordCloud/WordCloud";
 import { wordFrequencies } from "@/shared/components/Charts/adapters/words";
 import type { BoardQuestionMode } from "../../resolveBoardStage";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import styles from "./TextBoardContent.module.css";
 
 /** How the revealed answers render on the board. */
@@ -243,7 +243,7 @@ const TextBoardContent = ({ slide, mode, interactive }: TextBoardContentProps) =
             type='submit'
             size='sm'
             variant='brand'
-            disabled={draft.trim().length === 0}>
+            isDisabled={draft.trim().length === 0}>
             {submitted ? "Update answer" : "Send answer"}
           </Btn>
         </div>

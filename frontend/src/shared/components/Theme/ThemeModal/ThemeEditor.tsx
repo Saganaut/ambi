@@ -9,8 +9,7 @@
 // palette is what tokens.css paints from (see applyPalette).
 import { useState } from "react";
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Btn } from "@ui/Buttons/Btn";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { Dropdown } from "@components/Forms/Input/Dropdown/Dropdown";
 import { GalleryPicker } from "@components/Media/GalleryPicker/GalleryPicker";
@@ -122,7 +121,7 @@ const ImageSlot = ({ label, image, seed, onPick, onClear }: ImageSlotProps) => {
           </span>
         )}
         {hasImage && (
-          <IconBtn
+          <Btn
             fill='ghost'
             size='xs'
             className={styles.imageClear}
@@ -356,7 +355,7 @@ const ThemeEditor = ({
         <Btn variant='secondary' fill='bordered' onClick={onCancel}>
           Cancel
         </Btn>
-        <Btn onClick={handleSave} disabled={!canSave} isLoading={isSaving}>
+        <Btn onClick={handleSave} isDisabled={!canSave} isLoading={isSaving}>
           {initial ? "Save changes" : "Create theme"}
         </Btn>
       </div>

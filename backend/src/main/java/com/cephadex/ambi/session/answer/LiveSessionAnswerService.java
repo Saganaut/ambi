@@ -185,4 +185,5 @@ public class LiveSessionAnswerService {
         Participant participant = participantResolver.resolve(session, principal);
         orchestrator.submitVote(sessionId, request.slideId(), participant.getParticipantId(),
                 request.optionId());
+    }
 }

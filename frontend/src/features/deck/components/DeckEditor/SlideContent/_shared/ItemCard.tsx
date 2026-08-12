@@ -5,7 +5,7 @@
 // ItemCard card but in a single horizontal row, since these
 // editors deal in many simple items rather than 4-6 visual options.
 import { MinusIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import type { ReactNode } from "react";
 import { IndexPill } from "./IndexPill/IndexPill";
 import styles from "./_shared.module.css";
@@ -53,12 +53,12 @@ const ItemCard = ({
       <div className={styles.itemActions}>
         {actions}
         {onRemove && removeLabel && (
-          <IconBtn
+          <Btn
             fill="ghost"
             size="xs"
             icon={<MinusIcon />}
             aria-label={removeLabel}
-            disabled={removeDisabled}
+            isDisabled={removeDisabled}
             onClick={onRemove}
           />
         )}

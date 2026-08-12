@@ -10,7 +10,7 @@
 import { useState } from "react";
 
 import { Avatar } from "@ui/Avatar/Avatar";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Pagination } from "@ui/Pagination/Pagination";
 import { StarRating } from "@ui/StarRating/StarRating";
 import { resolveProfileAvatarSrc } from "@utils/avatarUrl";
@@ -196,7 +196,7 @@ const MyRatingEditor = ({
             shape='pill'
             variant='secondary'
             fill='ghost'
-            disabled={clearing}
+            isDisabled={clearing}
             onClick={() => {
               void onClear();
             }}>
@@ -206,7 +206,7 @@ const MyRatingEditor = ({
         <Btn
           size='sm'
           shape='pill'
-          disabled={saving || stars == null}
+          isDisabled={saving || stars == null}
           onClick={() => {
             if (stars == null) return;
             void onSave(stars, body);

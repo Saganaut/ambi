@@ -24,7 +24,7 @@
 // data in that deck's own namespace and mint no gallery entry, without one they
 // become a gallery image as they always did.
 import { useEffect, useRef, useState } from "react";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { ErrorFallback } from "@ui/BoundaryFallbacks/ErrorFallback";
 import { ErrorBoundary } from "@ui/ErrorBoundary/ErrorBoundary";
 import { Tabs, type TabsItem } from "@ui/Tabs/Tabs";
@@ -323,7 +323,7 @@ const GalleryPicker = ({
               <>
                 <Btn
                   variant='brand'
-                  disabled={!selected}
+                  isDisabled={!selected}
                   isLoading={cropConfig.mode === "required" && isPreparingCrop}
                   onClick={insertSelected}>
                   Insert
@@ -331,7 +331,7 @@ const GalleryPicker = ({
                 {cropConfig.mode === "optional" && (
                   <Btn
                     variant='secondary'
-                    disabled={!selected}
+                    isDisabled={!selected}
                     isLoading={isPreparingCrop}
                     onClick={cropSelected}>
                     Crop &amp; insert
@@ -349,7 +349,7 @@ const GalleryPicker = ({
                 )}
                 <Btn
                   variant='error'
-                  disabled={!selected}
+                  isDisabled={!selected}
                   onClick={selection.requestDelete}>
                   Delete
                 </Btn>

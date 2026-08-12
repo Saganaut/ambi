@@ -24,8 +24,7 @@ import type { PromptPlacement, Tool } from "@deck/store/deckEnums.gen";
 import { wouldOrphanKeyedFollowUp } from "@deck/utils/followUp";
 import { DEFAULT_DRAWING_PALETTE } from "@deck/utils/slideContent";
 import { useModal } from "@hooks/useModal";
-import { Btn } from "@ui/Buttons/Btn";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { isImageEmpty, largestUrl } from "@utils/image";
 import { EmptySelect } from "../_shared";
 import { SlideContentProps } from "../_shared/Item.types";
@@ -191,7 +190,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                     alt={question.imagePrompt?.altText ?? "Prompt image"}
                     fallbackSeed={question.id}
                   />
-                  <IconBtn
+                  <Btn
                     fill="ghost"
                     size="xs"
                     className={styles.imageClear}
@@ -249,7 +248,7 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                       fallbackSeed={`${question.id}-answer`}
                     />
                     {!answerImageLocked && (
-                      <IconBtn
+                      <Btn
                         fill="ghost"
                         size="xs"
                         className={styles.imageClear}

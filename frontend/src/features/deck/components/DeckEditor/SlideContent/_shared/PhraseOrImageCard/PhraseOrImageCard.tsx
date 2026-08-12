@@ -33,7 +33,7 @@ import { AppImg } from "@components/Images/AppImg";
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { useFitText } from "@hooks/useFitText";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { emptyImage, isImageEmpty, resolveImageUrl } from "@utils/image";
 import { CustomColorPanel } from "../OptionMenu/CustomColorPanel";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
@@ -240,7 +240,7 @@ const PhraseOrImageCard = ({
                 itself a button. Same clear the menu's "Remove image" row runs,
                 so the card falls back to its phrase face. */}
             {hasImage && (
-              <IconBtn
+              <Btn
                 fill="ghost"
                 size="xs"
                 className={styles.imageClear}
@@ -295,7 +295,7 @@ const PhraseOrImageCard = ({
       <div className={styles.cardFooter}>
         <span className={styles.kindBadge}>{isImageCard ? "Image" : "Phrase"}</span>
         {actions}
-        <IconBtn
+        <Btn
           fill="ghost"
           size="xs"
           icon={<ArrowsRightLeftIcon />}

@@ -16,7 +16,7 @@
 // the crop box onwards lives in CropAndSaveStep, which the Gallery tab's
 // crop-on-pick path shares.
 import { useEffect, useRef, useState } from "react";
-import { Btn } from "@ui/Buttons/Btn";
+import { Btn } from "@saganaut/ambi-ui";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { FileUpload } from "@components/Forms/Input/FileUpload/FileUpload";
 import {
@@ -232,7 +232,7 @@ const UploadTab = ({
           onClick={() => {
             void handleLoadUrl();
           }}
-          disabled={!pasteUrl.trim() || isLoadingUrl}>
+          isDisabled={!pasteUrl.trim() || isLoadingUrl}>
           {isLoadingUrl ? "Loading…" : "Load"}
         </Btn>
       </div>

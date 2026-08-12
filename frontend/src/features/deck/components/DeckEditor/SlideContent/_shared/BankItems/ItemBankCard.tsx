@@ -4,7 +4,7 @@ import { emptyImage, resolveImageUrl } from "@/shared/utils/image";
 import { numberToLetter } from "@/shared/utils/utils";
 import { AppImg } from "@components/Images/AppImg";
 import { PlusCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "@ui/Buttons/IconBtn";
+import { Btn } from "@saganaut/ambi-ui";
 import { ProgressBar } from "@ui/ProgressBar/ProgressBar";
 import { IndexPill } from "../IndexPill/IndexPill";
 import { EditableItem, SortableEditableItem } from "../Item.types";
@@ -70,7 +70,7 @@ const ItemBankCard = (props: SortableEditableItem<"MCQ">) => {
               fallbackSeed={item.id}
             />
           )}{" "}
-          <IconBtn
+          <Btn
             fill="ghost"
             size="xs"
             className={styles.imageClear}
