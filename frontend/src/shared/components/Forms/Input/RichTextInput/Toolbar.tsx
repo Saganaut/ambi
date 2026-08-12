@@ -15,17 +15,13 @@ import { ChevronDownIcon, LinkIcon } from "@heroicons/react/24/outline";
 import { useEditorState, type Editor } from "@tiptap/react";
 import { useState, type HTMLProps, type MouseEvent, type ReactNode } from "react";
 
-import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
-import { Btn } from "@saganaut/ambi-ui";
 import { Input } from "@components/Forms/Input/Input/Input";
 import { addRecentColor, useRecentColors } from "@hooks/useRecentColors";
+import { Btn, PopoverWrapper } from "@saganaut/ambi-ui";
 import { THEME_COLOR_ROLES } from "@utils/roleColors";
-import {
-  ColorPicker,
-  type ColorValue,
-} from "../ColorPicker/ColorPicker";
-import { useLinkEditor } from "./useRichTextInput";
+import { ColorPicker, type ColorValue } from "../ColorPicker/ColorPicker";
 import styles from "./RichTextInput.module.css";
+import { useLinkEditor } from "./useRichTextInput";
 
 /** Whole-box alignment of the content within the editor. Semantic (not backend)
  *  values — the consumer maps these to whatever it persists. */
@@ -86,22 +82,17 @@ const AlignGlyph = ({ axis, index }: { axis: "h" | "v"; index: 0 | 1 | 2 }) => {
   });
   return (
     <svg
-      width='16'
-      height='16'
-      viewBox='0 0 16 16'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='1.4'
-      strokeLinecap='round'
-      aria-hidden='true'>
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
       {lines.map((line) => (
-        <line
-          key={`${line.y}-${line.x1}`}
-          x1={line.x1}
-          y1={line.y}
-          x2={line.x2}
-          y2={line.y}
-        />
+        <line key={`${line.y}-${line.x1}`} x1={line.x1} y1={line.y} x2={line.x2} y2={line.y} />
       ))}
     </svg>
   );
@@ -122,17 +113,18 @@ interface ToolbarBtnProps {
 
 const ToolbarBtn = ({ ariaLabel, isActive, onClick, children }: ToolbarBtnProps) => (
   <button
-    type='button'
+    type="button"
     aria-label={ariaLabel}
     aria-pressed={isActive}
     className={styles.toolbarBtn}
     onMouseDown={preventFocusSteal}
-    onClick={onClick}>
+    onClick={onClick}
+  >
     {children}
   </button>
 );
 
-const ToolbarDivider = () => <div className={styles.divider} aria-hidden='true' />;
+const ToolbarDivider = () => <div className={styles.divider} aria-hidden="true" />;
 
 interface ToolbarProps {
   editor: Editor;
@@ -160,20 +152,14 @@ const Toolbar = ({
   const recent = useRecentColors();
 
   const linkOpen = openMenu === "link";
-  const {
-    linkUrl,
-    setLinkUrl,
-    linkInputRef,
-    applyLink,
-    removeLink,
-    openLinkEditor,
-  } = useLinkEditor({
-    editor,
-    linkOpen,
-    setLinkOpen: (open) => {
-      setOpenMenu(open ? "link" : null);
-    },
-  });
+  const { linkUrl, setLinkUrl, linkInputRef, applyLink, removeLink, openLinkEditor } =
+    useLinkEditor({
+      editor,
+      linkOpen,
+      setLinkOpen: (open) => {
+        setOpenMenu(open ? "link" : null);
+      },
+    });
 
   // TipTap v3's useEditor doesn't re-render on transactions; subscribe to the
   // marks the toolbar displays so active states (and the color dot / size
@@ -188,8 +174,7 @@ const Toolbar = ({
       bulletList: e.isActive("bulletList"),
       orderedList: e.isActive("orderedList"),
       color: (e.getAttributes("textStyle").color as string | undefined) ?? "",
-      fontSize:
-        (e.getAttributes("textStyle").fontSize as string | undefined) ?? "",
+      fontSize: (e.getAttributes("textStyle").fontSize as string | undefined) ?? "",
     }),
   });
   const currentColor = marks.color;
@@ -201,30 +186,30 @@ const Toolbar = ({
   };
 
   return (
-    <div
-      className={styles.toolbar}
-      role='toolbar'
-      aria-label='Text formatting'>
+    <div className={styles.toolbar} role="toolbar" aria-label="Text formatting">
       <ToolbarBtn
-        ariaLabel='Bold'
+        ariaLabel="Bold"
         isActive={marks.bold}
-        onClick={() => editor.chain().focus().toggleBold().run()}>
+        onClick={() => editor.chain().focus().toggleBold().run()}
+      >
         B
       </ToolbarBtn>
       <ToolbarBtn
-        ariaLabel='Underline'
+        ariaLabel="Underline"
         isActive={marks.underline}
-        onClick={() => editor.chain().focus().toggleUnderline().run()}>
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+      >
         <u>U</u>
       </ToolbarBtn>
       <ToolbarBtn
-        ariaLabel='Strikethrough'
+        ariaLabel="Strikethrough"
         isActive={marks.strike}
-        onClick={() => editor.chain().focus().toggleStrike().run()}>
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+      >
         <s>S</s>
       </ToolbarBtn>
 
-      <FloatingPopover
+      <PopoverWrapper
         open={linkOpen}
         onOpenChange={(open) => {
           if (open) openLinkEditor();
@@ -234,28 +219,30 @@ const Toolbar = ({
         showArrow
         arrowClassName={styles.tail}
         offsetAmount={12}
-        aria-label='Edit link'
+        aria-label="Edit link"
         renderTrigger={(triggerProps) => (
           <button
             {...(triggerProps as HTMLProps<HTMLButtonElement>)}
-            type='button'
+            type="button"
             aria-label={linkOpen ? "Close link editor" : "Insert link"}
             aria-pressed={marks.link || linkOpen}
             className={styles.toolbarBtn}
-            onMouseDown={preventFocusSteal}>
-            <LinkIcon aria-hidden='true' />
+            onMouseDown={preventFocusSteal}
+          >
+            <LinkIcon aria-hidden="true" />
           </button>
-        )}>
+        )}
+      >
         {({ ctx }) => (
           <div className={styles.linkPanel} style={ctx.styles}>
             <Input
               ref={linkInputRef}
-              type='url'
-              ariaLabel='Link URL'
+              type="url"
+              ariaLabel="Link URL"
               className={styles.linkInput}
               fullWidth
               withPadding={false}
-              placeholder='https://example.com'
+              placeholder="https://example.com"
               value={linkUrl}
               onChange={(e) => {
                 setLinkUrl(e.target.value);
@@ -267,25 +254,17 @@ const Toolbar = ({
                 }
               }}
             />
-            <Btn
-              variant='brand'
-              size='xs'
-              onMouseDown={preventFocusSteal}
-              onClick={applyLink}>
+            <Btn variant="brand" size="xs" onMouseDown={preventFocusSteal} onClick={applyLink}>
               Apply
             </Btn>
             {marks.link && (
-              <Btn
-                variant='error'
-                size='xs'
-                onMouseDown={preventFocusSteal}
-                onClick={removeLink}>
+              <Btn variant="error" size="xs" onMouseDown={preventFocusSteal} onClick={removeLink}>
                 Remove
               </Btn>
             )}
           </div>
         )}
-      </FloatingPopover>
+      </PopoverWrapper>
 
       <ToolbarDivider />
 
@@ -293,7 +272,7 @@ const Toolbar = ({
         value={currentColor || undefined}
         colorSwatch={COLOR_SWATCHES}
         recentlyUsedColorSwatch={recent}
-        label='Text color'
+        label="Text color"
         isOpen={openMenu === "color"}
         onOpenChange={(open) => {
           setOpenMenu(open ? "color" : null);
@@ -304,23 +283,24 @@ const Toolbar = ({
         renderTrigger={(triggerProps) => (
           <button
             {...(triggerProps as HTMLProps<HTMLButtonElement>)}
-            type='button'
-            aria-label='Text color'
+            type="button"
+            aria-label="Text color"
             className={styles.trigger}
-            onMouseDown={preventFocusSteal}>
+            onMouseDown={preventFocusSteal}
+          >
             <span
               className={styles.currentColor}
               style={{ "--rti-current-color": currentColor } as React.CSSProperties}
-              aria-hidden='true'
+              aria-hidden="true"
             />
-            <ChevronDownIcon className={styles.chevron} aria-hidden='true' />
+            <ChevronDownIcon className={styles.chevron} aria-hidden="true" />
           </button>
         )}
       />
 
       <ToolbarDivider />
 
-      <FloatingPopover
+      <PopoverWrapper
         open={openMenu === "size"}
         onOpenChange={(open) => {
           setOpenMenu(open ? "size" : null);
@@ -329,60 +309,63 @@ const Toolbar = ({
         showArrow
         arrowClassName={styles.tail}
         offsetAmount={12}
-        aria-label='Text size'
+        aria-label="Text size"
         renderTrigger={(triggerProps) => (
           <button
             {...(triggerProps as HTMLProps<HTMLButtonElement>)}
-            type='button'
-            aria-label='Text size'
+            type="button"
+            aria-label="Text size"
             className={`${styles.trigger} ${styles.sizeTrigger}`}
-            onMouseDown={preventFocusSteal}>
+            onMouseDown={preventFocusSteal}
+          >
             {/* Unset text has no fontSize mark (it renders at the base size,
                 which matches none of the choices), so show a neutral glyph
                 rather than claiming a specific size. */}
             {activeSize?.letter ?? "Aa"}
-            <ChevronDownIcon className={styles.chevron} aria-hidden='true' />
+            <ChevronDownIcon className={styles.chevron} aria-hidden="true" />
           </button>
-        )}>
+        )}
+      >
         {({ ctx }) => (
           <div className={styles.menuPanel} style={ctx.styles}>
             {SIZE_CHOICES.map((size) => (
               <button
                 key={size.letter}
-                type='button'
+                type="button"
                 className={styles.sizeItem}
                 aria-pressed={size === activeSize}
                 onMouseDown={preventFocusSteal}
                 onClick={() => {
                   editor.chain().focus().setFontSize(size.value).run();
                   setOpenMenu(null);
-                }}>
+                }}
+              >
                 <span>{size.label}</span>
-                <span
-                  className={`${styles.sizePreview} ${size.previewClass}`}
-                  aria-hidden='true'>
+                <span className={`${styles.sizePreview} ${size.previewClass}`} aria-hidden="true">
                   Aa
                 </span>
               </button>
             ))}
           </div>
         )}
-      </FloatingPopover>
+      </PopoverWrapper>
 
       {showBlockControls && (
         <>
           <ToolbarDivider />
           <ToolbarBtn
-            ariaLabel='Bullet list'
+            ariaLabel="Bullet list"
             isActive={marks.bulletList}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}>
-            <span aria-hidden='true'>•</span>
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+          >
+            <span aria-hidden="true">•</span>
           </ToolbarBtn>
           <ToolbarBtn
-            ariaLabel='Numbered list'
+            ariaLabel="Numbered list"
             isActive={marks.orderedList}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-            <span aria-hidden='true'>1.</span>
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          >
+            <span aria-hidden="true">1.</span>
           </ToolbarBtn>
 
           {onHorizontalAlignChange && (
@@ -395,8 +378,9 @@ const Toolbar = ({
                   isActive={horizontalAlign === value}
                   onClick={() => {
                     onHorizontalAlignChange(value);
-                  }}>
-                  <AlignGlyph axis='h' index={alignIndex as 0 | 1 | 2} />
+                  }}
+                >
+                  <AlignGlyph axis="h" index={alignIndex as 0 | 1 | 2} />
                 </ToolbarBtn>
               ))}
             </>
@@ -412,8 +396,9 @@ const Toolbar = ({
                   isActive={verticalAlign === value}
                   onClick={() => {
                     onVerticalAlignChange(value);
-                  }}>
-                  <AlignGlyph axis='v' index={alignIndex as 0 | 1 | 2} />
+                  }}
+                >
+                  <AlignGlyph axis="v" index={alignIndex as 0 | 1 | 2} />
                 </ToolbarBtn>
               ))}
             </>

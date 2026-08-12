@@ -26,14 +26,12 @@
 import { ArrowsRightLeftIcon, PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState, type CSSProperties, type HTMLProps, type ReactNode } from "react";
 
-import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
-import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import type { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { AppImg } from "@components/Images/AppImg";
 import { TextArea } from "@components/Forms/Input/TextArea/TextArea";
+import { AppImg } from "@components/Images/AppImg";
 import type { AppImage } from "@deck/store/deckApi.gen";
 import { useFitText } from "@hooks/useFitText";
-import { Btn } from "@saganaut/ambi-ui";
+import { Btn, PopoverNavContext, PopoverWrapper } from "@saganaut/ambi-ui";
 import { emptyImage, isImageEmpty, resolveImageUrl } from "@utils/image";
 import { CustomColorPanel } from "../OptionMenu/CustomColorPanel";
 import { OptionMenuContent } from "../OptionMenu/OptionMenuContent";
@@ -177,7 +175,7 @@ const PhraseOrImageCard = ({
 
   return (
     <div className={styles.card} style={{ "--card-color": color } as CSSProperties}>
-      <FloatingPopover
+      <PopoverWrapper
         openOn="controlled"
         manageFocus={false}
         listNavigation
@@ -204,7 +202,12 @@ const PhraseOrImageCard = ({
                 aria-expanded={menuOpen}
               >
                 {thumbnailSrc ? (
-                  <AppImg className={styles.imageThumbnail} src={thumbnailSrc} alt="" fallbackSeed={itemId} />
+                  <AppImg
+                    className={styles.imageThumbnail}
+                    src={thumbnailSrc}
+                    alt=""
+                    fallbackSeed={itemId}
+                  />
                 ) : (
                   <span className={styles.uploadHint}>
                     <PhotoIcon className={styles.uploadHintIcon} aria-hidden="true" />
@@ -291,7 +294,7 @@ const PhraseOrImageCard = ({
             )}
           </div>
         )}
-      </FloatingPopover>
+      </PopoverWrapper>
       <div className={styles.cardFooter}>
         <span className={styles.kindBadge}>{isImageCard ? "Image" : "Phrase"}</span>
         {actions}

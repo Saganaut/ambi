@@ -1,10 +1,10 @@
-// Toggle button for collapse/expand sections. Wraps IconBtn so it inherits
-// the standard icon-button look; chevron rotates 180° when collapsed via the
-// .isCollapsed modifier defined in Buttons.module.css.
+// Toggle button for collapse/expand sections. Renders the shared Btn with a
+// ghost fill; the chevron sizing and the 180° collapsed rotation live in
+// CollapseBtn.module.css.
 import React from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { IconBtn } from "./IconBtn";
-import styles from "./Buttons.module.css";
+import { Btn } from "./Btn";
+import styles from "./CollapseBtn.module.css";
 
 interface CollapseBtnProps {
   collapse: React.Dispatch<React.SetStateAction<boolean>>;
@@ -13,11 +13,11 @@ interface CollapseBtnProps {
 
 const CollapseBtn = ({ collapse, isCollapsed }: CollapseBtnProps) => {
   return (
-    <IconBtn
+    <Btn
       fill='ghost'
       size='sm'
       icon={<ChevronDownIcon />}
-      className={isCollapsed ? styles.isCollapsed : undefined}
+      className={[styles.collapseBtn, isCollapsed && styles.isCollapsed].filter(Boolean).join(" ")}
       aria-label={isCollapsed ? "Expand" : "Collapse"}
       aria-expanded={!isCollapsed}
       onClick={() => {

@@ -3,23 +3,28 @@
 // to start a new thread, then the slide's threads. Each thread is a collapsible
 // conversation (see CommentThread). With no slide selected there is nothing to
 // discuss yet.
-import { useState } from "react";
-import { useRegisteredUser } from "@auth/hooks/useCurrentUser";
-import { useAddThreadCommentMutation, useCreateCommentThreadMutation, useDeleteThreadCommentMutation, useListSlideCommentThreadsQuery, useSetThreadStatusMutation, useUpdateThreadCommentMutation, type CommentThreadResponse } from "@deck/store/commentApi.gen";
+import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { deckValidation } from "@/features/deck/store/deckValidationConstants";
-import { Btn } from "@saganaut/ambi-ui";
-import { Pagination } from "@ui/Pagination/Pagination";
+import { useRegisteredUser } from "@auth/hooks/useCurrentUser";
+import {
+  useAddThreadCommentMutation,
+  useCreateCommentThreadMutation,
+  useDeleteThreadCommentMutation,
+  useListSlideCommentThreadsQuery,
+  useSetThreadStatusMutation,
+  useUpdateThreadCommentMutation,
+  type CommentThreadResponse,
+} from "@deck/store/commentApi.gen";
+import { Btn, Pagination } from "@saganaut/ambi-ui";
+import { useState } from "react";
 import { CommentThread } from "./CommentThread";
 import styles from "./DeckDiscussionPanel.module.css";
-import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 
 type ThreadStatus = CommentThreadResponse["status"];
-
 
 const PAGE_SIZE = 10;
 
 const useDeckDiscussionPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
-
   const { me } = useRegisteredUser();
   const [page, setPage] = useState(0);
 
@@ -143,7 +148,7 @@ const DeckDiscussionPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
                 page={page}
                 pageCount={pageCount}
                 onPageChange={setPage}
-                ariaLabel='Discussion pages'
+                ariaLabel="Discussion pages"
               />
             </div>
           )}
@@ -166,8 +171,8 @@ const Composer = ({ disabled, onSubmit }: ComposerProps) => {
     <div className={styles.composer}>
       <textarea
         className={styles.composerInput}
-        aria-label='Start a thread'
-        placeholder='Start a thread on this slide…'
+        aria-label="Start a thread"
+        placeholder="Start a thread on this slide…"
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
@@ -177,15 +182,16 @@ const Composer = ({ disabled, onSubmit }: ComposerProps) => {
       />
       <div className={styles.composerActions}>
         <Btn
-          size='sm'
-          shape='pill'
+          size="sm"
+          shape="pill"
           isDisabled={disabled || trimmed === ""}
           onClick={() => {
             if (trimmed === "") return;
             void Promise.resolve(onSubmit(trimmed)).then(() => {
               setValue("");
             });
-          }}>
+          }}
+        >
           Start thread
         </Btn>
       </div>

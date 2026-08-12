@@ -18,11 +18,10 @@
 import { CheckIcon } from "@heroicons/react/24/outline";
 import { emptyImage, isImageEmpty } from "@utils/image";
 
-import { PopoverNavContext } from "@/shared/components/Popover/PopoverNavContext";
-import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
 import { OpenGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { McqOption } from "@/shared/types/Elements.types";
 import type { AppImage } from "@deck/store/deckApi.gen";
+import { PopoverNavContext, PopoverWrapper } from "@saganaut/ambi-ui";
 import { useState, type HTMLProps } from "react";
 import { resolveOptionColor } from "../BankItems/optionColor";
 import { CustomColorPanel } from "../OptionMenu/CustomColorPanel";
@@ -120,7 +119,7 @@ const OptionField = ({
   };
 
   return (
-    <FloatingPopover
+    <PopoverWrapper
       openOn="controlled"
       manageFocus={false}
       listNavigation
@@ -181,7 +180,7 @@ const OptionField = ({
           )}
         </div>
       )}
-    </FloatingPopover>
+    </PopoverWrapper>
   );
 };
 

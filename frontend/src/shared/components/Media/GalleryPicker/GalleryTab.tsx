@@ -29,10 +29,9 @@ import {
   type GalleryImageResponse,
 } from "@features/gallery/store/galleryApi.gen";
 import { ChevronUpIcon } from "@heroicons/react/24/outline";
-import { Btn } from "@saganaut/ambi-ui";
+import { Btn, Pagination } from "@saganaut/ambi-ui";
 import { EmptyState } from "@ui/EmptyState/EmptyState";
 import { Loader } from "@ui/Loader/Loader";
-import { Pagination } from "@ui/Pagination/Pagination";
 import { resolveImageUrl } from "@utils/image";
 import { useEffect, useState } from "react";
 import styles from "./GalleryPicker.module.css";

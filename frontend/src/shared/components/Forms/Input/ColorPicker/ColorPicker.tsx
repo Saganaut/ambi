@@ -5,10 +5,10 @@
 import { Placement } from "@floating-ui/react";
 import { HTMLProps, ReactNode } from "react";
 
-import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
-import { ColorPickerPanel } from "./ColorPickerPanel";
-import type { ColorValue, PickerView } from "./ColorPickerPanel";
+import { PopoverWrapper } from "@saganaut/ambi-ui";
 import styles from "./ColorPicker.module.css";
+import type { ColorValue, PickerView } from "./ColorPickerPanel";
+import { ColorPickerPanel } from "./ColorPickerPanel";
 
 interface ColorPickerProps {
   /** * The currently selected color (hex, oklch, or a var(--role-*) theme ref).
@@ -88,7 +88,7 @@ const ColorPicker = ({
   onOpenChange,
   manageFocus = true,
 }: ColorPickerProps) => (
-  <FloatingPopover
+  <PopoverWrapper
     placement={placement}
     open={isOpen}
     onOpenChange={onOpenChange}
@@ -97,7 +97,8 @@ const ColorPicker = ({
     showArrow
     arrowClassName={styles.tail}
     offsetAmount={12}
-    aria-label={label ?? "Color picker"}>
+    aria-label={label ?? "Color picker"}
+  >
     {({ ctx }) => (
       <div style={ctx.styles}>
         <ColorPickerPanel
@@ -115,9 +116,9 @@ const ColorPicker = ({
         />
       </div>
     )}
-  </FloatingPopover>
+  </PopoverWrapper>
 );
 
+export type { ColorString, ColorValue, PickerView } from "./ColorPickerPanel";
 export { ColorPicker };
 export type { ColorPickerProps };
-export type { ColorString, ColorValue, PickerView } from "./ColorPickerPanel";

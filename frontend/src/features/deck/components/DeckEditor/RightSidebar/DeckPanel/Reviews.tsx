@@ -11,7 +11,7 @@ import { useState } from "react";
 
 import { Avatar } from "@ui/Avatar/Avatar";
 import { Btn } from "@saganaut/ambi-ui";
-import { Pagination } from "@ui/Pagination/Pagination";
+import { Pagination } from "@saganaut/ambi-ui";
 import { StarRating } from "@ui/StarRating/StarRating";
 import { resolveProfileAvatarSrc } from "@utils/avatarUrl";
 import styles from "./Reviews.module.css";

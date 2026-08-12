@@ -11,6 +11,7 @@ An interactive presentation platform: presenters author decks of interactive sli
 
 ## Frontend
 
+* **Component Library:** ambi-ui - custom components extracted into their own package
 * **Core Framework:** React 19 + TypeScript
 * **State Management:** RTK Toolkit
 * **Routing:** TanStack Router

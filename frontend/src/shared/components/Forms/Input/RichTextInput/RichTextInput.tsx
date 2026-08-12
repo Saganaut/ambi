@@ -12,15 +12,9 @@
  * string in, HTML string out on every edit. Consumers can persist that string
  * directly to the backend (e.g. Slide.body).
  */
+import { PopoverWrapper } from "@saganaut/ambi-ui";
 import { EditorContent } from "@tiptap/react";
-import {
-  useEffect,
-  useImperativeHandle,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { FloatingPopover } from "@/shared/components/Popover/PopoverWrapper";
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import styles from "./RichTextInput.module.css";
 import { Toolbar, type HorizontalAlign, type VerticalAlign } from "./Toolbar";
 import { useRichTextEditor } from "./useRichTextInput";
@@ -175,22 +169,21 @@ const RichTextInput = ({
 
   return (
     <div
-      className={[styles.wrapper, isBlock && styles.block, className]
-        .filter(Boolean)
-        .join(" ")}
-      ref={wrapperRef}>
+      className={[styles.wrapper, isBlock && styles.block, className].filter(Boolean).join(" ")}
+      ref={wrapperRef}
+    >
       {label && (
         <label className={styles.label} htmlFor={id}>
           {label}
         </label>
       )}
-      <FloatingPopover
-        placement='top-start'
-        openOn='controlled'
+      <PopoverWrapper
+        placement="top-start"
+        openOn="controlled"
         manageFocus={false}
         open={toolbarOpen}
         onOpenChange={setToolbarOpen}
-        aria-label='Text formatting'
+        aria-label="Text formatting"
         renderTrigger={(triggerProps) => (
           <div
             {...(triggerProps as React.HTMLProps<HTMLDivElement>)}
@@ -206,13 +199,12 @@ const RichTextInput = ({
             // (see the .surfaceBlock[data-halign|data-valign] rules) rather than
             // living in the content HTML, which stays purely the rich text.
             data-halign={isBlock ? horizontalAlign : undefined}
-            data-valign={isBlock ? verticalAlign : undefined}>
-            <EditorContent
-              editor={editor}
-              className={isBlock ? styles.editorHost : undefined}
-            />
+            data-valign={isBlock ? verticalAlign : undefined}
+          >
+            <EditorContent editor={editor} className={isBlock ? styles.editorHost : undefined} />
           </div>
-        )}>
+        )}
+      >
         {({ ctx }) => (
           <div ref={toolbarRef} style={ctx.styles}>
             <Toolbar
@@ -225,10 +217,10 @@ const RichTextInput = ({
             />
           </div>
         )}
-      </FloatingPopover>
+      </PopoverWrapper>
     </div>
   );
 };
 
 export { RichTextInput };
-export type { RichTextInputHandle, HorizontalAlign, VerticalAlign };
+export type { HorizontalAlign, RichTextInputHandle, VerticalAlign };

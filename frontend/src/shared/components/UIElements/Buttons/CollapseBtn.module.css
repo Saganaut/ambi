@@ -1,0 +1,18 @@
+.collapseBtn {
+  width: var(--space-8);
+  height: var(--space-8);
+  padding: 0;
+
+  svg {
+    display: block;
+    width: var(--space-4);
+    height: var(--space-4);
+    stroke: currentcolor;
+    fill: none;
+    transition: transform var(--duration-base) ease-in-out;
+  }
+}
+
+.isCollapsed svg {
+  transform: rotate(180deg);
+}
