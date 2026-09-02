@@ -53,7 +53,7 @@ const LeftSidebarContent = () => {
     >
       <div className={styles.indexCard}>
         <Btn
-          className={styles.newSlideBtn}
+          // className={styles.newSlideBtn}
           icon={<PlusIcon className={styles.newSlideBtnIcon} />}
           onClick={handleNewSlideClick}
         >

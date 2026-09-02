@@ -31,6 +31,7 @@
     "@floating-ui/react": "^0.27.19",
     "@heroicons/react": "^2.2.0",
     "@reduxjs/toolkit": "^2.11.2",
+    "@saganaut/ambi-ui": "file:../../ambi-ui",
     "@stomp/stompjs": "^7.3.0",
     "@tanstack/react-router": "^1.168.26",
     "@tanstack/react-router-devtools": "^1.166.13",

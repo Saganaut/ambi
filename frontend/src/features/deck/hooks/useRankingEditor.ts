@@ -1,7 +1,6 @@
 import type { RankItem } from "@deck/store/deckApi.gen";
 
 import type {
-  EditableItemContent,
   QuestionActions,
   QuestionState,
 } from "../components/DeckEditor/SlideContent/_shared/Item.types";
@@ -12,10 +11,13 @@ import { useSlideEditor } from "./useSlideEditor";
 const MIN_RANKING_ITEMS = 2;
 const MAX_RANKING_ITEMS = 6;
 
+/** A bank item carrying the id its correct-order entry is keyed by. */
+type RankBankItem = RankItem & { id: string };
+
 interface RankingQuestionView {
   id: string;
   prompt: string;
-  items: EditableItemContent[];
+  items: RankBankItem[];
   correctOrder: string[];
 }
 
@@ -82,4 +84,4 @@ const useRankingEditor = (deckId: string, slideId: string): UseRankingEditorResu
 };
 
 export { MAX_RANKING_ITEMS, MIN_RANKING_ITEMS, useRankingEditor };
-export type { RankingQuestionView, UseRankingEditorResult };
+export type { RankBankItem, RankingQuestionView, UseRankingEditorResult };

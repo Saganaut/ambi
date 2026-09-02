@@ -12,11 +12,11 @@
  * - @dnd-kit drag handle for parent reordering.
  */
 import { useConfirm } from "@/shared/components/ConfirmDialog/useConfirm";
-import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
 import { RichTextDisplay } from "@components/Forms/Input/RichTextDisplay/RichTextDisplay";
 import { useDeckEditor } from "@deck/hooks/useDeckEditor";
 import { SlideResponse } from "@deck/store/deckApi.gen";
 import { useSortable } from "@dnd-kit/react/sortable";
+import { DropdownMenu } from "@saganaut/ambi-ui";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useRef } from "react";
 import { SlideCard } from "../../SlideCard/SlideCard";
@@ -46,10 +46,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
   deckId,
   currentQuestionId,
 }) => {
-  const { removeSlide, addFollowUp, duplicateSlide } = useDeckEditor(
-    deckId,
-    currentQuestionId,
-  );
+  const { removeSlide, addFollowUp, duplicateSlide } = useDeckEditor(deckId, currentQuestionId);
   const confirm = useConfirm();
 
   const navigate = useNavigate({ from: "/decks/$deckId/edit" });
@@ -122,28 +119,28 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
         )}
       >
         {canAddFollowUp && (
-          <DropdownMenuItem
+          <DropdownMenu.Item
             onClick={() => {
               addFollowUp(slide.id);
             }}
           >
             Add follow-up slide
-          </DropdownMenuItem>
+          </DropdownMenu.Item>
         )}
-        <DropdownMenuItem
+        <DropdownMenu.Item
           onClick={() => {
             duplicateSlide(slide.id);
           }}
         >
           Duplicate slide
-        </DropdownMenuItem>
-        <DropdownMenuItem
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
           onClick={() => {
             void handleDeleteSlide();
           }}
         >
           Delete slide
-        </DropdownMenuItem>
+        </DropdownMenu.Item>
       </DropdownMenu>
       {followUp && (
         <div id={followUp.id} className={styles.followUpThumbnailWrapper}>
@@ -173,13 +170,13 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
               />
             )}
           >
-            <DropdownMenuItem
+            <DropdownMenu.Item
               onClick={() => {
                 removeSlide(followUp.id);
               }}
             >
               Delete follow-up
-            </DropdownMenuItem>
+            </DropdownMenu.Item>
           </DropdownMenu>
         </div>
       )}

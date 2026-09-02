@@ -4,7 +4,8 @@
 //
 // `SlideTypeGraphic` — default. Returns a childless `Btn` carrying the graphic
 // as its icon, so the icon is itself the click target (e.g. in toolbars /
-// pickers). Accepts the usual `Btn` modifiers.
+// pickers). Accepts the usual `Btn` modifiers, and requires an `aria-label`
+// since an icon-only button carries no text to name it.
 //
 // `SlideTypeGraphicSvg` — bare svg inside a sizing wrapper. Use in purely
 // decorative spots, or anywhere the icon already sits inside a clickable
@@ -22,9 +23,10 @@ import { SlideType } from "@deck/store/deckEnums.gen";
 
 interface SlideTypeGraphicProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  "type"
+  "type" | "children" | "aria-label"
 > {
   slideType: SlideType;
+  "aria-label": string;
   size?: BtnSize;
   variant?: BtnVariant;
   fill?: BtnFill;

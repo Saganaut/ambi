@@ -1,36 +1,32 @@
 // Deck card wired with its per-deck actions (Ambi DS "Deck Card" actions row:
 // present, edit, delete) and the right-click context menu.
-import EyeIcon from "@assets/icons/action/eye.svg?react";
-import PencilIcon from "@assets/icons/action/edit.svg?react";
 import TrashIcon from "@assets/icons/action/delete.svg?react";
+import PencilIcon from "@assets/icons/action/edit.svg?react";
+import EyeIcon from "@assets/icons/action/eye.svg?react";
 
-import styles from "./MyDecksPage.module.css";
-import { DeckResponse } from "@deck/store/deckApi.gen";
-import { Btn } from "@saganaut/ambi-ui";
 import { DeckCard } from "@deck/components/DeckCard/DeckCard";
-import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
+import { DeckResponse } from "@deck/store/deckApi.gen";
+import { Btn, DropdownMenu } from "@saganaut/ambi-ui";
+import styles from "./MyDecksPage.module.css";
 
 import { Link } from "@tanstack/react-router";
 import { useDeckActions } from "../../hooks/useDeckActions";
 import { usePrefetchDeckEditor } from "../../hooks/usePrefetchDeckEditor";
 
 const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
-  const {
-    openDeckInEditor,
-    openDeleteDeckModal,
-    present,
-    addToCollection,
-  } = useDeckActions(deck.id);
+  const { openDeckInEditor, openDeleteDeckModal, present, addToCollection } = useDeckActions(
+    deck.id,
+  );
   const prefetchEditor = usePrefetchDeckEditor(deck.id);
 
   return (
     <DropdownMenu
-      position='top-left'
+      position="top-left"
       anchorToCursor
       trigger={(toggle) => (
         <DeckCard
           deck={deck}
-          variant='full'
+          variant="full"
           onClick={openDeckInEditor}
           onMouseEnter={prefetchEditor.onMouseEnter}
           onFocus={prefetchEditor.onFocus}
@@ -42,10 +38,10 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
             deck.id ? (
               <>
                 <Btn
-                  size='sm'
-                  variant='secondary'
-                  aria-label='Present deck'
-                  icon={<EyeIcon aria-hidden='true' />}
+                  size="sm"
+                  variant="secondary"
+                  aria-label="Present deck"
+                  icon={<EyeIcon aria-hidden="true" />}
                   onClick={(e) => {
                     e.stopPropagation();
                     present();
@@ -55,30 +51,27 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
                 {deck.permissions.canEdit && (
                   <>
                     <Link
-                      to='/decks/$deckId/edit'
+                      to="/decks/$deckId/edit"
                       params={{ deckId: deck.id }}
                       search={{ slideId: undefined }}
                       onClick={(e) => {
                         e.stopPropagation();
                       }}
-                      viewTransition>
+                      viewTransition
+                    >
                       <Btn
-                        size='sm'
-                        variant='secondary'
-                        icon={
-                          <PencilIcon
-                            className={styles.btnIcon}
-                            aria-hidden='true'
-                          />
-                        }>
+                        size="sm"
+                        variant="secondary"
+                        icon={<PencilIcon className={styles.btnIcon} aria-hidden="true" />}
+                      >
                         Edit
                       </Btn>
                     </Link>
                     <Btn
-                      size='sm'
-                      variant='error'
-                      aria-label='Delete deck'
-                      icon={<TrashIcon aria-hidden='true' />}
+                      size="sm"
+                      variant="error"
+                      aria-label="Delete deck"
+                      icon={<TrashIcon aria-hidden="true" />}
                       onClick={(e) => {
                         e.stopPropagation();
                         void openDeleteDeckModal();
@@ -90,13 +83,10 @@ const DeckCardWithMenu = ({ deck }: { deck: DeckResponse }) => {
             ) : null
           }
         />
-      )}>
-      <DropdownMenuItem onClick={present}>
-        Use as presentation
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={addToCollection}>
-        Add to collection…
-      </DropdownMenuItem>
+      )}
+    >
+      <DropdownMenu.Item onClick={present}>Use as presentation</DropdownMenu.Item>
+      <DropdownMenu.Item onClick={addToCollection}>Add to collection…</DropdownMenu.Item>
     </DropdownMenu>
   );
 };

@@ -14,6 +14,7 @@ const meta = {
   tags: ["autodocs"],
   args: {
     slideType: "MCQ",
+    "aria-label": "MCQ slide",
     size: "md",
     fill: "ghost",
     onClick: fn(),
@@ -49,7 +50,7 @@ export const AllKinds: Story = {
   render: (args) => (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
       {ALL_SLIDE_KINDS.map((kind) => (
-        <SlideTypeGraphic key={kind} {...args} slideType={kind} title={kind} />
+        <SlideTypeGraphic key={kind} {...args} slideType={kind} aria-label={kind} title={kind} />
       ))}
     </div>
   ),

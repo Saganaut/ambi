@@ -4,13 +4,12 @@
 // through PATCH /api/decks/{id} via useDeckMutate.
 import { getRouteApi } from "@tanstack/react-router";
 
-import { type PublishStatus } from "@deck/store/deckEnums.gen";
-import { useDeckQuery } from "@deck/hooks/useDeckQuery";
 import { useDeckMutate } from "@deck/hooks/useDeckMutate";
-import { Btn } from "@saganaut/ambi-ui";
-import { type BtnVariant } from "@ui/Buttons/Btn.types";
+import { useDeckQuery } from "@deck/hooks/useDeckQuery";
+import { type PublishStatus } from "@deck/store/deckEnums.gen";
+import { Btn, DropdownMenu } from "@saganaut/ambi-ui";
 import { Badge } from "@ui/Badge/Badge";
-import { DropdownMenu, DropdownMenuItem } from "@components/Menus/DropdownMenu";
+import { type BtnVariant } from "@ui/Buttons/Btn.types";
 import styles from "./PublishStatusControl.module.css";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
@@ -45,57 +44,60 @@ const PublishStatusControl = () => {
 
   return (
     <div className={styles.control}>
-      <Badge
-        variant={STATUS_BADGE_VARIANT[status]}
-        label={STATUS_LABEL[status]}
-      />
+      <Badge variant={STATUS_BADGE_VARIANT[status]} label={STATUS_LABEL[status]} />
 
       <DropdownMenu
-        position='top-right'
+        position="top-right"
         trigger={(toggle) => (
           <Btn
-            size='md'
-            shape='pill'
-            variant='primary'
+            size="md"
+            shape="pill"
+            variant="primary"
             isDisabled={!deck}
             onClick={() => {
               toggle();
-            }}>
+            }}
+          >
             ⋯
           </Btn>
-        )}>
-        <DropdownMenuItem
+        )}
+      >
+        <DropdownMenu.Item
           onClick={() => {
             setStatus("ARCHIVED");
-          }}>
+          }}
+        >
           Archive deck
-        </DropdownMenuItem>
+        </DropdownMenu.Item>
         {status === "DRAFT" && (
-          <DropdownMenuItem
+          <DropdownMenu.Item
             onClick={() => {
               setStatus("PUBLISHED");
-            }}>
+            }}
+          >
             Publish
-          </DropdownMenuItem>
+          </DropdownMenu.Item>
         )}
         {status === "PUBLISHED" && (
-          <DropdownMenuItem
+          <DropdownMenu.Item
             onClick={() => {
               setStatus("DRAFT");
-            }}>
+            }}
+          >
             Unpublish
-          </DropdownMenuItem>
+          </DropdownMenu.Item>
         )}
       </DropdownMenu>
 
       {status === "ARCHIVED" && (
         <Btn
-          size='md'
-          shape='pill'
+          size="md"
+          shape="pill"
           isDisabled={!deck}
           onClick={() => {
             setStatus("PUBLISHED");
-          }}>
+          }}
+        >
           Republish
         </Btn>
       )}

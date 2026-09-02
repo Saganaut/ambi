@@ -3,14 +3,8 @@
 // treated as unauthenticated here for now and will be re-handled later.
 
 import { useCurrentUser } from "@auth/hooks/useCurrentUser";
-import { Btn } from "@saganaut/ambi-ui";
+import { Btn, DropdownMenu } from "@saganaut/ambi-ui";
 import { Link } from "@tanstack/react-router";
-import {
-  DropdownMenu,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuLink,
-} from "../../Menus/DropdownMenu";
 import { useUserMenu } from "./useUserMenu";
 
 const UserMenu = () => {
@@ -43,11 +37,11 @@ const UserMenu = () => {
       )}
       position="top-right"
     >
-      <DropdownMenuLabel>{user.displayName}</DropdownMenuLabel>
-      <DropdownMenuLink>
+      <DropdownMenu.Label>{user.displayName}</DropdownMenu.Label>
+      <DropdownMenu.Link>
         <Link to="/account">Account</Link>
-      </DropdownMenuLink>
-      <DropdownMenuItem onClick={() => void handleLogout()}>Logout</DropdownMenuItem>
+      </DropdownMenu.Link>
+      <DropdownMenu.Item onClick={() => void handleLogout()}>Logout</DropdownMenu.Item>
     </DropdownMenu>
   );
 };

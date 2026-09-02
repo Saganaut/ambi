@@ -33,7 +33,7 @@ const alias = [
 
 // https://vite.dev/config/
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: {
     global: "globalThis",
   },
@@ -47,6 +47,10 @@ export default defineConfig({
     alias,
     tsconfigPaths: true,
     dedupe: ["react", "react-dom"],
+    preserveSymlinks: mode === "test",
+  },
+  optimizeDeps: {
+    exclude: ["@saganaut/ambi-ui"],
   },
   plugins: [
     tanstackRouter({
@@ -61,10 +65,15 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
+    server: {
+      deps: {
+        inline: [/@saganaut\/ambi-ui/],
+      },
+    },
     reporters: ["default", "junit", "json"],
     outputFile: {
       junit: "./test-results/junit.xml",
       json: "./test-results/results.json",
     },
   },
-});
+}));

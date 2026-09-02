@@ -49,12 +49,12 @@ const harbour = image({
   },
 });
 
-/** Eight images so the default page size of 6 spills onto a second page. */
-const many = Array.from({ length: 8 }, (_, i) =>
+/** Fourteen images so the default page size of 12 spills onto a second page. */
+const many = Array.from({ length: 14 }, (_, i) =>
   image({
     id: `gi-${String(i + 1)}`,
     name: `Image ${String(i + 1).padStart(2, "0")}`,
-    createdAt: `2026-01-0${String(i + 1)}T00:00:00Z`,
+    createdAt: `2026-01-${String(i + 1).padStart(2, "0")}T00:00:00Z`,
   }),
 );
 
@@ -244,7 +244,7 @@ describe("GalleryTab", () => {
     await tile("Sunset");
 
     expect(lastQuery()?.get("page")).toBe("0");
-    expect(lastQuery()?.get("size")).toBe("6");
+    expect(lastQuery()?.get("size")).toBe("12");
     expect(lastQuery()?.get("sort")).toBe("createdAt,desc");
     expect(lastQuery()?.has("search")).toBe(false);
   });

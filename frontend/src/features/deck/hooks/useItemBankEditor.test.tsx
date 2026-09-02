@@ -10,7 +10,6 @@ import type { DragEndEvent } from "@dnd-kit/react";
 
 import { paletteColorAt } from "@/shared/components/Charts/optionPalette";
 import type { AppImage, AxisContent, AxisItem } from "../store/deckApi.gen";
-import type { Identified } from "../components/DeckEditor/SlideContent/_shared/placement/placement.types";
 import {
   useItemBankEditor,
   type ItemBankSlideEditor,
@@ -217,12 +216,12 @@ describe("useItemBankEditor", () => {
       useItemBankEditor(editor, {
         slideId: "slide-axis",
         toPatch: (items) => ({ items }),
-        buildItem: (color): Identified<AxisItem> => ({ id: "axis_minted", label: "", color }),
+        buildItem: (color): AxisItem & { id: string } => ({ id: "axis_minted", label: "", color }),
         minItems: 1,
         maxItems: 6,
       }),
     );
-    const withNewItem = vi.fn((item: Identified<AxisItem>, prev: AxisContent) => ({
+    const withNewItem = vi.fn((item: AxisItem & { id: string }, prev: AxisContent) => ({
       correctPositions: { ...prev.correctPositions, [item.id]: { x: 0.5, y: 0.5 } },
     }));
 

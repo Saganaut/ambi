@@ -20,11 +20,9 @@ import { ArrowsPointingOutIcon, PlayIcon, ShareIcon } from "@heroicons/react/24/
 import { deckValidation } from "@/features/deck/store/deckValidationConstants";
 import { Input } from "@/shared/components/Forms/Input/Input/Input";
 import { Dashboard } from "@/shared/components/Layout/Dashboard/Dashboard";
-import { DropdownMenuItem } from "@/shared/components/Menus/DropdownMenu";
 import { useFullScreen } from "@/shared/hooks/useFullScreen";
 
-import { Btn } from "@saganaut/ambi-ui";
-import { SplitBtn } from "@ui/Buttons/SplitBtn/SplitBtn";
+import { Btn, DropdownMenu, SplitBtn } from "@saganaut/ambi-ui";
 import { SidePanelDrawer } from "../../components/DeckEditor/RightSidebar/SidePanelDrawer/SidePanelDrawer";
 import { ImageSlotProvider } from "../../contexts/ImageSlotContext";
 import { ResultsPreviewProvider } from "../../contexts/ResultsPreviewContext";
@@ -122,8 +120,8 @@ const DeckEditor = () => {
               menuAriaLabel="More start options"
               menuItems={
                 <>
-                  <DropdownMenuItem onClick={preview}>Preview</DropdownMenuItem>
-                  <DropdownMenuItem onClick={schedule}>Schedule</DropdownMenuItem>
+                  <DropdownMenu.Item onClick={preview}>Preview</DropdownMenu.Item>
+                  <DropdownMenu.Item onClick={schedule}>Schedule</DropdownMenu.Item>
                 </>
               }
             >
