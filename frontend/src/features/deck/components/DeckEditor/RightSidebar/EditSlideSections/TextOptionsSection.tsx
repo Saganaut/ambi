@@ -2,12 +2,12 @@
 // to read and write TextContent fields.
 // Old fields `fuzzyMatch` and `fuzzyDistance` are gone from the new model.
 // The new model adds `caseSensitive` and `matchMode`.
-import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
-import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
+import { useSlideEditor } from "@deck/hooks/useSlideEditor";
+import { Toggle } from "@saganaut/ambi-ui";
+import { getRouteApi } from "@tanstack/react-router";
+import { useState } from "react";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -22,12 +22,8 @@ const TextOptionsSection = () => {
 
   const content = slide?.content;
   const [maxLength, setMaxLength] = useState(content?.maxLength ?? 80);
-  const [trimWhitespace, setTrimWhitespace] = useState(
-    content?.trimWhitespace ?? true,
-  );
-  const [caseSensitive, setCaseSensitive] = useState(
-    content?.caseSensitive ?? false,
-  );
+  const [trimWhitespace, setTrimWhitespace] = useState(content?.trimWhitespace ?? true);
+  const [caseSensitive, setCaseSensitive] = useState(content?.caseSensitive ?? false);
   const [syncedId, setSyncedId] = useState<string | undefined>(slide?.id);
 
   if (slide && syncedId !== slide.id) {
@@ -49,7 +45,7 @@ const TextOptionsSection = () => {
           labelPosition="labelInFront"
           compact
           id={`text-max-length-${slideId}`}
-          label='Max length'
+          label="Max length"
           min={1}
           max={500}
           value={maxLength}
@@ -60,9 +56,9 @@ const TextOptionsSection = () => {
           onBlur={flush}
         />
         <Toggle
-          labelPosition="labelBefore"
+          labelPosition="start"
           id={`text-trim-${slideId}`}
-          label='Trim whitespace before scoring'
+          label="Trim whitespace before scoring"
           checked={trimWhitespace}
           onChange={(e) => {
             const next = e.currentTarget.checked;
@@ -72,9 +68,9 @@ const TextOptionsSection = () => {
           }}
         />
         <Toggle
-          labelPosition="labelBefore"
+          labelPosition="start"
           id={`text-case-${slideId}`}
-          label='Case-sensitive matching'
+          label="Case-sensitive matching"
           checked={caseSensitive}
           onChange={(e) => {
             const next = e.currentTarget.checked;

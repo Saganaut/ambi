@@ -1,16 +1,10 @@
-// Participants drawer for the deck-editor right sidebar. Two scopes:
-//   1. Deck-wide audience settings (who can join + how the audience can engage)
-//      via deck.settings.audienceSettings (read from useDeckQuery, written
-//      through useDeckSettingsMutate).
-//   2. Per-slide reactions override — TODO: wire once slide-level overrides
-//      are supported in the new slide model.
-import { useState } from "react";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { NumberInput } from "@components/Forms/Input/NumberInput/NumberInput";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
+import { Toggle } from "@saganaut/ambi-ui";
+import { useState } from "react";
 import { useDeckQuery } from "../../../../hooks/useDeckQuery";
 import { useDeckSettingsMutate } from "../../../../hooks/useDeckSettingsMutate";
-import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
-import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 
 const DEFAULTS = {
   maxParticipants: 8,
@@ -81,8 +75,8 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
       <section className={styles.section}>
         <h4 className={styles.heading}>Who can join</h4>
         <NumberInput
-          id='participants-max-players'
-          label='Maximum players'
+          id="participants-max-players"
+          label="Maximum players"
           min={1}
           max={1000}
           value={form.maxParticipants}
@@ -93,36 +87,32 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
           onBlur={flush}
         />
         <Toggle
-          id='participants-allow-guests'
-          label='Allow guests (no account)'
-          labelPosition='labelBefore'
+          id="participants-allow-guests"
+          label="Allow guests (no account)"
           checked={form.allowGuests}
           onChange={(e) => {
             toggle("allowGuests", e.currentTarget.checked);
           }}
         />
         <Toggle
-          id='participants-allow-late-join'
-          label='Allow late join'
-          labelPosition='labelBefore'
+          id="participants-allow-late-join"
+          label="Allow late join"
           checked={form.allowLateJoin}
           onChange={(e) => {
             toggle("allowLateJoin", e.currentTarget.checked);
           }}
         />
         <Toggle
-          id='participants-allow-rejoin'
-          label='Allow players to rejoin'
-          labelPosition='labelBefore'
+          id="participants-allow-rejoin"
+          label="Allow players to rejoin"
           checked={form.allowReJoin}
           onChange={(e) => {
             toggle("allowReJoin", e.currentTarget.checked);
           }}
         />
         <Toggle
-          id='participants-anonymous-mode'
-          label='Anonymous mode (hide real names)'
-          labelPosition='labelBefore'
+          id="participants-anonymous-mode"
+          label="Anonymous mode (hide real names)"
           checked={form.anonymousMode}
           onChange={(e) => {
             toggle("anonymousMode", e.currentTarget.checked);
@@ -133,18 +123,16 @@ const DeckParticipantSettings = ({ deckId }: { deckId: string }) => {
       <section className={styles.section}>
         <h4 className={styles.heading}>Audience engagement</h4>
         <Toggle
-          id='participants-chat-enabled'
-          label='Enable chat'
-          labelPosition='labelBefore'
+          id="participants-chat-enabled"
+          label="Enable chat"
           checked={form.chatEnabled}
           onChange={(e) => {
             toggle("chatEnabled", e.currentTarget.checked);
           }}
         />
         <Toggle
-          id='participants-reactions-enabled'
-          label='Allow emoji reactions (all slides)'
-          labelPosition='labelBefore'
+          id="participants-reactions-enabled"
+          label="Allow emoji reactions (all slides)"
           checked={form.reactionsEnabled}
           onChange={(e) => {
             toggle("reactionsEnabled", e.currentTarget.checked);
@@ -159,14 +147,13 @@ const SlideReactionsOverride = ({ deckId, slideId }: deckAndSlideIdProps) => {
   // TODO: Wire per-slide reactions override once the new slide model supports
   // slide-level audience settings. The old chrome.reactionsEnabled field and
   // useUpdateElementMutation are no longer available.
-  const _deckId = deckId
-  const _slideId = slideId
+  const _deckId = deckId;
+  const _slideId = slideId;
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>This slide</h4>
       <p className={styles.empty}>
-        Per-slide reaction overrides are not yet available in the new slide
-        model.
+        Per-slide reaction overrides are not yet available in the new slide model.
       </p>
     </section>
   );

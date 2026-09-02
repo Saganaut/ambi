@@ -14,11 +14,10 @@ import {
 } from "@deck/store/deckApi.gen";
 import { useBackgroundSwatches } from "@features/theme/hooks/useBackgroundSwatches";
 import { useDeckTheme } from "@features/theme/hooks/useDeckTheme";
+import { Btn, Toggle } from "@saganaut/ambi-ui";
 import { ColorPicker } from "@shared/components/Forms/Input/ColorPicker/ColorPicker";
-import { Toggle } from "@shared/components/Forms/Input/Toggle/Toggle";
 import { useGalleryPicker } from "@shared/hooks/useGalleryPicker";
 import { addRecentColor, useRecentColors } from "@shared/hooks/useRecentColors";
-import { Btn } from "@saganaut/ambi-ui";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import type { CSSProperties, HTMLProps } from "react";
 import { FollowUpAttachSection } from "../EditSlideSections/FollowUpAttachSection";
@@ -94,7 +93,7 @@ const PerSlideStyle = ({ deckId, slideId }: deckAndSlideIdProps) => {
           inheriting it. Only meaningful when the deck actually has a background. */}
       {!hasOwnImage && deckHasBackground && (
         <Toggle
-          labelPosition={"labelBefore"}
+          labelPosition={"start"}
           label="Hide background"
           checked={isHidden}
           onChange={() => {

@@ -60,7 +60,8 @@ const RightSidebarContent = () => {
             toggle("deck");
           }}
           icon={<DeckIcon />}
-          size="sm"
+          size="md"
+          shape="squircle"
         />
         {slideId &&
           SLIDE_PANELS.map(({ key, icon }) => (
@@ -74,6 +75,7 @@ const RightSidebarContent = () => {
               }}
               icon={icon}
               size="md"
+              shape="squircle"
             />
           ))}
       </div>

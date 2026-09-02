@@ -1,17 +1,9 @@
-/**
- * Author surface for a non-scorable "media" slide — either an image or an
- * embedded YouTube video, with an optional caption. We do not host video
- * ourselves: the only "video" option is an embedded YouTube URL, stored as
- * {@link MediaContent} with {@code mediaType: "EMBED"}. The slide title is edited
- * through the shared prompt slot.
- */
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { Input } from "@components/Forms/Input/Input/Input";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { AppImg } from "@components/Images/AppImg";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import type { AppImage } from "@deck/store/deckApi.gen";
-import { Btn } from "@saganaut/ambi-ui";
+import { Btn, Toggle } from "@saganaut/ambi-ui";
 import { resolveImageUrl } from "@utils/image";
 import { useState } from "react";
 import { SlideContentProps } from "../_shared/Item.types";
@@ -77,7 +69,6 @@ const MediaSlideContent = ({ deckId, slideId }: SlideContentProps) => {
       }}
     >
       <Toggle
-        labelPosition="labelBefore"
         id={`media-mode-${slide.id}`}
         label="Embed a YouTube video instead of an image"
         checked={isYouTube}

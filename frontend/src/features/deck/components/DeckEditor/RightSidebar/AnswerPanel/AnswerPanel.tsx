@@ -1,27 +1,14 @@
-// Per-slide answer settings drawer. Three-layer model:
-//   - The form shows the effective value: hardcoded defaults ← deck default ←
-//     this slide's override (resolveAnswerSettings).
-//   - Editing a field writes a *slide override* (useSlideSettings) so the
-//     change applies to this slide only.
-//   - "Apply to deck" promotes the current values to the deck-wide default
-//     (read via useDeckQuery) and drops the now-redundant slide override, so the slide
-//     simply inherits the new default.
-//   - "Reset to deck default" clears the override when one exists.
-//
-// The form itself is the reusable AnswerSettingsForm; this panel is only the
-// slide/deck wiring around it.
 import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { useSlide } from "@/features/deck/hooks/useSlide";
 import { ResultsDisplayMode, SlideType } from "@/features/deck/store/deckEnums.gen";
 import { Dropdown } from "@/shared/components/Forms/Input/Dropdown/Dropdown";
 import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
-import { Toggle } from "@/shared/components/Forms/Input/Toggle/Toggle";
 import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
 import type { AnswerSettings } from "@deck/store/deckApi.gen";
 import { usePromoteAnswerSettingsToDeckMutation } from "@deck/store/deckApi.gen";
 import { isScorableSlideType } from "@deck/utils/slideContent";
-import { Btn } from "@saganaut/ambi-ui";
+import { Btn, Toggle } from "@saganaut/ambi-ui";
 import { Tooltip } from "@ui/Tooltip/Tooltip";
 import { useState } from "react";
 import { useDeckQuery } from "../../../../hooks/useDeckQuery";
@@ -189,9 +176,10 @@ const AnswerPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
         <section className={`${slidePanel.section} ${styles.sectionDivider}`}>
           <div className={slidePanel.rows}>
             <Toggle
-              labelPosition="labelBefore"
+              labelPosition="start"
               id={`${idPrefix}-enable-time-limit`}
               label="Enable time limit"
+              fieldSize="md"
               disabled={disabled}
               checked={showTimeLimit}
               onChange={toggleTimeLimit}
@@ -211,10 +199,11 @@ const AnswerPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
               />
             )}
             <Toggle
-              labelPosition="labelBefore"
+              labelPosition="start"
               id={`${idPrefix}-enable-max-selections`}
               label="Allow multiple answers"
               disabled={disabled}
+              fieldSize="md"
               checked={!(form.maxSelections == 1)}
               onChange={toggleMultipleAnswers}
             />
@@ -233,18 +222,20 @@ const AnswerPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
               />
             )}
             <Toggle
-              labelPosition="labelBefore"
+              labelPosition="start"
               id={`${idPrefix}-shuffle-options`}
               label="Shuffle answer options"
               disabled={disabled}
+              fieldSize="md"
               checked={form.shuffleOptions ?? D.shuffleOptions}
               onChange={toggle("shuffleOptions")}
             />
             <Toggle
-              labelPosition="labelBefore"
+              labelPosition="start"
               id={`${idPrefix}-anonymize-answers`}
               label="Anonymize answers"
               disabled={disabled}
+              fieldSize="md"
               checked={form.anonymizeAnswers ?? D.anonymizeAnswers}
               onChange={toggle("anonymizeAnswers")}
             />
@@ -268,10 +259,11 @@ const AnswerPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
             />
             {slide?.content.contentType === "MCQ" && (
               <Toggle
-                labelPosition="labelBefore"
+                labelPosition="start"
                 id={`${idPrefix}-display-as-percentage`}
                 label="Show results as percentages"
                 disabled={disabled}
+                fieldSize="md"
                 checked={form.displayResultsAsPercentage ?? D.displayResultsAsPercentage}
                 onChange={toggle("displayResultsAsPercentage")}
               />

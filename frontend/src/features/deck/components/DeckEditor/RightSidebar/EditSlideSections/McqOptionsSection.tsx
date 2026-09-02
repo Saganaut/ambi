@@ -1,14 +1,9 @@
-// Per-kind inspector section for MCQ slides. Content (options + correct ids) is
-// edited elsewhere; the knobs here — shuffle and max selections — now live on
-// the slide's answer settings, so this section writes them through
-// useSlideSettings. `allowMultipleSelect` is derived: maxSelections === 1
-// means single-select, any other value means multi-select.
-import { useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
+import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
 import { useSlideEditor } from "@deck/hooks/useSlideEditor";
 import { useSlideSettings } from "@deck/hooks/useSlideSettings";
-import styles from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
+import { Toggle } from "@saganaut/ambi-ui";
+import { getRouteApi } from "@tanstack/react-router";
+import { useState } from "react";
 
 const routeApi = getRouteApi("/_authenticated/decks/$deckId/edit");
 
@@ -16,12 +11,9 @@ const McqOptionsSection = () => {
   const { deckId } = routeApi.useParams();
   const { slideId } = routeApi.useSearch();
   const { slide } = useSlideEditor(deckId, slideId ?? "", "MCQ");
-  const { answerSettings, scheduleAnswerSettings, flush } =
-    useSlideSettings(deckId, slideId ?? "");
+  const { answerSettings, scheduleAnswerSettings, flush } = useSlideSettings(deckId, slideId ?? "");
 
-  const [shuffle, setShuffle] = useState(
-    answerSettings?.shuffleOptions ?? true,
-  );
+  const [shuffle, setShuffle] = useState(answerSettings?.shuffleOptions ?? true);
 
   const [syncedId, setSyncedId] = useState<string | undefined>(slide?.id);
 
@@ -32,15 +24,14 @@ const McqOptionsSection = () => {
 
   if (!slide) return null;
 
-
   return (
     <section className={styles.section}>
       <h4 className={styles.heading}>Multiple choice</h4>
       <div className={styles.rows}>
         <Toggle
-          labelPosition="labelBefore"
+          labelPosition="start"
           id={`mcq-shuffle-${slide.id}`}
-          label='Shuffle option order'
+          label="Shuffle option order"
           checked={shuffle}
           onChange={(e) => {
             const next = e.currentTarget.checked;

@@ -1,30 +1,8 @@
-/**
- * Author surface for a Matching slide (MatchingContent) — players connect the
- * cards of each authored pair after the runtime shuffles the right column.
- *
- * Layout:
- *   - Prompt at the top (stored on the slide title, like TEXT/MCQ).
- *   - "Pairs" section header with the pair count and the Scorable toggle.
- *   - A responsive grid of pair rows (2–6 pairs), each row two cards joined
- *     by a ↔ match connector; every card holds a phrase or an image.
- *   - "Add pair" affordance below the grid (`AddItemCard`).
- *
- * Interaction: focusing a card's field (phrase input or image slot) opens its
- * popover menu (flip face, color, image, delete pair), the same focus-opened
- * menu pattern as MCQ options and Axis items; this composer owns which menu
- * is open (at most one). Scoring is all-or-nothing on the authored pairing —
- * the Scorable toggle mirrors it into `correctPairs` — so the footer nudges
- * while the slide is collect-only, but only nudges: an unscored matching
- * round (icebreaker sorting, opinion pairing) is legitimate.
- *
- * Per-card editing lives on the shared `PhraseOrImageCard`; structural and
- * scoring ops all route through the one `useMatchingEditor`.
- */
 import { useState } from "react";
 
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { MAX_MATCHING_PAIRS, useMatchingEditor } from "@deck/hooks/useMatchingEditor";
+import { Toggle } from "@saganaut/ambi-ui";
 import { SlideWrapper } from "../SlideWrapper";
 import { AddItemCard, EmptySelect, ScoringFooter, SectionHeader } from "../_shared";
 import { SlideContentProps } from "../_shared/Item.types";
@@ -82,7 +60,6 @@ const MatchingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
           <Toggle
             id={`matching-scorable-${question.id}`}
             label="Scorable"
-            labelPosition="labelBefore"
             checked={scorable}
             onChange={(e) => {
               editor.setScorable(e.target.checked);

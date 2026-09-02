@@ -2,27 +2,20 @@
 // AnswerPanel (defaults ← deck default ← slide override); see that file
 // for the full rationale. This panel only differs in the settings shape it
 // wires: point settings instead of answer settings.
-import { useState } from "react";
-import { Btn } from "@saganaut/ambi-ui";
-import { Tooltip } from "@ui/Tooltip/Tooltip";
-import type { PointSettings } from "@deck/store/deckApi.gen";
-import { useSlideSettings } from "@deck/hooks/useSlideSettings";
-import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApi.gen";
-import { useDeckQuery } from "@deck/hooks/useDeckQuery";
-import { resolvePointSettings } from "../shared/settingsDefaults";
-import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
-import styles from "@deck/components/DeckEditor/RightSidebar/shared/SettingsPanel.module.css";
 import { deckAndSlideIdProps } from "@/features/deck/Deck.types";
 import { NumberInput } from "@/shared/components/Forms/Input/NumberInput/NumberInput";
-import { Toggle } from "@/shared/components/Forms/Input/Toggle/Toggle";
-import { POINT_SETTINGS_DEFAULTS as D } from "../shared/settingsDefaults";
+import slidePanel from "@deck/components/DeckEditor/RightSidebar/EditSlidePanel/EditSlidePanel.module.css";
+import styles from "@deck/components/DeckEditor/RightSidebar/shared/SettingsPanel.module.css";
+import { useDeckQuery } from "@deck/hooks/useDeckQuery";
+import { useSlideSettings } from "@deck/hooks/useSlideSettings";
+import type { PointSettings } from "@deck/store/deckApi.gen";
+import { usePromotePointSettingsToDeckMutation } from "@deck/store/deckApi.gen";
+import { Btn, Toggle } from "@saganaut/ambi-ui";
+import { Tooltip } from "@ui/Tooltip/Tooltip";
+import { useState } from "react";
+import { POINT_SETTINGS_DEFAULTS as D, resolvePointSettings } from "../shared/settingsDefaults";
 
-
-
-const QuizPanel = ({
-  deckId,
-  slideId,
-}: deckAndSlideIdProps) => {
+const QuizPanel = ({ deckId, slideId }: deckAndSlideIdProps) => {
   const { pointSettings, schedulePointSettings, clearPointSettings, flush, cancel } =
     useSlideSettings(deckId, slideId);
   const { deck } = useDeckQuery(deckId);
@@ -33,8 +26,8 @@ const QuizPanel = ({
   const deckDefault = deckSettings?.pointSettings;
   const hasOverride = pointSettings != null;
   const effective = resolvePointSettings(deckDefault, pointSettings);
-  const idPrefix = "slide-point"
-  const disabled = false
+  const idPrefix = "slide-point";
+  const disabled = false;
   // Local mirror so typing reflects instantly while the slide write debounces.
   // Re-seed when the active slide changes so edits never bleed across slides.
   const [form, setForm] = useState<PointSettings>(effective);
@@ -60,10 +53,7 @@ const QuizPanel = ({
     );
   }
 
-  const handleChange = (
-    patch: Partial<PointSettings>,
-    { immediate }: { immediate: boolean },
-  ) => {
+  const handleChange = (patch: Partial<PointSettings>, { immediate }: { immediate: boolean }) => {
     // Send the COMPLETE settings object, never a partial patch: the backend's
     // PointSettings fields are Java primitives that reject a null, so any field
     // omitted from the PUT fails deserialization. `form` is always fully
@@ -89,11 +79,9 @@ const QuizPanel = ({
     clearPointSettings();
     setForm(resolvePointSettings(deckDefault, undefined));
   };
-  const number =
-    (key: keyof PointSettings) => (next: number) => {
-      handleChange({ [key]: next }, { immediate: false });
-    };
-
+  const number = (key: keyof PointSettings) => (next: number) => {
+    handleChange({ [key]: next }, { immediate: false });
+  };
 
   const toggleQuizMode = () => {
     if (showQuizMode) {
@@ -112,19 +100,12 @@ const QuizPanel = ({
     if ((form.points ?? 0) <= 0) setShowQuizMode(false);
   };
 
-
-
-
   return (
     <div className={slidePanel.panel}>
       {hasOverride ? (
         <div className={styles.overrideHint}>
           <span>Overriding deck defaults</span>
-          <Btn
-            size='sm'
-            fill='ghost'
-            variant='secondary'
-            onClick={resetToDeckDefault}>
+          <Btn size="sm" fill="ghost" variant="secondary" onClick={resetToDeckDefault}>
             Reset
           </Btn>
         </div>
@@ -136,19 +117,18 @@ const QuizPanel = ({
 
       <section className={slidePanel.section}>
         <Toggle
-          labelPosition="labelBefore"
           id={`${idPrefix}-quiz-mode`}
-          label='Quiz mode'
+          label="Quiz mode"
           disabled={disabled}
           checked={showQuizMode}
           onChange={toggleQuizMode}
         />
 
-        {showQuizMode &&
+        {showQuizMode && (
           <>
             <NumberInput
               id={`${idPrefix}-points`}
-              label='Correct answer'
+              label="Correct answer"
               min={0}
               max={100000}
               disabled={disabled}
@@ -158,7 +138,7 @@ const QuizPanel = ({
             />
             <NumberInput
               id={`${idPrefix}-fastest-points`}
-              label='Fastest answer'
+              label="Fastest answer"
               min={0}
               max={100000}
               disabled={disabled}
@@ -168,7 +148,7 @@ const QuizPanel = ({
             />
             <NumberInput
               id={`${idPrefix}-best-answer-points`}
-              label='Best answer'
+              label="Best answer"
               min={0}
               max={100000}
               disabled={disabled}
@@ -178,19 +158,18 @@ const QuizPanel = ({
             />
             <NumberInput
               id={`${idPrefix}-deception-points`}
-              label='Most deceitful'
+              label="Most deceitful"
               min={0}
               max={100000}
               disabled={disabled}
               value={form.deceptionPoints ?? D.deceptionPoints}
-              infoMessage='Awarded when a player picks this answer believing it correct'
+              infoMessage="Awarded when a player picks this answer believing it correct"
               onChange={number("deceptionPoints")}
               onBlur={flush}
             />
             <Toggle
-              labelPosition="labelBefore"
               id={`${idPrefix}-reset-streak`}
-              label='Reset streak when it ends'
+              label="Reset streak when it ends"
               disabled={disabled}
               checked={form.resetStreakOnStreakEnd ?? D.resetStreakOnStreakEnd}
               onChange={(e) => {
@@ -201,14 +180,15 @@ const QuizPanel = ({
               }}
             />
           </>
-        }
+        )}
       </section>
 
       <div className={styles.footer}>
         <Tooltip
           className={styles.applyTooltip}
-          label='Sets these as the deck default and removes all per-slide point-settings overrides, so every slide inherits this form.'>
-          <Btn variant='secondary' fill='bordered' onClick={applyToDeck}>
+          label="Sets these as the deck default and removes all per-slide point-settings overrides, so every slide inherits this form."
+        >
+          <Btn variant="secondary" fill="bordered" onClick={applyToDeck}>
             Apply to all slides
           </Btn>
         </Tooltip>

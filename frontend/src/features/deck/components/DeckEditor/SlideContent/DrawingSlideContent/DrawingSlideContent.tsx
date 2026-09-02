@@ -1,22 +1,8 @@
-/**
- * Author surface for a Drawing slide (DrawingContent) — the open-canvas,
- * survey-style kind: players freehand-draw on a fixed 1:1 canvas and submit
- * a rendered PNG. There is no static answer key (typically paired with a
- * best-answer-vote follow-up), so this surface has no scoring knobs.
- *
- *
- * Removing the correct-answer image is blocked (no clear control, no PUT
- * fired) while a keyed follow-up is attached — the backend 400s that content
- * transition, and `updateSlide`'s fire-and-forget PUT can't surface a
- * rejection, so `wouldOrphanKeyedFollowUp` catches it client-side first.
- * Replacing it stays allowed: the follow-up keeps an answer to hide either way.
- */
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import { useGalleryPicker } from "@/shared/hooks/useGalleryPicker";
 import { RadioGroup } from "@components/Forms/Input/RadioGroup/RadioGroup";
-import { Toggle } from "@components/Forms/Input/Toggle/Toggle";
 import { AppImg } from "@components/Images/AppImg";
 import { useDrawingEditor } from "@deck/hooks/useDrawingEditor";
 import { useSlide } from "@deck/hooks/useSlide";
@@ -24,7 +10,7 @@ import type { PromptPlacement, Tool } from "@deck/store/deckEnums.gen";
 import { wouldOrphanKeyedFollowUp } from "@deck/utils/followUp";
 import { DEFAULT_DRAWING_PALETTE } from "@deck/utils/slideContent";
 import { useModal } from "@hooks/useModal";
-import { Btn } from "@saganaut/ambi-ui";
+import { Btn, Toggle } from "@saganaut/ambi-ui";
 import { isImageEmpty, largestUrl } from "@utils/image";
 import { EmptySelect } from "../_shared";
 import { SlideContentProps } from "../_shared/Item.types";
@@ -288,7 +274,6 @@ const DrawingSlideContent = ({ deckId, slideId }: SlideContentProps) => {
                   key={tool}
                   id={`draw-tool-${tool}-${question.id}`}
                   label={label}
-                  labelPosition="labelBefore"
                   checked={question.tools.includes(tool)}
                   onChange={(e) => {
                     editor.setToolEnabled(tool, e.target.checked);

@@ -59,7 +59,7 @@ const DeckEditor = () => {
           <div className={styles.leftControlButtons}>
             <Btn
               size={"md"}
-              shape={"pill"}
+              shape={"squircle"}
               onClick={() => {
                 void navigate({
                   to: "/decks",
@@ -69,11 +69,11 @@ const DeckEditor = () => {
               Back
             </Btn>
             <Btn
-              shape={"pill"}
-              size={"sm"}
+              shape={"squircle"}
+              size={"md"}
               aria-label="Enter fullscreen"
               onClick={toggleFullScreen}
-              icon={<ArrowsPointingOutIcon className={styles.iconMd} />}
+              icon={<ArrowsPointingOutIcon />}
             />{" "}
             <Input
               withPadding={false}
@@ -112,6 +112,7 @@ const DeckEditor = () => {
               size={"md"}
               shape={"pill"}
               variant={"brand"}
+              icon={<PlayIcon />}
               disabled={isStarting}
               aria-describedby={startError ? "start-interactiveSession-error" : undefined}
               onClick={() => {
@@ -125,7 +126,7 @@ const DeckEditor = () => {
                 </>
               }
             >
-              <PlayIcon className={styles.iconMd} />
+              {/* <PlayIcon className={styles.iconMd} /> */}
               {isStarting ? "Starting…" : "Start"}
             </SplitBtn>
             {startError && (
